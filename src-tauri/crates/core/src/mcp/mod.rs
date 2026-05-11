@@ -1,14 +1,8 @@
-//! MCP 协议实现 — 合并自 runtime crate
-pub mod autostart;
-pub mod client;
-pub mod lifecycle_hardened;
-pub mod server;
-pub mod stdio;
-pub mod tool_bridge;
-
-pub use autostart::*;
-pub use client::*;
-pub use lifecycle_hardened::*;
-pub use server::*;
-pub use stdio::*;
-pub use tool_bridge::*;
+//! MCP utilities — config, client, lifecycle, stdio, server, tool bridge.
+pub mod mcp;
+pub mod mcp_autostart;
+pub mod mcp_client;
+pub mod mcp_lifecycle_hardened;
+pub mod mcp_server;
+pub mod mcp_stdio;
+pub mod mcp_tool_bridge;

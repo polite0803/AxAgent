@@ -40,13 +40,21 @@ pub struct ObsidianGetVaultsTool;
 
 #[async_trait]
 impl Tool for ObsidianGetVaultsTool {
-    fn name(&self) -> &str { "ObsidianGetVaults" }
-    fn description(&self) -> &str { "搜索并列出系统中的 Obsidian 知识库。" }
+    fn name(&self) -> &str {
+        "ObsidianGetVaults"
+    }
+    fn description(&self) -> &str {
+        "搜索并列出系统中的 Obsidian 知识库。"
+    }
     fn input_schema(&self) -> Value {
         serde_json::json!({ "type": "object", "properties": { "search_path": { "type": "string" } } })
     }
-    fn category(&self) -> ToolCategory { ToolCategory::FileRead }
-    fn is_concurrency_safe(&self) -> bool { true }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::FileRead
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let search_path = input.get("search_path").and_then(|v| v.as_str());
@@ -54,7 +62,11 @@ impl Tool for ObsidianGetVaultsTool {
         if vaults.is_empty() {
             Ok(ToolResult::success("未找到 Obsidian 知识库"))
         } else {
-            Ok(ToolResult::success(format!("找到 {} 个 Obsidian 知识库:\n{}", vaults.len(), vaults.join("\n"))))
+            Ok(ToolResult::success(format!(
+                "找到 {} 个 Obsidian 知识库:\n{}",
+                vaults.len(),
+                vaults.join("\n")
+            )))
         }
     }
 }
@@ -63,16 +75,27 @@ pub struct ObsidianListFilesTool;
 
 #[async_trait]
 impl Tool for ObsidianListFilesTool {
-    fn name(&self) -> &str { "ObsidianListFiles" }
-    fn description(&self) -> &str { "列出 Obsidian 知识库中的文件。" }
+    fn name(&self) -> &str {
+        "ObsidianListFiles"
+    }
+    fn description(&self) -> &str {
+        "列出 Obsidian 知识库中的文件。"
+    }
     fn input_schema(&self) -> Value {
         serde_json::json!({ "type": "object", "properties": { "vault_path": { "type": "string" } }, "required": ["vault_path"] })
     }
-    fn category(&self) -> ToolCategory { ToolCategory::FileRead }
-    fn is_concurrency_safe(&self) -> bool { true }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::FileRead
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let vault_path = input.get("vault_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let vault_path = input
+            .get("vault_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         if vault_path.is_empty() {
             return Ok(ToolResult::error("Error: vault_path 是必需的"));
         }
@@ -89,7 +112,11 @@ impl Tool for ObsidianListFilesTool {
         if files.is_empty() {
             Ok(ToolResult::success("未找到 .md 文件"))
         } else {
-            Ok(ToolResult::success(format!("文件列表 ({}):\n{}", files.len(), files.join("\n"))))
+            Ok(ToolResult::success(format!(
+                "文件列表 ({}):\n{}",
+                files.len(),
+                files.join("\n")
+            )))
         }
     }
 }
@@ -98,17 +125,31 @@ pub struct ObsidianReadFileTool;
 
 #[async_trait]
 impl Tool for ObsidianReadFileTool {
-    fn name(&self) -> &str { "ObsidianReadFile" }
-    fn description(&self) -> &str { "读取 Obsidian 知识库中的文件内容。" }
+    fn name(&self) -> &str {
+        "ObsidianReadFile"
+    }
+    fn description(&self) -> &str {
+        "读取 Obsidian 知识库中的文件内容。"
+    }
     fn input_schema(&self) -> Value {
         serde_json::json!({ "type": "object", "properties": { "vault_path": { "type": "string" }, "file_path": { "type": "string" } }, "required": ["vault_path", "file_path"] })
     }
-    fn category(&self) -> ToolCategory { ToolCategory::FileRead }
-    fn is_concurrency_safe(&self) -> bool { true }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::FileRead
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let vault_path = input.get("vault_path").and_then(|v| v.as_str()).unwrap_or_default();
-        let file_path = input.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let vault_path = input
+            .get("vault_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let file_path = input
+            .get("file_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         if vault_path.is_empty() || file_path.is_empty() {
             return Ok(ToolResult::error("Error: vault_path 和 file_path 都是必需的"));
         }

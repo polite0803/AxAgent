@@ -55,7 +55,8 @@ impl<M> Batch<M> {
     }
 
     pub fn is_ready(&self, config: &BatchingConfig) -> bool {
-        self.messages.len() >= config.max_batch_size || self.size_bytes >= config.compression_threshold_bytes
+        self.messages.len() >= config.max_batch_size
+            || self.size_bytes >= config.compression_threshold_bytes
     }
 }
 
@@ -97,7 +98,10 @@ impl MessageBatcher {
             batch.add(msg, size);
         }
 
-        self.batch_tx.send(batch).await.map_err(|_| BatcherError::ChannelClosed)?;
+        self.batch_tx
+            .send(batch)
+            .await
+            .map_err(|_| BatcherError::ChannelClosed)?;
         Ok(())
     }
 
@@ -238,14 +242,20 @@ impl MessageCompressor {
             Vec::new(),
             flate2::Compression::new(self.level.to_i32() as u32),
         );
-        encoder.write_all(data).map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
-        encoder.finish().map_err(|e| BatcherError::CompressionFailed(e.to_string()))
+        encoder
+            .write_all(data)
+            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
+        encoder
+            .finish()
+            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))
     }
 
     fn decompress_gzip(&self, data: &[u8]) -> Result<Vec<u8>, BatcherError> {
         let mut decoder = flate2::read::GzDecoder::new(data);
         let mut output = Vec::new();
-        decoder.read_to_end(&mut output).map_err(|e| BatcherError::DecompressionFailed(e.to_string()))?;
+        decoder
+            .read_to_end(&mut output)
+            .map_err(|e| BatcherError::DecompressionFailed(e.to_string()))?;
         Ok(output)
     }
 
@@ -254,14 +264,20 @@ impl MessageCompressor {
             Vec::new(),
             flate2::Compression::new(self.level.to_i32() as u32),
         );
-        encoder.write_all(data).map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
-        encoder.finish().map_err(|e| BatcherError::CompressionFailed(e.to_string()))
+        encoder
+            .write_all(data)
+            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
+        encoder
+            .finish()
+            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))
     }
 
     fn decompress_deflate(&self, data: &[u8]) -> Result<Vec<u8>, BatcherError> {
         let mut decoder = flate2::read::ZlibDecoder::new(data);
         let mut output = Vec::new();
-        decoder.read_to_end(&mut output).map_err(|e| BatcherError::DecompressionFailed(e.to_string()))?;
+        decoder
+            .read_to_end(&mut output)
+            .map_err(|e| BatcherError::DecompressionFailed(e.to_string()))?;
         Ok(output)
     }
 
@@ -311,11 +327,17 @@ impl BatchProcessor {
         })
     }
 
-    pub async fn compress_batch(&self, messages: Vec<AgentMessage>) -> Result<CompressedBatch, BatcherError> {
-        let json = serde_json::to_vec(&messages).map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
+    pub async fn compress_batch(
+        &self,
+        messages: Vec<AgentMessage>,
+    ) -> Result<CompressedBatch, BatcherError> {
+        let json = serde_json::to_vec(&messages)
+            .map_err(|e| BatcherError::CompressionFailed(e.to_string()))?;
         let original_size = json.len();
 
-        let compressed = if original_size >= self.config.compression_threshold_bytes && self.config.enable_compression {
+        let compressed = if original_size >= self.config.compression_threshold_bytes
+            && self.config.enable_compression
+        {
             self.compressor.compress(&json).await?
         } else {
             json
@@ -370,14 +392,20 @@ impl StreamingBatcher {
         }
     }
 
-    pub async fn push(&self, message: AgentMessage) -> Result<Option<Vec<AgentMessage>>, BatcherError> {
+    pub async fn push(
+        &self,
+        message: AgentMessage,
+    ) -> Result<Option<Vec<AgentMessage>>, BatcherError> {
         let mut buffer = self.buffer.write().await;
         buffer.push(message);
 
         let elapsed = self.last_flush.read().await.elapsed();
 
-        if buffer.len() >= self.config.max_batch_size || elapsed.as_millis() >= self.config.max_batch_delay_ms as u128 {
-            let batch = std::mem::replace(&mut *buffer, Vec::with_capacity(self.config.max_batch_size));
+        if buffer.len() >= self.config.max_batch_size
+            || elapsed.as_millis() >= self.config.max_batch_delay_ms as u128
+        {
+            let batch =
+                std::mem::replace(&mut *buffer, Vec::with_capacity(self.config.max_batch_size));
             *self.last_flush.write().await = Instant::now();
             return Ok(Some(batch));
         }

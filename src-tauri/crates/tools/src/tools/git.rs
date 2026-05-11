@@ -41,7 +41,10 @@ impl Tool for GitStatusTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let repo_path = input.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let repo_path = input
+            .get("repo_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         if repo_path.is_empty() {
             return Ok(ToolResult::error("Error: repo_path 参数是必需的"));
         }
@@ -92,7 +95,10 @@ impl Tool for GitDiffTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let repo_path = input.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let repo_path = input
+            .get("repo_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         if repo_path.is_empty() {
             return Ok(ToolResult::error("Error: repo_path 参数是必需的"));
         }
@@ -143,9 +149,18 @@ impl Tool for GitCommitTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let repo_path = input.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
-        let message = input.get("message").and_then(|v| v.as_str()).unwrap_or_default();
-        let stage_all = input.get("stage_all").and_then(|v| v.as_bool()).unwrap_or(false);
+        let repo_path = input
+            .get("repo_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let message = input
+            .get("message")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let stage_all = input
+            .get("stage_all")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
 
         if repo_path.is_empty() {
             return Ok(ToolResult::error("Error: repo_path 参数是必需的"));
@@ -199,14 +214,22 @@ impl Tool for GitLogTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let repo_path = input.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
-        let max_count = input.get("max_count").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+        let repo_path = input
+            .get("repo_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let max_count = input
+            .get("max_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(10) as usize;
 
         if repo_path.is_empty() {
             return Ok(ToolResult::error("Error: repo_path 参数是必需的"));
         }
         match axagent_core::git_tools::GitTools::get_log(repo_path, max_count) {
-            Ok(entries) => Ok(ToolResult::success(serde_json::to_string(&entries).unwrap_or_default())),
+            Ok(entries) => {
+                Ok(ToolResult::success(serde_json::to_string(&entries).unwrap_or_default()))
+            },
             Err(e) => Ok(ToolResult::error(format!("Error: {}", e))),
         }
     }
@@ -243,8 +266,14 @@ impl Tool for GitBranchTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let repo_path = input.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
-        let action = input.get("action").and_then(|v| v.as_str()).unwrap_or("list");
+        let repo_path = input
+            .get("repo_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let action = input
+            .get("action")
+            .and_then(|v| v.as_str())
+            .unwrap_or("list");
         let name = input.get("name").and_then(|v| v.as_str());
 
         if repo_path.is_empty() {
@@ -253,9 +282,9 @@ impl Tool for GitBranchTool {
 
         match action {
             "list" => match axagent_core::git_tools::GitTools::list_branches(repo_path) {
-                Ok(branches) => Ok(ToolResult::success(
-                    serde_json::to_string(&branches).unwrap_or_default(),
-                )),
+                Ok(branches) => {
+                    Ok(ToolResult::success(serde_json::to_string(&branches).unwrap_or_default()))
+                },
                 Err(e) => Ok(ToolResult::error(format!("Error: {}", e))),
             },
             "create" => match name {
@@ -314,7 +343,10 @@ impl Tool for GitReviewTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let repo_path = input.get("repo_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let repo_path = input
+            .get("repo_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         let base_branch = input.get("base_branch").and_then(|v| v.as_str());
 
         if repo_path.is_empty() {

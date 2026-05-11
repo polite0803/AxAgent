@@ -18,7 +18,10 @@ pub fn set_db_path(path: &str) {
 }
 
 pub fn get_db_path() -> Option<String> {
-    GLOBAL_DB_PATH.read().expect("GLOBAL_DB_PATH poisoned").clone()
+    GLOBAL_DB_PATH
+        .read()
+        .expect("GLOBAL_DB_PATH poisoned")
+        .clone()
 }
 
 // ── SeaORM 数据库连接 ─────────────────────────────────────────────────────
@@ -32,5 +35,8 @@ pub fn set_sea_db(db: Arc<DatabaseConnection>) {
 }
 
 pub fn get_sea_db() -> Option<Arc<DatabaseConnection>> {
-    GLOBAL_SEA_DB.read().expect("GLOBAL_SEA_DB poisoned").clone()
+    GLOBAL_SEA_DB
+        .read()
+        .expect("GLOBAL_SEA_DB poisoned")
+        .clone()
 }

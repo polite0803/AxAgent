@@ -31,7 +31,11 @@ pub enum WebhookEvent {
 #[async_trait::async_trait]
 pub trait WebhookDispatch: Send + Sync {
     /// Dispatch a webhook event with the given data.
-    async fn dispatch(&self, event: WebhookEvent, data: std::collections::HashMap<String, serde_json::Value>);
+    async fn dispatch(
+        &self,
+        event: WebhookEvent,
+        data: std::collections::HashMap<String, serde_json::Value>,
+    );
 }
 
 impl WebhookEvent {
@@ -201,4 +205,3 @@ impl WebhookSubscriptionManager {
         Ok(())
     }
 }
-

@@ -5,15 +5,16 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use axagent_core::entity::{knowledge_documents, knowledge_entities, knowledge_flows, knowledge_interfaces};
+use axagent_core::entity::{
+    knowledge_documents, knowledge_entities, knowledge_flows, knowledge_interfaces,
+};
 use sea_orm::{ActiveModelTrait, Set};
 use serde_json::Value;
 
 // ── 辅助函数 ──
 
 fn sea_db() -> Result<std::sync::Arc<sea_orm::DatabaseConnection>, ToolError> {
-    crate::global_state::get_sea_db()
-        .ok_or_else(|| ToolError::execution_failed("数据库未初始化"))
+    crate::global_state::get_sea_db().ok_or_else(|| ToolError::execution_failed("数据库未初始化"))
 }
 
 fn db_path() -> Result<String, ToolError> {
@@ -191,14 +192,12 @@ impl Tool for SearchKnowledgeTool {
             .map_err(|e| ToolError::execution_failed(format!("打开数据库失败: {}", e)))?;
 
         let meta_table = format!("vec_kb_{}_meta", base_id);
-        let sql = format!(
-            "SELECT content FROM {} WHERE content LIKE ? LIMIT {}",
-            meta_table, top_k
-        );
+        let sql =
+            format!("SELECT content FROM {} WHERE content LIKE ? LIMIT {}", meta_table, top_k);
         let like_pattern = format!("%{}%", query);
-        let mut stmt = conn
-            .prepare(&sql)
-            .map_err(|e| ToolError::execution_failed(format!("知识库 '{}' 可能不存在或未索引: {}", base_id, e)))?;
+        let mut stmt = conn.prepare(&sql).map_err(|e| {
+            ToolError::execution_failed(format!("知识库 '{}' 可能不存在或未索引: {}", base_id, e))
+        })?;
 
         let rows: Vec<String> = stmt
             .query_map(rusqlite::params![like_pattern], |row| {
@@ -263,8 +262,14 @@ impl Tool for CreateKnowledgeEntityTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-        let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+        let kb_id = input
+            .get("knowledge_base_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let name = input
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));
@@ -281,10 +286,24 @@ impl Tool for CreateKnowledgeEntityTool {
             id: Set(id.clone()),
             knowledge_base_id: Set(kb_id.to_string()),
             name: Set(name.to_string()),
-            entity_type: Set(input.get("entity_type").and_then(|v| v.as_str()).unwrap_or("entity").to_string()),
-            description: Set(input.get("description").and_then(|v| v.as_str()).map(|s| s.to_string())),
-            source_path: Set(input.get("source_path").and_then(|v| v.as_str()).unwrap_or_default().to_string()),
-            source_language: Set(input.get("source_language").and_then(|v| v.as_str()).map(|s| s.to_string())),
+            entity_type: Set(input
+                .get("entity_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("entity")
+                .to_string()),
+            description: Set(input
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())),
+            source_path: Set(input
+                .get("source_path")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string()),
+            source_language: Set(input
+                .get("source_language")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())),
             properties: Set(input.get("properties").cloned().unwrap_or(Value::Null)),
             lifecycle: Set(input.get("lifecycle").cloned()),
             behaviors: Set(input.get("behaviors").cloned()),
@@ -341,8 +360,14 @@ impl Tool for CreateKnowledgeFlowTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-        let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+        let kb_id = input
+            .get("knowledge_base_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let name = input
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));
@@ -359,9 +384,20 @@ impl Tool for CreateKnowledgeFlowTool {
             id: Set(id.clone()),
             knowledge_base_id: Set(kb_id.to_string()),
             name: Set(name.to_string()),
-            flow_type: Set(input.get("flow_type").and_then(|v| v.as_str()).unwrap_or("process").to_string()),
-            description: Set(input.get("description").and_then(|v| v.as_str()).map(|s| s.to_string())),
-            source_path: Set(input.get("source_path").and_then(|v| v.as_str()).unwrap_or_default().to_string()),
+            flow_type: Set(input
+                .get("flow_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("process")
+                .to_string()),
+            description: Set(input
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())),
+            source_path: Set(input
+                .get("source_path")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string()),
             steps: Set(input.get("steps").cloned().unwrap_or(Value::Null)),
             decision_points: Set(input.get("decision_points").cloned()),
             error_handling: Set(input.get("error_handling").cloned()),
@@ -419,8 +455,14 @@ impl Tool for CreateKnowledgeInterfaceTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-        let name = input.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+        let kb_id = input
+            .get("knowledge_base_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let name = input
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));
@@ -437,13 +479,27 @@ impl Tool for CreateKnowledgeInterfaceTool {
             id: Set(id.clone()),
             knowledge_base_id: Set(kb_id.to_string()),
             name: Set(name.to_string()),
-            interface_type: Set(input.get("interface_type").and_then(|v| v.as_str()).unwrap_or("api").to_string()),
-            description: Set(input.get("description").and_then(|v| v.as_str()).map(|s| s.to_string())),
-            source_path: Set(input.get("source_path").and_then(|v| v.as_str()).unwrap_or_default().to_string()),
+            interface_type: Set(input
+                .get("interface_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("api")
+                .to_string()),
+            description: Set(input
+                .get("description")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())),
+            source_path: Set(input
+                .get("source_path")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string()),
             input_schema: Set(input.get("input_schema").cloned().unwrap_or(Value::Null)),
             output_schema: Set(input.get("output_schema").cloned().unwrap_or(Value::Null)),
             error_codes: Set(input.get("error_codes").cloned()),
-            communication_pattern: Set(input.get("communication_pattern").and_then(|v| v.as_str()).map(|s| s.to_string())),
+            communication_pattern: Set(input
+                .get("communication_pattern")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())),
             version: Set(None),
             metadata: Set(None),
             created_at: Set(now),
@@ -491,9 +547,18 @@ impl Tool for AddKnowledgeDocumentTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let kb_id = input.get("knowledge_base_id").and_then(|v| v.as_str()).unwrap_or_default();
-        let title = input.get("title").and_then(|v| v.as_str()).unwrap_or_default();
-        let content = input.get("content").and_then(|v| v.as_str()).unwrap_or_default();
+        let kb_id = input
+            .get("knowledge_base_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let title = input
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let content = input
+            .get("content")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
 
         if kb_id.is_empty() {
             return Ok(ToolResult::error("Error: knowledge_base_id 是必需的"));

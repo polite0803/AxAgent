@@ -23,8 +23,9 @@ static CALLBACK: std::sync::OnceLock<
                 usize,
             ) -> std::pin::Pin<
                 Box<
-                    dyn std::future::Future<Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>>
-                        + Send
+                    dyn std::future::Future<
+                            Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>,
+                        > + Send
                         + 'static,
                 >,
             > + Send
@@ -42,8 +43,9 @@ pub fn set_knowledge_search_callback(
                 usize,
             ) -> std::pin::Pin<
                 Box<
-                    dyn std::future::Future<Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>>
-                        + Send
+                    dyn std::future::Future<
+                            Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>,
+                        > + Send
                         + 'static,
                 >,
             > + Send
@@ -60,11 +62,11 @@ pub fn get_knowledge_search_callback() -> Option<
                 &str,
                 &str,
                 usize,
-            )
-                -> std::pin::Pin<
+            ) -> std::pin::Pin<
                 Box<
-                    dyn std::future::Future<Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>>
-                        + Send
+                    dyn std::future::Future<
+                            Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>,
+                        > + Send
                         + 'static,
                 >,
             > + Send

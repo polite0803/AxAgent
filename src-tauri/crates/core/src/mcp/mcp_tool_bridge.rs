@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::mcp::mcp_tool_name;
-use crate::mcp_stdio::McpServerManager;
+use crate::mcp::mcp_stdio::McpServerManager;
 use serde::{Deserialize, Serialize};
 
 /// Status of a managed MCP server connection.
@@ -318,7 +318,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::*;
-    use crate::config::{
+    use axagent_runtime_core::config::{
         ConfigSource, McpServerConfig, McpStdioServerConfig, ScopedMcpServerConfig,
     };
 
@@ -864,3 +864,5 @@ mod tests {
         assert!(registry.is_empty());
     }
 }
+
+

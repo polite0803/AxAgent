@@ -132,11 +132,7 @@ impl Tool for ListStorageFilesTool {
         if items.is_empty() {
             Ok(ToolResult::success(format!("'{}' 中没有文件", path)))
         } else {
-            Ok(ToolResult::success(format!(
-                "'{}' 中的文件:\n{}",
-                path,
-                items.join("\n")
-            )))
+            Ok(ToolResult::success(format!("'{}' 中的文件:\n{}", path, items.join("\n"))))
         }
     }
 }
@@ -172,9 +168,18 @@ impl Tool for UploadStorageFileTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let filename = input.get("filename").and_then(|v| v.as_str()).unwrap_or_default();
-        let content_base64 = input.get("content_base64").and_then(|v| v.as_str()).unwrap_or_default();
-        let bucket = input.get("bucket").and_then(|v| v.as_str()).unwrap_or_default();
+        let filename = input
+            .get("filename")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let content_base64 = input
+            .get("content_base64")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let bucket = input
+            .get("bucket")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
 
         if filename.is_empty() {
             return Ok(ToolResult::error("Error: filename 是必需的"));
@@ -239,7 +244,10 @@ impl Tool for DownloadStorageFileTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
+        let path = input
+            .get("path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));
@@ -256,10 +264,7 @@ impl Tool for DownloadStorageFileTool {
             .map_err(|e| ToolError::execution_failed(format!("读取文件失败: {}", e)))?;
         let encoded = Engine::encode(&base64::engine::general_purpose::STANDARD, &content);
 
-        Ok(ToolResult::success(format!(
-            "文件 '{}' 内容 (base64):\n{}",
-            path, encoded
-        )))
+        Ok(ToolResult::success(format!("文件 '{}' 内容 (base64):\n{}", path, encoded)))
     }
 }
 
@@ -296,7 +301,10 @@ impl Tool for DeleteStorageFileTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or_default();
+        let path = input
+            .get("path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
 
         if path.is_empty() {
             return Ok(ToolResult::error("Error: path 是必需的"));

@@ -9,7 +9,8 @@ use serde_json::{json, Value};
 
 /// 触发 Worktree 相关 HookEvent（best-effort，失败不影响主流程）
 fn fire_worktree_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
-    let runner = axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
+    let runner =
+        axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
     let data_str = data.to_string();
     let _ = runner.run_event(event, &data_str);
 }

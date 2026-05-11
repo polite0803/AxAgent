@@ -10,28 +10,28 @@
 #![allow(clippy::await_holding_lock)]
 #![allow(clippy::wrong_self_convention)]
 
-pub mod json;
-pub mod usage;
-pub mod session;
-pub mod sandbox;
-pub mod config;
-pub mod config_validate;
-pub mod hooks;
-pub mod permissions;
+pub mod cache_guard;
 pub mod compact;
 pub mod compact_thresholds;
 pub mod compact_warning;
+pub mod config;
+pub mod config_validate;
 pub mod conversation;
 pub mod feature_flags;
 pub mod fork_bridge;
 pub mod hook_chain;
+pub mod hooks;
+pub mod json;
 pub mod message_importance;
 pub mod permission_enforcer;
+pub mod permissions;
 pub mod plugin_hooks;
 pub mod prompt_cache;
-pub mod cache_guard;
+pub mod sandbox;
+pub mod session;
 pub mod session_control;
 pub mod session_memory_compact;
+pub mod usage;
 
 // ── Public Re-exports ────────────────────────────────────────────────
 
@@ -116,9 +116,7 @@ pub use session_memory_compact::{
 
 pub use session_control::SessionStore;
 
-pub use message_importance::{
-    score_message, select_top_messages,
-};
+pub use message_importance::{score_message, select_top_messages};
 
 pub use hook_chain::HookChain;
 
@@ -126,6 +124,3 @@ pub use plugin_hooks::{
     HookContext, HookDecision, LlmCallContext, LlmCallResult, PluginHook, SharedHook,
     ToolCallContext, ToolCallResult,
 };
-
-
-

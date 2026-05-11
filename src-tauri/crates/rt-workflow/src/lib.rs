@@ -10,6 +10,6 @@ pub mod workflow_engine;
 pub use agent_roles::AgentRole;
 pub use engine_bridge::{EngineBridge, EngineId, EngineMessage};
 pub use workflow_engine::{
-    CircuitBreaker, OnStepFailure, RetryPolicy, SessionCallback, StepStatus, WorkflowEngine,
-    WorkflowRunner, WorkflowStep, wrap_executor_with_callback,
+    wrap_executor_with_callback, CircuitBreaker, OnStepFailure, RetryPolicy, SessionCallback,
+    StepStatus, WorkflowEngine, WorkflowRunner, WorkflowStep,
 };

@@ -73,13 +73,10 @@ impl Tool for ListDirectoryTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or(".");
+        let path = input.get("path").and_then(|v| v.as_str()).unwrap_or(".");
 
-        let resolved_path = validate_and_resolve_path(path)
-            .map_err(|e| ToolError::invalid_input(e))?;
+        let resolved_path =
+            validate_and_resolve_path(path).map_err(|e| ToolError::invalid_input(e))?;
 
         let mut entries = tokio::fs::read_dir(&resolved_path)
             .await
@@ -165,8 +162,8 @@ impl Tool for DeleteFileTool {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
         }
 
-        let resolved_path = validate_and_resolve_path(path)
-            .map_err(|e| ToolError::invalid_input(e))?;
+        let resolved_path =
+            validate_and_resolve_path(path).map_err(|e| ToolError::invalid_input(e))?;
 
         let path_str = resolved_path.to_string_lossy();
         tokio::fs::remove_file(&*path_str)
@@ -218,8 +215,8 @@ impl Tool for CreateDirectoryTool {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
         }
 
-        let resolved_path = validate_and_resolve_path(path)
-            .map_err(|e| ToolError::invalid_input(e))?;
+        let resolved_path =
+            validate_and_resolve_path(path).map_err(|e| ToolError::invalid_input(e))?;
 
         let path_str = resolved_path.to_string_lossy();
         tokio::fs::create_dir_all(&*path_str)
@@ -333,8 +330,8 @@ impl Tool for GetFileInfoTool {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
         }
 
-        let resolved_path = validate_and_resolve_path(path)
-            .map_err(|e| ToolError::invalid_input(e))?;
+        let resolved_path =
+            validate_and_resolve_path(path).map_err(|e| ToolError::invalid_input(e))?;
 
         let path_str = resolved_path.to_string_lossy();
         let meta = std::fs::metadata(&*path_str)
@@ -419,9 +416,9 @@ impl Tool for MoveFileTool {
 
         if let Some(parent) = Path::new(&*dest_str).parent() {
             if !parent.as_os_str().is_empty() {
-                tokio::fs::create_dir_all(parent)
-                    .await
-                    .map_err(|e| ToolError::execution_failed(format!("创建目标父目录失败: {}", e)))?;
+                tokio::fs::create_dir_all(parent).await.map_err(|e| {
+                    ToolError::execution_failed(format!("创建目标父目录失败: {}", e))
+                })?;
             }
         }
 

@@ -11,15 +11,24 @@ pub struct OcrImageTool;
 
 #[async_trait]
 impl Tool for OcrImageTool {
-    fn name(&self) -> &str { "OcrImage" }
-    fn description(&self) -> &str { "使用 Tesseract OCR 从图片中提取文字。" }
+    fn name(&self) -> &str {
+        "OcrImage"
+    }
+    fn description(&self) -> &str {
+        "使用 Tesseract OCR 从图片中提取文字。"
+    }
     fn input_schema(&self) -> Value {
         serde_json::json!({ "type": "object", "properties": { "file_path": { "type": "string" }, "lang": { "type": "string", "default": "eng" } }, "required": ["file_path"] })
     }
-    fn category(&self) -> ToolCategory { ToolCategory::System }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::System
+    }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input.get("file_path").and_then(|v| v.as_str()).unwrap_or_default();
+        let file_path = input
+            .get("file_path")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         let lang = input.get("lang").and_then(|v| v.as_str()).unwrap_or("eng");
 
         if file_path.is_empty() {
@@ -34,7 +43,11 @@ impl Tool for OcrImageTool {
         if meta.len() > 50 * 1024 * 1024 {
             return Ok(ToolResult::error("图片过大 (最大 50 MB)"));
         }
-        let safe_lang = if lang.is_empty() || lang.contains("..") || lang.contains("/") || lang.contains("\\") {
+        let safe_lang = if lang.is_empty()
+            || lang.contains("..")
+            || lang.contains("/")
+            || lang.contains("\\")
+        {
             "eng"
         } else {
             lang
@@ -43,8 +56,13 @@ impl Tool for OcrImageTool {
         let output = tokio::time::timeout(
             std::time::Duration::from_secs(120),
             tokio::process::Command::new("tesseract")
-                .arg(file_path).arg("stdout").arg("-l").arg(safe_lang).output(),
-        ).await;
+                .arg(file_path)
+                .arg("stdout")
+                .arg("-l")
+                .arg(safe_lang)
+                .output(),
+        )
+        .await;
 
         match output {
             Ok(Ok(out)) => {
@@ -70,17 +88,30 @@ pub struct OcrDetectLangsTool;
 
 #[async_trait]
 impl Tool for OcrDetectLangsTool {
-    fn name(&self) -> &str { "OcrDetectLangs" }
-    fn description(&self) -> &str { "检测已安装的 Tesseract OCR 语言包。" }
-    fn input_schema(&self) -> Value { serde_json::json!({ "type": "object", "properties": {} }) }
-    fn category(&self) -> ToolCategory { ToolCategory::System }
-    fn is_concurrency_safe(&self) -> bool { true }
+    fn name(&self) -> &str {
+        "OcrDetectLangs"
+    }
+    fn description(&self) -> &str {
+        "检测已安装的 Tesseract OCR 语言包。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({ "type": "object", "properties": {} })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::System
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let output = tokio::time::timeout(
             std::time::Duration::from_secs(10),
-            tokio::process::Command::new("tesseract").arg("--list-langs").output(),
-        ).await;
+            tokio::process::Command::new("tesseract")
+                .arg("--list-langs")
+                .output(),
+        )
+        .await;
 
         match output {
             Ok(Ok(out)) => {
@@ -89,7 +120,11 @@ impl Tool for OcrDetectLangsTool {
                 if langs.is_empty() {
                     Ok(ToolResult::success("未检测到 Tesseract 语言包"))
                 } else {
-                    Ok(ToolResult::success(format!("可用 Tesseract 语言 ({}):\n{}", langs.len(), langs.join("\n"))))
+                    Ok(ToolResult::success(format!(
+                        "可用 Tesseract 语言 ({}):\n{}",
+                        langs.len(),
+                        langs.join("\n")
+                    )))
                 }
             },
             Ok(Err(e)) if e.kind() == std::io::ErrorKind::NotFound => {

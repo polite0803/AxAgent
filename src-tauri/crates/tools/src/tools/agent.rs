@@ -11,17 +11,24 @@ use std::sync::{LazyLock, Mutex, RwLock};
 
 /// 待处理子 Agent 卡片: (child_conversation_id, agent_type, description)
 type PendingSubAgentCard = (String, String, String);
-static PENDING_SUB_AGENT_CARDS: LazyLock<Mutex<std::collections::HashMap<String, PendingSubAgentCard>>> =
-    LazyLock::new(|| Mutex::new(std::collections::HashMap::new()));
+static PENDING_SUB_AGENT_CARDS: LazyLock<
+    Mutex<std::collections::HashMap<String, PendingSubAgentCard>>,
+> = LazyLock::new(|| Mutex::new(std::collections::HashMap::new()));
 
 fn store_pending_card(parent_id: &str, child_id: &str, agent_type: &str, description: &str) {
-    let mut m = PENDING_SUB_AGENT_CARDS.lock().expect("PENDING_SUB_AGENT_CARDS poisoned");
-    m.insert(parent_id.to_string(), (child_id.to_string(), agent_type.to_string(), description.to_string()));
+    let mut m = PENDING_SUB_AGENT_CARDS
+        .lock()
+        .expect("PENDING_SUB_AGENT_CARDS poisoned");
+    m.insert(
+        parent_id.to_string(),
+        (child_id.to_string(), agent_type.to_string(), description.to_string()),
+    );
 }
 
 /// 触发 HookEvent（best-effort，失败不影响主流程）
 fn fire_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
-    let runner = axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
+    let runner =
+        axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
     let data_str = data.to_string();
     let _ = runner.run_event(event, &data_str);
 }
@@ -298,12 +305,7 @@ impl Tool for AgentTool {
         output.push_str("\u{1F3AF} 子 Agent 已启动，执行完成后将返回结果摘要。\n");
 
         if let Some(conv_id) = &ctx.conversation_id {
-            store_pending_card(
-                conv_id,
-                conv_id,
-                resolved_type,
-                description,
-            );
+            store_pending_card(conv_id, conv_id, resolved_type, description);
         }
 
         // 触发 SubagentStart hook (best-effort)
@@ -334,15 +336,19 @@ async fn handle_fork_subagent(
 
     // 存储 fork 上下文 — 子 agent 启动时读取以继承父 agent 消息历史
     // ForkSessionData 在 runtime::fork_bridge 中，父 agent 填入 session 数据后子 agent 可加载
-    axagent_runtime_core::fork_bridge::store_fork_session(axagent_runtime_core::fork_bridge::ForkSessionData {
-        parent_conversation_id: parent_id.to_string(),
-        description: description.to_string(),
-        prompt: prompt.to_string(),
-        created_at: chrono::Utc::now().to_rfc3339(),
-        parent_system_prompt: Vec::new(),
-        parent_messages_json: String::new(),
-        child_system_prompt: Some(axagent_runtime_core::fork_bridge::build_fork_child_prompt(prompt)),
-    });
+    axagent_runtime_core::fork_bridge::store_fork_session(
+        axagent_runtime_core::fork_bridge::ForkSessionData {
+            parent_conversation_id: parent_id.to_string(),
+            description: description.to_string(),
+            prompt: prompt.to_string(),
+            created_at: chrono::Utc::now().to_rfc3339(),
+            parent_system_prompt: Vec::new(),
+            parent_messages_json: String::new(),
+            child_system_prompt: Some(axagent_runtime_core::fork_bridge::build_fork_child_prompt(
+                prompt,
+            )),
+        },
+    );
     store_pending_card(parent_id, parent_id, "fork", description);
 
     let output = format!(

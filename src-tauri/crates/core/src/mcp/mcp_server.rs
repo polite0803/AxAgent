@@ -20,7 +20,7 @@ use tokio::io::{
     stdin, stdout, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Stdin, Stdout,
 };
 
-use crate::mcp_stdio::{
+use crate::mcp::mcp_stdio::{
     JsonRpcError, JsonRpcId, JsonRpcRequest, JsonRpcResponse, McpInitializeResult,
     McpInitializeServerInfo, McpListToolsResult, McpTool, McpToolCallContent, McpToolCallParams,
     McpToolCallResult,
@@ -44,7 +44,7 @@ pub type ToolCallHandler =
 /// Configuration for an [`McpServer`] instance.
 ///
 /// Named `McpServerSpec` rather than `McpServerConfig` to avoid colliding
-/// with the existing client-side [`crate::config::McpServerConfig`] that
+/// with the existing client-side [`axagent_runtime_core::config::McpServerConfig`] that
 /// describes *remote* MCP servers the runtime connects to.
 pub struct McpServerSpec {
     /// Name advertised in the `serverInfo` field of the `initialize` response.
@@ -438,3 +438,5 @@ mod tests {
         assert_eq!(error.code, -32601);
     }
 }
+
+

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::config::{McpOAuthConfig, McpServerConfig, ScopedMcpServerConfig};
+use axagent_runtime_core::config::{McpOAuthConfig, McpServerConfig, ScopedMcpServerConfig};
 use crate::mcp::{mcp_server_signature, mcp_tool_prefix, normalize_name_for_mcp};
 
 pub const DEFAULT_MCP_TOOL_CALL_TIMEOUT_MS: u64 = 60_000;
@@ -133,7 +133,7 @@ impl McpClientAuth {
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::config::{
+    use axagent_runtime_core::config::{
         ConfigSource, McpOAuthConfig, McpRemoteServerConfig, McpSdkServerConfig, McpServerConfig,
         McpStdioServerConfig, McpWebSocketServerConfig, ScopedMcpServerConfig,
     };
@@ -240,3 +240,5 @@ mod tests {
         }
     }
 }
+
+

@@ -30,7 +30,10 @@ pub struct TokenUsageBreakdown {
 }
 
 impl TokenUsageBreakdown {
-    pub fn from_turn_summary(usage: &axagent_runtime_core::TokenUsage, estimated_chars: usize) -> Self {
+    pub fn from_turn_summary(
+        usage: &axagent_runtime_core::TokenUsage,
+        estimated_chars: usize,
+    ) -> Self {
         let total = usage.total_tokens();
         let estimated_from_chars = total == 0 && estimated_chars > 0;
         Self {
@@ -54,7 +57,9 @@ pub fn estimate_tokens_from_text(text: &str) -> usize {
     text.len() / TOKEN_ESTIMATION_CHARS_PER_TOKEN
 }
 
-pub fn estimate_tokens_from_messages(messages: &[axagent_runtime_core::ConversationMessage]) -> usize {
+pub fn estimate_tokens_from_messages(
+    messages: &[axagent_runtime_core::ConversationMessage],
+) -> usize {
     messages
         .iter()
         .map(|m| estimate_tokens_from_content_blocks(&m.blocks))
@@ -441,7 +446,8 @@ impl SessionManager {
             tokio::sync::Mutex<std::collections::HashMap<String, ChannelPermissionPrompter>>,
         >,
         cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-    ) -> Result<(axagent_runtime_core::TurnSummary, axagent_runtime_core::Session), RuntimeError> {
+    ) -> Result<(axagent_runtime_core::TurnSummary, axagent_runtime_core::Session), RuntimeError>
+    {
         let session = self
             .get_session(session_id)
             .await
@@ -476,7 +482,9 @@ impl SessionManager {
                                 format!("[ToolUse: {} {}]", name, input)
                             },
                             axagent_runtime_core::ContentBlock::ToolResult {
-                                tool_name, output, ..
+                                tool_name,
+                                output,
+                                ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
                         .collect();
@@ -486,11 +494,9 @@ impl SessionManager {
                         content,
                         message_type: None,
                         timestamp: i as i64,
-                        tool_calls: Some(
-                            m.blocks.iter().any(|b| {
-                                matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
-                            }),
-                        ),
+                        tool_calls: Some(m.blocks.iter().any(|b| {
+                            matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
+                        })),
                     }
                 })
                 .collect();
@@ -515,7 +521,9 @@ impl SessionManager {
                                 format!("[ToolUse: {} {}]", name, input)
                             },
                             axagent_runtime_core::ContentBlock::ToolResult {
-                                tool_name, output, ..
+                                tool_name,
+                                output,
+                                ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
                         .collect();
@@ -525,11 +533,9 @@ impl SessionManager {
                         content,
                         message_type: None,
                         timestamp: i as i64,
-                        tool_calls: Some(
-                            m.blocks.iter().any(|b| {
-                                matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
-                            }),
-                        ),
+                        tool_calls: Some(m.blocks.iter().any(|b| {
+                            matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
+                        })),
                     }
                 })
                 .collect();

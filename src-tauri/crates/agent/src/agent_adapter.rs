@@ -101,7 +101,10 @@ impl AgentImpl for AgentImplAdapter {
                 let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
                 match reg.execute(local_name, &input_str).await {
                     Ok(r) => Ok(CoordinatorOutput::success(r.content, 1)),
-                    Err(e) => Err(AgentError::ExecutionFailed(format!("Tool '{}' failed: {}", tool_name, e))),
+                    Err(e) => Err(AgentError::ExecutionFailed(format!(
+                        "Tool '{}' failed: {}",
+                        tool_name, e
+                    ))),
                 }
             }
         } else {
