@@ -116,11 +116,15 @@ jobs:
 
       - name: Add swap space
         run: |
-          sudo fallocate -l 4G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          echo "Swap added: $(free -h | grep Swap)"
+          if [ -f /swapfile ]; then
+            echo "Swap file already exists, skipping"
+          else
+            sudo fallocate -l 4G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile || true
+          fi
+          echo "Swap status: $(free -h | grep Swap)"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -205,11 +209,15 @@ jobs:
 
       - name: Add swap space
         run: |
-          sudo fallocate -l 4G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          echo "Swap added: $(free -h | grep Swap)"
+          if [ -f /swapfile ]; then
+            echo "Swap file already exists, skipping"
+          else
+            sudo fallocate -l 4G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile || true
+          fi
+          echo "Swap status: $(free -h | grep Swap)"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
