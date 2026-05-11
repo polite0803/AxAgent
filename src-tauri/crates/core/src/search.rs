@@ -221,10 +221,9 @@ fn extract_technical_terms_chinese(text: &str) -> Vec<String> {
         if word
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+            && word.len() > 2
         {
-            if word.len() > 2 {
-                terms.push(word.to_string());
-            }
+            terms.push(word.to_string());
         }
     }
 
@@ -495,7 +494,7 @@ pub async fn execute_iterative_search(
     let mut queries_to_try: Vec<String> = expansion.queries.clone();
 
     for round in 0..max_rounds {
-        let round_queries: Vec<String> = queries_to_try.drain(..).collect();
+        let round_queries: Vec<String> = std::mem::take(&mut queries_to_try);
         if round_queries.is_empty() {
             break;
         }
@@ -565,7 +564,7 @@ fn extract_covered_topics(results: &[SearchResult]) -> Vec<String> {
     }
 
     let mut sorted: Vec<(String, usize)> = words.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.sort_by_key(|b| std::cmp::Reverse(b.1));
     sorted.iter().take(10).map(|(w, _)| w.clone()).collect()
 }
 
