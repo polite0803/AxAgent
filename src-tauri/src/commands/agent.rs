@@ -1288,9 +1288,6 @@ pub async fn agent_query(
         resolved_role
     };
 
-    // Set current conversation ID for builtin tools that need parent context (e.g., task tool)
-    axagent_tools::builtin_tools::set_current_conversation_id(&conversation_id);
-
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = request
         .enabled_knowledge_base_ids

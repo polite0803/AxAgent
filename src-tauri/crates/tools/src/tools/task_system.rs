@@ -129,7 +129,7 @@ async fn db_get_output(
 }
 
 fn get_db(_ctx: &ToolContext) -> Arc<sea_orm::DatabaseConnection> {
-    crate::builtin_tools::get_global_sea_db().expect("Global DB not initialized for task system")
+    crate::global_state::get_sea_db().expect("Global DB not initialized for task system")
 }
 
 #[async_trait]

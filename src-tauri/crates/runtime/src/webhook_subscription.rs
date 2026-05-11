@@ -1,2 +1,2 @@
-//! Re-exported from axagent-rt-webhook.
-pub use axagent_rt_webhook::webhook_subscription::*;
+//! Re-exported from axagent-rt-messaging.
+pub use axagent_rt_messaging::webhook_subscription::*;

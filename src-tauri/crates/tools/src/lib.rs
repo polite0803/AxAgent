@@ -7,9 +7,9 @@
 pub mod agent_def_loader;
 pub mod agent_def_types;
 pub mod bash;
-pub mod builtin_tools;
-pub mod knowledge_callback;
+pub mod global_state;
 pub mod hooks;
+pub mod knowledge_callback;
 pub mod mcp;
 pub mod orchestration;
 pub mod permissions;
@@ -21,13 +21,7 @@ pub mod stats;
 pub mod streaming;
 pub mod tools;
 
-pub use builtin_tools::{
-    get_global_db_path, get_global_sea_db, set_global_db_path, set_global_sea_db,
-    get_current_conversation_id, set_current_conversation_id,
-    get_global_sub_agent_runner, set_global_sub_agent_runner, SubAgentRunner,
-    store_pending_sub_agent_card, take_pending_sub_agent_card, PendingSubAgentCard,
-    store_fork_context, has_fork_context,
-};
+pub use global_state::{get_db_path, get_sea_db, set_db_path, set_sea_db};
 pub use plugin_sdk::{
     AxAgentPlugin, PluginBuilder, PluginCategory, PluginContext, PluginManifest, PluginPermission,
     PluginToolDef, PluginToolResult,

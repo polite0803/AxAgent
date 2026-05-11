@@ -41,15 +41,15 @@ pub async fn init_database() -> Result<DatabaseInitResult, String> {
             msg
         );
     }
-    axagent_tools::builtin_tools::set_global_db_path(&db_path);
+    axagent_tools::global_state::set_db_path(&db_path);
 
     // 直接使用当前 tokio runtime，不再创建嵌套 Runtime
     let db_handle = axagent_core::db::create_pool(&db_path)
         .await
         .map_err(|e| format!("database initialization failed: {}", e))?;
 
-    // 注册 SeaORM 连接供 builtin_tools 使用
-    axagent_tools::builtin_tools::set_global_sea_db(std::sync::Arc::new(db_handle.conn.clone()));
+    // 注册 SeaORM 连接
+    axagent_tools::global_state::set_sea_db(std::sync::Arc::new(db_handle.conn.clone()));
 
     Ok(DatabaseInitResult {
         db_handle,

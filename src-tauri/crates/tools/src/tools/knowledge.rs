@@ -12,12 +12,12 @@ use serde_json::Value;
 // ── 辅助函数 ──
 
 fn sea_db() -> Result<std::sync::Arc<sea_orm::DatabaseConnection>, ToolError> {
-    crate::builtin_tools::get_global_sea_db()
+    crate::global_state::get_sea_db()
         .ok_or_else(|| ToolError::execution_failed("数据库未初始化"))
 }
 
 fn db_path() -> Result<String, ToolError> {
-    crate::builtin_tools::get_global_db_path()
+    crate::global_state::get_db_path()
         .ok_or_else(|| ToolError::execution_failed("数据库路径未初始化"))
 }
 

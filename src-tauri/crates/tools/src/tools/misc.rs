@@ -15,8 +15,6 @@ fn truncate_text(s: &str, max: usize) -> String {
     if s.len() <= max { s.to_string() } else { format!("{}...", &s[..max]) }
 }
 
-fn current_timestamp() -> i64 { chrono::Utc::now().timestamp() }
-
 // ── 全局状态（agent 工具用）────────────────────────────────────────────────
 
 static CHECKPOINTS: std::sync::LazyLock<Mutex<Vec<(String, String, String)>>> = std::sync::LazyLock::new(|| Mutex::new(Vec::new()));
@@ -106,7 +104,7 @@ impl Tool for SessionSearchTool {
 
         if query.is_empty() { return Ok(ToolResult::error("Error: query 是必需的")); }
 
-        let db_path_str = match crate::builtin_tools::get_global_db_path() {
+        let db_path_str = match crate::global_state::get_db_path() {
             Some(p) => p,
             None => return Ok(ToolResult::error("会话搜索不可用：未配置数据库路径")),
         };
@@ -342,7 +340,7 @@ impl Tool for RemoteFileDeleteTool {
         let path = Path::new("remote").join(name);
         if !path.exists() { return Ok(ToolResult::error(format!("文件未找到: {}", name))); }
         std::fs::remove_file(&path)
-            .map_err(|e| ToolResult::error(format!("删除失败: {}", e)))?;
+            .map_err(|e| ToolError::execution_failed(format!("删除失败: {}", e)))?;
         Ok(ToolResult::success(format!("已删除: {}", name)))
     }
 }
