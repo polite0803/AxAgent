@@ -1158,6 +1158,8 @@ mod tests {
                 max_tokens: Some(4096),
                 enabled: true,
                 param_overrides: None,
+                input_price_per_mtok: None,
+                output_price_per_mtok: None,
             }],
         )
         .await
@@ -1215,6 +1217,8 @@ mod tests {
                 max_tokens: Some(4096),
                 enabled: true,
                 param_overrides: None,
+                input_price_per_mtok: None,
+                output_price_per_mtok: None,
             }],
         )
         .await
