@@ -790,18 +790,53 @@ mod tests {
         assert_eq!(results[0].snippet, "");
     }
 
-    #[tokio::test]
-    async fn test_extract_content_valid_url() {
-        let provider = WebSearchProvider::new();
-        let content = provider.extract_content("https://example.com/page").await;
-        assert!(content.is_ok());
-        let content = content.unwrap();
-        assert_eq!(content.url, "https://example.com/page");
-        assert_eq!(content.title, "Page: example.com");
-        assert!(content.text.contains("example.com"));
-        assert!(content.metadata.description.is_some());
-        assert_eq!(content.metadata.keywords.len(), 2);
-        assert_eq!(content.metadata.language.as_deref(), Some("en"));
+    #[test]
+    fn test_extract_readability_basic_html() {
+        let html = r#"
+        <html><head><title>Test Page</title></head>
+        <body><main><p>Hello world example content</p></main></body></html>
+        "#;
+        let (title, body_text, links) = extract_readability(html);
+        assert_eq!(title, "Test Page");
+        assert!(body_text.contains("Hello world"));
+        assert!(links.is_empty());
+    }
+
+    #[test]
+    fn test_extract_readability_extracts_links() {
+        let html = r#"
+        <html><head><title>Link Page</title></head>
+        <body><article>
+            <a href="https://example.com/a">Link A</a>
+            <a href="https://example.com/b">Link B</a>
+            <a href="/relative">Relative</a>
+        </article></body></html>
+        "#;
+        let (title, _, links) = extract_readability(html);
+        assert_eq!(title, "Link Page");
+        assert_eq!(links.len(), 2);
+        assert!(links.contains(&"https://example.com/a".to_string()));
+        assert!(links.contains(&"https://example.com/b".to_string()));
+    }
+
+    #[test]
+    fn test_extract_readability_no_title() {
+        let html = r#"<html><body><p>No title page</p></body></html>"#;
+        let (title, body_text, _) = extract_readability(html);
+        assert_eq!(title, "");
+        assert!(body_text.contains("No title page"));
+    }
+
+    #[test]
+    fn test_detect_language_english() {
+        let text = "This is a sample English text for language detection testing purposes";
+        assert_eq!(detect_language(text), "en");
+    }
+
+    #[test]
+    fn test_detect_language_chinese() {
+        let text = "这是一段用于语言检测的中文文本内容测试";
+        assert_eq!(detect_language(text), "zh");
     }
 
     #[tokio::test]
@@ -812,12 +847,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_extract_content_url_without_domain() {
+    async fn test_extract_content_invalid_url() {
         let provider = WebSearchProvider::new();
-        let content = provider.extract_content("not-a-url").await;
-        assert!(content.is_ok());
-        let content = content.unwrap();
-        assert_eq!(content.title, "Page: unknown");
+        let result = provider.extract_content("not-a-url").await;
+        assert!(result.is_err());
     }
 
     #[test]
