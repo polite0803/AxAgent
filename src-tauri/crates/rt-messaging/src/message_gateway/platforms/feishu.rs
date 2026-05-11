@@ -80,7 +80,7 @@ impl PlatformAdapter for FeishuAdapter {
                             tracing::info!("Feishu msg [{}]: {} (from {})", msg_id, text, user_id);
 
                             if let Some(cb) =
-                                crate::platforms::get_message_callback()
+                                crate::message_gateway::platforms::get_message_callback()
                             {
                                 let bt = token.clone();
                                 let uid = user_id.clone();

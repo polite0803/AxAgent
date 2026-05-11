@@ -94,7 +94,7 @@ impl PlatformAdapter for TelegramAdapter {
 
                                 if !text.is_empty() {
                                     let cb =
-                                        crate::platforms::get_message_callback();
+                                        crate::message_gateway::platforms::get_message_callback();
                                     if let Some(cb) = cb {
                                         let client = client.clone();
                                         let bt = bot_token.clone();

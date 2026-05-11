@@ -219,7 +219,7 @@ pub async fn handle_webhook_notification(
 
                 tracing::info!("WhatsApp webhook: {} ({}) — {}", sender_name, from, text);
 
-                if let Some(cb) = crate::platforms::get_message_callback() {
+                if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
                     let access_token = config.whatsapp_access_token.clone().unwrap_or_default();
                     let phone_number_id =
                         config.whatsapp_phone_number_id.clone().unwrap_or_default();

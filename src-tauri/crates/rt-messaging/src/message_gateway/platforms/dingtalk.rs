@@ -89,7 +89,7 @@ impl PlatformAdapter for DingtalkAdapter {
                             );
 
                             if let Some(cb) =
-                                crate::platforms::get_message_callback()
+                                crate::message_gateway::platforms::get_message_callback()
                             {
                                 let bt = token.clone();
                                 let sid = sender_id.clone();

@@ -192,7 +192,7 @@ async fn run_slack_socket_mode(
                             let text = event["text"].as_str().unwrap_or("");
 
                             if !text.is_empty() {
-                                let cb = crate::platforms::get_message_callback();
+                                let cb = crate::message_gateway::platforms::get_message_callback();
                                 if let Some(cb) = cb {
                                     let bt = bot_token.to_string();
                                     let uid = user.to_string();

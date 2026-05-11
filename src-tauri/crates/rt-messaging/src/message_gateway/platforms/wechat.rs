@@ -160,7 +160,7 @@ async fn start_customer_service_polling(
                 for (openid, text) in msgs {
                     tracing::info!("WeChat CS msg: {} from {}", text, openid);
 
-                    if let Some(cb) = crate::platforms::get_message_callback() {
+                    if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
                         let at = access_token.clone();
                         let oid = openid.clone();
                         let t = text.clone();
@@ -250,7 +250,7 @@ pub async fn handle_official_account_message(
 
     tracing::info!("WeChat official account: {} — {}", from_user, content);
 
-    if let Some(cb) = crate::platforms::get_message_callback() {
+    if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
         let app_id = config.wechat_app_id.clone().unwrap_or_default();
         let app_secret = config.wechat_app_secret.clone().unwrap_or_default();
         let from = from_user.to_string();

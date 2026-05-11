@@ -209,7 +209,7 @@ async fn run_qq_gateway(
                                     );
 
                                     let cb =
-                                        crate::platforms::get_message_callback();
+                                        crate::message_gateway::platforms::get_message_callback();
                                     if let Some(cb) = cb {
                                         let bt = bot_token.to_string();
                                         let uid = author_id.clone();

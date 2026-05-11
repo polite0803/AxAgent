@@ -272,7 +272,7 @@ async fn handle_dispatch(
                 content
             );
 
-            if let Some(cb) = crate::platforms::get_message_callback() {
+            if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
                 let bot = bot_token.to_string();
                 let ch = channel_id.clone();
                 tokio::spawn(async move {
