@@ -1982,6 +1982,7 @@
       "noStatuses": "Нет статусов"
     },
     "advanced": "Расширенные настройки",
+    "evolution": "Самоэволюция",
     "promptTemplates": "Шаблоны промптов",
     "appConfig": "Панель управления агентом",
     "appConfigDesc": "Выбор модели, переключатели функций, управление агентом и конфигурация хуков",
@@ -3549,6 +3550,45 @@
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
+  },
+  "evolution": {
+    "title": "Система Самоэволюции",
+    "description": "Мониторинг и управление автономными движками самоэволюции",
+    "refresh": "Обновить",
+    "infrastructure": "Состояние инфраструктуры",
+    "llmProvider": "LLM Провайдер",
+    "sandbox": "Песочница",
+    "prm": "Модель Вознаграждения Процесса",
+    "intrinsic": "Внутренняя Мотивация",
+    "metricsOverview": "Обзор Метрик",
+    "skillCount": "Навыки",
+    "trajectories": "Траектории",
+    "autoTools": "Авто-Инструменты",
+    "dreamKnowledge": "Знания Снов",
+    "textGradNodes": "Узлы TextGrad",
+    "textGradGradients": "Градиенты",
+    "constitutionRules": "Правила Конституции",
+    "coevolutionTasks": "Задачи Коэволюции",
+    "engineStatus": "Статус Движков",
+    "frequentPatterns": "Частые Шаблоны Инструментов",
+    "constitutionShield": "Щит Конституции",
+    "constitutionActive": "{{count}} неизменяемых правил активно",
+    "constitutionEmpty": "Правила конституции не определены",
+    "newToolDiscovered": "Обнаружен новый авто-инструмент!",
+    "newDreamKnowledge": "Новые знания снов консолидированы",
+    "running": "Работает",
+    "idle": "Ожидание",
+    "processed": "Обработано: {{count}}",
+    "engineNames": {
+      "skillEvolution": "Эволюция Навыков",
+      "rlReward": "RL Вознаграждение",
+      "processRewardModel": "Модель Вознаграждения Процесса",
+      "autoToolCreator": "Создатель Авто-Инструментов",
+      "textGradEngine": "Движок TextGrad",
+      "dreamConsolidator": "Консолидатор Снов",
+      "intrinsicMotivation": "Внутренняя Мотивация",
+      "coevolution": "Коэволюция"
+    }
   },
   "promptTemplates": {
     "title": "Prompt Templates",

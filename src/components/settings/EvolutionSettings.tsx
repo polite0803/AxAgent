@@ -43,7 +43,19 @@ const ENGINE_ICONS: Record<string, React.ReactNode> = {
   "Coevolution": <Dna size={16} />,
 };
 
+const ENGINE_NAME_KEY_MAP: Record<string, string> = {
+  "Skill Evolution": "evolution.engineNames.skillEvolution",
+  "RL Reward": "evolution.engineNames.rlReward",
+  "Process Reward Model": "evolution.engineNames.processRewardModel",
+  "Auto Tool Creator": "evolution.engineNames.autoToolCreator",
+  "TextGrad Engine": "evolution.engineNames.textGradEngine",
+  "Dream Consolidator": "evolution.engineNames.dreamConsolidator",
+  "Intrinsic Motivation": "evolution.engineNames.intrinsicMotivation",
+  "Coevolution": "evolution.engineNames.coevolution",
+};
+
 function EngineStatusCard({ engine }: { engine: EvolutionEngineStatus }) {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const icon = ENGINE_ICONS[engine.name] ?? <Activity size={16} />;
 
@@ -58,18 +70,20 @@ function EngineStatusCard({ engine }: { engine: EvolutionEngineStatus }) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
         <span style={{ color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>{icon}</span>
-        <Text strong style={{ fontSize: 13, flex: 1 }}>{engine.name}</Text>
+        <Text strong style={{ fontSize: 13, flex: 1 }}>
+          {t(ENGINE_NAME_KEY_MAP[engine.name] ?? engine.name, engine.name)}
+        </Text>
         <Badge
           status={engine.running ? "success" : "default"}
           text={
             <Text style={{ fontSize: 11, color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>
-              {engine.running ? "Running" : "Idle"}
+              {engine.running ? t("evolution.running") : t("evolution.idle")}
             </Text>
           }
         />
       </div>
       <Text type="secondary" style={{ fontSize: 11 }}>
-        Processed: {engine.items_processed}
+        {t("evolution.processed", { count: engine.items_processed })}
       </Text>
     </Card>
   );
@@ -79,14 +93,14 @@ function InfrastructureStatus({ stats }: { stats: EvolutionStats }) {
   const { t } = useTranslation();
 
   const items = [
-    { label: t("evolution.llmProvider", "LLM Provider"), ok: stats.llm_provider_connected },
-    { label: t("evolution.sandbox", "Sandbox"), ok: stats.sandbox_enabled },
-    { label: t("evolution.prm", "Process Reward"), ok: stats.prm_enabled },
-    { label: t("evolution.intrinsic", "Intrinsic Motivation"), ok: stats.intrinsic_motivation_active },
+    { label: t("evolution.llmProvider"), ok: stats.llm_provider_connected },
+    { label: t("evolution.sandbox"), ok: stats.sandbox_enabled },
+    { label: t("evolution.prm"), ok: stats.prm_enabled },
+    { label: t("evolution.intrinsic"), ok: stats.intrinsic_motivation_active },
   ];
 
   return (
-    <SettingsGroup title={t("evolution.infrastructure", "Infrastructure Status")}>
+    <SettingsGroup title={t("evolution.infrastructure")}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {items.map((item) => (
           <Tag
@@ -106,32 +120,32 @@ function MetricsOverview({ stats }: { stats: EvolutionStats }) {
   const { t } = useTranslation();
 
   return (
-    <SettingsGroup title={t("evolution.metricsOverview", "Metrics Overview")}>
+    <SettingsGroup title={t("evolution.metricsOverview")}>
       <Row gutter={[12, 12]}>
         <Col span={6}>
           <Statistic
-            title={t("evolution.skillCount", "Skills")}
+            title={t("evolution.skillCount")}
             value={stats.skill_count}
             valueStyle={{ fontSize: 20 }}
           />
         </Col>
         <Col span={6}>
           <Statistic
-            title={t("evolution.trajectories", "Trajectories")}
+            title={t("evolution.trajectories")}
             value={stats.total_trajectories}
             valueStyle={{ fontSize: 20 }}
           />
         </Col>
         <Col span={6}>
           <Statistic
-            title={t("evolution.autoTools", "Auto Tools")}
+            title={t("evolution.autoTools")}
             value={stats.auto_tools_count}
             valueStyle={{ fontSize: 20 }}
           />
         </Col>
         <Col span={6}>
           <Statistic
-            title={t("evolution.dreamKnowledge", "Dream Knowledge")}
+            title={t("evolution.dreamKnowledge")}
             value={stats.dream_knowledge_count}
             valueStyle={{ fontSize: 20 }}
           />
@@ -141,28 +155,28 @@ function MetricsOverview({ stats }: { stats: EvolutionStats }) {
       <Row gutter={[12, 12]}>
         <Col span={6}>
           <Statistic
-            title={t("evolution.textGradNodes", "TextGrad Nodes")}
+            title={t("evolution.textGradNodes")}
             value={stats.text_grad_nodes}
             valueStyle={{ fontSize: 20 }}
           />
         </Col>
         <Col span={6}>
           <Statistic
-            title={t("evolution.textGradGradients", "Gradients")}
+            title={t("evolution.textGradGradients")}
             value={stats.text_grad_gradients}
             valueStyle={{ fontSize: 20 }}
           />
         </Col>
         <Col span={6}>
           <Statistic
-            title={t("evolution.constitutionRules", "Constitution Rules")}
+            title={t("evolution.constitutionRules")}
             value={stats.constitution_rules}
             valueStyle={{ fontSize: 20 }}
           />
         </Col>
         <Col span={6}>
           <Statistic
-            title={t("evolution.coevolutionTasks", "Coevolution Tasks")}
+            title={t("evolution.coevolutionTasks")}
             value={stats.coevolution_tasks}
             valueStyle={{ fontSize: 20 }}
           />
@@ -178,7 +192,7 @@ function AutoToolPatterns({ patterns }: { patterns: string[] }) {
   if (patterns.length === 0) { return null; }
 
   return (
-    <SettingsGroup title={t("evolution.frequentPatterns", "Frequent Tool Patterns")}>
+    <SettingsGroup title={t("evolution.frequentPatterns")}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {patterns.map((p) => <Tag key={p} style={{ borderRadius: 6, margin: 0 }}>{p}</Tag>)}
       </div>
@@ -201,11 +215,11 @@ export function EvolutionSettings() {
       setStats(result);
       const prevCount = stats?.auto_tools_count ?? 0;
       if (result.auto_tools_count > prevCount) {
-        pushNotification("success", t("evolution.newToolDiscovered", "New auto tool discovered!"));
+        pushNotification("success", t("evolution.newToolDiscovered"));
       }
       const prevKnowledge = stats?.dream_knowledge_count ?? 0;
       if (result.dream_knowledge_count > prevKnowledge) {
-        pushNotification("info", t("evolution.newDreamKnowledge", "New dream knowledge consolidated"));
+        pushNotification("info", t("evolution.newDreamKnowledge"));
       }
     } catch (e) {
       setError(String(e));
@@ -225,14 +239,14 @@ export function EvolutionSettings() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <Text strong style={{ fontSize: 16 }}>
-            {t("evolution.title", "Self-Evolution System")}
+            {t("evolution.title")}
           </Text>
           <br />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("evolution.description", "Monitor and manage the autonomous self-evolution engines")}
+            {t("evolution.description")}
           </Text>
         </div>
-        <Tooltip title={t("evolution.refresh", "Refresh")}>
+        <Tooltip title={t("evolution.refresh")}>
           <Button
             size="small"
             icon={<RefreshCw size={14} />}
@@ -240,7 +254,7 @@ export function EvolutionSettings() {
             loading={loading}
             style={{ display: "flex", alignItems: "center", gap: 4 }}
           >
-            {t("evolution.refresh", "Refresh")}
+            {t("evolution.refresh")}
           </Button>
         </Tooltip>
       </div>
@@ -262,7 +276,7 @@ export function EvolutionSettings() {
           <InfrastructureStatus stats={stats} />
           <MetricsOverview stats={stats} />
 
-          <SettingsGroup title={t("evolution.engineStatus", "Engine Status")}>
+          <SettingsGroup title={t("evolution.engineStatus")}>
             <Row gutter={[8, 8]}>
               {stats.evolution_engines.map((engine) => (
                 <Col span={12} key={engine.name}>
@@ -274,7 +288,7 @@ export function EvolutionSettings() {
 
           <AutoToolPatterns patterns={stats.auto_tool_patterns} />
 
-          <SettingsGroup title={t("evolution.constitutionShield", "Constitution Shield")}>
+          <SettingsGroup title={t("evolution.constitutionShield")}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Shield
                 size={16}
@@ -282,10 +296,10 @@ export function EvolutionSettings() {
               />
               <Text style={{ fontSize: 13 }}>
                 {stats.constitution_rules > 0
-                  ? t("evolution.constitutionActive", "{{count}} immutable rules active", {
+                  ? t("evolution.constitutionActive", {
                     count: stats.constitution_rules,
                   })
-                  : t("evolution.constitutionEmpty", "No constitution rules defined")}
+                  : t("evolution.constitutionEmpty")}
               </Text>
             </div>
           </SettingsGroup>

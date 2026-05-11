@@ -121,9 +121,20 @@ vi.mock("@/stores", () => ({
     }),
   useSkillExtensionStore: (selector: (state: unknown) => unknown) =>
     selector({
-      installed: [],
+      skills: [],
       loading: false,
-      fetchInstalled: vi.fn(),
+      navItems: [],
+      pages: [],
+      commands: [],
+      panels: [],
+      settingsSections: [],
+      toolbarButtons: [],
+      chatCommands: [],
+      statusBarItems: [],
+      handlers: {},
+      fetchSkills: vi.fn(),
+      getHandler: vi.fn().mockReturnValue(undefined),
+      refreshSkill: vi.fn(),
     }),
   useOnboardingStore: (selector: (state: unknown) => unknown) =>
     selector({

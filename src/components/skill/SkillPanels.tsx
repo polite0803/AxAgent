@@ -13,7 +13,7 @@ const SIZE_MAP: Record<string, number> = {
 };
 
 export function SkillPanels() {
-  const panels = useSkillExtensionStore((s) => s.panels);
+  const panels = useSkillExtensionStore((s) => s.panels) ?? [];
 
   const headerPanels = panels.filter((p) => p.position === "Header");
   const footerPanels = panels.filter((p) => p.position === "Footer");

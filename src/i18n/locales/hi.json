@@ -1982,6 +1982,7 @@
       "noStatuses": "कोई स्थिति उपलब्ध नहीं"
     },
     "advanced": "उन्नत सेटिंग्स",
+    "evolution": "स्व-विकास",
     "promptTemplates": "प्रॉम्प्ट टेम्पलेट",
     "appConfig": "एजेंट कंट्रोल पैनल",
     "appConfigDesc": "मॉडल चयन, फ़ीचर स्विच, एजेंट प्रबंधन और हुक कॉन्फ़िगरेशन",
@@ -3850,6 +3851,45 @@
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
+  },
+  "evolution": {
+    "title": "स्व-विकास प्रणाली",
+    "description": "स्वायत्त स्व-विकास इंजनों की निगरानी और प्रबंधन करें",
+    "refresh": "ताज़ा करें",
+    "infrastructure": "अवसंरचना स्थिति",
+    "llmProvider": "LLM प्रदाता",
+    "sandbox": "सैंडबॉक्स निष्पादक",
+    "prm": "प्रक्रिया पुरस्कार मॉडल",
+    "intrinsic": "आंतरिक प्रेरणा",
+    "metricsOverview": "मेट्रिक्स अवलोकन",
+    "skillCount": "कौशल",
+    "trajectories": "प्रक्षेप पथ",
+    "autoTools": "स्वचालित उपकरण",
+    "dreamKnowledge": "स्वप्न ज्ञान",
+    "textGradNodes": "TextGrad नोड्स",
+    "textGradGradients": "ग्रेडिएंट",
+    "constitutionRules": "संविधान नियम",
+    "coevolutionTasks": "सह-विकास कार्य",
+    "engineStatus": "इंजन स्थिति",
+    "frequentPatterns": "सामान्य उपकरण पैटर्न",
+    "constitutionShield": "संविधान ढाल",
+    "constitutionActive": "{{count}} अपरिवर्तनीय नियम सक्रिय",
+    "constitutionEmpty": "कोई संविधान नियम परिभाषित नहीं",
+    "newToolDiscovered": "नया स्वचालित उपकरण खोजा गया!",
+    "newDreamKnowledge": "नया स्वप्न ज्ञान समेकित हुआ",
+    "running": "चल रहा है",
+    "idle": "निष्क्रिय",
+    "processed": "संसाधित: {{count}}",
+    "engineNames": {
+      "skillEvolution": "कौशल विकास",
+      "rlReward": "RL पुरस्कार",
+      "processRewardModel": "प्रक्रिया पुरस्कार मॉडल",
+      "autoToolCreator": "स्वचालित उपकरण निर्माता",
+      "textGradEngine": "TextGrad इंजन",
+      "dreamConsolidator": "स्वप्न समेकक",
+      "intrinsicMotivation": "आंतरिक प्रेरणा",
+      "coevolution": "सह-विकास"
+    }
   },
   "promptTemplates": {
     "title": "Prompt Templates",

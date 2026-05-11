@@ -1982,6 +1982,7 @@
       "noStatuses": "Keine Status verfügbar"
     },
     "advanced": "Erweiterte Einstellungen",
+    "evolution": "Selbst-Evolution",
     "promptTemplates": "Prompt-Vorlagen",
     "appConfig": "Agent-Kontrollzentrale",
     "appConfigDesc": "Modellauswahl, Funktionsschalter, Agent-Verwaltung und Hook-Konfiguration",
@@ -3850,6 +3851,45 @@
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
+  },
+  "evolution": {
+    "title": "Selbst-Evolutionssystem",
+    "description": "Überwachung und Verwaltung der autonomen Selbst-Evolutions-Engines",
+    "refresh": "Aktualisieren",
+    "infrastructure": "Infrastrukturstatus",
+    "llmProvider": "LLM-Anbieter",
+    "sandbox": "Sandbox-Ausführer",
+    "prm": "Prozess-Belohnungsmodell",
+    "intrinsic": "Intrinsische Motivation",
+    "metricsOverview": "Metriken-Übersicht",
+    "skillCount": "Fähigkeiten",
+    "trajectories": "Trajektorien",
+    "autoTools": "Auto-Werkzeuge",
+    "dreamKnowledge": "Traumwissen",
+    "textGradNodes": "TextGrad-Knoten",
+    "textGradGradients": "Gradienten",
+    "constitutionRules": "Verfassungsregeln",
+    "coevolutionTasks": "Koevolutionsaufgaben",
+    "engineStatus": "Engine-Status",
+    "frequentPatterns": "Häufige Werkzeugmuster",
+    "constitutionShield": "Verfassungsschild",
+    "constitutionActive": "{{count}} unveränderliche Regeln aktiv",
+    "constitutionEmpty": "Keine Verfassungsregeln definiert",
+    "newToolDiscovered": "Neues Auto-Werkzeug entdeckt!",
+    "newDreamKnowledge": "Neues Traumwissen konsolidiert",
+    "running": "Läuft",
+    "idle": "Inaktiv",
+    "processed": "Verarbeitet: {{count}}",
+    "engineNames": {
+      "skillEvolution": "Fähigkeiten-Evolution",
+      "rlReward": "RL-Belohnung",
+      "processRewardModel": "Prozess-Belohnungsmodell",
+      "autoToolCreator": "Auto-Werkzeug-Ersteller",
+      "textGradEngine": "TextGrad-Engine",
+      "dreamConsolidator": "Traum-Konsolidierer",
+      "intrinsicMotivation": "Intrinsische Motivation",
+      "coevolution": "Koevolution"
+    }
   },
   "promptTemplates": {
     "title": "Prompt Templates",

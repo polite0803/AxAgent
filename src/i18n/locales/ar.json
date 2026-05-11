@@ -1982,6 +1982,7 @@
       "noStatuses": "لا توجد حالات متاحة"
     },
     "advanced": "الإعدادات المتقدمة",
+    "evolution": "التطور الذاتي",
     "promptTemplates": "قوالب الأوامر",
     "appConfig": "لوحة تحكم الوكيل",
     "appConfigDesc": "اختيار النموذج، مفاتيح الميزات، إدارة الوكيل وتكوين الخطافات",
@@ -3850,6 +3851,45 @@
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
+  },
+  "evolution": {
+    "title": "نظام التطور الذاتي",
+    "description": "مراقبة وإدارة محركات التطور الذاتي المستقلة",
+    "refresh": "تحديث",
+    "infrastructure": "حالة البنية التحتية",
+    "llmProvider": "مزود LLM",
+    "sandbox": "منفذ الصندوق الرملي",
+    "prm": "نموذج مكافأة العملية",
+    "intrinsic": "الدافع الذاتي",
+    "metricsOverview": "نظرة عامة على المقاييس",
+    "skillCount": "المهارات",
+    "trajectories": "المسارات",
+    "autoTools": "الأدوات التلقائية",
+    "dreamKnowledge": "معرفة الأحلام",
+    "textGradNodes": "عقد TextGrad",
+    "textGradGradients": "التدرجات",
+    "constitutionRules": "قواعد الدستور",
+    "coevolutionTasks": "مهام التطور المشترك",
+    "engineStatus": "حالة المحرك",
+    "frequentPatterns": "أنماط الأدوات المتكررة",
+    "constitutionShield": "درع الدستور",
+    "constitutionActive": "{{count}} قواعد ثابتة نشطة",
+    "constitutionEmpty": "لم يتم تعريف قواعد الدستور",
+    "newToolDiscovered": "تم اكتشاف أداة تلقائية جديدة!",
+    "newDreamKnowledge": "تم دمج معرفة أحلام جديدة",
+    "running": "قيد التشغيل",
+    "idle": "خامل",
+    "processed": "تمت المعالجة: {{count}}",
+    "engineNames": {
+      "skillEvolution": "تطور المهارات",
+      "rlReward": "مكافأة RL",
+      "processRewardModel": "نموذج مكافأة العملية",
+      "autoToolCreator": "منشئ الأدوات التلقائية",
+      "textGradEngine": "محرك TextGrad",
+      "dreamConsolidator": "موحد الأحلام",
+      "intrinsicMotivation": "الدافع الذاتي",
+      "coevolution": "التطور المشترك"
+    }
   },
   "promptTemplates": {
     "title": "Prompt Templates",

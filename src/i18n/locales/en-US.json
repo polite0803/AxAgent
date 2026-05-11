@@ -1067,6 +1067,7 @@
     "appConfigDesc": "Model selection, feature flags, agent management & hook configuration",
     "data": "Data Management",
     "about": "About",
+    "evolution": "Self-Evolution",
     "acp": "ACP",
     "language": "Language",
     "themeLight": "Light",
@@ -3687,7 +3688,20 @@
     "constitutionActive": "{{count}} immutable rules active",
     "constitutionEmpty": "No constitution rules defined",
     "newToolDiscovered": "New auto tool discovered!",
-    "newDreamKnowledge": "New dream knowledge consolidated"
+    "newDreamKnowledge": "New dream knowledge consolidated",
+    "running": "Running",
+    "idle": "Idle",
+    "processed": "Processed: {{count}}",
+    "engineNames": {
+      "skillEvolution": "Skill Evolution",
+      "rlReward": "RL Reward",
+      "processRewardModel": "Process Reward Model",
+      "autoToolCreator": "Auto Tool Creator",
+      "textGradEngine": "TextGrad Engine",
+      "dreamConsolidator": "Dream Consolidator",
+      "intrinsicMotivation": "Intrinsic Motivation",
+      "coevolution": "Coevolution"
+    }
   },
   "promptTemplates": {
     "title": "Prompt Templates",

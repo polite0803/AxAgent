@@ -1984,6 +1984,7 @@
       "noStatuses": "Sin estados disponibles"
     },
     "advanced": "Configuración avanzada",
+    "evolution": "Auto-Evolución",
     "promptTemplates": "Plantillas de prompts",
     "appConfig": "Panel de control del Agent",
     "appConfigDesc": "Selección de modelo, interruptores de funciones, gestión de Agent y configuración de Hooks",
@@ -3850,6 +3851,45 @@
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
+  },
+  "evolution": {
+    "title": "Sistema de Auto-Evolución",
+    "description": "Monitorear y gestionar los motores autónomos de auto-evolución",
+    "refresh": "Actualizar",
+    "infrastructure": "Estado de Infraestructura",
+    "llmProvider": "Proveedor LLM",
+    "sandbox": "Ejecutor Sandbox",
+    "prm": "Modelo de Recompensa de Proceso",
+    "intrinsic": "Motivación Intrínseca",
+    "metricsOverview": "Resumen de Métricas",
+    "skillCount": "Habilidades",
+    "trajectories": "Trayectorias",
+    "autoTools": "Herramientas Automáticas",
+    "dreamKnowledge": "Conocimiento Onírico",
+    "textGradNodes": "Nodos TextGrad",
+    "textGradGradients": "Gradientes",
+    "constitutionRules": "Reglas de Constitución",
+    "coevolutionTasks": "Tareas de Coevolución",
+    "engineStatus": "Estado del Motor",
+    "frequentPatterns": "Patrones Frecuentes",
+    "constitutionShield": "Escudo de Constitución",
+    "constitutionActive": "{{count}} reglas inmutables activas",
+    "constitutionEmpty": "Sin reglas de constitución definidas",
+    "newToolDiscovered": "¡Nueva herramienta automática descubierta!",
+    "newDreamKnowledge": "Nuevo conocimiento onírico consolidado",
+    "running": "Ejecutando",
+    "idle": "Inactivo",
+    "processed": "Procesado: {{count}}",
+    "engineNames": {
+      "skillEvolution": "Evolución de Habilidades",
+      "rlReward": "Recompensa RL",
+      "processRewardModel": "Modelo de Recompensa de Proceso",
+      "autoToolCreator": "Creador de Herramientas Auto",
+      "textGradEngine": "Motor TextGrad",
+      "dreamConsolidator": "Consolidador de Sueños",
+      "intrinsicMotivation": "Motivación Intrínseca",
+      "coevolution": "Coevolución"
+    }
   },
   "promptTemplates": {
     "title": "Prompt Templates",

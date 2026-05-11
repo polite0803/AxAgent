@@ -39,9 +39,14 @@ image = { workspace = true }
 which = "7"
 docx-rs = "0.4"
 roxmltree = "0.20"
-notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
 walkdir = "2"
 md5 = "0.7"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+notify = { version = "8", default-features = false, features = ["inotify"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
 
 [target.'cfg(windows)'.dependencies]
 xcap = { workspace = true }

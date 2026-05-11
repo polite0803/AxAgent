@@ -73,7 +73,9 @@
       "Bash(git checkout *)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(echo \"FMT_EXIT:$?\")",
-      "Bash(echo \"DPRINT_EXIT:$?\")"
+      "Bash(echo \"DPRINT_EXIT:$?\")",
+      "Bash(node -e \"var e=JSON.parse\\(require\\('fs'\\).readFileSync\\('D:/OneManager/AxAgent/src/i18n/locales/en-US.json','utf-8'\\)\\);var d=JSON.parse\\(require\\('fs'\\).readFileSync\\('D:/OneManager/AxAgent/src/i18n/locales/de.json','utf-8'\\)\\);var j=JSON.parse\\(require\\('fs'\\).readFileSync\\('D:/OneManager/AxAgent/src/i18n/locales/ja.json','utf-8'\\)\\);var z=JSON.parse\\(require\\('fs'\\).readFileSync\\('D:/OneManager/AxAgent/src/i18n/locales/zh-CN.json','utf-8'\\)\\);function flatten\\(o,p\\){var r={};for\\(var k of Object.keys\\(o||{}\\)\\){var fk=p?p+'.'+k:k;if\\(typeof o[k]==='object'&&o[k]!==null&&!Array.isArray\\(o[k]\\)\\){Object.assign\\(r,flatten\\(o[k],fk\\)\\)}else{r[fk]=String\\(o[k]\\)}}return r}var en=flatten\\(e\\);var de=flatten\\(d\\);var ja=flatten\\(j\\);var zh=flatten\\(z\\);function isEng\\(s\\){if\\(!s||s.length<3\\)return false;if\\(/^[0-9\\\\s.,%\\(\\)\\\\-+=\\\\/\\\\\\\\\\\\\\\\:;!?@#\\\\$^&*\\\\\"'<>\\\\[\\\\]{}|~\\\\`\\\\n]+$/.test\\(s\\)\\)return false;if\\(!/[A-Za-z]{2,}/.test\\(s\\)\\)return false;if\\(/[一-鿿]/.test\\(s\\)\\)return false;if\\(/[぀-ゟ゠-ヿ]/.test\\(s\\)\\)return false;if\\(/[가-힯]/.test\\(s\\)\\)return false;if\\(/[Ѐ-ӿ]/.test\\(s\\)\\)return false;if\\(/[؀-ۿ]/.test\\(s\\)\\)return false;if\\(/[ऀ-ॿ]/.test\\(s\\)\\)return false;return true}function analyze\\(name,flat\\){var results=[];for\\(var key of Object.keys\\(flat\\)\\){var val=flat[key];var enVal=en[key];if\\(val===enVal\\)continue;if\\(isEng\\(val\\)\\){results.push\\({key:key,val:val,enVal:enVal}\\)}}console.log\\('=== '+name+' ==='\\);console.log\\('English-like translated strings \\(not identical to en-US\\): '+results.length\\);results.slice\\(0,80\\).forEach\\(function\\(s\\){console.log\\('  '+s.key+' => \\\\\"'+s.val.substring\\(0,120\\)+'\\\\\"'\\)}\\);return results}var dr=analyze\\('de',de\\);var jr=analyze\\('ja',ja\\);var zr=analyze\\('zh-CN',zh\\);\")",
+      "Bash(node -e ' *)"
     ]
   }
 }
