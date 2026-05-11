@@ -1,6 +1,6 @@
 use axagent_rt_messaging::message_gateway::platform_config::PlatformConfig;
 use axagent_rt_messaging::message_gateway::platforms::{wechat, whatsapp};
-use crate::webhook_subscription::{WebhookEvent, WebhookSubscription, WebhookSubscriptionManager};
+use axagent_rt_messaging::webhook_subscription::{WebhookEvent, WebhookSubscription, WebhookSubscriptionManager};
 use axum::{
     extract::State,
     http::StatusCode,
