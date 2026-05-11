@@ -843,7 +843,7 @@ function ChatViewInner({ onScrollToReady }: {
       try {
         const data = await invoke<ConversationStats>("get_conversation_stats", {
           conversationId: activeConversationId,
-        });
+        }, 5_000);
         setStats(data);
       } catch {
         setStats(null);
@@ -1639,15 +1639,21 @@ function ChatViewInner({ onScrollToReady }: {
     } as BubbleItemType);
   }, [activeConversationId, consumeSwitch, getRoleById]);
 
+  // Reactive selectors for topic group state — ensures allBubbleItems recomputes
+  // when topic groups are toggled/collapsed/expanded without depending on getState().
+  const topicGroupEnabledByConv = useTopicGroupStore((s) =>
+    activeConversationId ? s.enabledByConversation[activeConversationId] : undefined
+  );
+  const topicGroupsByConv = useTopicGroupStore((s) =>
+    activeConversationId ? s.groupsByConversation[activeConversationId] : null
+  );
+
   const allBubbleItems = useMemo(() => {
     let items = bubbleItems;
 
     // Inject topic group dividers if enabled
-    const topicEnabled = activeConversationId
-      && useTopicGroupStore.getState().enabledByConversation[activeConversationId];
-    const topicGroups = activeConversationId
-      ? useTopicGroupStore.getState().groupsByConversation[activeConversationId]
-      : null;
+    const topicEnabled = activeConversationId && topicGroupEnabledByConv;
+    const topicGroups = activeConversationId ? topicGroupsByConv : null;
     if (topicEnabled && topicGroups && topicGroups.length > 0) {
       const msgKeyToGroup = new Map<string, typeof topicGroups[0]>();
       for (const g of topicGroups) {
@@ -1697,7 +1703,7 @@ function ChatViewInner({ onScrollToReady }: {
     }
 
     return items;
-  }, [bubbleItems, compressing, activeConversationId, expertSwitchBubble]);
+  }, [bubbleItems, compressing, activeConversationId, expertSwitchBubble, topicGroupEnabledByConv, topicGroupsByConv]);
 
   // 虚拟滚动：使用 @tanstack/react-virtual 限制 DOM 渲染
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -2096,10 +2102,31 @@ function ChatViewInner({ onScrollToReady }: {
       contentRender: (content: string) => {
         const msgMarker = <span data-axagent-msg={msg?.id} style={{ height: 0, overflow: "hidden", lineHeight: 0 }} />;
         if (msg?.status === "error") {
+          // 当错误消息有实质内容时（非纯错误字符串），使用 Markdown 渲染以保持可读性，
+          // 同时用 Alert 的 description 区域展示完整格式内容
           return (
             <>
               {msgMarker}
-              <Alert type="error" message={content} showIcon />
+              <Alert
+                type="error"
+                message={content.length > 200 ? content.slice(0, 200) + "…" : content}
+                description={content.length > 100
+                  ? (
+                    <div style={{ maxHeight: 500, overflowY: "auto", marginTop: 4 }}>
+                      <AssistantMarkdown
+                        content={content}
+                        isDarkMode={isDarkMode}
+                        isStreaming={false}
+                        codeBlockDarkTheme={codeBlockDarkTheme}
+                        codeBlockLightTheme={codeBlockLightTheme}
+                        codeBlockThemes={codeBlockThemes}
+                        codeFontFamily={settings.code_font_family || undefined}
+                      />
+                    </div>
+                  )
+                  : undefined}
+                showIcon
+              />
             </>
           );
         }

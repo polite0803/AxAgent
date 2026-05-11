@@ -5,7 +5,31 @@ use crate::error::{AxAgentError, Result};
 /// Register the sqlite-vec extension globally.
 ///
 /// Must be called **once** before any SQLite connection is opened.
+///
+/// NOTE: Disabled on Android by default due to ARM64 ABI incompatibility
+/// between sqlite-vec's compiled C code and the device's SQLite library.
+/// Vector search will be unavailable on Android.
+/// Set `AXAGENT_FORCE_VEC=1` in environment to override for debugging.
 pub fn register_sqlite_vec_extension() {
+    #[cfg(target_os = "android")]
+    {
+        if std::env::var("AXAGENT_FORCE_VEC").as_deref() == Ok("1") {
+            tracing::info!(
+                "AXAGENT_FORCE_VEC=1 set — attempting sqlite-vec registration on Android"
+            );
+            unsafe {
+                libsqlite3_sys::sqlite3_auto_extension(Some(std::mem::transmute(
+                    sqlite_vec::sqlite3_vec_init as *const (),
+                )));
+            }
+        } else {
+            tracing::warn!(
+                "sqlite-vec disabled on Android — vector search unavailable. \
+                 Set AXAGENT_FORCE_VEC=1 to override."
+            );
+        }
+    }
+    #[cfg(not(target_os = "android"))]
     unsafe {
         libsqlite3_sys::sqlite3_auto_extension(Some(std::mem::transmute(
             sqlite_vec::sqlite3_vec_init as *const (),

@@ -34,6 +34,7 @@ import {
   conversationPreferenceStateFromConversation,
   conversationPreferenceUpdateFromState,
   getEffectiveThinkingBudget,
+  getStagedPreferenceUpdate,
   mergeConversationCollections,
   usePreferenceStore,
 } from "./preferenceStore";
@@ -435,7 +436,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   fetchConversations: async () => {
     set({ loading: true });
     try {
-      const conversations = await invoke<Conversation[]>("list_conversations");
+      // 15s timeout — session list is a lightweight DB query, should be fast
+      const conversations = await invoke<Conversation[]>("list_conversations", undefined, 15_000);
       set({ conversations, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -607,10 +609,23 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             agent_profile_id: options?.agent_profile_id,
             workflow_template_id: options?.workflow_template_id,
             mode: options?.mode,
+            ...getStagedPreferenceUpdate(),
           },
-        });
+        }, 10_000);
       } catch (preferenceError) {
+        // Non-fatal: conversation is created, preferences just weren't applied.
+        // The conversation is still usable with defaults.
         set({ error: String(preferenceError) });
+      }
+      // Clean up the previous active conversation's stores before switching.
+      // createConversation bypassed setActiveConversation, which would normally
+      // handle this cleanup. Without it, agent/execution/plan state from the
+      // old conversation leaks into the new one.
+      const prevId = get().activeConversationId;
+      if (prevId && prevId !== conversation.id) {
+        useAgentStore.getState().clearConversation(prevId);
+        useExecutionStore.getState().clearConversation(prevId);
+        usePlanStore.getState().clearActivePlan(prevId);
       }
       set((s) => ({
         conversations: [conversation, ...s.conversations],
@@ -668,7 +683,18 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
       // dreamStore is global, no per-conversation cleanup needed
+      // Clean up stream buffer and pending refresh if they reference this conversation
+      if (_streamBuffer?.conversationId === id) {
+        setStreamBuffer(null);
+      }
+      deletePendingConversationRefresh(id);
       const state = get();
+      // When deleting the active conversation, suppress the sidebar auto-select
+      // so the ChatView shows the welcome screen instead of jumping to another
+      // conversation. The flag is reset by ChatSidebar on next render.
+      if (state.activeConversationId === id) {
+        _suppressSidebarAutoSelect = true;
+      }
       set({
         conversations: state.conversations.filter((c) => c.id !== id),
         activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
@@ -689,6 +715,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         asChild,
         title: title || null,
       });
+      // Clean up old conversation's stores before switching to branch
+      const branchPrevId = get().activeConversationId;
+      if (branchPrevId && branchPrevId !== newConv.id) {
+        useAgentStore.getState().clearConversation(branchPrevId);
+        useExecutionStore.getState().clearConversation(branchPrevId);
+        usePlanStore.getState().clearActivePlan(branchPrevId);
+      }
       set((s) => ({
         conversations: [newConv, ...s.conversations],
         activeConversationId: newConv.id,
@@ -745,6 +778,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
       if (updated.is_archived) {
+        // When archiving the active conversation, suppress sidebar auto-select
+        if (get().activeConversationId === id) {
+          _suppressSidebarAutoSelect = true;
+        }
         set((s) => ({
           conversations: s.conversations.filter((c) => c.id !== id),
           archivedConversations: [updated, ...s.archivedConversations],
@@ -772,6 +809,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         knowledge_base_id: knowledgeBaseId,
       });
       // Archive succeeded — move from active list to archived list
+      // When archiving the active conversation, suppress sidebar auto-select
+      if (get().activeConversationId === id) {
+        _suppressSidebarAutoSelect = true;
+      }
       set((s) => ({
         conversations: s.conversations.filter((c) => c.id !== id),
         archivedConversations: [updated, ...s.archivedConversations],
@@ -1095,6 +1136,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         })(),
         thinkingActiveMessageIds: new Set<string>(),
       }));
+      // Generate error message ID upfront so it can be preserved across fetchMessages
+      const tempErrorId = `temp-error-${Date.now()}`;
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
@@ -1103,7 +1146,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               : m
           )
           : [...s.messages, {
-            id: `temp-error-${Date.now()}`,
+            id: tempErrorId,
             conversation_id: conversationId,
             role: "assistant" as const,
             content: errMsg,
@@ -1123,8 +1166,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }));
       // Sync messages from DB so temp- prefixed user messages get replaced
       // with real backend IDs, enabling regenerate after a send failure.
+      // Preserve the temp-error message so it isn't silently dropped by mergePreservedMessages.
+      const errorPreserveIds = [tempErrorId, currentStreamingMessageId].filter(
+        (value): value is string => typeof value === "string" && value.length > 0,
+      );
       window.setTimeout(() => {
-        void get().fetchMessages(conversationId);
+        void get().fetchMessages(conversationId, errorPreserveIds);
       }, 120);
     }
   },
@@ -1238,6 +1285,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       _agentPendingText = "";
       if (!textChunk) { return; }
 
+      // Guard: don't update messages if user switched to a different conversation
+      if (get().activeConversationId !== conversationId) { return; }
+
       set((s) => {
         const wasThinking = useStreamStore.getState().thinkingActiveMessageIds.has(currentMsgId);
         let nextThinkingIds = useStreamStore.getState().thinkingActiveMessageIds;
@@ -1270,6 +1320,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const thinkingChunk = _agentPendingThinking;
       _agentPendingThinking = "";
       if (!thinkingChunk) { return; }
+
+      // Guard: don't update messages if user switched to a different conversation
+      if (get().activeConversationId !== conversationId) { return; }
 
       set((s) => {
         const wasThinking = useStreamStore.getState().thinkingActiveMessageIds.has(currentMsgId);
@@ -1556,6 +1609,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       } catch (_) { /* ignore cleanup errors */ }
       const errMsg = String(e);
       console.error("[sendAgentMessage] error:", errMsg);
+
+      // Only set error state if the message doesn't already have an error state
+      // (agent-error event listener may have already set it with the backend message)
+      const currentMsgs = useConversationStore.getState().messages;
+      const msgAlreadyHasError = currentMsgs.some(
+        (m) => m.id === currentMsgId && m.status === "error",
+      );
+      if (msgAlreadyHasError) {
+        // agent-error event already handled the failure — no duplicate needed
+        return;
+      }
 
       // If streaming is still true, the error came from invoke itself (not an event)
       if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
@@ -2296,10 +2360,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       if (_isMultiModelActive) {
         decrementMultiModelTotalRemaining();
         console.error(`[multi-model] stream error:`, errMsg);
-        // Mark this model as done so ModelTags stops showing loading indicator
+        // Mark this model as done so ModelTags stops showing loading indicator.
+        // Include error message in content so the user sees diagnostic info.
         set((s) => ({
           multiModelDoneMessageIds: [...s.multiModelDoneMessageIds, message_id],
-          messages: s.messages.map((m) => m.id === message_id ? { ...m, status: "error" as const } : m),
+          messages: s.messages.map((m) =>
+            m.id === message_id
+              ? { ...m, content: errMsg || m.content, status: "error" as const }
+              : m
+          ),
         }));
         if (_multiModelTotalRemaining <= 0) {
           useStreamStore.setState({
@@ -2694,6 +2763,19 @@ registerConversationStoreRef({
   getState: () => useConversationStore.getState(),
   setState: (partial) => useConversationStore.setState(partial),
 });
+
+// ─── Sidebar auto-select suppression ───
+//
+// When deleteConversation or toggleArchive removes the active conversation,
+// ChatSidebar's useEffect would normally auto-select the next conversation.
+// Setting this flag to true tells the sidebar to skip auto-select for one
+// render cycle, keeping the ChatView on the welcome screen.
+export let _suppressSidebarAutoSelect = false;
+
+/** Reset the sidebar auto-select suppression flag (called by ChatSidebar after consuming). */
+export function resetSidebarAutoSelectSuppression() {
+  _suppressSidebarAutoSelect = false;
+}
 
 // Auto-rebuild message index on every messages replacement to keep O(1) streaming fast.
 // Subscribes to all state changes but only rebuilds when the messages array reference

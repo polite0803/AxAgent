@@ -15,6 +15,10 @@ pub struct Model {
     pub max_tokens: Option<i64>,
     pub enabled: i32,
     pub param_overrides: Option<String>,
+    #[sea_orm(default_value = "NULL")]
+    pub input_price_per_mtok: Option<f64>,
+    #[sea_orm(default_value = "NULL")]
+    pub output_price_per_mtok: Option<f64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

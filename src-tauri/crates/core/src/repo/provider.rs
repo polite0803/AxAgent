@@ -58,6 +58,8 @@ fn model_from_entity(m: models::Model) -> Model {
         param_overrides: m
             .param_overrides
             .and_then(|s| serde_json::from_str(&s).ok()),
+        input_price_per_mtok: m.input_price_per_mtok,
+        output_price_per_mtok: m.output_price_per_mtok,
     }
 }
 
@@ -467,6 +469,8 @@ pub async fn save_models(
                     max_tokens: Set(model.max_tokens.map(|v| v as i64)),
                     enabled: Set(if model.enabled { 1 } else { 0 }),
                     param_overrides: Set(param_overrides),
+                    input_price_per_mtok: Set(model.input_price_per_mtok),
+                    output_price_per_mtok: Set(model.output_price_per_mtok),
                 }
                 .insert(txn)
                 .await?;
@@ -563,6 +567,8 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
                         max_tokens: *max_tokens,
                         enabled: true,
                         param_overrides: None,
+                        input_price_per_mtok: None,
+                        output_price_per_mtok: None,
                     })
                     .collect();
 
@@ -649,6 +655,8 @@ pub async fn ensure_builtin_provider(db: &DatabaseConnection, builtin_id: &str) 
             max_tokens: *max_tokens,
             enabled: true,
             param_overrides: None,
+            input_price_per_mtok: None,
+            output_price_per_mtok: None,
         })
         .collect();
 

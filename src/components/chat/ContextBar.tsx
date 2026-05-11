@@ -51,6 +51,11 @@ export function ContextBar({
     : null;
   const tokenColor = tokenRatio != null ? getTokenUsageColor(tokenRatio, token) : undefined;
   const tokenPercent = tokenRatio != null ? Math.min(100, Math.round(tokenRatio * 100)) : null;
+  const tokenPercentDisplay = tokenRatio != null && tokenRatio < 0.01 && tokenRatio > 0
+    ? "<1%"
+    : tokenPercent != null
+    ? `${tokenPercent}%`
+    : null;
 
   const chips = useMemo(
     () => [
@@ -126,7 +131,9 @@ export function ContextBar({
         {tokenMax != null && tokenMax > 0 && (
           <Tooltip
             title={tokenUsed != null
-              ? `${tokenUsed.toLocaleString()} / ${tokenMax.toLocaleString()} tokens (${tokenPercent}%)`
+              ? `${tokenUsed.toLocaleString()} / ${tokenMax.toLocaleString()} tokens (${
+                (tokenRatio! * 100).toFixed(1)
+              }%)`
               : `${t("chat.context.tokenMax")}: ${tokenMax.toLocaleString()}`}
           >
             <div
@@ -150,7 +157,7 @@ export function ContextBar({
               </span>
               {tokenUsed != null && (
                 <span style={{ color: tokenColor, fontWeight: 500 }}>
-                  {tokenPercent}%
+                  {tokenPercentDisplay}
                 </span>
               )}
               <div
@@ -164,7 +171,9 @@ export function ContextBar({
               >
                 <div
                   style={{
-                    width: `${tokenPercent ?? 0}%`,
+                    width: `${
+                      Math.max(tokenPercent ?? 0, tokenRatio != null && tokenRatio > 0 && tokenRatio < 0.01 ? 1 : 0)
+                    }%`,
                     height: "100%",
                     borderRadius: 2,
                     backgroundColor: tokenColor ?? token.colorSuccess,

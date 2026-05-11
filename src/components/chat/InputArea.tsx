@@ -246,7 +246,7 @@ export function InputArea() {
   const hasOlderMessages = useConversationStore((s) => s.hasOlderMessages);
   const contextCount = useMemo(() => {
     const msgs = useConversationStore.getState().messages;
-    const activeMessages = msgs.filter((m) => m.is_active !== false && !m.content.startsWith("%%ERROR%%"));
+    const activeMessages = msgs.filter((m) => m.is_active !== false);
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
       if (m.content === "<!-- context-clear -->" || m.content === "<!-- context-compressed -->") { return i; }
       return maxIdx;
@@ -335,7 +335,23 @@ export function InputArea() {
   const compressContext = useCompressStore((s) => s.compressContext);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
-  const currentMode = activeConversation?.mode || "chat";
+  // Use pendingModeRef when no conversation exists so the UI (mode badge, send routing)
+  // correctly reflects the user's last mode dropdown choice.
+  const currentMode = activeConversation?.mode
+    || pendingModeRef.current
+    || "chat";
+
+  // Track the last mode choice from the dropdown when no conversation is active.
+  // This allows handleSend to create a conversation in the correct mode
+  // even when the user hasn't created one yet.
+  const pendingModeRef = useRef<"chat" | "agent" | null>(null);
+
+  // Reset pending mode ref when a conversation becomes active
+  useEffect(() => {
+    if (activeConversationId) {
+      pendingModeRef.current = null;
+    }
+  }, [activeConversationId]);
 
   // Sync work strategy from conversation (also fires on mode switch)
   useEffect(() => {
@@ -1098,7 +1114,7 @@ export function InputArea() {
 
     // Count message tokens (only after last marker)
     const msgs = useConversationStore.getState().messages;
-    const activeMessages = msgs.filter((m) => m.is_active !== false && !m.content.startsWith("%%ERROR%%"));
+    const activeMessages = msgs.filter((m) => m.is_active !== false);
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
       if (m.content === "<!-- context-clear -->" || m.content === "<!-- context-compressed -->") { return i; }
       return maxIdx;
@@ -1195,13 +1211,17 @@ export function InputArea() {
     isSwitchingModeRef.current = true;
     try {
       if (!activeConversation) {
+        // No active conversation: store the mode choice so handleSend creates the right type
         if (mode === "agent") {
-          messageApi.warning(
+          pendingModeRef.current = "agent";
+          messageApi.info(
             t(
-              "chat.switchAgentModeNoConversation",
-              "Please start a new conversation first before switching to Agent mode",
+              "chat.switchAgentModeNoConversationInfo",
+              "Switched to Agent mode. Send a message to create an Agent conversation.",
             ),
           );
+        } else {
+          pendingModeRef.current = null;
         }
         return;
       }
@@ -1247,38 +1267,61 @@ export function InputArea() {
           if (companionStorageKey) { localStorage.removeItem(companionStorageKey); }
         }
         try {
+          // agent_update_session is a lightweight DB query, give it 10s timeout
           const session = await invoke<{ cwd: string | null }>("agent_update_session", {
             request: { conversationId: activeConversation.id },
-          });
+          }, 10_000);
           if (import.meta.env.DEV) { console.log("[ModeSwitch] agent_update_session returned:", session); }
           if (!session.cwd) {
             if (import.meta.env.DEV) { console.log("[ModeSwitch] No cwd, creating workspace..."); }
+            // agent_ensure_workspace is a filesystem operation, give it 15s timeout
+            // (default 5-min timeout is excessive and masks backend connection issues)
             const workspaceResult = await invoke<{ workspacePath: string }>("agent_ensure_workspace", {
               request: { conversationId: activeConversation.id },
-            });
+            }, 15_000);
             const workspacePath = workspaceResult.workspacePath;
             if (import.meta.env.DEV) { console.log("[ModeSwitch] workspace created:", workspacePath); }
             await invoke("agent_update_session", {
               request: { conversationId: activeConversation.id, cwd: workspacePath },
-            });
+            }, 10_000);
             setAgentCwd(workspacePath);
           } else {
             if (import.meta.env.DEV) { console.log("[ModeSwitch] Using existing cwd:", session.cwd); }
             setAgentCwd(session.cwd);
           }
         } catch (e) {
+          const errMsg = String(e);
+          const isTransient = errMsg.includes("connection") || errMsg.includes("refused")
+            || errMsg.includes("timeout") || errMsg.includes("fetch")
+            || errMsg.includes("IPC") || errMsg.includes("backend");
           console.warn("[ModeSwitch] Failed to init agent session:", e);
-          // Rollback mode to 'chat' since agent session init failed
-          try {
-            await updateConversation(activeConversation.id, { mode: "chat" });
-          } catch (rollbackErr) {
-            console.error("[ModeSwitch] Failed to rollback mode:", rollbackErr);
+
+          if (isTransient) {
+            // Transient IPC error: backend may be temporarily unavailable.
+            // Do NOT rollback to chat mode — the conversation mode stays as "agent"
+            // so the user doesn't need to manually re-switch when backend recovers.
+            messageApi.warning(
+              t(
+                "chat.agentInitTransient",
+                "Agent session initialization failed due to a temporary connection issue. You can try sending again in a moment.",
+              ),
+            );
+          } else {
+            // Genuine session init failure: rollback to chat mode
+            try {
+              await updateConversation(activeConversation.id, { mode: "chat" });
+            } catch (rollbackErr) {
+              console.error("[ModeSwitch] Failed to rollback mode:", rollbackErr);
+            }
+            messageApi.error(t("chat.agentInitFailed", "Failed to initialize agent session"));
           }
-          messageApi.error(t("chat.agentInitFailed", "Failed to initialize agent session"));
         }
       } else {
+        // Switching to chat mode: clear agent-related stores to prevent stale UI state
         const { clearConversation } = useAgentStore.getState();
         clearConversation(activeConversation.id);
+        useExecutionStore.getState().clearConversation(activeConversation.id);
+        usePlanStore.getState().clearActivePlan(activeConversation.id);
         if (activeConversation.session_type === "workflow" || activeConversation.workflow_template_id) {
           await updateConversation(activeConversation.id, {
             session_type: "conversation",
@@ -1333,7 +1376,10 @@ export function InputArea() {
             messageApi.warning(t("chat.noModelsAvailable"));
             return;
           }
-          await createConversation(trimmed.slice(0, 30), model.model_id, provider.id, {});
+          await createConversation(trimmed.slice(0, 30), model.model_id, provider.id, {
+            mode: pendingModeRef.current ?? undefined,
+          });
+          pendingModeRef.current = null;
         }
       }
 
@@ -2389,14 +2435,13 @@ export function InputArea() {
                 </Button>
               </Tooltip>
             )}
-            {activeConversationId && activeConversation?.session_type !== "workflow" && (
+            {currentMode === "agent" && activeConversationId && activeConversation?.session_type !== "workflow" && (
               <Tooltip title={t("chat.modelRouting")}>
                 <Button
                   type="text"
                   size="small"
                   icon={<Route size={14} />}
-                  onClick={() =>
-                    setModelRoutingOpen(true)}
+                  onClick={() => setModelRoutingOpen(true)}
                 />
               </Tooltip>
             )}
@@ -2555,7 +2600,7 @@ export function InputArea() {
 
       <ConversationSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
-      {activeConversationId && currentMode === "agent" && (
+      {activeConversationId && (
         <ModelRoutingConfigPanel
           conversationId={activeConversationId}
           open={modelRoutingOpen}

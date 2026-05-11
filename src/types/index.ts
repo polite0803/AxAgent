@@ -71,6 +71,10 @@ export interface Model {
   max_tokens: number | null;
   enabled: boolean;
   param_overrides: ModelParamOverrides | null;
+  /** Input price per million tokens (USD). From provider sync or user settings. */
+  input_price_per_mtok?: number | null;
+  /** Output price per million tokens (USD). From provider sync or user settings. */
+  output_price_per_mtok?: number | null;
 }
 
 export interface ModelParamOverrides {

@@ -53,7 +53,14 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         ));
     }
 
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create init runtime");
+    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+        tracing::error!("Failed to create init runtime in state: {}", e);
+        crate::android_utils::report_fatal_error(&format!(
+            "Init runtime creation failed in state: {}",
+            e
+        ));
+        std::process::exit(1);
+    });
     let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(&sea_db));
     rt.block_on(axagent_core::path_vars::migrate_hardcoded_paths(&sea_db));
     rt.block_on(axagent_core::repo::local_tool::migrate_legacy_keys(&sea_db));
@@ -92,13 +99,23 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                 axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
                     .unwrap_or_else(|e2| {
                         tracing::error!(
-                            "MemoryService creation failed after retry: {} — continuing with degraded memory features",
+                            "MemoryService creation failed after retry: {} — creating with fresh storage",
                             e2
                         );
-                        // MemoryService::new 恒为 Ok（纯内存结构），此路径不应到达。
-                        // 若到达，用第三次尝试兜底，避免 panic 导致 Android 静默崩溃。
-                        axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
-                            .expect("MemoryService::new failed three times — unreachable")
+                        // 用新 TrajectoryStorage 兜底，避免 panic 导致 Android 静默崩溃
+                        let fallback_storage = std::sync::Arc::new(
+                            axagent_trajectory::TrajectoryStorage::new(
+                                std::sync::Arc::new(sea_db.clone()),
+                            ),
+                        );
+                        axagent_trajectory::MemoryService::new(fallback_storage)
+                            .unwrap_or_else(|e3| {
+                                crate::android_utils::report_fatal_error(&format!(
+                                    "MemoryService unreachable path reached: {}",
+                                    e3,
+                                ));
+                                std::process::exit(1);
+                            })
                     })
             });
         if let Err(e) = ms.initialize() {
@@ -190,15 +207,26 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                         "Failed to create MemoryService for AutoMemory: {} — falling back to primary memory service",
                         e
                     );
-                    // 回退到主 memory_service，避免 panic 导致 Android 静默崩溃
+                    // 回退到主 memory_service（克隆引用），避免 panic 导致 Android 静默崩溃
                     axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
                         .unwrap_or_else(|e2| {
                             tracing::error!(
-                                "AutoMemory MemoryService fallback also failed: {} — auto-memory will be degraded",
+                                "AutoMemory MemoryService fallback also failed: {} — creating with fresh storage",
                                 e2
                             );
-                            axagent_trajectory::MemoryService::new(shared_trajectory_storage.clone())
-                                .expect("AutoMemory MemoryService creation unreachable")
+                            let fallback_storage = std::sync::Arc::new(
+                                axagent_trajectory::TrajectoryStorage::new(
+                                    std::sync::Arc::new(sea_db.clone()),
+                                ),
+                            );
+                            axagent_trajectory::MemoryService::new(fallback_storage)
+                                .unwrap_or_else(|e3| {
+                                    crate::android_utils::report_fatal_error(&format!(
+                                        "AutoMemory MemoryService unreachable: {}",
+                                        e3,
+                                    ));
+                                    std::process::exit(1);
+                                })
                         })
                 });
             if let Err(e) = auto_ms.initialize() {
@@ -243,39 +271,45 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
         )),
         semantic_cache: {
-            let cache = rt
+            let cache = match rt
                 .block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
-                .unwrap_or_else(|e| {
-                    tracing::error!(
-                        "Failed to init semantic cache: {} — retrying once",
-                        e
-                    );
-                    // 重试一次（处理 WAL 锁等瞬态错误），不创建新 runtime 以避免嵌套
-                    rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default()))
-                        .unwrap_or_else(|e2| {
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::error!("Semantic cache init failed: {} — retrying once", e);
+                    match rt.block_on(SemanticCache::new(sea_db.clone(), CacheConfig::default())) {
+                        Ok(c) => c,
+                        Err(e2) => {
+                            // 数据库初始化已成功，两次失败表明 CREATE TABLE 持续出错。
+                            // 回退到内存 SQLite，应用正常运行但缓存不持久化。
                             tracing::error!(
-                                "Semantic cache init failed after retry: {} — cache disabled",
+                                "Semantic cache failed permanently: {} — using in-memory fallback (non-persistent cache)",
                                 e2
                             );
-                            // 第三次尝试兜底：DB 已成功初始化，CREATE TABLE 不应持续失败
-                            rt.block_on(SemanticCache::new(
-                                sea_db.clone(),
-                                CacheConfig::default(),
-                            ))
-                            .unwrap_or_else(|e3| {
-                                tracing::error!(
-                                    "Semantic cache triple-failure: {} — app will start without caching",
-                                    e3
-                                );
-                                // 不再 panic，让应用以降级模式运行
-                                rt.block_on(SemanticCache::new(
-                                    sea_db.clone(),
-                                    CacheConfig::default(),
-                                ))
-                                .expect("SemanticCache init exhausted all retries")
-                            })
-                        })
-                });
+                            let fallback_db =
+                                rt.block_on(sea_orm::Database::connect("sqlite::memory:"));
+                            match fallback_db {
+                                Ok(mem_db) => rt
+                                    .block_on(SemanticCache::new(mem_db, CacheConfig::default()))
+                                    .unwrap_or_else(|e3| {
+                                        crate::android_utils::report_fatal_error(&format!(
+                                            "SemanticCache in-memory fallback failed: {}",
+                                            e3,
+                                        ));
+                                        std::process::exit(1);
+                                    }),
+                                Err(e3) => {
+                                    crate::android_utils::report_fatal_error(&format!(
+                                        "SemanticCache in-memory DB connect failed: {}",
+                                        e3,
+                                    ));
+                                    std::process::exit(1);
+                                },
+                            }
+                        },
+                    }
+                },
+            };
             Arc::new(tokio::sync::Mutex::new(cache))
         },
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),

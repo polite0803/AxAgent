@@ -23,8 +23,8 @@ pub async fn init_database() -> Result<DatabaseInitResult, String> {
     let key_path = app_dir.join("master.key");
     let master_key = load_or_create_master_key(&key_path, &app_dir)?;
 
-    // 注册 sqlite-vec 扩展。包裹在 catch_unwind 中防止 Android 上可能的 ABI 不兼容
-    // 导致 process abort，取而代之让应用以降级模式（无向量搜索）继续运行。
+    // 注册 sqlite-vec 扩展。在 Android 上默认跳过（见 vector_store.rs），
+    // 在桌面平台用 catch_unwind 防止 FFI 异常 panic。
     let vec_registration = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         axagent_core::vector_store::register_sqlite_vec_extension();
     }));

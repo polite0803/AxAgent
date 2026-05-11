@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
 
+mod android_utils;
 mod commands;
 mod context_manager;
 mod indexing;
@@ -45,7 +46,11 @@ pub fn run() {
                 .with_max_level(log::LevelFilter::Info)
                 .with_tag("AxAgent"),
         );
-        tracing_log::LogTracer::init().expect("Failed to init LogTracer");
+        if let Err(e) = tracing_log::LogTracer::init() {
+            // LogTracer 失败非致命：android_logger 仍可捕获直接 log:: 调用，
+            // 只是 tracing 事件不会被转发到 logcat。
+            log::error!("Failed to init LogTracer: {} — tracing->log bridge unavailable", e);
+        }
     }
     #[cfg(not(target_os = "android"))]
     {
@@ -78,6 +83,7 @@ pub fn run() {
         );
         // 给日志一点时间刷新到 logcat/stderr
         std::thread::sleep(std::time::Duration::from_millis(100));
+        android_utils::report_fatal_error(&format!("Panic: {} at {}", msg, location));
     }));
 
     #[cfg(target_os = "android")]
@@ -848,8 +854,12 @@ pub fn run() {
             commands::agent_nudge::proactive_convert_to_nudge,
             #[cfg(not(mobile))]
             crate::tray::set_tray_labels,
+            // Crash diagnostics
+            commands::crash_report::get_crash_log,
         ])
         .setup(|app| {
+            android_utils::mark_startup_phase("setup_start");
+
             #[cfg(target_os = "macos")]
             {
                 use objc2::msg_send;
@@ -865,13 +875,19 @@ pub fn run() {
                 }
             }
 
+            android_utils::mark_startup_phase("db_init_start");
+
             let db_result = match std::thread::spawn(|| {
-                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                    android_utils::report_fatal_error(&format!("Failed to create db init runtime: {}", e));
+                    std::process::exit(1);
+                });
                 rt.block_on(init::init_database())
             }).join() {
                 Ok(Ok(result)) => result,
                 Ok(Err(e)) => {
                     tracing::error!("Database initialization failed: {}", e);
+                    android_utils::report_fatal_error(&format!("Database init failed: {}", e));
                     #[cfg(target_os = "windows")]
                     {
                         windows_utils::show_error_dialog("AxAgent", &format!("数据库初始化失败: {}", e));
@@ -880,20 +896,27 @@ pub fn run() {
                 }
                 Err(e) => {
                     tracing::error!("DB init thread panicked: {:?}", e);
+                    android_utils::report_fatal_error(&format!("DB init thread panicked: {:?}", e));
                     std::process::exit(1);
                 }
             };
 
+            android_utils::mark_startup_phase("db_init_done");
+
             // 在独立线程中运行初始化，避免在 Tauri 的 tokio runtime 内创建嵌套 Runtime
+            android_utils::mark_startup_phase("state_init_start");
             let state = match std::thread::spawn(move || {
                 init::state::create_app_state(db_result)
             }).join() {
                 Ok(s) => s,
                 Err(e) => {
                     tracing::error!("App state init thread panicked: {:?}", e);
+                    android_utils::report_fatal_error(&format!("App state init thread panicked: {:?}", e));
                     std::process::exit(1);
                 }
             };
+
+            android_utils::mark_startup_phase("state_init_done");
 
             app.manage(state);
 
@@ -903,7 +926,10 @@ pub fn run() {
             let sea_db2 = sea_db.clone();
             let scheduled_svc = state.scheduled_task_service.clone();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                    android_utils::report_fatal_error(&format!("Failed to create session reset runtime: {}", e));
+                    std::process::exit(1);
+                });
                 rt.block_on(async {
                     let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db2).await;
                     let _ = commands::scheduled_task::load_tasks_from_db_internal(&sea_db2, &scheduled_svc).await;
@@ -922,7 +948,10 @@ pub fn run() {
                         if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
                             let user_profile = state.user_profile.clone();
                             std::thread::spawn(move || {
-                                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                                let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
+                                std::process::exit(1);
+                            });
                                 rt.block_on(async {
                                     let mut p = user_profile.write().await;
                                     *p = profile;
@@ -942,7 +971,10 @@ pub fn run() {
                     let pattern_count = persisted.len();
                     let pattern_learner = state.pattern_learner.clone();
                     std::thread::spawn(move || {
-                        let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                        let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
+                                std::process::exit(1);
+                            });
                         rt.block_on(async {
                             let mut pl = pattern_learner.write().await;
                             for pattern in &persisted {
@@ -1020,7 +1052,10 @@ pub fn run() {
                 tracing::info!("[mobile] Starting cloud sync engine...");
                 let engine = sync_engine.clone();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
+                                std::process::exit(1);
+                            });
                     rt.block_on(async {
                         match engine.full_sync().await {
                             Ok(result) => {
@@ -1043,7 +1078,10 @@ pub fn run() {
             let tray_language = {
                 let db = state.sea_db.clone();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
+                                std::process::exit(1);
+                            });
                     rt.block_on(axagent_core::repo::settings::get_settings(&db))
                         .map(|s| s.language)
                         .unwrap_or_else(|_| "en".to_string())
@@ -1056,6 +1094,7 @@ pub fn run() {
             let tray_language = "en".to_string();
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 
+            android_utils::mark_startup_phase("setup_complete");
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -1116,6 +1155,7 @@ pub fn run() {
         Err(e) => {
             let error_msg = e.to_string();
             tracing::error!("Failed to build Tauri application: {}", error_msg);
+            android_utils::report_fatal_error(&format!("Tauri build failed: {}", error_msg));
             #[cfg(target_os = "windows")]
             {
                 let lower = error_msg.to_lowercase();

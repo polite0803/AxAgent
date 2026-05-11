@@ -179,8 +179,7 @@ impl ProviderAdapter for OllamaAdapter {
                     capabilities: caps,
                     max_tokens,
                     enabled: true,
-                    param_overrides: None,
-                }
+                    param_overrides: None, input_price_per_mtok: None, output_price_per_mtok: None, }
             })
             .collect();
 
@@ -224,3 +223,4 @@ impl ProviderAdapter for OllamaAdapter {
         self.inner.embed(ctx, request).await
     }
 }
+

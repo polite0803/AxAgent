@@ -582,7 +582,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     });
     // Agent 完成通知
     const turns = event.numTurns ?? 0;
-    const cost = event.costUsd != null ? ` ($${event.costUsd.toFixed(4)})` : "";
+    const cost = event.costUsd != null ? ` (${event.costUsd < 0.01 ? "<$0.01" : `$${event.costUsd.toFixed(2)}`})` : "";
     message.success(`Agent 执行完成 · ${turns} 轮${cost}`);
     pushNotification("success", `Agent 执行完成 · ${turns} 轮${cost}`);
   },

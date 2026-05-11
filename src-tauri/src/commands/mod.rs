@@ -21,6 +21,7 @@ pub mod context_sources;
 pub mod conversation_categories;
 pub mod conversations;
 pub mod conversations_search;
+pub mod crash_report;
 pub mod dashboard;
 #[cfg(not(mobile))]
 pub mod desktop;

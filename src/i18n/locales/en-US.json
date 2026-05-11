@@ -61,7 +61,7 @@
     "send": "Send",
     "sources": {
       "title": "Knowledge Sources",
-      "empty": "No sources available, please add one in settings first"
+      "empty": "No sources available. Please add one in settings first"
     },
     "welcome": "Start a New Conversation",
     "aiGenerateTitle": "AI Generate Title",
@@ -282,10 +282,6 @@
       "error": "Knowledge base search failed",
       "resultsCount": "Retrieved {{count}} knowledge items",
       "label": "Knowledge"
-    },
-    "sources": {
-      "title": "Knowledge Sources",
-      "empty": "No sources available. Please add one in settings first"
     },
     "memory": {
       "title": "Memory",
@@ -713,6 +709,7 @@
     "steer": "Steer",
     "steerPlaceholder": "Enter steering instruction...",
     "totalTokens": "Total Tokens",
+    "tokens": "tokens",
     "vision": {
       "analyzedImage": "Analyzed image",
       "analyzing": "Analyzing...",
@@ -788,7 +785,9 @@
       "goToStart": "Go to start",
       "nextStep": "Next step",
       "prevStep": "Previous step"
-    }
+    },
+    "agentInitTransient": "Agent session initialization failed due to a temporary connection issue. You can try again in a moment.",
+    "switchAgentModeNoConversationInfo": "Switched to Agent mode. Send a message to create an Agent conversation."
   },
   "gateway": {
     "title": "Gateway",
@@ -1065,7 +1064,9 @@
     "promptTemplates": "Prompt Templates",
     "appConfig": "Agent Control Panel",
     "appConfigDesc": "Model selection, feature flags, agent management & hook configuration",
-    "data": "Data Management",
+    "data": {
+      "title": "Data Management"
+    },
     "about": "About",
     "evolution": "Self-Evolution",
     "acp": "ACP",
@@ -1378,6 +1379,14 @@
     },
     "tools": {
       "title": "Tool Manager",
+      "desc": "Manage tools available to the agent",
+      "enable": "Enable",
+      "disable": "Disable",
+      "install": "Install",
+      "uninstall": "Uninstall",
+      "installed": "Installed",
+      "search": "Search tools...",
+      "marketplace": "Tool Marketplace",
       "tabBuiltin": "Builtin Tools",
       "tabMcp": "MCP Servers",
       "tabGenerated": "Generated Tools",
@@ -1587,10 +1596,12 @@
       "title": "Desktop Integration"
     },
     "backup": {
-      "title": "Backup Center"
+      "title": "Backup Center",
+      "desc": "Create and manage data backups"
     },
     "storage": {
       "title": "Storage Space",
+      "desc": "Configure data storage location and limits",
       "openFolder": "Open Folder",
       "totalUsage": "Total Usage",
       "fileCount": "files",
@@ -1698,6 +1709,7 @@
     "batchEditSuccess": "Updated settings for {{count}} models",
     "scheduler": {
       "title": "Scheduled Tasks",
+      "desc": "Manage automated scheduled tasks",
       "autoBackup": "Auto Backup",
       "webdavSync": "WebDAV Auto Sync",
       "closedLoop": "Closed-Loop Nudge",
@@ -1898,6 +1910,13 @@
       "validationRequired": "Name, schedule, and prompt are required"
     },
     "gateway": {
+      "title": "API Gateway",
+      "desc": "Configure OpenAI-compatible API Gateway",
+      "enabled": "Enable Gateway",
+      "enabledDesc": "Enable OpenAI-compatible API service",
+      "baseUrl": "Base URL",
+      "port": "Port",
+      "apiKey": "API Key",
       "saved": "Platform configuration saved",
       "saveFailed": "Failed to save configuration",
       "telegram": "Telegram",
@@ -2559,6 +2578,8 @@
       "gateway": "Gateway",
       "gatewayDesc": "Manage remote connections"
     },
+    "search": "Search",
+    "noResults": "No results",
     "result": {
       "noKnowledge": "No matching knowledge found.",
       "noMemory": "No matching memories found.",
@@ -2755,7 +2776,7 @@
     "submitting": "Submitting...",
     "supplementPlaceholder": "Additional notes (optional)...",
     "typeAnswerPlaceholder": "Type your answer...",
-    "submitted": "Eingereicht"
+    "submitted": "Submitted"
   },
   "profile": {
     "loading": "Loading profile...",
@@ -2834,6 +2855,10 @@
     "noPatterns": "No style patterns",
     "noTemplates": "No style templates",
     "patterns": "Patterns",
+    "title": "Style Settings",
+    "chatStyle": "Chat Style",
+    "codeStyle": "Code Style",
+    "docStyle": "Document Style",
     "presets": {
       "maximal": "Maximal",
       "minimal": "Minimal",
@@ -3543,34 +3568,6 @@
     "modelIdPlaceholder": "Enter model ID",
     "train": "Train"
   },
-  "fineTune": {
-    "datasetManager": "Fine-Tune Dataset Manager",
-    "createDataset": "Create Dataset",
-    "noDatasets": "No datasets found. Create one to get started.",
-    "samples": "Samples",
-    "addSample": "Add Sample",
-    "deleteDatasetConfirm": "Delete this dataset?",
-    "datasetName": "Dataset Name",
-    "datasetNamePlaceholder": "Enter dataset name",
-    "datasetDescPlaceholder": "Enter dataset description",
-    "inputPlaceholder": "Enter input text",
-    "outputPlaceholder": "Enter output text",
-    "systemPromptOptional": "System Prompt (optional)",
-    "systemPromptPlaceholder": "Enter system prompt",
-    "dataset": "Dataset",
-    "selectDataset": "Select a dataset",
-    "baseModel": "Base Model",
-    "selectBaseModel": "Select a base model",
-    "rank": "Rank",
-    "alpha": "Alpha",
-    "learningRate": "Learning Rate",
-    "batchSize": "Batch Size",
-    "epochs": "Epochs",
-    "trainingJobs": "Training Jobs",
-    "datasetId": "Dataset ID",
-    "loss": "Loss",
-    "loraOutput": "LoRA Output"
-  },
   "devtools": {
     "durationOverview": "Duration Overview",
     "totalDuration": "Total Duration",
@@ -3589,6 +3586,9 @@
     "totalTokens": "Total Tokens",
     "totalCost": "Total Cost",
     "userId": "User ID",
+    "tracer": "Tracer",
+    "evaluator": "Evaluator",
+    "rl": "RL Engine",
     "agentVersion": "Agent Version",
     "startedAt": "Started At",
     "traceId": "Trace ID",
@@ -3800,6 +3800,17 @@
     "ko": "Korean"
   },
   "wiki": {
+    "title": "Wiki",
+    "overview": "Wiki Overview",
+    "settings": "Wiki Settings",
+    "create": "Create Wiki",
+    "documents": "Documents",
+    "chunks": "Chunks",
+    "vectors": "Vectors",
+    "search": {
+      "placeholder": "Search wiki...",
+      "noResults": "No results found"
+    },
     "compile": {
       "noPages": "No pages were generated",
       "saved": "Compilation results saved",
@@ -3880,7 +3891,12 @@
     "hidePanel": "Hide Panel",
     "showPanel": "Show Panel",
     "selected": "Selected",
-    "wiki": "Wiki",
+    "wiki": {
+      "description": "Description",
+      "name": "Name",
+      "rootPath": "Root Path",
+      "schemaVersion": "Schema Version"
+    },
     "tips": {
       "doubleClick": "Double-click node to edit",
       "dragPanel": "Drag panels to resize",
@@ -3888,6 +3904,7 @@
       "keyboard": "Esc deselect · Del delete"
     },
     "ingest": {
+      "desc": "Import documents into the wiki",
       "docx": "Word Document",
       "file": "File",
       "folder": "Folder",
@@ -4084,12 +4101,6 @@
     },
     "titlePlaceholder": "Enter title...",
     "userNote": "User Note",
-    "wiki": {
-      "description": "Description",
-      "name": "Name",
-      "rootPath": "Root Path",
-      "schemaVersion": "Schema Version"
-    },
     "manage": "Manage",
     "viewingWiki": "Viewing Wiki: {{id}}",
     "deleted": "Deleted",
@@ -4159,6 +4170,11 @@
     "updatedSuccess": "Updated successfully"
   },
   "skill": {
+    "marketplace": "Skill Marketplace",
+    "install": "Install",
+    "installed": "Installed",
+    "uninstall": "Uninstall",
+    "search": "Search skills...",
     "content": "Content",
     "contentPlaceholder": "Enter skill content...",
     "contentRequired": "Content is required",
@@ -4545,7 +4561,11 @@
     "currentPath": "Current Path",
     "conflictsTitle": "Conflicts",
     "conflictStrategy": "Current conflict resolution strategy: {{strategy}}",
-    "noConflicts": "No conflicts"
+    "noConflicts": "No conflicts",
+    "syncNow": "Sync Now",
+    "syncing": "Syncing...",
+    "settings": "Cloud Workspace Settings",
+    "lastSync": "Last Sync"
   },
   "agentGenerator": {
     "parseJsonError": "Failed to parse JSON from response",

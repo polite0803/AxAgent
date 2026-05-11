@@ -17,6 +17,7 @@ import {
   useWorkflowEditorStore,
 } from "@/stores";
 import type { AvatarType } from "@/stores";
+import { _suppressSidebarAutoSelect, resetSidebarAutoSelectSuppression } from "@/stores/domain/conversationStore";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { Conversation, ConversationCategory, Message } from "@/types";
 import { EXPERT_CATEGORY_LABELS } from "@/types";
@@ -193,6 +194,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const { token } = theme.useToken();
   const { message: messageApi, modal } = App.useApp();
 
+  // Reset sidebar auto-select suppression on mount to prevent stale flags
+  // from surviving page navigation (e.g. delete → navigate to settings → back).
+  useEffect(() => {
+    resetSidebarAutoSelectSuppression();
+  }, []);
+
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation);
@@ -326,6 +333,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
 
   // Auto-select conversation: restore last selected, or fall back to first
   useEffect(() => {
+    // Suppress auto-select when the active conversation was just deleted/archived.
+    // The user explicitly closed the conversation and should see the welcome screen.
+    if (_suppressSidebarAutoSelect) {
+      resetSidebarAutoSelectSuppression();
+      return;
+    }
     if (!activeConversationId && conversations.length > 0 && !settingsLoading) {
       const lastId = settings.last_selected_conversation_id;
       const lastConv = lastId ? conversations.find((c) => c.id === lastId) : null;

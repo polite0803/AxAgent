@@ -17,17 +17,28 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tracing::info;
 
-/// Estimate cost in USD based on model_id and token usage.
-/// Prices are loaded from `pricing.toml` at startup. Falls back to heuristic
-/// estimation for models not found in the configuration file.
-fn estimate_cost_usd(model_id: &str, input_tokens: u64, output_tokens: u64) -> Option<f64> {
-    // Try config-based pricing first
+/// Estimate cost in USD using model price fields (highest priority), then
+/// pricing.toml config, then heuristic fallback.
+fn estimate_cost_usd(
+    model_id: &str,
+    input_tokens: u64,
+    output_tokens: u64,
+    model_input_price: Option<f64>,
+    model_output_price: Option<f64>,
+) -> Option<f64> {
+    // 1. Model's own price fields — synced from provider or user-configured
+    if let (Some(inp), Some(out)) = (model_input_price, model_output_price) {
+        return Some(
+            (input_tokens as f64 * inp / 1_000_000.0) + (output_tokens as f64 * out / 1_000_000.0),
+        );
+    }
+    // 2. pricing.toml config
     if let Some((inp, out)) = lookup_pricing_from_config(model_id) {
         return Some(
             (input_tokens as f64 * inp / 1_000_000.0) + (output_tokens as f64 * out / 1_000_000.0),
         );
     }
-    // Fallback to heuristic for unknown models
+    // 3. Heuristic fallback
     let (inp, out) = heuristic_pricing(model_id)?;
     Some((input_tokens as f64 * inp / 1_000_000.0) + (output_tokens as f64 * out / 1_000_000.0))
 }
@@ -1768,10 +1779,13 @@ pub async fn agent_query(
             );
 
             // Emit agent-done event
+            let resolved_model = provider.models.iter().find(|m| m.model_id == request.model_id);
             let cost_usd = estimate_cost_usd(
                 &request.model_id,
                 summary.usage.input_tokens as u64,
                 summary.usage.output_tokens as u64,
+                resolved_model.and_then(|m| m.input_price_per_mtok),
+                resolved_model.and_then(|m| m.output_price_per_mtok),
             );
             let blocks: Vec<AgentContentBlock> = summary
                 .assistant_messages
@@ -3911,13 +3925,16 @@ pub async fn agent_ensure_workspace(
     _request: AgentEnsureWorkspaceRequest,
 ) -> Result<AgentEnsureWorkspaceResponse, String> {
     // Get the workspace_uri from app settings
-    let workspace_uri_str = _request.workspace_uri.clone().or_else(|| {
-        // Fallback to settings if not provided in request
-        let rt = tokio::runtime::Handle::current();
-        rt.block_on(axagent_core::repo::settings::get_settings(&app_state.sea_db))
+    // Use the request's workspace_uri first, then fall back to DB settings.
+    // Avoid rt.block_on() — it can deadlock the tokio runtime on the current thread.
+    let workspace_uri_str = if let Some(ref uri) = _request.workspace_uri {
+        Some(uri.clone())
+    } else {
+        axagent_core::repo::settings::get_settings(&app_state.sea_db)
+            .await
             .ok()
             .and_then(|s| s.workspace_uri)
-    });
+    };
 
     if let Some(uri_str) = workspace_uri_str {
         let workspace_uri =

@@ -635,6 +635,7 @@
     "steer": "Steer",
     "steerPlaceholder": "Enter steering instruction...",
     "totalTokens": "Total Tokens",
+    "tokens": "tokens",
     "vision": {
       "analyzedImage": "Analyzed image",
       "analyzing": "Analyzing...",
@@ -754,7 +755,13 @@
     "extractMemoriesError": "Failed to extract memories",
     "extractMemoriesNoNamespaces": "No memory namespaces found. Please create one first.",
     "extractMemoriesProcessing": "Extracting memories…",
-    "showAllMessages": "Show all {{count}} messages"
+    "showAllMessages": "Show all {{count}} messages",
+    "sources": {
+      "empty": "No sources available. Please add one in settings first",
+      "title": "Knowledge Sources"
+    },
+    "agentInitTransient": "La inicialización de la sesión del agente falló debido a un problema de conexión temporal. Puede intentarlo de nuevo en un momento.",
+    "switchAgentModeNoConversationInfo": "Cambiado al modo Agent. Envíe un mensaje para crear una conversación Agent."
   },
   "gateway": {
     "title": "Pasarela",
@@ -906,7 +913,9 @@
       "saved": "Guardado"
     },
     "webhooks": "Webhooks",
-    "data": "Gestión de datos",
+    "data": {
+      "title": "Data Management"
+    },
     "about": "Acerca de",
     "acp": "ACP",
     "language": "Idioma",
@@ -1352,13 +1361,66 @@
       "syncWorkingMemory": "Sync Working Memory",
       "syncWorkingMemoryConfirm": "Sync all working memory entries to this namespace?",
       "syncWorkingMemorySuccess": "Synced {{count}} working memory entries",
-      "syncWorkingMemoryError": "Sync failed: {{error}}"
+      "syncWorkingMemoryError": "Sync failed: {{error}}",
+      "age": "Age",
+      "clusterInfo": "{{count}} similar memories · avg importance {{importance}}",
+      "confidence": "Confidence",
+      "consolidate": "Consolidate",
+      "consolidateError": "Consolidation failed: {{error}}",
+      "consolidateSuccess": "Memories consolidated successfully",
+      "daysAgo": "{{days}}d ago",
+      "demote": "Demote",
+      "duplicateClusters": "Duplicate Memory Clusters",
+      "effective": "Effective",
+      "entities": "Entities",
+      "entityName": "Name",
+      "entityType": "Type",
+      "explainedSearch": "Explained Search",
+      "explainedSearchResults": "Explained Search Results",
+      "extractionMethod": "Extraction method",
+      "feedbackNotUseful": "Not useful",
+      "feedbackUseful": "Useful",
+      "findDuplicates": "Find Duplicates",
+      "fromConversation": "From conversation",
+      "hoursAgo": "{{hours}}h ago",
+      "importance": "Importance",
+      "justNow": "Just now",
+      "knowledgeGraph": "Knowledge Graph",
+      "matchedKeywords": "Matched Keywords",
+      "mentionCount": "Mentions",
+      "nature": "Nature",
+      "noDuplicates": "No duplicate memories found",
+      "noEntities": "No entities yet",
+      "noRelationships": "No relationships yet",
+      "noTimelineData": "No timeline data",
+      "promote": "Promote",
+      "provenance": "Provenance",
+      "recency": "Recency",
+      "refreshWorkingMemory": "Refresh",
+      "relationType": "Relation Type",
+      "relationships": "Relationships",
+      "relevance": "Relevance",
+      "searchExplanation": "Search Explanation",
+      "tier": "Tier",
+      "tierStats": "Memory Stats",
+      "timeline": "Timeline",
+      "timelineOlder": "Older",
+      "timelineThisMonth": "This Month",
+      "timelineThisWeek": "This Week",
+      "timelineToday": "Today",
+      "totalMemories": "{{count}} total",
+      "totalScore": "Total Score",
+      "totalTokens": "{{count}} tokens",
+      "weight": "Weight",
+      "workingMemory": "Working Memory",
+      "workingMemoryEntries": "{{count}} entries"
     },
     "desktopIntegration": {
       "title": "Integración de escritorio"
     },
     "backup": {
-      "title": "Centro de copias de seguridad"
+      "title": "Centro de copias de seguridad",
+      "desc": "Create and manage data backups"
     },
     "storage": {
       "title": "Espacio de almacenamiento",
@@ -1388,7 +1450,8 @@
       "dirNotWritable": "El directorio de destino no tiene permisos de escritura",
       "restartRequired": "Los cambios tendrán efecto completo después de reiniciar",
       "restartNow": "Reiniciar Ahora",
-      "restartLater": "Reiniciar Después"
+      "restartLater": "Reiniciar Después",
+      "desc": "Configure data storage location and limits"
     },
     "filterProviders": "Buscar proveedores...",
     "initProviders": "Inicializar proveedores",
@@ -1579,7 +1642,8 @@
       "workflow_knowledge_extract": "Knowledge Extraction Workflow",
       "workflow_knowledge_extractDesc": "Extract domain knowledge from code",
       "workflow_knowledge_to_code": "Knowledge to Code Workflow",
-      "workflow_knowledge_to_codeDesc": "Generate code from knowledge base"
+      "workflow_knowledge_to_codeDesc": "Generate code from knowledge base",
+      "desc": "Manage automated scheduled tasks"
     },
     "localTools": {
       "title": "Herramientas Locales",
@@ -1600,7 +1664,15 @@
       "tabBuiltin": "Herramientas Integradas",
       "tabMcp": "Servidores MCP",
       "tabGenerated": "Herramientas Generadas",
-      "tabSemantic": "Verificación Semántica"
+      "tabSemantic": "Verificación Semántica",
+      "desc": "Manage tools available to the agent",
+      "disable": "Disable",
+      "enable": "Enable",
+      "install": "Install",
+      "installed": "Installed",
+      "marketplace": "Tool Marketplace",
+      "search": "Search tools...",
+      "uninstall": "Uninstall"
     },
     "generatedTools": {
       "title": "Herramientas Generadas",
@@ -1797,7 +1869,14 @@
       "apiServer": "API Server",
       "enableApiServer": "Enable REST API Server",
       "general": "General",
-      "autoSyncMessages": "Auto-sync Messages"
+      "autoSyncMessages": "Auto-sync Messages",
+      "apiKey": "API Key",
+      "baseUrl": "Base URL",
+      "desc": "Configure OpenAI-compatible API Gateway",
+      "enabled": "Enable Gateway",
+      "enabledDesc": "Enable OpenAI-compatible API service",
+      "port": "Port",
+      "title": "API Gateway"
     },
     "agent": {
       "reactEngine": "ReAct Engine",
@@ -2374,7 +2453,8 @@
     "quickBackup": "Copia rápida",
     "submitBug": "Reportar un error",
     "submitFeature": "Enviar sugerencia",
-    "webdavBackup": "Copia de seguridad WebDAV"
+    "webdavBackup": "Copia de seguridad WebDAV",
+    "evolutionActive": "Self-Evolution Active"
   },
   "skills": {
     "title": "Gestión de habilidades",
@@ -2681,7 +2761,11 @@
     "targetStyle": "Target Style",
     "templates": "Templates",
     "usedCount": "Used {{count}} times",
-    "variants": "Variants"
+    "variants": "Variants",
+    "chatStyle": "Chat Style",
+    "codeStyle": "Code Style",
+    "docStyle": "Document Style",
+    "title": "Style Settings"
   },
   "terminal": {
     "online": "Online",
@@ -2766,7 +2850,18 @@
         "entity": "Entity",
         "note": "Note",
         "source": "Source"
-      }
+      },
+      "edgeType": {
+        "backlink": "Backlink",
+        "contradicts": "Contradicts",
+        "derived": "Derived",
+        "link": "Link",
+        "reference": "Reference"
+      },
+      "fitView": "Fit View",
+      "focusSelected": "Focus Selected",
+      "zoomIn": "Zoom In",
+      "zoomOut": "Zoom Out"
     },
     "ingest": {
       "docx": "Word Document",
@@ -2794,7 +2889,8 @@
       "url": "URL",
       "urlInvalid": "Invalid URL format",
       "urlRequired": "URL is required",
-      "web": "Web"
+      "web": "Web",
+      "desc": "Import documents into the wiki"
     },
     "insertLink": "Insert Link",
     "lastCompiled": "Last compiled",
@@ -2989,7 +3085,24 @@
     "documents": "Documentos",
     "chunks": "Fragmentos",
     "vectors": "Vectores",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "createFirstNote": "Create First Note",
+    "hidePanel": "Hide Panel",
+    "newNote": "New Note",
+    "search": {
+      "noResults": "No results found",
+      "placeholder": "Search wiki..."
+    },
+    "searchGraph": "Search graph...",
+    "selected": "Selected",
+    "showDetail": "Details",
+    "showPanel": "Show Panel",
+    "tips": {
+      "doubleClick": "Double-click node to edit",
+      "dragPanel": "Drag panels to resize",
+      "keyboard": "Esc deselect · Del delete",
+      "rightClick": "Right-click for menu"
+    }
   },
   "quickbar": {
     "title": "QuickBar",
@@ -3058,7 +3171,9 @@
       "continueAsk": "Follow up",
       "error": "Error",
       "noWikiSelected": "Por favor seleccione un Wiki en la base de conocimiento primero"
-    }
+    },
+    "noResults": "No results",
+    "search": "Search"
   },
   "workflow": {
     "aiPanel": {
@@ -3738,34 +3853,6 @@
     "modelIdPlaceholder": "Enter model ID",
     "train": "Train"
   },
-  "fineTune": {
-    "datasetManager": "Fine-Tune Dataset Manager",
-    "createDataset": "Create Dataset",
-    "noDatasets": "No datasets found. Create one to get started.",
-    "samples": "Samples",
-    "addSample": "Add Sample",
-    "deleteDatasetConfirm": "Delete this dataset?",
-    "datasetName": "Dataset Name",
-    "datasetNamePlaceholder": "Enter dataset name",
-    "datasetDescPlaceholder": "Enter dataset description",
-    "inputPlaceholder": "Enter input text",
-    "outputPlaceholder": "Enter output text",
-    "systemPromptOptional": "System Prompt (optional)",
-    "systemPromptPlaceholder": "Enter system prompt",
-    "dataset": "Dataset",
-    "selectDataset": "Select a dataset",
-    "baseModel": "Base Model",
-    "selectBaseModel": "Select a base model",
-    "rank": "Rank",
-    "alpha": "Alpha",
-    "learningRate": "Learning Rate",
-    "batchSize": "Batch Size",
-    "epochs": "Epochs",
-    "trainingJobs": "Training Jobs",
-    "datasetId": "Dataset ID",
-    "loss": "Loss",
-    "loraOutput": "LoRA Output"
-  },
   "devtools": {
     "durationOverview": "Duration Overview",
     "totalDuration": "Total Duration",
@@ -3811,7 +3898,10 @@
       "systemPromptPlaceholder": "Enter system prompt",
       "selectDataset": "Select a dataset",
       "selectBaseModel": "Select a base model"
-    }
+    },
+    "evaluator": "Evaluator",
+    "rl": "RL Engine",
+    "tracer": "Tracer"
   },
   "browser": {
     "control": "Browser Control",
@@ -4084,7 +4174,12 @@
       "neverUsed": "Never used",
       "successRate": "Success Rate",
       "quality": "Quality Score"
-    }
+    },
+    "install": "Install",
+    "installed": "Installed",
+    "marketplace": "Skill Marketplace",
+    "search": "Search skills...",
+    "uninstall": "Uninstall"
   },
   "task": {
     "title": "Tareas en segundo plano",
@@ -4597,5 +4692,60 @@
     "noSessions": "No active sessions",
     "confirmClose": "Confirm close this session?",
     "close": "Close"
+  },
+  "sourceManager": {
+    "config": {
+      "dimensions": "Dimensions",
+      "provider": "Embedding Provider",
+      "threshold": "Retrieval Threshold",
+      "topK": "Retrieval Top K"
+    },
+    "configTitle": "Source Config",
+    "disabled": "Disabled",
+    "empty": "No sources found",
+    "knowledge": {
+      "recentBases": "Recent Knowledge Bases",
+      "title": "Knowledge Sources"
+    },
+    "memory": {
+      "namespaces": "Namespaces",
+      "title": "Memory Sources"
+    },
+    "noConfig": "No config available",
+    "search": "Search",
+    "searchPlaceholder": "Search sources...",
+    "stats": {
+      "documents": "Documents",
+      "knowledgeBases": "Knowledge Bases",
+      "memoryItems": "Memory Items",
+      "namespaces": "Namespaces",
+      "notes": "Notes",
+      "vectorReady": "Vector Ready",
+      "wikiSources": "Sources",
+      "wikis": "Wikis"
+    },
+    "tab": {
+      "all": "All",
+      "knowledge": "Knowledge",
+      "memory": "Memory",
+      "wiki": "Wiki"
+    },
+    "type": {
+      "knowledge": "Knowledge",
+      "memory": "Memory",
+      "wiki": "Wiki"
+    },
+    "typeDesc": {
+      "knowledge": "RAG vector knowledge base with document import and semantic search",
+      "memory": "AI long-term memory for automatic storage and recall of key conversation info",
+      "wiki": "Structured knowledge graph with note linking and visualization"
+    },
+    "view": "View",
+    "viewAll": "View All",
+    "viewConfig": "Config",
+    "wiki": {
+      "title": "Wiki Sources",
+      "wikiList": "Wiki List"
+    }
   }
 }

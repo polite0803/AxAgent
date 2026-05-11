@@ -132,6 +132,12 @@ pub struct Model {
     pub max_tokens: Option<u32>,
     pub enabled: bool,
     pub param_overrides: Option<ModelParamOverrides>,
+    /// Input price per million tokens (USD). When set, used for accurate cost calculation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_price_per_mtok: Option<f64>,
+    /// Output price per million tokens (USD). When set, used for accurate cost calculation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_price_per_mtok: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]

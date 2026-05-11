@@ -9,6 +9,49 @@ import { useConversationStore } from "./conversationStore";
 // Sequence counter to prevent stale preference saves
 const _conversationPreferenceSaveSeq = new Map<string, number>();
 
+// ── Staged preferences (localStorage) for when no conversation is active ──
+const STAGED_PREFS_KEY = "axagent:staged-prefs";
+
+function loadStagedPrefs(): Record<string, unknown> {
+  try {
+    const raw = localStorage.getItem(STAGED_PREFS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+function saveStagedPrefs(prefs: Record<string, unknown>) {
+  try {
+    localStorage.setItem(STAGED_PREFS_KEY, JSON.stringify(prefs));
+  } catch { /* ignore */ }
+}
+export function clearStagedPrefs() {
+  try {
+    localStorage.removeItem(STAGED_PREFS_KEY);
+  } catch { /* ignore */ }
+}
+
+/** Save the current preference value to staged storage (no-conversation fallback). */
+function stagePreference(key: string, value: unknown) {
+  const prefs = loadStagedPrefs();
+  prefs[key] = value;
+  saveStagedPrefs(prefs);
+}
+
+/** Apply staged preferences to a new conversation's update input. */
+export function getStagedPreferenceUpdate(): Partial<UpdateConversationInput> {
+  const staged = loadStagedPrefs();
+  const update: Record<string, unknown> = {};
+  if (staged.searchEnabled !== undefined) { update.search_enabled = staged.searchEnabled; }
+  if (staged.searchProviderId !== undefined) { update.search_provider_id = staged.searchProviderId; }
+  if (staged.enabledMcpServerIds) { update.enabled_mcp_server_ids = staged.enabledMcpServerIds; }
+  if (staged.enabledKnowledgeBaseIds) { update.enabled_knowledge_base_ids = staged.enabledKnowledgeBaseIds; }
+  if (staged.enabledMemoryNamespaceIds) { update.enabled_memory_namespace_ids = staged.enabledMemoryNamespaceIds; }
+  if (staged.enabledWikiIds) { update.enabled_wiki_ids = staged.enabledWikiIds; }
+  if (staged.thinkingBudget !== undefined) { update.thinking_budget = staged.thinkingBudget; }
+  return update as Partial<UpdateConversationInput>;
+}
+
 type ConversationPreferenceState = Pick<
   PreferenceState,
   | "searchEnabled"
@@ -253,6 +296,8 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { searchEnabled: enabled },
         { searchEnabled: previous },
       );
+    } else {
+      stagePreference("searchEnabled", enabled);
     }
   },
   setSearchProviderId: (id) => {
@@ -266,6 +311,8 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { searchProviderId: id },
         { searchProviderId: previous },
       );
+    } else {
+      stagePreference("searchProviderId", id);
     }
   },
   setEnabledMcpServerIds: (ids) => {
@@ -296,6 +343,8 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { enabledMcpServerIds: nextIds },
         { enabledMcpServerIds: previous },
       );
+    } else {
+      stagePreference("enabledMcpServerIds", nextIds);
     }
   },
 
@@ -343,6 +392,8 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { thinkingBudget: budget },
         { thinkingBudget: previous },
       );
+    } else {
+      stagePreference("thinkingBudget", budget);
     }
   },
   setEnabledKnowledgeBaseIds: (ids) => {
@@ -373,6 +424,8 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { enabledKnowledgeBaseIds: nextIds },
         { enabledKnowledgeBaseIds: previous },
       );
+    } else {
+      stagePreference("enabledKnowledgeBaseIds", nextIds);
     }
   },
   setEnabledMemoryNamespaceIds: (ids) => {
@@ -403,6 +456,8 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { enabledMemoryNamespaceIds: nextIds },
         { enabledMemoryNamespaceIds: previous },
       );
+    } else {
+      stagePreference("enabledMemoryNamespaceIds", nextIds);
     }
   },
   setEnabledWikiIds: (ids) => {
@@ -433,6 +488,8 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         { enabledWikiIds: nextIds },
         { enabledWikiIds: previous },
       );
+    } else {
+      stagePreference("enabledWikiIds", nextIds);
     }
   },
 }));

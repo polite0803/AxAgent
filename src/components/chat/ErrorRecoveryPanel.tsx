@@ -114,7 +114,10 @@ function AttemptItem({ attempt }: { attempt: RecoveryAttempt }) {
       {!attempt.success && attempt.error && (
         <Alert
           type="error"
-          message={attempt.error}
+          message={attempt.error.length > 200 ? attempt.error.slice(0, 200) + "…" : attempt.error}
+          description={attempt.error.length > 100
+            ? <div style={{ maxHeight: 200, overflowY: "auto", fontSize: 12 }}>{attempt.error}</div>
+            : undefined}
           className="mt-2"
           style={{ fontSize: "12px" }}
         />
