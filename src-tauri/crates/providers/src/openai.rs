@@ -1089,7 +1089,10 @@ impl ProviderAdapter for OpenAIAdapter {
                         capabilities: caps,
                         max_tokens: None,
                         enabled: true,
-                        param_overrides: None, input_price_per_mtok: None, output_price_per_mtok: None, }
+                        param_overrides: None,
+                        input_price_per_mtok: None,
+                        output_price_per_mtok: None,
+                    }
                 })
                 .collect()
         };
@@ -1182,4 +1185,3 @@ impl ProviderAdapter for OpenAIAdapter {
         })
     }
 }
-

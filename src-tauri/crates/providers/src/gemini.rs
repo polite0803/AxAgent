@@ -807,7 +807,10 @@ impl ProviderAdapter for GeminiAdapter {
                     capabilities: caps,
                     max_tokens: m.input_token_limit,
                     enabled: true,
-                    param_overrides: None, input_price_per_mtok: None, output_price_per_mtok: None, }
+                    param_overrides: None,
+                    input_price_per_mtok: None,
+                    output_price_per_mtok: None,
+                }
             })
             .collect())
     }
@@ -876,4 +879,3 @@ impl ProviderAdapter for GeminiAdapter {
         })
     }
 }
-

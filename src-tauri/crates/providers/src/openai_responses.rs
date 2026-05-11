@@ -1016,7 +1016,10 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                     capabilities: caps,
                     max_tokens: None,
                     enabled: true,
-                    param_overrides: None, input_price_per_mtok: None, output_price_per_mtok: None, }
+                    param_overrides: None,
+                    input_price_per_mtok: None,
+                    output_price_per_mtok: None,
+                }
             })
             .collect())
     }
@@ -1268,4 +1271,3 @@ mod tests {
         assert_eq!(built.max_output_tokens, Some(16));
     }
 }
-
