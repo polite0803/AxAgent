@@ -402,5 +402,25 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
 }
 
 pub async fn create_test_pool() -> Result<DbHandle> {
-    create_pool("sqlite::memory:").await
+    let mut opt = ConnectOptions::new("sqlite::memory:?mode=rwc");
+    opt.max_connections(1)
+        .min_connections(1)
+        .sqlx_logging(false);
+    let conn = Database::connect(opt).await?;
+    conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
+        .await?;
+    axagent_migration::Migrator::up(&conn, None).await?;
+    for column in &["input_price_per_mtok", "output_price_per_mtok"] {
+        let sql = format!("ALTER TABLE models ADD COLUMN {} DOUBLE DEFAULT NULL", column);
+        if let Err(e) = conn
+            .execute_raw(Statement::from_string(DbBackend::Sqlite, &sql))
+            .await
+        {
+            let err_str = e.to_string();
+            if !err_str.contains("duplicate column name") {
+                tracing::warn!("Failed to add column {} to models: {}", column, err_str);
+            }
+        }
+    }
+    Ok(DbHandle { conn })
 }
