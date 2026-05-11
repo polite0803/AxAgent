@@ -43,14 +43,17 @@ walkdir = "2"
 md5 = "0.7"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-notify = { version = "8", default-features = false, features = ["inotify"] }
+notify = { version = "8", default-features = false }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
 
 [target.'cfg(windows)'.dependencies]
 xcap = { workspace = true }
-notify = { version = "8" }
+notify = { version = "8", default-features = false }
+
+[target.'cfg(not(any(target_os = "linux", target_os = "macos", windows)))'.dependencies]
+notify = { version = "8", default-features = false }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }
