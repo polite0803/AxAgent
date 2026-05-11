@@ -180,7 +180,6 @@ function CreateKnowledgeBaseModal({
         onClose();
       }}
       confirmLoading={creating}
-      mask={{ enabled: true, blur: true }}
     >
       <Form form={form} layout="vertical">
         <Form.Item name="name" label={t("settings.knowledge.name")} rules={[{ required: true }]}>
@@ -238,7 +237,6 @@ function CreateMemoryNamespaceModal({
         onClose();
       }}
       confirmLoading={creating}
-      mask={{ enabled: true, blur: true }}
     >
       <Form form={form} layout="vertical">
         <Form.Item name="name" label={t("settings.memory.namespaceName")} rules={[{ required: true }]}>
@@ -411,7 +409,7 @@ function KnowledgeTab({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
-  const { bases, loadBases } = useKnowledgeStore();
+  const { bases, loadBases, loading: knowledgeLoading } = useKnowledgeStore();
   const knowledgeSources = useSourceStore((s) => s.knowledgeSources());
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -419,7 +417,6 @@ function KnowledgeTab({
     loadBases();
   }, [loadBases]);
 
-  const totalDocs = bases.length;
   const configuredCount = knowledgeSources.filter((s) => s.embeddingProvider).length;
 
   return (
@@ -439,7 +436,7 @@ function KnowledgeTab({
           <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
             <Statistic
               title={t("sourceManager.stats.documents")}
-              value={totalDocs}
+              value={bases.length}
               prefix={<BookOpen size={16} style={{ color: token.colorInfo }} />}
               valueStyle={{ fontSize: 24 }}
             />
@@ -467,79 +464,81 @@ function KnowledgeTab({
         </div>
       </div>
 
-      {knowledgeSources.length === 0
-        ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("sourceManager.empty")}
-            style={{ padding: 40 }}
-          >
-            <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
-              {t("settings.knowledge.add")}
-            </Button>
-          </Empty>
-        )
-        : (
-          <Row gutter={[12, 12]}>
-            {knowledgeSources.map((source) => (
-              <Col key={source.id} xs={24} sm={12} lg={8}>
-                <SourceCard source={source} onViewConfig={onViewConfig} />
-              </Col>
-            ))}
-          </Row>
-        )}
+      <Spin spinning={knowledgeLoading}>
+        {knowledgeSources.length === 0
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("sourceManager.empty")}
+              style={{ padding: 40 }}
+            >
+              <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+                {t("settings.knowledge.add")}
+              </Button>
+            </Empty>
+          )
+          : (
+            <Row gutter={[12, 12]}>
+              {knowledgeSources.map((source) => (
+                <Col key={source.id} xs={24} sm={12} lg={8}>
+                  <SourceCard source={source} onViewConfig={onViewConfig} />
+                </Col>
+              ))}
+            </Row>
+          )}
 
-      {bases.length > 0 && (
-        <>
-          <Divider style={{ margin: `${token.marginLG}px 0` }} />
-          <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
-            <Text strong style={{ fontSize: 15 }}>{t("sourceManager.knowledge.recentBases")}</Text>
-            <Button size="small" type="link" onClick={() => navigate("/knowledge")}>
-              {t("sourceManager.viewAll")}
-            </Button>
-          </div>
-          <Row gutter={[12, 12]}>
-            {bases.slice(0, 6).map((base) => (
-              <Col key={base.id} xs={24} sm={12} lg={8}>
-                <Card
-                  hoverable
-                  size="small"
-                  style={{ borderRadius: token.borderRadiusLG }}
-                  onClick={() => navigate("/knowledge")}
-                  styles={{ body: { padding: token.paddingSM } }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="shrink-0 flex items-center justify-center"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: token.borderRadius,
-                        backgroundColor: token.blue1,
-                        color: token.blue6,
-                      }}
-                    >
-                      <Database size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Text strong ellipsis style={{ fontSize: 13 }}>{base.name}</Text>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Tag color={base.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
-                          {base.embeddingProvider
-                            ? t("settings.knowledge.vectorReady")
-                            : t("settings.knowledge.vectorNotConfigured")}
-                        </Tag>
+        {bases.length > 0 && (
+          <>
+            <Divider style={{ margin: `${token.marginLG}px 0` }} />
+            <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+              <Text strong style={{ fontSize: 15 }}>{t("sourceManager.knowledge.recentBases")}</Text>
+              <Button size="small" type="link" onClick={() => navigate("/knowledge")}>
+                {t("sourceManager.viewAll")}
+              </Button>
+            </div>
+            <Row gutter={[12, 12]}>
+              {bases.slice(0, 6).map((base) => (
+                <Col key={base.id} xs={24} sm={12} lg={8}>
+                  <Card
+                    hoverable
+                    size="small"
+                    style={{ borderRadius: token.borderRadiusLG }}
+                    onClick={() => navigate("/knowledge")}
+                    styles={{ body: { padding: token.paddingSM } }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="shrink-0 flex items-center justify-center"
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: token.borderRadius,
+                          backgroundColor: token.blue1,
+                          color: token.blue6,
+                        }}
+                      >
+                        <Database size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Text strong ellipsis style={{ fontSize: 13 }}>{base.name}</Text>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Tag color={base.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
+                            {base.embeddingProvider
+                              ? t("settings.knowledge.vectorReady")
+                              : t("settings.knowledge.vectorNotConfigured")}
+                          </Tag>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </>
-      )}
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </>
+        )}
 
-      <CreateKnowledgeBaseModal open={createOpen} onClose={() => setCreateOpen(false)} />
+        <CreateKnowledgeBaseModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      </Spin>
     </div>
   );
 }
@@ -552,7 +551,7 @@ function MemoryTab({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
-  const { namespaces, loadNamespaces } = useMemoryStore();
+  const { namespaces, loadNamespaces, loading: memoryLoading } = useMemoryStore();
   const memorySources = useSourceStore((s) => s.memorySources());
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -561,7 +560,6 @@ function MemoryTab({
   }, [loadNamespaces]);
 
   const configuredCount = memorySources.filter((s) => s.embeddingProvider).length;
-  const totalItems = namespaces.length;
 
   return (
     <div>
@@ -580,7 +578,7 @@ function MemoryTab({
           <Card size="small" style={{ borderRadius: token.borderRadiusLG }}>
             <Statistic
               title={t("sourceManager.stats.memoryItems")}
-              value={totalItems}
+              value={namespaces.length}
               prefix={<Sparkles size={16} style={{ color: token.colorPrimary }} />}
               valueStyle={{ fontSize: 24 }}
             />
@@ -608,79 +606,81 @@ function MemoryTab({
         </div>
       </div>
 
-      {memorySources.length === 0
-        ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("sourceManager.empty")}
-            style={{ padding: 40 }}
-          >
-            <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
-              {t("settings.memory.addNamespace")}
-            </Button>
-          </Empty>
-        )
-        : (
-          <Row gutter={[12, 12]}>
-            {memorySources.map((source) => (
-              <Col key={source.id} xs={24} sm={12} lg={8}>
-                <SourceCard source={source} onViewConfig={onViewConfig} />
-              </Col>
-            ))}
-          </Row>
-        )}
+      <Spin spinning={memoryLoading}>
+        {memorySources.length === 0
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("sourceManager.empty")}
+              style={{ padding: 40 }}
+            >
+              <Button type="primary" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
+                {t("settings.memory.addNamespace")}
+              </Button>
+            </Empty>
+          )
+          : (
+            <Row gutter={[12, 12]}>
+              {memorySources.map((source) => (
+                <Col key={source.id} xs={24} sm={12} lg={8}>
+                  <SourceCard source={source} onViewConfig={onViewConfig} />
+                </Col>
+              ))}
+            </Row>
+          )}
 
-      {namespaces.length > 0 && (
-        <>
-          <Divider style={{ margin: `${token.marginLG}px 0` }} />
-          <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
-            <Text strong style={{ fontSize: 15 }}>{t("sourceManager.memory.namespaces")}</Text>
-            <Button size="small" type="link" onClick={() => navigate("/knowledge")}>
-              {t("sourceManager.viewAll")}
-            </Button>
-          </div>
-          <Row gutter={[12, 12]}>
-            {namespaces.slice(0, 6).map((ns) => (
-              <Col key={ns.id} xs={24} sm={12} lg={8}>
-                <Card
-                  hoverable
-                  size="small"
-                  style={{ borderRadius: token.borderRadiusLG }}
-                  onClick={() => navigate("/knowledge")}
-                  styles={{ body: { padding: token.paddingSM } }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="shrink-0 flex items-center justify-center"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: token.borderRadius,
-                        backgroundColor: token.purple1,
-                        color: token.purple6,
-                      }}
-                    >
-                      <Brain size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Text strong ellipsis style={{ fontSize: 13 }}>{ns.name}</Text>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Tag color={ns.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
-                          {ns.embeddingProvider
-                            ? t("settings.memory.vectorReady")
-                            : t("settings.memory.vectorNotConfigured")}
-                        </Tag>
+        {namespaces.length > 0 && (
+          <>
+            <Divider style={{ margin: `${token.marginLG}px 0` }} />
+            <div className="flex items-center justify-between" style={{ marginBottom: token.marginMD }}>
+              <Text strong style={{ fontSize: 15 }}>{t("sourceManager.memory.namespaces")}</Text>
+              <Button size="small" type="link" onClick={() => navigate("/knowledge")}>
+                {t("sourceManager.viewAll")}
+              </Button>
+            </div>
+            <Row gutter={[12, 12]}>
+              {namespaces.slice(0, 6).map((ns) => (
+                <Col key={ns.id} xs={24} sm={12} lg={8}>
+                  <Card
+                    hoverable
+                    size="small"
+                    style={{ borderRadius: token.borderRadiusLG }}
+                    onClick={() => navigate("/knowledge")}
+                    styles={{ body: { padding: token.paddingSM } }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="shrink-0 flex items-center justify-center"
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: token.borderRadius,
+                          backgroundColor: token.purple1,
+                          color: token.purple6,
+                        }}
+                      >
+                        <Brain size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Text strong ellipsis style={{ fontSize: 13 }}>{ns.name}</Text>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Tag color={ns.embeddingProvider ? "green" : "default"} style={{ fontSize: 10, margin: 0 }}>
+                            {ns.embeddingProvider
+                              ? t("settings.memory.vectorReady")
+                              : t("settings.memory.vectorNotConfigured")}
+                          </Tag>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </>
-      )}
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </>
+        )}
 
-      <CreateMemoryNamespaceModal open={createOpen} onClose={() => setCreateOpen(false)} />
+        <CreateMemoryNamespaceModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      </Spin>
     </div>
   );
 }
@@ -887,8 +887,10 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
 
 function AllSourcesTab({
   onViewConfig,
+  onNavigateToTab,
 }: {
   onViewConfig: (s: UnifiedSource) => void;
+  onNavigateToTab: (tab: string) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -927,7 +929,8 @@ function AllSourcesTab({
           <Card
             hoverable
             size="small"
-            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder }}
+            onClick={() => onNavigateToTab("knowledge")}
+            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder, cursor: "pointer" }}
             styles={{ body: { padding: token.paddingSM } }}
           >
             <div className="flex items-center gap-3">
@@ -956,7 +959,8 @@ function AllSourcesTab({
           <Card
             hoverable
             size="small"
-            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder }}
+            onClick={() => onNavigateToTab("memory")}
+            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder, cursor: "pointer" }}
             styles={{ body: { padding: token.paddingSM } }}
           >
             <div className="flex items-center gap-3">
@@ -985,7 +989,8 @@ function AllSourcesTab({
           <Card
             hoverable
             size="small"
-            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder }}
+            onClick={() => onNavigateToTab("wiki")}
+            style={{ borderRadius: token.borderRadiusLG, borderColor: token.colorBorder, cursor: "pointer" }}
             styles={{ body: { padding: token.paddingSM } }}
           >
             <div className="flex items-center gap-3">
@@ -1107,7 +1112,7 @@ function SourceManager() {
           ...tab,
           children: (
             <>
-              {tab.key === "all" && <AllSourcesTab onViewConfig={setConfigSource} />}
+              {tab.key === "all" && <AllSourcesTab onViewConfig={setConfigSource} onNavigateToTab={setActiveTab} />}
               {tab.key === "knowledge" && <KnowledgeTab onViewConfig={setConfigSource} />}
               {tab.key === "memory" && <MemoryTab onViewConfig={setConfigSource} />}
               {tab.key === "wiki" && <WikiTab onViewConfig={setConfigSource} />}

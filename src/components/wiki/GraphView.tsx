@@ -76,7 +76,6 @@ export interface GraphViewProps {
   };
   onFiltersChange?: (filters: { tags?: string[]; types?: GraphNodeType[] }) => void;
   showMinimap?: boolean;
-  showControls?: boolean;
   communities?: Map<string, number>;
 }
 
@@ -114,11 +113,11 @@ const edgeTypeStyles: Record<
 };
 
 const edgeTypeLabels: Record<GraphEdgeType, string> = {
-  link: "link",
-  backlink: "backlink",
-  reference: "ref",
-  derived_from: "derived",
-  contradicts: "contra",
+  link: "wiki.graph.edgeType.link",
+  backlink: "wiki.graph.edgeType.backlink",
+  reference: "wiki.graph.edgeType.reference",
+  derived_from: "wiki.graph.edgeType.derived",
+  contradicts: "wiki.graph.edgeType.contradicts",
 };
 
 function getNodeColor(node: GraphNode, communities?: Map<string, number>): string {
@@ -215,6 +214,8 @@ function WikiEdgeComponent({
   data,
   selected,
 }: EdgeProps<{ edgeType: GraphEdgeType }>) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -270,14 +271,14 @@ function WikiEdgeComponent({
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               fontSize: 9,
               color: style.stroke,
-              background: "rgba(255,255,255,0.85)",
+              background: `${token.colorBgContainer}dd`,
               padding: "1px 4px",
               borderRadius: 3,
               pointerEvents: "none",
               fontWeight: 500,
             }}
           >
-            {edgeTypeLabels[edgeType]}
+            {t(edgeTypeLabels[edgeType])}
           </div>
         </EdgeLabelRenderer>
       )}
@@ -445,7 +446,6 @@ function GraphViewInner({
   filters,
   onFiltersChange,
   showMinimap = true,
-  showControls: _showControls = true,
   communities,
 }: GraphViewProps) {
   const { token } = theme.useToken();

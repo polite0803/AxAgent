@@ -67,12 +67,6 @@ export function WikiGraphPage() {
     loadWikis();
   }, [loadWikis]);
 
-  useEffect(() => {
-    setSelectedVaultId(wikiIdFromUrl);
-    loadNotes(wikiIdFromUrl);
-    loadGraphData();
-  }, [wikiIdFromUrl]);
-
   const loadGraphData = useCallback(async () => {
     setGraphLoading(true);
     try {
@@ -92,6 +86,12 @@ export function WikiGraphPage() {
     }
     setGraphLoading(false);
   }, [wikiIdFromUrl, t]);
+
+  useEffect(() => {
+    setSelectedVaultId(wikiIdFromUrl);
+    loadNotes(wikiIdFromUrl);
+    loadGraphData();
+  }, [wikiIdFromUrl, setSelectedVaultId, loadNotes, loadGraphData]);
 
   const handleReload = () => {
     loadNotes(wikiIdFromUrl);
@@ -396,7 +396,6 @@ export function WikiGraphPage() {
                 highlightedNodeIds={highlightedNodeIds}
                 communities={communities ?? undefined}
                 showMinimap
-                showControls
               />
             )}
         </div>
@@ -455,7 +454,8 @@ export function WikiGraphPage() {
         )}
         <div className="flex-1" />
         <Text type="secondary">
-          {t("wiki.tips", "Double-click node to edit · Drag panels to resize · Right-click for menu")}
+          {t("wiki.tips.doubleClick", "Double-click node to edit")} ·{" "}
+          {t("wiki.tips.dragPanel", "Drag panels to resize")} · {t("wiki.tips.rightClick", "Right-click for menu")}
         </Text>
       </div>
 

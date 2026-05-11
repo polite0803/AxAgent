@@ -217,6 +217,7 @@ impl ContentSynthesizer {
         )
     }
 
+    #[allow(dead_code)]
     fn extract_key_findings(&self, sources: &[SearchResult]) -> Vec<String> {
         let mut findings = Vec::new();
 

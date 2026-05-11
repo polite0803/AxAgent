@@ -302,6 +302,109 @@ impl Default for WebSearchProvider {
     }
 }
 
+fn extract_readability(html: &str) -> (String, String, Vec<String>) {
+    let doc = scraper::Html::parse_document(html);
+
+    let title = doc
+        .select(&scraper::Selector::parse("title").unwrap())
+        .next()
+        .map(|el| el.text().collect::<String>())
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+
+    let link_sel = scraper::Selector::parse("a[href]").unwrap();
+
+    let links: Vec<String> = doc
+        .select(&link_sel)
+        .filter_map(|el| el.value().attr("href").map(|h| h.to_string()))
+        .filter(|l| l.starts_with("http://") || l.starts_with("https://"))
+        .take(20)
+        .collect();
+
+    let noise_sel = scraper::Selector::parse(
+        "script, style, nav, footer, header, aside, iframe, noscript, svg, form, \
+         button, input, select, textarea, [role='navigation'], [role='banner'], \
+         [role='contentinfo'], [role='complementary'], .sidebar, .nav, .menu, \
+         .footer, .header, .ad, .ads, .advertisement, .cookie, .popup, .modal, \
+         .overlay, #sidebar, #nav, #footer, #header, #menu, .social, .share, \
+         .related, .comments",
+    )
+    .unwrap();
+
+    let noise_text: String = doc
+        .select(&noise_sel)
+        .flat_map(|el| el.text())
+        .collect::<Vec<_>>()
+        .join(" ")
+        .split_whitespace()
+        .map(|s| s.to_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    let content_sel = scraper::Selector::parse(
+        "main, article, [role='main'], [role='article'], .content, .post, \
+         .article, .entry, #content, #main, .main-content, .post-content, \
+         .article-content, .entry-content",
+    )
+    .unwrap();
+
+    let root = doc
+        .select(&content_sel)
+        .next()
+        .unwrap_or_else(|| doc.root_element());
+
+    let full_text: String = root.text().collect::<Vec<_>>().join(" ");
+
+    let body_text = if !noise_text.is_empty() && full_text.len() > noise_text.len() * 2 {
+        let noise_words: std::collections::HashSet<String> = noise_text
+            .split_whitespace()
+            .take(200)
+            .map(|s| s.to_string())
+            .collect();
+
+        full_text
+            .split_whitespace()
+            .filter(|w| w.len() > 3 || !noise_words.contains(&w.to_lowercase()))
+            .collect::<Vec<_>>()
+            .join(" ")
+    } else {
+        full_text
+    };
+
+    let body_text = clean_extracted_text(&body_text);
+
+    (title, body_text, links)
+}
+
+fn clean_extracted_text(text: &str) -> String {
+    let cleaned: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
+
+    if cleaned.len() > 80_000 {
+        format!("{}...\n[Content truncated at 80000 chars]", &cleaned[..80_000])
+    } else {
+        cleaned
+    }
+}
+
+fn detect_language(text: &str) -> String {
+    let sample = &text[..text.len().min(500)];
+    let cjk_count = sample
+        .chars()
+        .filter(|c| {
+            ('\u{4E00}'..='\u{9FFF}').contains(c)
+                || ('\u{3040}'..='\u{309F}').contains(c)
+                || ('\u{AC00}'..='\u{D7AF}').contains(c)
+        })
+        .count();
+    let total = sample.chars().count().max(1);
+    if cjk_count as f32 / total as f32 > 0.3 {
+        "zh".to_string()
+    } else {
+        "en".to_string()
+    }
+}
+
 #[async_trait]
 impl SearchProvider for WebSearchProvider {
     async fn search(
@@ -360,7 +463,9 @@ impl SearchProvider for WebSearchProvider {
             ));
         }
 
-        let (title, body_text, links) = Self::extract_readability(&html);
+        let (title, body_text, links) = extract_readability(&html);
+
+        let lang = detect_language(&body_text);
 
         Ok(ExtractedContent::new(url.to_string(), title, body_text)
             .with_links(links)
@@ -369,93 +474,8 @@ impl SearchProvider for WebSearchProvider {
                 published_date: None,
                 description: None,
                 keywords: Vec::new(),
-                language: Some(Self::detect_language(&body_text)),
+                language: Some(lang),
             }))
-    }
-
-    fn extract_readability(html: &str) -> (String, String, Vec<String>) {
-        let mut doc = scraper::Html::parse_document(html);
-
-        let title = doc
-            .select(&scraper::Selector::parse("title").unwrap())
-            .next()
-            .map(|el| el.text().collect::<String>())
-            .unwrap_or_default()
-            .trim()
-            .to_string();
-
-        let link_sel = scraper::Selector::parse("a[href]").unwrap();
-
-        let links: Vec<String> = doc
-            .select(&link_sel)
-            .filter_map(|el| el.value().attr("href").map(|h| h.to_string()))
-            .filter(|l| l.starts_with("http://") || l.starts_with("https://"))
-            .take(20)
-            .collect();
-
-        let noise_sel = scraper::Selector::parse(
-            "script, style, nav, footer, header, aside, iframe, noscript, svg, form, \
-             button, input, select, textarea, [role='navigation'], [role='banner'], \
-             [role='contentinfo'], [role='complementary'], .sidebar, .nav, .menu, \
-             .footer, .header, .ad, .ads, .advertisement, .cookie, .popup, .modal, \
-             .overlay, #sidebar, #nav, #footer, #header, #menu, .social, .share, \
-             .related, .comments",
-        )
-        .unwrap();
-
-        let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
-
-        for nid in noise_ids {
-            if let Some(node) = doc.tree.get_mut(nid) {
-                node.detach();
-            }
-        }
-
-        let content_sel = scraper::Selector::parse(
-            "main, article, [role='main'], [role='article'], .content, .post, \
-             .article, .entry, #content, #main, .main-content, .post-content, \
-             .article-content, .entry-content",
-        )
-        .unwrap();
-
-        let root = doc
-            .select(&content_sel)
-            .next()
-            .unwrap_or_else(|| doc.root_element());
-
-        let body_text: String = root.text().collect::<Vec<_>>().join(" ");
-
-        let body_text = Self::clean_extracted_text(&body_text);
-
-        (title, body_text, links)
-    }
-
-    fn clean_extracted_text(text: &str) -> String {
-        let cleaned: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
-
-        if cleaned.len() > 80_000 {
-            format!("{}...\n[Content truncated at 80000 chars]", &cleaned[..80_000])
-        } else {
-            cleaned
-        }
-    }
-
-    fn detect_language(text: &str) -> String {
-        let sample = &text[..text.len().min(500)];
-        let cjk_count = sample
-            .chars()
-            .filter(|c| {
-                ('\u{4E00}'..='\u{9FFF}').contains(c)
-                    || ('\u{3040}'..='\u{309F}').contains(c)
-                    || ('\u{AC00}'..='\u{D7AF}').contains(c)
-            })
-            .count();
-        let total = sample.chars().count().max(1);
-        if cjk_count as f32 / total as f32 > 0.3 {
-            "zh".to_string()
-        } else {
-            "en".to_string()
-        }
     }
 
     fn source_type(&self) -> SourceType {

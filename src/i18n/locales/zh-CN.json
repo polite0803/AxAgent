@@ -3352,6 +3352,13 @@
       "title": "知识图谱",
       "zoomIn": "放大",
       "zoomOut": "缩小",
+      "edgeType": {
+        "link": "链接",
+        "backlink": "反向链接",
+        "reference": "引用",
+        "derived": "派生",
+        "contradicts": "矛盾"
+      },
       "type": {
         "concept": "概念",
         "entity": "实体",
@@ -3363,6 +3370,19 @@
     "linkedPrefix": "关联",
     "linkedNoteTitle": "新关联笔记",
     "linkedRef": "相关",
+    "newNote": "新建笔记",
+    "searchGraph": "搜索图谱...",
+    "createFirstNote": "创建第一条笔记",
+    "showDetail": "详情",
+    "hidePanel": "隐藏面板",
+    "showPanel": "显示面板",
+    "selected": "已选中",
+    "wiki": "Wiki",
+    "tips": {
+      "doubleClick": "双击节点编辑",
+      "dragPanel": "拖拽面板调整大小",
+      "rightClick": "右键打开菜单"
+    },
     "ingest": {
       "docx": "Word 文档",
       "file": "文件",

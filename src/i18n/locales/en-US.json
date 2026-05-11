@@ -3841,6 +3841,13 @@
       "title": "Knowledge Graph",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
+      "edgeType": {
+        "link": "Link",
+        "backlink": "Backlink",
+        "reference": "Reference",
+        "derived": "Derived",
+        "contradicts": "Contradicts"
+      },
       "type": {
         "concept": "Concept",
         "entity": "Entity",
@@ -3852,6 +3859,19 @@
     "linkedPrefix": "Related",
     "linkedNoteTitle": "New Linked Note",
     "linkedRef": "Related",
+    "newNote": "New Note",
+    "searchGraph": "Search graph...",
+    "createFirstNote": "Create First Note",
+    "showDetail": "Details",
+    "hidePanel": "Hide Panel",
+    "showPanel": "Show Panel",
+    "selected": "Selected",
+    "wiki": "Wiki",
+    "tips": {
+      "doubleClick": "Double-click node to edit",
+      "dragPanel": "Drag panels to resize",
+      "rightClick": "Right-click for menu"
+    },
     "ingest": {
       "docx": "Word Document",
       "file": "File",
