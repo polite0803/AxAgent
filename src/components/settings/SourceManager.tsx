@@ -46,24 +46,33 @@ import { useNavigate } from "react-router-dom";
 
 const { Text, Paragraph } = Typography;
 
-const TYPE_META: Record<string, { color: string; icon: React.ReactNode; labelKey: string; descKey: string }> = {
+const TYPE_META: Record<
+  string,
+  { color: string; icon: React.ReactNode; labelKey: string; descKey: string; bgColor: string; fgColor: string }
+> = {
   knowledge: {
     color: "blue",
     icon: <Database size={16} />,
     labelKey: "sourceManager.type.knowledge",
     descKey: "sourceManager.typeDesc.knowledge",
+    bgColor: "#e6f4ff",
+    fgColor: "#1677ff",
   },
   memory: {
     color: "purple",
     icon: <Brain size={16} />,
     labelKey: "sourceManager.type.memory",
     descKey: "sourceManager.typeDesc.memory",
+    bgColor: "#f9f0ff",
+    fgColor: "#722ed1",
   },
   wiki: {
     color: "green",
     icon: <Network size={16} />,
     labelKey: "sourceManager.type.wiki",
     descKey: "sourceManager.typeDesc.wiki",
+    bgColor: "#f6ffed",
+    fgColor: "#52c41a",
   },
 };
 
@@ -513,8 +522,8 @@ function KnowledgeTab({
                           width: 36,
                           height: 36,
                           borderRadius: token.borderRadius,
-                          backgroundColor: token.blue1,
-                          color: token.blue6,
+                          backgroundColor: TYPE_META.knowledge.bgColor,
+                          color: TYPE_META.knowledge.fgColor,
                         }}
                       >
                         <Database size={16} />
@@ -655,8 +664,8 @@ function MemoryTab({
                           width: 36,
                           height: 36,
                           borderRadius: token.borderRadius,
-                          backgroundColor: token.purple1,
-                          color: token.purple6,
+                          backgroundColor: TYPE_META.memory.bgColor,
+                          color: TYPE_META.memory.fgColor,
                         }}
                       >
                         <Brain size={16} />
@@ -829,8 +838,8 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
               width: 40,
               height: 40,
               borderRadius: token.borderRadius,
-              backgroundColor: token.green1,
-              color: token.green6,
+              backgroundColor: TYPE_META.wiki.bgColor,
+              color: TYPE_META.wiki.fgColor,
             }}
           >
             <Network size={16} />
@@ -940,8 +949,8 @@ function AllSourcesTab({
                   width: 40,
                   height: 40,
                   borderRadius: token.borderRadius,
-                  backgroundColor: token.blue1,
-                  color: token.blue6,
+                  backgroundColor: TYPE_META.knowledge.bgColor,
+                  color: TYPE_META.knowledge.fgColor,
                 }}
               >
                 <Database size={18} />
@@ -970,8 +979,8 @@ function AllSourcesTab({
                   width: 40,
                   height: 40,
                   borderRadius: token.borderRadius,
-                  backgroundColor: token.purple1,
-                  color: token.purple6,
+                  backgroundColor: TYPE_META.memory.bgColor,
+                  color: TYPE_META.memory.fgColor,
                 }}
               >
                 <Brain size={18} />
@@ -1000,8 +1009,8 @@ function AllSourcesTab({
                   width: 40,
                   height: 40,
                   borderRadius: token.borderRadius,
-                  backgroundColor: token.green1,
-                  color: token.green6,
+                  backgroundColor: TYPE_META.wiki.bgColor,
+                  color: TYPE_META.wiki.fgColor,
                 }}
               >
                 <Network size={18} />

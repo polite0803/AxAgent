@@ -67,6 +67,8 @@ export interface GraphViewProps {
   onNodeDoubleClick?: (nodeId: string) => void;
   onNodeHover?: (nodeId: string | null) => void;
   onContextMenu?: (nodeId: string, position: { x: number; y: number }) => void;
+  onDeleteNode?: (nodeId: string) => void;
+  onDeselect?: () => void;
   highlightedNodeIds?: Set<string>;
   selectedNodeId?: string | null;
   filters?: {
@@ -296,6 +298,7 @@ const CustomNode = ({
     isSelected?: boolean;
     color?: string;
     isExpanded?: boolean;
+    entranceVisible?: boolean;
   };
   selected: boolean;
 }) => {
@@ -303,6 +306,7 @@ const CustomNode = ({
   const nodeColor = data.color || nodeColors[data.type] || nodeColors.note;
   const isHighlighted = data.isHighlighted !== false;
   const isSelected = data.isSelected || selected;
+  const entranceVisible = data.entranceVisible !== false;
 
   const linkSum = data.linkCount + data.backlinkCount;
   const size = Math.max(120, Math.min(200, 100 + linkSum * 4));
@@ -332,12 +336,14 @@ const CustomNode = ({
           boxShadow: isSelected
             ? `0 0 0 2px ${nodeColor}25, 0 0 20px ${nodeColor}15, 0 8px 32px rgba(0,0,0,0.1)`
             : `0 2px 8px rgba(0,0,0,0.04)`,
-          opacity: isHighlighted ? 1 : 0.15,
+          opacity: entranceVisible ? (isHighlighted ? 1 : 0.15) : 0,
           minWidth: size * 0.6,
           maxWidth: size,
           cursor: "pointer",
-          transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
-          transform: isSelected ? "scale(1.05)" : "scale(1)",
+          transition: "all 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+          transform: entranceVisible
+            ? (isSelected ? "scale(1.05)" : "scale(1)")
+            : "scale(0.3)",
           position: "relative",
           overflow: "hidden",
         }}
@@ -441,6 +447,8 @@ function GraphViewInner({
   onNodeDoubleClick,
   onNodeHover,
   onContextMenu,
+  onDeleteNode,
+  onDeselect,
   highlightedNodeIds,
   selectedNodeId,
   filters,
@@ -454,6 +462,7 @@ function GraphViewInner({
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("force");
+  const [entranceComplete, setEntranceComplete] = useState(false);
   const reactFlowInstance = useReactFlow();
 
   useEffect(() => {
@@ -472,6 +481,30 @@ function GraphViewInner({
     }
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (data.nodes.length > 0 && !entranceComplete) {
+      const timer = setTimeout(() => setEntranceComplete(true), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [data.nodes.length, entranceComplete]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onDeselect?.();
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+          return;
+        }
+        onDeleteNode?.(selectedNodeId);
+      }
+    };
+    containerRef.current?.addEventListener("keydown", handleKeyDown);
+    return () => containerRef.current?.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeId, onDeleteNode, onDeselect]);
 
   const hasHighlights = highlightedNodeIds && highlightedNodeIds.size > 0;
 
@@ -539,6 +572,7 @@ function GraphViewInner({
             isSelected: selectedNodeId === node.id,
             color: getNodeColor(node, communities),
             isExpanded: expandedNodeIds.has(node.id),
+            entranceVisible: entranceComplete,
           },
         };
       }),
@@ -551,6 +585,7 @@ function GraphViewInner({
       selectedNodeId,
       communities,
       expandedNodeIds,
+      entranceComplete,
     ],
   );
 
@@ -674,7 +709,11 @@ function GraphViewInner({
   }
 
   return (
-    <div ref={containerRef} style={{ width: "100%", height: "100%", position: "relative" }}>
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      style={{ width: "100%", height: "100%", position: "relative", outline: "none" }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -830,7 +869,7 @@ function GraphViewInner({
                           strokeDasharray={s.dashArray}
                         />
                       </svg>
-                      <span style={{ color: s.stroke }}>{edgeTypeLabels[et]}</span>
+                      <span style={{ color: s.stroke }}>{t(edgeTypeLabels[et])}</span>
                     </span>
                   );
                 })}

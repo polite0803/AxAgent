@@ -3870,7 +3870,8 @@
     "tips": {
       "doubleClick": "Double-click node to edit",
       "dragPanel": "Drag panels to resize",
-      "rightClick": "Right-click for menu"
+      "rightClick": "Right-click for menu",
+      "keyboard": "Esc deselect · Del delete"
     },
     "ingest": {
       "docx": "Word Document",

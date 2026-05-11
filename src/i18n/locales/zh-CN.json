@@ -3381,7 +3381,8 @@
     "tips": {
       "doubleClick": "双击节点编辑",
       "dragPanel": "拖拽面板调整大小",
-      "rightClick": "右键打开菜单"
+      "rightClick": "右键打开菜单",
+      "keyboard": "Esc 取消选中 · Del 删除"
     },
     "ingest": {
       "docx": "Word 文档",

@@ -57,6 +57,8 @@ export function WikiGraphPage() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(240);
   const [rightPanelWidth, setRightPanelWidth] = useState(380);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
+  const [leftAtBoundary, setLeftAtBoundary] = useState<"min" | "max" | null>(null);
+  const [rightAtBoundary, setRightAtBoundary] = useState<"min" | "max" | null>(null);
   const resizingRef = useRef<"left" | "right" | null>(null);
 
   // 搜索
@@ -102,10 +104,16 @@ export function WikiGraphPage() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (resizingRef.current === "left") {
-        setLeftPanelWidth(Math.max(MIN_PANEL_WIDTH, Math.min(MAX_LEFT_PANEL, e.clientX)));
+        const clamped = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_LEFT_PANEL, e.clientX));
+        setLeftPanelWidth(clamped);
+        setLeftAtBoundary(
+          clamped <= MIN_PANEL_WIDTH ? "min" : clamped >= MAX_LEFT_PANEL ? "max" : null,
+        );
       } else if (resizingRef.current === "right") {
-        setRightPanelWidth(
-          Math.max(MIN_PANEL_WIDTH, Math.min(MAX_RIGHT_PANEL, window.innerWidth - e.clientX)),
+        const clamped = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_RIGHT_PANEL, window.innerWidth - e.clientX));
+        setRightPanelWidth(clamped);
+        setRightAtBoundary(
+          clamped <= MIN_PANEL_WIDTH ? "min" : clamped >= MAX_RIGHT_PANEL ? "max" : null,
         );
       }
     };
@@ -113,6 +121,8 @@ export function WikiGraphPage() {
       resizingRef.current = null;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+      setLeftAtBoundary(null);
+      setRightAtBoundary(null);
     };
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
@@ -351,18 +361,24 @@ export function WikiGraphPage() {
             <div
               className="shrink-0 cursor-col-resize select-none transition-all duration-300"
               style={{
-                width: 3,
-                background: `linear-gradient(to right, transparent, ${token.colorBorderSecondary}10, transparent)`,
+                width: leftAtBoundary ? 5 : 3,
+                background: leftAtBoundary
+                  ? `linear-gradient(to right, ${token.colorWarningBg}60, ${token.colorWarning}80, ${token.colorWarningBg}60)`
+                  : `linear-gradient(to right, transparent, ${token.colorBorderSecondary}10, transparent)`,
               }}
               onMouseDown={handleResizeStart("left")}
               onMouseEnter={(e) => {
-                e.currentTarget.style.width = "5px";
-                e.currentTarget.style.background =
-                  `linear-gradient(to right, ${token.colorPrimaryBg}40, ${token.colorPrimary}60, ${token.colorPrimaryBg}40)`;
+                if (!leftAtBoundary) {
+                  e.currentTarget.style.width = "5px";
+                  e.currentTarget.style.background =
+                    `linear-gradient(to right, ${token.colorPrimaryBg}40, ${token.colorPrimary}60, ${token.colorPrimaryBg}40)`;
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.width = "3px";
-                e.currentTarget.style.background = "";
+                if (!leftAtBoundary) {
+                  e.currentTarget.style.width = "3px";
+                  e.currentTarget.style.background = "";
+                }
               }}
             />
           </>
@@ -392,6 +408,12 @@ export function WikiGraphPage() {
                 onNodeClick={handleNodeClick}
                 onNodeDoubleClick={handleNodeDoubleClick}
                 onContextMenu={handleContextMenu}
+                onDeleteNode={handleDeleteNote}
+                onDeselect={() => {
+                  setSelectedNodeId(null);
+                  setHighlightedNodeIds(new Set());
+                  setDetailPanelOpen(false);
+                }}
                 selectedNodeId={selectedNodeId}
                 highlightedNodeIds={highlightedNodeIds}
                 communities={communities ?? undefined}
@@ -407,18 +429,24 @@ export function WikiGraphPage() {
             <div
               className="shrink-0 cursor-col-resize select-none transition-all duration-300"
               style={{
-                width: 3,
-                background: `linear-gradient(to right, transparent, ${token.colorBorderSecondary}10, transparent)`,
+                width: rightAtBoundary ? 5 : 3,
+                background: rightAtBoundary
+                  ? `linear-gradient(to right, ${token.colorWarningBg}60, ${token.colorWarning}80, ${token.colorWarningBg}60)`
+                  : `linear-gradient(to right, transparent, ${token.colorBorderSecondary}10, transparent)`,
               }}
               onMouseDown={handleResizeStart("right")}
               onMouseEnter={(e) => {
-                e.currentTarget.style.width = "5px";
-                e.currentTarget.style.background =
-                  `linear-gradient(to right, ${token.colorPrimaryBg}40, ${token.colorPrimary}60, ${token.colorPrimaryBg}40)`;
+                if (!rightAtBoundary) {
+                  e.currentTarget.style.width = "5px";
+                  e.currentTarget.style.background =
+                    `linear-gradient(to right, ${token.colorPrimaryBg}40, ${token.colorPrimary}60, ${token.colorPrimaryBg}40)`;
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.width = "3px";
-                e.currentTarget.style.background = "";
+                if (!rightAtBoundary) {
+                  e.currentTarget.style.width = "3px";
+                  e.currentTarget.style.background = "";
+                }
               }}
             />
             <div style={{ width: rightPanelWidth, flexShrink: 0, overflow: "hidden" }}>
@@ -454,8 +482,8 @@ export function WikiGraphPage() {
         )}
         <div className="flex-1" />
         <Text type="secondary">
-          {t("wiki.tips.doubleClick", "Double-click node to edit")} ·{" "}
-          {t("wiki.tips.dragPanel", "Drag panels to resize")} · {t("wiki.tips.rightClick", "Right-click for menu")}
+          {t("wiki.tips.doubleClick")} · {t("wiki.tips.dragPanel")} · {t("wiki.tips.rightClick")} ·{" "}
+          {t("wiki.tips.keyboard")}
         </Text>
       </div>
 
