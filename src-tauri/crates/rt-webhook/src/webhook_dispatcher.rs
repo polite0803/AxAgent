@@ -18,7 +18,7 @@ impl WebhookDispatcher {
         }
     }
 
-    pub fn dispatch(
+    pub async fn dispatch(
         &self,
         event: WebhookEvent,
         data: HashMap<String, serde_json::Value>,

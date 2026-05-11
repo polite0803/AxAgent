@@ -72,6 +72,7 @@ pub struct DispatchResult {
     pub errors: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookPayload {
     pub id: String,
     pub event: WebhookEvent,
