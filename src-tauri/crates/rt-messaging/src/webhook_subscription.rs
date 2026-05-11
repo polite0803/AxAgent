@@ -66,7 +66,6 @@ impl WebhookEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DispatchResult {
     pub success_count: usize,
     pub failure_count: usize,
@@ -201,3 +200,4 @@ impl WebhookSubscriptionManager {
         Ok(())
     }
 }
+

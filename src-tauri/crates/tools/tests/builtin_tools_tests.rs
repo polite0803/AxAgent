@@ -1,5 +1,12 @@
 // builtin_tools 已迁移至 axagent-tools crate
-use axagent_tools::builtin_handlers::SkillMetadata;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SkillMetadata {
+    pub name: String,
+    pub description: String,
+    pub version: String,
+}
 
 #[test]
 fn test_builtin_tools_module_has_skill_metadata() {

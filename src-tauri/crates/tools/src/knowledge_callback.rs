@@ -1,19 +1,9 @@
-//! 已精简：仅保留知识搜索回调和元数据类型
+//! 知识搜索回调桥接
 //!
-//! 所有工具 handler 已迁移至 tools/*.rs 下的 Tool trait 实现。
-//! dispatch()、init_builtin_handlers() 等均已移除。
-//! 知识搜索回调暂时保留，供 knowledge.rs 和 state.rs 使用。
+//! 提供全局知识搜索回调的注册和获取，供 knowledge.rs 和 state.rs 使用。
+//! 从 builtin_handlers.rs 迁移而来。
 
 use axagent_core::error::AxAgentError;
-use serde::{Deserialize, Serialize};
-
-/// 技能元数据（供测试使用）
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkillMetadata {
-    pub name: String,
-    pub description: String,
-    pub version: String,
-}
 
 /// 知识库搜索命中条目
 pub struct KnowledgeSearchHit {
@@ -23,9 +13,9 @@ pub struct KnowledgeSearchHit {
     pub score: f32,
 }
 
-/// 全局知识搜索回调（全 RAG pipeline）
+/// 全局知识搜索回调（全 RAG pipeline，含 embedding + vector store）
 #[allow(clippy::type_complexity)]
-static KNOWLEDGE_SEARCH_CALLBACK: std::sync::OnceLock<
+static CALLBACK: std::sync::OnceLock<
     std::sync::Arc<
         dyn Fn(
                 &str,
@@ -60,10 +50,10 @@ pub fn set_knowledge_search_callback(
             + Sync,
     >,
 ) {
-    let _ = KNOWLEDGE_SEARCH_CALLBACK.set(cb);
+    let _ = CALLBACK.set(cb);
 }
 
-/// 获取全局知识搜索回调（供 knowledge.rs 等新 Tool trait 实现使用）
+/// 获取全局知识搜索回调
 pub fn get_knowledge_search_callback() -> Option<
     std::sync::Arc<
         dyn Fn(
@@ -81,5 +71,5 @@ pub fn get_knowledge_search_callback() -> Option<
             + Sync,
     >,
 > {
-    KNOWLEDGE_SEARCH_CALLBACK.get().cloned()
+    CALLBACK.get().cloned()
 }

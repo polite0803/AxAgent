@@ -163,41 +163,19 @@ pub struct LocalToolGroup {
 }
 
 pub struct LocalToolRegistry {
-    pub flat_tools: Vec<axagent_tools::builtin_tools::FlatBuiltinTool>,
+    pub flat_tools: Vec<axagent_tools::ToolInfo>,
     pub enabled: std::collections::HashMap<String, bool>,
     pub group_names: std::collections::HashMap<String, String>,
     pub tool_defs: std::collections::HashMap<String, LocalToolDef>,
 }
 impl LocalToolRegistry {
     pub fn init_from_registry() -> Self {
-        let flat = axagent_tools::builtin_tools::get_all_builtin_tools_flat();
         let mut enabled = std::collections::HashMap::new();
         let mut group_names = std::collections::HashMap::new();
         let mut tool_defs = std::collections::HashMap::new();
 
-        // 加载旧 builtin 工具
-        for ft in &flat {
-            enabled.entry(ft.server_id.clone()).or_insert(true);
-            group_names
-                .entry(ft.server_id.clone())
-                .or_insert_with(|| ft.server_name.clone());
-            tool_defs.insert(
-                ft.tool_name.clone(),
-                LocalToolDef {
-                    group_id: ft.server_id.clone(),
-                    group_name: ft.server_name.clone(),
-                    tool_name: ft.tool_name.clone(),
-                    description: ft.description.clone(),
-                    input_schema: ft.input_schema.clone(),
-                    env_json: ft.env_json.clone(),
-                    timeout_secs: ft.timeout_secs,
-                },
-            );
-        }
-
-        // 加载 52 个新统一工具（按 ToolCategory 分组）
+        // 从 UnifiedToolRegistry 加载全部 111 个工具（原生 + 已迁移旧工具）
         let unified = axagent_tools::registry::UnifiedToolRegistry::new();
-        // 不调用 init_all() 因为会重复注册，直接用内置的 new()
         let unified_tools = unified.tools.list_all();
         let category_map: Vec<(&str, &str)> = vec![
             ("builtin-file-read", "文件读取"),
@@ -237,7 +215,7 @@ impl LocalToolRegistry {
         }
 
         Self {
-            flat_tools: flat,
+            flat_tools: unified_tools,
             enabled,
             group_names,
             tool_defs,

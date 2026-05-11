@@ -157,7 +157,7 @@ impl Tool for SearchKnowledgeTool {
         }
 
         // 尝试回调优先（全 RAG pipeline）
-        if let Some(cb) = crate::builtin_handlers::get_knowledge_search_callback() {
+        if let Some(cb) = crate::knowledge_callback::get_knowledge_search_callback() {
             match cb(&base_id, &query, top_k).await {
                 Ok(hits) => {
                     if hits.is_empty() {

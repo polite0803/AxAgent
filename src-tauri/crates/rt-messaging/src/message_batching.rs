@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::io::{Read, Write};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -361,9 +362,10 @@ pub struct StreamingBatcher {
 
 impl StreamingBatcher {
     pub fn new(config: BatchingConfig) -> Self {
+        let cap = config.max_batch_size;
         Self {
             config,
-            buffer: Arc::new(RwLock::new(Vec::with_capacity(config.max_batch_size))),
+            buffer: Arc::new(RwLock::new(Vec::with_capacity(cap))),
             last_flush: Arc::new(RwLock::new(Instant::now())),
         }
     }
