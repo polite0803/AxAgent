@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 axagent-core = { path = "../core" }
 axagent-providers = { path = "../providers" }
-axagent-runtime = { path = "../runtime" }
+axagent-runtime-core = { path = "../runtime-core" }
 axagent-tools = { path = "../tools" }
 axagent-trajectory = { path = "../trajectory" }
 sea-orm = { workspace = true }

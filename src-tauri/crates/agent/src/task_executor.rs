@@ -443,17 +443,20 @@ impl TaskExecutorImpl for DefaultTaskExecutorImpl {
                     serde_json::json!({ "input": tool_input })
                 };
 
-                match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await
                 {
-                    Ok(result) => Ok(serde_json::json!({
-                        "output": result.content,
-                        "task_id": context.task_id,
-                        "tool_name": tool_name,
-                    })),
-                    Err(e) => Err(TaskExecutorError::ExecutionFailed(format!(
-                        "Tool '{}' execution failed: {}",
-                        tool_name, e
-                    ))),
+                    let input_str = serde_json::to_string(&args).unwrap_or_default();
+                    let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
+                    match reg.execute(local_name, &input_str).await {
+                        Ok(result) => Ok(serde_json::json!({
+                            "output": result.content,
+                            "task_id": context.task_id,
+                            "tool_name": tool_name,
+                        })),
+                        Err(e) => Err(TaskExecutorError::ExecutionFailed(format!(
+                            "Tool '{}' execution failed: {}",
+                            tool_name, e
+                        ))),
+                    }
                 }
             },
             crate::task::TaskType::Reasoning => {

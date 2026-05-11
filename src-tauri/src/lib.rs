@@ -109,12 +109,6 @@ pub fn run() {
         }
     }
 
-    axagent_tools::builtin_handlers::init_builtin_handlers();
-
-    if let Err(e) = axagent_tools::builtin_tools::validate_builtin_tools() {
-        tracing::warn!("Builtin tools validation failed: {}", e);
-    }
-
     let builder = tauri::Builder::default();
     let builder = init::register_plugins(builder);
 

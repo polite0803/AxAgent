@@ -5,7 +5,7 @@ use axagent_core::types::{
     TokenUsage as AxAgentTokenUsage, ToolCall, ToolCallFunction,
 };
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
-use axagent_runtime::{
+use axagent_runtime_core::{
     ApiClient, ApiRequest, AssistantEvent, ContentBlock, ConversationMessage, MessageRole,
     RuntimeError, TokenUsage as RuntimeTokenUsage,
 };

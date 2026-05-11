@@ -79,11 +79,13 @@ impl ActionExecutor {
             serde_json::json!({ "input": input })
         };
 
-        match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await {
-            Ok(mcp_result) => {
-                Ok(ActionResult::ToolSuccess(mcp_result.content, tool_name.to_string()))
-            },
-            Err(e) => Err(ActionError::ToolExecution(e.to_string())),
+        {
+            let input_str = serde_json::to_string(&args).unwrap_or_default();
+            let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
+            match reg.execute(local_name, &input_str).await {
+                Ok(r) => Ok(ActionResult::ToolSuccess(r.content, tool_name.to_string())),
+                Err(e) => Err(ActionError::ToolExecution(e.to_string())),
+            }
         }
     }
 }

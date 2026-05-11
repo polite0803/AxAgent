@@ -3,21 +3,30 @@
 pub mod agent;
 pub mod bash;
 pub mod batch_missing;
+pub mod browser;
 pub mod computer_use;
 pub mod context;
 pub mod cron;
 pub mod file_edit;
 pub mod file_read;
+pub mod file_system;
 pub mod file_write;
+pub mod git;
 pub mod glob;
 pub mod grep;
+pub mod knowledge;
 pub mod lsp;
 pub mod messaging;
+pub mod misc;
 pub mod monitor;
+pub mod obsidian;
+pub mod ocr;
 pub mod plan;
 pub mod push_notification;
 pub mod repl;
 pub mod skill;
+pub mod storage;
+pub mod system_info;
 pub mod task_system;
 pub mod todo_write;
 pub mod web_fetch;
@@ -32,6 +41,12 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(file_read::FileReadTool),
         std::sync::Arc::new(file_write::FileWriteTool),
         std::sync::Arc::new(file_edit::FileEditTool),
+        std::sync::Arc::new(file_system::ListDirectoryTool),
+        std::sync::Arc::new(file_system::DeleteFileTool),
+        std::sync::Arc::new(file_system::CreateDirectoryTool),
+        std::sync::Arc::new(file_system::FileExistsTool),
+        std::sync::Arc::new(file_system::GetFileInfoTool),
+        std::sync::Arc::new(file_system::MoveFileTool),
         std::sync::Arc::new(glob::GlobTool),
         std::sync::Arc::new(grep::GrepTool),
         // ── Shell 和网络 ──
@@ -51,6 +66,17 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(batch_missing::VerifyPlanExecutionTool),
         // ── 桌面控制 ──
         std::sync::Arc::new(computer_use::ComputerUseTool),
+        // ── 浏览器 ──
+        std::sync::Arc::new(browser::BrowserNavigateTool),
+        std::sync::Arc::new(browser::BrowserScreenshotTool),
+        std::sync::Arc::new(browser::BrowserClickTool),
+        std::sync::Arc::new(browser::BrowserFillTool),
+        std::sync::Arc::new(browser::BrowserTypeTool),
+        std::sync::Arc::new(browser::BrowserExtractTextTool),
+        std::sync::Arc::new(browser::BrowserExtractAllTool),
+        std::sync::Arc::new(browser::BrowserGetContentTool),
+        std::sync::Arc::new(browser::BrowserSelectTool),
+        std::sync::Arc::new(browser::BrowserWaitForTool),
         // ── 定时任务 ──
         std::sync::Arc::new(cron::CronCreateTool),
         std::sync::Arc::new(cron::CronDeleteTool),
@@ -91,6 +117,58 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(monitor::MonitorTool),
         std::sync::Arc::new(context::CtxInspectTool),
         std::sync::Arc::new(context::SnipTool),
+        // ── 知识库 ──
+        std::sync::Arc::new(knowledge::ListKnowledgeBasesTool),
+        std::sync::Arc::new(knowledge::SearchKnowledgeTool),
+        std::sync::Arc::new(knowledge::CreateKnowledgeEntityTool),
+        std::sync::Arc::new(knowledge::CreateKnowledgeFlowTool),
+        std::sync::Arc::new(knowledge::CreateKnowledgeInterfaceTool),
+        std::sync::Arc::new(knowledge::AddKnowledgeDocumentTool),
+        // ── 存储管理 ──
+        std::sync::Arc::new(storage::GetStorageInfoTool),
+        std::sync::Arc::new(storage::ListStorageFilesTool),
+        std::sync::Arc::new(storage::UploadStorageFileTool),
+        std::sync::Arc::new(storage::DownloadStorageFileTool),
+        std::sync::Arc::new(storage::DeleteStorageFileTool),
+        // ── 系统信息 ──
+        std::sync::Arc::new(system_info::GetSystemInfoTool),
+        std::sync::Arc::new(system_info::ListProcessesTool),
+        // ── Git ──
+        std::sync::Arc::new(git::GitStatusTool),
+        std::sync::Arc::new(git::GitDiffTool),
+        std::sync::Arc::new(git::GitCommitTool),
+        std::sync::Arc::new(git::GitLogTool),
+        std::sync::Arc::new(git::GitBranchTool),
+        std::sync::Arc::new(git::GitReviewTool),
+        // ── OCR ──
+        std::sync::Arc::new(ocr::OcrImageTool),
+        std::sync::Arc::new(ocr::OcrDetectLangsTool),
+        // ── Obsidian ──
+        std::sync::Arc::new(obsidian::ObsidianGetVaultsTool),
+        std::sync::Arc::new(obsidian::ObsidianListFilesTool),
+        std::sync::Arc::new(obsidian::ObsidianReadFileTool),
+        // ── 杂项工具 ──
+        std::sync::Arc::new(misc::ExportWordTool),
+        std::sync::Arc::new(misc::RemoteFileUploadTool),
+        std::sync::Arc::new(misc::RemoteFileListTool),
+        std::sync::Arc::new(misc::RemoteFileDeleteTool),
+        std::sync::Arc::new(misc::PdfInfoTool),
+        std::sync::Arc::new(misc::DetectEncodingTool),
+        std::sync::Arc::new(misc::Base64ImageTool),
+        std::sync::Arc::new(misc::CacheInfoTool),
+        std::sync::Arc::new(misc::CacheClearTool),
+        std::sync::Arc::new(misc::WorkspaceReadTool),
+        std::sync::Arc::new(misc::WorkspaceWriteTool),
+        std::sync::Arc::new(misc::SessionSearchTool),
+        std::sync::Arc::new(misc::MemoryFlushTool),
+        std::sync::Arc::new(misc::AgentCheckpointTool),
+        std::sync::Arc::new(misc::AgentStatusTool),
+        std::sync::Arc::new(misc::AgentRememberTool),
+        std::sync::Arc::new(misc::GenerateImageTool),
+        std::sync::Arc::new(misc::GenerateChartConfigTool),
+        std::sync::Arc::new(misc::SequentialThinkingTool),
+        std::sync::Arc::new(misc::DifyListBasesTool),
+        std::sync::Arc::new(misc::DifySearchTool),
         // ── 通知 ──
         std::sync::Arc::new(push_notification::PushNotificationTool),
     ]);

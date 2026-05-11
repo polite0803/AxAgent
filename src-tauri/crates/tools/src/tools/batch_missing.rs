@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use serde_json::{json, Value};
 
 /// 触发 Worktree 相关 HookEvent（best-effort，失败不影响主流程）
-fn fire_worktree_hook(event: axagent_runtime::HookEvent, data: &serde_json::Value) {
-    let runner = axagent_runtime::HookRunner::new(axagent_runtime::RuntimeHookConfig::default());
+fn fire_worktree_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
+    let runner = axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
     let data_str = data.to_string();
     let _ = runner.run_event(event, &data_str);
 }
@@ -39,7 +39,7 @@ impl Tool for EnterWorktreeTool {
 
         // 触发 WorktreeCreate hook (best-effort)
         fire_worktree_hook(
-            axagent_runtime::HookEvent::WorktreeCreate,
+            axagent_runtime_core::HookEvent::WorktreeCreate,
             &json!({
                 "name": name,
                 "cwd": cwd.display().to_string(),
@@ -78,7 +78,7 @@ impl Tool for ExitWorktreeTool {
         // 仅在 remove 时触发 WorktreeRemove hook (best-effort)
         if is_remove {
             fire_worktree_hook(
-                axagent_runtime::HookEvent::WorktreeRemove,
+                axagent_runtime_core::HookEvent::WorktreeRemove,
                 &json!({
                     "action": action,
                     "discard_changes": i["discard_changes"].as_bool().unwrap_or(false),

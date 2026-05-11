@@ -1,4 +1,4 @@
-use axagent_runtime::{
+use axagent_runtime_core::{
     ApiClient, ConversationRuntime, PermissionMode, PermissionPolicy, Session, ToolExecutor,
 };
 use tokio::sync::broadcast;
@@ -85,7 +85,7 @@ where
         // Fork session 重建：检查是否有父 agent 的 fork 上下文
         let mut forked_session = session.clone();
         let system_prompts = if let Some(fork_data) =
-            axagent_runtime::fork_bridge::take_fork_session(&forked_session.session_id)
+            axagent_runtime_core::fork_bridge::take_fork_session(&forked_session.session_id)
         {
             let mut sp = fork_data.parent_system_prompt;
             if let Some(child_sp) = fork_data.child_system_prompt {
@@ -93,7 +93,7 @@ where
             }
             if !fork_data.parent_messages_json.is_empty() {
                 if let Ok(parent_msgs) = serde_json::from_str::<
-                    Vec<axagent_runtime::ConversationMessage>,
+                    Vec<axagent_runtime_core::ConversationMessage>,
                 >(&fork_data.parent_messages_json)
                 {
                     forked_session.messages = parent_msgs;
@@ -193,7 +193,7 @@ where
                     .last()
                     .and_then(|msg| {
                         msg.blocks.iter().find_map(|block| {
-                            if let axagent_runtime::ContentBlock::Text { text } = block {
+                            if let axagent_runtime_core::ContentBlock::Text { text } = block {
                                 Some(text.clone())
                             } else {
                                 None

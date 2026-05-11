@@ -96,11 +96,13 @@ impl AgentImpl for AgentImplAdapter {
                 serde_json::json!({ "input": tool_input })
             };
 
-            match axagent_tools::builtin_handlers::dispatch(server_name, local_name, args).await {
-                Ok(mcp_result) => Ok(CoordinatorOutput::success(mcp_result.content, 1)),
-                Err(e) => {
-                    Err(AgentError::ExecutionFailed(format!("Tool '{}' failed: {}", tool_name, e)))
-                },
+            {
+                let input_str = serde_json::to_string(&args).unwrap_or_default();
+                let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
+                match reg.execute(local_name, &input_str).await {
+                    Ok(r) => Ok(CoordinatorOutput::success(r.content, 1)),
+                    Err(e) => Err(AgentError::ExecutionFailed(format!("Tool '{}' failed: {}", tool_name, e))),
+                }
             }
         } else {
             Ok(CoordinatorOutput::success(input.content, 1))

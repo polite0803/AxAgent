@@ -3,7 +3,6 @@
 //! 管理所有已注册工具的生命周期：注册、查找、列举、启用/禁用。
 //! 集成 MCP 执行、DB 审计记录、缓存、使用统计。
 
-use crate::builtin_tools;
 use crate::hooks::executors::execute_hook;
 use crate::hooks::registry::HookRegistry;
 use crate::hooks::{HookAction, HookConfig, HookEventType};
@@ -12,8 +11,8 @@ use crate::permissions::{PermissionMode, PermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
 use crate::{Tool, ToolCategory, ToolError, ToolErrorKind, ToolInfo, ToolResult};
-use axagent_runtime::ToolError as RuntimeToolError;
-use axagent_runtime::ToolExecutor as RuntimeToolExecutor;
+use axagent_runtime_core::ToolError as RuntimeToolError;
+use axagent_runtime_core::ToolExecutor as RuntimeToolExecutor;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
@@ -334,10 +333,8 @@ impl McpRegistry {
 
 /// 完整的统一工具注册表
 pub struct UnifiedToolRegistry {
-    /// 新体系：Tool trait 实现的工具
+    /// Tool trait 实现的工具（原生 + 已迁移旧工具）
     pub tools: ToolRegistry,
-    /// 旧体系：内置处理器（来自 builtin_tools_registry）
-    pub builtin_defs: HashMap<String, (String, Value)>, // tool_name → (server_name, input_schema)
     /// MCP 工具
     pub mcp_tools: BTreeMap<String, McpToolConfig>,
     pub mcp_servers: BTreeMap<String, McpServerConfig>,
@@ -362,11 +359,10 @@ pub struct UnifiedToolRegistry {
 }
 
 impl UnifiedToolRegistry {
-    /// 创建并初始化：自动注册全部 52 个工具 + 旧 builtin 定义
+    /// 创建并初始化：自动注册全部 111 个工具
     pub fn new() -> Self {
         let mut reg = Self {
             tools: ToolRegistry::new(),
-            builtin_defs: HashMap::new(),
             mcp_tools: BTreeMap::new(),
             mcp_servers: BTreeMap::new(),
             recorder: None,
@@ -384,16 +380,10 @@ impl UnifiedToolRegistry {
         reg
     }
 
-    /// 初始化：加载新旧所有工具，配置默认权限
+    /// 初始化：注册全部 111 个工具，配置默认权限
     pub fn init_all(&mut self) {
-        // 注册新工具
+        // 注册所有工具（原生 + 已迁移旧工具）
         crate::tools::register_all(&mut self.tools);
-
-        // 加载旧 builtin 工具定义
-        for ft in builtin_tools::get_all_builtin_tools_flat() {
-            self.builtin_defs
-                .insert(ft.tool_name.clone(), (ft.server_name.clone(), ft.input_schema.clone()));
-        }
 
         // 配置默认工具级权限要求
         self.permission_policy = PermissionPolicy::new(PermissionMode::WorkspaceWrite)
@@ -547,7 +537,6 @@ impl UnifiedToolRegistry {
             .into_iter()
             .map(|t| t.name.clone())
             .collect();
-        names.extend(self.builtin_defs.keys().cloned());
         names.extend(self.mcp_tools.values().map(|c| c.tool_name.clone()));
         names
     }
@@ -622,11 +611,7 @@ impl UnifiedToolRegistry {
                     Err(e) => Err(e),
                 }
             }
-            // 2. 尝试旧内置处理器
-            else if self.builtin_defs.contains_key(tool_name) {
-                self.execute_builtin(tool_name, input).await
-            }
-            // 3. 尝试 MCP 工具
+            // 2. 尝试 MCP 工具
             else if self.mcp_tools.values().any(|c| c.tool_name == tool_name) {
                 self.execute_mcp(tool_name, input).await
             } else {
@@ -658,38 +643,6 @@ impl UnifiedToolRegistry {
         }
 
         result
-    }
-
-    async fn execute_builtin(&self, tool_name: &str, input: &str) -> Result<ToolResult, ToolError> {
-        let (_server_name, _) = self
-            .builtin_defs
-            .get(tool_name)
-            .ok_or_else(|| ToolError::not_found(tool_name))?;
-
-        let handler = builtin_tools::get_handler("@axagent/search-file", tool_name)
-            .or_else(|| builtin_tools::get_handler("@axagent/filesystem", tool_name))
-            .or_else(|| builtin_tools::get_handler("@axagent/system", tool_name))
-            .or_else(|| builtin_tools::get_handler("@axagent/fetch", tool_name))
-            .or_else(|| builtin_tools::get_handler("@axagent/knowledge", tool_name))
-            .or_else(|| builtin_tools::get_handler("@axagent/storage", tool_name))
-            .or_else(|| builtin_tools::get_handler("@axagent/computer-control", tool_name));
-
-        match handler {
-            Some(h) => {
-                let input_val: Value = serde_json::from_str(input).unwrap_or(Value::Null);
-                let result = h(input_val)
-                    .await
-                    .map_err(|e| ToolError::execution_failed(e.to_string()))?;
-                Ok(ToolResult {
-                    content: result.content,
-                    truncated: false,
-                    is_error: result.is_error,
-                    metadata: None,
-                    duration_ms: None,
-                })
-            },
-            None => Err(ToolError::not_found(tool_name)),
-        }
     }
 
     pub async fn execute_mcp(

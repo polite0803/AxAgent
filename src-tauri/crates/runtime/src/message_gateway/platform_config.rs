@@ -1,1 +1,2 @@
-pub use axagent_core::platform_config::PlatformConfig;
+//! Re-exported from axagent-rt-messaging.
+pub use axagent_rt_messaging::message_gateway::platform_config::*;

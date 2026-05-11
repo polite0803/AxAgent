@@ -5,12 +5,13 @@ use crate::agent_def_loader::load_all_agents;
 use crate::agent_def_types::{AgentDefSource, AgentDefinition};
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_plugins::agent_provider::global_plugin_agents;
 use serde_json::{json, Value};
 use std::sync::{LazyLock, RwLock};
 
 /// 触发 HookEvent（best-effort，失败不影响主流程）
-fn fire_hook(event: axagent_runtime::HookEvent, data: &serde_json::Value) {
-    let runner = axagent_runtime::HookRunner::new(axagent_runtime::RuntimeHookConfig::default());
+fn fire_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
+    let runner = axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
     let data_str = data.to_string();
     let _ = runner.run_event(event, &data_str);
 }
@@ -125,7 +126,7 @@ pub fn refresh_agent_registry(cwd: &std::path::Path) {
     }
 
     // 合并 Plugin Agent（不覆盖同名的内置或自定义 agent）
-    for plugin_def in axagent_runtime::global_plugin_agents().all() {
+    for plugin_def in global_plugin_agents().all() {
         if !merged.iter().any(|b| b.agent_type == plugin_def.agent_type) {
             merged.push(AgentDefinition {
                 agent_type: plugin_def.agent_type,
@@ -212,7 +213,7 @@ impl Tool for AgentTool {
 
         // Verification Agent 需要启用 VERIFICATION_AGENT feature flag
         if agent_type == "Verification"
-            && !axagent_runtime::feature_flags::global_feature_flags().verification_agent()
+            && !axagent_runtime_core::feature_flags::global_feature_flags().verification_agent()
         {
             return Err(ToolError::new(
                 "Verification Agent 未启用（设置 AXAGENT_FF_VERIFICATION_AGENT=1 或 features.VerificationAgent=true）",
@@ -222,7 +223,7 @@ impl Tool for AgentTool {
         // 查找 Agent 定义
         let agent_def = if agent_type.is_empty() {
             // 如启用 FORK_SUBAGENT，则隐式 fork
-            if axagent_runtime::feature_flags::global_feature_flags().fork_subagent() {
+            if axagent_runtime_core::feature_flags::global_feature_flags().fork_subagent() {
                 return handle_fork_subagent(description, prompt, ctx).await;
             }
             // 默认使用 general-purpose
@@ -297,7 +298,7 @@ impl Tool for AgentTool {
 
         // 触发 SubagentStart hook (best-effort)
         fire_hook(
-            axagent_runtime::HookEvent::SubagentStart,
+            axagent_runtime_core::HookEvent::SubagentStart,
             &json!({
                 "agent_type": resolved_type,
                 "description": description,
@@ -345,7 +346,7 @@ async fn handle_fork_subagent(
 
     // 触发 SubagentStart hook — fork 类型 (best-effort)
     fire_hook(
-        axagent_runtime::HookEvent::SubagentStart,
+        axagent_runtime_core::HookEvent::SubagentStart,
         &json!({
             "agent_type": "fork",
             "description": description,

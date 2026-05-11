@@ -1042,17 +1042,19 @@ async fn execute_tool_call(
 
     let result = match server.transport.as_str() {
         "builtin" => {
+            let input_str = serde_json::to_string(&arguments).unwrap_or_default();
+            let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
             match tokio::time::timeout(
                 timeout_duration,
-                axagent_tools::builtin_handlers::dispatch(
-                    &server.name,
-                    &tool_call.function.name,
-                    arguments,
-                ),
+                reg.execute(&tool_call.function.name, &input_str),
             )
             .await
             {
-                Ok(r) => r,
+                Ok(Ok(r)) => Ok(axagent_core::mcp_client::McpToolResult {
+                    content: r.content,
+                    is_error: r.is_error,
+                }),
+                Ok(Err(e)) => Err(axagent_core::error::AxAgentError::Gateway(e.to_string())),
                 Err(_) => {
                     return (
                         format!("Error: Tool execution timed out after {}s", timeout_secs),

@@ -57,118 +57,15 @@ fn save_skills_metadata(path: &std::path::Path, skills: &[SkillMetadata]) -> Res
 
 pub fn init_builtin_handlers() {
     // fetch_url, fetch_markdown → WebFetch 已删除
-
     // read_file → FileRead 已删除
-
-    register_builtin_handler(
-        "@axagent/search-file",
-        "list_directory",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
-                list_directory(path).await
-            })
-        }),
-    );
-
-    // search_files, grep_content → Glob/Grep; write_file, edit_file → FileWrite/FileEdit 已删除
-
-    register_builtin_handler(
-        "@axagent/filesystem",
-        "delete_file",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                delete_file(path).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/filesystem",
-        "create_directory",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                create_directory(path).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/filesystem",
-        "file_exists",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                file_exists(path).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/filesystem",
-        "get_file_info",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let path = args
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                get_file_info(path).await
-            })
-        }),
-    );
-
-    register_builtin_handler(
-        "@axagent/filesystem",
-        "move_file",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let source = args
-                    .get("source")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                let destination = args
-                    .get("destination")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
-                move_file(source, destination).await
-            })
-        }),
-    );
-
+    // list_directory → ListDirectory 已删除
+    // search_files, grep_content → Glob/Grep 已删除
+    // delete_file, create_directory, file_exists, get_file_info, move_file → file_system.rs 已删除
+    // write_file, edit_file → FileWrite/FileEdit 已删除
     // run_command → Bash 已删除
 
-    register_builtin_handler(
-        "@axagent/system",
-        "get_system_info",
-        make_handler(|_args: Value| Box::pin(async move { get_system_info() })),
-    );
-
-    register_builtin_handler(
-        "@axagent/system",
-        "list_processes",
-        make_handler(|args: Value| {
-            Box::pin(async move {
-                let limit = args
-                    .get("limit")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| v as usize)
-                    .unwrap_or(20);
-                list_processes(limit).await
-            })
-        }),
-    );
+    // get_system_info → system_info::GetSystemInfoTool 已迁移
+    // list_processes → system_info::ListProcessesTool 已迁移
 
     register_builtin_handler(
         "@axagent/knowledge",
@@ -2223,64 +2120,7 @@ async fn read_file(path: &str) -> Result<McpToolResult> {
     }
 }
 
-async fn list_directory(path: &str) -> Result<McpToolResult> {
-    if path.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: path parameter is required".into(),
-            is_error: true,
-        });
-    }
-
-    let resolved_path = match validate_and_resolve_path(path, "workspace") {
-        Ok(p) => p,
-        Err(e) => {
-            return Ok(McpToolResult {
-                content: format!("Error: {}", e),
-                is_error: true,
-            });
-        },
-    };
-
-    let mut entries = match tokio::fs::read_dir(&resolved_path).await {
-        Ok(rd) => rd,
-        Err(e) => {
-            return Ok(McpToolResult {
-                content: format!("Error listing directory '{}': {}", path, e),
-                is_error: true,
-            });
-        },
-    };
-
-    let mut items = Vec::new();
-    while let Ok(Some(entry)) = entries.next_entry().await {
-        let name = entry.file_name().to_string_lossy().to_string();
-        let is_dir = entry
-            .file_type()
-            .await
-            .map(|ft| ft.is_dir())
-            .unwrap_or(false);
-        let meta = entry.metadata().await.ok();
-        let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
-
-        if is_dir {
-            items.push(format!("📁 {}/", name));
-        } else {
-            items.push(format!("📄 {} ({})", name, human_size(size)));
-        }
-    }
-
-    items.sort();
-    let content = if items.is_empty() {
-        format!("Directory '{}' is empty", path)
-    } else {
-        format!("Contents of '{}':\n{}", path, items.join("\n"))
-    };
-
-    Ok(McpToolResult {
-        content,
-        is_error: false,
-    })
-}
+// list_directory → file_system::ListDirectoryTool 已迁移
 
 async fn search_files(
     path: &str,
@@ -3338,180 +3178,15 @@ async fn search_replace_file(
     })
 }
 
-async fn delete_file(path: &str) -> Result<McpToolResult> {
-    if path.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: path parameter is required".into(),
-            is_error: true,
-        });
-    }
+// delete_file → file_system::DeleteFileTool 已迁移
 
-    let resolved_path = match validate_and_resolve_path(path, "workspace") {
-        Ok(p) => p,
-        Err(e) => {
-            return Ok(McpToolResult {
-                content: format!("Error: {}", e),
-                is_error: true,
-            });
-        },
-    };
+// move_file → file_system::MoveFileTool 已迁移
 
-    let path_str = resolved_path.to_string_lossy();
-    tokio::fs::remove_file(&*path_str)
-        .await
-        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
+// create_directory → file_system::CreateDirectoryTool 已迁移
 
-    Ok(McpToolResult {
-        content: format!("File '{}' deleted successfully", path),
-        is_error: false,
-    })
-}
+// file_exists → file_system::FileExistsTool 已迁移
 
-async fn move_file(source: &str, destination: &str) -> Result<McpToolResult> {
-    if source.is_empty() || destination.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: both source and destination parameters are required".into(),
-            is_error: true,
-        });
-    }
-
-    if source == destination {
-        return Ok(McpToolResult {
-            content: "Error: source and destination paths are the same".into(),
-            is_error: true,
-        });
-    }
-
-    let resolved_source = match validate_and_resolve_path(source, "workspace") {
-        Ok(p) => p,
-        Err(e) => {
-            return Ok(McpToolResult {
-                content: format!("Error: {}", e),
-                is_error: true,
-            });
-        },
-    };
-
-    let resolved_dest = match validate_and_resolve_path(destination, "workspace") {
-        Ok(p) => p,
-        Err(e) => {
-            return Ok(McpToolResult {
-                content: format!("Error: {}", e),
-                is_error: true,
-            });
-        },
-    };
-
-    let source_str = resolved_source.to_string_lossy();
-    let dest_str = resolved_dest.to_string_lossy();
-
-    let dest_parent = std::path::Path::new(&*dest_str).parent();
-    if let Some(parent) = dest_parent {
-        if !parent.as_os_str().is_empty() {
-            tokio::fs::create_dir_all(parent)
-                .await
-                .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
-        }
-    }
-
-    tokio::fs::rename(&*source_str, &*dest_str)
-        .await
-        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
-
-    Ok(McpToolResult {
-        content: format!("Moved '{}' to '{}'", source, destination),
-        is_error: false,
-    })
-}
-
-async fn create_directory(path: &str) -> Result<McpToolResult> {
-    if path.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: path parameter is required".into(),
-            is_error: true,
-        });
-    }
-
-    let resolved_path = match validate_and_resolve_path(path, "workspace") {
-        Ok(p) => p,
-        Err(e) => {
-            return Ok(McpToolResult {
-                content: format!("Error: {}", e),
-                is_error: true,
-            });
-        },
-    };
-
-    let path_str = resolved_path.to_string_lossy();
-    tokio::fs::create_dir_all(&*path_str)
-        .await
-        .map_err(|e| AxAgentError::Gateway(e.to_string()))?;
-
-    Ok(McpToolResult {
-        content: format!("Directory '{}' created successfully", path),
-        is_error: false,
-    })
-}
-
-async fn file_exists(path: &str) -> Result<McpToolResult> {
-    if path.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: path parameter is required".into(),
-            is_error: true,
-        });
-    }
-
-    let resolved_path = match validate_and_resolve_path(path, "workspace") {
-        Ok(p) => p,
-        Err(_) => {
-            return Ok(McpToolResult {
-                content: format!("{}: does not exist (outside allowed directories)", path),
-                is_error: false,
-            });
-        },
-    };
-
-    let path_str = resolved_path.to_string_lossy();
-    let exists = std::path::Path::new(&*path_str).exists();
-    Ok(McpToolResult {
-        content: format!("{}: {}", path, if exists { "exists" } else { "does not exist" }),
-        is_error: false,
-    })
-}
-
-async fn get_file_info(path: &str) -> Result<McpToolResult> {
-    if path.is_empty() {
-        return Ok(McpToolResult {
-            content: "Error: path parameter is required".into(),
-            is_error: true,
-        });
-    }
-
-    let resolved_path = match validate_and_resolve_path(path, "workspace") {
-        Ok(p) => p,
-        Err(e) => {
-            return Ok(McpToolResult {
-                content: format!("Error: {}", e),
-                is_error: true,
-            });
-        },
-    };
-
-    let path_str = resolved_path.to_string_lossy();
-    let meta = std::fs::metadata(&*path_str).map_err(|e| AxAgentError::Gateway(e.to_string()))?;
-
-    let info = format!(
-        "File: {}\n  Size: {} bytes\n  Modified: {:?}",
-        path,
-        meta.len(),
-        meta.modified()
-    );
-
-    Ok(McpToolResult {
-        content: info,
-        is_error: false,
-    })
-}
+// get_file_info → file_system::GetFileInfoTool 已迁移
 
 // ---------------------------------------------------------------------------
 // System tools - Command execution and system info
@@ -3627,59 +3302,9 @@ async fn run_command(command: &str, timeout_secs: u64) -> Result<McpToolResult> 
     })
 }
 
-fn get_system_info() -> Result<McpToolResult> {
-    let os = std::env::consts::OS;
-    let arch = std::env::consts::ARCH;
-    let home = dirs::home_dir()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
+// get_system_info → system_info::GetSystemInfoTool 已迁移
 
-    let uptime = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| format!("{} seconds", d.as_secs()))
-        .unwrap_or_else(|_| "unknown".to_string());
-
-    Ok(McpToolResult {
-        content: format!(
-            "System Info:\n  OS: {}\n  Architecture: {}\n  Home directory: {}\n  Uptime: {}",
-            os, arch, home, uptime
-        ),
-        is_error: false,
-    })
-}
-
-async fn list_processes(limit: usize) -> Result<McpToolResult> {
-    #[cfg(windows)]
-    let output = tokio::process::Command::new("tasklist")
-        .args(["/FO", "CSV", "/NH"])
-        .output()
-        .await;
-
-    #[cfg(not(windows))]
-    let output = tokio::process::Command::new("ps")
-        .args(["aux"])
-        .output()
-        .await;
-
-    match output {
-        Ok(o) => {
-            let stdout = String::from_utf8_lossy(&o.stdout);
-            let lines: Vec<&str> = stdout.lines().take(limit).collect();
-            Ok(McpToolResult {
-                content: if lines.is_empty() {
-                    "No processes found".to_string()
-                } else {
-                    lines.join("\n")
-                },
-                is_error: false,
-            })
-        },
-        Err(e) => Ok(McpToolResult {
-            content: format!("Error listing processes: {}", e),
-            is_error: true,
-        }),
-    }
-}
+// list_processes → system_info::ListProcessesTool 已迁移
 
 // ---------------------------------------------------------------------------
 // Knowledge tools
@@ -3733,6 +3358,27 @@ pub fn set_knowledge_search_callback(
     >,
 ) {
     let _ = KNOWLEDGE_SEARCH_CALLBACK.set(cb);
+}
+
+/// Get the global knowledge search callback (for use by new Tool trait implementations).
+pub fn get_knowledge_search_callback() -> Option<
+    std::sync::Arc<
+        dyn Fn(
+                &str,
+                &str,
+                usize,
+            )
+                -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<Output = Result<Vec<KnowledgeSearchHit>>>
+                        + Send
+                        + 'static,
+                >,
+            > + Send
+            + Sync,
+    >,
+> {
+    KNOWLEDGE_SEARCH_CALLBACK.get().cloned()
 }
 
 fn list_knowledge_bases() -> Result<McpToolResult> {

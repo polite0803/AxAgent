@@ -1,7 +1,7 @@
 //! MCP 协议增强模块
 //!
 //! OAuth 认证 + MCP → Tool 包装 + 官方注册表。
-//! MCP 配置类型统一使用 `axagent_runtime::config` 中的权威定义。
+//! MCP 配置类型统一使用 `axagent_runtime_core::config` 中的权威定义。
 
 pub mod mcp_tool_wrapper;
 pub mod oauth;
@@ -10,7 +10,7 @@ pub mod registry;
 use serde::{Deserialize, Serialize};
 
 // 统一使用 runtime::config 的权威 MCP 类型，消除重复定义
-pub use axagent_runtime::{McpServerConfig, McpTransport};
+pub use axagent_runtime_core::{McpServerConfig, McpTransport};
 
 /// MCP 工具描述符（从 list_tools 返回）
 #[derive(Debug, Clone, Serialize, Deserialize)]

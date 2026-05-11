@@ -173,21 +173,21 @@ pub fn take_pending_sub_agent_card(parent_id: &str) -> Option<PendingSubAgentCar
 
 /// 存储 fork 上下文（代理到 runtime fork_bridge）
 pub fn store_fork_context(parent_id: &str, description: &str, prompt: &str) {
-    let data = axagent_runtime::fork_bridge::ForkSessionData {
+    let data = axagent_runtime_core::fork_bridge::ForkSessionData {
         parent_conversation_id: parent_id.to_string(),
         description: description.to_string(),
         prompt: prompt.to_string(),
         created_at: chrono::Utc::now().to_rfc3339(),
         parent_system_prompt: Vec::new(),
         parent_messages_json: String::new(),
-        child_system_prompt: Some(axagent_runtime::fork_bridge::build_fork_child_prompt(prompt)),
+        child_system_prompt: Some(axagent_runtime_core::fork_bridge::build_fork_child_prompt(prompt)),
     };
-    axagent_runtime::fork_bridge::store_fork_session(data);
+    axagent_runtime_core::fork_bridge::store_fork_session(data);
 }
 
 /// 检查是否存在 fork 上下文（代理到 runtime fork_bridge）
 pub fn has_fork_context(parent_id: &str) -> bool {
-    axagent_runtime::fork_bridge::has_fork_session(parent_id)
+    axagent_runtime_core::fork_bridge::has_fork_session(parent_id)
 }
 
 pub fn register_builtin_handler(server_name: &str, tool_name: &str, handler: BoxedToolHandler) {
@@ -210,138 +210,10 @@ pub fn list_all_builtin_handlers() -> Vec<(String, String)> {
 pub fn get_all_builtin_server_definitions() -> Vec<BuiltinServerDefinition> {
     vec![
         // @axagent/fetch 已删除 (fetch_url, fetch_markdown → 使用新 WebFetch)
-        BuiltinServerDefinition {
-            server_id: "builtin-search-file".to_string(),
-            server_name: "@axagent/search-file".to_string(),
-            tools: vec![
-                // read_file, search_files, grep_content 已删除 (→ 使用新 FileRead/Glob/Grep)
-                BuiltinToolDefinition {
-                    tool_name: "list_directory".to_string(),
-                    description: "List all files and directories in a given path.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "Directory path to list",
-                                "default": "."
-                            }
-                        }
-                    }),
-                },
-            ],
-        },
-        // @axagent/filesystem: write_file, edit_file 已删除 (→ 使用新 FileWrite/FileEdit)
-        BuiltinServerDefinition {
-            server_id: "builtin-filesystem".to_string(),
-            server_name: "@axagent/filesystem".to_string(),
-            tools: vec![
-                // write_file, edit_file 已删除 (→ 使用新 FileWrite/FileEdit)
-                BuiltinToolDefinition {
-                    tool_name: "delete_file".to_string(),
-                    description: "Delete a file from the filesystem.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "File path to delete"
-                            }
-                        },
-                        "required": ["path"]
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "create_directory".to_string(),
-                    description: "Create a directory and all parent directories if they don't exist.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "Directory path to create"
-                            }
-                        },
-                        "required": ["path"]
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "file_exists".to_string(),
-                    description: "Check if a file or directory exists at the given path.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "Path to check"
-                            }
-                        },
-                        "required": ["path"]
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "get_file_info".to_string(),
-                    description: "Get information about a file including size, permissions, and modification time.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "File path to get info about"
-                            }
-                        },
-                        "required": ["path"]
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "move_file".to_string(),
-                    description: "Move or rename a file or directory. The source path is renamed to the destination path. This can move files across directories or simply rename them.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "source": {
-                                "type": "string",
-                                "description": "Source file or directory path"
-                            },
-                            "destination": {
-                                "type": "string",
-                                "description": "Destination file or directory path"
-                            }
-                        },
-                        "required": ["source", "destination"]
-                    }),
-                },
-            ],
-        },
-        BuiltinServerDefinition {
-            server_id: "builtin-system".to_string(),
-            server_name: "@axagent/system".to_string(),
-            tools: vec![
-                // run_command 已删除 (→ 使用新 Bash)
-                BuiltinToolDefinition {
-                    tool_name: "get_system_info".to_string(),
-                    description: "Get information about the system including OS, architecture, home directory, and uptime.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {}
-                    }),
-                },
-                BuiltinToolDefinition {
-                    tool_name: "list_processes".to_string(),
-                    description: "List running processes on the system.".to_string(),
-                    input_schema: serde_json::json!({
-                        "type": "object",
-                        "properties": {
-                            "limit": {
-                                "type": "integer",
-                                "description": "Maximum number of processes to return",
-                                "default": 20
-                            }
-                        }
-                    }),
-                },
-            ],
-        },
+        // @axagent/search-file 已删除 (list_directory → file_system::ListDirectoryTool)
+        // @axagent/filesystem 已删除 (delete_file, create_directory, file_exists,
+        //   get_file_info, move_file → file_system::*)
+        // @axagent/system 已删除 (get_system_info, list_processes → system_info::*)
         BuiltinServerDefinition {
             server_id: "builtin-knowledge".to_string(),
             server_name: "@axagent/knowledge".to_string(),

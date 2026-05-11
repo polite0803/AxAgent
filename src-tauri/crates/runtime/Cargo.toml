@@ -28,6 +28,12 @@ chrono = { workspace = true }
 dirs = "5"
 sea-orm = { workspace = true }
 axagent-core = { path = "../core" }
+axagent-runtime-core = { path = "../runtime-core" }
+axagent-rt-workflow = { path = "../rt-workflow" }
+axagent-rt-messaging = { path = "../rt-messaging" }
+axagent-rt-webhook = { path = "../rt-webhook" }
+axagent-rt-dashboard = { path = "../rt-dashboard" }
+axagent-rt-theme = { path = "../rt-theme" }
 axagent-trajectory = { path = "../trajectory" }
 axagent-providers = { path = "../providers" }
 sysinfo = "0.38"

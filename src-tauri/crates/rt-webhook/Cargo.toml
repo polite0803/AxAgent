@@ -1,0 +1,20 @@
+[package]
+name = "axagent-rt-webhook"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+async-trait = "0.1"
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+axum = "0.8"
+axagent-rt-messaging = { path = "../rt-messaging" }
+
+[lints]
+# workspace = true

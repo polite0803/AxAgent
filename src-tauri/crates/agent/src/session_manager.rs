@@ -4,7 +4,7 @@ use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::ToolRegistry;
 use axagent_core::repo::agent_session;
-use axagent_runtime::{
+use axagent_runtime_core::{
     compact_session, should_compact, CompactionConfig, ConversationRuntime, HookEvent,
     HookProgressEvent, HookProgressReporter, PermissionMode, PermissionPolicy,
     PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
@@ -30,7 +30,7 @@ pub struct TokenUsageBreakdown {
 }
 
 impl TokenUsageBreakdown {
-    pub fn from_turn_summary(usage: &axagent_runtime::TokenUsage, estimated_chars: usize) -> Self {
+    pub fn from_turn_summary(usage: &axagent_runtime_core::TokenUsage, estimated_chars: usize) -> Self {
         let total = usage.total_tokens();
         let estimated_from_chars = total == 0 && estimated_chars > 0;
         Self {
@@ -54,24 +54,24 @@ pub fn estimate_tokens_from_text(text: &str) -> usize {
     text.len() / TOKEN_ESTIMATION_CHARS_PER_TOKEN
 }
 
-pub fn estimate_tokens_from_messages(messages: &[axagent_runtime::ConversationMessage]) -> usize {
+pub fn estimate_tokens_from_messages(messages: &[axagent_runtime_core::ConversationMessage]) -> usize {
     messages
         .iter()
         .map(|m| estimate_tokens_from_content_blocks(&m.blocks))
         .sum()
 }
 
-fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime::ContentBlock]) -> usize {
+fn estimate_tokens_from_content_blocks(blocks: &[axagent_runtime_core::ContentBlock]) -> usize {
     blocks
         .iter()
         .map(|block| match block {
-            axagent_runtime::ContentBlock::Text { text } => estimate_tokens_from_text(text),
-            axagent_runtime::ContentBlock::ToolUse { id, name, input } => {
+            axagent_runtime_core::ContentBlock::Text { text } => estimate_tokens_from_text(text),
+            axagent_runtime_core::ContentBlock::ToolUse { id, name, input } => {
                 estimate_tokens_from_text(id)
                     + estimate_tokens_from_text(name)
                     + estimate_tokens_from_text(input)
             },
-            axagent_runtime::ContentBlock::ToolResult {
+            axagent_runtime_core::ContentBlock::ToolResult {
                 tool_use_id,
                 tool_name,
                 output,
@@ -441,7 +441,7 @@ impl SessionManager {
             tokio::sync::Mutex<std::collections::HashMap<String, ChannelPermissionPrompter>>,
         >,
         cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-    ) -> Result<(axagent_runtime::TurnSummary, axagent_runtime::Session), RuntimeError> {
+    ) -> Result<(axagent_runtime_core::TurnSummary, axagent_runtime_core::Session), RuntimeError> {
         let session = self
             .get_session(session_id)
             .await
@@ -462,20 +462,20 @@ impl SessionManager {
                 .enumerate()
                 .map(|(i, m)| {
                     let role_str = match m.role {
-                        axagent_runtime::MessageRole::System => "system",
-                        axagent_runtime::MessageRole::User => "user",
-                        axagent_runtime::MessageRole::Assistant => "assistant",
-                        axagent_runtime::MessageRole::Tool => "tool",
+                        axagent_runtime_core::MessageRole::System => "system",
+                        axagent_runtime_core::MessageRole::User => "user",
+                        axagent_runtime_core::MessageRole::Assistant => "assistant",
+                        axagent_runtime_core::MessageRole::Tool => "tool",
                     };
                     let content: String = m
                         .blocks
                         .iter()
                         .map(|b| match b {
-                            axagent_runtime::ContentBlock::Text { text } => text.clone(),
-                            axagent_runtime::ContentBlock::ToolUse { name, input, .. } => {
+                            axagent_runtime_core::ContentBlock::Text { text } => text.clone(),
+                            axagent_runtime_core::ContentBlock::ToolUse { name, input, .. } => {
                                 format!("[ToolUse: {} {}]", name, input)
                             },
-                            axagent_runtime::ContentBlock::ToolResult {
+                            axagent_runtime_core::ContentBlock::ToolResult {
                                 tool_name, output, ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
@@ -488,7 +488,7 @@ impl SessionManager {
                         timestamp: i as i64,
                         tool_calls: Some(
                             m.blocks.iter().any(|b| {
-                                matches!(b, axagent_runtime::ContentBlock::ToolUse { .. })
+                                matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
                             }),
                         ),
                     }
@@ -501,20 +501,20 @@ impl SessionManager {
                 .enumerate()
                 .map(|(i, m)| {
                     let role_str = match m.role {
-                        axagent_runtime::MessageRole::System => "system",
-                        axagent_runtime::MessageRole::User => "user",
-                        axagent_runtime::MessageRole::Assistant => "assistant",
-                        axagent_runtime::MessageRole::Tool => "tool",
+                        axagent_runtime_core::MessageRole::System => "system",
+                        axagent_runtime_core::MessageRole::User => "user",
+                        axagent_runtime_core::MessageRole::Assistant => "assistant",
+                        axagent_runtime_core::MessageRole::Tool => "tool",
                     };
                     let content: String = m
                         .blocks
                         .iter()
                         .map(|b| match b {
-                            axagent_runtime::ContentBlock::Text { text } => text.clone(),
-                            axagent_runtime::ContentBlock::ToolUse { name, input, .. } => {
+                            axagent_runtime_core::ContentBlock::Text { text } => text.clone(),
+                            axagent_runtime_core::ContentBlock::ToolUse { name, input, .. } => {
                                 format!("[ToolUse: {} {}]", name, input)
                             },
-                            axagent_runtime::ContentBlock::ToolResult {
+                            axagent_runtime_core::ContentBlock::ToolResult {
                                 tool_name, output, ..
                             } => format!("[ToolResult: {} {}]", tool_name, output),
                         })
@@ -527,7 +527,7 @@ impl SessionManager {
                         timestamp: i as i64,
                         tool_calls: Some(
                             m.blocks.iter().any(|b| {
-                                matches!(b, axagent_runtime::ContentBlock::ToolUse { .. })
+                                matches!(b, axagent_runtime_core::ContentBlock::ToolUse { .. })
                             }),
                         ),
                     }
@@ -771,7 +771,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
         // Fine-grained enforcement checks before prompting the user.
         // These catch operations that should be hard-denied regardless of user choice
         // (e.g., writing outside workspace, dangerous bash commands in read-only mode).
-        let enforcer = axagent_runtime::permission_enforcer::PermissionEnforcer::new(
+        let enforcer = axagent_runtime_core::permission_enforcer::PermissionEnforcer::new(
             PermissionPolicy::new(request.current_mode),
         );
         let tool_name_lower = request.tool_name.to_lowercase();
@@ -800,7 +800,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                         .unwrap_or_default();
                     if !workspace_root.is_empty() {
                         let result = enforcer.check_file_write(path, &workspace_root);
-                        if let axagent_runtime::permission_enforcer::EnforcementResult::Denied {
+                        if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
                             reason,
                             ..
                         } = result
@@ -829,7 +829,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                     .unwrap_or("");
                 if !command.is_empty() {
                     let result = enforcer.check_bash(command);
-                    if let axagent_runtime::permission_enforcer::EnforcementResult::Denied {
+                    if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
                         reason,
                         ..
                     } = result
@@ -1049,13 +1049,13 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_empty() {
-        let messages: Vec<axagent_runtime::ConversationMessage> = vec![];
+        let messages: Vec<axagent_runtime_core::ConversationMessage> = vec![];
         assert_eq!(estimate_tokens_from_messages(&messages), 0);
     }
 
     #[test]
     fn test_estimate_tokens_from_messages_with_text() {
-        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
         let messages = vec![ConversationMessage {
             role: MessageRole::User,
             blocks: vec![ContentBlock::Text {
@@ -1068,7 +1068,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_with_tool_use() {
-        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
         let messages = vec![ConversationMessage {
             role: MessageRole::Assistant,
             blocks: vec![ContentBlock::ToolUse {
@@ -1084,7 +1084,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_with_tool_result() {
-        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
         let messages = vec![ConversationMessage {
             role: MessageRole::Tool,
             blocks: vec![ContentBlock::ToolResult {
@@ -1116,7 +1116,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_with_actual_usage() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 100,
             output_tokens: 50,
             cache_creation_input_tokens: 0,
@@ -1131,7 +1131,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_with_estimated_chars() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 0,
             output_tokens: 0,
             cache_creation_input_tokens: 0,
@@ -1144,7 +1144,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_tokens_delta() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 100,
             output_tokens: 50,
             cache_creation_input_tokens: 0,
@@ -1226,7 +1226,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_text() {
-        let blocks = vec![axagent_runtime::ContentBlock::Text {
+        let blocks = vec![axagent_runtime_core::ContentBlock::Text {
             text: "hello world test!".to_string(),
         }];
         let tokens = estimate_tokens_from_content_blocks(&blocks);
@@ -1235,7 +1235,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_tool_use() {
-        let blocks = vec![axagent_runtime::ContentBlock::ToolUse {
+        let blocks = vec![axagent_runtime_core::ContentBlock::ToolUse {
             id: "id-1234".to_string(),
             name: "read_file".to_string(),
             input: "{\"path\": \"/test\"}".to_string(),
@@ -1246,7 +1246,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_tool_result() {
-        let blocks = vec![axagent_runtime::ContentBlock::ToolResult {
+        let blocks = vec![axagent_runtime_core::ContentBlock::ToolResult {
             tool_use_id: "tu-1234".to_string(),
             tool_name: "bash".to_string(),
             output: "command output here".to_string(),
@@ -1259,10 +1259,10 @@ mod tests {
     #[test]
     fn test_estimate_tokens_from_content_blocks_multiple() {
         let blocks = vec![
-            axagent_runtime::ContentBlock::Text {
+            axagent_runtime_core::ContentBlock::Text {
                 text: "hello".to_string(),
             },
-            axagent_runtime::ContentBlock::Text {
+            axagent_runtime_core::ContentBlock::Text {
                 text: "world".to_string(),
             },
         ];
@@ -1272,7 +1272,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_zero_tokens_zero_chars() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 0,
             output_tokens: 0,
             cache_creation_input_tokens: 0,
@@ -1285,7 +1285,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_actual_overrides_estimate() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 50,
             output_tokens: 25,
             cache_creation_input_tokens: 0,
@@ -1313,7 +1313,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_serialization() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 100,
             output_tokens: 50,
             cache_creation_input_tokens: 0,
@@ -1662,7 +1662,7 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_messages_mixed_blocks() {
-        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
         let messages = vec![
             ConversationMessage {
                 role: MessageRole::User,
@@ -1692,7 +1692,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_negative_delta() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 0,
             output_tokens: 0,
             cache_creation_input_tokens: 0,
@@ -1704,7 +1704,7 @@ mod tests {
 
     #[test]
     fn test_token_usage_breakdown_large_values() {
-        let usage = axagent_runtime::TokenUsage {
+        let usage = axagent_runtime_core::TokenUsage {
             input_tokens: 100000,
             output_tokens: 50000,
             cache_creation_input_tokens: 0,
@@ -1717,13 +1717,13 @@ mod tests {
 
     #[test]
     fn test_estimate_tokens_from_content_blocks_empty() {
-        let blocks: Vec<axagent_runtime::ContentBlock> = vec![];
+        let blocks: Vec<axagent_runtime_core::ContentBlock> = vec![];
         assert_eq!(estimate_tokens_from_content_blocks(&blocks), 0);
     }
 
     #[test]
     fn test_estimate_tokens_from_messages_multiple_messages() {
-        use axagent_runtime::{ContentBlock, ConversationMessage, MessageRole};
+        use axagent_runtime_core::{ContentBlock, ConversationMessage, MessageRole};
         let messages = vec![
             ConversationMessage {
                 role: MessageRole::User,
