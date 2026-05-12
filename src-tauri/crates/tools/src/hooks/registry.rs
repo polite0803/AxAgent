@@ -6,6 +6,7 @@ use std::collections::HashMap;
 /// Hook 注册表
 ///
 /// 管理所有已注册 Hook 的生命周期。
+#[derive(Clone)]
 pub struct HookRegistry {
     hooks: Vec<HookConfig>,
     /// 事件类型 -> Hook 列表索引

@@ -186,7 +186,7 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
               <Tag color="blue" style={{ fontSize: 11 }}>
                 {(() => {
                   const role = useExpertStore.getState().getRoleById(conversation.expert_role_id!);
-                  return role ? `${role.icon} ${role.displayName}` : conversation.expert_role_id;
+                  return role ? `${role.icon} ${role.name}` : conversation.expert_role_id;
                 })()}
               </Tag>
               <span style={{ fontSize: 11, color: token.colorTextSecondary, marginLeft: 6 }}>

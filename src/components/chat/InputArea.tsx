@@ -709,7 +709,7 @@ export function InputArea() {
           label: (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <span>{role.icon}</span>
-              <span>{role.displayName}</span>
+              <span>{role.name}</span>
             </span>
           ),
         });
@@ -778,7 +778,7 @@ export function InputArea() {
       }
 
       await createConversation(
-        role.displayName,
+        role.name,
         model.model_id,
         provider.id,
         {

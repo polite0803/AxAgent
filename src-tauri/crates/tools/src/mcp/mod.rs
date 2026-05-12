@@ -31,3 +31,38 @@ pub struct RegistryEntry {
     pub endpoint: Option<String>,
     pub transport: McpTransport,
 }
+
+/// 拆分复合工具名 `"server/tool"` → `("server", "tool")`。
+/// 无 `/` 时返回 `("", full_name)`。
+pub fn parse_tool_name(full_name: &str) -> (&str, &str) {
+    if let Some(idx) = full_name.find('/') {
+        (&full_name[..idx], &full_name[idx + 1..])
+    } else {
+        ("", full_name)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn with_slash() {
+        assert_eq!(parse_tool_name("myserver/mytool"), ("myserver", "mytool"));
+    }
+
+    #[test]
+    fn without_slash() {
+        assert_eq!(parse_tool_name("mytool"), ("", "mytool"));
+    }
+
+    #[test]
+    fn multiple_slashes() {
+        assert_eq!(parse_tool_name("server/path/tool"), ("server", "path/tool"));
+    }
+
+    #[test]
+    fn empty() {
+        assert_eq!(parse_tool_name(""), ("", ""));
+    }
+}

@@ -1,4 +1,5 @@
 import { invoke } from "@/lib/invoke";
+import type { SystemPermissionMode } from "@/types";
 import { create } from "zustand";
 
 export interface FeatureFlags {
@@ -12,7 +13,7 @@ export interface FeatureFlags {
 }
 
 export type ModelTier = "opus" | "sonnet" | "haiku";
-export type PermissionMode = "read-only" | "workspace-write" | "danger-full-access";
+export type PermissionMode = SystemPermissionMode;
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   forkSubagent: false,

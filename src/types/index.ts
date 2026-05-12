@@ -142,9 +142,9 @@ export interface Conversation {
   updated_at: number;
   scenario?: string | null;
   enabled_skill_ids: string[];
-  /** Expert role identifier, references ExpertRole.id */
+  /** @deprecated 使用 agent_profile_id (AgentProfile.id) 替代 */
   expert_role_id?: string | null;
-  /** Agent profile identifier, references AgentProfile.id (supersedes expert_role_id) */
+  /** Agent profile identifier, references AgentProfile.id */
   agent_profile_id?: string | null;
   /** Workflow template ID bound to this conversation */
   workflow_template_id?: string | null;
@@ -1036,6 +1036,7 @@ export * from "./localTool";
 export * from "./mcp";
 export * from "./memory";
 export * from "./nudge";
+export * from "./permission";
 export * from "./platform";
 export * from "./proactive";
 export * from "./search";

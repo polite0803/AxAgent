@@ -4131,9 +4131,7 @@ mod tests {
             parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::ParallelExecutionService::new(10),
             )),
-            scheduled_task_service: Arc::new(tokio::sync::RwLock::new(
-                axagent_trajectory::ScheduledTaskService::new(100),
-            )),
+            cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new()),
             platform_manager: Arc::new(
                 axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
             ),
@@ -4150,7 +4148,7 @@ mod tests {
                 tokio::sync::RwLock::new(axagent_trajectory::UserProfile::new()),
             ),
             local_tool_registry: Arc::new(tokio::sync::Mutex::new(
-                axagent_agent::LocalToolRegistry::init_from_registry(),
+                axagent_tools::registry::UnifiedToolRegistry::new(),
             )),
             work_engine: Arc::new(tokio::sync::RwLock::new(
                 axagent_runtime::work_engine::WorkEngine::new(Arc::new(db.clone())),

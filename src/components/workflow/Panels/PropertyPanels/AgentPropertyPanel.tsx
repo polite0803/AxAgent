@@ -110,7 +110,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
                 onClose={() => handleConfigChange("agentProfileId", undefined)}
                 style={{ margin: 0, fontSize: 12, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}
               >
-                {selectedExpert.icon} {selectedExpert.displayName}
+                {selectedExpert.icon} {selectedExpert.name}
               </Tag>
             </div>
           )

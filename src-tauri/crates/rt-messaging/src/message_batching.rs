@@ -1,12 +1,9 @@
 use std::collections::VecDeque;
 use std::io::{Read, Write};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
-use async_trait::async_trait;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::{mpsc, RwLock};
-use tokio::time::timeout;
 
 use crate::message_gateway::AgentMessage;
 
@@ -119,7 +116,7 @@ impl MessageBatcher {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
-            .as_millis() as u128;
+            .as_millis();
 
         if now - oldest > self.config.max_batch_delay_ms as u128 {
             return true;
@@ -139,7 +136,7 @@ fn uuid_v4() -> String {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    let random: u128 = (timestamp as u128) << 64 | (rand_u64() as u128);
+    let random: u128 = timestamp << 64 | (rand_u64() as u128);
     format!("{:032x}", random)
 }
 
@@ -164,18 +161,13 @@ pub enum BatcherError {
     DecompressionFailed(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CompressionType {
     None,
     Gzip,
     Deflate,
+    #[default]
     Zstd,
-}
-
-impl Default for CompressionType {
-    fn default() -> Self {
-        Self::Zstd
-    }
 }
 
 pub struct MessageCompressor {
@@ -183,17 +175,12 @@ pub struct MessageCompressor {
     level: CompressionLevel,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum CompressionLevel {
     Fast,
+    #[default]
     Default,
     Best,
-}
-
-impl Default for CompressionLevel {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 impl CompressionLevel {

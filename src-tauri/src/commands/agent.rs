@@ -393,6 +393,8 @@ pub struct AgentQueryRequest {
     #[serde(rename = "thinkingBudget")]
     pub thinking_budget: Option<u32>,
     /// ID of the search provider to enable web search for this agent session.
+    /// WebSearch 配置现在由 UnifiedToolRegistry 统一处理，此字段保留用于前端 API 兼容。
+    #[allow(dead_code)]
     #[serde(rename = "searchProviderId")]
     pub search_provider_id: Option<String>,
     /// Attachments (images, files) to include with the user message.
@@ -777,9 +779,8 @@ pub async fn agent_query(
     let mut tool_registry = ToolRegistry::new();
     let mut chat_tools: Vec<ChatTool> = Vec::new();
 
-    // Initialize local tool registry (builtin tools executed directly, not via MCP)
-    let mut local_tools = axagent_agent::LocalToolRegistry::init_from_registry();
-    local_tools.load_enabled_state(&app_state.sea_db).await;
+    // Load enabled state for the unified tool registry
+    tool_registry.load_enabled_state(&app_state.sea_db).await;
 
     // Build all_server_ids from remote MCP servers only (no builtin)
     let all_server_ids: Vec<String> = mcp_ids
@@ -884,64 +885,6 @@ pub async fn agent_query(
         }
     }
 
-    // Set web_search env_json on local tool registry if a search provider is configured
-    #[allow(clippy::collapsible_if)]
-    if let Some(ref sp_id) = request.search_provider_id {
-        #[allow(clippy::collapsible_if)]
-        #[allow(clippy::collapsible_match)]
-        if let Ok(provider_model) =
-            axagent_core::entity::search_providers::Entity::find_by_id(sp_id)
-                .one(&app_state.sea_db)
-                .await
-        {
-            #[allow(clippy::collapsible_if)]
-            if let Some(pm) = provider_model {
-                #[allow(clippy::collapsible_if)]
-                if pm.enabled != 0 {
-                    // Decrypt API key
-                    let api_key = match &pm.api_key_ref {
-                        Some(encrypted) if !encrypted.is_empty() => {
-                            axagent_core::crypto::decrypt_key(encrypted, &app_state.master_key)
-                                .unwrap_or_default()
-                        },
-                        _ => String::new(),
-                    };
-
-                    if !api_key.is_empty() {
-                        let endpoint_val = pm.endpoint.clone();
-                        let provider_type = pm.provider_type.clone();
-                        let timeout_ms = pm.timeout_ms;
-
-                        // Server-side config injected at execution time (never sent to LLM)
-                        let env_json = serde_json::json!({
-                            "provider_type": provider_type,
-                            "api_key": api_key,
-                            "endpoint": endpoint_val,
-                            "timeout_ms": timeout_ms
-                        })
-                        .to_string();
-
-                        // Set env_json on the local tool registry for web_search
-                        local_tools.set_env_json("web_search", env_json);
-                    }
-                }
-            }
-        }
-    }
-
-    // Inject old builtin tools into chat_tools (unified tools handled separately)
-    let local_chat_tools = local_tools.get_old_builtin_chat_tools();
-    {
-        let existing_names: std::collections::HashSet<String> =
-            chat_tools.iter().map(|t| t.function.name.clone()).collect();
-        for t in local_chat_tools {
-            if !existing_names.contains(&t.function.name) {
-                chat_tools.push(t);
-            }
-        }
-    }
-    tool_registry = tool_registry.with_local_tools(local_tools);
-
     // ── 注入 axagent-tools 统一工具到 chat_tools ──
     let disabled_set: HashSet<String> = request
         .options
@@ -1019,7 +962,7 @@ pub async fn agent_query(
     // This is done AFTER tool_registry is fully configured to ensure MCP tools are available
     // The skill handlers will use a global registry for MCP tool execution
     if skill_tools_count > 0 {
-        let _ = SKILL_MCP_REGISTRY.set(tool_registry.mcp_registry());
+        let _ = SKILL_MCP_REGISTRY.set(std::sync::Arc::new(tool_registry.clone()));
         let skill_ctx = SkillExecutionContext::new(
             app.clone(),
             &app_state,
@@ -2466,8 +2409,9 @@ struct SkillTaskContext {
 
 use std::sync::RwLock;
 
-static SKILL_MCP_REGISTRY: std::sync::OnceLock<axagent_tools::registry::McpRegistry> =
-    std::sync::OnceLock::new();
+static SKILL_MCP_REGISTRY: std::sync::OnceLock<
+    std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,
+> = std::sync::OnceLock::new();
 
 #[derive(Clone)]
 struct SkillExecutionRecord {
@@ -2525,8 +2469,10 @@ fn get_skill_output_tracker() -> &'static SkillOutputTracker {
     SKILL_OUTPUT_TRACKER.get_or_init(SkillOutputTracker::new)
 }
 
-fn get_skill_mcp_registry() -> &'static axagent_tools::registry::McpRegistry {
-    SKILL_MCP_REGISTRY.get_or_init(axagent_tools::registry::McpRegistry::new)
+fn get_skill_mcp_registry() -> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
+    SKILL_MCP_REGISTRY
+        .get_or_init(|| std::sync::Arc::new(axagent_tools::registry::UnifiedToolRegistry::new()))
+        .clone()
 }
 
 fn detect_inter_skill_dependencies(
@@ -2725,7 +2671,7 @@ impl SkillExecutionContext {
         }
     }
 
-    fn mcp_registry(&self) -> &'static axagent_tools::registry::McpRegistry {
+    fn mcp_registry(&self) -> std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry> {
         get_skill_mcp_registry()
     }
 }
@@ -3288,11 +3234,13 @@ async fn execute_mcp_tool_call(
     arguments: serde_json::Value,
     ctx: &SkillExecutionContext,
 ) -> Result<String, String> {
-    let registry = ctx.mcp_registry();
+    let registry = ctx.mcp_registry().as_ref().clone();
     let args_json = serde_json::to_string(&arguments)
         .map_err(|e| format!("Failed to serialize arguments: {}", e))?;
     let result = registry
-        .execute_mcp_tool(tool_name, &args_json)
+        .execute_mcp(tool_name, &args_json)
+        .await
+        .map(|r| r.content)
         .map_err(|e| format!("MCP tool execution failed: {}", e))?;
     Ok(serde_json::json!({
         "content": result,

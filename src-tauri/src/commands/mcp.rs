@@ -70,9 +70,9 @@ pub async fn discover_mcp_tools(
                 .tools
                 .into_iter()
                 .map(|t| ToolDescriptor {
-                    id: format!("{}-{}", id, t.tool_name),
+                    id: format!("{}-{}", id, t.name),
                     server_id: id.clone(),
-                    name: t.tool_name,
+                    name: t.name,
                     description: Some(t.description),
                     input_schema_json: Some(t.input_schema.to_string()),
                 })
@@ -212,7 +212,7 @@ async fn discover_mcp_tools_inner(
                 .tools
                 .into_iter()
                 .map(|t| axagent_core::mcp_client::DiscoveredTool {
-                    name: t.tool_name,
+                    name: t.name,
                     description: Some(t.description),
                     input_schema: Some(t.input_schema),
                 })

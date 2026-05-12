@@ -11,12 +11,20 @@ use crate::permissions::{PermissionMode, PermissionPolicy};
 use crate::recorder::ToolExecutionRecorder;
 use crate::stats::ToolUsageStats;
 use crate::{Tool, ToolCategory, ToolError, ToolErrorKind, ToolInfo, ToolResult};
-use axagent_runtime_core::ToolError as RuntimeToolError;
 use axagent_runtime_core::ToolExecutor as RuntimeToolExecutor;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+/// 工具组摘要信息（替代 agent::LocalToolGroup）
+#[derive(Debug, Clone)]
+pub struct ToolGroupInfo {
+    pub group_id: String,
+    pub group_name: String,
+    pub enabled: bool,
+    pub tools: Vec<ToolInfo>,
+}
 
 /// 统一工具注册表
 ///
@@ -275,63 +283,10 @@ pub struct McpToolConfig {
     pub input_schema: Option<Value>,
 }
 
-/// MCP 注册表
-#[derive(Clone)]
-pub struct McpRegistry {
-    pub tools: BTreeMap<String, McpToolConfig>,
-    pub servers: BTreeMap<String, McpServerConfig>,
-}
-impl Default for McpRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl McpRegistry {
-    pub fn new() -> Self {
-        Self {
-            tools: BTreeMap::new(),
-            servers: BTreeMap::new(),
-        }
-    }
-    pub fn execute_mcp_tool(
-        &self,
-        tool_name: &str,
-        input: &str,
-    ) -> Result<String, crate::ToolError> {
-        let config = self
-            .tools
-            .values()
-            .find(|c| c.tool_name == tool_name)
-            .ok_or_else(|| crate::ToolError::not_found(tool_name))?;
-        let server = self.servers.get(&config.server_id).ok_or_else(|| {
-            crate::ToolError::execution_failed_for("McpRegistry", "MCP server not found")
-        })?;
-        let args: Vec<String> = server
-            .args_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok())
-            .unwrap_or_default();
-        let env: std::collections::HashMap<String, String> = server
-            .env_json
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok())
-            .unwrap_or_default();
-        let arguments: Value = serde_json::from_str(input).unwrap_or(Value::Null);
-        let rt = tokio::runtime::Handle::current();
-        rt.block_on(axagent_core::mcp_client::call_tool_stdio_pooled(
-            server.command.as_deref().unwrap_or("npx"),
-            &args,
-            &env,
-            tool_name,
-            arguments,
-        ))
-        .map(|r| r.content)
-        .map_err(|e| crate::ToolError::execution_failed(format!("MCP call failed: {}", e)))
-    }
-}
+// McpRegistry 已删除 — MCP 配置直接存储在 UnifiedToolRegistry.mcp_tools/.mcp_servers 中
 
 /// 完整的统一工具注册表
+#[derive(Clone)]
 pub struct UnifiedToolRegistry {
     /// Tool trait 实现的工具（原生 + 已迁移旧工具）
     pub tools: ToolRegistry,
@@ -356,6 +311,10 @@ pub struct UnifiedToolRegistry {
     /// 会话上下文
     conversation_id: Option<String>,
     message_id: Option<String>,
+    /// 工具组启用状态（从 DB 加载）
+    pub group_enabled: HashMap<String, bool>,
+    /// 工具组显示名称
+    pub group_names: HashMap<String, String>,
 }
 
 impl UnifiedToolRegistry {
@@ -375,6 +334,8 @@ impl UnifiedToolRegistry {
             strict_mode: false,
             conversation_id: None,
             message_id: None,
+            group_enabled: HashMap::new(),
+            group_names: HashMap::new(),
         };
         reg.init_all();
         reg
@@ -490,6 +451,135 @@ impl UnifiedToolRegistry {
         self
     }
 
+    /// 从 DB 加载工具组启用状态
+    pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
+        use axagent_core::entity::settings;
+        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+
+        let key = "tool_groups_enabled";
+        let result = settings::Entity::find()
+            .filter(settings::Column::Key.eq(key))
+            .one(db)
+            .await;
+
+        if let Ok(Some(record)) = result {
+            if let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&record.value) {
+                self.group_enabled = map;
+            }
+        }
+
+        // 初始化默认组名
+        let default_groups: Vec<(&str, &str)> = vec![
+            ("builtin-file-read", "文件读取"),
+            ("builtin-file-write", "文件写入"),
+            ("builtin-shell", "Shell 命令"),
+            ("builtin-network", "网络请求"),
+            ("builtin-system-tools", "系统工具"),
+            ("builtin-agent", "Agent 工具"),
+        ];
+        for (gid, gname) in &default_groups {
+            self.group_names
+                .entry(gid.to_string())
+                .or_insert_with(|| gname.to_string());
+        }
+    }
+
+    /// 获取工具组列表
+    pub fn get_tool_groups(&self) -> Vec<ToolGroupInfo> {
+        let mut groups_map: HashMap<String, (String, bool, Vec<ToolInfo>)> = HashMap::new();
+        for info in self.tools.list_all() {
+            let gid = match info.category {
+                ToolCategory::FileRead => "builtin-file-read",
+                ToolCategory::FileWrite => "builtin-file-write",
+                ToolCategory::Shell => "builtin-shell",
+                ToolCategory::Network => "builtin-network",
+                ToolCategory::System => "builtin-system-tools",
+                ToolCategory::Agent => "builtin-agent",
+            };
+            let entry = groups_map.entry(gid.to_string()).or_insert_with(|| {
+                let name = self
+                    .group_names
+                    .get(gid)
+                    .cloned()
+                    .unwrap_or_else(|| gid.to_string());
+                let enabled = self.group_enabled.get(gid).copied().unwrap_or(true);
+                (name, enabled, Vec::new())
+            });
+            entry.2.push(info);
+        }
+        let mut groups: Vec<ToolGroupInfo> = groups_map
+            .into_iter()
+            .map(|(gid, (name, enabled, tools))| ToolGroupInfo {
+                group_id: gid,
+                group_name: name,
+                enabled,
+                tools,
+            })
+            .collect();
+        groups.sort_by_key(|g| g.group_id.clone());
+        groups
+    }
+
+    /// 切换工具组启用状态并持久化到 DB
+    pub async fn toggle_group(
+        &mut self,
+        db: &sea_orm::DatabaseConnection,
+        gid: &str,
+    ) -> Result<bool, String> {
+        use axagent_core::entity::settings;
+        use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+
+        let current = self.group_enabled.get(gid).copied().unwrap_or(true);
+        let new_state = !current;
+        self.group_enabled.insert(gid.to_string(), new_state);
+
+        let key = "tool_groups_enabled";
+        let existing = settings::Entity::find()
+            .filter(settings::Column::Key.eq(key))
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let serialized = serde_json::to_string(&self.group_enabled).map_err(|e| e.to_string())?;
+
+        match existing {
+            Some(record) => {
+                let mut active: settings::ActiveModel = record.into();
+                active.value = Set(serialized);
+                active.update(db).await.map_err(|e| e.to_string())?;
+            },
+            None => {
+                let active = settings::ActiveModel {
+                    key: Set(key.to_string()),
+                    value: Set(serialized),
+                };
+                active.insert(db).await.map_err(|e| e.to_string())?;
+            },
+        }
+
+        Ok(new_state)
+    }
+
+    /// 获取所有已启用工具名称
+    pub fn enabled_tool_names(&self) -> Vec<String> {
+        self.tools
+            .list_all()
+            .into_iter()
+            .filter(|info| {
+                let gid = match info.category {
+                    ToolCategory::FileRead => "builtin-file-read",
+                    ToolCategory::FileWrite => "builtin-file-write",
+                    ToolCategory::Shell => "builtin-shell",
+                    ToolCategory::Network => "builtin-network",
+                    ToolCategory::System => "builtin-system-tools",
+                    ToolCategory::Agent => "builtin-agent",
+                };
+                self.group_enabled.get(gid).copied().unwrap_or(true)
+            })
+            .map(|info| info.name)
+            .collect()
+    }
+
     #[allow(clippy::type_complexity)]
     pub fn register_skill_tool(
         self,
@@ -497,13 +587,6 @@ impl UnifiedToolRegistry {
         _handler: Box<dyn FnMut(&str) -> Result<String, crate::ToolError> + Send>,
     ) -> Self {
         self
-    }
-
-    pub fn mcp_registry(&self) -> McpRegistry {
-        McpRegistry {
-            tools: self.mcp_tools.clone(),
-            servers: self.mcp_servers.clone(),
-        }
     }
 
     pub fn register_mcp_tool(
@@ -744,9 +827,9 @@ impl Default for UnifiedToolRegistry {
 // ============================================================
 
 impl RuntimeToolExecutor for UnifiedToolRegistry {
-    fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, RuntimeToolError> {
+    fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
         if !self.is_allowed(tool_name) {
-            return Err(RuntimeToolError::new(format!("Tool '{}' denied", tool_name)));
+            return Err(ToolError::new(format!("Tool '{}' denied", tool_name)));
         }
 
         let handle = tokio::runtime::Handle::current();
@@ -754,7 +837,7 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
             handle.block_on(async {
                 match self.execute(tool_name, input).await {
                     Ok(r) => Ok(r.content),
-                    Err(e) => Err(RuntimeToolError::new(e.to_string())),
+                    Err(e) => Err(e),
                 }
             })
         })
@@ -763,7 +846,7 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
     fn execute_batch(
         &mut self,
         requests: &[(String, String, String)],
-    ) -> Vec<(String, String, Result<String, RuntimeToolError>)> {
+    ) -> Vec<(String, String, Result<String, ToolError>)> {
         use std::sync::Arc;
 
         let handle = tokio::runtime::Handle::current();
@@ -801,7 +884,7 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
             .map(|r| {
                 let output = match r.result {
                     Ok(tr) => Ok(tr.content),
-                    Err(e) => Err(RuntimeToolError::new(e.to_string())),
+                    Err(e) => Err(e),
                 };
                 (r.id, r.name, output)
             })

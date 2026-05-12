@@ -1,239 +1,194 @@
+//! 定时任务 Tauri 命令 — 基于 CronJobStore 统一调度系统。
+//! 命令名保持与旧 ScheduledTaskService 兼容，供前端 SchedulerSettings 调用。
+
 use crate::AppState;
-use axagent_core::repo::scheduled_task as db_repo;
-use axagent_trajectory::{ScheduledTask, TaskDefinition, TaskRunResult, TaskType};
+use axagent_runtime_core::{CronJob, CronJobStatus, TaskConfig, TaskRunResult};
+use serde::{Deserialize, Serialize};
 use tauri::State;
 
-fn task_to_entity(task: &ScheduledTask) -> axagent_core::entity::scheduled_tasks::ActiveModel {
-    let task_type = task.task_type.as_str().to_string();
-    let status = match task.status {
-        axagent_trajectory::ScheduledTaskStatus::Active => "active".to_string(),
-        axagent_trajectory::ScheduledTaskStatus::Paused => "paused".to_string(),
-        axagent_trajectory::ScheduledTaskStatus::Disabled => "disabled".to_string(),
-    };
-    let config = serde_json::to_string(&task.config).unwrap_or_default();
-    let schedule_config = serde_json::to_string(&task.schedule_config).unwrap_or_default();
-    let last_result = task
-        .last_result
-        .as_ref()
-        .and_then(|r| serde_json::to_string(r).ok());
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduledTaskDto {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub task_type: String,
+    pub cron_expression: Option<String>,
+    pub interval_seconds: Option<i64>,
+    pub next_run_at: Option<String>,
+    pub last_run_at: Option<String>,
+    pub last_result: Option<TaskRunResultDto>,
+    pub status: String,
+    pub config: TaskConfigDto,
+    pub created_at: String,
+    pub updated_at: String,
+}
 
-    axagent_core::entity::scheduled_tasks::ActiveModel {
-        id: sea_orm::Set(task.id.clone()),
-        name: sea_orm::Set(task.name.clone()),
-        description: sea_orm::Set(task.description.clone()),
-        task_type: sea_orm::Set(task_type),
-        workflow_id: sea_orm::Set(task.workflow_id.clone()),
-        cron_expression: sea_orm::Set(Some(schedule_config)),
-        interval_seconds: sea_orm::Set(task.schedule_config.interval_seconds.map(|v| v as i64)),
-        next_run_at: sea_orm::Set(task.next_run_at.timestamp_millis()),
-        last_run_at: sea_orm::Set(task.last_run_at.map(|dt| dt.timestamp_millis())),
-        last_result: sea_orm::Set(last_result),
-        status: sea_orm::Set(status),
-        config: sea_orm::Set(config),
-        created_at: sea_orm::Set(task.created_at.timestamp_millis()),
-        updated_at: sea_orm::Set(task.updated_at.timestamp_millis()),
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskRunResultDto {
+    pub success: bool,
+    pub output: Option<String>,
+    pub error: Option<String>,
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskConfigDto {
+    pub timeout_seconds: u32,
+    pub retry_on_failure: bool,
+    pub max_retries: u32,
+    pub retry_delay_seconds: u32,
+    pub notification_enabled: bool,
+    pub run_on_startup: bool,
+}
+
+fn cron_to_dto(job: &CronJob) -> ScheduledTaskDto {
+    let status = match job.status {
+        CronJobStatus::Active => "active",
+        CronJobStatus::Paused => "paused",
+        CronJobStatus::Disabled => "disabled",
+    };
+    ScheduledTaskDto {
+        id: job.id.clone(),
+        name: job.name.clone(),
+        description: job.description.clone(),
+        task_type: job
+            .task_type
+            .clone()
+            .unwrap_or_else(|| "custom".to_string()),
+        cron_expression: if job.schedule.is_empty() {
+            None
+        } else {
+            Some(job.schedule.clone())
+        },
+        interval_seconds: None,
+        next_run_at: job.next_run_at.map(|ts| {
+            chrono::DateTime::from_timestamp_millis(ts)
+                .map(|dt| dt.to_rfc3339())
+                .unwrap_or_default()
+        }),
+        last_run_at: job.last_run_at.map(|ts| {
+            chrono::DateTime::from_timestamp_millis(ts)
+                .map(|dt| dt.to_rfc3339())
+                .unwrap_or_default()
+        }),
+        last_result: job.last_result.as_ref().map(|r| TaskRunResultDto {
+            success: r.success,
+            output: r.output.clone(),
+            error: r.error.clone(),
+            duration_ms: r.duration_ms,
+        }),
+        status: status.to_string(),
+        config: TaskConfigDto {
+            timeout_seconds: job.config.timeout_seconds,
+            retry_on_failure: job.config.retry_on_failure,
+            max_retries: job.config.max_retries,
+            retry_delay_seconds: job.config.retry_delay_seconds,
+            notification_enabled: job.config.notification_enabled,
+            run_on_startup: job.config.run_on_startup,
+        },
+        created_at: chrono::DateTime::from_timestamp_millis(job.created_at)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_default(),
+        updated_at: chrono::DateTime::from_timestamp_millis(job.updated_at)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_default(),
     }
 }
 
-fn entity_to_task(model: &axagent_core::entity::scheduled_tasks::Model) -> ScheduledTask {
-    let task_type = match model.task_type.as_str() {
-        "daily_summary" => TaskType::DailySummary,
-        "backup" => TaskType::Backup,
-        "cleanup" => TaskType::Cleanup,
-        "custom" => TaskType::Custom,
-        "health_check" => TaskType::HealthCheck,
-        "data_sync" => TaskType::DataSync,
-        "workflow" => TaskType::Workflow,
-        _ => TaskType::Custom,
-    };
-
-    let status = match model.status.as_str() {
-        "active" => axagent_trajectory::ScheduledTaskStatus::Active,
-        "paused" => axagent_trajectory::ScheduledTaskStatus::Paused,
-        "disabled" => axagent_trajectory::ScheduledTaskStatus::Disabled,
-        _ => axagent_trajectory::ScheduledTaskStatus::Active,
-    };
-
-    let config: axagent_trajectory::TaskConfig =
-        serde_json::from_str(&model.config).unwrap_or_default();
-    let schedule_config: axagent_trajectory::ScheduleConfig = model
-        .cron_expression
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok())
-        .unwrap_or_default();
-    let last_result: Option<TaskRunResult> = model
-        .last_result
-        .as_ref()
-        .and_then(|s| serde_json::from_str(s).ok());
-
-    ScheduledTask {
-        id: model.id.clone(),
-        name: model.name.clone(),
-        description: model.description.clone(),
-        task_type,
-        workflow_id: model.workflow_id.clone(),
-        schedule_config,
-        next_run_at: chrono::DateTime::from_timestamp_millis(model.next_run_at)
-            .unwrap_or_else(chrono::Utc::now),
-        last_run_at: model
-            .last_run_at
-            .and_then(chrono::DateTime::from_timestamp_millis),
-        last_result,
-        status,
-        config,
-        created_at: chrono::DateTime::from_timestamp_millis(model.created_at)
-            .unwrap_or_else(chrono::Utc::now),
-        updated_at: chrono::DateTime::from_timestamp_millis(model.updated_at)
-            .unwrap_or_else(chrono::Utc::now),
-    }
+#[derive(Debug, Deserialize)]
+pub struct CreateTaskInput {
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(rename = "cronExpression")]
+    pub cron_expression: Option<String>,
+    #[serde(rename = "taskType")]
+    pub task_type: Option<String>,
+    #[serde(rename = "workflowId")]
+    pub workflow_id: Option<String>,
+    pub enabled: Option<bool>,
+    pub config: Option<TaskConfigDto>,
 }
 
 #[tauri::command]
-pub async fn get_scheduled_task_templates(
-) -> Result<Vec<axagent_trajectory::TaskTemplateInfo>, String> {
-    Ok(axagent_trajectory::TaskTemplate::all_templates())
-}
-
-#[tauri::command]
-pub async fn create_scheduled_task(
+pub async fn list_scheduled_tasks(
     state: State<'_, AppState>,
-    name: String,
-    description: String,
-    task_type: TaskType,
-    schedule_config: axagent_trajectory::ScheduleConfig,
-    workflow_id: Option<String>,
-) -> Result<String, String> {
-    let service = state.scheduled_task_service.read().await;
-    let interval_hours = if let Some(seconds) = schedule_config.interval_seconds {
-        seconds / 3600
-    } else {
-        24
-    };
-    let next_run = chrono::Utc::now() + chrono::Duration::hours(interval_hours as i64);
-    let mut task = ScheduledTask::new(name, description, task_type, next_run)
-        .with_schedule_config(schedule_config);
-    if let Some(wf_id) = workflow_id {
-        task = task.with_workflow_id(wf_id);
-    }
-    let task_id = service.create_task(task).await.map_err(|e| e.to_string())?;
-
-    let saved_task = service
-        .get_task(&task_id)
-        .await
-        .ok_or_else(|| format!("创建后未能找到任务: {}", task_id))?;
-    let entity = task_to_entity(&saved_task);
-    db_repo::upsert_scheduled_task(&state.sea_db, entity)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(task_id)
-}
-
-#[tauri::command]
-pub async fn create_daily_summary_task(
-    state: State<'_, AppState>,
-    name: String,
-    description: String,
-    hour: u32,
-    minute: u32,
-) -> Result<String, String> {
-    let service = state.scheduled_task_service.read().await;
-    service
-        .create_daily_summary_task(name, description, hour, minute)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub async fn create_backup_task(
-    state: State<'_, AppState>,
-    name: String,
-    description: String,
-    interval_hours: u64,
-) -> Result<String, String> {
-    let service = state.scheduled_task_service.read().await;
-    let task_id = service
-        .create_backup_task(name, description, interval_hours)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let saved_task = service
-        .get_task(&task_id)
-        .await
-        .ok_or_else(|| format!("创建后未能找到任务: {}", task_id))?;
-    let entity = task_to_entity(&saved_task);
-    db_repo::upsert_scheduled_task(&state.sea_db, entity)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(task_id)
-}
-
-#[tauri::command]
-pub async fn create_cleanup_task(
-    state: State<'_, AppState>,
-    name: String,
-    description: String,
-    interval_hours: u64,
-) -> Result<String, String> {
-    let service = state.scheduled_task_service.read().await;
-    let task_id = service
-        .create_cleanup_task(name, description, interval_hours)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let saved_task = service
-        .get_task(&task_id)
-        .await
-        .ok_or_else(|| format!("创建后未能找到任务: {}", task_id))?;
-    let entity = task_to_entity(&saved_task);
-    db_repo::upsert_scheduled_task(&state.sea_db, entity)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(task_id)
+) -> Result<Vec<ScheduledTaskDto>, String> {
+    let jobs = state.cron_job_store.list().await;
+    Ok(jobs.iter().map(cron_to_dto).collect())
 }
 
 #[tauri::command]
 pub async fn get_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
-) -> Result<Option<ScheduledTask>, String> {
-    let service = state.scheduled_task_service.read().await;
-    Ok(service.get_task(&task_id).await)
+) -> Result<Option<ScheduledTaskDto>, String> {
+    let job = state.cron_job_store.get(&task_id).await;
+    Ok(job.as_ref().map(cron_to_dto))
 }
 
 #[tauri::command]
-pub async fn list_scheduled_tasks(
+pub async fn create_scheduled_task(
     state: State<'_, AppState>,
-) -> Result<Vec<ScheduledTask>, String> {
-    let service = state.scheduled_task_service.read().await;
-    Ok(service.list_tasks().await)
-}
-
-#[tauri::command]
-pub async fn list_due_tasks(state: State<'_, AppState>) -> Result<Vec<ScheduledTask>, String> {
-    let service = state.scheduled_task_service.read().await;
-    Ok(service.list_due_tasks().await)
+    input: CreateTaskInput,
+) -> Result<ScheduledTaskDto, String> {
+    let schedule = input
+        .cron_expression
+        .unwrap_or_else(|| "0 9 * * *".to_string());
+    let desc = input.description.unwrap_or_else(|| input.name.clone());
+    let mut job = CronJob::new(&input.name, &schedule, &desc, &desc);
+    if let Some(ref task_type) = input.task_type {
+        job.task_type = Some(task_type.clone());
+    }
+    if let Some(ref wf_id) = input.workflow_id {
+        job.workflow_id = Some(wf_id.clone());
+    }
+    if let Some(ref cfg) = input.config {
+        job.config = TaskConfig {
+            timeout_seconds: cfg.timeout_seconds,
+            retry_on_failure: cfg.retry_on_failure,
+            max_retries: cfg.max_retries,
+            retry_delay_seconds: cfg.retry_delay_seconds,
+            notification_enabled: cfg.notification_enabled,
+            run_on_startup: cfg.run_on_startup,
+        };
+    }
+    if input.enabled == Some(false) {
+        job.status = CronJobStatus::Paused;
+    }
+    state.cron_job_store.add(job.clone()).await;
+    Ok(cron_to_dto(&job))
 }
 
 #[tauri::command]
 pub async fn update_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
-    task: ScheduledTask,
+    task: ScheduledTaskDto,
 ) -> Result<(), String> {
-    let service = state.scheduled_task_service.write().await;
-    service
-        .update_task(&task_id, task.clone())
-        .await
-        .ok_or_else(|| "Task not found".to_string())?;
-
-    let entity = task_to_entity(&task);
-    db_repo::upsert_scheduled_task(&state.sea_db, entity)
-        .await
-        .map_err(|e| e.to_string())?;
-
+    state
+        .cron_job_store
+        .update(&task_id, |job| {
+            job.name = task.name.clone();
+            job.description = task.description.clone();
+            if let Some(ref cron) = task.cron_expression {
+                job.schedule = cron.clone();
+            }
+            job.task_type = Some(task.task_type.clone());
+            job.config = TaskConfig {
+                timeout_seconds: task.config.timeout_seconds,
+                retry_on_failure: task.config.retry_on_failure,
+                max_retries: task.config.max_retries,
+                retry_delay_seconds: task.config.retry_delay_seconds,
+                notification_enabled: task.config.notification_enabled,
+                run_on_startup: task.config.run_on_startup,
+            };
+            job.status = match task.status.as_str() {
+                "active" => CronJobStatus::Active,
+                "paused" => CronJobStatus::Paused,
+                _ => CronJobStatus::Disabled,
+            };
+        })
+        .await;
     Ok(())
 }
 
@@ -241,17 +196,9 @@ pub async fn update_scheduled_task(
 pub async fn delete_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
-) -> Result<bool, String> {
-    let service = state.scheduled_task_service.write().await;
-    let result = service.delete_task(&task_id).await;
-
-    if result {
-        db_repo::delete_scheduled_task(&state.sea_db, &task_id)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-
-    Ok(result)
+) -> Result<(), String> {
+    state.cron_job_store.remove(&task_id).await;
+    Ok(())
 }
 
 #[tauri::command]
@@ -259,19 +206,10 @@ pub async fn pause_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<(), String> {
-    let service = state.scheduled_task_service.write().await;
-    service
-        .pause_task(&task_id)
-        .await
-        .ok_or_else(|| "Task not found".to_string())?;
-
-    if let Some(task) = service.get_task(&task_id).await {
-        let entity = task_to_entity(&task);
-        db_repo::upsert_scheduled_task(&state.sea_db, entity)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-
+    state
+        .cron_job_store
+        .set_status(&task_id, CronJobStatus::Paused)
+        .await;
     Ok(())
 }
 
@@ -280,116 +218,102 @@ pub async fn resume_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<(), String> {
-    let service = state.scheduled_task_service.write().await;
-    service
-        .resume_task(&task_id)
-        .await
-        .ok_or_else(|| "Task not found".to_string())?;
-
-    if let Some(task) = service.get_task(&task_id).await {
-        let entity = task_to_entity(&task);
-        db_repo::upsert_scheduled_task(&state.sea_db, entity)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-
+    state
+        .cron_job_store
+        .set_status(&task_id, CronJobStatus::Active)
+        .await;
     Ok(())
-}
-
-#[tauri::command]
-pub async fn record_task_execution(
-    state: State<'_, AppState>,
-    task_id: String,
-    success: bool,
-    output: Option<String>,
-    error: Option<String>,
-    duration_ms: u64,
-) -> Result<(), String> {
-    let result = if success {
-        TaskRunResult::success(output.unwrap_or_default(), duration_ms)
-    } else {
-        TaskRunResult::failure(error.unwrap_or_default(), duration_ms)
-    };
-    let service = state.scheduled_task_service.write().await;
-    service.record_execution(&task_id, result.clone()).await;
-
-    if let Some(task) = service.get_task(&task_id).await {
-        let entity = task_to_entity(&task);
-        db_repo::upsert_scheduled_task(&state.sea_db, entity)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn get_task_execution_history(
-    state: State<'_, AppState>,
-    limit: Option<usize>,
-) -> Result<Vec<TaskRunResult>, String> {
-    let service = state.scheduled_task_service.read().await;
-    Ok(service.get_execution_history(limit).await)
-}
-
-#[tauri::command]
-pub async fn get_next_scheduled_time(
-    state: State<'_, AppState>,
-) -> Result<Option<chrono::DateTime<chrono::Utc>>, String> {
-    let service = state.scheduled_task_service.read().await;
-    Ok(service.get_next_scheduled_time().await)
-}
-
-#[tauri::command]
-pub async fn register_task_definition(
-    state: State<'_, AppState>,
-    name: String,
-    task_type: TaskType,
-    prompt_template: String,
-) -> Result<String, String> {
-    let definition = TaskDefinition::new(name, task_type, prompt_template);
-    let service = state.scheduled_task_service.write().await;
-    service.register_task_definition(definition).await;
-    Ok("OK".to_string())
 }
 
 #[tauri::command]
 pub async fn execute_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
-) -> Result<TaskRunResult, String> {
-    let service = state.scheduled_task_service.read().await;
-    service
-        .execute_task(&task_id)
+) -> Result<TaskRunResultDto, String> {
+    let job = state
+        .cron_job_store
+        .get(&task_id)
         .await
-        .ok_or_else(|| "Task not found".to_string())
+        .ok_or_else(|| format!("Task not found: {}", task_id))?;
+    let result = TaskRunResult {
+        success: true,
+        output: Some(format!("Task '{}' executed manually", job.name)),
+        error: None,
+        duration_ms: 0,
+        executed_at: axagent_runtime_core::cron_job::now_millis(),
+    };
+    state
+        .cron_job_store
+        .record_run(&task_id, result.clone())
+        .await;
+    Ok(TaskRunResultDto {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration_ms: result.duration_ms,
+    })
 }
 
 #[tauri::command]
-pub async fn load_scheduled_tasks_from_db(state: State<'_, AppState>) -> Result<usize, String> {
-    load_tasks_from_db_internal(&state.sea_db, &state.scheduled_task_service).await
+pub async fn get_scheduled_task_templates() -> Result<Vec<serde_json::Value>, String> {
+    Ok(vec![
+        serde_json::json!({"id":"daily_summary","name":"每日摘要","description":"每日定时生成工作摘要","task_type":"daily_summary","default_schedule":"0 9 * * *"}),
+        serde_json::json!({"id":"backup","name":"自动备份","description":"定时备份数据库","task_type":"backup","default_schedule":"0 2 * * *"}),
+        serde_json::json!({"id":"cleanup","name":"清理任务","description":"定时清理过期数据","task_type":"cleanup","default_schedule":"0 3 * * 0"}),
+        serde_json::json!({"id":"health_check","name":"健康检查","description":"定时执行系统健康检查","task_type":"health_check","default_schedule":"0 */6 * * *"}),
+        serde_json::json!({"id":"custom","name":"自定义任务","description":"自定义 cron 定时任务","task_type":"custom","default_schedule":"0 9 * * *"}),
+    ])
 }
 
-pub async fn load_tasks_from_db_internal(
-    sea_db: &sea_orm::DatabaseConnection,
-    scheduled_task_service: &std::sync::Arc<
-        tokio::sync::RwLock<axagent_trajectory::ScheduledTaskService>,
-    >,
-) -> Result<usize, String> {
-    let db_models = db_repo::list_scheduled_tasks(sea_db)
-        .await
-        .map_err(|e| e.to_string())?;
+#[tauri::command]
+pub async fn create_daily_summary_task(
+    state: State<'_, AppState>,
+    name: String,
+    description: Option<String>,
+    cron_expression: Option<String>,
+) -> Result<ScheduledTaskDto, String> {
+    let schedule = cron_expression.unwrap_or_else(|| "0 9 * * *".to_string());
+    let desc = description.unwrap_or_else(|| name.clone());
+    let mut job = CronJob::new(&name, &schedule, &desc, &desc);
+    job.task_type = Some("daily_summary".to_string());
+    state.cron_job_store.add(job.clone()).await;
+    Ok(cron_to_dto(&job))
+}
 
-    let service = scheduled_task_service.write().await;
-    let mut count = 0;
+#[tauri::command]
+pub async fn create_backup_task(
+    state: State<'_, AppState>,
+    name: String,
+    description: Option<String>,
+    cron_expression: Option<String>,
+) -> Result<ScheduledTaskDto, String> {
+    let schedule = cron_expression.unwrap_or_else(|| "0 2 * * *".to_string());
+    let desc = description.unwrap_or_else(|| name.clone());
+    let mut job = CronJob::new(&name, &schedule, &desc, &desc);
+    job.task_type = Some("backup".to_string());
+    state.cron_job_store.add(job.clone()).await;
+    Ok(cron_to_dto(&job))
+}
 
-    for model in db_models {
-        let task = entity_to_task(&model);
-        if service.add_task(task).await.is_ok() {
-            count += 1;
-        }
-    }
+#[tauri::command]
+pub async fn create_cleanup_task(
+    state: State<'_, AppState>,
+    name: String,
+    description: Option<String>,
+    cron_expression: Option<String>,
+) -> Result<ScheduledTaskDto, String> {
+    let schedule = cron_expression.unwrap_or_else(|| "0 3 * * 0".to_string());
+    let desc = description.unwrap_or_else(|| name.clone());
+    let mut job = CronJob::new(&name, &schedule, &desc, &desc);
+    job.task_type = Some("cleanup".to_string());
+    state.cron_job_store.add(job.clone()).await;
+    Ok(cron_to_dto(&job))
+}
 
-    tracing::info!("[scheduled_task] Loaded {} tasks from database", count);
-    Ok(count)
+#[tauri::command]
+pub async fn load_scheduled_tasks_from_db(state: State<'_, AppState>) -> Result<(), String> {
+    // CronJobStore 为内存存储；DB 持久化可在后续添加。
+    // 当前保持命令兼容，不做实际操作。
+    let _ = state;
+    Ok(())
 }

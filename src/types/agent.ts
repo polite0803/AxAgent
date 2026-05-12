@@ -1,4 +1,4 @@
-export type AgentPermissionMode = "default" | "accept_edits" | "full_access";
+export type AgentBehaviorMode = "default" | "accept_edits" | "full_access";
 export type AgentRuntimeStatus = "idle" | "running" | "waiting_approval" | "completed" | "error";
 export type ApprovalStatus = "pending" | "approved" | "denied";
 
@@ -7,7 +7,7 @@ export interface AgentSession {
   conversation_id: string;
   cwd?: string;
   workspace_locked?: boolean;
-  permission_mode: AgentPermissionMode;
+  permission_mode: AgentBehaviorMode;
   runtime_status: AgentRuntimeStatus;
   total_tokens: number;
   total_cost_usd: number;

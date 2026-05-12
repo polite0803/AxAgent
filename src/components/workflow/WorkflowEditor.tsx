@@ -276,7 +276,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                   const roleId = (node as AgentNodeType).config.agentProfileId;
                   if (roleId) {
                     const role = useExpertStore.getState().getRoleById(roleId);
-                    return { expertIcon: role?.icon, expertName: role?.displayName };
+                    return { expertIcon: role?.icon, expertName: role?.name };
                   }
                   return {};
                 })(),

@@ -19,6 +19,7 @@ export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
   business: "商业",
 };
 
+/** @deprecated 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name, 其余字段基本一致 */
 export interface ExpertRole {
   /** 唯一标识，如 "code-reviewer" */
   id: string;
@@ -50,8 +51,8 @@ export interface ExpertRole {
   searchEnabled?: boolean;
 
   // Agent 权限控制
-  /** 推荐权限模式: default=需要审批, accept_edits=自动接受编辑, full_access=全部自动 */
-  recommendPermissionMode?: "default" | "accept_edits" | "full_access";
+  /** @deprecated 使用 AgentProfile 替代 */
+  recommendPermissionMode?: import("./agent").AgentBehaviorMode;
 
   /** 推荐的工具名称列表（导入时自动解析匹配） */
   recommendedTools?: string[];

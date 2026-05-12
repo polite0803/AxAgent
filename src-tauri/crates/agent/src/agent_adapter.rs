@@ -89,7 +89,7 @@ impl AgentImpl for AgentImplAdapter {
                 .cloned()
                 .unwrap_or(serde_json::json!({}));
 
-            let (server_name, local_name) = parse_adapter_tool_name(tool_name);
+            let (_server_name, local_name) = parse_adapter_tool_name(tool_name);
             let args = if let Some(obj) = tool_input.as_object() {
                 serde_json::to_value(obj.clone()).unwrap_or(tool_input)
             } else {
@@ -182,15 +182,7 @@ impl std::fmt::Debug for AgentImplAdapter {
     }
 }
 
-fn parse_adapter_tool_name(full_name: &str) -> (&str, &str) {
-    if let Some(idx) = full_name.find('/') {
-        let server = &full_name[..idx];
-        let tool = &full_name[idx + 1..];
-        (server, tool)
-    } else {
-        ("", full_name)
-    }
-}
+use axagent_tools::mcp::parse_tool_name as parse_adapter_tool_name;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AgentRuntimeBindingMode {

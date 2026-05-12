@@ -58,7 +58,7 @@ export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
         }}
       >
         <span>{role.icon}</span>
-        <span>{role.displayName}</span>
+        <span>{role.name}</span>
         <ChevronDown size={12} />
       </button>
     </Tooltip>

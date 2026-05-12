@@ -246,14 +246,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::ParallelExecutionService::new(10),
         )),
-        scheduled_task_service: Arc::new(tokio::sync::RwLock::new(
-            axagent_trajectory::ScheduledTaskService::new(100),
-        )),
+        cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new()),
         platform_manager: platform_manager.clone(),
         platform_bridge: platform_bridge.clone(),
         user_profile: Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new())),
         local_tool_registry: {
-            let mut registry = axagent_agent::LocalToolRegistry::init_from_registry();
+            let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
             rt.block_on(registry.load_enabled_state(&sea_db));
             Arc::new(tokio::sync::Mutex::new(registry))
         },

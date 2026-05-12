@@ -46,8 +46,6 @@ pub mod rl_policies;
 
 pub mod stored_files;
 
-pub mod scheduled_tasks;
-
 pub mod workflow_template;
 
 pub mod workflow_template_version;

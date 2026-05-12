@@ -1,6 +1,7 @@
 // AgentProfile — 融合 ExpertRole + AgentRole 的智能体能力集
 // 替代原有的分离式 ExpertRole 和 AgentRole 概念
 
+import type { AgentBehaviorMode } from "./agent";
 import type { ExpertCategory } from "./expert";
 
 export interface AgentProfile {
@@ -19,7 +20,7 @@ export interface AgentProfile {
   suggestedTemperature?: number;
   suggestedMaxTokens?: number;
   searchEnabled?: boolean;
-  recommendPermissionMode?: PermissionMode;
+  recommendPermissionMode?: AgentBehaviorMode;
   recommendedTools?: string[];
   disallowedTools?: string[];
   recommendedWorkflows?: string[];
@@ -32,8 +33,6 @@ export interface AgentProfile {
 
 // ExpertCategory 已从 ./expert 导入，此处不重复导出
 export type { ExpertCategory };
-
-export type PermissionMode = "default" | "accept_edits" | "full_access";
 
 export interface CreateAgentProfileInput {
   name: string;
@@ -49,7 +48,7 @@ export interface CreateAgentProfileInput {
   suggestedTemperature?: number;
   suggestedMaxTokens?: number;
   searchEnabled?: boolean;
-  recommendPermissionMode?: PermissionMode;
+  recommendPermissionMode?: AgentBehaviorMode;
   recommendedTools?: string[];
   disallowedTools?: string[];
   recommendedWorkflows?: string[];

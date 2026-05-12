@@ -1,77 +1,34 @@
 import { invoke } from "@/lib/invoke";
+import type {
+  CompiledPage,
+  CompileResult,
+  LintIssue,
+  LintResult,
+  SchemaVersion,
+  Wiki,
+  WikiOperation,
+  WikiPage,
+  WikiSource,
+} from "@/types";
 import { create } from "zustand";
 
-export interface Wiki {
-  id: string;
-  name: string;
-  description?: string;
-  rootPath: string;
-  schemaVersion: string;
-  noteCount: number;
-  sourceCount: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface WikiSource {
-  id: string;
-  wikiId: string;
-  sourceType: string;
-  sourcePath: string;
-  title: string;
-  mimeType: string;
-  sizeBytes: number;
-  contentHash: string;
-  metadataJson?: Record<string, unknown>;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface WikiPage {
-  id: string;
-  wikiId: string;
-  noteId: string;
-  pageType: string;
-  title: string;
-  sourceIds?: string[];
-  qualityScore?: number;
-  lastLintedAt?: number;
-  lastCompiledAt?: number;
-  compiledSourceHash?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface WikiOperation {
-  id: number;
-  wikiId: string;
-  operationType: string;
-  targetType: string;
-  targetId: string;
-  status: string;
-  detailsJson?: Record<string, unknown>;
-  errorMessage?: string;
-  createdAt: number;
-  completedAt?: number;
-}
+// 从 @/types 重导出，保持向后兼容
+export type {
+  CompiledPage,
+  CompileResult,
+  LintIssue,
+  LintResult,
+  SchemaVersion,
+  Wiki,
+  WikiOperation,
+  WikiPage,
+  WikiSource,
+};
 
 export interface IngestResult {
   source_id: string;
   raw_path: string;
   title: string;
-}
-
-export interface CompiledPage {
-  title: string;
-  content: string;
-  page_type: string;
-  source_ids: string[];
-}
-
-export interface CompileResult {
-  new_pages: CompiledPage[];
-  updated_pages: CompiledPage[];
-  errors: string[];
 }
 
 export interface QueryResult {
@@ -85,25 +42,6 @@ export interface PageResult {
   content_snippet: string;
   relevance_score: number;
   link_paths: string[];
-}
-
-export interface LintIssue {
-  severity: "Error" | "Warning" | "Info";
-  code: string;
-  message: string;
-  line?: number;
-}
-
-export interface LintResult {
-  note_id: string;
-  issues: LintIssue[];
-  score: number;
-}
-
-export interface SchemaVersion {
-  version: string;
-  created_at: number;
-  content_hash: string;
 }
 
 interface LlmWikiState {

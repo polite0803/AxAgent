@@ -1629,7 +1629,7 @@ function ChatViewInner({ onScrollToReady }: {
     const sw = consumeSwitch(activeConversationId);
     if (!sw) { return; }
     const role = getRoleById(sw.roleId);
-    const name = role?.displayName ?? t("chat.generalAssistant");
+    const name = role?.name ?? t("chat.generalAssistant");
     const icon = role?.icon ?? "\uD83E\uDD16";
     setExpertSwitchBubble({
       key: `__expert-switch__${sw.roleId}__${Date.now()}`,

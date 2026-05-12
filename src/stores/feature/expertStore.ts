@@ -1,24 +1,39 @@
 import { BUILTIN_EXPERT_PRESETS } from "@/data/expertPresets";
 import { invoke } from "@/lib/invoke";
-import type { ExpertRole } from "@/types";
+import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
 import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
 
-function loadCustomRoles(): ExpertRole[] {
+function loadCustomRoles(): AgentProfile[] {
   try {
     const stored = localStorage.getItem(CUSTOM_ROLES_KEY);
     if (!stored) { return []; }
     const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) { return []; }
+    // 迁移旧格式 (ExpertRole 有 displayName) → 新格式 (AgentProfile 有 name)
+    return parsed.map((item: Record<string, unknown>) => {
+      if (item.displayName && !item.name) {
+        return {
+          ...item,
+          name: item.displayName,
+          agentRole: (item as Record<string, unknown>).agentRole ?? null,
+          sortOrder: (item as Record<string, unknown>).sortOrder ?? 0,
+          isEnabled: (item as Record<string, unknown>).isEnabled ?? true,
+          createdAt: (item as Record<string, unknown>).createdAt ?? 0,
+          updatedAt: (item as Record<string, unknown>).updatedAt ?? 0,
+        };
+      }
+      return item;
+    }) as unknown as AgentProfile[];
   } catch {
     return [];
   }
 }
 
-function saveCustomRoles(roles: ExpertRole[]): void {
+function saveCustomRoles(roles: AgentProfile[]): void {
   localStorage.setItem(CUSTOM_ROLES_KEY, JSON.stringify(roles));
 }
 
@@ -35,23 +50,22 @@ interface AgencyExpertRow {
   recommended_tools: string[] | null;
 }
 
-function agencyRowToRole(row: AgencyExpertRow): ExpertRole {
+function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
   const CATEGORY_ICONS: Record<string, string> = {
-    development: "\uD83D\uDCBB",
-    security: "\uD83D\uDD12",
-    data: "\uD83D\uDCCA",
-    devops: "\uD83D\uDE80",
-    design: "\uD83C\uDFA8",
-    writing: "\uD83D\uDCDD",
-    business: "\uD83D\uDCBC",
-    general: "\uD83E\uDD16",
+    development: "💻",
+    security: "🔒",
+    data: "📊",
+    devops: "🚀",
+    design: "🎨",
+    writing: "📝",
+    business: "💼",
+    general: "🤖",
   };
 
   const tags = [row.source_dir, row.category];
   if (row.color) { tags.push(row.color); }
 
-  // Default permission mode based on category
-  const PERMISSION_BY_CATEGORY: Record<string, ExpertRole["recommendPermissionMode"]> = {
+  const PERMISSION_BY_CATEGORY: Record<string, AgentBehaviorMode> = {
     security: "default",
     development: "accept_edits",
     devops: "accept_edits",
@@ -61,59 +75,57 @@ function agencyRowToRole(row: AgencyExpertRow): ExpertRole {
 
   return {
     id: row.id,
-    displayName: row.name,
-    description: row.description ?? "",
-    category: row.category as ExpertRole["category"],
-    icon: CATEGORY_ICONS[row.category] ?? "\uD83E\uDD16",
+    name: row.name,
+    description: row.description,
+    category: row.category as ExpertCategory,
+    icon: CATEGORY_ICONS[row.category] ?? "🤖",
     systemPrompt: row.system_prompt,
     source: "agency",
+    agentRole: null,
     tags,
     recommendPermissionMode: PERMISSION_BY_CATEGORY[row.category] ?? "default",
     recommendedWorkflows: row.recommended_workflows ?? undefined,
     recommendedTools: row.recommended_tools ?? undefined,
+    sortOrder: 0,
+    isEnabled: row.is_enabled,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
 }
 
 interface ExpertState {
-  builtinRoles: ExpertRole[];
-  customRoles: ExpertRole[];
-  agencyRoles: ExpertRole[];
+  builtinRoles: AgentProfile[];
+  customRoles: AgentProfile[];
+  agencyRoles: AgentProfile[];
   agencyLoaded: boolean;
   agencyLoading: boolean;
 
   recentSwitch: { conversationId: string; roleId: string; timestamp: number } | null;
 
-  getAllRoles: () => ExpertRole[];
-  getRolesByCategory: () => Record<string, ExpertRole[]>;
-  getRoleById: (id: string) => ExpertRole | undefined;
+  getAllRoles: () => AgentProfile[];
+  getRolesByCategory: () => Record<string, AgentProfile[]>;
+  getRoleById: (id: string) => AgentProfile | undefined;
   getSystemPrompt: (roleId: string | null) => string | null;
   getCategoryLabel: (roleId: string | null) => string;
 
   recordSwitch: (conversationId: string, roleId: string) => void;
   consumeSwitch: (conversationId: string) => { roleId: string } | null;
 
-  /** Import from  repo */
   importAgencyExperts: (
     path: string,
   ) => Promise<{ count: number; workflows_created?: number; tools_matched?: number; errors: string[] }>;
-  /** Load agency experts from DB */
   loadAgencyRoles: () => Promise<void>;
-  /** Clear agency experts from DB */
   clearAgencyExperts: () => Promise<void>;
-  /** Delete a single agency expert */
   deleteAgencyExpert: (id: string) => Promise<void>;
-  /** Update an agency expert's fields */
   updateAgencyExpert: (
     id: string,
     fields: { name?: string; description?: string; category?: string; system_prompt?: string; is_enabled?: boolean },
   ) => Promise<void>;
-  /** Export all agency experts as JSON */
   exportAgencyExperts: () => Promise<string>;
-  /** Extract expert structure from text (AI-powered) */
-  extractStructure: (text: string) => Promise<ExpertRole | null>;
+  extractStructure: (text: string) => Promise<AgentProfile | null>;
 
-  addCustomRole: (role: ExpertRole) => void;
-  updateCustomRole: (role: ExpertRole) => void;
+  addCustomRole: (role: AgentProfile) => void;
+  updateCustomRole: (role: AgentProfile) => void;
   removeCustomRole: (id: string) => void;
   exportCustomRoles: () => string;
   importCustomRoles: (json: string) => { count: number; errors: string[] };
@@ -130,14 +142,14 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   getAllRoles: () => {
     const general = get().builtinRoles.find((r) => r.id === "general-assistant");
     const otherBuiltins = get().builtinRoles.filter((r) => r.id !== "general-assistant");
-    const result: ExpertRole[] = [];
+    const result: AgentProfile[] = [];
     if (general) { result.push(general); }
     result.push(...otherBuiltins, ...get().agencyRoles, ...get().customRoles);
     return result;
   },
 
   getRolesByCategory: () => {
-    const grouped: Record<string, ExpertRole[]> = {};
+    const grouped: Record<string, AgentProfile[]> = {};
     for (const role of get().getAllRoles()) {
       if (!grouped[role.category]) {
         grouped[role.category] = [];
@@ -286,10 +298,13 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       if (!Array.isArray(parsed)) {
         return { count: 0, errors: ["JSON 格式错误：期望一个数组"] };
       }
-      const validRoles: ExpertRole[] = [];
+      const validRoles: AgentProfile[] = [];
       for (const item of parsed) {
-        if (item.id && item.displayName && item.category) {
-          validRoles.push(item as ExpertRole);
+        const hasId = !!item.id;
+        const hasName = !!(item.displayName || item.name);
+        const hasCategory = !!item.category;
+        if (hasId && hasName && hasCategory) {
+          validRoles.push(item as AgentProfile);
         } else {
           errors.push(`跳过无效角色: ${JSON.stringify(item).slice(0, 50)}`);
         }

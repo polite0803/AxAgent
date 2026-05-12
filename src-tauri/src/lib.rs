@@ -608,24 +608,19 @@ pub fn run() {
             commands::parallel_execution::get_execution_result,
             commands::parallel_execution::delete_parallel_execution,
             commands::parallel_execution::start_parallel_execution,
-            // Scheduled task commands
-            commands::scheduled_task::create_scheduled_task,
-            commands::scheduled_task::create_daily_summary_task,
-            commands::scheduled_task::create_backup_task,
-            commands::scheduled_task::create_cleanup_task,
-            commands::scheduled_task::get_scheduled_task,
+            // Scheduled task commands (基于 CronJobStore)
             commands::scheduled_task::list_scheduled_tasks,
-            commands::scheduled_task::get_scheduled_task_templates,
-            commands::scheduled_task::list_due_tasks,
+            commands::scheduled_task::get_scheduled_task,
+            commands::scheduled_task::create_scheduled_task,
             commands::scheduled_task::update_scheduled_task,
             commands::scheduled_task::delete_scheduled_task,
             commands::scheduled_task::pause_scheduled_task,
             commands::scheduled_task::resume_scheduled_task,
-            commands::scheduled_task::record_task_execution,
-            commands::scheduled_task::get_task_execution_history,
-            commands::scheduled_task::get_next_scheduled_time,
-            commands::scheduled_task::register_task_definition,
             commands::scheduled_task::execute_scheduled_task,
+            commands::scheduled_task::get_scheduled_task_templates,
+            commands::scheduled_task::create_daily_summary_task,
+            commands::scheduled_task::create_backup_task,
+            commands::scheduled_task::create_cleanup_task,
             commands::scheduled_task::load_scheduled_tasks_from_db,
             // Workflow template commands
             commands::workflow_template::list_workflow_templates,
@@ -918,7 +913,6 @@ pub fn run() {
             let sea_db = state.sea_db.clone();
 
             let sea_db2 = sea_db.clone();
-            let scheduled_svc = state.scheduled_task_service.clone();
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
                     android_utils::report_fatal_error(&format!("Failed to create session reset runtime: {}", e));
@@ -926,7 +920,6 @@ pub fn run() {
                 });
                 rt.block_on(async {
                     let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db2).await;
-                    let _ = commands::scheduled_task::load_tasks_from_db_internal(&sea_db2, &scheduled_svc).await;
                 });
             }).join().unwrap_or_else(|e| {
                 tracing::error!("Session reset thread panicked: {:?}", e);

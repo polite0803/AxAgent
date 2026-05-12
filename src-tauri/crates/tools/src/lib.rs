@@ -1,4 +1,5 @@
 #![allow(clippy::result_large_err)]
+#![allow(clippy::type_complexity)]
 
 //! AxAgent Tool System - 统一工具接口与执行引擎
 //!
@@ -35,7 +36,6 @@ pub use stats::{StatCategory, ToolMetadata, ToolUsageStats};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::fmt;
 use std::sync::Arc;
 
 /// 工具所属类别
@@ -173,104 +173,8 @@ impl ToolResult {
     }
 }
 
-/// 工具错误
-#[derive(Debug, Clone)]
-pub struct ToolError {
-    pub message: String,
-    pub kind: ToolErrorKind,
-    /// i18n 错误码，格式 "tool.{name}.{kind}" 或 "tool.{name}.{specific}"
-    /// 前端通过 t(error_code, { default: message }) 翻译
-    pub error_code: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ToolErrorKind {
-    NotFound,
-    PermissionDenied,
-    InvalidInput,
-    ExecutionFailed,
-    Timeout,
-    Cancelled,
-}
-
-impl ToolError {
-    #[allow(dead_code)]
-    fn kind_str(kind: &ToolErrorKind) -> &'static str {
-        match kind {
-            ToolErrorKind::NotFound => "notFound",
-            ToolErrorKind::PermissionDenied => "permissionDenied",
-            ToolErrorKind::InvalidInput => "invalidInput",
-            ToolErrorKind::ExecutionFailed => "executionFailed",
-            ToolErrorKind::Timeout => "timeout",
-            ToolErrorKind::Cancelled => "cancelled",
-        }
-    }
-
-    /// 兼容旧 API：简单字符串构造
-    pub fn new(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            kind: ToolErrorKind::ExecutionFailed,
-            error_code: String::new(),
-        }
-    }
-
-    pub fn not_found(tool_name: &str) -> Self {
-        Self {
-            message: format!("工具 '{}' 未找到", tool_name),
-            kind: ToolErrorKind::NotFound,
-            error_code: format!("tool.{}.notFound", tool_name),
-        }
-    }
-
-    pub fn permission_denied(tool_name: &str, reason: &str) -> Self {
-        Self {
-            message: format!("工具 '{}' 权限被拒绝: {}", tool_name, reason),
-            kind: ToolErrorKind::PermissionDenied,
-            error_code: format!("tool.{}.permissionDenied", tool_name),
-        }
-    }
-
-    pub fn invalid_input(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            kind: ToolErrorKind::InvalidInput,
-            error_code: String::new(),
-        }
-    }
-
-    pub fn invalid_input_for(tool_name: &str, message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            kind: ToolErrorKind::InvalidInput,
-            error_code: format!("tool.{}.invalidInput", tool_name),
-        }
-    }
-
-    pub fn execution_failed(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            kind: ToolErrorKind::ExecutionFailed,
-            error_code: String::new(),
-        }
-    }
-
-    pub fn execution_failed_for(tool_name: &str, message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            kind: ToolErrorKind::ExecutionFailed,
-            error_code: format!("tool.{}.executionFailed", tool_name),
-        }
-    }
-}
-
-impl fmt::Display for ToolError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl std::error::Error for ToolError {}
+// ToolError + ToolErrorKind 统一定义在 axagent-runtime-core，此处重导出保持兼容
+pub use axagent_runtime_core::{ToolError, ToolErrorKind};
 
 /// 权限检查结果
 #[derive(Debug, Clone, PartialEq, Eq)]

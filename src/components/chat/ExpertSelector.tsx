@@ -1,6 +1,6 @@
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_LABELS } from "@/types";
-import type { ExpertCategory, ExpertRole } from "@/types";
+import type { AgentProfile, ExpertCategory } from "@/types";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { App, Button, Card, Input, Modal, Popconfirm, Popover, Select, Space, Tag, Typography } from "antd";
 import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Info, Pencil, Plus, Trash2 } from "lucide-react";
@@ -37,16 +37,16 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   const [sortBy, setSortBy] = useState<"name" | "category" | "source">("category");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [editingExpert, setEditingExpert] = useState<ExpertRole | null>(null);
+  const [editingExpert, setEditingExpert] = useState<AgentProfile | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editPrompt, setEditPrompt] = useState("");
   const [editCategory, setEditCategory] = useState<ExpertCategory>("general");
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newRole, setNewRole] = useState<Partial<ExpertRole>>({
+  const [newRole, setNewRole] = useState<Partial<AgentProfile>>({
     id: "",
-    displayName: "",
+    name: "",
     description: "",
     category: "general",
     icon: "🤖",
@@ -71,8 +71,8 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       const q = searchQuery.toLowerCase();
       roles = roles.filter(
         (r) =>
-          r.displayName.toLowerCase().includes(q)
-          || r.description.toLowerCase().includes(q)
+          r.name.toLowerCase().includes(q)
+          || (r.description || "").toLowerCase().includes(q)
           || r.tags.some((t) => t.toLowerCase().includes(q)),
       );
     }
@@ -83,19 +83,19 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
     const sorted = [...roles];
     const dir = sortDir === "asc" ? 1 : -1;
     if (sortBy === "name") {
-      sorted.sort((a, b) => dir * a.displayName.localeCompare(b.displayName, "zh"));
+      sorted.sort((a, b) => dir * a.name.localeCompare(b.name, "zh"));
     } else if (sortBy === "category") {
       const order = Object.keys(EXPERT_CATEGORY_LABELS);
       sorted.sort((a, b) =>
         dir
-        * (order.indexOf(a.category) - order.indexOf(b.category) || a.displayName.localeCompare(b.displayName, "zh"))
+        * (order.indexOf(a.category) - order.indexOf(b.category) || a.name.localeCompare(b.name, "zh"))
       );
     } else if (sortBy === "source") {
       const sourceOrder: Record<string, number> = { builtin: 0, agency: 1, custom: 2 };
       sorted.sort((a, b) =>
         dir
         * ((sourceOrder[a.source] ?? 3) - (sourceOrder[b.source] ?? 3)
-          || a.displayName.localeCompare(b.displayName, "zh"))
+          || a.name.localeCompare(b.name, "zh"))
       );
     }
     return sorted;
@@ -223,20 +223,20 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
     }
   };
 
-  const handleDeleteExpert = async (role: ExpertRole) => {
+  const handleDeleteExpert = async (role: AgentProfile) => {
     if (role.source === "agency") {
       await deleteAgencyExpert(role.id);
-      app.message.success(t("expertSelector.deleted", '已删除 "{{name}}"', { name: role.displayName }));
+      app.message.success(t("expertSelector.deleted", '已删除 "{{name}}"', { name: role.name }));
     } else if (role.source === "custom") {
       removeCustomRole(role.id);
-      app.message.success(t("expertSelector.deleted", '已删除 "{{name}}"', { name: role.displayName }));
+      app.message.success(t("expertSelector.deleted", '已删除 "{{name}}"', { name: role.name }));
     }
   };
 
-  const handleEditOpen = (role: ExpertRole) => {
+  const handleEditOpen = (role: AgentProfile) => {
     setEditingExpert(role);
-    setEditName(role.displayName);
-    setEditDesc(role.description);
+    setEditName(role.name);
+    setEditDesc(role.description ?? "");
     setEditPrompt(role.systemPrompt || "");
     setEditCategory(role.category as ExpertCategory);
   };
@@ -255,7 +255,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       } else if (editingExpert.source === "custom") {
         updateCustomRole({
           ...editingExpert,
-          displayName: editName,
+          name: editName,
           description: editDesc,
           systemPrompt: editPrompt,
           category: editCategory,
@@ -471,7 +471,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                             <Text strong style={{ fontSize: 13 }}>
-                              {role.displayName}
+                              {role.name}
                             </Text>
                             {isSelected && (
                               <Check size={14} style={{ color: "var(--color-text-info)", flexShrink: 0 }} />
@@ -547,7 +547,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                             ))}
                             {role.systemPrompt && (
                               <Popover
-                                title={`${role.icon} ${role.displayName} - 能力详情`}
+                                title={`${role.icon} ${role.name} - 能力详情`}
                                 content={
                                   <div
                                     style={{
@@ -593,7 +593,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
 
       {/* Edit Expert Modal */}
       <Modal
-        title={`${t("expertSelector.editTitle", "编辑专家")}: ${editingExpert?.displayName || ""}`}
+        title={`${t("expertSelector.editTitle", "编辑专家")}: ${editingExpert?.name || ""}`}
         open={!!editingExpert}
         onCancel={() => setEditingExpert(null)}
         onOk={handleEditSave}
@@ -650,15 +650,20 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         open={showAddModal}
         onCancel={() => setShowAddModal(false)}
         onOk={() => {
-          const role: ExpertRole = {
+          const role: AgentProfile = {
             id: newRole.id || `custom-${Date.now()}`,
-            displayName: newRole.displayName || t("expertSelector.unnamed", "未命名专家"),
+            name: newRole.name || t("expertSelector.unnamed", "未命名专家"),
             description: newRole.description || "",
             category: newRole.category || "general",
             icon: newRole.icon || "🤖",
             systemPrompt: newRole.systemPrompt || "",
             source: "custom",
+            agentRole: null,
             tags: newRole.tags || [],
+            sortOrder: 0,
+            isEnabled: true,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
             suggestedProviderId: newRole.suggestedProviderId,
             suggestedModelId: newRole.suggestedModelId,
             suggestedTemperature: newRole.suggestedTemperature,
@@ -673,14 +678,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
           setShowAddModal(false);
           setNewRole({
             id: "",
-            displayName: "",
+            name: "",
             description: "",
             category: "general",
             icon: "🤖",
             systemPrompt: "",
             source: "custom",
             tags: [],
-          });
+          } as Partial<AgentProfile>);
         }}
         okText={t("common.create", "创建")}
         cancelText={t("common.cancel", "取消")}
@@ -694,8 +699,8 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                 {t("expertSelector.name", "名称")} *
               </label>
               <Input
-                value={newRole.displayName}
-                onChange={(e) => setNewRole((r) => ({ ...r, displayName: e.target.value }))}
+                value={newRole.name}
+                onChange={(e) => setNewRole((r) => ({ ...r, name: e.target.value }))}
                 size="small"
                 placeholder={t("expertSelector.namePlaceholder", "如：资深架构师")}
               />
@@ -717,7 +722,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               {t("expertSelector.desc", "描述")}
             </label>
             <Input
-              value={newRole.description}
+              value={newRole.description ?? ""}
               onChange={(e) => setNewRole((r) => ({ ...r, description: e.target.value }))}
               size="small"
             />

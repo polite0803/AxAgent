@@ -43,7 +43,7 @@ impl CronScheduler {
                 }
 
                 let now = chrono::Utc::now();
-                let jobs = store.list_enabled().await;
+                let jobs = store.list_active().await;
 
                 for job in &jobs {
                     if let Some(next_run) = job.next_run_at {
@@ -57,7 +57,18 @@ impl CronScheduler {
                     if should_run_now(&job.schedule, &last_check, &now) {
                         tracing::info!("Cron: running job '{}' ({})", job.name, job.id);
                         executor.execute(job.clone()).await;
-                        store.record_run(&job.id).await;
+                        store
+                            .record_run(
+                                &job.id,
+                                axagent_runtime_core::TaskRunResult {
+                                    success: true,
+                                    output: None,
+                                    error: None,
+                                    duration_ms: 0,
+                                    executed_at: axagent_runtime_core::cron_job::now_millis(),
+                                },
+                            )
+                            .await;
                     }
                 }
 

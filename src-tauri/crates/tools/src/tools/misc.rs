@@ -780,10 +780,8 @@ impl Tool for CacheClearTool {
         let mut removed = 0u64;
         if let Ok(entries) = std::fs::read_dir(cache_dir) {
             for e in entries.filter_map(|e| e.ok()) {
-                if e.path().is_file() {
-                    if std::fs::remove_file(e.path()).is_ok() {
-                        removed += 1;
-                    }
+                if e.path().is_file() && std::fs::remove_file(e.path()).is_ok() {
+                    removed += 1;
                 }
             }
         }

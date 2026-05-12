@@ -103,6 +103,15 @@ npm run bump          # 版本号升级
 ### 构建
 11. **removeCrossorigin()**：vite.config.ts 中此插件不可删除（Tauri 自定义协议不支持 CORS 预检，删除会导致生产白屏）
 
+### 全栈（禁止重复代码）
+12. **禁止重复定义**：写新代码前，必须先检索项目是否已有相同或相似的定义（trait / struct / enum / type / interface / 工具函数 / 常量）。规则：
+   - **已有定义 → 必须复用**：通过 `pub use` re-export 或 `import` 引用已有定义
+   - **需要扩展 → 扩展而非重定义**：给已有类型加字段/方法，不要新建同义类型
+   - **后端权威来源层级**：数据模型在 `runtime-core`（底层）→ `tools`/`agent`（上层 re-export 或扩展）。`core` 是最基础层，`runtime-core` 是其上的运行时抽象层
+   - **前端权威来源**：类型定义在 `src/types/`，store 应 import 而非重定义 interface
+   - **Tauri 命令一致性**：删除后端命令时必须同步清理前端调用方；新增命令时前端类型须与后端 DTO 一致
+   - **删除前确认零引用**：删除任何文件/模块/函数/命令前，用 grep 确认全项目引用为零
+
 ## Store 分类规则
 新增 Zustand store 按以下规则放置：
 - 核心业务（消息、会话、流式）→ `stores/domain/`

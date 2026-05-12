@@ -45,7 +45,6 @@ mod reminder_manager;
 mod rl;
 mod rl_trainer;
 mod sandbox_executor;
-mod scheduled_task;
 mod skill;
 mod skill_decomposition;
 mod skill_evolution;
@@ -107,7 +106,6 @@ pub use process_reward::*;
 pub use rl::*;
 pub use rl_trainer::{RLTrainer, TrainingEpisode, TrainingReport};
 pub use sandbox_executor::*;
-pub use scheduled_task::*;
 pub use skill::*;
 pub use skill_decomposition::*;
 pub use skill_evolution::{
@@ -200,10 +198,6 @@ pub mod prelude {
     pub use crate::rl::{
         DefaultLlmJudge, LlmJudge, LlmJudgeFuture, RLConfig, RLEngine, RLState, RewardNormalizer,
         RewardWeights,
-    };
-    pub use crate::scheduled_task::{
-        DailySummaryConfig, ScheduledTask, ScheduledTaskService, ScheduledTaskStatus,
-        SummaryFormat, TaskConfig, TaskDefinition, TaskRunResult, TaskType,
     };
     pub use crate::skill::{
         EvolutionOutcome, HermesMetadata, Impact, MetricsDelta, ModificationType, Skill,

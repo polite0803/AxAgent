@@ -71,7 +71,7 @@ impl ActionExecutor {
         tool_name: &str,
         input: Value,
     ) -> Result<ActionResult, ActionError> {
-        let (server_name, local_name) = parse_full_tool_name(tool_name);
+        let (_server_name, local_name) = parse_full_tool_name(tool_name);
 
         let args = if let Some(obj) = input.as_object() {
             serde_json::to_value(obj.clone()).unwrap_or(input.clone())
@@ -90,15 +90,7 @@ impl ActionExecutor {
     }
 }
 
-fn parse_full_tool_name(full_name: &str) -> (&str, &str) {
-    if let Some(idx) = full_name.find('/') {
-        let server = &full_name[..idx];
-        let tool = &full_name[idx + 1..];
-        (server, tool)
-    } else {
-        ("", full_name)
-    }
-}
+use axagent_tools::mcp::parse_tool_name as parse_full_tool_name;
 
 #[derive(Debug, Clone)]
 pub enum ActionResult {

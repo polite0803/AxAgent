@@ -17,6 +17,7 @@ pub mod compact_warning;
 pub mod config;
 pub mod config_validate;
 pub mod conversation;
+pub mod cron_job;
 pub mod feature_flags;
 pub mod fork_bridge;
 pub mod hook_chain;
@@ -36,6 +37,8 @@ pub mod usage;
 // ── Public Re-exports ────────────────────────────────────────────────
 
 pub use cache_guard::CacheGuard;
+
+pub use cron_job::{CronJob, CronJobStatus, CronJobStore, TaskConfig, TaskRunResult};
 
 pub use compact::{
     adaptive_compaction_config, cleanup_task_boundary, compact_session, decay_weight,
@@ -68,7 +71,7 @@ pub use config::{
 pub use conversation::{
     auto_compaction_threshold_from_env, ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent,
     ConversationRuntime, PromptCacheEvent, RuntimeError, StaticToolExecutor, ToolError,
-    ToolExecutor, TurnSummary,
+    ToolErrorKind, ToolExecutor, TurnSummary,
 };
 
 pub use feature_flags::{

@@ -3,14 +3,18 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
-interface ProfileData {
+export interface ProfileData {
   name: string;
   display_name: string;
   is_default: boolean;
+  created_at: number;
 }
 
-interface ProfileInfo {
+export interface ProfileInfo {
   profile: ProfileData;
+  config_path: string;
+  db_path: string;
+  sessions_path: string;
 }
 
 export function ProfileSelector() {

@@ -9,7 +9,6 @@
 #![allow(clippy::wrong_self_convention)]
 
 pub mod adversarial_debate;
-pub mod agent_orchestrator;
 pub mod agent_roles;
 pub mod api_docs;
 pub mod api_server;
@@ -19,30 +18,18 @@ pub mod benchmarks;
 mod bootstrap;
 pub mod branch_lock;
 pub mod buddy;
-pub mod cache_guard;
 pub mod collaboration;
-mod compact;
-pub mod compact_thresholds;
-pub mod compact_warning;
-mod config;
-pub mod config_validate;
-mod conversation;
 pub mod cron;
 pub mod dashboard_plugin;
 pub mod dashboard_registry;
 pub mod engine_bridge;
 pub mod error_recovery;
-pub mod feature_flags;
 mod file_ops;
-pub mod fork_bridge;
 pub mod general_engine;
 mod git_context;
 pub mod git_tools;
 pub mod green_contract;
-mod hook_chain;
 pub mod hook_config;
-mod hooks;
-mod json;
 pub mod lan_transfer;
 mod lane_events;
 pub mod lsp_client;
@@ -56,33 +43,38 @@ pub mod mcp_server;
 mod mcp_stdio;
 pub mod mcp_tool_bridge;
 pub mod message_gateway;
-pub mod message_importance;
 pub mod mode_selector;
 pub mod module_switch;
 mod oauth;
-pub mod permission_enforcer;
-mod permissions;
-pub mod plugin_hooks;
 pub mod plugin_lifecycle;
 mod policy_engine;
 pub mod priority_scheduler;
 pub mod profile;
 pub mod profile_manager;
 mod prompt;
-pub mod prompt_cache;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod pty;
 pub mod reactive_compact;
 pub mod recovery_recipes;
 mod remote;
 pub mod resource_governor;
-pub mod sandbox;
-mod session;
-pub mod session_control;
+pub mod session_search;
 pub mod shared_memory;
+pub mod shell_completer;
 pub mod shell_hooks;
+mod sse;
+pub mod stale_base;
+pub mod stale_branch;
+pub mod summary_compression;
+pub mod task_packet;
+pub mod task_registry;
 pub mod task_router;
+pub mod team_cron_registry;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub mod terminal;
 pub mod terminal_analyzer;
+pub mod theme_engine;
+pub mod token_budget_predictor;
 pub mod tool_generator;
 pub mod transform_pipeline;
 pub mod transport_handlers;
@@ -92,25 +84,9 @@ pub mod webhook_server;
 pub mod webhook_subscription;
 pub mod work_engine;
 pub mod workflow_engine;
-pub use session_control::SessionStore;
-pub mod session_memory_compact;
-pub mod session_search;
-pub mod shell_completer;
-mod sse;
-pub mod stale_base;
-pub mod stale_branch;
-pub mod summary_compression;
-pub mod task_packet;
-pub mod task_registry;
-pub mod team_cron_registry;
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-pub mod terminal;
-pub mod theme_engine;
-pub mod token_budget_predictor;
 
 #[cfg(test)]
 mod trust_resolver;
-mod usage;
 pub mod worker_boot;
 
 pub use api_docs::{ApiDocGenerator, OpenApiSpec};
@@ -125,7 +101,6 @@ pub use file_ops::{
     WriteFileOutput,
 };
 pub use git_context::{GitCommitEntry, GitContext};
-pub use hook_chain::HookChain;
 
 pub use lane_events::{
     dedupe_superseded_commit_events, LaneCommitProvenance, LaneEvent, LaneEventBlocker,

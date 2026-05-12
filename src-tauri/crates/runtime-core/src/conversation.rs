@@ -144,16 +144,97 @@ pub trait ToolExecutor {
 }
 
 /// Error returned when a tool invocation fails locally.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ToolError {
-    message: String,
+    pub message: String,
+    pub kind: ToolErrorKind,
+    /// i18n 错误码，格式 "tool.{name}.{kind}" 或 "tool.{name}.{specific}"
+    pub error_code: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ToolErrorKind {
+    NotFound,
+    PermissionDenied,
+    InvalidInput,
+    ExecutionFailed,
+    Timeout,
+    Cancelled,
 }
 
 impl ToolError {
+    #[allow(dead_code)]
+    fn kind_str(kind: &ToolErrorKind) -> &'static str {
+        match kind {
+            ToolErrorKind::NotFound => "notFound",
+            ToolErrorKind::PermissionDenied => "permissionDenied",
+            ToolErrorKind::InvalidInput => "invalidInput",
+            ToolErrorKind::ExecutionFailed => "executionFailed",
+            ToolErrorKind::Timeout => "timeout",
+            ToolErrorKind::Cancelled => "cancelled",
+        }
+    }
+
     #[must_use]
     pub fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
+            kind: ToolErrorKind::ExecutionFailed,
+            error_code: String::new(),
+        }
+    }
+
+    #[must_use]
+    pub fn not_found(tool_name: &str) -> Self {
+        Self {
+            message: format!("工具 '{}' 未找到", tool_name),
+            kind: ToolErrorKind::NotFound,
+            error_code: format!("tool.{}.notFound", tool_name),
+        }
+    }
+
+    #[must_use]
+    pub fn permission_denied(tool_name: &str, reason: &str) -> Self {
+        Self {
+            message: format!("工具 '{}' 权限被拒绝: {}", tool_name, reason),
+            kind: ToolErrorKind::PermissionDenied,
+            error_code: format!("tool.{}.permissionDenied", tool_name),
+        }
+    }
+
+    #[must_use]
+    pub fn invalid_input(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            kind: ToolErrorKind::InvalidInput,
+            error_code: String::new(),
+        }
+    }
+
+    #[must_use]
+    pub fn invalid_input_for(tool_name: &str, message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            kind: ToolErrorKind::InvalidInput,
+            error_code: format!("tool.{}.invalidInput", tool_name),
+        }
+    }
+
+    #[must_use]
+    pub fn execution_failed(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            kind: ToolErrorKind::ExecutionFailed,
+            error_code: String::new(),
+        }
+    }
+
+    #[must_use]
+    pub fn execution_failed_for(tool_name: &str, message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            kind: ToolErrorKind::ExecutionFailed,
+            error_code: format!("tool.{}.executionFailed", tool_name),
         }
     }
 }

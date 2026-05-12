@@ -1,5 +1,6 @@
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
+import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/lib/messageUtils";
 import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
 import { useSearchStore } from "@/stores";
 import { useProviderStore } from "@/stores/feature/providerStore";
@@ -27,7 +28,6 @@ import { useAgentStore } from "../feature/agentStore";
 import { useCategoryStore } from "../feature/categoryStore";
 import { useExecutionStore } from "../feature/executionStore";
 import { usePlanStore } from "../feature/planStore";
-import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "./messageStore";
 import { useMultiModelStore } from "./multiModelStore";
 import {
   categoryTemplateUpdateFromCategory,

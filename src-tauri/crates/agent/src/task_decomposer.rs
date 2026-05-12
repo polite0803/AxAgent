@@ -23,13 +23,13 @@ pub struct DecompositionResult {
 }
 
 #[async_trait]
-pub trait LlmClient: Send + Sync {
+pub trait DecomposerLlmClient: Send + Sync {
     async fn complete(&self, prompt: &str) -> Result<String, DecompositionError>;
 }
 
 pub struct TaskDecomposer {
     max_depth: usize,
-    llm_client: Option<Arc<dyn LlmClient>>,
+    llm_client: Option<Arc<dyn DecomposerLlmClient>>,
 }
 
 impl TaskDecomposer {
@@ -45,7 +45,7 @@ impl TaskDecomposer {
         self
     }
 
-    pub fn with_llm_client(mut self, client: Arc<dyn LlmClient>) -> Self {
+    pub fn with_llm_client(mut self, client: Arc<dyn DecomposerLlmClient>) -> Self {
         self.llm_client = Some(client);
         self
     }
@@ -357,7 +357,7 @@ mod tests {
     }
 
     #[async_trait]
-    impl LlmClient for MockLlmClient {
+    impl DecomposerLlmClient for MockLlmClient {
         async fn complete(&self, _prompt: &str) -> Result<String, DecompositionError> {
             Ok(self.response.clone())
         }

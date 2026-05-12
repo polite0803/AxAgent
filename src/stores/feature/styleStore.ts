@@ -1,85 +1,32 @@
 import { invoke, isTauri } from "@/lib/invoke";
+import type {
+  CodeStyleTemplate,
+  CodeTemplate,
+  DocumentFormat,
+  DocumentStyleProfile,
+  LearnedPattern,
+  LearnedPatternType,
+  PatternType,
+  StyleDimensions,
+  StylePattern,
+  StyleVector,
+  UserStyleProfile,
+} from "@/types";
 import { create } from "zustand";
 
-export interface StyleDimensions {
-  naming_score: number;
-  density_score: number;
-  comment_ratio: number;
-  abstraction_level: number;
-  formality_score: number;
-  structure_score: number;
-  technical_depth: number;
-  explanation_length: number;
-}
-
-export interface StyleVector {
-  dimensions: StyleDimensions;
-  source_confidence: number;
-  learned_at: string;
-  sample_count: number;
-}
-
-export interface CodeStyleTemplate {
-  name: string;
-  patterns: StylePattern[];
-  templates: CodeTemplate[];
-}
-
-export interface StylePattern {
-  pattern_type: PatternType;
-  original: string;
-  transformed: string;
-  context: string;
-  usage_count: number;
-}
-
-export type PatternType = "Naming" | "Formatting" | "Structure" | "Comment";
-
-export interface CodeTemplate {
-  name: string;
-  template: string;
-  description: string;
-}
-
-export interface DocumentStyleProfile {
-  formality_level: number;
-  structure_level: number;
-  technical_vocabulary_ratio: number;
-  explanation_detail_level: number;
-  preferred_format: DocumentFormat;
-}
-
-export type DocumentFormat = "PlainText" | "Markdown" | "Structured";
-
-export interface UserStyleProfile {
-  id: string;
-  user_id: string;
-  code_style_vector: StyleVector;
-  document_style_profile: DocumentStyleProfile;
-  code_templates: CodeStyleTemplate[];
-  learned_patterns: LearnedPattern[];
-  created_at: string;
-  updated_at: string;
-  total_samples: number;
-  confidence: number;
-}
-
-export interface LearnedPattern {
-  id: string;
-  pattern_type: LearnedPatternType;
-  original: string;
-  transformed: string;
-  context: string;
-  usage_count: number;
-  last_used: string;
-}
-
-export type LearnedPatternType =
-  | "Naming"
-  | "Formatting"
-  | "Comment"
-  | "Structure"
-  | "Document";
+export type {
+  CodeStyleTemplate,
+  CodeTemplate,
+  DocumentFormat,
+  DocumentStyleProfile,
+  LearnedPattern,
+  LearnedPatternType,
+  PatternType,
+  StyleDimensions,
+  StylePattern,
+  StyleVector,
+  UserStyleProfile,
+};
 
 export interface StyleMigratorStats {
   total_profiles: number;

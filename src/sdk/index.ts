@@ -23,14 +23,14 @@ export const ACP_VERSION = "1.0.0";
 /** 会话状态 */
 export type SessionStatus = "idle" | "running" | "waiting_permission" | "compacting" | "closed";
 
-/** 权限模式 */
-export type PermissionMode = "read-only" | "workspace-write" | "danger-full-access";
+/** 系统权限模式 */
+export type SystemPermissionMode = "read-only" | "workspace-write" | "danger-full-access";
 
 /** 创建会话参数 */
 export interface CreateSessionParams {
   workDir: string;
   model?: string;
-  permissionMode?: PermissionMode;
+  permissionMode?: SystemPermissionMode;
   systemPrompt?: string;
 }
 

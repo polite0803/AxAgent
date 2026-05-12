@@ -1,10 +1,10 @@
 import { invoke } from "@/lib/invoke";
 import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import type {
+  AgentBehaviorMode,
   AgentProfile,
   CreateAgentProfileInput,
   ExpertCategory,
-  PermissionMode,
   UpdateAgentProfileInput,
 } from "@/types";
 import {
@@ -487,7 +487,7 @@ export function AgentProfileManager() {
                   style={{ width: "100%" }}
                   value={form.recommendPermissionMode ?? ""}
                   onChange={(v) =>
-                    setForm({ ...form, recommendPermissionMode: (v || undefined) as PermissionMode | undefined })}
+                    setForm({ ...form, recommendPermissionMode: (v || undefined) as AgentBehaviorMode | undefined })}
                   options={[
                     { value: "", label: t("common.default") },
                     { value: "accept_edits", label: t("chat.agent.acceptEdits") },

@@ -26,7 +26,6 @@ pub mod program_policy;
 pub mod prompt_template;
 pub mod provider;
 pub mod retrieval_hit;
-pub mod scheduled_task;
 pub mod search_provider;
 pub mod settings;
 pub mod skill;

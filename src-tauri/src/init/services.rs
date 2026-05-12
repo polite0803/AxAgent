@@ -1,5 +1,4 @@
 use crate::AppState;
-use axagent_trajectory::TaskType;
 use chrono;
 use notify::{Event, RecursiveMode, Watcher};
 use tauri::Emitter;
@@ -24,7 +23,7 @@ pub fn start_background_services(
     start_skill_evolution(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
-    start_scheduled_task_executor(state);
+    start_cron_scheduler(state);
     start_platform_adapters(state);
     start_skill_watcher(app);
     start_memory_decay_tick(state);
@@ -117,88 +116,6 @@ fn start_memory_maintenance_tick(state: &AppState) {
                     "[memory_maintenance] Found {} similar memory clusters (potential duplicates)",
                     clusters.len()
                 );
-            }
-        }
-    });
-}
-
-fn start_scheduled_task_executor(state: &AppState) {
-    let scheduled_task_service = state.scheduled_task_service.clone();
-    let workflow_engine = state.workflow_engine.clone();
-    tauri::async_runtime::spawn(async move {
-        let check_interval = std::time::Duration::from_secs(60);
-        loop {
-            tokio::time::sleep(check_interval).await;
-            let due_tasks = {
-                let service = scheduled_task_service.read().await;
-                service.list_due_tasks().await
-            };
-
-            for task in due_tasks {
-                tracing::info!(
-                    "[scheduled_task_executor] Found due task: {} (id: {})",
-                    task.name,
-                    task.id
-                );
-                let task_id = task.id.clone();
-                let task_type = task.task_type;
-                let workflow_id = task.workflow_id.clone();
-
-                if task_type == TaskType::Workflow {
-                    if let Some(wf_id) = workflow_id {
-                        tracing::info!("[scheduled_task_executor] Executing workflow task '{}' with workflow_id: {}", task.name, wf_id);
-                        let service = scheduled_task_service.read().await;
-                        match workflow_engine.run_workflow(&wf_id).await {
-                            Ok(workflow) => {
-                                tracing::info!("[scheduled_task_executor] Workflow '{}' completed with status: {:?}", task.name, workflow.status);
-                                let result = axagent_trajectory::TaskRunResult::success(
-                                    format!(
-                                        "Workflow '{}' executed successfully. Status: {:?}",
-                                        task.name, workflow.status
-                                    ),
-                                    0,
-                                );
-                                service.record_execution(&task_id, result).await;
-                            },
-                            Err(e) => {
-                                tracing::warn!(
-                                    "[scheduled_task_executor] Workflow '{}' failed: {:?}",
-                                    task.name,
-                                    e
-                                );
-                                let result = axagent_trajectory::TaskRunResult::failure(
-                                    format!("Workflow execution failed: {:?}", e),
-                                    0,
-                                );
-                                service.record_execution(&task_id, result).await;
-                            },
-                        }
-                    }
-                } else {
-                    let service = scheduled_task_service.read().await;
-                    match service.execute_task(&task_id).await {
-                        Some(result) => {
-                            if result.success {
-                                tracing::info!(
-                                    "[scheduled_task_executor] Task '{}' executed successfully",
-                                    task.name
-                                );
-                            } else {
-                                tracing::warn!(
-                                    "[scheduled_task_executor] Task '{}' failed: {:?}",
-                                    task.name,
-                                    result.error
-                                );
-                            }
-                        },
-                        None => {
-                            tracing::warn!(
-                                "[scheduled_task_executor] Failed to execute task: {}",
-                                task_id
-                            );
-                        },
-                    }
-                }
             }
         }
     });
@@ -1103,4 +1020,52 @@ fn start_text_grad_analysis(state: &AppState) {
             );
         }
     });
+}
+
+fn start_cron_scheduler(state: &AppState) {
+    use axagent_runtime::cron::{CronExecutor, CronScheduler};
+    use std::sync::Arc;
+
+    let store = state.cron_job_store.clone();
+
+    // 注入共享存储到 tools crate，使 CronCreateTool 等可用
+    axagent_tools::tools::cron::init_cron_store(store.clone());
+
+    let workflow_engine = state.workflow_engine.clone();
+    let mut executor = CronExecutor::new();
+    executor.set_handler(move |job| {
+        if let Some(ref wf_id) = job.workflow_id {
+            let wf_engine = workflow_engine.clone();
+            let wf_id = wf_id.clone();
+            let job_name = job.name.clone();
+            tokio::task::spawn(async move {
+                match wf_engine.run_workflow(&wf_id).await {
+                    Ok(workflow) => {
+                        tracing::info!(
+                            "[CronScheduler] 工作流任务 '{}' 完成: {:?}",
+                            job_name,
+                            workflow.status
+                        );
+                    },
+                    Err(e) => {
+                        tracing::error!("[CronScheduler] 工作流任务 '{}' 失败: {:?}", job_name, e);
+                    },
+                }
+            });
+        } else {
+            tracing::info!(
+                "[CronScheduler] 触发任务 '{}': {}",
+                job.name,
+                &job.prompt[..std::cmp::min(job.prompt.len(), 200)]
+            );
+        }
+    });
+
+    let scheduler = Arc::new(CronScheduler::new(store, Arc::new(executor)));
+
+    tauri::async_runtime::spawn(async move {
+        scheduler.start().await;
+    });
+
+    tracing::info!("[CronScheduler] 已启动（统一 Cron + ScheduledTask），每30秒轮询一次");
 }

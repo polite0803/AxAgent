@@ -58,7 +58,7 @@ mod tests {
             *c = true;
         });
 
-        let job = CronJob::new("test", "* * * * *", "test prompt");
+        let job = CronJob::new("test", "* * * * *", "test prompt", "test description");
         executor.execute(job).await;
 
         assert!(*called.lock().unwrap());

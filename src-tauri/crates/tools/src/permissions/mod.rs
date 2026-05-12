@@ -127,6 +127,7 @@ impl PermissionDecision {
 /// 细粒度权限策略
 ///
 /// 整合规则匹配、分类器、拒绝追踪，提供统一的权限决策接口。
+#[derive(Clone)]
 pub struct PermissionPolicy {
     /// 激活的权限模式
     pub active_mode: PermissionMode,
@@ -142,31 +143,7 @@ pub struct PermissionPolicy {
     pub denial_tracker: tracker::DenialTracker,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum PermissionMode {
-    /// 仅读取
-    ReadOnly = 0,
-    /// 工作区写入
-    WorkspaceWrite = 1,
-    /// 完全访问（危险）
-    DangerFullAccess = 2,
-    /// 始终询问
-    Prompt = 3,
-    /// 全部允许
-    Allow = 4,
-}
-
-impl PermissionMode {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            PermissionMode::ReadOnly => "read_only",
-            PermissionMode::WorkspaceWrite => "workspace_write",
-            PermissionMode::DangerFullAccess => "danger_full_access",
-            PermissionMode::Prompt => "prompt",
-            PermissionMode::Allow => "allow",
-        }
-    }
-}
+pub use axagent_runtime_core::permissions::PermissionMode;
 
 impl PermissionPolicy {
     pub fn new(mode: PermissionMode) -> Self {

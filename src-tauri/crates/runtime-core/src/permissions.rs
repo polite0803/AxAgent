@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use serde_json::Value;
@@ -5,13 +6,19 @@ use serde_json::Value;
 use crate::config::RuntimePermissionRuleConfig;
 
 /// Permission level assigned to a tool invocation or runtime session.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// 统一定义，含最大属性合集：整数判别符 + Serialize + kebab-case as_str。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PermissionMode {
-    ReadOnly,
-    WorkspaceWrite,
-    DangerFullAccess,
-    Prompt,
-    Allow,
+    /// 仅读取
+    ReadOnly = 0,
+    /// 工作区写入
+    WorkspaceWrite = 1,
+    /// 完全访问（危险）
+    DangerFullAccess = 2,
+    /// 始终询问
+    Prompt = 3,
+    /// 全部允许
+    Allow = 4,
 }
 
 impl PermissionMode {

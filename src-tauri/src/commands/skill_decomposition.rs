@@ -148,7 +148,7 @@ fn find_similar_local_tools(
     target_name: &str,
     target_description: &str,
     _target_tool_type: &str,
-    local_tool_defs: &std::collections::HashMap<String, axagent_agent::LocalToolDef>,
+    local_tool_defs: &[axagent_tools::ToolInfo],
     min_similarity: f32,
 ) -> Vec<ToolMatchResponse> {
     let target_words_name = compute_word_set(target_name);
@@ -156,13 +156,13 @@ fn find_similar_local_tools(
 
     let mut matches: Vec<ToolMatchResponse> = Vec::new();
 
-    for (tool_name, def) in local_tool_defs {
+    for info in local_tool_defs {
         let mut reasons = Vec::new();
         let mut score: f32 = 0.0;
         let mut weight_sum: f32 = 0.0;
 
-        let name_words = compute_word_set(tool_name);
-        let desc_words = compute_word_set(&def.description);
+        let name_words = compute_word_set(&info.name);
+        let desc_words = compute_word_set(&info.description);
 
         let name_sim = jaccard_similarity(&target_words_name, &name_words);
         if name_sim > 0.3 {
@@ -188,11 +188,20 @@ fn find_similar_local_tools(
             0.0
         };
 
+        let group_id = match info.category {
+            axagent_tools::ToolCategory::FileRead => "builtin-file-read",
+            axagent_tools::ToolCategory::FileWrite => "builtin-file-write",
+            axagent_tools::ToolCategory::Shell => "builtin-shell",
+            axagent_tools::ToolCategory::Network => "builtin-network",
+            axagent_tools::ToolCategory::System => "builtin-system-tools",
+            axagent_tools::ToolCategory::Agent => "builtin-agent",
+        };
+
         if final_score >= min_similarity {
             matches.push(ToolMatchResponse {
-                tool_name: tool_name.clone(),
-                tool_type: format!("local/{}", def.group_id),
-                description: def.description.clone(),
+                tool_name: info.name.clone(),
+                tool_type: format!("local/{}", group_id),
+                description: info.description.clone(),
                 similarity_score: final_score,
                 match_reasons: reasons,
             });
@@ -499,7 +508,7 @@ pub async fn check_tool_semantic_matches(
     let min_sim = min_similarity.unwrap_or(0.6);
 
     let registry = state.local_tool_registry.lock().await;
-    let local_tool_defs = registry.all_tool_defs();
+    let local_tool_defs = registry.tools.list_all();
 
     let mut all_matches: Vec<NodeToolMatches> = Vec::new();
 
@@ -508,7 +517,7 @@ pub async fn check_tool_semantic_matches(
             &tool_to_check.name,
             &tool_to_check.description,
             &tool_to_check.tool_type,
-            local_tool_defs,
+            &local_tool_defs,
             min_sim,
         );
 
