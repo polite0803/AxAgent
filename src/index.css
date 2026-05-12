@@ -64,19 +64,11 @@ button,
 
 /* Page enter: fade + slight slide + blur */
 @keyframes ax-page-enter {
-<<<<<<< Updated upstream
   from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
   to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 .ax-page-transition {
   animation: ax-page-enter 0.2s ease-out;
-=======
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.ax-page-transition {
-  animation: ax-page-enter 0.12s ease-out;
->>>>>>> Stashed changes
 }
 
 /* Message slide-up (applied by ChatView) */
@@ -108,7 +100,6 @@ button {
   background-size: 200% 100%;
   animation: ax-shimmer 1.5s ease-in-out infinite;
   border-radius: 4px;
-<<<<<<< Updated upstream
 }
 
 /* ── Cyberpunk visual effects ─────────────────────────────────────── */
@@ -217,8 +208,6 @@ button {
     linear-gradient(var(--cyber-grid-color) 1px, transparent 1px),
     linear-gradient(90deg, var(--cyber-grid-color) 1px, transparent 1px);
   background-size: 40px 40px;
-=======
->>>>>>> Stashed changes
 }
 
 /* Subtle card lift on hover */
@@ -236,7 +225,6 @@ button {
   position: relative;
 }
 
-<<<<<<< Updated upstream
 .ax-sidebar::before {
   content: "";
   position: absolute;
@@ -257,8 +245,6 @@ button {
   z-index: 2;
 }
 
-=======
->>>>>>> Stashed changes
 .ax-nav-label {
   opacity: 1;
   width: auto;
@@ -277,11 +263,7 @@ button {
   height: 0;
   border-radius: 0 3px 3px 0;
   background: var(--color-primary, #a1a1aa);
-<<<<<<< Updated upstream
   transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
-=======
-  transition: height 0.12s cubic-bezier(0.4, 0, 0.2, 1);
->>>>>>> Stashed changes
 }
 .ax-nav-item-active .ax-nav-indicator {
   height: 24px;
