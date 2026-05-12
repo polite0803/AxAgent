@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "antd";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import McpServerSettings from "../McpServerSettings";
+import { McpServerSettings } from "../McpServerSettings";
 
 const loadServers = vi.fn();
 const createServer = vi.fn();

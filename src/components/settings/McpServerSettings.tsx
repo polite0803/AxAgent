@@ -537,7 +537,7 @@ function McpServerDetail({
 
 // ── Main Component ────────────────────────────────────────
 
-export default function McpServerSettings() {
+export function McpServerSettings() {
   const { t } = useTranslation();
   const { servers, loadServers, createServer, updateServer, discoverTools, discoverAvailableServers } = useMcpStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);

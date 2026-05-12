@@ -54,7 +54,7 @@ pub async fn build_rag_llm_fn(db: &DatabaseConnection, master_key: &[u8; 32]) ->
             bridge
                 .call_llm("", &prompt)
                 .await
-                .map_err(|e| AxAgentError::Provider(e))
+                .map_err(AxAgentError::Provider)
         })
     }))
 }

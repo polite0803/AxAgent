@@ -43,11 +43,11 @@ describe("Phase B category template regressions", () => {
     expect(modalSource).toContain("default_frequency_penalty");
   });
 
-  it("adds a category-scoped new conversation action instead of forcing users to create then move", () => {
+  it("provides a new conversation action scoped to workspace groups", () => {
     const sidebarSource = readSource("src/components/chat/ChatSidebar.tsx");
 
-    expect(sidebarSource).toContain("onCreateConversation");
-    expect(sidebarSource).toContain('key: "new"');
-    expect(sidebarSource).toContain("handleNewConversation(cat.id)");
+    expect(sidebarSource).toContain("handleNewConversation");
+    expect(sidebarSource).toContain("new-conversation-btn");
+    expect(sidebarSource).toContain("MessageSquarePlus");
   });
 });

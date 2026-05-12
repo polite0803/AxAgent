@@ -1,56 +1,125 @@
 import { useLocalToolStore } from "@/stores";
-import { Spin, Switch, Tabs, Tag, Typography } from "antd";
-import { BookOpen, FileEdit, FileSearch, Globe, HardDrive, MessageSquare, Terminal, Wrench, Zap } from "lucide-react";
+import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
+import { Alert, Collapse, Empty, Spin, Switch, Tabs, Tag, Tooltip, Typography } from "antd";
+import {
+  BookOpen,
+  Bot,
+  ExternalLink,
+  FileEdit,
+  FileSearch,
+  GitBranch,
+  Globe,
+  HardDrive,
+  Image,
+  MessageSquare,
+  MousePointer,
+  Shield,
+  Terminal,
+  Timer,
+  Wrench,
+  Zap,
+} from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import McpServerSettings from "./McpServerSettings";
+import { McpServerSettings } from "./McpServerSettings";
 import ToolSemanticCheck from "./ToolSemanticCheck";
 
 const { Text, Paragraph } = Typography;
 
-// ── Builtin Tool Group Icons ──────────────────────────────
-
 const GROUP_ICONS: Record<string, React.ReactNode> = {
-  "builtin-file-read": <FileSearch size={18} />,
-  "builtin-file-write": <FileEdit size={18} />,
-  "builtin-shell": <Terminal size={18} />,
-  "builtin-network": <Globe size={18} />,
-  "builtin-system-tools": <Wrench size={18} />,
-  "builtin-agent": <Zap size={18} />,
-  "builtin-vcs": <Zap size={18} />,
-  "builtin-automation": <Zap size={18} />,
-  "builtin-communication": <MessageSquare size={18} />,
-  "builtin-ai-media": <Zap size={18} />,
-  "builtin-integration": <Globe size={18} />,
-  "builtin-storage": <HardDrive size={18} />,
-  "builtin-knowledge": <BookOpen size={18} />,
-  "builtin-browser": <Globe size={18} />,
-  "builtin-desktop": <Terminal size={18} />,
+  "builtin-file-read": <FileSearch size={16} />,
+  "builtin-file-write": <FileEdit size={16} />,
+  "builtin-shell": <Terminal size={16} />,
+  "builtin-network": <Globe size={16} />,
+  "builtin-system-tools": <Wrench size={16} />,
+  "builtin-agent": <Bot size={16} />,
+  "builtin-vcs": <GitBranch size={16} />,
+  "builtin-automation": <Timer size={16} />,
+  "builtin-communication": <MessageSquare size={16} />,
+  "builtin-ai-media": <Image size={16} />,
+  "builtin-integration": <ExternalLink size={16} />,
+  "builtin-storage": <HardDrive size={16} />,
+  "builtin-knowledge": <BookOpen size={16} />,
+  "builtin-browser": <Globe size={16} />,
+  "builtin-desktop": <MousePointer size={16} />,
 };
 
-const GROUP_NAME_KEYS: Record<string, string> = {
-  "builtin-file-read": "settings.localTools.groupFileRead",
-  "builtin-file-write": "settings.localTools.groupFileWrite",
-  "builtin-shell": "settings.localTools.groupShell",
-  "builtin-network": "settings.localTools.groupNetwork",
-  "builtin-system-tools": "settings.localTools.groupSystem",
-  "builtin-agent": "settings.localTools.groupAgent",
-  "builtin-vcs": "settings.localTools.groupVcs",
-  "builtin-automation": "settings.localTools.groupAutomation",
-  "builtin-communication": "settings.localTools.groupCommunication",
-  "builtin-ai-media": "settings.localTools.groupAiMedia",
-  "builtin-integration": "settings.localTools.groupIntegration",
-  "builtin-storage": "settings.localTools.groupStorage",
-  "builtin-knowledge": "settings.localTools.groupKnowledge",
-  "builtin-browser": "settings.localTools.groupBrowser",
-  "builtin-desktop": "settings.localTools.groupDesktop",
-};
+function ToolItem({
+  tool,
+  groupEnabled,
+  onToggle,
+}: {
+  tool: LocalToolInfo;
+  groupEnabled: boolean;
+  onToggle: (name: string) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between py-2.5 px-3 border-b border-border/50 last:border-b-0 hover:bg-bg-container-hover transition-colors">
+      <div className="flex-1 min-w-0 mr-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Text strong className="text-sm">{tool.name}</Text>
+          {tool.isDestructive && (
+            <Tooltip title="破坏性操作——执行后不可逆">
+              <Tag color="red" className="text-[10px] leading-none px-1 py-0">
+                <Shield size={10} className="inline mr-0.5" />破坏性
+              </Tag>
+            </Tooltip>
+          )}
+          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">只读</Tag>}
+        </div>
+        <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug" ellipsis={{ rows: 2 }}>
+          {tool.description}
+        </Paragraph>
+      </div>
+      <Tooltip title={groupEnabled ? (tool.enabled ? "禁用此工具" : "启用此工具") : "分类已禁用，无法单独控制"}>
+        <Switch
+          size="small"
+          checked={tool.enabled && groupEnabled}
+          disabled={!groupEnabled}
+          onChange={() => onToggle(tool.name)}
+        />
+      </Tooltip>
+    </div>
+  );
+}
 
-// ── Tab: Builtin Tools ────────────────────────────────────
+function GroupHeader({
+  group,
+  onToggleGroup,
+}: {
+  group: LocalToolGroupInfo;
+  onToggleGroup: (id: string) => void;
+}) {
+  const icon = GROUP_ICONS[group.groupId] ?? <Wrench size={16} />;
+  const enabledCount = group.tools.filter((t) => t.enabled).length;
+  const totalCount = group.tools.length;
+
+  return (
+    <div className="flex items-center gap-3 w-full">
+      <span className="text-text-secondary shrink-0">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <Text strong>{group.groupName}</Text>
+        <Text type="secondary" className="text-xs ml-2">
+          {enabledCount}/{totalCount} 已启用
+        </Text>
+        <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug">
+          {group.description}
+        </Paragraph>
+      </div>
+      <Tooltip title={group.enabled ? "禁用整个分类" : "启用整个分类"}>
+        <Switch
+          checked={group.enabled}
+          onChange={() => onToggleGroup(group.groupId)}
+          onClick={(_, e) => e.stopPropagation()}
+        />
+      </Tooltip>
+    </div>
+  );
+}
 
 function BuiltinToolsTab() {
   const { t } = useTranslation();
-  const { groups, loading, loadGroups, toggleGroup } = useLocalToolStore();
+  const { groups, loading, error, loadGroups, toggleGroup, toggleTool } = useLocalToolStore();
 
   useEffect(() => {
     loadGroups();
@@ -65,57 +134,30 @@ function BuiltinToolsTab() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <Paragraph type="secondary" className="mb-4">
-        {t("settings.localTools.description")}
-      </Paragraph>
-
-      <div className="border border-border rounded-lg overflow-hidden">
-        {groups.map((group) => {
-          const icon = GROUP_ICONS[group.groupId] ?? <Wrench size={18} />;
-          const nameKey = GROUP_NAME_KEYS[group.groupId];
-          const displayName = nameKey ? t(nameKey) : group.groupName;
-
-          return (
-            <div
-              key={group.groupId}
-              className="flex items-center justify-between py-3 px-4 border-b border-border last:border-b-0"
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className="text-text-secondary shrink-0">{icon}</span>
-                <div className="min-w-0 flex-1">
-                  <Text strong className="block">{displayName}</Text>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {group.tools.map((tool) => (
-                      <Tag key={tool.name} className="text-xs">
-                        {tool.name}
-                      </Tag>
-                    ))}
-                  </div>
-                </div>
+    <div className="flex-1 overflow-auto">
+      {error && <Alert message={error} type="error" showIcon className="mb-3" closable />}
+      {groups.length === 0 ? <Empty description={t("settings.localTools.empty")} /> : (
+        <Collapse
+          size="small"
+          expandIconPosition="end"
+          items={groups.map((group) => ({
+            key: group.groupId,
+            label: <GroupHeader group={group} onToggleGroup={toggleGroup} />,
+            children: (
+              <div className="border border-border rounded-lg overflow-hidden -mt-2">
+                {group.tools.map((tool) => (
+                  <ToolItem key={tool.name} tool={tool} groupEnabled={group.enabled} onToggle={toggleTool} />
+                ))}
               </div>
-              <Switch
-                checked={group.enabled}
-                onChange={() => toggleGroup(group.groupId)}
-                className="shrink-0 ml-3"
-              />
-            </div>
-          );
-        })}
-      </div>
+            ),
+          }))}
+        />
+      )}
     </div>
   );
 }
 
-// ── Tab: MCP Servers ─────────────────────────────────────
-
-function McpServersTab() {
-  return <McpServerSettings />;
-}
-
-// ── Main ToolManager ─────────────────────────────────────
-
-export default function ToolManager() {
+export function ToolManager() {
   const { t } = useTranslation();
 
   const tabItems = [
@@ -137,7 +179,7 @@ export default function ToolManager() {
           {t("settings.tools.tabMcp")}
         </span>
       ),
-      children: <McpServersTab />,
+      children: <McpServerSettings />,
     },
     {
       key: "semantic",
@@ -152,22 +194,20 @@ export default function ToolManager() {
   ];
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <Typography.Title level={4}>
+    <div className="flex flex-col flex-1" style={{ padding: 24, height: "100%", minHeight: 0 }}>
+      <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 16, flexShrink: 0 }}>
         {t("settings.tools.title")}
       </Typography.Title>
-      <div className="flex-1 min-h-0" style={{ overflow: "hidden" }}>
-        <Tabs
-          defaultActiveKey="builtin"
-          items={tabItems}
-          style={{ height: "100%" }}
-          tabBarStyle={{ marginBottom: 16 }}
-        />
-      </div>
+      <Tabs
+        defaultActiveKey="builtin"
+        items={tabItems}
+        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+        tabBarStyle={{ marginBottom: 16, flexShrink: 0 }}
+      />
       <style>
         {`
         .ant-tabs-content-holder, .ant-tabs-content, .ant-tabs-tabpane-active {
-          height: 100% !important;
+          flex: 1 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important;
         }
       `}
       </style>

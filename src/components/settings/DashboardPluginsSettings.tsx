@@ -31,7 +31,7 @@ const POSITION_COLORS: Record<string, string> = {
   Footer: "purple",
 };
 
-export default function DashboardPluginsSettings() {
+export function DashboardPluginsSettings() {
   const { t } = useTranslation();
   const [plugins, setPlugins] = useState<DashboardPluginInfo[]>([]);
   const [loading, setLoading] = useState(true);

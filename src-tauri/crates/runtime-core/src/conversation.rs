@@ -1417,7 +1417,6 @@ mod tests {
         PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
         PermissionRequest,
     };
-    use crate::prompt::{ProjectContext, SystemPromptBuilder};
     use crate::session::{ContentBlock, MessageRole, Session};
     use crate::usage::TokenUsage;
     use crate::ToolError;
@@ -1507,17 +1506,7 @@ mod tests {
             Ok(total.to_string())
         });
         let permission_policy = PermissionPolicy::new(PermissionMode::WorkspaceWrite);
-        let system_prompt = SystemPromptBuilder::new()
-            .with_project_context(ProjectContext {
-                cwd: PathBuf::from("/tmp/project"),
-                current_date: "2026-03-31".to_string(),
-                git_status: None,
-                git_diff: None,
-                git_context: None,
-                instruction_files: Vec::new(),
-            })
-            .with_os("linux", "6.8")
-            .build();
+        let system_prompt = vec!["You are a helpful assistant.".to_string()];
         let mut runtime = ConversationRuntime::new(
             Session::new(),
             api_client,

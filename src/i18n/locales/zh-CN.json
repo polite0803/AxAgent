@@ -335,7 +335,8 @@
       "memory": "记忆",
       "model": "模型",
       "search": "搜索",
-      "tools": "工具"
+      "tools": "工具",
+      "tokenMax": "Token上限"
     },
     "contextGraph": {
       "title": "上下文图谱",
@@ -940,7 +941,25 @@
     "forkConversation": "分支复制",
     "goToParent": "转到父会话",
     "moveToWorkspace": "移到工作区",
-    "removeFromWorkspace": "移出工作区"
+    "removeFromWorkspace": "移出工作区",
+    "diff": {
+      "accept": "接受",
+      "reject": "拒绝",
+      "accepted": "已接受",
+      "rejected": "已拒绝",
+      "fileChanges": "文件变更",
+      "collapseAll": "全部折叠",
+      "expandAll": "全部展开",
+      "acceptAll": "全部接受"
+    },
+    "selfEvolution": "自我进化",
+    "tracer": "追踪器",
+    "tracerTitle": "追踪器标题",
+    "traces": "追踪",
+    "spans": "跨度",
+    "errors": "错误",
+    "active": "活跃",
+    "noTraces": "无追踪"
   },
   "commandPalette": {
     "actions": "操作",
@@ -1088,7 +1107,10 @@
     "createSuccess": "创建成功",
     "deleteSuccess": "删除成功",
     "retry": "重试",
-    "default": "預設"
+    "default": "預設",
+    "operationFailed": "操作失败",
+    "hide": "隐藏",
+    "searchPlaceholder": "搜索..."
   },
   "desktop": {
     "alwaysOnTop": "窗口置顶",
@@ -1164,19 +1186,7 @@
     "evaluator": "评估器",
     "rl": "RL 引擎"
   },
-  "error": {
-    "deleteFailed": "删除失败，请重试",
-    "gatewayStartFailed": "网关启动失败",
-    "invalidFormat": "格式无效",
-    "keyValidationFailed": "密钥验证失败",
-    "loadFailed": "加载失败，请重试",
-    "network": "网络连接失败，请检查网络设置",
-    "noModelSelected": "请选择模型",
-    "providerNotConfigured": "请先配置服务商",
-    "proxyTestFailed": "代理测试失败",
-    "saveFailed": "保存失败，请重试",
-    "unknown": "未知错误"
-  },
+  "error": "错误",
   "files": {
     "backups": "备份",
     "batchDelete": "删除 ({{count}})",
@@ -1560,11 +1570,16 @@
       "error": "失败",
       "pending": "待执行",
       "rejected": "已拒绝",
-      "running": "执行中"
+      "running": "执行中",
+      "reviewing": "审核中",
+      "executing": "执行中"
     },
     "stepsApproved": "个步骤已批准",
     "strategyDirect": "直接执行",
-    "strategyPlan": "先规划再执行"
+    "strategyPlan": "先规划再执行",
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}}分钟前",
+    "hoursAgo": "{{count}}小时前"
   },
   "proactive": {
     "accept": "接受",
@@ -1631,7 +1646,17 @@
     },
     "overview": "画像概览",
     "tone": "语气",
-    "userId": "用户 ID"
+    "userId": "用户 ID",
+    "description": "描述",
+    "codingStyleDesc": "编码风格",
+    "namingConventionDesc": "命名规范",
+    "indentationStyleDesc": "缩进风格",
+    "commentStyleDesc": "注释风格",
+    "communicationDesc": "沟通方式",
+    "detailLevelDesc": "详细程度",
+    "toneDesc": "语气",
+    "languageDesc": "语言",
+    "confidenceDesc": "置信度"
   },
   "evolution": {
     "title": "自我进化系统",
@@ -2389,7 +2414,20 @@
       "groupSkills": "技能管理",
       "groupStorage": "对象存储",
       "groupSystem": "系统命令",
-      "title": "本地工具"
+      "title": "本地工具",
+      "groupFileRead": "文件读取",
+      "groupFileWrite": "文件写入",
+      "groupShell": "Shell 命令",
+      "groupNetwork": "网络",
+      "groupAgent": "智能体",
+      "groupVcs": "版本控制",
+      "groupAutomation": "自动化",
+      "groupCommunication": "通讯",
+      "groupAiMedia": "AI 与媒体",
+      "groupIntegration": "集成",
+      "groupBrowser": "浏览器",
+      "groupDesktop": "桌面",
+      "empty": "无本地工具"
     },
     "maxTokenCount": "最大 Tokens 数",
     "maxTokens": "最大 Tokens",
@@ -2546,7 +2584,19 @@
       "timelineThisWeek": "本周",
       "timelineThisMonth": "本月",
       "timelineOlder": "更早",
-      "noTimelineData": "暂无时间线数据"
+      "noTimelineData": "暂无时间线数据",
+      "promoteSuccess": "记忆已提升",
+      "demoteSuccess": "记忆已降级",
+      "feedbackSuccess": "反馈已记录",
+      "ageJustNow": "刚刚",
+      "ageMinutes": "{{count}}分钟",
+      "ageHours": "{{count}}小时",
+      "ageDays": "{{count}}天",
+      "noWorkingMemory": "无工作记忆",
+      "clusterLabel": "聚类",
+      "avgImportance": "平均重要性",
+      "noKnowledgeGraph": "无知识图谱",
+      "target": "目标"
     },
     "messageChannels": "消息渠道",
     "platform": {
@@ -2777,7 +2827,10 @@
       "workflow_refactorDesc": "行为保持不变的安全重构",
       "workflow_test_gen": "测试生成工作流",
       "workflow_test_genDesc": "生成完整的测试套件",
-      "desc": "管理自动化定时任务"
+      "desc": "管理自动化定时任务",
+      "executed": "已执行",
+      "quickCreated": "快速创建",
+      "refreshed": "已刷新"
     },
     "searchIcon": "搜索图标...",
     "searchModels": "搜索模型...",
@@ -3077,9 +3130,13 @@
       "openEditor": "打开编辑器",
       "title": "工作流设置",
       "visualEditor": "可视化编辑器",
-      "visualEditorDesc": "使用拖拽式 DAG 编辑器创建和编辑工作流"
+      "visualEditorDesc": "使用拖拽式 DAG 编辑器创建和编辑工作流",
+      "myWorkflows": "我的工作流",
+      "marketplace": "市场"
     },
-    "zhipu": "智谱"
+    "zhipu": "智谱",
+    "expertPromptNote": "专家提示词备注",
+    "modelGroupPlaceholder": "选择模型组"
   },
   "shortcuts": {
     "closeConversation": "关闭对话",
@@ -3753,7 +3810,30 @@
     "documents": "文档",
     "chunks": "分块",
     "vectors": "向量",
-    "settings": "知识库设置"
+    "settings": "知识库设置",
+    "backlinks": "反向链接",
+    "noBacklinks": "无反向链接",
+    "tags": "标签",
+    "versionRestored": "版本已恢复",
+    "versionHistory": "版本历史",
+    "noVersions": "无版本",
+    "compareDiff": "对比差异",
+    "confirmRestore": "确认恢复？",
+    "restore": "恢复",
+    "diffLabel": "差异",
+    "selectNote": "选择笔记",
+    "close": "关闭",
+    "edit": "编辑",
+    "unsaved": "未保存",
+    "outlinks": "出站链接",
+    "noOutlinks": "无出站链接",
+    "localGraph": "本地图谱",
+    "noTags": "无标签",
+    "viewBacklinks": "查看反向链接",
+    "focusLocal": "聚焦本地",
+    "createLinkedNote": "创建关联笔记",
+    "delete": "删除",
+    "cancel": "取消"
   },
   "workEngine": {
     "cancel": "取消",
@@ -4835,5 +4915,63 @@
       "title": "Wiki 源",
       "wikiList": "Wiki 列表"
     }
-  }
+  },
+  "chatMarkdown": {
+    "toggleRaw": "切换原始",
+    "viewThinking": "查看思考",
+    "inputParams": "输入参数",
+    "outputResult": "输出结果"
+  },
+  "advanced": {
+    "bashSecurity": "Bash安全",
+    "dangerousCmdDetect": "危险命令检测",
+    "networkCmdDetect": "网络命令检测",
+    "cmdTimeout": "命令超时",
+    "permissionStrategy": "权限策略",
+    "defaultPermission": "默认权限",
+    "perm": {
+      "default": "默认",
+      "acceptEdits": "接受编辑",
+      "fullAccess": "完全访问"
+    },
+    "fileWriteConfirm": "文件写入确认",
+    "networkConfirm": "网络确认",
+    "shellConfirm": "Shell确认"
+  },
+  "hookLog": {
+    "column": {
+      "time": "时间",
+      "event": "事件",
+      "tool": "工具",
+      "command": "命令",
+      "status": "状态",
+      "outputSummary": "输出摘要"
+    },
+    "success": "成功",
+    "failed": "失败",
+    "filterLabel": "筛选",
+    "allEvents": "所有事件",
+    "recordCount": "{{count}}条记录",
+    "clear": "清除",
+    "emptyStatus": "无状态",
+    "emptyFiltered": "无匹配记录"
+  },
+  "mcp": {
+    "enabled": "已启用",
+    "disabled": "已禁用"
+  },
+  "scheduler": {
+    "refresh": "刷新",
+    "dailyReport": "日报",
+    "backup": "备份",
+    "cleanup": "清理",
+    "executeNow": "立即执行",
+    "executionHistory": "执行历史",
+    "historyTitle": "历史",
+    "noRecords": "无记录",
+    "success": "成功",
+    "failed": "失败"
+  },
+  "markdown": "Markdown",
+  "success": "成功"
 }

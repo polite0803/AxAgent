@@ -29,7 +29,7 @@ i18n
       ar: { translation: ar },
     },
     lng: "zh-CN",
-    fallbackLng: "zh-CN",
+    fallbackLng: "en-US",
     interpolation: { escapeValue: false },
   });
 

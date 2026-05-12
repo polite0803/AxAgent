@@ -40,7 +40,7 @@ import {
   Trash2,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -419,7 +419,11 @@ function KnowledgeTab({
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const { bases, loadBases, loading: knowledgeLoading } = useKnowledgeStore();
-  const knowledgeSources = useSourceStore((s) => s.knowledgeSources());
+  const allSources = useSourceStore((s) => s.sources);
+  const knowledgeSources = useMemo(
+    () => allSources.filter((s) => s.containerType === "knowledge"),
+    [allSources],
+  );
   const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -561,7 +565,11 @@ function MemoryTab({
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const { namespaces, loadNamespaces, loading: memoryLoading } = useMemoryStore();
-  const memorySources = useSourceStore((s) => s.memorySources());
+  const allSources = useSourceStore((s) => s.sources);
+  const memorySources = useMemo(
+    () => allSources.filter((s) => s.containerType === "memory"),
+    [allSources],
+  );
   const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -702,7 +710,11 @@ function WikiTab({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { wikis, loadWikis } = useLlmWikiStore();
-  const wikiSources = useSourceStore((s) => s.wikiSources());
+  const allSources = useSourceStore((s) => s.sources);
+  const wikiSources = useMemo(
+    () => allSources.filter((s) => s.containerType === "wiki"),
+    [allSources],
+  );
   const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -1139,4 +1151,4 @@ function SourceManager() {
   );
 }
 
-export default SourceManager;
+export { SourceManager };

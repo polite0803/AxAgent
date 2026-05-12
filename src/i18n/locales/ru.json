@@ -167,7 +167,8 @@
       "memory": "Память",
       "enabled": "Включено",
       "disabled": "Отключено",
-      "count": "{{count}} элем."
+      "count": "{{count}} элем.",
+      "tokenMax": "Token Limit"
     },
     "artifacts": {
       "empty": "Нет артефактов",
@@ -773,7 +774,25 @@
     "forkConversation": "Форкнуть разговор",
     "goToParent": "Перейти к родительскому",
     "moveToWorkspace": "Переместить в рабочую область",
-    "removeFromWorkspace": "Удалить из рабочей области"
+    "removeFromWorkspace": "Удалить из рабочей области",
+    "diff": {
+      "accept": "Accept",
+      "reject": "Reject",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "fileChanges": "File Changes",
+      "collapseAll": "Collapse All",
+      "expandAll": "Expand All",
+      "acceptAll": "Accept All"
+    },
+    "selfEvolution": "Self Evolution",
+    "tracer": "Tracer",
+    "tracerTitle": "Tracer Title",
+    "traces": "Traces",
+    "spans": "Spans",
+    "errors": "Errors",
+    "active": "Active",
+    "noTraces": "No traces"
   },
   "gateway": {
     "title": "Шлюз",
@@ -1498,7 +1517,19 @@
       "totalTokens": "{{count}} tokens",
       "weight": "Weight",
       "workingMemory": "Working Memory",
-      "workingMemoryEntries": "{{count}} entries"
+      "workingMemoryEntries": "{{count}} entries",
+      "promoteSuccess": "Memory promoted",
+      "demoteSuccess": "Memory demoted",
+      "feedbackSuccess": "Feedback recorded",
+      "ageJustNow": "Just now",
+      "ageMinutes": "{{count}} minutes",
+      "ageHours": "{{count}} hours",
+      "ageDays": "{{count}} days",
+      "noWorkingMemory": "No working memory",
+      "clusterLabel": "Cluster",
+      "avgImportance": "Avg Importance",
+      "noKnowledgeGraph": "No knowledge graph",
+      "target": "Target"
     },
     "desktopIntegration": {
       "title": "Интеграция с рабочим столом"
@@ -1728,7 +1759,10 @@
       "workflow_knowledge_extractDesc": "Extract domain knowledge from code",
       "workflow_knowledge_to_code": "Knowledge to Code Workflow",
       "workflow_knowledge_to_codeDesc": "Generate code from knowledge base",
-      "desc": "Manage automated scheduled tasks"
+      "desc": "Manage automated scheduled tasks",
+      "executed": "Executed",
+      "quickCreated": "Quick created",
+      "refreshed": "Refreshed"
     },
     "titleSummaryPromptDefault": "На основе следующего содержания разговора создайте короткий и лаконичный заголовок (не более 20 символов). Верните только текст заголовка, без кавычек и дополнительных пояснений.",
     "compressionPromptDefault": "Вы — помощник по суммаризации разговоров. Сожмите следующую историю разговора в краткое резюме.\n\nТребования:\n1. Сохраните все выраженные пользователем потребности, предпочтения и решения\n2. Сохраните все ключевые технические детали (фрагменты кода, конфигурации, сообщения об ошибках и т.д.)\n3. Сохраните незавершённые задачи и нерешённые вопросы\n4. Оформите в виде кратких пунктов\n5. Резюме должно быть кратким, не более 500 слов",
@@ -1744,7 +1778,20 @@
       "groupStorage": "Объектное хранилище",
       "groupSkills": "Управление навыками",
       "groupSession": "Поиск по сессиям",
-      "groupMemory": "Управление памятью"
+      "groupMemory": "Управление памятью",
+      "groupFileRead": "File Read",
+      "groupFileWrite": "File Write",
+      "groupShell": "Shell Commands",
+      "groupNetwork": "Network",
+      "groupAgent": "Agent",
+      "groupVcs": "Version Control",
+      "groupAutomation": "Automation",
+      "groupCommunication": "Communication",
+      "groupAiMedia": "AI & Media",
+      "groupIntegration": "Integration",
+      "groupBrowser": "Browser",
+      "groupDesktop": "Desktop",
+      "empty": "No local tools"
     },
     "tools": {
       "title": "Менеджер инструментов",
@@ -2065,7 +2112,9 @@
       "createNew": "Create New Template",
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
-      "openEditor": "Open Editor"
+      "openEditor": "Open Editor",
+      "myWorkflows": "My Workflows",
+      "marketplace": "Marketplace"
     },
     "tabModel": "Модель и сервисы",
     "tabAppearance": "Интерфейс",
@@ -2114,7 +2163,9 @@
     "appConfigDesc": "Выбор модели, переключатели функций, управление агентом и конфигурация хуков",
     "bocha": "Bocha",
     "zhipu": "Zhipu",
-    "modelNamePlaceholder": "GPT 5.4 Think"
+    "modelNamePlaceholder": "GPT 5.4 Think",
+    "expertPromptNote": "Expert prompt note",
+    "modelGroupPlaceholder": "Select model group"
   },
   "backup": {
     "title": "Центр резервного копирования",
@@ -2319,7 +2370,10 @@
       "error_recovery": "Восстановление ошибок",
       "user_feedback": "Обратная связь пользователя"
     },
-    "default": "По умолчанию"
+    "default": "По умолчанию",
+    "operationFailed": "Operation failed",
+    "hide": "Hide",
+    "searchPlaceholder": "Search..."
   },
   "image": {
     "loadError": "Ошибка загрузки изображения",
@@ -2364,7 +2418,8 @@
     "keyValidationFailed": "Проверка ключа не удалась",
     "gatewayStartFailed": "Ошибка запуска шлюза",
     "proxyTestFailed": "Тест прокси не удался",
-    "invalidFormat": "Неверный формат"
+    "invalidFormat": "Неверный формат",
+    "page": "Error"
   },
   "desktop": {
     "title": "Интеграция с рабочим столом",
@@ -2733,7 +2788,17 @@
       "neutral": "Нейтральный",
       "casual": "Неформальный"
     },
-    "documentStyle": "Document Style"
+    "documentStyle": "Document Style",
+    "description": "Description",
+    "codingStyleDesc": "Coding Style",
+    "namingConventionDesc": "Naming Convention",
+    "indentationStyleDesc": "Indentation Style",
+    "commentStyleDesc": "Comment Style",
+    "communicationDesc": "Communication",
+    "detailLevelDesc": "Detail Level",
+    "toneDesc": "Tone",
+    "languageDesc": "Language",
+    "confidenceDesc": "Confidence"
   },
   "style": {
     "preview": "Предпросмотр стиля",
@@ -4144,7 +4209,30 @@
       "dragPanel": "Drag panels to resize",
       "keyboard": "Esc deselect · Del delete",
       "rightClick": "Right-click for menu"
-    }
+    },
+    "backlinks": "Backlinks",
+    "noBacklinks": "No backlinks",
+    "tags": "Tags",
+    "versionRestored": "Version restored",
+    "versionHistory": "Version History",
+    "noVersions": "No versions",
+    "compareDiff": "Compare Diff",
+    "confirmRestore": "Confirm restore?",
+    "restore": "Restore",
+    "diffLabel": "Diff",
+    "selectNote": "Select note",
+    "close": "Close",
+    "edit": "Edit",
+    "unsaved": "Unsaved",
+    "outlinks": "Outlinks",
+    "noOutlinks": "No outlinks",
+    "localGraph": "Local Graph",
+    "noTags": "No tags",
+    "viewBacklinks": "View Backlinks",
+    "focusLocal": "Focus Local",
+    "createLinkedNote": "Create Linked Note",
+    "delete": "Delete",
+    "cancel": "Cancel"
   },
   "notification": {
     "clear": "Clear",
@@ -4357,7 +4445,9 @@
       "rejected": "Отклонено",
       "running": "Выполняется",
       "completed": "Завершено",
-      "error": "Ошибка"
+      "error": "Ошибка",
+      "reviewing": "Reviewing",
+      "executing": "Executing"
     },
     "approveAll": "Одобрить все и выполнить",
     "approveStep": "Одобрить этот шаг",
@@ -4371,7 +4461,10 @@
     "executing": "Выполняется",
     "historyTitle": "История планов",
     "noPlans": "No plans yet",
-    "noPlansHint": "Switch to Plan First strategy to create one"
+    "noPlansHint": "Switch to Plan First strategy to create one",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago"
   },
   "tool": {
     "common": {
@@ -4835,5 +4928,63 @@
       "title": "Wiki Sources",
       "wikiList": "Wiki List"
     }
-  }
+  },
+  "chatMarkdown": {
+    "toggleRaw": "Toggle Raw",
+    "viewThinking": "View Thinking",
+    "inputParams": "Input Params",
+    "outputResult": "Output Result"
+  },
+  "advanced": {
+    "bashSecurity": "Bash Security",
+    "dangerousCmdDetect": "Dangerous Command Detection",
+    "networkCmdDetect": "Network Command Detection",
+    "cmdTimeout": "Command Timeout",
+    "permissionStrategy": "Permission Strategy",
+    "defaultPermission": "Default Permission",
+    "perm": {
+      "default": "Default",
+      "acceptEdits": "Accept Edits",
+      "fullAccess": "Full Access"
+    },
+    "fileWriteConfirm": "File Write Confirmation",
+    "networkConfirm": "Network Confirmation",
+    "shellConfirm": "Shell Confirmation"
+  },
+  "hookLog": {
+    "column": {
+      "time": "Time",
+      "event": "Event",
+      "tool": "Tool",
+      "command": "Command",
+      "status": "Status",
+      "outputSummary": "Output Summary"
+    },
+    "success": "Success",
+    "failed": "Failed",
+    "filterLabel": "Filter",
+    "allEvents": "All Events",
+    "recordCount": "{{count}} records",
+    "clear": "Clear",
+    "emptyStatus": "No status",
+    "emptyFiltered": "No matching records"
+  },
+  "mcp": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "scheduler": {
+    "refresh": "Refresh",
+    "dailyReport": "Daily Report",
+    "backup": "Backup",
+    "cleanup": "Cleanup",
+    "executeNow": "Execute Now",
+    "executionHistory": "Execution History",
+    "historyTitle": "History",
+    "noRecords": "No records",
+    "success": "Success",
+    "failed": "Failed"
+  },
+  "markdown": "Markdown",
+  "success": "Success"
 }

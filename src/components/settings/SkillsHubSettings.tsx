@@ -40,7 +40,7 @@ const CATEGORIES = [
   { value: "ai", label: "AI & ML" },
 ];
 
-export default function SkillsHubSettings() {
+export function SkillsHubSettings() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState("all");

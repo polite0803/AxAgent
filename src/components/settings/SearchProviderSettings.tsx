@@ -329,7 +329,7 @@ function SearchProviderDetail({
 
 // ── Main Component ────────────────────────────────────────
 
-export default function SearchProviderSettings() {
+export function SearchProviderSettings() {
   const { t } = useTranslation();
   const { providers, loadProviders, createProvider } = useSearchStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);

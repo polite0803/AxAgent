@@ -208,7 +208,8 @@
       "memory": "Memory",
       "enabled": "Enabled",
       "disabled": "Disabled",
-      "count": "{{count}} items"
+      "count": "{{count}} items",
+      "tokenMax": "Token Limit"
     },
     "contextGraph": {
       "title": "Context Graph",
@@ -799,7 +800,25 @@
     "forkConversation": "Fork Conversation",
     "goToParent": "Go to Parent",
     "moveToWorkspace": "Move to Workspace",
-    "removeFromWorkspace": "Remove from Workspace"
+    "removeFromWorkspace": "Remove from Workspace",
+    "diff": {
+      "accept": "Accept",
+      "reject": "Reject",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "fileChanges": "File Changes",
+      "collapseAll": "Collapse All",
+      "expandAll": "Expand All",
+      "acceptAll": "Accept All"
+    },
+    "selfEvolution": "Self Evolution",
+    "tracer": "Tracer",
+    "tracerTitle": "Tracer Title",
+    "traces": "Traces",
+    "spans": "Spans",
+    "errors": "Errors",
+    "active": "Active",
+    "noTraces": "No traces"
   },
   "gateway": {
     "title": "Gateway",
@@ -1343,7 +1362,20 @@
       "groupStorage": "Object Storage",
       "groupSkills": "Skill Management",
       "groupSession": "Session Search",
-      "groupMemory": "Memory Management"
+      "groupMemory": "Memory Management",
+      "groupFileRead": "File Read",
+      "groupFileWrite": "File Write",
+      "groupShell": "Shell Commands",
+      "groupNetwork": "Network",
+      "groupAgent": "Agent",
+      "groupVcs": "Version Control",
+      "groupAutomation": "Automation",
+      "groupCommunication": "Communication",
+      "groupAiMedia": "AI & Media",
+      "groupIntegration": "Integration",
+      "groupBrowser": "Browser",
+      "groupDesktop": "Desktop",
+      "empty": "No local tools"
     },
     "mcpServers": {
       "title": "MCP Servers",
@@ -1637,7 +1669,19 @@
       "timelineThisWeek": "This Week",
       "timelineThisMonth": "This Month",
       "timelineOlder": "Older",
-      "noTimelineData": "No timeline data"
+      "noTimelineData": "No timeline data",
+      "promoteSuccess": "Memory promoted",
+      "demoteSuccess": "Memory demoted",
+      "feedbackSuccess": "Feedback recorded",
+      "ageJustNow": "Just now",
+      "ageMinutes": "{{count}} minutes",
+      "ageHours": "{{count}} hours",
+      "ageDays": "{{count}} days",
+      "noWorkingMemory": "No working memory",
+      "clusterLabel": "Cluster",
+      "avgImportance": "Avg Importance",
+      "noKnowledgeGraph": "No knowledge graph",
+      "target": "Target"
     },
     "desktopIntegration": {
       "title": "Desktop Integration"
@@ -1869,7 +1913,10 @@
       "workflow_knowledge_extract": "Knowledge Extraction Workflow",
       "workflow_knowledge_extractDesc": "Extract domain knowledge from code",
       "workflow_knowledge_to_code": "Knowledge to Code Workflow",
-      "workflow_knowledge_to_codeDesc": "Generate code from knowledge base"
+      "workflow_knowledge_to_codeDesc": "Generate code from knowledge base",
+      "executed": "Executed",
+      "quickCreated": "Quick created",
+      "refreshed": "Refreshed"
     },
     "userProfile": {
       "title": "User Profile",
@@ -2201,7 +2248,9 @@
       "createNew": "Create New Template",
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
-      "openEditor": "Open Editor"
+      "openEditor": "Open Editor",
+      "myWorkflows": "My Workflows",
+      "marketplace": "Marketplace"
     },
     "theme": {
       "label": "Theme",
@@ -2229,7 +2278,9 @@
       "saved": "Saved"
     },
     "bocha": "Bocha",
-    "zhipu": "Zhipu"
+    "zhipu": "Zhipu",
+    "expertPromptNote": "Expert prompt note",
+    "modelGroupPlaceholder": "Select model group"
   },
   "backup": {
     "title": "Backup Center",
@@ -2434,7 +2485,10 @@
     "createSuccess": "Create uccess",
     "deleteSuccess": "Delete uccess",
     "retry": "Retry",
-    "default": "Default"
+    "default": "Default",
+    "operationFailed": "Operation failed",
+    "hide": "Hide",
+    "searchPlaceholder": "Search..."
   },
   "plan": {
     "defaultTitle": "Execution Plan",
@@ -2446,7 +2500,9 @@
       "rejected": "Rejected",
       "running": "Running",
       "completed": "Completed",
-      "error": "Error"
+      "error": "Error",
+      "reviewing": "Reviewing",
+      "executing": "Executing"
     },
     "approveAll": "Approve & Execute",
     "approveStep": "Approve Step",
@@ -2460,7 +2516,10 @@
     "executing": "Executing",
     "historyTitle": "Plan History",
     "noPlans": "No plans yet",
-    "noPlansHint": "Switch to Plan First strategy to create one"
+    "noPlansHint": "Switch to Plan First strategy to create one",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago"
   },
   "multiAgent": {
     "title": "Multi-Agent Status",
@@ -2534,7 +2593,8 @@
     "keyValidationFailed": "Key validation failed",
     "gatewayStartFailed": "Gateway start failed",
     "proxyTestFailed": "Proxy test failed",
-    "invalidFormat": "Invalid format"
+    "invalidFormat": "Invalid format",
+    "page": "Error"
   },
   "desktop": {
     "title": "Desktop Integration",
@@ -2856,7 +2916,17 @@
       "neutral": "Neutral",
       "casual": "Casual"
     },
-    "documentStyle": "Document Style"
+    "documentStyle": "Document Style",
+    "description": "Description",
+    "codingStyleDesc": "Coding Style",
+    "namingConventionDesc": "Naming Convention",
+    "indentationStyleDesc": "Indentation Style",
+    "commentStyleDesc": "Comment Style",
+    "communicationDesc": "Communication",
+    "detailLevelDesc": "Detail Level",
+    "toneDesc": "Tone",
+    "languageDesc": "Language",
+    "confidenceDesc": "Confidence"
   },
   "style": {
     "preview": "Style Preview",
@@ -4196,7 +4266,30 @@
     "unsavedContent": "You have unsaved changes. Are you sure you want to discard them?",
     "discard": "Discard",
     "keepEditing": "Continue editing",
-    "confirmDelete": "Are you sure you want to delete this note?"
+    "confirmDelete": "Are you sure you want to delete this note?",
+    "backlinks": "Backlinks",
+    "noBacklinks": "No backlinks",
+    "tags": "Tags",
+    "versionRestored": "Version restored",
+    "versionHistory": "Version History",
+    "noVersions": "No versions",
+    "compareDiff": "Compare Diff",
+    "confirmRestore": "Confirm restore?",
+    "restore": "Restore",
+    "diffLabel": "Diff",
+    "selectNote": "Select note",
+    "close": "Close",
+    "edit": "Edit",
+    "unsaved": "Unsaved",
+    "outlinks": "Outlinks",
+    "noOutlinks": "No outlinks",
+    "localGraph": "Local Graph",
+    "noTags": "No tags",
+    "viewBacklinks": "View Backlinks",
+    "focusLocal": "Focus Local",
+    "createLinkedNote": "Create Linked Note",
+    "delete": "Delete",
+    "cancel": "Cancel"
   },
   "notification": {
     "clear": "Clear",
@@ -4835,5 +4928,63 @@
       "title": "Wiki Sources",
       "wikiList": "Wiki List"
     }
-  }
+  },
+  "chatMarkdown": {
+    "toggleRaw": "Toggle Raw",
+    "viewThinking": "View Thinking",
+    "inputParams": "Input Params",
+    "outputResult": "Output Result"
+  },
+  "advanced": {
+    "bashSecurity": "Bash Security",
+    "dangerousCmdDetect": "Dangerous Command Detection",
+    "networkCmdDetect": "Network Command Detection",
+    "cmdTimeout": "Command Timeout",
+    "permissionStrategy": "Permission Strategy",
+    "defaultPermission": "Default Permission",
+    "perm": {
+      "default": "Default",
+      "acceptEdits": "Accept Edits",
+      "fullAccess": "Full Access"
+    },
+    "fileWriteConfirm": "File Write Confirmation",
+    "networkConfirm": "Network Confirmation",
+    "shellConfirm": "Shell Confirmation"
+  },
+  "hookLog": {
+    "column": {
+      "time": "Time",
+      "event": "Event",
+      "tool": "Tool",
+      "command": "Command",
+      "status": "Status",
+      "outputSummary": "Output Summary"
+    },
+    "success": "Success",
+    "failed": "Failed",
+    "filterLabel": "Filter",
+    "allEvents": "All Events",
+    "recordCount": "{{count}} records",
+    "clear": "Clear",
+    "emptyStatus": "No status",
+    "emptyFiltered": "No matching records"
+  },
+  "mcp": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "scheduler": {
+    "refresh": "Refresh",
+    "dailyReport": "Daily Report",
+    "backup": "Backup",
+    "cleanup": "Cleanup",
+    "executeNow": "Execute Now",
+    "executionHistory": "Execution History",
+    "historyTitle": "History",
+    "noRecords": "No records",
+    "success": "Success",
+    "failed": "Failed"
+  },
+  "markdown": "Markdown",
+  "success": "Success"
 }

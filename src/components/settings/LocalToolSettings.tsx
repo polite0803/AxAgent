@@ -119,7 +119,7 @@ function GroupHeader({
   );
 }
 
-export default function LocalToolSettings() {
+export function LocalToolSettings() {
   const { t } = useTranslation();
   const { groups, loading, error, loadGroups, toggleGroup, toggleTool } = useLocalToolStore();
 

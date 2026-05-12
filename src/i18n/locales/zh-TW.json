@@ -170,7 +170,8 @@
       "memory": "記憶",
       "enabled": "已啟用",
       "disabled": "已停用",
-      "count": "{{count}} 個"
+      "count": "{{count}} 個",
+      "tokenMax": "Token Limit"
     },
     "artifacts": {
       "empty": "暫無製品",
@@ -773,7 +774,25 @@
     "forkConversation": "分支複製",
     "goToParent": "轉到父會話",
     "moveToWorkspace": "移到工作區",
-    "removeFromWorkspace": "移出工作區"
+    "removeFromWorkspace": "移出工作區",
+    "diff": {
+      "accept": "Accept",
+      "reject": "Reject",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "fileChanges": "File Changes",
+      "collapseAll": "Collapse All",
+      "expandAll": "Expand All",
+      "acceptAll": "Accept All"
+    },
+    "selfEvolution": "Self Evolution",
+    "tracer": "Tracer",
+    "tracerTitle": "Tracer Title",
+    "traces": "Traces",
+    "spans": "Spans",
+    "errors": "Errors",
+    "active": "Active",
+    "noTraces": "No traces"
   },
   "gateway": {
     "title": "閘道",
@@ -1496,7 +1515,19 @@
       "totalTokens": "{{count}} 個 token",
       "weight": "權重",
       "workingMemory": "工作記憶",
-      "workingMemoryEntries": "{{count}} 條記憶"
+      "workingMemoryEntries": "{{count}} 條記憶",
+      "promoteSuccess": "Memory promoted",
+      "demoteSuccess": "Memory demoted",
+      "feedbackSuccess": "Feedback recorded",
+      "ageJustNow": "Just now",
+      "ageMinutes": "{{count}} minutes",
+      "ageHours": "{{count}} hours",
+      "ageDays": "{{count}} days",
+      "noWorkingMemory": "No working memory",
+      "clusterLabel": "Cluster",
+      "avgImportance": "Avg Importance",
+      "noKnowledgeGraph": "No knowledge graph",
+      "target": "Target"
     },
     "desktopIntegration": {
       "title": "桌面整合"
@@ -1726,7 +1757,10 @@
       "workflow_knowledge_extractDesc": "從代碼中提取領域知識",
       "workflow_knowledge_to_code": "知識轉代碼工作流",
       "workflow_knowledge_to_codeDesc": "從知識庫生成代碼",
-      "desc": "管理自動化定時任務"
+      "desc": "管理自動化定時任務",
+      "executed": "Executed",
+      "quickCreated": "Quick created",
+      "refreshed": "Refreshed"
     },
     "localTools": {
       "title": "本地工具",
@@ -1740,7 +1774,20 @@
       "groupStorage": "物件儲存",
       "groupSkills": "技能管理",
       "groupSession": "工作階段搜尋",
-      "groupMemory": "記憶管理"
+      "groupMemory": "記憶管理",
+      "groupFileRead": "File Read",
+      "groupFileWrite": "File Write",
+      "groupShell": "Shell Commands",
+      "groupNetwork": "Network",
+      "groupAgent": "Agent",
+      "groupVcs": "Version Control",
+      "groupAutomation": "Automation",
+      "groupCommunication": "Communication",
+      "groupAiMedia": "AI & Media",
+      "groupIntegration": "Integration",
+      "groupBrowser": "Browser",
+      "groupDesktop": "Desktop",
+      "empty": "No local tools"
     },
     "tools": {
       "title": "工具管理",
@@ -2101,7 +2148,9 @@
       "createNew": "創建新模板",
       "visualEditor": "可視化編輯器",
       "visualEditorDesc": "使用拖拽式 DAG 編輯器創建和編輯工作流",
-      "openEditor": "打開編輯器"
+      "openEditor": "打開編輯器",
+      "myWorkflows": "My Workflows",
+      "marketplace": "Marketplace"
     },
     "tabModel": "模型與服務",
     "tabAppearance": "界面",
@@ -2114,7 +2163,9 @@
     "appConfigDesc": "模型選擇、功能開關、Agent 管理與 Hook 配置",
     "bocha": "博查",
     "zhipu": "智譜",
-    "modelNamePlaceholder": "GPT 5.4 Think"
+    "modelNamePlaceholder": "GPT 5.4 Think",
+    "expertPromptNote": "Expert prompt note",
+    "modelGroupPlaceholder": "Select model group"
   },
   "backup": {
     "title": "備份中心",
@@ -2319,7 +2370,10 @@
     "createSuccess": "創建成功",
     "deleteSuccess": "刪除成功",
     "retry": "重試",
-    "default": "預設"
+    "default": "預設",
+    "operationFailed": "Operation failed",
+    "hide": "Hide",
+    "searchPlaceholder": "Search..."
   },
   "multiAgent": {
     "title": "多智能體狀態",
@@ -2393,7 +2447,8 @@
     "keyValidationFailed": "金鑰驗證失敗",
     "gatewayStartFailed": "閘道啟動失敗",
     "proxyTestFailed": "代理測試失敗",
-    "invalidFormat": "格式無效"
+    "invalidFormat": "格式無效",
+    "page": "Error"
   },
   "desktop": {
     "title": "桌面整合",
@@ -2733,7 +2788,17 @@
       "neutral": "中性",
       "casual": "隨意"
     },
-    "documentStyle": "文檔風格"
+    "documentStyle": "文檔風格",
+    "description": "Description",
+    "codingStyleDesc": "Coding Style",
+    "namingConventionDesc": "Naming Convention",
+    "indentationStyleDesc": "Indentation Style",
+    "commentStyleDesc": "Comment Style",
+    "communicationDesc": "Communication",
+    "detailLevelDesc": "Detail Level",
+    "toneDesc": "Tone",
+    "languageDesc": "Language",
+    "confidenceDesc": "Confidence"
   },
   "style": {
     "preview": "風格預覽",
@@ -4144,7 +4209,30 @@
       "dragPanel": "拖拽面板調整大小",
       "keyboard": "Esc 取消選中 · Del 刪除",
       "rightClick": "右鍵打開菜單"
-    }
+    },
+    "backlinks": "Backlinks",
+    "noBacklinks": "No backlinks",
+    "tags": "Tags",
+    "versionRestored": "Version restored",
+    "versionHistory": "Version History",
+    "noVersions": "No versions",
+    "compareDiff": "Compare Diff",
+    "confirmRestore": "Confirm restore?",
+    "restore": "Restore",
+    "diffLabel": "Diff",
+    "selectNote": "Select note",
+    "close": "Close",
+    "edit": "Edit",
+    "unsaved": "Unsaved",
+    "outlinks": "Outlinks",
+    "noOutlinks": "No outlinks",
+    "localGraph": "Local Graph",
+    "noTags": "No tags",
+    "viewBacklinks": "View Backlinks",
+    "focusLocal": "Focus Local",
+    "createLinkedNote": "Create Linked Note",
+    "delete": "Delete",
+    "cancel": "Cancel"
   },
   "notification": {
     "clear": "清除",
@@ -4357,7 +4445,9 @@
       "rejected": "已拒絕",
       "running": "執行中",
       "completed": "已完成",
-      "error": "失敗"
+      "error": "失敗",
+      "reviewing": "Reviewing",
+      "executing": "Executing"
     },
     "approveAll": "批准並執行",
     "approveStep": "批准此步驟",
@@ -4371,7 +4461,10 @@
     "executing": "執行中",
     "historyTitle": "計畫歷史",
     "noPlans": "暫無計劃",
-    "noPlansHint": "切換到先規劃再執行策略以創建計劃"
+    "noPlansHint": "切換到先規劃再執行策略以創建計劃",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago"
   },
   "tool": {
     "common": {
@@ -4835,5 +4928,63 @@
       "title": "Wiki 源",
       "wikiList": "Wiki 列表"
     }
-  }
+  },
+  "chatMarkdown": {
+    "toggleRaw": "Toggle Raw",
+    "viewThinking": "View Thinking",
+    "inputParams": "Input Params",
+    "outputResult": "Output Result"
+  },
+  "advanced": {
+    "bashSecurity": "Bash Security",
+    "dangerousCmdDetect": "Dangerous Command Detection",
+    "networkCmdDetect": "Network Command Detection",
+    "cmdTimeout": "Command Timeout",
+    "permissionStrategy": "Permission Strategy",
+    "defaultPermission": "Default Permission",
+    "perm": {
+      "default": "Default",
+      "acceptEdits": "Accept Edits",
+      "fullAccess": "Full Access"
+    },
+    "fileWriteConfirm": "File Write Confirmation",
+    "networkConfirm": "Network Confirmation",
+    "shellConfirm": "Shell Confirmation"
+  },
+  "hookLog": {
+    "column": {
+      "time": "Time",
+      "event": "Event",
+      "tool": "Tool",
+      "command": "Command",
+      "status": "Status",
+      "outputSummary": "Output Summary"
+    },
+    "success": "Success",
+    "failed": "Failed",
+    "filterLabel": "Filter",
+    "allEvents": "All Events",
+    "recordCount": "{{count}} records",
+    "clear": "Clear",
+    "emptyStatus": "No status",
+    "emptyFiltered": "No matching records"
+  },
+  "mcp": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "scheduler": {
+    "refresh": "Refresh",
+    "dailyReport": "Daily Report",
+    "backup": "Backup",
+    "cleanup": "Cleanup",
+    "executeNow": "Execute Now",
+    "executionHistory": "Execution History",
+    "historyTitle": "History",
+    "noRecords": "No records",
+    "success": "Success",
+    "failed": "Failed"
+  },
+  "markdown": "Markdown",
+  "success": "Success"
 }

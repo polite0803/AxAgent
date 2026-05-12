@@ -56,7 +56,7 @@ const EVENT_COLORS: Record<string, string> = {
   message_sent: "lime",
 };
 
-export default function WebhookSettings() {
+export function WebhookSettings() {
   const { t } = useTranslation();
   const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([]);
   const [loading, setLoading] = useState(true);

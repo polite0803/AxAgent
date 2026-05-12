@@ -33,7 +33,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
-export default function BackupCenter() {
+export function BackupCenter() {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const {

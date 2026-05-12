@@ -182,7 +182,7 @@ describe("conversationStore pagination", () => {
     await flushPromises();
     await flushPromises();
 
-    expect(invokeMock).toHaveBeenCalledWith("list_conversations");
+    expect(invokeMock).toHaveBeenCalledWith("list_conversations", undefined, 15000);
     expect(useConversationStore.getState().activeConversationId).toBe("conv-2");
     expect(useConversationStore.getState().messages).toEqual([]);
   });

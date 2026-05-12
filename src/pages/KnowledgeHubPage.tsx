@@ -1,4 +1,4 @@
-import SourceManager from "@/components/settings/SourceManager";
+import { SourceManager } from "@/components/settings/SourceManager";
 import { theme } from "antd";
 import { useTranslation } from "react-i18next";
 

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "antd";
 import { describe, expect, it, vi } from "vitest";
-import BackupCenter from "../BackupCenter";
+import { BackupCenter } from "../BackupCenter";
 
 const backupStoreState = {
   backups: [],

@@ -28,12 +28,14 @@ import {
 } from "@/components/settings";
 import { ConversationSettings } from "@/components/settings/ConversationSettings";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { WorkflowEditor } from "@/components/workflow";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { theme } from "antd";
+import { Button, Result, theme } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ReactFlowProvider } from "reactflow";
 
 const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
@@ -65,6 +67,38 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   acp: AcpSettings,
   evolution: EvolutionSettings,
 };
+
+/** 单个设置 section 的错误边界，防止一个 section 崩溃导致整页白屏 */
+function SectionErrorBoundary({ sectionKey, children }: { sectionKey: string; children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const setSettingsSection = useUIStore((s) => s.setSettingsSection);
+
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="flex items-center justify-center" style={{ padding: 48, minHeight: 300 }}>
+          <Result
+            status="error"
+            title={`${t("error.page")}: ${sectionKey}`}
+            subTitle={t("nav.chat")}
+            extra={
+              <span className="flex gap-2">
+                <Button onClick={() => window.location.reload()}>
+                  刷新页面
+                </Button>
+                <Button type="primary" onClick={() => setSettingsSection("general")}>
+                  {t("settings.general.title")}
+                </Button>
+              </span>
+            }
+          />
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
 
 export function SettingsPage() {
   const { token } = theme.useToken();
@@ -159,19 +193,28 @@ export function SettingsPage() {
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
       />
-      <div className="min-w-0 flex-1 overflow-y-auto" style={{ backgroundColor: token.colorBgElevated }}>
+      <div
+        className="min-w-0 flex-1 flex flex-col"
+        style={{ backgroundColor: token.colorBgElevated, overflowY: "auto", overflowX: "hidden" }}
+      >
         {settingsSection === "workflow"
           ? renderWorkflowContent()
           : isSkillSection && skillSectionData
           ? (
-            <SkillPageRenderer
-              componentType={skillSectionData.componentType}
-              componentConfig={skillSectionData.componentConfig}
-              skillName={skillSectionData.skillName}
-            />
+            <SectionErrorBoundary sectionKey={settingsSection}>
+              <SkillPageRenderer
+                componentType={skillSectionData.componentType}
+                componentConfig={skillSectionData.componentConfig}
+                skillName={skillSectionData.skillName}
+              />
+            </SectionErrorBoundary>
           )
           : ContentComponent
-          ? <ContentComponent />
+          ? (
+            <SectionErrorBoundary sectionKey={settingsSection}>
+              <ContentComponent />
+            </SectionErrorBoundary>
+          )
           : (
             <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
               Unknown settings section: {settingsSection}
