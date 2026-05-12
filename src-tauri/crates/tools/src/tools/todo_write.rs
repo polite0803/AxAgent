@@ -17,7 +17,9 @@ impl Tool for TodoWriteTool {
         "TodoWrite"
     }
     fn description(&self) -> &str {
-        "创建和管理结构化任务列表。用于跟踪多步骤工作进度。每个任务有状态：pending, in_progress, completed。"
+        "创建结构化任务清单追踪多步骤工作。适用：复杂任务（3 步以上）、多文件改动、\
+         需要向用户展示进度。不适用：单一步骤。必须同时提供 todos 数组（content + status + activeForm）。\
+         状态: pending(未开始)/in_progress(进行中，同时只能一个)/completed(已完成)。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({
@@ -48,7 +50,7 @@ impl Tool for TodoWriteTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Agent
     }
     fn is_concurrency_safe(&self) -> bool {
         false
@@ -142,7 +144,7 @@ impl Tool for AskUserQuestionTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Agent
     }
     fn is_concurrency_safe(&self) -> bool {
         false

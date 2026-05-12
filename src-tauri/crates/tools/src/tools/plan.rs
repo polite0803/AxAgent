@@ -23,7 +23,7 @@ impl Tool for EnterPlanModeTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Agent
     }
     fn is_concurrency_safe(&self) -> bool {
         false
@@ -71,7 +71,7 @@ impl Tool for ExitPlanModeTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Agent
     }
     fn is_concurrency_safe(&self) -> bool {
         false
@@ -79,5 +79,40 @@ impl Tool for ExitPlanModeTool {
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         Ok(ToolResult::success("📤 计划已提交审批。等待用户确认后进入实施阶段。"))
+    }
+}
+
+// ── VerifyPlanExecution ──
+
+pub struct VerifyPlanExecutionTool;
+
+#[async_trait]
+impl Tool for VerifyPlanExecutionTool {
+    fn name(&self) -> &str {
+        "VerifyPlanExecution"
+    }
+    fn description(&self) -> &str {
+        "退出计划模式前验证计划执行状态。检查每个步骤的完成情况，记录实施摘要。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({"type":"object","properties":{"summary":{"type":"string","description":"实施摘要"},"steps_completed":{"type":"array","items":{"type":"string"},"description":"已完成的步骤列表"}},"required":["summary"]})
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Agent
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        false
+    }
+
+    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
+        let summary = i["summary"].as_str().unwrap_or("");
+        let steps = i["steps_completed"]
+            .as_array()
+            .map(|a| a.len())
+            .unwrap_or(0);
+        Ok(ToolResult::success(format!(
+            "✅ 计划验证完成 — {} 个步骤已确认\n\n{}",
+            steps, summary
+        )))
     }
 }

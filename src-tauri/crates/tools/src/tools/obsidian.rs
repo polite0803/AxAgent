@@ -50,7 +50,7 @@ impl Tool for ObsidianGetVaultsTool {
         serde_json::json!({ "type": "object", "properties": { "search_path": { "type": "string" } } })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::FileRead
+        ToolCategory::Integration
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -85,7 +85,7 @@ impl Tool for ObsidianListFilesTool {
         serde_json::json!({ "type": "object", "properties": { "vault_path": { "type": "string" } }, "required": ["vault_path"] })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::FileRead
+        ToolCategory::Integration
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -135,7 +135,7 @@ impl Tool for ObsidianReadFileTool {
         serde_json::json!({ "type": "object", "properties": { "vault_path": { "type": "string" }, "file_path": { "type": "string" } }, "required": ["vault_path", "file_path"] })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::FileRead
+        ToolCategory::Integration
     }
     fn is_concurrency_safe(&self) -> bool {
         true

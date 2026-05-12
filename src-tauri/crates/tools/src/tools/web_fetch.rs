@@ -1,7 +1,9 @@
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{ProgressEntry, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_core::html_cleaner::HtmlCleaner;
+use axagent_core::search::{is_safe_url_deep, shared_http_client};
 use serde_json::Value;
-use std::sync::Arc;
+use std::time::Instant;
 
 const MAX_CONTENT_LENGTH: usize = 200_000;
 const BINARY_CONTENT_TYPES: &[&str] = &[
@@ -18,42 +20,11 @@ const BINARY_CONTENT_TYPES: &[&str] = &[
     "audio/",
     "font/",
 ];
-const MAX_REDIRECTS: u32 = 5;
 const MAX_RETRIES: u32 = 2;
 const RATE_LIMIT_INTERVAL_MS: u64 = 500;
+const DEFAULT_JS_RENDER_WAIT_MS: u64 = 2000;
 
 static RATE_LIMITER: parking_lot::Mutex<u64> = parking_lot::Mutex::new(0);
-
-fn build_http_client() -> Arc<reqwest::Client> {
-    Arc::new(
-        reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            .timeout(std::time::Duration::from_secs(30))
-            .connect_timeout(std::time::Duration::from_secs(10))
-            .redirect(reqwest::redirect::Policy::custom(|attempt| {
-                if attempt.previous().len() >= MAX_REDIRECTS as usize {
-                    attempt.stop()
-                } else {
-                    let url = attempt.url();
-                    let _host = url.host_str().unwrap_or("");
-                    if axagent_core::search::is_safe_url(url.as_str()) {
-                        attempt.follow()
-                    } else {
-                        attempt.stop()
-                    }
-                }
-            }))
-            .cookie_store(true)
-            .build()
-            .expect("Failed to build HTTP client"),
-    )
-}
-
-fn get_shared_client() -> Arc<reqwest::Client> {
-    use std::sync::OnceLock;
-    static CLIENT: OnceLock<Arc<reqwest::Client>> = OnceLock::new();
-    CLIENT.get_or_init(build_http_client).clone()
-}
 
 fn check_rate_limit() {
     let mut last = RATE_LIMITER.lock();
@@ -79,7 +50,8 @@ impl Tool for WebFetchTool {
         "Fetch content from a URL and convert it to text. Use this to retrieve web pages, documents, or API data. \
          Supports HTML pages (extracts main content), JSON APIs (pretty-printed), and plain text. \
          The 'prompt' parameter specifies what information to extract from the page — the tool will \
-         focus extraction on relevant sections when possible."
+         focus extraction on relevant sections when possible. \
+         Set 'render_js' to true for JavaScript-rendered pages (SPA)."
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({
@@ -92,6 +64,14 @@ impl Tool for WebFetchTool {
                 "prompt": {
                     "type": "string",
                     "description": "从页面中提取什么的指令，例如'提取价格信息'、'提取技术规格'"
+                },
+                "render_js": {
+                    "type": "boolean",
+                    "description": "是否启用 JS 渲染获取 SPA 页面内容（默认 false）"
+                },
+                "render_wait_ms": {
+                    "type": "integer",
+                    "description": "JS 渲染后等待时间（毫秒，默认 2000）"
                 }
             },
             "required": ["url"]
@@ -113,8 +93,8 @@ impl Tool for WebFetchTool {
             return Err(ToolError::invalid_input("url 必须以 http:// 或 https:// 开头"));
         }
 
-        if !axagent_core::search::is_safe_url(url) {
-            return Err(ToolError::permission_denied("WebFetch", "禁止访问内网地址"));
+        if !is_safe_url_deep(url).await {
+            return Err(ToolError::permission_denied("WebFetch", "禁止访问内网或私有地址"));
         }
 
         if !ctx.allow_network {
@@ -127,10 +107,28 @@ impl Tool for WebFetchTool {
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let url = input["url"].as_str().unwrap();
         let prompt = input["prompt"].as_str().unwrap_or("").to_string();
+        let render_js = input
+            .get("render_js")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let render_wait_ms = input
+            .get("render_wait_ms")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(DEFAULT_JS_RENDER_WAIT_MS);
+
+        let start = Instant::now();
+        let mut progress = Vec::new();
 
         check_rate_limit();
 
-        let client = get_shared_client();
+        // JS 渲染分支
+        if render_js {
+            return self
+                .fetch_with_js_rendering(url, &prompt, render_wait_ms, start)
+                .await;
+        }
+
+        let client = shared_http_client();
 
         let response = fetch_with_retry(&client, url).await?;
 
@@ -142,12 +140,26 @@ impl Tool for WebFetchTool {
             .unwrap_or("unknown")
             .to_string();
 
+        progress.push(ProgressEntry {
+            phase: "fetching".into(),
+            message: format!("获取响应: HTTP {} ({})", status.as_u16(), content_type),
+            percent: Some(30),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
         for binary_ct in BINARY_CONTENT_TYPES {
             if content_type.contains(binary_ct) {
-                return Ok(ToolResult::success(format!(
-                    "## URL: {}\n状态: {}\nContent-Type: {}\n\n[二进制内容，无法提取文本。请使用专门的下载工具处理此类型文件。]",
-                    url, status, content_type
-                )));
+                return Ok(ToolResult {
+                    content: format!(
+                        "## URL: {}\n状态: {}\nContent-Type: {}\n\n[二进制内容，无法提取文本。请使用专门的下载工具处理此类型文件。]",
+                        url, status, content_type
+                    ),
+                    truncated: false,
+                    is_error: false,
+                    metadata: None,
+                    duration_ms: Some(start.elapsed().as_millis() as u64),
+                    progress,
+                });
             }
         }
 
@@ -160,8 +172,14 @@ impl Tool for WebFetchTool {
 
         let (title, extracted) =
             if content_type.contains("text/html") || content_type.contains("application/xhtml") {
-                let (t, text) = html_to_text_with_title(&body, &prompt);
-                (t, text)
+                let cleaner = HtmlCleaner::new();
+                progress.push(ProgressEntry {
+                    phase: "cleaning".into(),
+                    message: "提取页面内容中...".into(),
+                    percent: Some(60),
+                    timestamp_ms: start.elapsed().as_millis() as u64,
+                });
+                cleaner.extract_with_title(&body, &prompt, MAX_CONTENT_LENGTH)
             } else if content_type.contains("application/json") {
                 let title = "JSON Response".to_string();
                 let text = if let Ok(json) = serde_json::from_str::<Value>(&body) {
@@ -203,9 +221,134 @@ impl Tool for WebFetchTool {
             format!("{}{}{}", header, prompt_hint, extracted)
         };
 
-        Ok(ToolResult::success(content))
+        progress.push(ProgressEntry {
+            phase: "done".into(),
+            message: format!("完成，耗时 {}ms", start.elapsed().as_millis()),
+            percent: Some(100),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
+        Ok(ToolResult {
+            content,
+            truncated,
+            is_error: false,
+            metadata: None,
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            progress,
+        })
     }
 }
+
+impl WebFetchTool {
+    /// JS 渲染路径：启动 headless browser 导航 → 等待 → 提取内容
+    async fn fetch_with_js_rendering(
+        &self,
+        url: &str,
+        prompt: &str,
+        wait_ms: u64,
+        start: Instant,
+    ) -> Result<ToolResult, ToolError> {
+        let mut progress = Vec::new();
+        progress.push(ProgressEntry {
+            phase: "rendering".into(),
+            message: "启动浏览器引擎...".into(),
+            percent: Some(10),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
+        let pool = axagent_core::browser_automation::shared_browser_pool();
+        let mut guard = pool.lock().await;
+        if guard.is_none() {
+            *guard = Some(
+                axagent_core::browser_automation::PlaywrightClient::launch()
+                    .await
+                    .map_err(|e| ToolError::execution_failed(format!("浏览器启动失败: {}", e)))?,
+            );
+        }
+        let client = guard
+            .as_mut()
+            .ok_or_else(|| ToolError::execution_failed("浏览器未启动"))?;
+
+        progress.push(ProgressEntry {
+            phase: "rendering".into(),
+            message: format!("导航到 {}", url),
+            percent: Some(30),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
+        client
+            .navigate(url)
+            .await
+            .map_err(|e| ToolError::execution_failed(format!("页面导航失败: {}", e)))?;
+
+        let actual_wait = wait_ms.min(10_000);
+        tokio::time::sleep(std::time::Duration::from_millis(actual_wait)).await;
+
+        progress.push(ProgressEntry {
+            phase: "rendering".into(),
+            message: "提取渲染后页面内容...".into(),
+            percent: Some(70),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
+        let html = client
+            .get_content()
+            .await
+            .map_err(|e| ToolError::execution_failed(format!("获取页面内容失败: {}", e)))?;
+
+        drop(guard);
+
+        progress.push(ProgressEntry {
+            phase: "cleaning".into(),
+            message: "清理页面内容...".into(),
+            percent: Some(85),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
+        let cleaner = HtmlCleaner::new();
+        let (title, body_text) = cleaner.extract_with_title(&html, prompt, MAX_CONTENT_LENGTH);
+
+        let header = format!(
+            "## URL: {}\n标题: {}\n渲染方式: JavaScript ({}ms 等待)\n",
+            url, title, actual_wait
+        );
+
+        let header_len = header.len();
+        let available = MAX_CONTENT_LENGTH.saturating_sub(header_len);
+
+        let truncated = body_text.len() > available;
+        let content = if truncated {
+            format!(
+                "{}\n[提取目标: {}]\n{}\n\n[内容已截断，已显示约 {}/{} 字符]",
+                header,
+                prompt,
+                &body_text[..available],
+                available,
+                body_text.len()
+            )
+        } else {
+            format!("{}\n[提取目标: {}]\n{}", header, prompt, body_text)
+        };
+
+        progress.push(ProgressEntry {
+            phase: "done".into(),
+            message: format!("JS 渲染抓取完成，耗时 {}ms", start.elapsed().as_millis()),
+            percent: Some(100),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
+        Ok(ToolResult {
+            content,
+            truncated,
+            is_error: false,
+            metadata: None,
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            progress,
+        })
+    }
+}
+
+// ── HTTP fetch + 编解码（保留不变）──────────────────────────
 
 async fn fetch_with_retry(
     client: &reqwest::Client,
@@ -318,207 +461,4 @@ fn detect_html_charset(html: &[u8]) -> Option<String> {
     }
 
     None
-}
-
-fn html_to_text_with_title(html: &str, prompt: &str) -> (String, String) {
-    let mut doc = scraper::Html::parse_document(html);
-
-    let title = doc
-        .select(&scraper::Selector::parse("title").unwrap())
-        .next()
-        .map(|el| el.text().collect::<String>())
-        .unwrap_or_default()
-        .trim()
-        .to_string();
-
-    let noise_sel = scraper::Selector::parse(
-        "script, style, nav, footer, header, aside, iframe, noscript, svg, form, \
-         button, input, select, textarea, [role='navigation'], [role='banner'], \
-         [role='contentinfo'], [role='complementary'], .sidebar, .nav, .menu, \
-         .footer, .header, .ad, .ads, .advertisement, .cookie, .popup, .modal, \
-         .overlay, #sidebar, #nav, #footer, #header, #menu, .social, .share, \
-         .related, .comments",
-    )
-    .unwrap();
-
-    let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
-    for nid in noise_ids {
-        if let Some(mut node) = doc.tree.get_mut(nid) {
-            node.detach();
-        }
-    }
-
-    let content_sel = scraper::Selector::parse(
-        "main, article, [role='main'], [role='article'], .content, .post, \
-         .article, .entry, #content, #main, .main-content, .post-content, \
-         .article-content, .entry-content",
-    )
-    .unwrap();
-
-    let root = doc
-        .select(&content_sel)
-        .next()
-        .unwrap_or_else(|| doc.root_element());
-
-    let prompt_terms: Vec<String> = if !prompt.is_empty() {
-        prompt
-            .to_lowercase()
-            .split_whitespace()
-            .filter(|w| w.len() > 1)
-            .map(|s| s.to_string())
-            .collect()
-    } else {
-        Vec::new()
-    };
-
-    let heading_sel = scraper::Selector::parse("h1, h2, h3, h4, h5, h6").unwrap();
-    let block_sel =
-        scraper::Selector::parse("p, li, td, th, blockquote, pre, dd, dt, div").unwrap();
-
-    let headings: Vec<(String, ego_tree::NodeId)> = root
-        .select(&heading_sel)
-        .map(|el| {
-            let text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
-            (text, el.id())
-        })
-        .collect();
-
-    let blocks: Vec<(String, ego_tree::NodeId)> = root
-        .select(&block_sel)
-        .map(|el| {
-            let text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
-            (text, el.id())
-        })
-        .collect();
-
-    if headings.is_empty() && blocks.is_empty() {
-        let all_text: String = root.text().collect::<Vec<_>>().join(" ");
-        let cleaned = all_text.split_whitespace().collect::<Vec<_>>().join(" ");
-        return (title, cleaned);
-    }
-
-    let mut sections: Vec<Section> = Vec::new();
-    let mut current_heading = String::new();
-    let mut current_text = String::new();
-    let mut in_relevant_section = prompt_terms.is_empty();
-
-    let mut heading_idx = 0;
-    let mut block_idx = 0;
-
-    loop {
-        let next_heading = headings.get(heading_idx);
-        let next_block = blocks.get(block_idx);
-
-        match (next_heading, next_block) {
-            (None, None) => break,
-            (Some(_), None) => {
-                let (text, _) = headings[heading_idx].clone();
-                if !current_text.is_empty() || !current_heading.is_empty() {
-                    sections.push(Section {
-                        heading: current_heading.clone(),
-                        text: current_text.trim().to_string(),
-                        relevant: in_relevant_section,
-                    });
-                    current_text.clear();
-                }
-                current_heading = text;
-                if !prompt_terms.is_empty() {
-                    let heading_lower = current_heading.to_lowercase();
-                    in_relevant_section = prompt_terms
-                        .iter()
-                        .any(|term| heading_lower.contains(term.as_str()));
-                } else {
-                    in_relevant_section = true;
-                }
-                heading_idx += 1;
-            },
-            (None, Some(_)) => {
-                let (text, _) = blocks[block_idx].clone();
-                if !text.is_empty() {
-                    if !current_text.is_empty() {
-                        current_text.push('\n');
-                    }
-                    current_text.push_str(&text);
-                }
-                block_idx += 1;
-            },
-            (Some((_, h_id)), Some((_, b_id))) => {
-                if h_id < b_id {
-                    let (text, _) = headings[heading_idx].clone();
-                    if !current_text.is_empty() || !current_heading.is_empty() {
-                        sections.push(Section {
-                            heading: current_heading.clone(),
-                            text: current_text.trim().to_string(),
-                            relevant: in_relevant_section,
-                        });
-                        current_text.clear();
-                    }
-                    current_heading = text;
-                    if !prompt_terms.is_empty() {
-                        let heading_lower = current_heading.to_lowercase();
-                        in_relevant_section = prompt_terms
-                            .iter()
-                            .any(|term| heading_lower.contains(term.as_str()));
-                    } else {
-                        in_relevant_section = true;
-                    }
-                    heading_idx += 1;
-                } else {
-                    let (text, _) = blocks[block_idx].clone();
-                    if !text.is_empty() {
-                        if !current_text.is_empty() {
-                            current_text.push('\n');
-                        }
-                        current_text.push_str(&text);
-                    }
-                    block_idx += 1;
-                }
-            },
-        }
-    }
-
-    if !current_text.is_empty() || !current_heading.is_empty() {
-        sections.push(Section {
-            heading: current_heading,
-            text: current_text.trim().to_string(),
-            relevant: in_relevant_section,
-        });
-    }
-
-    let has_relevant = sections.iter().any(|s| s.relevant);
-    let filtered: Vec<&Section> = if has_relevant && !prompt_terms.is_empty() {
-        sections
-            .iter()
-            .filter(|s| s.relevant)
-            .chain(sections.iter().filter(|s| !s.relevant).take(3))
-            .collect()
-    } else {
-        sections.iter().collect()
-    };
-
-    let mut result = String::new();
-    for section in filtered {
-        if !section.heading.is_empty() {
-            if !result.is_empty() {
-                result.push_str("\n\n");
-            }
-            result.push_str("### ");
-            result.push_str(&section.heading);
-            result.push('\n');
-        }
-        if !section.text.is_empty() {
-            if !result.is_empty() {
-                result.push('\n');
-            }
-            result.push_str(&section.text);
-        }
-    }
-
-    (title, result)
-}
-
-struct Section {
-    heading: String,
-    text: String,
-    relevant: bool,
 }

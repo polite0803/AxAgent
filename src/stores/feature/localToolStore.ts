@@ -9,6 +9,7 @@ interface LocalToolState {
 
   loadGroups: () => Promise<void>;
   toggleGroup: (groupId: string) => Promise<void>;
+  toggleTool: (toolName: string) => Promise<void>;
 }
 
 export const useLocalToolStore = create<LocalToolState>((set) => ({
@@ -28,11 +29,20 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
 
   toggleGroup: async (groupId: string) => {
     try {
-      const updatedGroup = await invoke<LocalToolGroupInfo>("toggle_local_tool", { groupId });
+      const updatedGroup = await invoke<LocalToolGroupInfo>("toggle_local_tool_group", { groupId });
       set((s) => ({
-        groups: s.groups.map((g) => g.groupId === groupId ? updatedGroup : g),
+        groups: s.groups.map((g) => (g.groupId === groupId ? updatedGroup : g)),
         error: null,
       }));
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  toggleTool: async (toolName: string) => {
+    try {
+      const updatedGroups = await invoke<LocalToolGroupInfo[]>("toggle_single_tool", { toolName });
+      set({ groups: updatedGroups, error: null });
     } catch (e) {
       set({ error: String(e) });
     }

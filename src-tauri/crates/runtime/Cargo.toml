@@ -49,6 +49,12 @@ sha1 = "0.10"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 portable-pty = "0.8"
 
+[[bin]]
+name = "mcp-test-server"
+path = "src/bin/mcp_test_server.rs"
+test = false
+doctest = false
+
 [dev-dependencies]
 tempfile = "3"
 

@@ -195,6 +195,15 @@ fn find_similar_local_tools(
             axagent_tools::ToolCategory::Network => "builtin-network",
             axagent_tools::ToolCategory::System => "builtin-system-tools",
             axagent_tools::ToolCategory::Agent => "builtin-agent",
+            axagent_tools::ToolCategory::Vcs => "builtin-vcs",
+            axagent_tools::ToolCategory::Automation => "builtin-automation",
+            axagent_tools::ToolCategory::Communication => "builtin-communication",
+            axagent_tools::ToolCategory::AiMedia => "builtin-ai-media",
+            axagent_tools::ToolCategory::Integration => "builtin-integration",
+            axagent_tools::ToolCategory::Storage => "builtin-storage",
+            axagent_tools::ToolCategory::Knowledge => "builtin-knowledge",
+            axagent_tools::ToolCategory::Browser => "builtin-browser",
+            axagent_tools::ToolCategory::Desktop => "builtin-desktop",
         };
 
         if final_score >= min_similarity {

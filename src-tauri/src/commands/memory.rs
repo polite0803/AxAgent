@@ -404,6 +404,7 @@ pub async fn auto_extract_incremental_memories(
     app: AppHandle,
     state: State<'_, AppState>,
     conversation_id: String,
+    namespace_id: Option<String>,
 ) -> Result<serde_json::Value, String> {
     use axagent_core::entity::conversations;
     use sea_orm::EntityTrait;
@@ -430,20 +431,46 @@ pub async fn auto_extract_incremental_memories(
         _ => {},
     }
 
-    let default_ns = axagent_core::repo::memory::list_namespaces(&state.sea_db)
-        .await
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .find(|ns| {
-            ns.name.to_lowercase().contains("auto") || ns.name.to_lowercase().contains("default")
-        });
+    // 优先使用用户选择的 namespace_id，回退到 name 含 "auto"/"default" 的
+    let namespace_id = if let Some(ref provided_id) = namespace_id {
+        if provided_id.is_empty() {
+            None
+        } else {
+            match axagent_core::repo::memory::get_namespace(&state.sea_db, provided_id).await {
+                Ok(_) => Some(provided_id.clone()),
+                Err(_) => {
+                    return Ok(serde_json::json!({
+                        "skipped": true,
+                        "reason": format!("specified namespace '{}' not found", provided_id)
+                    }))
+                },
+            }
+        }
+    } else {
+        None
+    };
 
-    let namespace_id = match default_ns {
-        Some(ns) => ns.id,
+    let namespace_id = match namespace_id {
+        Some(id) => id,
         None => {
-            return Ok(
-                serde_json::json!({"skipped": true, "reason": "no default/auto memory namespace found"}),
-            )
+            // 回退：找 name 含 "auto" 或 "default" 的 namespace
+            let default_ns = axagent_core::repo::memory::list_namespaces(&state.sea_db)
+                .await
+                .map_err(|e| e.to_string())?
+                .into_iter()
+                .find(|ns| {
+                    ns.name.to_lowercase().contains("auto")
+                        || ns.name.to_lowercase().contains("default")
+                });
+            match default_ns {
+                Some(ns) => ns.id,
+                None => {
+                    return Ok(serde_json::json!({
+                        "skipped": true,
+                        "reason": "no default/auto memory namespace found"
+                    }))
+                },
+            }
         },
     };
 
@@ -652,6 +679,7 @@ pub async fn auto_extract_incremental_memories(
                     }),
                     tags: item.tags.clone(),
                     expires_at: None,
+                    namespace_id: Some(namespace_id.clone()),
                 });
             }
         }
@@ -1345,6 +1373,7 @@ pub async fn consolidate_memory_cluster(
         }),
         tags: consolidated.tags,
         expires_at: None,
+        namespace_id: None,
     });
 
     if result.success {
@@ -1617,6 +1646,7 @@ pub async fn extract_conversation_memories(
                                 }),
                                 tags: item.tags.clone(),
                                 expires_at: None,
+                                namespace_id: None,
                             });
                         }
 
@@ -1658,6 +1688,7 @@ pub async fn extract_conversation_memories(
                         }),
                         tags: item.tags.clone(),
                         expires_at: None,
+                        namespace_id: None,
                     });
                 }
             },

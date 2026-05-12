@@ -9,6 +9,7 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{AxAgentError, Result};
+use crate::self_rag::RetrievalQuality;
 use crate::types::{RagContextResult, RagRetrievedItem, RagSourceResult};
 use crate::vector_store::{EmbeddingRecord, VectorSearchResult, VectorStore};
 use crate::{document_parser, text_chunker};
@@ -59,11 +60,10 @@ impl RAGSource for KnowledgeRAG {
         container_id: &str,
     ) -> Result<String> {
         let kb = crate::repo::knowledge::get_knowledge_base(db, container_id).await?;
-        kb.embedding_provider.ok_or_else(|| {
-            AxAgentError::Provider(
-                "Knowledge base has no embedding provider configured".to_string(),
-            )
-        })
+        if let Some(provider) = kb.embedding_provider {
+            return Ok(provider);
+        }
+        resolve_default_embedding_provider(db).await
     }
 }
 
@@ -86,11 +86,10 @@ impl RAGSource for MemoryRAG {
         container_id: &str,
     ) -> Result<String> {
         let ns = crate::repo::memory::get_namespace(db, container_id).await?;
-        ns.embedding_provider.ok_or_else(|| {
-            AxAgentError::Provider(
-                "Memory namespace has no embedding provider configured".to_string(),
-            )
-        })
+        if let Some(provider) = ns.embedding_provider {
+            return Ok(provider);
+        }
+        resolve_default_embedding_provider(db).await
     }
 }
 
@@ -113,10 +112,23 @@ impl RAGSource for WikiVaultRAG {
         container_id: &str,
     ) -> Result<String> {
         let wiki = crate::repo::wiki::get_wiki(db, container_id).await?;
-        wiki.embedding_provider.ok_or_else(|| {
-            AxAgentError::Provider("Wiki vault has no embedding provider configured".to_string())
-        })
+        if let Some(provider) = wiki.embedding_provider {
+            return Ok(provider);
+        }
+        resolve_default_embedding_provider(db).await
     }
+}
+
+/// 当容器未显式配置 embedding_provider 时，回退到系统默认 provider。
+async fn resolve_default_embedding_provider(db: &DatabaseConnection) -> Result<String> {
+    let settings = crate::repo::settings::get_settings(db)
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("Failed to load settings: {}", e)))?;
+    settings.default_provider_id.ok_or_else(|| {
+        AxAgentError::Provider(
+            "No embedding provider configured and no default provider found".to_string(),
+        )
+    })
 }
 
 // ── 统一知识容器（P2: 抽象三个系统的共性字段） ──────────────────────────────
@@ -904,10 +916,10 @@ impl RAGSource for WikiRAG {
         container_id: &str,
     ) -> Result<String> {
         let wiki = crate::repo::wiki::get_wiki(db, container_id).await?;
-        let embedding_provider = wiki.embedding_provider.ok_or_else(|| {
-            AxAgentError::Provider("Wiki has no embedding provider configured".to_string())
-        })?;
-        Ok(embedding_provider)
+        if let Some(provider) = wiki.embedding_provider {
+            return Ok(provider);
+        }
+        resolve_default_embedding_provider(db).await
     }
 }
 
@@ -1117,6 +1129,231 @@ pub fn inject_function_only(source: &str, snippet: &str, max_context_chars: usiz
         relevant[..bounded_end.min(relevant.len())].to_string()
     } else {
         extract_surrounding_lines(source, snippet, 3).unwrap_or_else(|| snippet.to_string())
+    }
+}
+
+// ── Pipeline-integrated context collection ────────────────────────────────────
+
+/// LLM 调用函数类型（用于查询增强等场景）
+pub type LlmCallFn = std::sync::Arc<
+    dyn Fn(
+            String,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = crate::error::Result<String>> + Send>,
+        > + Send
+        + Sync,
+>;
+
+/// 带管线增强的上下文收集（新入口）
+///
+/// 相比 collect_rag_context 增加了查询增强、重排序和质检阶段。
+#[allow(clippy::too_many_arguments)]
+pub async fn collect_rag_context_with_pipeline(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    kb_ids: &[String],
+    mem_ids: &[String],
+    wiki_ids: &[String],
+    query: &str,
+    top_k: usize,
+    embed_fn: impl AsyncEmbedFn,
+    pipeline_config: &crate::types::RAGPipelineConfig,
+    llm_fn: Option<LlmCallFn>,
+) -> RagContextResult {
+    // 阶段 0：查询增强
+    let queries: Vec<String> = if pipeline_config.query_enhancement.enabled {
+        if let Some(ref llm) = llm_fn {
+            let llm_clone = std::sync::Arc::clone(llm);
+            let enhancer = crate::query_enhancement::QueryEnhancer::new(
+                pipeline_config.query_enhancement.clone(),
+                move |s| llm_clone(s),
+            );
+            match enhancer.enhance(query).await {
+                Ok(enhanced) => enhanced.into_iter().map(|eq| eq.text).collect(),
+                Err(e) => {
+                    tracing::warn!("Query enhancement failed: {}", e);
+                    vec![query.to_string()]
+                },
+            }
+        } else {
+            vec![query.to_string()]
+        }
+    } else {
+        vec![query.to_string()]
+    };
+
+    // 使用第一个增强查询
+    let effective_query = queries.first().map(|s| s.as_str()).unwrap_or(query);
+
+    // 如果没有启用 pipeline，直接走原有逻辑
+    if !pipeline_config.rerank.enabled && !pipeline_config.self_rag.enabled {
+        return collect_rag_context(
+            db,
+            master_key,
+            vector_store,
+            kb_ids,
+            mem_ids,
+            wiki_ids,
+            effective_query,
+            top_k,
+            embed_fn,
+        )
+        .await;
+    }
+
+    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config);
+
+    if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+        };
+    }
+
+    let mut sources: Vec<RAGSourceRef> = Vec::new();
+    for id in kb_ids {
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Knowledge,
+            container_id: id.clone(),
+        });
+    }
+    for id in mem_ids {
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Memory,
+            container_id: id.clone(),
+        });
+    }
+    for id in wiki_ids {
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Wiki,
+            container_id: id.clone(),
+        });
+    }
+
+    let mut context_parts = Vec::new();
+    let mut source_results = Vec::new();
+
+    for src_ref in &sources {
+        let source = src_ref.source();
+        let (source_top_k, _threshold, dims) = {
+            let (sk, _, d) =
+                resolve_source_config(db, &src_ref.source_type, &src_ref.container_id).await;
+            (if sk > 0 { sk } else { top_k }, sk, d)
+        };
+
+        let result = pipeline
+            .execute(
+                source.as_ref(),
+                db,
+                master_key,
+                vector_store,
+                &src_ref.container_id,
+                effective_query,
+                source_top_k,
+                dims,
+                embed_fn.clone(),
+                &pipeline_config.rerank,
+            )
+            .await;
+
+        match result {
+            Ok(output) if !output.results.is_empty() => {
+                let label = source.context_label();
+                let snippets: Vec<String> =
+                    output.results.iter().map(|r| r.content.clone()).collect();
+                context_parts.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
+
+                let source_type_str = match src_ref.source_type {
+                    RAGSourceType::Knowledge => "knowledge",
+                    RAGSourceType::Memory => "memory",
+                    RAGSourceType::Wiki => "wiki",
+                };
+
+                let items: Vec<RagRetrievedItem> = output
+                    .results
+                    .iter()
+                    .map(|r| RagRetrievedItem {
+                        content: r.content.clone(),
+                        score: r.score,
+                        document_id: r.document_id.clone(),
+                        id: r.id.clone(),
+                        document_name: None,
+                    })
+                    .collect();
+
+                if let RetrievalQuality::Poor(ref diag) = output.quality {
+                    tracing::warn!(
+                        "Poor RAG quality for {} {}: {}",
+                        source_type_str,
+                        src_ref.container_id,
+                        diag
+                    );
+                }
+
+                source_results.push(RagSourceResult {
+                    source_type: source_type_str.to_string(),
+                    container_id: src_ref.container_id.clone(),
+                    items,
+                });
+            },
+            Ok(_) => {
+                tracing::warn!(
+                    "Pipeline returned no results for {} {}",
+                    source.collection_prefix(),
+                    src_ref.container_id
+                );
+            },
+            Err(e) => {
+                tracing::warn!(
+                    "Pipeline failed for {} {}: {}",
+                    source.collection_prefix(),
+                    src_ref.container_id,
+                    e
+                );
+            },
+        }
+    }
+
+    // Batch-lookup document titles for knowledge sources
+    {
+        let kb_doc_ids: Vec<String> = source_results
+            .iter()
+            .filter(|s| s.source_type == "knowledge")
+            .flat_map(|s| s.items.iter().map(|it| it.document_id.clone()))
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
+
+        if !kb_doc_ids.is_empty() {
+            match crate::repo::knowledge::get_document_titles(db, &kb_doc_ids).await {
+                Ok(titles) => {
+                    for src in source_results
+                        .iter_mut()
+                        .filter(|s| s.source_type == "knowledge")
+                    {
+                        for item in &mut src.items {
+                            item.document_name = titles.get(&item.document_id).cloned();
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("Failed to lookup document titles: {e}");
+                },
+            }
+        }
+    }
+
+    let kg_context =
+        collect_cross_source_graph_context(db, kb_ids, wiki_ids, effective_query, top_k).await;
+    context_parts.extend(kg_context);
+
+    let (deduped_results, deduped_context) =
+        deduplicate_cross_source(source_results, context_parts);
+
+    RagContextResult {
+        context_parts: deduped_context,
+        source_results: deduped_results,
     }
 }
 

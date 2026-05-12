@@ -67,3 +67,38 @@ export type UpdateKnowledgeBaseInput = Partial<CreateKnowledgeBaseInput> & {
   separator?: string;
   updateSeparator?: boolean;
 };
+
+// ── RAG Pipeline Config ───────────────────────────────────
+
+export type EnhancementConfig = {
+  enabled: boolean;
+  strategy: "none" | "hyde" | "multi_query" | "decomposition" | "auto";
+  maxVariants: number;
+  combinedCall: boolean;
+};
+
+export type RerankConfig = {
+  enabled: boolean;
+  backend: "rule" | "cross_encoder" | "pipeline";
+  crossEncoderModel: string | null;
+  topN: number;
+  candidateK: number;
+  ruleFilterKeep: number;
+  scoreThreshold: number | null;
+  ollamaEndpoint: string | null;
+};
+
+export type SelfRagConfig = {
+  enabled: boolean;
+  judgeModel: string;
+  ollamaEndpoint: string;
+  relevanceThreshold: number;
+  qualityThreshold: number;
+  maxRetryRounds: number;
+};
+
+export type RAGPipelineConfig = {
+  queryEnhancement: EnhancementConfig;
+  rerank: RerankConfig;
+  selfRag: SelfRagConfig;
+};

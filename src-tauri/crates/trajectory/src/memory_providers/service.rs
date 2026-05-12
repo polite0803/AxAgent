@@ -142,6 +142,7 @@ pub struct MemoryEntry {
     pub nature: MemoryNature,
     pub provenance: Option<MemoryProvenance>,
     pub tags: Vec<String>,
+    pub namespace_id: Option<String>,
 }
 
 impl MemoryEntry {
@@ -297,6 +298,7 @@ impl MemoryService {
                 nature: memory.nature,
                 provenance: memory.provenance,
                 tags: memory.tags,
+                namespace_id: memory.namespace_id.clone(),
             };
 
             if entry.is_expired() {
@@ -324,6 +326,7 @@ impl MemoryService {
             provenance: None,
             tags: vec![],
             expires_at: None,
+            namespace_id: None,
         })
     }
 
@@ -357,6 +360,7 @@ impl MemoryService {
             nature: req.nature,
             provenance: req.provenance,
             tags: req.tags,
+            namespace_id: req.namespace_id.clone(),
         };
 
         if let Err(e) = self.storage.save_memory(&entry) {
@@ -1538,6 +1542,7 @@ pub struct AddMemoryRequest {
     #[serde(default)]
     pub tags: Vec<String>,
     pub expires_at: Option<i64>,
+    pub namespace_id: Option<String>,
 }
 
 fn default_tier() -> MemoryTier {

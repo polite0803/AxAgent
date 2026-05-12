@@ -20,9 +20,10 @@ use crate::mcp_stdio::McpServerManager;
 use serde::{Deserialize, Serialize};
 
 /// Status of a managed MCP server connection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum McpConnectionStatus {
+    #[default]
     Disconnected,
     Connecting,
     Connected,
@@ -60,7 +61,7 @@ pub struct McpToolInfo {
 }
 
 /// Tracked state of an MCP server connection.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct McpServerState {
     pub server_name: String,
     pub status: McpConnectionStatus,
@@ -68,12 +69,27 @@ pub struct McpServerState {
     pub resources: Vec<McpResourceInfo>,
     pub server_info: Option<String>,
     pub error_message: Option<String>,
+    /// Transport type: "stdio", "http", "sse"
+    #[serde(default)]
+    pub transport: Option<String>,
+    /// Command for stdio transport
+    #[serde(default)]
+    pub command: Option<String>,
+    /// JSON-serialized args for stdio transport
+    #[serde(default)]
+    pub args_json: Option<String>,
+    /// JSON-serialized env for stdio transport
+    #[serde(default)]
+    pub env_json: Option<String>,
+    /// Endpoint URL for HTTP/SSE transport
+    #[serde(default)]
+    pub endpoint: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct McpToolRegistry {
     inner: Arc<Mutex<HashMap<String, McpServerState>>>,
-    manager: Arc<OnceLock<Arc<Mutex<McpServerManager>>>>,
+    manager: Arc<OnceLock<Arc<tokio::sync::Mutex<McpServerManager>>>>,
 }
 
 impl McpToolRegistry {
@@ -84,8 +100,8 @@ impl McpToolRegistry {
 
     pub fn set_manager(
         &self,
-        manager: Arc<Mutex<McpServerManager>>,
-    ) -> Result<(), Arc<Mutex<McpServerManager>>> {
+        manager: Arc<tokio::sync::Mutex<McpServerManager>>,
+    ) -> Result<(), Arc<tokio::sync::Mutex<McpServerManager>>> {
         self.manager.set(manager)
     }
 
@@ -107,6 +123,7 @@ impl McpToolRegistry {
                 resources,
                 server_info,
                 error_message: None,
+                ..Default::default()
             },
         );
     }
@@ -174,70 +191,46 @@ impl McpToolRegistry {
         }
     }
 
-    fn spawn_tool_call(
-        manager: Arc<Mutex<McpServerManager>>,
+    async fn call_tool_via_manager(
+        manager: Arc<tokio::sync::Mutex<McpServerManager>>,
         qualified_tool_name: String,
         arguments: Option<serde_json::Value>,
     ) -> Result<serde_json::Value, String> {
-        let join_handle = std::thread::Builder::new()
-            .name(format!("mcp-tool-call-{qualified_tool_name}"))
-            .spawn(move || {
-                let runtime = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .map_err(|error| format!("failed to create MCP tool runtime: {error}"))?;
+        // 在当前 tokio 上下文中直接调用，不再创建嵌套 runtime
+        let response = {
+            let mut mgr = manager.lock().await;
+            mgr.discover_tools()
+                .await
+                .map_err(|error| error.to_string())?;
+            let response = mgr
+                .call_tool(&qualified_tool_name, arguments)
+                .await
+                .map_err(|error| error.to_string());
+            let shutdown = mgr.shutdown().await.map_err(|error| error.to_string());
 
-                runtime.block_on(async move {
-                    let response = {
-                        let mut manager = manager
-                            .lock()
-                            .map_err(|_| "mcp server manager lock poisoned".to_string())?;
-                        manager
-                            .discover_tools()
-                            .await
-                            .map_err(|error| error.to_string())?;
-                        let response = manager
-                            .call_tool(&qualified_tool_name, arguments)
-                            .await
-                            .map_err(|error| error.to_string());
-                        let shutdown = manager.shutdown().await.map_err(|error| error.to_string());
-
-                        match (response, shutdown) {
-                            (Ok(response), Ok(())) => Ok(response),
-                            (Err(error), Ok(())) | (Err(error), Err(_)) => Err(error),
-                            (Ok(_), Err(error)) => Err(error),
-                        }
-                    }?;
-
-                    if let Some(error) = response.error {
-                        return Err(format!(
-                            "MCP server returned JSON-RPC error for tools/call: {} ({})",
-                            error.message, error.code
-                        ));
-                    }
-
-                    let result = response.result.ok_or_else(|| {
-                        "MCP server returned no result for tools/call".to_string()
-                    })?;
-
-                    serde_json::to_value(result)
-                        .map_err(|error| format!("failed to serialize MCP tool result: {error}"))
-                })
-            })
-            .map_err(|error| format!("failed to spawn MCP tool call thread: {error}"))?;
-
-        join_handle.join().map_err(|panic_payload| {
-            if let Some(message) = panic_payload.downcast_ref::<&str>() {
-                format!("MCP tool call thread panicked: {message}")
-            } else if let Some(message) = panic_payload.downcast_ref::<String>() {
-                format!("MCP tool call thread panicked: {message}")
-            } else {
-                "MCP tool call thread panicked".to_string()
+            match (response, shutdown) {
+                (Ok(response), Ok(())) => Ok(response),
+                (Err(error), Ok(())) | (Err(error), Err(_)) => Err(error),
+                (Ok(_), Err(error)) => Err(error),
             }
-        })?
+        }?;
+
+        if let Some(error) = response.error {
+            return Err(format!(
+                "MCP server returned JSON-RPC error for tools/call: {} ({})",
+                error.message, error.code
+            ));
+        }
+
+        let result = response
+            .result
+            .ok_or_else(|| "MCP server returned no result for tools/call".to_string())?;
+
+        serde_json::to_value(result)
+            .map_err(|error| format!("failed to serialize MCP tool result: {error}"))
     }
 
-    pub fn call_tool(
+    pub async fn call_tool(
         &self,
         server_name: &str,
         tool_name: &str,
@@ -267,11 +260,90 @@ impl McpToolRegistry {
             .cloned()
             .ok_or_else(|| "MCP server manager is not configured".to_string())?;
 
-        Self::spawn_tool_call(
+        Self::call_tool_via_manager(
             manager,
             mcp_tool_name(server_name, tool_name),
             (!arguments.is_null()).then(|| arguments.clone()),
         )
+        .await
+    }
+
+    /// Call a tool using the unified MCP client (`core::mcp_client`).
+    ///
+    /// This is the preferred execution path — it uses connection pooling and
+    /// supports all transport types (stdio/http/sse). Falls back to the legacy
+    /// `McpServerManager` path if the server has no transport config stored.
+    pub async fn call_tool_via_unified_client(
+        &self,
+        server_name: &str,
+        tool_name: &str,
+        arguments: &serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        let inner = self.inner.lock().expect("mcp registry lock poisoned");
+        let state = inner
+            .get(server_name)
+            .ok_or_else(|| format!("server '{}' not found", server_name))?;
+
+        if state.status != McpConnectionStatus::Connected {
+            return Err(format!(
+                "server '{}' is not connected (status: {})",
+                server_name, state.status
+            ));
+        }
+
+        if !state.tools.iter().any(|t| t.name == tool_name) {
+            return Err(format!("tool '{}' not found on server '{}'", tool_name, server_name));
+        }
+
+        let transport = state.transport.clone();
+        let command = state.command.clone();
+        let args: Option<Vec<String>> = state
+            .args_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<std::collections::HashMap<String, String>> = state
+            .env_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let endpoint = state.endpoint.clone();
+
+        drop(inner);
+
+        // If we have transport config, use the unified client
+        if let Some(ref transport) = transport {
+            if transport != "builtin" {
+                let result = axagent_core::mcp_client::call_tool_unified(
+                    transport,
+                    command.as_deref(),
+                    args.as_deref(),
+                    env.as_ref(),
+                    endpoint.as_deref(),
+                    tool_name,
+                    arguments.clone(),
+                )
+                .await
+                .map_err(|e| format!("MCP 工具调用失败: {e}"))?;
+
+                if result.is_error {
+                    return Err(format!("MCP 工具返回错误: {}", result.content));
+                }
+                return Ok(serde_json::Value::String(result.content));
+            }
+        }
+
+        // Fallback: try legacy McpServerManager
+        let manager = self
+            .manager
+            .get()
+            .cloned()
+            .ok_or_else(|| "MCP server manager is not configured".to_string())?;
+
+        Self::call_tool_via_manager(
+            manager,
+            mcp_tool_name(server_name, tool_name),
+            (!arguments.is_null()).then(|| arguments.clone()),
+        )
+        .await
     }
 
     /// Set auth status for a server.
@@ -311,8 +383,6 @@ impl McpToolRegistry {
 mod tests {
     use std::collections::BTreeMap;
     use std::fs;
-    #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -321,6 +391,31 @@ mod tests {
     use crate::config::{
         ConfigSource, McpServerConfig, McpStdioServerConfig, ScopedMcpServerConfig,
     };
+
+    /// 查找 MCP 测试服务器二进制文件路径
+    fn mcp_test_server_path() -> PathBuf {
+        // 测试二进制通常在 target/debug/deps/ 下
+        // mcp-test-server 在 target/debug/ 下
+        let test_exe = std::env::current_exe().expect("current exe");
+        let target_dir = test_exe
+            .parent()  // deps/
+            .and_then(|p| p.parent())  // debug/ or release/
+            .expect("target dir");
+
+        let exe_name = if cfg!(windows) {
+            "mcp-test-server.exe"
+        } else {
+            "mcp-test-server"
+        };
+
+        let path = target_dir.join(exe_name);
+        assert!(
+            path.exists(),
+            "mcp-test-server binary not found at {}. Build with: cargo build --package axagent-runtime",
+            path.display()
+        );
+        path
+    }
 
     fn temp_dir() -> PathBuf {
         static NEXT_TEMP_DIR_ID: AtomicU64 = AtomicU64::new(0);
@@ -332,126 +427,30 @@ mod tests {
         std::env::temp_dir().join(format!("runtime-mcp-tool-bridge-{nanos}-{unique_id}"))
     }
 
-    fn cleanup_script(script_path: &Path) {
-        if let Some(root) = script_path.parent() {
-            let _ = fs::remove_dir_all(root);
-        }
+    fn cleanup_temp_dir(dir: &Path) {
+        let _ = fs::remove_dir_all(dir);
     }
 
-    fn write_bridge_mcp_server_script() -> PathBuf {
-        let root = temp_dir();
-        fs::create_dir_all(&root).expect("temp dir");
-        let script_path = root.join("bridge-mcp-server.py");
-        let script = [
-            "#!/usr/bin/env python3",
-            "import json, os, sys",
-            "LABEL = os.environ.get('MCP_SERVER_LABEL', 'server')",
-            "LOG_PATH = os.environ.get('MCP_LOG_PATH')",
-            "",
-            "def log(method):",
-            "    if LOG_PATH:",
-            "        with open(LOG_PATH, 'a', encoding='utf-8') as handle:",
-            "            handle.write(f'{method}\\n')",
-            "",
-            "def read_message():",
-            "    header = b''",
-            r"    while not header.endswith(b'\r\n\r\n'):",
-            "        chunk = sys.stdin.buffer.read(1)",
-            "        if not chunk:",
-            "            return None",
-            "        header += chunk",
-            "    length = 0",
-            r"    for line in header.decode().split('\r\n'):",
-            r"        if line.lower().startswith('content-length:'):",
-            r"            length = int(line.split(':', 1)[1].strip())",
-            "    payload = sys.stdin.buffer.read(length)",
-            "    return json.loads(payload.decode())",
-            "",
-            "def send_message(message):",
-            "    payload = json.dumps(message).encode()",
-            r"    sys.stdout.buffer.write(f'Content-Length: {len(payload)}\r\n\r\n'.encode() + payload)",
-            "    sys.stdout.buffer.flush()",
-            "",
-            "while True:",
-            "    request = read_message()",
-            "    if request is None:",
-            "        break",
-            "    method = request['method']",
-            "    log(method)",
-            "    if method == 'initialize':",
-            "        send_message({",
-            "            'jsonrpc': '2.0',",
-            "            'id': request['id'],",
-            "            'result': {",
-            "                'protocolVersion': request['params']['protocolVersion'],",
-            "                'capabilities': {'tools': {}},",
-            "                'serverInfo': {'name': LABEL, 'version': '1.0.0'}",
-            "            }",
-            "        })",
-            "    elif method == 'tools/list':",
-            "        send_message({",
-            "            'jsonrpc': '2.0',",
-            "            'id': request['id'],",
-            "            'result': {",
-            "                'tools': [",
-            "                    {",
-            "                        'name': 'echo',",
-            "                        'description': f'Echo tool for {LABEL}',",
-            "                        'inputSchema': {",
-            "                            'type': 'object',",
-            "                            'properties': {'text': {'type': 'string'}},",
-            "                            'required': ['text']",
-            "                        }",
-            "                    }",
-            "                ]",
-            "            }",
-            "        })",
-            "    elif method == 'tools/call':",
-            "        args = request['params'].get('arguments') or {}",
-            "        text = args.get('text', '')",
-            "        send_message({",
-            "            'jsonrpc': '2.0',",
-            "            'id': request['id'],",
-            "            'result': {",
-            "                'content': [{'type': 'text', 'text': f'{LABEL}:{text}'}],",
-            "                'structuredContent': {'server': LABEL, 'echoed': text},",
-            "                'isError': False",
-            "            }",
-            "        })",
-            "    else:",
-            "        send_message({",
-            "            'jsonrpc': '2.0',",
-            "            'id': request['id'],",
-            "            'error': {'code': -32601, 'message': f'unknown method: {method}'},",
-            "        })",
-            "",
-        ]
-        .join("\n");
-        fs::write(&script_path, script).expect("write script");
-        #[cfg(unix)]
-        let mut permissions = fs::metadata(&script_path).expect("metadata").permissions();
-        #[cfg(not(unix))]
-        let permissions = fs::metadata(&script_path).expect("metadata").permissions();
-        #[cfg(unix)]
-        permissions.set_mode(0o755);
-        fs::set_permissions(&script_path, permissions).expect("chmod");
-        script_path
+    fn manager_server_config(server_name: &str, log_path: &Path) -> ScopedMcpServerConfig {
+        manager_server_config_with_env(server_name, log_path, BTreeMap::new())
     }
 
-    fn manager_server_config(
-        script_path: &Path,
+    fn manager_server_config_with_env(
         server_name: &str,
         log_path: &Path,
+        extra_env: BTreeMap<String, String>,
     ) -> ScopedMcpServerConfig {
+        let mut env = BTreeMap::from([
+            ("MCP_SERVER_LABEL".to_string(), server_name.to_string()),
+            ("MCP_LOG_PATH".to_string(), log_path.to_string_lossy().into_owned()),
+        ]);
+        env.extend(extra_env);
         ScopedMcpServerConfig {
             scope: ConfigSource::Local,
             config: McpServerConfig::Stdio(McpStdioServerConfig {
-                command: "python3".to_string(),
-                args: vec![script_path.to_string_lossy().into_owned()],
-                env: BTreeMap::from([
-                    ("MCP_SERVER_LABEL".to_string(), server_name.to_string()),
-                    ("MCP_LOG_PATH".to_string(), log_path.to_string_lossy().into_owned()),
-                ]),
+                command: mcp_test_server_path().to_string_lossy().into_owned(),
+                args: Vec::new(),
+                env,
                 tool_call_timeout_ms: Some(1_000),
             }),
         }
@@ -537,93 +536,117 @@ mod tests {
 
     #[test]
     fn given_connected_server_without_manager_when_calling_tool_then_it_errors() {
-        let registry = McpToolRegistry::new();
-        registry.register_server(
-            "srv",
-            McpConnectionStatus::Connected,
-            vec![McpToolInfo {
-                name: "greet".into(),
-                description: None,
-                input_schema: None,
-            }],
-            vec![],
-            None,
-        );
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let registry = McpToolRegistry::new();
+            registry.register_server(
+                "srv",
+                McpConnectionStatus::Connected,
+                vec![McpToolInfo {
+                    name: "greet".into(),
+                    description: None,
+                    input_schema: None,
+                }],
+                vec![],
+                None,
+            );
 
-        let error = registry
-            .call_tool("srv", "greet", &serde_json::json!({"name": "world"}))
-            .expect_err("should require a configured manager");
-        assert!(error.contains("MCP server manager is not configured"));
+            let error = registry
+                .call_tool("srv", "greet", &serde_json::json!({"name": "world"}))
+                .await
+                .expect_err("should require a configured manager");
+            assert!(error.contains("MCP server manager is not configured"));
 
-        // Unknown tool should fail
-        assert!(registry
-            .call_tool("srv", "missing", &serde_json::json!({}))
-            .is_err());
+            // Unknown tool should fail
+            assert!(registry
+                .call_tool("srv", "missing", &serde_json::json!({}))
+                .await
+                .is_err());
+        });
     }
 
     #[test]
     fn given_connected_server_with_manager_when_calling_tool_then_it_returns_live_result() {
-        let script_path = write_bridge_mcp_server_script();
-        let root = script_path.parent().expect("script parent");
-        let log_path = root.join("bridge.log");
-        let servers = BTreeMap::from([(
-            "alpha".to_string(),
-            manager_server_config(&script_path, "alpha", &log_path),
-        )]);
-        let manager = Arc::new(Mutex::new(McpServerManager::from_servers(&servers)));
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let root = temp_dir();
+            fs::create_dir_all(&root).expect("temp dir");
+            let log_path = root.join("bridge.log");
+            let servers =
+                BTreeMap::from([("alpha".to_string(), manager_server_config("alpha", &log_path))]);
+            let manager =
+                Arc::new(tokio::sync::Mutex::new(McpServerManager::from_servers(&servers)));
 
-        let registry = McpToolRegistry::new();
-        registry.register_server(
-            "alpha",
-            McpConnectionStatus::Connected,
-            vec![McpToolInfo {
-                name: "echo".into(),
-                description: Some("Echo tool for alpha".into()),
-                input_schema: Some(serde_json::json!({
-                    "type": "object",
-                    "properties": {"text": {"type": "string"}},
-                    "required": ["text"]
-                })),
-            }],
-            vec![],
-            Some("bridge test server".into()),
-        );
-        registry
-            .set_manager(Arc::clone(&manager))
-            .expect("manager should only be set once");
+            let registry = McpToolRegistry::new();
+            registry.register_server(
+                "alpha",
+                McpConnectionStatus::Connected,
+                vec![McpToolInfo {
+                    name: "echo".into(),
+                    description: Some("Echo tool for alpha".into()),
+                    input_schema: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": {"text": {"type": "string"}},
+                        "required": ["text"]
+                    })),
+                }],
+                vec![],
+                Some("bridge test server".into()),
+            );
+            registry
+                .set_manager(Arc::clone(&manager))
+                .expect("manager should only be set once");
 
-        let result = registry
-            .call_tool("alpha", "echo", &serde_json::json!({"text": "hello"}))
-            .expect("should return live MCP result");
+            let result = registry
+                .call_tool("alpha", "echo", &serde_json::json!({"text": "hello"}))
+                .await
+                .expect("should return live MCP result");
 
-        assert_eq!(result["structuredContent"]["server"], serde_json::json!("alpha"));
-        assert_eq!(result["structuredContent"]["echoed"], serde_json::json!("hello"));
-        assert_eq!(result["content"][0]["text"], serde_json::json!("alpha:hello"));
+            assert_eq!(result["structuredContent"]["server"], serde_json::json!("alpha"));
+            assert_eq!(result["structuredContent"]["echoed"], serde_json::json!("hello"));
+            assert_eq!(result["content"][0]["text"], serde_json::json!("alpha:hello"));
 
-        let log = fs::read_to_string(&log_path).expect("read log");
-        assert_eq!(log.lines().collect::<Vec<_>>(), vec!["initialize", "tools/list", "tools/call"]);
+            let log = fs::read_to_string(&log_path).expect("read log");
+            assert_eq!(
+                log.lines().collect::<Vec<_>>(),
+                vec!["initialize", "tools/list", "tools/call"]
+            );
 
-        cleanup_script(&script_path);
+            cleanup_temp_dir(&root);
+        });
     }
 
     #[test]
     fn rejects_tool_call_on_disconnected_server() {
-        let registry = McpToolRegistry::new();
-        registry.register_server(
-            "srv",
-            McpConnectionStatus::AuthRequired,
-            vec![McpToolInfo {
-                name: "greet".into(),
-                description: None,
-                input_schema: None,
-            }],
-            vec![],
-            None,
-        );
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let registry = McpToolRegistry::new();
+            registry.register_server(
+                "srv",
+                McpConnectionStatus::AuthRequired,
+                vec![McpToolInfo {
+                    name: "greet".into(),
+                    description: None,
+                    input_schema: None,
+                }],
+                vec![],
+                None,
+            );
 
-        assert!(registry
-            .call_tool("srv", "greet", &serde_json::json!({}))
-            .is_err());
+            assert!(registry
+                .call_tool("srv", "greet", &serde_json::json!({}))
+                .await
+                .is_err());
+        });
     }
 
     #[test]
@@ -644,16 +667,23 @@ mod tests {
 
     #[test]
     fn rejects_operations_on_missing_server() {
-        let registry = McpToolRegistry::new();
-        assert!(registry.list_resources("missing").is_err());
-        assert!(registry.read_resource("missing", "uri").is_err());
-        assert!(registry.list_tools("missing").is_err());
-        assert!(registry
-            .call_tool("missing", "tool", &serde_json::json!({}))
-            .is_err());
-        assert!(registry
-            .set_auth_status("missing", McpConnectionStatus::Connected)
-            .is_err());
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let registry = McpToolRegistry::new();
+            assert!(registry.list_resources("missing").is_err());
+            assert!(registry.read_resource("missing", "uri").is_err());
+            assert!(registry.list_tools("missing").is_err());
+            assert!(registry
+                .call_tool("missing", "tool", &serde_json::json!({}))
+                .await
+                .is_err());
+            assert!(registry
+                .set_auth_status("missing", McpConnectionStatus::Connected)
+                .is_err());
+        });
     }
 
     #[test]
@@ -767,43 +797,50 @@ mod tests {
 
     #[test]
     fn call_tool_payload_structure() {
-        let script_path = write_bridge_mcp_server_script();
-        let root = script_path.parent().expect("script parent");
-        let log_path = root.join("payload.log");
-        let servers = BTreeMap::from([(
-            "srv".to_string(),
-            manager_server_config(&script_path, "srv", &log_path),
-        )]);
-        let registry = McpToolRegistry::new();
-        let arguments = serde_json::json!({"text": "world"});
-        registry.register_server(
-            "srv",
-            McpConnectionStatus::Connected,
-            vec![McpToolInfo {
-                name: "echo".into(),
-                description: Some("Echo tool for srv".into()),
-                input_schema: Some(serde_json::json!({
-                    "type": "object",
-                    "properties": {"text": {"type": "string"}},
-                    "required": ["text"]
-                })),
-            }],
-            vec![],
-            None,
-        );
-        registry
-            .set_manager(Arc::new(Mutex::new(McpServerManager::from_servers(&servers))))
-            .expect("manager should only be set once");
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let root = temp_dir();
+            fs::create_dir_all(&root).expect("temp dir");
+            let log_path = root.join("payload.log");
+            let servers =
+                BTreeMap::from([("srv".to_string(), manager_server_config("srv", &log_path))]);
+            let registry = McpToolRegistry::new();
+            let arguments = serde_json::json!({"text": "world"});
+            registry.register_server(
+                "srv",
+                McpConnectionStatus::Connected,
+                vec![McpToolInfo {
+                    name: "echo".into(),
+                    description: Some("Echo tool for srv".into()),
+                    input_schema: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": {"text": {"type": "string"}},
+                        "required": ["text"]
+                    })),
+                }],
+                vec![],
+                None,
+            );
+            registry
+                .set_manager(Arc::new(tokio::sync::Mutex::new(McpServerManager::from_servers(
+                    &servers,
+                ))))
+                .expect("manager should only be set once");
 
-        let result = registry
-            .call_tool("srv", "echo", &arguments)
-            .expect("tool should return live payload");
+            let result = registry
+                .call_tool("srv", "echo", &arguments)
+                .await
+                .expect("tool should return live payload");
 
-        assert_eq!(result["structuredContent"]["server"], "srv");
-        assert_eq!(result["structuredContent"]["echoed"], "world");
-        assert_eq!(result["content"][0]["text"], "srv:world");
+            assert_eq!(result["structuredContent"]["server"], "srv");
+            assert_eq!(result["structuredContent"]["echoed"], "world");
+            assert_eq!(result["content"][0]["text"], "srv:world");
 
-        cleanup_script(&script_path);
+            cleanup_temp_dir(&root);
+        });
     }
 
     #[test]

@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { InteractiveTutorial } from "@/components/onboarding/InteractiveTutorial";
 import { WelcomeWizard } from "@/components/onboarding/WelcomeWizard";
+import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPanels } from "@/components/skill/SkillPanels";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
@@ -37,10 +38,12 @@ import ptBR from "antd/locale/pt_BR";
 import ruRU from "antd/locale/ru_RU";
 import zhCN from "antd/locale/zh_CN";
 import { enableD2, setDefaultI18nMap } from "markstream-react";
-import { useCallback, useEffect, useRef } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./i18n";
+
+const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 
 const { Content } = Layout;
 const { useToken } = theme;
@@ -63,12 +66,17 @@ function AppInner() {
   const navigate = useNavigate();
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const isInSettings = location.pathname === "/settings" || location.pathname.startsWith("/settings/");
-  const isQuickBar = location.pathname === "/quickbar";
+
+  // 同步检测 QuickBar 窗口（在首次渲染前），避免 ChatPage 先渲染导致崩溃
+  const [isQuickBarWindow] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("__route") === "quickbar";
+  });
+  const isQuickBar = isQuickBarWindow || location.pathname === "/quickbar";
 
   // Navigate to /quickbar if the app is loaded in the quickbar window
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("__route") === "quickbar") {
+    if (isQuickBarWindow) {
       navigate("/quickbar", { replace: true });
       return;
     }
@@ -173,36 +181,52 @@ function AppInner() {
   return (
     <>
       <div className="flex flex-col h-screen" style={{ backgroundColor: token.colorBgContainer }}>
-        {isQuickBar ? <ContentArea /> : (
-          <>
-            <SkillPanels />
-            <TitleBar />
-            <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-            <GlobalCopyMenu />
-            <Layout
-              hasSider={!isInSettings}
-              className="flex-1 overflow-hidden"
-              style={{ backgroundColor: "transparent" }}
-            >
-              {!isInSettings && (
-                <div
-                  style={{
-                    backgroundColor: "transparent",
-                    borderRight: "1px solid var(--border-color)",
-                    flexShrink: 0,
-                  }}
+        {isQuickBar
+          ? (
+            isQuickBarWindow && location.pathname !== "/quickbar"
+              ? (
+                <Suspense
+                  fallback={
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }} />
+                  }
                 >
-                  <Sidebar />
-                </div>
-              )}
-              <Content className="overflow-hidden">
-                <div className="ax-page-transition" style={{ height: "100%" }} key={location.key}>
-                  <ContentArea />
-                </div>
-              </Content>
-            </Layout>
-          </>
-        )}
+                  <PageErrorBoundary title="QuickBar">
+                    <LazyQuickBarPage />
+                  </PageErrorBoundary>
+                </Suspense>
+              )
+              : <ContentArea />
+          )
+          : (
+            <>
+              <SkillPanels />
+              <TitleBar />
+              <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+              <GlobalCopyMenu />
+              <Layout
+                hasSider={!isInSettings}
+                className="flex-1 overflow-hidden"
+                style={{ backgroundColor: "transparent" }}
+              >
+                {!isInSettings && (
+                  <div
+                    style={{
+                      backgroundColor: "transparent",
+                      borderRight: "1px solid var(--border-color)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Sidebar />
+                  </div>
+                )}
+                <Content className="overflow-hidden">
+                  <div className="ax-page-transition" style={{ height: "100%" }} key={location.key}>
+                    <ContentArea />
+                  </div>
+                </Content>
+              </Layout>
+            </>
+          )}
       </div>
       <WelcomeWizard />
       <InteractiveTutorial />

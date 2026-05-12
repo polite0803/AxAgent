@@ -26,7 +26,7 @@ impl Tool for PushNotificationTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Communication
     }
     fn is_concurrency_safe(&self) -> bool {
         false

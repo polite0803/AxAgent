@@ -14,6 +14,10 @@ pub struct Model {
     pub description: Option<String>,
     pub content: String,
     pub variables_schema: Option<String>,
+    pub category: Option<String>,
+    pub tags: Option<String>,
+    pub author: Option<String>,
+    pub source: Option<String>,
     pub changelog: Option<String>,
     pub created_at: i64,
 }

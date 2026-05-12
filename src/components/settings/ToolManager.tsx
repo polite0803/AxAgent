@@ -1,18 +1,6 @@
 import { useLocalToolStore } from "@/stores";
 import { Spin, Switch, Tabs, Tag, Typography } from "antd";
-import {
-  BookOpen,
-  Brain,
-  FileEdit,
-  FileSearch,
-  Globe,
-  HardDrive,
-  MessageSquare,
-  Search,
-  Terminal,
-  Wrench,
-  Zap,
-} from "lucide-react";
+import { BookOpen, FileEdit, FileSearch, Globe, HardDrive, MessageSquare, Terminal, Wrench, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import McpServerSettings from "./McpServerSettings";
@@ -23,29 +11,39 @@ const { Text, Paragraph } = Typography;
 // ── Builtin Tool Group Icons ──────────────────────────────
 
 const GROUP_ICONS: Record<string, React.ReactNode> = {
-  "builtin-fetch": <Globe size={18} />,
-  "builtin-search-file": <FileSearch size={18} />,
-  "builtin-filesystem": <FileEdit size={18} />,
-  "builtin-system": <Terminal size={18} />,
-  "builtin-search": <Search size={18} />,
-  "builtin-knowledge": <BookOpen size={18} />,
+  "builtin-file-read": <FileSearch size={18} />,
+  "builtin-file-write": <FileEdit size={18} />,
+  "builtin-shell": <Terminal size={18} />,
+  "builtin-network": <Globe size={18} />,
+  "builtin-system-tools": <Wrench size={18} />,
+  "builtin-agent": <Zap size={18} />,
+  "builtin-vcs": <Zap size={18} />,
+  "builtin-automation": <Zap size={18} />,
+  "builtin-communication": <MessageSquare size={18} />,
+  "builtin-ai-media": <Zap size={18} />,
+  "builtin-integration": <Globe size={18} />,
   "builtin-storage": <HardDrive size={18} />,
-  "builtin-skills": <Wrench size={18} />,
-  "builtin-session": <MessageSquare size={18} />,
-  "builtin-memory": <Brain size={18} />,
+  "builtin-knowledge": <BookOpen size={18} />,
+  "builtin-browser": <Globe size={18} />,
+  "builtin-desktop": <Terminal size={18} />,
 };
 
 const GROUP_NAME_KEYS: Record<string, string> = {
-  "builtin-fetch": "settings.localTools.groupFetch",
-  "builtin-search-file": "settings.localTools.groupSearchFile",
-  "builtin-filesystem": "settings.localTools.groupFilesystem",
-  "builtin-system": "settings.localTools.groupSystem",
-  "builtin-search": "settings.localTools.groupSearch",
-  "builtin-knowledge": "settings.localTools.groupKnowledge",
+  "builtin-file-read": "settings.localTools.groupFileRead",
+  "builtin-file-write": "settings.localTools.groupFileWrite",
+  "builtin-shell": "settings.localTools.groupShell",
+  "builtin-network": "settings.localTools.groupNetwork",
+  "builtin-system-tools": "settings.localTools.groupSystem",
+  "builtin-agent": "settings.localTools.groupAgent",
+  "builtin-vcs": "settings.localTools.groupVcs",
+  "builtin-automation": "settings.localTools.groupAutomation",
+  "builtin-communication": "settings.localTools.groupCommunication",
+  "builtin-ai-media": "settings.localTools.groupAiMedia",
+  "builtin-integration": "settings.localTools.groupIntegration",
   "builtin-storage": "settings.localTools.groupStorage",
-  "builtin-skills": "settings.localTools.groupSkills",
-  "builtin-session": "settings.localTools.groupSession",
-  "builtin-memory": "settings.localTools.groupMemory",
+  "builtin-knowledge": "settings.localTools.groupKnowledge",
+  "builtin-browser": "settings.localTools.groupBrowser",
+  "builtin-desktop": "settings.localTools.groupDesktop",
 };
 
 // ── Tab: Builtin Tools ────────────────────────────────────
@@ -89,8 +87,8 @@ function BuiltinToolsTab() {
                   <Text strong className="block">{displayName}</Text>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {group.tools.map((tool) => (
-                      <Tag key={tool.toolName} className="text-xs">
-                        {tool.toolName}
+                      <Tag key={tool.name} className="text-xs">
+                        {tool.name}
                       </Tag>
                     ))}
                   </div>

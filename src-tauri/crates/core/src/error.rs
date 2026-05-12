@@ -95,6 +95,12 @@ pub enum AxAgentError {
         source: Box<dyn std::error::Error + Send + Sync>,
         message: String,
     },
+
+    #[error("Model download error: {0}")]
+    ModelDownload(String),
+
+    #[error("Model integrity error: expected {expected}, got {actual}")]
+    ModelIntegrity { expected: String, actual: String },
 }
 
 impl AxAgentError {
@@ -201,6 +207,8 @@ impl AxAgentError {
             AxAgentError::StructuredError { context, .. } => {
                 ErrorCode::from_component(&context.component)
             },
+            AxAgentError::ModelDownload(_) => ErrorCode::NetworkError,
+            AxAgentError::ModelIntegrity { .. } => ErrorCode::ValidationError,
         }
     }
 
@@ -244,6 +252,8 @@ impl AxAgentError {
             AxAgentError::Gateway(_) => true,
             AxAgentError::Provider(msg) => msg.contains("rate limit") || msg.contains("timeout"),
             AxAgentError::StructuredError { context, .. } => context.retry_count < 3,
+            AxAgentError::ModelDownload(_) => true,
+            AxAgentError::ModelIntegrity { .. } => false,
             _ => false,
         }
     }

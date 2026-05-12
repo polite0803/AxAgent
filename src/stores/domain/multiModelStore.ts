@@ -142,7 +142,8 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
       const mcpIds = usePreferenceStore.getState().enabledMcpServerIds;
       const thinkingBudget = getEffectiveThinkingBudget(conversationId);
       const kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-      const memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const memNsId = usePreferenceStore.getState().activeMemoryNamespaceId;
+      const memIds = memNsId ? [memNsId] : [];
       const wikiIds = usePreferenceStore.getState().enabledWikiIds;
 
       const invocations = remaining.map((model) =>

@@ -1,8 +1,10 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
+use std::sync::{Arc, OnceLock};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
+use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BrowserRequest {
@@ -186,6 +188,14 @@ impl Drop for PlaywrightClient {
     fn drop(&mut self) {
         let _ = self.child.start_kill();
     }
+}
+
+/// 全局共享浏览器连接池（仅启动一次，所有工具复用）
+static SHARED_BROWSER: OnceLock<Arc<Mutex<Option<PlaywrightClient>>>> = OnceLock::new();
+
+/// 获取共享浏览器连接池引用
+pub fn shared_browser_pool() -> &'static Arc<Mutex<Option<PlaywrightClient>>> {
+    SHARED_BROWSER.get_or_init(|| Arc::new(Mutex::new(None)))
 }
 
 #[derive(Debug, Serialize, Deserialize)]

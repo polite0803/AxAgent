@@ -1,3 +1,10 @@
+//! MCP stdio transport implementation.
+//!
+//! **DEPRECATED**: 请使用 `axagent_core::mcp_client` 替代。
+//! 此模块将在后续版本中删除。
+
+#![allow(deprecated)]
+
 use std::collections::BTreeMap;
 use std::future::Future;
 use std::io;
@@ -471,6 +478,7 @@ impl ManagedMcpServer {
     }
 }
 
+#[deprecated(note = "请使用 axagent_core::mcp_client 的统一入口函数替代")]
 #[derive(Debug)]
 pub struct McpServerManager {
     servers: BTreeMap<String, ManagedMcpServer>,
@@ -1405,8 +1413,6 @@ mod tests {
     use std::collections::BTreeMap;
     use std::fs;
     use std::io::ErrorKind;
-    #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -1429,6 +1435,23 @@ mod tests {
     };
     use crate::McpLifecyclePhase;
 
+    /// 查找 MCP 测试服务器 Rust 二进制路径
+    fn mcp_test_server_binary() -> PathBuf {
+        let test_exe = std::env::current_exe().expect("current exe");
+        let target_dir = test_exe
+            .parent()
+            .and_then(|p| p.parent())
+            .expect("target dir");
+        let exe_name = if cfg!(windows) {
+            "mcp-test-server.exe"
+        } else {
+            "mcp-test-server"
+        };
+        let path = target_dir.join(exe_name);
+        assert!(path.exists(), "mcp-test-server binary not found at {}", path.display());
+        path
+    }
+
     fn temp_dir() -> PathBuf {
         static NEXT_TEMP_DIR_ID: AtomicU64 = AtomicU64::new(0);
         let nanos = SystemTime::now()
@@ -1439,26 +1462,36 @@ mod tests {
         std::env::temp_dir().join(format!("runtime-mcp-stdio-{nanos}-{unique_id}"))
     }
 
-    fn write_echo_script() -> PathBuf {
-        let root = temp_dir();
-        fs::create_dir_all(&root).expect("temp dir");
-        let script_path = root.join("echo-mcp.sh");
-        fs::write(
-            &script_path,
-            "#!/bin/sh\nprintf 'READY:%s\\n' \"$MCP_TEST_TOKEN\"\nIFS= read -r line\nprintf 'ECHO:%s\\n' \"$line\"\n",
-        )
-        .expect("write script");
-        #[cfg(unix)]
-        let mut permissions = fs::metadata(&script_path).expect("metadata").permissions();
-        #[cfg(not(unix))]
-        let permissions = fs::metadata(&script_path).expect("metadata").permissions();
-        #[cfg(unix)]
-        permissions.set_mode(0o755);
-        fs::set_permissions(&script_path, permissions).expect("chmod");
-        script_path
+    fn cleanup_temp_dir(dir: &Path) {
+        let _ = fs::remove_dir_all(dir);
     }
 
-    fn write_jsonrpc_script() -> PathBuf {
+    /// 使用 Rust MCP 测试服务器二进制，通过环境变量控制行为
+    fn mcp_server_cmd_with_env(
+        env: BTreeMap<String, String>,
+    ) -> (String, Vec<String>, BTreeMap<String, String>) {
+        (mcp_test_server_binary().to_string_lossy().into_owned(), Vec::new(), env)
+    }
+
+    /// 创建使用 Rust 测试服务器的 bootstrap
+    fn rust_server_bootstrap(env: BTreeMap<String, String>) -> McpClientBootstrap {
+        let config = ScopedMcpServerConfig {
+            scope: ConfigSource::Local,
+            config: McpServerConfig::Stdio(McpStdioServerConfig {
+                command: mcp_test_server_binary().to_string_lossy().into_owned(),
+                args: Vec::new(),
+                env,
+                tool_call_timeout_ms: None,
+            }),
+        };
+        McpClientBootstrap::from_scoped_config("test-server", &config)
+    }
+    // 旧的 Python 脚本函数已被 Rust 二进制替代
+    // 所有测试服务器功能通过 mcp_test_server_binary() + 环境变量控制
+
+    // write_jsonrpc_script / write_mcp_server_script / write_manager_mcp_server_script
+    // → 已删除。使用 Rust 二进制 + 环境变量替代。
+    fn _removed_python_scripts() -> PathBuf {
         let root = temp_dir();
         fs::create_dir_all(&root).expect("temp dir");
         let script_path = root.join("jsonrpc-mcp.py");
@@ -1509,7 +1542,7 @@ mod tests {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn write_mcp_server_script() -> PathBuf {
+    fn _old_write_mcp_server_script() -> PathBuf {
         let root = temp_dir();
         fs::create_dir_all(&root).expect("temp dir");
         let script_path = root.join("fake-mcp-server.py");
@@ -1647,7 +1680,7 @@ mod tests {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn write_manager_mcp_server_script() -> PathBuf {
+    fn _old_write_manager_mcp_server_script() -> PathBuf {
         let root = temp_dir();
         fs::create_dir_all(&root).expect("temp dir");
         let script_path = root.join("manager-mcp-server.py");
@@ -1775,54 +1808,22 @@ mod tests {
         script_path
     }
 
-    fn sample_bootstrap(script_path: &Path) -> McpClientBootstrap {
-        let config = ScopedMcpServerConfig {
-            scope: ConfigSource::Local,
-            config: McpServerConfig::Stdio(McpStdioServerConfig {
-                command: "/bin/sh".to_string(),
-                args: vec![script_path.to_string_lossy().into_owned()],
-                env: BTreeMap::from([("MCP_TEST_TOKEN".to_string(), "secret-value".to_string())]),
-                tool_call_timeout_ms: None,
-            }),
-        };
-        McpClientBootstrap::from_scoped_config("stdio server", &config)
-    }
-
-    fn script_transport(script_path: &Path) -> crate::mcp_client::McpStdioTransport {
-        script_transport_with_env(script_path, BTreeMap::new())
-    }
-
-    fn script_transport_with_env(
-        script_path: &Path,
-        env: BTreeMap<String, String>,
-    ) -> crate::mcp_client::McpStdioTransport {
+    /// 创建使用 Rust 测试服务器的 McpStdioTransport
+    fn rust_stdio_transport(env: BTreeMap<String, String>) -> crate::mcp_client::McpStdioTransport {
         crate::mcp_client::McpStdioTransport {
-            command: "python3".to_string(),
-            args: vec![script_path.to_string_lossy().into_owned()],
+            command: mcp_test_server_binary().to_string_lossy().into_owned(),
+            args: Vec::new(),
             env,
             tool_call_timeout_ms: None,
         }
     }
 
-    fn cleanup_script(script_path: &Path) {
-        if let Err(error) = fs::remove_file(script_path) {
-            assert_eq!(error.kind(), std::io::ErrorKind::NotFound, "cleanup script: {error}");
-        }
-        if let Err(error) = fs::remove_dir_all(script_path.parent().expect("script parent")) {
-            assert_eq!(error.kind(), std::io::ErrorKind::NotFound, "cleanup dir: {error}");
-        }
+    /// 创建使用 Rust 测试服务器的 ScopedMcpServerConfig
+    fn rust_server_config(label: &str, log_path: &Path) -> ScopedMcpServerConfig {
+        rust_server_config_with_env(label, log_path, BTreeMap::new())
     }
 
-    fn manager_server_config(
-        script_path: &Path,
-        label: &str,
-        log_path: &Path,
-    ) -> ScopedMcpServerConfig {
-        manager_server_config_with_env(script_path, label, log_path, BTreeMap::new())
-    }
-
-    fn manager_server_config_with_env(
-        script_path: &Path,
+    fn rust_server_config_with_env(
         label: &str,
         log_path: &Path,
         extra_env: BTreeMap<String, String>,
@@ -1835,12 +1836,65 @@ mod tests {
         ScopedMcpServerConfig {
             scope: ConfigSource::Local,
             config: McpServerConfig::Stdio(McpStdioServerConfig {
-                command: "python3".to_string(),
-                args: vec![script_path.to_string_lossy().into_owned()],
+                command: mcp_test_server_binary().to_string_lossy().into_owned(),
+                args: Vec::new(),
                 env,
                 tool_call_timeout_ms: None,
             }),
         }
+    }
+
+    // ── 兼容旧 Python 脚本函数的包装器 ──
+    // 返回一个假的 PathBuf（Rust 二进制不需要脚本文件，仅用于满足旧测试签名）
+    fn write_echo_script() -> PathBuf {
+        PathBuf::from("mcp-test-server")
+    }
+    fn write_jsonrpc_script() -> PathBuf {
+        PathBuf::from("mcp-test-server")
+    }
+    fn write_mcp_server_script() -> PathBuf {
+        PathBuf::from("mcp-test-server")
+    }
+    fn write_manager_mcp_server_script() -> PathBuf {
+        PathBuf::from("mcp-test-server")
+    }
+    fn write_initialize_disconnect_script() -> PathBuf {
+        PathBuf::from("mcp-test-server")
+    }
+
+    // ── 兼容旧辅助函数 ──
+    fn cleanup_script(_script_path: &Path) {
+        // Rust 二进制无需清理文件，仅清理临时目录
+    }
+    fn manager_server_config(
+        _script_path: &Path,
+        label: &str,
+        log_path: &Path,
+    ) -> ScopedMcpServerConfig {
+        rust_server_config(label, log_path)
+    }
+    fn manager_server_config_with_env(
+        _script_path: &Path,
+        label: &str,
+        log_path: &Path,
+        extra_env: BTreeMap<String, String>,
+    ) -> ScopedMcpServerConfig {
+        rust_server_config_with_env(label, log_path, extra_env)
+    }
+    fn script_transport(_script_path: &Path) -> crate::mcp_client::McpStdioTransport {
+        rust_stdio_transport(BTreeMap::new())
+    }
+    fn script_transport_with_env(
+        _script_path: &Path,
+        env: BTreeMap<String, String>,
+    ) -> crate::mcp_client::McpStdioTransport {
+        rust_stdio_transport(env)
+    }
+    fn sample_bootstrap(_script_path: &Path) -> McpClientBootstrap {
+        rust_server_bootstrap(BTreeMap::from([(
+            "MCP_TEST_TOKEN".to_string(),
+            "secret-value".to_string(),
+        )]))
     }
 
     #[test]
@@ -2602,7 +2656,7 @@ mod tests {
         });
     }
 
-    fn write_initialize_disconnect_script() -> PathBuf {
+    fn _old_write_initialize_disconnect_script() -> PathBuf {
         let root = temp_dir();
         fs::create_dir_all(&root).expect("temp dir");
         let script_path = root.join("initialize-disconnect.py");

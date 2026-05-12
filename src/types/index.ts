@@ -1,4 +1,6 @@
 // === Provider System ===
+import type { RAGPipelineConfig } from "./knowledge";
+
 export type ProviderType = "openai" | "openai_responses" | "anthropic" | "gemini" | "openclaw" | "hermes" | "ollama";
 
 export interface ProviderConfig {
@@ -141,6 +143,7 @@ export interface Conversation {
   created_at: number;
   updated_at: number;
   scenario?: string | null;
+  workspace_dir?: string | null;
   enabled_skill_ids: string[];
   /** @deprecated 使用 agent_profile_id (AgentProfile.id) 替代 */
   expert_role_id?: string | null;
@@ -536,6 +539,8 @@ export interface AppSettings {
   webdav_password?: string | null;
   /** Cloud sync enabled flag */
   cloud_sync_enabled?: boolean;
+  /** RAG 高级管线配置（查询增强、重排序、自省式质检） */
+  rag_pipeline_config?: RAGPipelineConfig;
 }
 
 // === Streaming ===
@@ -1287,6 +1292,16 @@ export interface PromptTemplate {
   version: number;
   isActive: boolean;
   abTestEnabled: boolean;
+  abTestVariant?: string;
+  category?: string;
+  tags?: string[];
+  author?: string;
+  source?: string;
+  sourceType?: string;
+  format?: string;
+  metadataJson?: string;
+  usageCount: number;
+  isFavorite: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -1296,6 +1311,13 @@ export interface CreatePromptTemplateInput {
   description?: string;
   content: string;
   variablesSchema?: string;
+  category?: string;
+  tags?: string[];
+  author?: string;
+  source?: string;
+  sourceType?: string;
+  format?: string;
+  metadataJson?: string;
 }
 
 export interface UpdatePromptTemplateInput {
@@ -1305,6 +1327,14 @@ export interface UpdatePromptTemplateInput {
   variablesSchema?: string;
   isActive?: boolean;
   abTestEnabled?: boolean;
+  category?: string;
+  tags?: string[];
+  author?: string;
+  source?: string;
+  sourceType?: string;
+  format?: string;
+  metadataJson?: string;
+  isFavorite?: boolean;
 }
 
 export interface PromptTemplateVersion {
@@ -1313,8 +1343,40 @@ export interface PromptTemplateVersion {
   version: number;
   content: string;
   variablesSchema?: string;
+  category?: string;
+  tags?: string[];
+  author?: string;
+  source?: string;
   changelog?: string;
   createdAt: number;
 }
+
+export interface ImportPromptTemplateInput {
+  name: string;
+  description?: string;
+  content: string;
+  variablesSchema?: string;
+  category?: string;
+  tags?: string[];
+  author?: string;
+  source?: string;
+  sourceType?: string;
+  format?: string;
+  metadataJson?: string;
+}
+
+export interface ImportPromptResult {
+  imported: PromptTemplate[];
+  skipped: string[];
+  errors: string[];
+}
+
+export interface ImportFromUrlInput {
+  url: string;
+  categoryFilter?: string;
+  overwriteExisting?: boolean;
+}
+
+export type ExportPromptFormat = "json" | "yaml" | "markdown";
 
 export * from "./wiki";

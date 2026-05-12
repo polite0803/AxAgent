@@ -24,8 +24,10 @@ impl Tool for BashTool {
         "Bash"
     }
     fn description(&self) -> &str {
-        "执行 shell 命令。支持 Linux/macOS (bash) 和 Windows (powershell/cmd)。\
-         自动检测操作系统选择对应 shell。支持 cd 切换工作目录。"
+        "执行 shell 命令。适用：运行测试、构建、git 操作、安装依赖等。\
+         不适用：读取文件（用 FileRead）、搜索代码（用 Grep/Glob）、编辑文件（用 FileEdit）。\
+         自动检测 OS (bash/powershell)，默认超时 120s，最大 600s。\
+         危险命令（rm -rf, sudo, chmod 777 等）需权限确认。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({

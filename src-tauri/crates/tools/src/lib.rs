@@ -7,7 +7,9 @@
 
 pub mod agent_def_loader;
 pub mod agent_def_types;
+pub mod audit;
 pub mod bash;
+pub mod context_keys;
 pub mod global_state;
 pub mod hooks;
 pub mod knowledge_callback;
@@ -47,12 +49,30 @@ pub enum ToolCategory {
     FileWrite,
     /// Shell 命令执行
     Shell,
-    /// 网络请求
+    /// 网络请求（WebFetch, WebSearch）
     Network,
     /// 系统操作
     System,
     /// Agent 相关 (子 agent、工作流)
     Agent,
+    /// 版本控制 (Git)
+    Vcs,
+    /// 自动化（定时任务、后台任务、工作流）
+    Automation,
+    /// 通信（消息、通知、团队）
+    Communication,
+    /// AI 媒体（图片生成、图表、推理）
+    AiMedia,
+    /// 外部集成（Dify, Obsidian 等）
+    Integration,
+    /// 存储管理
+    Storage,
+    /// 知识库
+    Knowledge,
+    /// 浏览器自动化
+    Browser,
+    /// 桌面控制
+    Desktop,
 }
 
 impl ToolCategory {
@@ -64,11 +84,20 @@ impl ToolCategory {
             ToolCategory::Network => "network",
             ToolCategory::System => "system",
             ToolCategory::Agent => "agent",
+            ToolCategory::Vcs => "vcs",
+            ToolCategory::Automation => "automation",
+            ToolCategory::Communication => "communication",
+            ToolCategory::AiMedia => "ai_media",
+            ToolCategory::Integration => "integration",
+            ToolCategory::Storage => "storage",
+            ToolCategory::Knowledge => "knowledge",
+            ToolCategory::Browser => "browser",
+            ToolCategory::Desktop => "desktop",
         }
     }
 
     pub fn is_read_only(&self) -> bool {
-        matches!(self, ToolCategory::FileRead | ToolCategory::Network)
+        matches!(self, ToolCategory::FileRead | ToolCategory::Network | ToolCategory::Knowledge)
     }
 }
 
@@ -113,6 +142,20 @@ impl ToolContext {
     }
 }
 
+/// 流式进度条目
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProgressEntry {
+    /// 阶段标识: "searching"|"fetching"|"rendering"|"cleaning"|"done"
+    pub phase: String,
+    /// 人类可读描述
+    pub message: String,
+    /// 进度百分比 (0-100)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub percent: Option<u8>,
+    /// 距开始时间的毫秒数
+    pub timestamp_ms: u64,
+}
+
 /// 工具执行结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolResult {
@@ -126,6 +169,9 @@ pub struct ToolResult {
     pub metadata: Option<Value>,
     /// 执行耗时（毫秒）
     pub duration_ms: Option<u64>,
+    /// 流式进度报告条目
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub progress: Vec<ProgressEntry>,
 }
 
 impl ToolResult {
@@ -136,6 +182,7 @@ impl ToolResult {
             is_error: false,
             metadata: None,
             duration_ms: None,
+            progress: Vec::new(),
         }
     }
 
@@ -146,6 +193,7 @@ impl ToolResult {
             is_error: true,
             metadata: None,
             duration_ms: None,
+            progress: Vec::new(),
         }
     }
 
@@ -169,7 +217,14 @@ impl ToolResult {
             is_error: false,
             metadata: None,
             duration_ms: None,
+            progress: Vec::new(),
         }
+    }
+
+    /// 追加一条进度条目
+    pub fn with_progress(mut self, entry: ProgressEntry) -> Self {
+        self.progress.push(entry);
+        self
     }
 }
 

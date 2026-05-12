@@ -31,7 +31,7 @@ impl ProviderLlmBridge {
         }
     }
 
-    async fn call_llm(&self, system: &str, user: &str) -> Result<String, String> {
+    pub async fn call_llm(&self, system: &str, user: &str) -> Result<String, String> {
         let request = ChatRequest {
             model: self.model.clone(),
             messages: vec![

@@ -49,10 +49,13 @@ impl Tool for CronCreateTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         false
+    }
+    fn is_destructive(&self) -> bool {
+        true
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -96,10 +99,13 @@ impl Tool for CronDeleteTool {
         serde_json::json!({"type":"object","properties":{"id":{"type":"string"}},"required":["id"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         false
+    }
+    fn is_destructive(&self) -> bool {
+        true
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -125,7 +131,7 @@ impl Tool for CronListTool {
         serde_json::json!({"type":"object","properties":{}})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true

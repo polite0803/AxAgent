@@ -17,9 +17,10 @@ impl Tool for FileEditTool {
         "FileEdit"
     }
     fn description(&self) -> &str {
-        "精确编辑文件。通过 old_string/new_string 搜索替换。\
-         若 old_string 匹配多次，需要设置 replace_all: true。\
-         old_string 必须精确匹配文件内容（包括缩进、空行）。"
+        "精确编辑文件（字符串替换）。适用：修改代码行、修改变量名、修复 bug。\
+         不适用：新建文件(FileWrite)、删除文件(DeleteFile)。\
+         必须先用 FileRead 读取文件获取精确原始文本（含缩进/空行）。\
+         old_string 在文件中必须唯一（否则需 replace_all: true）。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({

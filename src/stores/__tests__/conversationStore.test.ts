@@ -103,7 +103,7 @@ describe("conversationStore pagination", () => {
       enabledMcpServerIds: [],
       thinkingBudget: null,
       enabledKnowledgeBaseIds: [],
-      enabledMemoryNamespaceIds: [],
+      activeMemoryNamespaceId: null,
       enabledWikiIds: [],
       archivedConversations: [],
       workspaceSnapshot: null,
@@ -245,7 +245,7 @@ describe("conversationStore pagination", () => {
     expect(useConversationStore.getState().thinkingBudget).toBe(2048);
     expect(useConversationStore.getState().enabledMcpServerIds).toEqual(["mcp-a"]);
     expect(useConversationStore.getState().enabledKnowledgeBaseIds).toEqual(["kb-a"]);
-    expect(useConversationStore.getState().enabledMemoryNamespaceIds).toEqual(["mem-a"]);
+    expect(useConversationStore.getState().activeMemoryNamespaceId).toEqual("mem-a");
 
     useConversationStore.getState().setActiveConversation("conv-b");
     await flushPromises();
@@ -255,7 +255,7 @@ describe("conversationStore pagination", () => {
     expect(useConversationStore.getState().thinkingBudget).toBeNull();
     expect(useConversationStore.getState().enabledMcpServerIds).toEqual(["mcp-b"]);
     expect(useConversationStore.getState().enabledKnowledgeBaseIds).toEqual([]);
-    expect(useConversationStore.getState().enabledMemoryNamespaceIds).toEqual(["mem-b"]);
+    expect(useConversationStore.getState().activeMemoryNamespaceId).toEqual("mem-b");
   });
 
   it("persists search preference changes for the active conversation", async () => {

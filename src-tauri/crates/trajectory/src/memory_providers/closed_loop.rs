@@ -482,6 +482,7 @@ impl ClosedLoopService {
                                     extraction_method: "closed_loop".to_string(),
                                 }),
                                 tags: vec!["auto_extract".to_string()],
+                                namespace_id: None,
                             };
                             if let Err(e) = self.storage.save_memory(&entry) {
                                 tracing::warn!("Failed to auto-save memory: {}", e);

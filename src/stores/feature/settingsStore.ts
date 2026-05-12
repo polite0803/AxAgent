@@ -119,6 +119,33 @@ const DEFAULT_SETTINGS: AppSettings = {
   webdav_password: null,
   cloud_sync_enabled: false,
   s3_use_path_style: false,
+  // RAG pipeline config
+  rag_pipeline_config: {
+    queryEnhancement: {
+      enabled: false,
+      strategy: "auto" as const,
+      maxVariants: 3,
+      combinedCall: true,
+    },
+    rerank: {
+      enabled: true,
+      backend: "rule" as const,
+      crossEncoderModel: "bge-reranker-v2-m3",
+      topN: 5,
+      candidateK: 30,
+      ruleFilterKeep: 15,
+      scoreThreshold: null,
+      ollamaEndpoint: "http://localhost:11434",
+    },
+    selfRag: {
+      enabled: false,
+      judgeModel: "qwen2.5:0.5b",
+      ollamaEndpoint: "http://localhost:11434",
+      relevanceThreshold: 0.5,
+      qualityThreshold: 0.6,
+      maxRetryRounds: 2,
+    },
+  },
 };
 
 export interface GlobalShortcutDiagnostic {

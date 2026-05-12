@@ -33,7 +33,7 @@ impl Tool for GitStatusTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Vcs
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -87,7 +87,7 @@ impl Tool for GitDiffTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Vcs
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -141,7 +141,7 @@ impl Tool for GitCommitTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Vcs
     }
 
     fn is_destructive(&self) -> bool {
@@ -206,7 +206,7 @@ impl Tool for GitLogTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Vcs
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -262,7 +262,10 @@ impl Tool for GitBranchTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Vcs
+    }
+    fn is_destructive(&self) -> bool {
+        true
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -335,7 +338,7 @@ impl Tool for GitReviewTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Vcs
     }
 
     fn is_concurrency_safe(&self) -> bool {

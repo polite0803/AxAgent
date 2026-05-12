@@ -250,6 +250,7 @@ pub struct Conversation {
     pub mode: String,
     pub work_strategy: Option<String>,
     pub scenario: Option<String>,
+    pub workspace_dir: Option<String>,
     pub enabled_skill_ids: Vec<String>,
     pub expert_role_id: Option<String>,
     pub agent_profile_id: Option<String>,
@@ -888,6 +889,9 @@ pub struct AppSettings {
     pub error_recovery_enabled: bool,
     /// Cloud workspace URI (supports s3://, webdav://, local://)
     pub workspace_uri: Option<String>,
+    /// RAG 高级管线配置（查询增强、重排序、自省式质检）
+    #[serde(default)]
+    pub rag_pipeline_config: RAGPipelineConfig,
 }
 
 impl Default for AppSettings {
@@ -1012,6 +1016,7 @@ impl Default for AppSettings {
             thought_chain_enabled: false,
             error_recovery_enabled: true,
             workspace_uri: None,
+            rag_pipeline_config: RAGPipelineConfig::default(),
         }
     }
 }
@@ -2323,6 +2328,16 @@ pub struct PromptTemplate {
     pub version: i32,
     pub is_active: bool,
     pub ab_test_enabled: bool,
+    pub ab_test_variant: Option<String>,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub author: Option<String>,
+    pub source: Option<String>,
+    pub source_type: Option<String>,
+    pub format: Option<String>,
+    pub metadata_json: Option<String>,
+    pub usage_count: i32,
+    pub is_favorite: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -2334,6 +2349,13 @@ pub struct CreatePromptTemplateInput {
     pub description: Option<String>,
     pub content: String,
     pub variables_schema: Option<String>,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub author: Option<String>,
+    pub source: Option<String>,
+    pub source_type: Option<String>,
+    pub format: Option<String>,
+    pub metadata_json: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2345,6 +2367,14 @@ pub struct UpdatePromptTemplateInput {
     pub variables_schema: Option<String>,
     pub is_active: Option<bool>,
     pub ab_test_enabled: Option<bool>,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub author: Option<String>,
+    pub source: Option<String>,
+    pub source_type: Option<String>,
+    pub format: Option<String>,
+    pub metadata_json: Option<String>,
+    pub is_favorite: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2355,8 +2385,70 @@ pub struct PromptTemplateVersion {
     pub version: i32,
     pub content: String,
     pub variables_schema: Option<String>,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub author: Option<String>,
+    pub source: Option<String>,
     pub changelog: Option<String>,
     pub created_at: i64,
+}
+
+/// 导入提示词模板的输入
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportPromptTemplateInput {
+    pub name: String,
+    pub description: Option<String>,
+    pub content: String,
+    pub variables_schema: Option<String>,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub author: Option<String>,
+    pub source: Option<String>,
+    pub source_type: Option<String>,
+    pub format: Option<String>,
+    pub metadata_json: Option<String>,
+}
+
+/// 批量导入结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportPromptResult {
+    pub imported: Vec<PromptTemplate>,
+    pub skipped: Vec<String>,
+    pub errors: Vec<String>,
+}
+
+/// 从 URL 导入的请求
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportFromUrlInput {
+    pub url: String,
+    pub category_filter: Option<String>,
+    pub overwrite_existing: Option<bool>,
+}
+
+/// 导出格式
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ExportPromptFormat {
+    Json,
+    Yaml,
+    Markdown,
+}
+
+/// 导出的提示词条目
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportedPrompt {
+    pub name: String,
+    pub description: Option<String>,
+    pub content: String,
+    pub variables_schema: Option<String>,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub author: Option<String>,
+    pub source: Option<String>,
 }
 
 // === Agent Profile ===
@@ -2427,6 +2519,84 @@ pub struct AgentRoleDef {
     pub sort_order: i32,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+// === Query Enhancement Types ===
+
+/// 查询增强策略
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum EnhancementStrategy {
+    /// 不增强，直接使用原始查询
+    None,
+    /// 假设文档嵌入（HyDE）
+    Hyde,
+    /// 多查询改写
+    MultiQuery,
+    /// 查询分解
+    Decomposition,
+    /// 自动选择（基于查询特征）
+    Auto,
+}
+
+/// 增强后的查询及其元数据
+#[derive(Debug, Clone)]
+pub struct EnhancedQuery {
+    /// 增强后的查询文本
+    pub text: String,
+    /// 使用的策略
+    pub strategy: EnhancementStrategy,
+    /// 该查询的权重（用于结果合并）
+    pub weight: f32,
+}
+
+/// 查询增强配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnhancementConfig {
+    pub enabled: bool,
+    pub strategy: EnhancementStrategy,
+    /// 最大增强查询数（MultiQuery 的变体数）
+    pub max_variants: usize,
+    /// 是否合并 HyDE 和 MultiQuery 为一次 LLM 调用
+    pub combined_call: bool,
+}
+
+impl Default for EnhancementConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            strategy: EnhancementStrategy::Auto,
+            max_variants: 3,
+            combined_call: true,
+        }
+    }
+}
+
+// === RAG Pipeline Config ===
+
+/// 全局 RAG 管线配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RAGPipelineConfig {
+    #[serde(default)]
+    pub query_enhancement: EnhancementConfig,
+    #[serde(default)]
+    pub rerank: crate::reranker::RerankConfig,
+    #[serde(default)]
+    pub self_rag: crate::self_rag::SelfRagConfig,
+}
+
+impl SourceConfig {
+    pub fn with_rag_options(
+        self,
+        rerank_enabled: Option<bool>,
+        self_rag_enabled: Option<bool>,
+        query_enhancement_enabled: Option<bool>,
+    ) -> Self {
+        let _ = (rerank_enabled, self_rag_enabled, query_enhancement_enabled);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

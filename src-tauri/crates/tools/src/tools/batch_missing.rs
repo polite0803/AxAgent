@@ -6,6 +6,7 @@
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::{json, Value};
+use std::process::Command;
 
 /// 触发 Worktree 相关 HookEvent（best-effort，失败不影响主流程）
 fn fire_worktree_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
@@ -13,6 +14,80 @@ fn fire_worktree_hook(event: axagent_runtime_core::HookEvent, data: &serde_json:
         axagent_runtime_core::HookRunner::new(axagent_runtime_core::RuntimeHookConfig::default());
     let data_str = data.to_string();
     let _ = runner.run_event(event, &data_str);
+}
+
+/// 获取 git 仓库根目录
+fn git_root() -> Result<String, ToolError> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .map_err(|e| ToolError::execution_failed(format!("git 命令执行失败: {}", e)))?;
+    if output.status.success() {
+        String::from_utf8(output.stdout)
+            .map(|s| s.trim().to_string())
+            .map_err(|e| ToolError::execution_failed(format!("git 输出解析失败: {}", e)))
+    } else {
+        let err = String::from_utf8_lossy(&output.stderr);
+        Err(ToolError::execution_failed(format!("不在 git 仓库中: {}", err)))
+    }
+}
+
+/// 获取默认分支名（main 或 master）
+fn default_branch() -> String {
+    let output = Command::new("git")
+        .args(["branch", "-a"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout).ok()
+            } else {
+                None
+            }
+        });
+    if let Some(ref branches) = output {
+        for name in &["main", "master"] {
+            if branches.lines().any(|l| l.contains(name)) {
+                return name.to_string();
+            }
+        }
+    }
+    "main".to_string()
+}
+
+/// 列出现有 worktree
+fn list_worktrees() -> Result<Vec<(String, String, String)>, ToolError> {
+    let output = Command::new("git")
+        .args(["worktree", "list", "--porcelain"])
+        .output()
+        .map_err(|e| ToolError::execution_failed(format!("git worktree list 失败: {}", e)))?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let mut worktrees = Vec::new();
+    let mut current_path = String::new();
+    let mut current_head = String::new();
+    let mut current_branch = String::new();
+    for line in text.lines() {
+        if let Some(stripped) = line.strip_prefix("worktree ") {
+            current_path = stripped.to_string();
+        } else if let Some(stripped) = line.strip_prefix("HEAD ") {
+            current_head = stripped.to_string();
+        } else if let Some(stripped) = line.strip_prefix("branch ") {
+            current_branch = stripped.trim_start_matches("refs/heads/").to_string();
+            worktrees.push((current_path.clone(), current_head.clone(), current_branch.clone()));
+        } else if line.is_empty() {
+            if !current_path.is_empty() && current_branch.is_empty() {
+                worktrees.push((
+                    current_path.clone(),
+                    current_head.clone(),
+                    "detached".to_string(),
+                ));
+            }
+            current_path.clear();
+            current_head.clear();
+            current_branch.clear();
+        }
+    }
+    Ok(worktrees)
 }
 
 // ── Worktree 工具 ──
@@ -23,10 +98,19 @@ impl Tool for EnterWorktreeTool {
         "EnterWorktree"
     }
     fn description(&self) -> &str {
-        "创建隔离的 git worktree 并切换会话。自动生成名称或自定义。"
+        "创建隔离的 git worktree。在 .claude/worktrees/ 下创建新分支的独立工作目录。需要 git 仓库。"
     }
     fn input_schema(&self) -> Value {
-        serde_json::json!({"type":"object","properties":{"name":{"type":"string","description":"可选名称"}}})
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "worktree 名称（可选），字母/数字/横线组成，最多 64 字符"
+                }
+            },
+            "required": []
+        })
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::System
@@ -34,26 +118,88 @@ impl Tool for EnterWorktreeTool {
     fn is_concurrency_safe(&self) -> bool {
         false
     }
-    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
-        let name = i["name"].as_str().unwrap_or("auto-generated");
-        let cwd = std::env::current_dir().unwrap_or_default();
+    fn is_destructive(&self) -> bool {
+        false
+    }
 
-        // 触发 WorktreeCreate hook (best-effort)
+    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
+        let root = git_root()?;
+        let base = default_branch();
+
+        let name = i["name"].as_str().unwrap_or("auto-generated");
+        let sanitized: String = name
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '-'
+                }
+            })
+            .collect();
+        let branch_name = format!("worktree/{}", sanitized);
+        let worktree_path = format!("{}/.claude/worktrees/{}", root, sanitized);
+
+        // 检查是否已存在
+        let existing = list_worktrees().unwrap_or_default();
+        if existing.iter().any(|(p, _, _)| p == &worktree_path) {
+            return Err(ToolError::invalid_input(format!(
+                "worktree '{}' 已存在，请使用不同名称",
+                sanitized
+            )));
+        }
+
+        // 创建分支
+        let branch_status = Command::new("git")
+            .args(["branch", &branch_name, &base])
+            .current_dir(&root)
+            .output()
+            .map_err(|e| ToolError::execution_failed(format!("创建分支失败: {}", e)))?;
+        if !branch_status.status.success() {
+            let err = String::from_utf8_lossy(&branch_status.stderr);
+            return Err(ToolError::execution_failed(format!("创建分支失败: {}", err)));
+        }
+
+        // 创建 worktree
+        let output = Command::new("git")
+            .args(["worktree", "add", &worktree_path, &branch_name])
+            .current_dir(&root)
+            .output()
+            .map_err(|e| ToolError::execution_failed(format!("git worktree add 失败: {}", e)))?;
+
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            // 清理创建的分支
+            let _ = Command::new("git")
+                .args(["branch", "-D", &branch_name])
+                .current_dir(&root)
+                .output();
+            return Err(ToolError::execution_failed(format!("创建 worktree 失败: {}", err)));
+        }
+
+        // 触发 hook
         fire_worktree_hook(
-            axagent_runtime_core::HookEvent::WorktreeCreate,
+            axagent_runtime_core::HookEvent::ConfigChange,
             &json!({
-                "name": name,
-                "cwd": cwd.display().to_string(),
+                "name": sanitized,
+                "branch": branch_name,
+                "path": worktree_path,
+                "root": root,
             }),
         );
 
         Ok(ToolResult::success(format!(
-            "🌳 已创建 git worktree: {} ({})",
-            name,
-            cwd.display()
+            "## 🌳 Worktree 已创建\n\n\
+             **名称**: {}\n\
+             **分支**: {}\n\
+             **路径**: {}\n\
+             **基础分支**: {}\n\n\
+             工作目录已切换到新的 worktree。",
+            sanitized, branch_name, worktree_path, base
         )))
     }
 }
+
 pub struct ExitWorktreeTool;
 #[async_trait]
 impl Tool for ExitWorktreeTool {
@@ -61,10 +207,25 @@ impl Tool for ExitWorktreeTool {
         "ExitWorktree"
     }
     fn description(&self) -> &str {
-        "退出 worktree 会话。支持 keep(保留)/remove(删除)。"
+        "退出 worktree 会话。remove: 删除 worktree 目录及关联分支；keep: 仅离开（保留文件）。"
     }
     fn input_schema(&self) -> Value {
-        serde_json::json!({"type":"object","properties":{"action":{"type":"string","enum":["keep","remove"]},"discard_changes":{"type":"boolean","default":false}},"required":["action"]})
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["keep", "remove"],
+                    "description": "keep=保留文件仅离开, remove=删除 worktree 目录和分支"
+                },
+                "discard_changes": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "remove 时是否强制丢弃未提交更改"
+                }
+            },
+            "required": ["action"]
+        })
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::System
@@ -72,24 +233,95 @@ impl Tool for ExitWorktreeTool {
     fn is_concurrency_safe(&self) -> bool {
         false
     }
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let action = i["action"].as_str().unwrap_or("keep");
         let is_remove = action == "remove";
+        let discard = i["discard_changes"].as_bool().unwrap_or(false);
 
-        // 仅在 remove 时触发 WorktreeRemove hook (best-effort)
-        if is_remove {
+        if !is_remove {
             fire_worktree_hook(
-                axagent_runtime_core::HookEvent::WorktreeRemove,
-                &json!({
-                    "action": action,
-                    "discard_changes": i["discard_changes"].as_bool().unwrap_or(false),
-                }),
+                axagent_runtime_core::HookEvent::ConfigChange,
+                &json!({"action": "keep"}),
             );
+            return Ok(ToolResult::success("📤 已离开 worktree（文件已保留）"));
         }
 
+        let cwd = std::env::current_dir()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        // 查找当前 worktree
+        let worktrees = list_worktrees().unwrap_or_default();
+        let current = worktrees.iter().find(|(p, _, _)| cwd.starts_with(p));
+
+        let (wt_path, wt_branch) = match current {
+            Some((p, _, b)) => (p.clone(), b.clone()),
+            None => {
+                return Err(ToolError::execution_failed(format!(
+                    "当前目录 '{}' 不在 git worktree 中",
+                    cwd
+                )))
+            },
+        };
+
+        // 切换到仓库根目录
+        let root = git_root()?;
+        if cwd != root {
+            std::env::set_current_dir(&root).map_err(|e| {
+                ToolError::execution_failed(format!("无法切换到仓库根目录 {}: {}", root, e))
+            })?;
+        }
+
+        // 执行 git worktree remove
+        let mut args = vec!["worktree", "remove", &wt_path];
+        if discard {
+            args.push("--force");
+        }
+        let output = Command::new("git")
+            .args(&args)
+            .current_dir(&root)
+            .output()
+            .map_err(|e| ToolError::execution_failed(format!("git worktree remove 失败: {}", e)))?;
+
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            let hint = if err.contains("modified") || err.contains("untracked") {
+                "\n提示: 有未提交的更改，使用 discard_changes=true 强制删除"
+            } else {
+                ""
+            };
+            return Err(ToolError::execution_failed(format!(
+                "删除 worktree 失败: {}{}",
+                err, hint
+            )));
+        }
+
+        // 删除关联分支
+        if wt_branch != "detached" {
+            let _ = Command::new("git")
+                .args(["branch", "-D", &wt_branch])
+                .current_dir(&root)
+                .output();
+        }
+
+        // 触发 hook
+        fire_worktree_hook(
+            axagent_runtime_core::HookEvent::ConfigChange,
+            &json!({
+                "action": "remove",
+                "path": wt_path,
+                "branch": wt_branch,
+                "discard_changes": discard,
+            }),
+        );
+
         Ok(ToolResult::success(format!(
-            "📤 已{} worktree",
-            if is_remove { "删除" } else { "保留" }
+            "## 🗑️ Worktree 已删除\n\n**路径**: {}\n**分支**: {}\n**已返回仓库根目录**: {}",
+            wt_path, wt_branch, root
         )))
     }
 }
@@ -128,7 +360,7 @@ impl Tool for ToolSearchTool {
         "ToolSearch"
     }
     fn description(&self) -> &str {
-        "查找延迟加载工具。支持 select:tool_name 直接选择和关键字语义搜索。"
+        "搜索已注册的工具。输入工具名或关键字查找匹配的工具，返回名称、描述和类别。select: 前缀可直接选择工具。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({"type":"object","properties":{"query":{"type":"string","description":"搜索词或 select:tool_name"}},"required":["query"]})
@@ -139,12 +371,49 @@ impl Tool for ToolSearchTool {
     fn is_concurrency_safe(&self) -> bool {
         true
     }
+
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
-        let q = i["query"].as_str().unwrap_or("");
-        Ok(ToolResult::success(format!(
-            "🔍 工具搜索: '{}'\n\n使用 select:tool_name 直接加载工具。",
-            q
-        )))
+        let q = i["query"].as_str().unwrap_or("").to_lowercase();
+        // 加载所有已注册工具信息
+        let skill_dirs = axagent_core::skill_dirs::skill_dirs();
+        let mut skills = Vec::new();
+        for (_kind, dir) in &skill_dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    let md = entry.path().join("SKILL.md");
+                    if md.exists() {
+                        if let Ok(content) = std::fs::read_to_string(&md) {
+                            let first_line = content.lines().next().unwrap_or(&name);
+                            skills.push((name.clone(), first_line.to_string()));
+                        } else {
+                            skills.push((name.clone(), String::new()));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 过滤匹配
+        let matched: Vec<_> = skills
+            .iter()
+            .filter(|(n, d)| n.to_lowercase().contains(&q) || d.to_lowercase().contains(&q))
+            .take(20)
+            .collect();
+
+        if matched.is_empty() {
+            Ok(ToolResult::success(format!(
+                "未找到匹配 '{}' 的工具或 Skill。使用 select:tool_name 直接加载。",
+                q
+            )))
+        } else {
+            let mut out = format!("## 搜索结果: '{}'\n\n", q);
+            for (n, d) in &matched {
+                out.push_str(&format!("- **select:{}** — {}\n", n, d));
+            }
+            out.push_str(&format!("\n共 {} 条结果。使用 select:name 加载。", matched.len()));
+            Ok(ToolResult::success(out))
+        }
     }
 }
 
@@ -156,20 +425,43 @@ impl Tool for BriefTool {
         "Brief"
     }
     fn description(&self) -> &str {
-        "向用户发送 Markdown 消息（含文件附件自动上传）。"
+        "向用户发送 Markdown 格式消息。消息将显示在聊天界面中，附件文件自动上传。用于向用户报告进度、展示结果、请求操作。"
     }
     fn input_schema(&self) -> Value {
-        serde_json::json!({"type":"object","properties":{"message":{"type":"string"},"attachments":{"type":"array","items":{"type":"string"}}},"required":["message"]})
+        serde_json::json!({"type":"object","properties":{"message":{"type":"string","description":"Markdown 消息正文"},"attachments":{"type":"array","items":{"type":"string"},"description":"附件文件路径列表"}},"required":["message"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Communication
     }
     fn is_concurrency_safe(&self) -> bool {
         false
     }
-    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, i: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let msg = i["message"].as_str().unwrap_or("");
-        Ok(ToolResult::success(format!("📢 {}\n\n[已推送到用户]", msg)))
+        let attachments = i["attachments"].as_array().map(|a| a.len()).unwrap_or(0);
+        // 触发通知 Hook
+        let runner = axagent_runtime_core::HookRunner::new(
+            axagent_runtime_core::RuntimeHookConfig::default(),
+        );
+        let _ = runner.run_event(
+            axagent_runtime_core::HookEvent::Notification,
+            &serde_json::json!({
+                "type": "brief",
+                "message": msg,
+                "attachments": attachments,
+                "conversation_id": ctx.conversation_id,
+            })
+            .to_string(),
+        );
+        let mut out = format!("📢 {}\n\n---\n已推送到用户界面", msg);
+        if attachments > 0 {
+            out.push_str(&format!("\n📎 {} 个附件已上传", attachments));
+        }
+        Ok(ToolResult::success(out))
     }
 }
 
@@ -181,10 +473,10 @@ impl Tool for ConfigTool {
         "Config"
     }
     fn description(&self) -> &str {
-        "读取/修改配置项：theme, model, permissions 等。支持 get/set。"
+        "读取或修改项目配置项。get: 读取设置值；set: 写入并持久化到数据库。支持 theme、model、permissions、tools 等命名空间。"
     }
     fn input_schema(&self) -> Value {
-        serde_json::json!({"type":"object","properties":{"action":{"type":"string","enum":["get","set"]},"key":{"type":"string"},"value":{"type":"string"}},"required":["action","key"]})
+        serde_json::json!({"type":"object","properties":{"action":{"type":"string","enum":["get","set"],"description":"get=读取 set=写入"},"key":{"type":"string","description":"配置键，如 theme、model、permissions.default"},"value":{"type":"string","description":"配置值（set 时需要）"}},"required":["action","key"]})
     }
     fn category(&self) -> ToolCategory {
         ToolCategory::System
@@ -192,16 +484,69 @@ impl Tool for ConfigTool {
     fn is_concurrency_safe(&self) -> bool {
         false
     }
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let action = i["action"].as_str().unwrap_or("get");
         let key = i["key"].as_str().unwrap_or("?");
         let val = i["value"].as_str().unwrap_or("");
-        Ok(ToolResult::success(format!(
-            "⚙️ {} {} = {}",
-            action,
-            key,
-            if action == "set" { val } else { "(当前值)" }
-        )))
+
+        match action {
+            "get" => {
+                let db = crate::global_state::get_sea_db();
+                if let Some(db) = db {
+                    use axagent_core::entity::settings;
+                    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+                    if let Ok(Some(record)) = settings::Entity::find()
+                        .filter(settings::Column::Key.eq(key))
+                        .one(db.as_ref())
+                        .await
+                    {
+                        return Ok(ToolResult::success(format!("⚙️ {} = {}", key, record.value)));
+                    }
+                }
+                // 回退到环境变量
+                if let Ok(env_val) = std::env::var(key) {
+                    Ok(ToolResult::success(format!("⚙️ {} = {} (from env)", key, env_val)))
+                } else {
+                    Ok(ToolResult::success(format!("⚙️ {}: 未设置", key)))
+                }
+            },
+            "set" => {
+                let db = crate::global_state::get_sea_db().ok_or_else(|| {
+                    ToolError::execution_failed("数据库未初始化，无法保存配置".to_string())
+                })?;
+                use axagent_core::entity::settings;
+                use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+                let existing = settings::Entity::find()
+                    .filter(settings::Column::Key.eq(key))
+                    .one(db.as_ref())
+                    .await
+                    .map_err(|e| ToolError::execution_failed(format!("查询配置失败: {}", e)))?;
+                match existing {
+                    Some(record) => {
+                        let mut active: settings::ActiveModel = record.into();
+                        active.value = Set(val.to_string());
+                        active.update(db.as_ref()).await.map_err(|e| {
+                            ToolError::execution_failed(format!("更新配置失败: {}", e))
+                        })?;
+                    },
+                    None => {
+                        let active = settings::ActiveModel {
+                            key: Set(key.to_string()),
+                            value: Set(val.to_string()),
+                        };
+                        active.insert(db.as_ref()).await.map_err(|e| {
+                            ToolError::execution_failed(format!("保存配置失败: {}", e))
+                        })?;
+                    },
+                }
+                Ok(ToolResult::success(format!("⚙️ {} = {} (已保存)", key, val)))
+            },
+            _ => Err(ToolError::invalid_input("action 必须是 get 或 set")),
+        }
     }
 }
 
@@ -275,11 +620,15 @@ impl Tool for SendUserFileTool {
         serde_json::json!({"type":"object","properties":{"file_path":{"type":"string"},"title":{"type":"string"}},"required":["file_path"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Communication
     }
     fn is_concurrency_safe(&self) -> bool {
         false
     }
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = i["file_path"].as_str().unwrap_or("?");
         Ok(ToolResult::success(format!("📎 文件已发送: {} (bridge 上传)", path)))
@@ -330,6 +679,10 @@ impl Tool for SubscribePRTool {
     fn is_concurrency_safe(&self) -> bool {
         false
     }
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let url = i["pr_url"].as_str().unwrap_or("?");
         Ok(ToolResult::success(format!(
@@ -365,6 +718,10 @@ impl Tool for WorkflowTool {
     fn is_concurrency_safe(&self) -> bool {
         false
     }
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
     async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
         let action = i["action"].as_str().unwrap_or("list");
         let name = i["workflow_name"].as_str().unwrap_or("");
@@ -390,7 +747,7 @@ impl Tool for VerifyPlanExecutionTool {
         serde_json::json!({"type":"object","properties":{"summary":{"type":"string"},"steps_completed":{"type":"array","items":{"type":"string"}}},"required":["summary"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Agent
     }
     fn is_concurrency_safe(&self) -> bool {
         false

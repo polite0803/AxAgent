@@ -2,8 +2,9 @@ import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { invoke, listen } from "@/lib/invoke";
-import { useKnowledgeStore } from "@/stores";
+import { useKnowledgeStore, useSettingsStore } from "@/stores";
 import type { IndexingStatus, KnowledgeBase, KnowledgeDocument } from "@/types";
+import { SettingOutlined } from "@ant-design/icons";
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -11,6 +12,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   Button,
+  Collapse,
   Divider,
   Dropdown,
   Empty,
@@ -21,7 +23,9 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Space,
   Spin,
+  Switch,
   Table,
   Tag,
   theme,
@@ -306,6 +310,66 @@ function KnowledgeBaseDetail({
   const [wikiList, setWikiList] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
   const [syncingToWiki, setSyncingToWiki] = useState(false);
+
+  // Advanced RAG config — backed by global settings
+  const ragPipelineConfig = useSettingsStore((s) => s.settings.rag_pipeline_config);
+  const saveSettings = useSettingsStore((s) => s.saveSettings);
+  const [ragAdvancedConfig, setRagAdvancedConfig] = useState({
+    rerankEnabled: ragPipelineConfig?.rerank?.enabled ?? false,
+    rerankBackend: (ragPipelineConfig?.rerank?.backend ?? "rule") as "rule" | "cross_encoder" | "pipeline",
+    rerankTopN: ragPipelineConfig?.rerank?.topN ?? 5,
+    rerankCandidateK: ragPipelineConfig?.rerank?.candidateK ?? 30,
+    selfRagEnabled: ragPipelineConfig?.selfRag?.enabled ?? false,
+    selfRagJudgeModel: ragPipelineConfig?.selfRag?.judgeModel ?? "qwen2.5:0.5b",
+    selfRagRelevanceThreshold: ragPipelineConfig?.selfRag?.relevanceThreshold ?? 0.5,
+    selfRagQualityThreshold: ragPipelineConfig?.selfRag?.qualityThreshold ?? 0.6,
+    selfRagMaxRetries: ragPipelineConfig?.selfRag?.maxRetryRounds ?? 2,
+    queryEnhancementEnabled: ragPipelineConfig?.queryEnhancement?.enabled ?? false,
+    queryEnhancementStrategy: (ragPipelineConfig?.queryEnhancement?.strategy ?? "auto") as
+      | "none"
+      | "hyde"
+      | "multi_query"
+      | "decomposition"
+      | "auto",
+    queryEnhancementMaxVariants: ragPipelineConfig?.queryEnhancement?.maxVariants ?? 3,
+    queryEnhancementCombinedCall: ragPipelineConfig?.queryEnhancement?.combinedCall ?? true,
+  });
+
+  const persistRagConfig = useCallback(
+    (updates: Partial<typeof ragAdvancedConfig>) => {
+      const next = { ...ragAdvancedConfig, ...updates };
+      setRagAdvancedConfig(next);
+      saveSettings({
+        rag_pipeline_config: {
+          queryEnhancement: {
+            enabled: next.queryEnhancementEnabled,
+            strategy: next.queryEnhancementStrategy,
+            maxVariants: next.queryEnhancementMaxVariants,
+            combinedCall: next.queryEnhancementCombinedCall,
+          },
+          rerank: {
+            enabled: next.rerankEnabled,
+            backend: next.rerankBackend,
+            crossEncoderModel: "bge-reranker-v2-m3",
+            topN: next.rerankTopN,
+            candidateK: next.rerankCandidateK,
+            ruleFilterKeep: 15,
+            scoreThreshold: null,
+            ollamaEndpoint: "http://localhost:11434",
+          },
+          selfRag: {
+            enabled: next.selfRagEnabled,
+            judgeModel: next.selfRagJudgeModel,
+            ollamaEndpoint: "http://localhost:11434",
+            relevanceThreshold: next.selfRagRelevanceThreshold,
+            qualityThreshold: next.selfRagQualityThreshold,
+            maxRetryRounds: next.selfRagMaxRetries,
+          },
+        },
+      });
+    },
+    [ragAdvancedConfig, saveSettings],
+  );
 
   const handleOpenSyncWikiModal = useCallback(async (doc: KnowledgeDocument) => {
     setSyncWikiDocId(doc.id);
@@ -925,6 +989,189 @@ function KnowledgeBaseDetail({
       >
         <p>{t("settings.knowledge.changeEmbeddingWarning")}</p>
       </Modal>
+
+      {/* Advanced RAG Settings */}
+      <Collapse
+        ghost
+        size="small"
+        className="mb-3"
+        items={[{
+          key: "advanced-rag",
+          label: (
+            <Space>
+              <SettingOutlined />
+              {t("settings.rag.advanced")}
+            </Space>
+          ),
+          children: (
+            <>
+              {/* 查询增强 */}
+              <Divider plain style={{ fontSize: 13 }}>
+                {t("settings.rag.queryEnhancement.title")}
+              </Divider>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm">{t("settings.rag.queryEnhancement.title")}</span>
+                <Switch
+                  checked={ragAdvancedConfig.queryEnhancementEnabled}
+                  onChange={(v) => persistRagConfig({ queryEnhancementEnabled: v })}
+                />
+              </div>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.rag.queryEnhancement.desc")}
+              </Typography.Text>
+              {ragAdvancedConfig.queryEnhancementEnabled && (
+                <div className="mt-2 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.queryEnhancement.strategy")}</span>
+                    <Select
+                      size="small"
+                      value={ragAdvancedConfig.queryEnhancementStrategy}
+                      onChange={(v) => persistRagConfig({ queryEnhancementStrategy: v })}
+                      style={{ width: 200 }}
+                      options={[
+                        { value: "none", label: t("settings.rag.queryEnhancement.strategyNone") },
+                        { value: "hyde", label: t("settings.rag.queryEnhancement.strategyHyde") },
+                        { value: "multi_query", label: t("settings.rag.queryEnhancement.strategyMultiQuery") },
+                        { value: "decomposition", label: t("settings.rag.queryEnhancement.strategyDecomposition") },
+                        { value: "auto", label: t("settings.rag.queryEnhancement.strategyAuto") },
+                      ]}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.queryEnhancement.maxVariants")}</span>
+                    <InputNumber
+                      size="small"
+                      min={2}
+                      max={5}
+                      value={ragAdvancedConfig.queryEnhancementMaxVariants}
+                      onChange={(v) => persistRagConfig({ queryEnhancementMaxVariants: v ?? 3 })}
+                      style={{ width: 200 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 重排序 */}
+              <Divider plain style={{ fontSize: 13, marginTop: 12 }}>
+                {t("settings.rag.rerank.title")}
+              </Divider>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm">{t("settings.rag.rerank.title")}</span>
+                <Switch
+                  checked={ragAdvancedConfig.rerankEnabled}
+                  onChange={(v) => persistRagConfig({ rerankEnabled: v })}
+                />
+              </div>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.rag.rerank.desc")}
+              </Typography.Text>
+              {ragAdvancedConfig.rerankEnabled && (
+                <div className="mt-2 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.rerank.backend")}</span>
+                    <Select
+                      size="small"
+                      value={ragAdvancedConfig.rerankBackend}
+                      onChange={(v) => persistRagConfig({ rerankBackend: v })}
+                      style={{ width: 200 }}
+                      options={[
+                        { value: "rule", label: t("settings.rag.rerank.backendRule") },
+                        { value: "cross_encoder", label: t("settings.rag.rerank.backendCross") },
+                        { value: "pipeline", label: t("settings.rag.rerank.backendPipeline") },
+                      ]}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.rerank.topN")}</span>
+                    <InputNumber
+                      size="small"
+                      min={1}
+                      max={20}
+                      value={ragAdvancedConfig.rerankTopN}
+                      onChange={(v) => persistRagConfig({ rerankTopN: v ?? 5 })}
+                      style={{ width: 200 }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.rerank.candidateK")}</span>
+                    <InputNumber
+                      size="small"
+                      min={5}
+                      max={100}
+                      value={ragAdvancedConfig.rerankCandidateK}
+                      onChange={(v) => persistRagConfig({ rerankCandidateK: v ?? 30 })}
+                      style={{ width: 200 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Self-RAG */}
+              <Divider plain style={{ fontSize: 13, marginTop: 12 }}>
+                {t("settings.rag.selfRag.title")}
+              </Divider>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm">{t("settings.rag.selfRag.title")}</span>
+                <Switch
+                  checked={ragAdvancedConfig.selfRagEnabled}
+                  onChange={(v) => persistRagConfig({ selfRagEnabled: v })}
+                />
+              </div>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.rag.selfRag.desc")}
+              </Typography.Text>
+              {ragAdvancedConfig.selfRagEnabled && (
+                <div className="mt-2 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.selfRag.judgeModel")}</span>
+                    <Input
+                      size="small"
+                      value={ragAdvancedConfig.selfRagJudgeModel}
+                      onChange={(e) => persistRagConfig({ selfRagJudgeModel: e.target.value })}
+                      style={{ width: 200 }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.selfRag.relevanceThreshold")}</span>
+                    <InputNumber
+                      size="small"
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      value={ragAdvancedConfig.selfRagRelevanceThreshold}
+                      onChange={(v) => persistRagConfig({ selfRagRelevanceThreshold: v ?? 0.5 })}
+                      style={{ width: 200 }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.selfRag.qualityThreshold")}</span>
+                    <InputNumber
+                      size="small"
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      value={ragAdvancedConfig.selfRagQualityThreshold}
+                      onChange={(v) => persistRagConfig({ selfRagQualityThreshold: v ?? 0.6 })}
+                      style={{ width: 200 }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t("settings.rag.selfRag.maxRetries")}</span>
+                    <InputNumber
+                      size="small"
+                      min={1}
+                      max={5}
+                      value={ragAdvancedConfig.selfRagMaxRetries}
+                      onChange={(v) => persistRagConfig({ selfRagMaxRetries: v ?? 2 })}
+                      style={{ width: 200 }}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          ),
+        }]}
+      />
 
       {/* Toolbar: add + rebuild on left, search + clear on right */}
       <div className="flex items-center justify-between mb-3 gap-3">

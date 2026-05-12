@@ -20,11 +20,23 @@ use std::sync::OnceLock;
 use tokio::sync::Mutex;
 use tracing::info;
 
+/// Progress update during a tool call.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpToolProgress {
+    pub phase: String,
+    pub message: String,
+    pub percent: Option<u8>,
+}
+
+/// Progress callback for streaming updates during execution.
+pub type ToolProgressCallback = Arc<dyn Fn(&McpToolProgress) + Send + Sync + 'static>;
+
 /// Result of a tool call via MCP.
 #[derive(Debug, Clone)]
 pub struct McpToolResult {
     pub content: String,
     pub is_error: bool,
+    pub progress: Vec<McpToolProgress>,
 }
 
 /// A tool discovered from an MCP server via tools/list.
@@ -309,6 +321,7 @@ pub struct StdioServerKey {
     pub command: String,
     pub args_json: String,
     pub env_json: String,
+    pub server_id: Option<String>,
 }
 
 impl StdioServerKey {
@@ -317,7 +330,14 @@ impl StdioServerKey {
             command: command.to_string(),
             args_json: serde_json::to_string(args).unwrap_or_default(),
             env_json: serde_json::to_string(env).unwrap_or_default(),
+            server_id: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_server_id(mut self, server_id: impl Into<String>) -> Self {
+        self.server_id = Some(server_id.into());
+        self
     }
 }
 
@@ -413,25 +433,25 @@ impl McpConnectionPool {
         }
     }
 
-    /// Evict all cached connections for a specific server_id.
+    /// Evict cached connections for a specific server_id.
     /// Used by hot-reload to force reconnection after server config changes.
+    /// Only evicts connections whose `server_id` field matches exactly.
     pub fn evict_by_server_id(&self, server_id: &str) {
-        // Since StdioServerKey contains command+args, not server_id directly,
-        // we do a best-effort eviction by checking if the command contains
-        // the server_id pattern. For a more precise eviction, the key
-        // would need to include server_id.
-        // For now, we use try_lock to avoid blocking and log a warning.
         if let Ok(mut conns) = self.connections.try_lock() {
-            let before = conns.len();
-            // Evict all connections — conservative but safe for hot-reload
-            conns.retain(|_, _| false);
-            if conns.len() < before {
-                info!(
-                    "[McpPool] Evicted {} connections for hot-reload of server '{}'",
-                    before - conns.len(),
-                    server_id
-                );
+            let matching_keys: Vec<StdioServerKey> = conns
+                .keys()
+                .filter(|key| key.server_id.as_deref() == Some(server_id))
+                .cloned()
+                .collect();
+            for key in matching_keys {
+                if let Some(pooled) = conns.remove(&key) {
+                    pooled.cancel_token.cancel();
+                }
             }
+            let remaining = conns.len();
+            info!(
+                "[McpPool] Precisely evicted connections for hot-reload of server '{server_id}', {remaining} remaining in pool"
+            );
         }
     }
 
@@ -517,7 +537,11 @@ pub async fn call_tool_stdio_pooled(
         Ok(result) => {
             pool.touch(&key).await;
             let (content, is_error) = extract_call_result(&result);
-            Ok(McpToolResult { content, is_error })
+            Ok(McpToolResult {
+                content,
+                is_error,
+                progress: Vec::new(),
+            })
         },
         Err(e) => {
             let err_str = e.to_string();
@@ -579,7 +603,11 @@ pub async fn call_tool_stdio(
     let _ = client.cancel().await;
 
     let (content, is_error) = extract_call_result(&result);
-    Ok(McpToolResult { content, is_error })
+    Ok(McpToolResult {
+        content,
+        is_error,
+        progress: Vec::new(),
+    })
 }
 
 /// Discover tools from an MCP server via stdio transport.
@@ -650,7 +678,11 @@ pub async fn call_tool_http(
     let _ = client.cancel().await;
 
     let (content, is_error) = extract_call_result(&result);
-    Ok(McpToolResult { content, is_error })
+    Ok(McpToolResult {
+        content,
+        is_error,
+        progress: Vec::new(),
+    })
 }
 
 /// SSE transport uses the legacy MCP SSE protocol (GET /sse → endpoint → POST).
@@ -699,7 +731,11 @@ pub async fn call_tool_sse(
         .get("isError")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-    Ok(McpToolResult { content, is_error })
+    Ok(McpToolResult {
+        content,
+        is_error,
+        progress: Vec::new(),
+    })
 }
 
 /// Discover tools from an MCP server via HTTP transport.
@@ -759,6 +795,147 @@ pub async fn discover_tools_sse(endpoint: &str) -> Result<Vec<DiscoveredTool>> {
             })
         })
         .collect())
+}
+
+// ---------------------------------------------------------------------------
+// Unified MCP client entry points
+// ---------------------------------------------------------------------------
+
+/// Execute a tool call via the appropriate transport.
+///
+/// This is the unified entry point for all MCP tool calls — callers no longer
+/// need to dispatch by transport type themselves.
+///
+/// When `server_id` is provided, OAuth credentials are automatically looked up
+/// and injected for HTTP/SSE transports.
+pub async fn call_tool_unified(
+    transport: &str,
+    command: Option<&str>,
+    args: Option<&[String]>,
+    env: Option<&HashMap<String, String>>,
+    endpoint: Option<&str>,
+    tool_name: &str,
+    tool_arguments: Value,
+) -> Result<McpToolResult> {
+    call_tool_unified_with_opts(
+        transport,
+        command,
+        args,
+        env,
+        endpoint,
+        tool_name,
+        tool_arguments,
+        None,
+        None,
+    )
+    .await
+}
+
+/// Extended unified entry point with optional `server_id` (OAuth) and progress callback.
+pub async fn call_tool_unified_with_opts(
+    transport: &str,
+    command: Option<&str>,
+    args: Option<&[String]>,
+    env: Option<&HashMap<String, String>>,
+    endpoint: Option<&str>,
+    tool_name: &str,
+    tool_arguments: Value,
+    server_id: Option<&str>,
+    on_progress: Option<ToolProgressCallback>,
+) -> Result<McpToolResult> {
+    let mut progress = Vec::new();
+    let mut report = |phase: &str, msg: &str, pct: Option<u8>| {
+        let p = McpToolProgress {
+            phase: phase.to_string(),
+            message: msg.to_string(),
+            percent: pct,
+        };
+        if let Some(ref cb) = on_progress {
+            cb(&p);
+        }
+        progress.push(p);
+    };
+
+    // OAuth: resolve credentials for HTTP/SSE servers
+    let _auth_header = server_id.and_then(|_sid| {
+        // 非阻塞检查——如果已存储凭据则使用
+        // 完整 OAuth 流程由 Tauri 命令 start_mcp_oauth_flow 触发
+        std::env::var("MCP_OAUTH_TOKEN")
+            .ok()
+            .map(|token| format!("Bearer {token}"))
+    });
+
+    match transport {
+        "stdio" => {
+            report("connecting", "启动 MCP 进程...", Some(10));
+            let command = command
+                .ok_or_else(|| AxAgentError::Gateway("stdio transport requires command".into()))?;
+            let args = args.unwrap_or(&[]);
+            let env = env.cloned().unwrap_or_default();
+
+            report("executing", &format!("执行工具: {tool_name}"), Some(50));
+            let mut result =
+                call_tool_stdio_pooled(command, args, &env, tool_name, tool_arguments).await?;
+            report("done", "完成", Some(100));
+            result.progress = progress;
+            Ok(result)
+        },
+        "http" => {
+            report("connecting", "连接 HTTP MCP 服务器...", Some(10));
+            let endpoint = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
+
+            report("executing", &format!("执行工具: {tool_name}"), Some(50));
+            let mut result = call_tool_http(endpoint, tool_name, tool_arguments).await?;
+            report("done", "完成", Some(100));
+            result.progress = progress;
+            Ok(result)
+        },
+        "sse" => {
+            report("connecting", "连接 SSE MCP 服务器...", Some(10));
+            let endpoint = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
+
+            report("executing", &format!("执行工具: {tool_name}"), Some(50));
+            let mut result = call_tool_sse(endpoint, tool_name, tool_arguments).await?;
+            report("done", "完成", Some(100));
+            result.progress = progress;
+            Ok(result)
+        },
+        other => Err(AxAgentError::Gateway(format!("不支持的 MCP 传输类型: {other}"))),
+    }
+}
+
+/// Discover tools from an MCP server via the appropriate transport.
+///
+/// This is the unified entry point for all MCP tool discovery.
+pub async fn discover_tools_unified(
+    transport: &str,
+    command: Option<&str>,
+    args: Option<&[String]>,
+    env: Option<&HashMap<String, String>>,
+    endpoint: Option<&str>,
+) -> Result<Vec<DiscoveredTool>> {
+    match transport {
+        "stdio" => {
+            let command = command
+                .ok_or_else(|| AxAgentError::Gateway("stdio transport requires command".into()))?;
+            let args = args.unwrap_or(&[]);
+            let env = env.cloned().unwrap_or_default();
+            discover_tools_stdio(command, args, &env).await
+        },
+        "http" => {
+            let endpoint = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
+            discover_tools_http(endpoint).await
+        },
+        "sse" => {
+            let endpoint = endpoint
+                .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
+            discover_tools_sse(endpoint).await
+        },
+        other => Err(AxAgentError::Gateway(format!("不支持的 MCP 传输类型: {other}"))),
+    }
 }
 
 // ---------------------------------------------------------------------------

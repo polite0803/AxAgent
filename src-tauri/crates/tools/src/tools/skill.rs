@@ -10,7 +10,9 @@ impl Tool for SkillTool {
         "Skill"
     }
     fn description(&self) -> &str {
-        "加载并执行一个已注册的 Skill。Skill 是预定义的任务模板，封装了特定领域的知识和工具组合。调用此工具后，你会收到该 Skill 的完整指令，请严格按照指令逐步执行。"
+        "加载并执行预注册的 Skill（领域任务模板）。Skill 封装了特定领域的知识、工具组合和操作流程。\
+         调用后返回该 Skill 的完整指令——必须严格按指令逐步执行，按需使用其他工具。\
+         不指定 args 时直接加载，指定时参数会注入到指令中。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({
@@ -73,6 +75,7 @@ impl Tool for SkillTool {
                             "source_dir": dir.to_string_lossy().to_string(),
                         })),
                         duration_ms: None,
+                        progress: Vec::new(),
                     });
                 }
             }
@@ -101,6 +104,7 @@ impl Tool for SkillTool {
                             "source_dir": dir.to_string_lossy().to_string(),
                         })),
                         duration_ms: None,
+                        progress: Vec::new(),
                     });
                 }
             }
@@ -123,5 +127,69 @@ impl Tool for SkillTool {
             "Skill '{}' 未找到。可用的 skills: {}",
             skill_name, hint
         )))
+    }
+}
+
+// ── DiscoverSkills ──
+
+pub struct DiscoverSkillsTool;
+
+#[async_trait]
+impl Tool for DiscoverSkillsTool {
+    fn name(&self) -> &str {
+        "DiscoverSkills"
+    }
+    fn description(&self) -> &str {
+        "通过名称/描述关键词搜索已安装的 Skill。扫描所有技能目录，返回匹配的技能名称和描述。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({"type":"object","properties":{"query":{"type":"string"}},"required":["query"]})
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Agent
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
+        let q = i["query"].as_str().unwrap_or("").to_lowercase();
+        let dirs = axagent_core::skill_dirs::skill_dirs();
+        let mut results: Vec<(String, String)> = Vec::new();
+
+        for (_kind, dir) in &dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    if entry.path().is_dir() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        let md = entry.path().join("SKILL.md");
+                        let desc = if md.exists() {
+                            std::fs::read_to_string(&md)
+                                .ok()
+                                .and_then(|c| c.lines().next().map(|l| l.to_string()))
+                                .unwrap_or_default()
+                        } else {
+                            String::new()
+                        };
+                        if (name.to_lowercase().contains(&q) || desc.to_lowercase().contains(&q))
+                            && !results.iter().any(|(n, _)| n == &name)
+                        {
+                            results.push((name, desc));
+                        }
+                    }
+                }
+            }
+        }
+
+        if results.is_empty() {
+            Ok(ToolResult::success(format!("未找到匹配 '{}' 的 Skill", q)))
+        } else {
+            let mut out = format!("## 技能搜索: '{}'\n\n", q);
+            for (n, d) in &results {
+                out.push_str(&format!("- **{}**: {}\n", n, d));
+            }
+            out.push_str(&format!("\n共 {} 个技能。使用 Skill 工具加载。", results.len()));
+            Ok(ToolResult::success(out))
+        }
     }
 }

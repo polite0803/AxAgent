@@ -46,7 +46,11 @@ export function getStagedPreferenceUpdate(): Partial<UpdateConversationInput> {
   if (staged.searchProviderId !== undefined) { update.search_provider_id = staged.searchProviderId; }
   if (staged.enabledMcpServerIds) { update.enabled_mcp_server_ids = staged.enabledMcpServerIds; }
   if (staged.enabledKnowledgeBaseIds) { update.enabled_knowledge_base_ids = staged.enabledKnowledgeBaseIds; }
-  if (staged.enabledMemoryNamespaceIds) { update.enabled_memory_namespace_ids = staged.enabledMemoryNamespaceIds; }
+  if (staged.activeMemoryNamespaceId) {
+    update.enabled_memory_namespace_ids = [
+      staged.activeMemoryNamespaceId as string,
+    ];
+  }
   if (staged.enabledWikiIds) { update.enabled_wiki_ids = staged.enabledWikiIds; }
   if (staged.thinkingBudget !== undefined) { update.thinking_budget = staged.thinkingBudget; }
   return update as Partial<UpdateConversationInput>;
@@ -60,7 +64,7 @@ type ConversationPreferenceState = Pick<
   | "mcpMode"
   | "enabledMcpServerIds"
   | "enabledKnowledgeBaseIds"
-  | "enabledMemoryNamespaceIds"
+  | "activeMemoryNamespaceId"
   | "enabledWikiIds"
 >;
 
@@ -74,7 +78,7 @@ function conversationPreferenceStateFromConversation(
     mcpMode: "auto",
     enabledMcpServerIds: [...(conversation?.enabled_mcp_server_ids ?? [])],
     enabledKnowledgeBaseIds: [...(conversation?.enabled_knowledge_base_ids ?? [])],
-    enabledMemoryNamespaceIds: [...(conversation?.enabled_memory_namespace_ids ?? [])],
+    activeMemoryNamespaceId: (conversation?.enabled_memory_namespace_ids ?? [])[0] ?? null,
     enabledWikiIds: [...(conversation?.enabled_wiki_ids ?? [])],
   };
 }
@@ -87,7 +91,7 @@ function conversationPreferenceUpdateFromState(
     | "thinkingBudget"
     | "enabledMcpServerIds"
     | "enabledKnowledgeBaseIds"
-    | "enabledMemoryNamespaceIds"
+    | "activeMemoryNamespaceId"
     | "enabledWikiIds"
   >,
 ): Pick<
@@ -106,7 +110,7 @@ function conversationPreferenceUpdateFromState(
     thinking_budget: state.thinkingBudget,
     enabled_mcp_server_ids: [...state.enabledMcpServerIds],
     enabled_knowledge_base_ids: [...state.enabledKnowledgeBaseIds],
-    enabled_memory_namespace_ids: [...state.enabledMemoryNamespaceIds],
+    enabled_memory_namespace_ids: state.activeMemoryNamespaceId ? [state.activeMemoryNamespaceId] : [],
     enabled_wiki_ids: [...state.enabledWikiIds],
   };
 }
@@ -187,7 +191,7 @@ async function persistConversationPreferences(
         mcpMode: prefState.mcpMode,
         enabledMcpServerIds: prefState.enabledMcpServerIds,
         enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
-        enabledMemoryNamespaceIds: prefState.enabledMemoryNamespaceIds,
+        activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
         enabledWikiIds: prefState.enabledWikiIds,
       }, optimisticState)
     ) {
@@ -259,7 +263,7 @@ interface PreferenceState {
   mcpMode: "auto" | "manual" | "disabled";
   thinkingBudget: number | null;
   enabledKnowledgeBaseIds: string[];
-  enabledMemoryNamespaceIds: string[];
+  activeMemoryNamespaceId: string | null;
   enabledWikiIds: string[];
   setSearchEnabled: (enabled: boolean) => void;
   setSearchProviderId: (id: string | null) => void;
@@ -269,8 +273,8 @@ interface PreferenceState {
   setThinkingBudget: (budget: number | null) => void;
   setEnabledKnowledgeBaseIds: (ids: string[]) => void;
   toggleKnowledgeBase: (id: string) => void;
-  setEnabledMemoryNamespaceIds: (ids: string[]) => void;
-  toggleMemoryNamespace: (id: string) => void;
+  setActiveMemoryNamespaceId: (id: string | null) => void;
+  setActiveMemoryNamespace: (id: string | null) => void;
   setEnabledWikiIds: (ids: string[]) => void;
   toggleWiki: (id: string) => void;
 }
@@ -282,7 +286,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
   mcpMode: "auto",
   thinkingBudget: null,
   enabledKnowledgeBaseIds: [],
-  enabledMemoryNamespaceIds: [],
+  activeMemoryNamespaceId: null,
   enabledWikiIds: [],
 
   setSearchEnabled: (enabled) => {
@@ -428,36 +432,33 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
       stagePreference("enabledKnowledgeBaseIds", nextIds);
     }
   },
-  setEnabledMemoryNamespaceIds: (ids) => {
-    const previous = get().enabledMemoryNamespaceIds;
+  setActiveMemoryNamespaceId: (id) => {
+    const previous = get().activeMemoryNamespaceId;
     const conversationId = useConversationStore.getState().activeConversationId;
-    const nextIds = [...ids];
-    set({ enabledMemoryNamespaceIds: nextIds });
+    set({ activeMemoryNamespaceId: id });
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_memory_namespace_ids: nextIds },
-        { enabledMemoryNamespaceIds: nextIds },
-        { enabledMemoryNamespaceIds: previous },
+        { enabled_memory_namespace_ids: id ? [id] : [] },
+        { activeMemoryNamespaceId: id },
+        { activeMemoryNamespaceId: previous },
       );
     }
   },
-  toggleMemoryNamespace: (id) => {
-    const previous = get().enabledMemoryNamespaceIds;
-    const nextIds = previous.includes(id)
-      ? previous.filter((memoryNamespaceId) => memoryNamespaceId !== id)
-      : [...previous, id];
+  setActiveMemoryNamespace: (id) => {
+    const previous = get().activeMemoryNamespaceId;
+    const nextId = previous === id ? null : id;
     const conversationId = useConversationStore.getState().activeConversationId;
-    set({ enabledMemoryNamespaceIds: nextIds });
+    set({ activeMemoryNamespaceId: nextId });
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_memory_namespace_ids: nextIds },
-        { enabledMemoryNamespaceIds: nextIds },
-        { enabledMemoryNamespaceIds: previous },
+        { enabled_memory_namespace_ids: nextId ? [nextId] : [] },
+        { activeMemoryNamespaceId: nextId },
+        { activeMemoryNamespaceId: previous },
       );
     } else {
-      stagePreference("enabledMemoryNamespaceIds", nextIds);
+      stagePreference("activeMemoryNamespaceId", nextId);
     }
   },
   setEnabledWikiIds: (ids) => {

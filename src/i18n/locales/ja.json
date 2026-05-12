@@ -221,7 +221,9 @@
     },
     "memory": {
       "title": "メモリ",
-      "empty": "先に設定でメモリ名前空間を追加してください"
+      "empty": "先に設定でメモリ名前空間を追加してください",
+      "selectHint": "Select a memory namespace for storage and retrieval",
+      "noneSelected": "None selected"
     },
     "memoryRetrieval": {
       "searching": "メモリを検索中...",
@@ -761,7 +763,17 @@
       "title": "知识源"
     },
     "agentInitTransient": "Agentセッションの初期化が一時的に失敗しました（接続の問題）。しばらくしてから再試行してください。",
-    "switchAgentModeNoConversationInfo": "Agentモードに切り替えました。メッセージを送信してAgent会話を作成してください。"
+    "switchAgentModeNoConversationInfo": "Agentモードに切り替えました。メッセージを送信してAgent会話を作成してください。",
+    "archiveConfirm": "アーカイブ確認？",
+    "batchArchiveContent": "{{count}} 個の会話をアーカイブしますか？",
+    "copyConversationId": "会話 ID をコピー",
+    "copyFailed": "コピー失敗",
+    "copyTranscript": "クリップボードにコピー",
+    "detachFromParent": "親会話から分離",
+    "forkConversation": "会話をフォーク",
+    "goToParent": "親会話へ移動",
+    "moveToWorkspace": "ワークスペースに移動",
+    "removeFromWorkspace": "ワークスペースから削除"
   },
   "gateway": {
     "title": "ゲートウェイ",
@@ -1384,6 +1396,41 @@
       "loadToWiki": "加载到Wiki",
       "ragTab": "知识库 RAG",
       "wikiTab": "知识库"
+    },
+    "rag": {
+      "advanced": "Advanced Retrieval Settings",
+      "rerank": {
+        "title": "Smart Reranking",
+        "desc": "Semantic reranking using cross-encoder models for better relevance",
+        "backend": "Rerank Backend",
+        "backendRule": "Rule-based",
+        "backendCross": "Cross-Encoder (Local Ollama)",
+        "backendPipeline": "Two-stage Pipeline (Rule + Cross-Encoder)",
+        "modelName": "Rerank Model",
+        "ollamaEndpoint": "Ollama Endpoint",
+        "topN": "Final Top-N",
+        "candidateK": "Candidate Set Size"
+      },
+      "selfRag": {
+        "title": "Self-RAG Quality Gate",
+        "desc": "Evaluate retrieval quality with a local judge model, auto-correct poor results",
+        "judgeModel": "Judge Model",
+        "relevanceThreshold": "Relevance Threshold",
+        "qualityThreshold": "Quality Threshold",
+        "maxRetries": "Max Retry Rounds"
+      },
+      "queryEnhancement": {
+        "title": "Query Enhancement",
+        "desc": "Auto-rewrite and expand user queries for better retrieval",
+        "strategy": "Enhancement Strategy",
+        "strategyNone": "None",
+        "strategyHyde": "HyDE (Hypothetical Document)",
+        "strategyMultiQuery": "Multi-Query",
+        "strategyDecomposition": "Decomposition",
+        "strategyAuto": "Auto",
+        "maxVariants": "Max Variants",
+        "combinedCall": "Combine HyDE+MultiQuery"
+      }
     },
     "memory": {
       "title": "メモリ",
@@ -3671,7 +3718,6 @@
     "varsSchemaPlaceholder": "{\"variable\": \"type\"}",
     "versionHistory": "版本历史：{{name}}",
     "rollback": "回滚",
-    "rollbackNotImplemented": "回滚功能尚未实现",
     "content": "コンテンツ",
     "deleteTemplate": "删除模板",
     "deleteTemplateConfirm": "确定删除此模板？",
@@ -3689,7 +3735,49 @@
     "applied": "模板已应用",
     "changeTemplate": "更换模板",
     "selected": "已选择",
-    "preview": "预览"
+    "preview": "预览",
+    "rollbackConfirm": "Confirm Rollback",
+    "rollbackConfirmDetail": "Rollback \"{{name}}\" to version {{version}}? Current version will be preserved in history.",
+    "rollbackSuccess": "Rollback successful",
+    "versionContent": "Version Content",
+    "noVersions": "No version history",
+    "import": "Import",
+    "export": "Export",
+    "importTitle": "Import Prompt Templates",
+    "importFromUrl": "From URL",
+    "importFromFile": "From File",
+    "importSuccess": "Successfully imported {{count}} templates",
+    "importEmpty": "No templates to import",
+    "imported": "Imported",
+    "skipped": "Skipped",
+    "errors": "Errors",
+    "importedList": "Imported list",
+    "skippedList": "Skipped list",
+    "errorList": "Error list",
+    "repoUrl": "Repository URL",
+    "urlRequired": "Please enter a repository URL",
+    "urlHint": "Supports GitHub repository URLs, auto-detects prompts directory",
+    "categoryFilter": "Category filter",
+    "categoryFilterPlaceholder": "Only import specific category",
+    "startImport": "Start Import",
+    "dropFileHint": "Click or drag file to this area to upload",
+    "supportedFormats": "Supported formats",
+    "unsupportedFileFormat": "Unsupported file format",
+    "useUrlImportForYaml": "YAML files are better imported via URL",
+    "exportSuccess": "Export successful",
+    "folderHint": "Select a local folder containing prompt .md files to scan and import all YAML frontmatter prompts",
+    "folderSupportedFormats": "Supported formats",
+    "importFromFolder": "From Folder",
+    "selectFolder": "Select Folder",
+    "filterByCategory": "Filter by category",
+    "category": "Category",
+    "categoryPlaceholder": "e.g. AI Work, AI Learning",
+    "tags": "Tags",
+    "tagsPlaceholder": "Comma separated, e.g. contract, legal, review",
+    "author": "Author",
+    "authorPlaceholder": "Author name",
+    "source": "Source",
+    "sourcePlaceholder": "Source URL"
   },
   "marketplace": {
     "reviewUpdated": "评价更新成功",

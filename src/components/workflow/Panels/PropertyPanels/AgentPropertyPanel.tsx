@@ -51,7 +51,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     for (const group of toolGroups) {
       if (!group.enabled) { continue; }
       for (const tool of group.tools) {
-        options.push({ value: tool.toolName, label: `${group.groupName} / ${tool.toolName}` });
+        options.push({ value: tool.name, label: `${group.groupName} / ${tool.name}` });
       }
     }
     return options;

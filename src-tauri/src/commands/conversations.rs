@@ -1053,6 +1053,7 @@ async fn execute_tool_call(
                 Ok(Ok(r)) => Ok(axagent_core::mcp_client::McpToolResult {
                     content: r.content,
                     is_error: r.is_error,
+                    progress: Vec::new(),
                 }),
                 Ok(Err(e)) => Err(axagent_core::error::AxAgentError::Gateway(e.to_string())),
                 Err(_) => {

@@ -221,7 +221,9 @@
     },
     "memory": {
       "title": "메모리",
-      "empty": "설정에서 먼저 메모리 네임스페이스를 추가하세요"
+      "empty": "설정에서 먼저 메모리 네임스페이스를 추가하세요",
+      "selectHint": "Select a memory namespace for storage and retrieval",
+      "noneSelected": "None selected"
     },
     "memoryRetrieval": {
       "searching": "메모리 검색 중...",
@@ -761,7 +763,17 @@
       "title": "Knowledge Sources"
     },
     "agentInitTransient": "Agent 세션 초기화가 일시적으로 실패했습니다(연결 문제). 잠시 후 다시 시도하세요.",
-    "switchAgentModeNoConversationInfo": "Agent 모드로 전환되었습니다. 메시지를 보내면 Agent 대화가 생성됩니다."
+    "switchAgentModeNoConversationInfo": "Agent 모드로 전환되었습니다. 메시지를 보내면 Agent 대화가 생성됩니다.",
+    "archiveConfirm": "보관 확인?",
+    "batchArchiveContent": "{{count}}개의 대화를 보관하시겠습니까?",
+    "copyConversationId": "대화 ID 복사",
+    "copyFailed": "복사 실패",
+    "copyTranscript": "클립보드에 복사",
+    "detachFromParent": "상위 대화에서 분리",
+    "forkConversation": "대화 포크",
+    "goToParent": "상위 대화로 이동",
+    "moveToWorkspace": "작업 영역으로 이동",
+    "removeFromWorkspace": "작업 영역에서 제거"
   },
   "gateway": {
     "title": "게이트웨이",
@@ -1384,6 +1396,41 @@
       "loadToWiki": "Wiki에 로드",
       "ragTab": "RAG",
       "wikiTab": "Wiki"
+    },
+    "rag": {
+      "advanced": "Advanced Retrieval Settings",
+      "rerank": {
+        "title": "Smart Reranking",
+        "desc": "Semantic reranking using cross-encoder models for better relevance",
+        "backend": "Rerank Backend",
+        "backendRule": "Rule-based",
+        "backendCross": "Cross-Encoder (Local Ollama)",
+        "backendPipeline": "Two-stage Pipeline (Rule + Cross-Encoder)",
+        "modelName": "Rerank Model",
+        "ollamaEndpoint": "Ollama Endpoint",
+        "topN": "Final Top-N",
+        "candidateK": "Candidate Set Size"
+      },
+      "selfRag": {
+        "title": "Self-RAG Quality Gate",
+        "desc": "Evaluate retrieval quality with a local judge model, auto-correct poor results",
+        "judgeModel": "Judge Model",
+        "relevanceThreshold": "Relevance Threshold",
+        "qualityThreshold": "Quality Threshold",
+        "maxRetries": "Max Retry Rounds"
+      },
+      "queryEnhancement": {
+        "title": "Query Enhancement",
+        "desc": "Auto-rewrite and expand user queries for better retrieval",
+        "strategy": "Enhancement Strategy",
+        "strategyNone": "None",
+        "strategyHyde": "HyDE (Hypothetical Document)",
+        "strategyMultiQuery": "Multi-Query",
+        "strategyDecomposition": "Decomposition",
+        "strategyAuto": "Auto",
+        "maxVariants": "Max Variants",
+        "combinedCall": "Combine HyDE+MultiQuery"
+      }
     },
     "memory": {
       "title": "메모리",
@@ -3671,7 +3718,6 @@
     "varsSchemaPlaceholder": "{\"variable\": \"type\"}",
     "versionHistory": "Version History: {{name}}",
     "rollback": "Rollback",
-    "rollbackNotImplemented": "Rollback not implemented",
     "content": "Content",
     "deleteTemplate": "Delete Template",
     "deleteTemplateConfirm": "Delete this template?",
@@ -3689,7 +3735,49 @@
     "applied": "템플릿 적용됨",
     "changeTemplate": "템플릿 변경",
     "selected": "선택됨",
-    "preview": "미리보기"
+    "preview": "미리보기",
+    "rollbackConfirm": "Confirm Rollback",
+    "rollbackConfirmDetail": "Rollback \"{{name}}\" to version {{version}}? Current version will be preserved in history.",
+    "rollbackSuccess": "Rollback successful",
+    "versionContent": "Version Content",
+    "noVersions": "No version history",
+    "import": "Import",
+    "export": "Export",
+    "importTitle": "Import Prompt Templates",
+    "importFromUrl": "From URL",
+    "importFromFile": "From File",
+    "importSuccess": "Successfully imported {{count}} templates",
+    "importEmpty": "No templates to import",
+    "imported": "Imported",
+    "skipped": "Skipped",
+    "errors": "Errors",
+    "importedList": "Imported list",
+    "skippedList": "Skipped list",
+    "errorList": "Error list",
+    "repoUrl": "Repository URL",
+    "urlRequired": "Please enter a repository URL",
+    "urlHint": "Supports GitHub repository URLs, auto-detects prompts directory",
+    "categoryFilter": "Category filter",
+    "categoryFilterPlaceholder": "Only import specific category",
+    "startImport": "Start Import",
+    "dropFileHint": "Click or drag file to this area to upload",
+    "supportedFormats": "Supported formats",
+    "unsupportedFileFormat": "Unsupported file format",
+    "useUrlImportForYaml": "YAML files are better imported via URL",
+    "exportSuccess": "Export successful",
+    "folderHint": "Select a local folder containing prompt .md files to scan and import all YAML frontmatter prompts",
+    "folderSupportedFormats": "Supported formats",
+    "importFromFolder": "From Folder",
+    "selectFolder": "Select Folder",
+    "filterByCategory": "Filter by category",
+    "category": "Category",
+    "categoryPlaceholder": "e.g. AI Work, AI Learning",
+    "tags": "Tags",
+    "tagsPlaceholder": "Comma separated, e.g. contract, legal, review",
+    "author": "Author",
+    "authorPlaceholder": "Author name",
+    "source": "Source",
+    "sourcePlaceholder": "Source URL"
   },
   "marketplace": {
     "reviewUpdated": "Review updated successfully",

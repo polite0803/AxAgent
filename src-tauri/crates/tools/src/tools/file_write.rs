@@ -17,7 +17,9 @@ impl Tool for FileWriteTool {
         "FileWrite"
     }
     fn description(&self) -> &str {
-        "创建新文件或完全覆盖已有文件。会自动创建必要的父目录。"
+        "创建新文件或完全覆盖已有文件（⚠️ 不可逆）。自动创建父目录。\
+         适用：新建代码文件、配置文件、脚本。不适用：修改现有文件（用 FileEdit）、追加内容。\
+         file_path 必须是绝对路径，内容为字符串。大文件（>50MB）将被拒绝。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({

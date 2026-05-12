@@ -1,13 +1,18 @@
 import { SessionSearchPanel } from "@/components/search/SessionSearchPanel";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { getConvIcon } from "@/lib/convIcon";
-import { exportAsJSON, exportAsMarkdown, exportAsPNG, exportAsText } from "@/lib/exportChat";
+import {
+  copyTranscript,
+  exportAsHTML,
+  exportAsJSON,
+  exportAsMarkdown,
+  exportAsPNG,
+  exportAsText,
+} from "@/lib/exportChat";
 import { invoke } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import {
-  useCategoryStore,
   useConversationStore,
   useKnowledgeStore,
   useProviderStore,
@@ -16,26 +21,10 @@ import {
   useUIStore,
   useWorkflowEditorStore,
 } from "@/stores";
-import type { AvatarType } from "@/stores";
 import { _suppressSidebarAutoSelect, resetSidebarAutoSelectSuppression } from "@/stores/domain/conversationStore";
-import { useExpertStore } from "@/stores/feature/expertStore";
-import type { Conversation, ConversationCategory, Message } from "@/types";
-import { EXPERT_CATEGORY_LABELS } from "@/types";
+import type { Conversation, Message } from "@/types";
 import Conversations from "@ant-design/x/es/conversations";
 import type { ConversationItemType } from "@ant-design/x/es/conversations/interface";
-import {
-  closestCenter,
-  DndContext,
-  type DragEndEvent,
-  type DragOverEvent,
-  DragOverlay,
-  type DragStartEvent,
-  PointerSensor,
-  useDraggable,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
 import { ModelIcon } from "@lobehub/icons";
 import {
   App,
@@ -58,19 +47,18 @@ import {
   ArrowLeft,
   Bot,
   ChevronRight,
+  Copy,
   FileCode,
   FileImage,
   FileText,
   FileType,
   FolderOpen,
-  FolderPlus,
   GitBranch,
-  GripVertical,
+  GitFork,
   Link2,
   ListTodo,
   Loader,
   MessageSquarePlus,
-  MessageSquareText,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
@@ -78,13 +66,13 @@ import {
   PinOff,
   Search,
   Share,
+  Sparkles,
   Trash2,
   Undo2,
   X,
 } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { type CategoryEditFormData, CategoryEditModal } from "./CategoryEditModal";
 
 function getDateGroup(timestamp: number): string {
   const now = new Date();
@@ -101,92 +89,6 @@ function getDateGroup(timestamp: number): string {
   if (date >= startOfWeek) { return "thisWeek"; }
   if (date >= startOfMonth) { return "thisMonth"; }
   return "earlier";
-}
-
-const CategoryIcon = memo(function CategoryIcon({ cat, size = 14 }: { cat: ConversationCategory; size?: number }) {
-  const resolvedSrc = useResolvedAvatarSrc((cat.icon_type as AvatarType) ?? "icon", cat.icon_value ?? "");
-  if (cat.icon_type === "emoji" && cat.icon_value) {
-    return <span style={{ fontSize: size - 1 }}>{cat.icon_value}</span>;
-  }
-  if (cat.icon_type === "url" && cat.icon_value) {
-    return (
-      <img src={cat.icon_value} alt="" style={{ width: size, height: size, borderRadius: 2, objectFit: "cover" }} />
-    );
-  }
-  if (cat.icon_type === "file" && cat.icon_value) {
-    const src = resolvedSrc ?? (cat.icon_value.startsWith("data:") ? cat.icon_value : undefined);
-    if (src) {
-      return <img src={src} alt="" style={{ width: size, height: size, borderRadius: 2, objectFit: "cover" }} />;
-    }
-  }
-  return <FolderOpen size={size - 1} />;
-});
-
-function SortableCategoryLabel({
-  cat,
-  onCreateConversation,
-  onEdit,
-  onDelete,
-  menuActionRef,
-  newConversationLabel,
-  editLabel,
-  deleteLabel,
-}: {
-  cat: ConversationCategory;
-  onCreateConversation: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  menuActionRef: React.MutableRefObject<boolean>;
-  newConversationLabel: string;
-  editLabel: string;
-  deleteLabel: string;
-}) {
-  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: cat.id });
-  const { setNodeRef: setDropRef } = useDroppable({ id: cat.id });
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
-    setDragRef(node);
-    setDropRef(node);
-  }, [setDragRef, setDropRef]);
-
-  return (
-    <Dropdown
-      trigger={["contextMenu"]}
-      menu={{
-        items: [
-          { key: "new", label: newConversationLabel, icon: <MessageSquarePlus size={14} /> },
-          { key: "edit", label: editLabel, icon: <Pencil size={14} /> },
-          { key: "delete", label: deleteLabel, icon: <Trash2 size={14} />, danger: true },
-        ],
-        onClick: ({ key, domEvent }) => {
-          domEvent.stopPropagation();
-          menuActionRef.current = true;
-          setTimeout(() => {
-            menuActionRef.current = false;
-          }, 100);
-          if (key === "new") { onCreateConversation(); }
-          else if (key === "edit") { onEdit(); }
-          else if (key === "delete") { onDelete(); }
-        },
-      }}
-    >
-      <div
-        ref={mergedRef}
-        className="flex items-center gap-1"
-        style={{ opacity: isDragging ? 0.3 : 1, cursor: "pointer", userSelect: "none", flex: 1 }}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical size={12} style={{ opacity: 0.4, cursor: "grab", flexShrink: 0 }} />
-        <CategoryIcon cat={cat} size={14} />
-        <span className="truncate">{cat.name}</span>
-        {cat.system_prompt && (
-          <Tooltip title="System Prompt">
-            <MessageSquareText size={12} style={{ opacity: 0.45, flexShrink: 0 }} />
-          </Tooltip>
-        )}
-      </div>
-    </Dropdown>
-  );
 }
 
 export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapsed: boolean) => void }) {
@@ -206,12 +108,16 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const createConversation = useConversationStore((s) => s.createConversation);
   const deleteConversation = useConversationStore((s) => s.deleteConversation);
   const updateConversation = useConversationStore((s) => s.updateConversation);
+  const regenerateTitle = useConversationStore((s) => s.regenerateTitle);
+  const titleGeneratingConversationId = useConversationStore((s) => s.titleGeneratingConversationId);
+  const forkConversation = useConversationStore((s) => s.forkConversation);
   const togglePin = useConversationStore((s) => s.togglePin);
   const toggleArchive = useConversationStore((s) => s.toggleArchive);
   const archiveToKnowledgeBase = useConversationStore((s) => s.archiveToKnowledgeBase);
   const archivedConversations = useConversationStore((s) => s.archivedConversations);
   const fetchArchivedConversations = useConversationStore((s) => s.fetchArchivedConversations);
   const batchDelete = useConversationStore((s) => s.batchDelete);
+  const batchArchive = useConversationStore((s) => s.batchArchive);
   const knowledgeBases = useKnowledgeStore((s) => s.bases);
   const loadKnowledgeBases = useKnowledgeStore((s) => s.loadBases);
   const streamingConversationId = useStreamStore((s) => s.streamingConversationId);
@@ -221,69 +127,6 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const providers = useProviderStore((s) => s.providers);
   const settings = useSettingsStore((s) => s.settings);
   const settingsLoading = useSettingsStore((s) => s.loading);
-
-  const categories = useCategoryStore((s) => s.categories);
-  const fetchCategories = useCategoryStore((s) => s.fetchCategories);
-  const createCategory = useCategoryStore((s) => s.createCategory);
-  const updateCategory = useCategoryStore((s) => s.updateCategory);
-  const deleteCategory = useCategoryStore((s) => s.deleteCategory);
-  const setCollapsed = useCategoryStore((s) => s.setCollapsed);
-  const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
-
-  const [activeDragCatId, setActiveDragCatId] = useState<string | null>(null);
-  const dragInitialOrderRef = useRef<string[]>([]);
-
-  const handleCategoryDragStart = useCallback((event: DragStartEvent) => {
-    setActiveDragCatId(String(event.active.id));
-    dragInitialOrderRef.current = categories.map((c) => c.id);
-  }, [categories]);
-
-  const handleCategoryDragOver = useCallback((event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) { return; }
-    const ids = categories.map((c) => c.id);
-    const oldIndex = ids.indexOf(String(active.id));
-    const newIndex = ids.indexOf(String(over.id));
-    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) { return; }
-    const newIds = [...ids];
-    newIds.splice(oldIndex, 1);
-    newIds.splice(newIndex, 0, String(active.id));
-    useCategoryStore.setState((s) => ({
-      categories: newIds
-        .map((id, i) => {
-          const c = s.categories.find((cat) => cat.id === id);
-          return c ? { ...c, sort_order: i } : null;
-        })
-        .filter(Boolean) as ConversationCategory[],
-    }));
-  }, [categories]);
-
-  const handleCategoryDragEnd = useCallback(
-    (_event: DragEndEvent) => {
-      setActiveDragCatId(null);
-      // Always persist current order (onDragOver already updated store)
-      const ids = useCategoryStore.getState().categories.map((c) => c.id);
-      void invoke("reorder_conversation_categories", { categoryIds: ids });
-    },
-    [],
-  );
-
-  const handleCategoryDragCancel = useCallback(() => {
-    setActiveDragCatId(null);
-    const initial = dragInitialOrderRef.current;
-    if (initial.length > 0) {
-      useCategoryStore.setState((s) => ({
-        categories: initial
-          .map((id, i) => {
-            const c = s.categories.find((cat) => cat.id === id);
-            return c ? { ...c, sort_order: i } : null;
-          })
-          .filter(Boolean) as ConversationCategory[],
-      }));
-    }
-  }, []);
 
   const shortcutHint = useCallback((label: string, action: ShortcutAction) => {
     if (!settings) { return label; }
@@ -312,8 +155,6 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const [archivedSelectedIds, setArchivedSelectedIds] = useState<Set<string>>(new Set());
   const [archivedMultiSelect, setArchivedMultiSelect] = useState(false);
   const [rightClickedConvId, setRightClickedConvId] = useState<string | null>(null);
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ConversationCategory | null>(null);
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [archiveKbModalOpen, setArchiveKbModalOpen] = useState(false);
@@ -321,6 +162,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const [archiveTargetIds, setArchiveTargetIds] = useState<string[]>([]);
   const [selectedKbId, setSelectedKbId] = useState<string | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const conversationsLoading = useConversationStore((s) => s.loading);
 
   // Auto-expand parent when active conversation is a child
   useEffect(() => {
@@ -367,11 +209,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     }
   }, [activeConversationId, settings.last_selected_conversation_id]);
 
-  useEffect(() => {
-    void fetchCategories();
-  }, [fetchCategories]);
-
-  const handleNewConversation = useCallback(async (categoryId?: string | null) => {
+  const handleNewConversation = useCallback(async () => {
     let provider: typeof providers[0] | undefined;
     let model: typeof providers[0]["models"][0] | undefined;
 
@@ -398,13 +236,10 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       return;
     }
 
-    const activeConv = conversations.find((c) => c.id === activeConversationId);
-    const templateCategoryId = categoryId ?? activeConv?.category_id ?? null;
     await createConversation(
       t("chat.newConversation"),
       model.model_id,
       provider.id,
-      { categoryId: templateCategoryId },
     );
   }, [providers, settings, conversations, activeConversationId, createConversation, messageApi, t]);
 
@@ -436,22 +271,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         filtered = filtered.filter((c: Conversation) => c.title.toLowerCase().includes(query));
       }
     }
-    // Categorized conversations first (by category sort_order), then uncategorized
-    const categorized = filtered.filter((c) => c.category_id);
-    const uncategorized = filtered.filter((c) => !c.category_id);
-    const catOrderMap = new Map(categories.map((cat) => [cat.id, cat.sort_order]));
-    categorized.sort((a, b) => {
-      const oa = catOrderMap.get(a.category_id!) ?? 0;
-      const ob = catOrderMap.get(b.category_id!) ?? 0;
-      if (oa !== ob) { return oa - ob; }
-      return b.updated_at - a.updated_at;
-    });
-    uncategorized.sort((a, b) => {
+    filtered.sort((a, b) => {
       if (a.is_pinned !== b.is_pinned) { return a.is_pinned ? -1 : 1; }
       return b.updated_at - a.updated_at;
     });
-    return [...categorized, ...uncategorized];
-  }, [conversations, searchText, categories, fts5ResultIds]);
+    return filtered;
+  }, [conversations, searchText, fts5ResultIds]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -466,6 +291,39 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     setMultiSelectMode(false);
     setSelectedIds(new Set());
   }, []);
+
+  // Ctrl+A / Escape keyboard shortcuts for multi-select mode
+  useEffect(() => {
+    if (!multiSelectMode) { return; }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        exitMultiSelect();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault();
+        const targets = showArchived ? archivedConversations : conversations;
+        const currentIds = showArchived ? archivedSelectedIds : selectedIds;
+        const allSelected = targets.every((c) => currentIds.has(c.id));
+        if (showArchived) {
+          setArchivedSelectedIds(allSelected ? new Set() : new Set(targets.map((c) => c.id)));
+        } else {
+          setSelectedIds(allSelected ? new Set() : new Set(targets.map((c) => c.id)));
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    multiSelectMode,
+    showArchived,
+    conversations,
+    archivedConversations,
+    selectedIds,
+    archivedSelectedIds,
+    exitMultiSelect,
+  ]);
 
   const isAllSelected = useMemo(
     () => filteredConversations.length > 0 && selectedIds.size === filteredConversations.length,
@@ -507,17 +365,6 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       },
     });
   }, [selectedIds, batchDelete, exitMultiSelect, modal, t]);
-
-  const handleBatchArchive = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) { return; }
-    // Open knowledge base selector for batch archive
-    setArchiveTargetIds(ids);
-    setArchiveTargetId(null);
-    setSelectedKbId(null);
-    await loadKnowledgeBases();
-    setArchiveKbModalOpen(true);
-  }, [selectedIds, loadKnowledgeBases]);
 
   const handleArchiveSingle = useCallback(async (convId: string) => {
     // Open knowledge base selector for single archive
@@ -673,7 +520,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     () => {
       const items: ConversationItemType[] = [];
 
-      // Build parent→children map (max 1 level nesting)
+      // Build parent→children map (supports arbitrary depth)
       const childrenMap = new Map<string, Conversation[]>();
       const topLevel: Conversation[] = [];
       filteredConversations.forEach((conv) => {
@@ -686,50 +533,39 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         }
       });
 
-      // Group conversations by category_id for ordered insertion
-      const convsByCatId = new Map<string, Conversation[]>();
+      // Group conversations by workspace_dir
+      const convsByWorkspaceDir = new Map<string, Conversation[]>();
       const uncategorizedConvs: Conversation[] = [];
       topLevel.forEach((conv) => {
-        if (conv.category_id) {
-          const arr = convsByCatId.get(conv.category_id) ?? [];
+        if (conv.workspace_dir) {
+          const arr = convsByWorkspaceDir.get(conv.workspace_dir) ?? [];
           arr.push(conv);
-          convsByCatId.set(conv.category_id, arr);
+          convsByWorkspaceDir.set(conv.workspace_dir, arr);
         } else {
           uncategorizedConvs.push(conv);
         }
       });
 
-      // Expert grouping: conversations with expert_role_id but no category_id
-      // are grouped by their expert category
-      const { getRoleById } = useExpertStore.getState();
-      const convsByExpertCat = new Map<string, Conversation[]>();
-      const trulyUncategorized: Conversation[] = [];
-      uncategorizedConvs.forEach((conv) => {
-        if (conv.expert_role_id) {
-          const role = getRoleById(conv.expert_role_id);
-          if (role) {
-            const arr = convsByExpertCat.get(role.category) ?? [];
-            arr.push(conv);
-            convsByExpertCat.set(role.category, arr);
-            return;
-          }
-        }
-        trulyUncategorized.push(conv);
-      });
-
       const hasChildren = (convId: string) => (childrenMap.get(convId)?.length ?? 0) > 0;
       const isExpanded = (convId: string) => expandedParentIds.has(convId);
 
-      const buildConvItem = (conv: Conversation, group: string, isChild = false): ConversationItemType => {
+      const buildConvItem = (conv: Conversation, group: string, depth = 0): ConversationItemType => {
         const icon = buildIcon(conv);
         const childCount = childrenMap.get(conv.id)?.length ?? 0;
         const expanded = isExpanded(conv.id);
 
+        const isTitleGen = titleGeneratingConversationId === conv.id;
         let label: React.ReactNode;
-        if (conv.is_pinned && !isChild) {
+        if (conv.is_pinned && depth === 0) {
           label = (
             <span className="flex items-center gap-1">
               <span className="truncate">{conv.title}</span>
+              {isTitleGen && (
+                <Loader
+                  size={10}
+                  style={{ flexShrink: 0, animation: "spin 1s linear infinite", color: token.colorTextQuaternary }}
+                />
+              )}
               {conv.mode === "gateway" && (
                 <Tag
                   style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }}
@@ -745,6 +581,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
           label = (
             <span className="flex items-center gap-1">
               <span className="truncate">{conv.title}</span>
+              {isTitleGen && (
+                <Loader
+                  size={10}
+                  style={{ flexShrink: 0, animation: "spin 1s linear infinite", color: token.colorTextQuaternary }}
+                />
+              )}
               {conv.mode === "gateway" && (
                 <Tag
                   style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }}
@@ -782,10 +624,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                   }}
                 />
               </span>
-              <span className="truncate">{typeof label === "string" ? label : label}</span>
+              <span className="truncate">{conv.title}</span>
             </span>
           );
         }
+
+        const indent = depth > 0 ? { paddingLeft: 20 + (depth - 1) * 16 } : {};
 
         if (multiSelectMode) {
           return {
@@ -803,7 +647,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             ),
             group,
             "data-conv-id": conv.id,
-            ...(isChild ? { style: { paddingLeft: 20 } } : {}),
+            ...(depth > 0 ? { style: indent } : {}),
           };
         }
         return {
@@ -812,60 +656,29 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
           icon,
           group,
           "data-conv-id": conv.id,
-          ...(isChild ? { style: { paddingLeft: 20 } } : {}),
+          ...(depth > 0 ? { style: indent } : {}),
         };
       };
 
-      // Helper: push a conversation and its children (if expanded)
-      const pushConvWithChildren = (conv: Conversation, group: string) => {
-        items.push(buildConvItem(conv, group));
+      // Helper: recursively push a conversation and its descendants
+      const pushConvWithChildren = (conv: Conversation, group: string, depth = 0) => {
+        items.push(buildConvItem(conv, group, depth));
         if (hasChildren(conv.id) && isExpanded(conv.id)) {
           const children = childrenMap.get(conv.id)!;
-          children.forEach((child) => items.push(buildConvItem(child, group, true)));
+          children.forEach((child) => pushConvWithChildren(child, group, depth + 1));
         }
       };
 
-      // Add category items in sort_order — ensures group rendering order matches drag order
-      categories.forEach((cat) => {
-        const catConvs = convsByCatId.get(cat.id);
-        if (catConvs && catConvs.length > 0) {
-          catConvs.forEach((conv) => pushConvWithChildren(conv, `cat:${cat.id}`));
-        } else {
-          items.push({
-            key: `__empty_cat_${cat.id}`,
-            label: (
-              <span style={{ color: token.colorTextQuaternary, fontSize: 12, fontStyle: "italic" }}>
-                {t("chat.noConversations")}
-              </span>
-            ),
-            icon: null,
-            group: `cat:${cat.id}`,
-            disabled: true,
-            style: { pointerEvents: "none", minHeight: 28, opacity: 0.6 },
-          });
-        }
-      });
+      // Add workspace directory groups (sorted alphabetically)
+      Array.from(convsByWorkspaceDir.keys())
+        .sort()
+        .forEach((wsDir) => {
+          const wsConvs = convsByWorkspaceDir.get(wsDir)!;
+          wsConvs.forEach((conv) => pushConvWithChildren(conv, `ws:${wsDir}`));
+        });
 
-      // Add expert category groups (for conversations with expert_role_id but no category_id)
-      const expertCategoryOrder: string[] = [
-        "development",
-        "security",
-        "data",
-        "devops",
-        "design",
-        "writing",
-        "business",
-        "general",
-      ];
-      expertCategoryOrder.forEach((expertCat) => {
-        const expertConvs = convsByExpertCat.get(expertCat);
-        if (expertConvs && expertConvs.length > 0) {
-          expertConvs.forEach((conv) => pushConvWithChildren(conv, `expert:${expertCat}`));
-        }
-      });
-
-      // Add truly uncategorized conversations (no category_id, no expert_role_id)
-      trulyUncategorized.forEach((conv) => {
+      // Add uncategorized conversations (no workspace_dir) by date groups
+      uncategorizedConvs.forEach((conv) => {
         const group = conv.is_pinned ? "pinned" : getDateGroup(conv.updated_at);
         pushConvWithChildren(conv, group);
       });
@@ -879,8 +692,8 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       buildIcon,
       toggleSelect,
       token.colorTextQuaternary,
-      categories,
       t,
+      titleGeneratingConversationId,
       expandedParentIds,
     ],
   );
@@ -895,189 +708,152 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         thisMonth: t("chat.thisMonth"),
         earlier: t("chat.earlier"),
       };
-      categories.forEach((cat) => {
-        labels[`cat:${cat.id}`] = cat.name;
-      });
-      // Expert category labels
-      for (const [key, label] of Object.entries(EXPERT_CATEGORY_LABELS)) {
-        labels[`expert:${key}`] = label;
-      }
       return labels;
     },
-    [t, categories],
+    [t],
   );
 
   // Local state for expanded group keys (drives the UI immediately)
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 
-  // Track known category IDs to detect new ones
-  const knownCatIdsRef = useRef(new Set<string>());
+  // Auto-expand workspace groups on first load
+  const wsAutoExpandDoneRef = useRef(false);
   useEffect(() => {
-    const currentIds = new Set(categories.map((c) => c.id));
-    // Find newly appeared categories (initial load or newly created)
-    const newCats = categories.filter((c) => !knownCatIdsRef.current.has(c.id));
-    if (newCats.length > 0) {
-      const newExpandedKeys = newCats.filter((c) => !c.is_collapsed).map((c) => `cat:${c.id}`);
-      if (newExpandedKeys.length > 0) {
-        setExpandedKeys((prev) => [...prev, ...newExpandedKeys]);
+    if (wsAutoExpandDoneRef.current || conversationItems.length === 0) { return; }
+    const wsKeys = new Set<string>();
+    conversationItems.forEach((item) => {
+      if (item.group?.startsWith("ws:")) {
+        wsKeys.add(item.group);
       }
+    });
+    if (wsKeys.size > 0) {
+      setExpandedKeys(Array.from(wsKeys));
+      wsAutoExpandDoneRef.current = true;
     }
-    // Remove keys for deleted categories
-    const deletedIds = [...knownCatIdsRef.current].filter((id) => !currentIds.has(id));
-    if (deletedIds.length > 0) {
-      const deletedKeys = new Set(deletedIds.map((id) => `cat:${id}`));
-      setExpandedKeys((prev) => prev.filter((k) => !deletedKeys.has(k)));
-    }
-    knownCatIdsRef.current = currentIds;
-  }, [categories]);
-
-  // Auto-expand category of the active conversation on load
-  const initialExpandDoneRef = useRef(false);
-  useEffect(() => {
-    if (initialExpandDoneRef.current || !activeConversationId || categories.length === 0) { return; }
-    const activeConv = conversations.find((c) => c.id === activeConversationId);
-    if (activeConv?.category_id) {
-      const key = `cat:${activeConv.category_id}`;
-      setExpandedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
-    }
-    initialExpandDoneRef.current = true;
-  }, [activeConversationId, conversations, categories]);
-
-  // Guard to prevent menu clicks from triggering expand/collapse
-  const menuActionRef = useRef(false);
+  }, [conversationItems]);
 
   const handleGroupExpand = useCallback(
     (keys: string[]) => {
-      if (menuActionRef.current) { return; }
       setExpandedKeys(keys);
-      const expandedCatIds = new Set(
-        keys.filter((k) => k.startsWith("cat:")).map((k) => k.slice(4)),
-      );
-      categories.forEach((cat) => {
-        const shouldBeCollapsed = !expandedCatIds.has(cat.id);
-        if (cat.is_collapsed !== shouldBeCollapsed) {
-          void setCollapsed(cat.id, shouldBeCollapsed);
-        }
-      });
     },
-    [categories, setCollapsed],
+    [],
   );
 
-  const handleDeleteCategory = useCallback(
-    async (catId: string) => {
-      modal.confirm({
-        title: t("chat.deleteCategoryConfirm"),
-        mask: { enabled: true, blur: true },
-        okButtonProps: { danger: true },
-        onOk: async () => {
-          await deleteCategory(catId);
-          await useConversationStore.getState().fetchConversations();
-        },
-      });
-    },
-    [deleteCategory, modal, t],
-  );
+  const abbreviateWsPath = useCallback((path: string): string => {
+    const segments = path.replace(/\\/g, "/").split("/").filter(Boolean);
+    if (segments.length <= 1) { return path; }
+    if (segments.length === 2) { return segments.join("/"); }
+    // Show last 2 segments, but if duplicate exists among all ws dirs, extend to 3
+    const short2 = segments.slice(-2).join("/");
+    const wsPaths = Array.from(new Set(conversations.map((c) => c.workspace_dir).filter(Boolean) as string[]));
+    const hasConflict = wsPaths.some((p) => {
+      const s = p.replace(/\\/g, "/").split("/").filter(Boolean);
+      return s.length >= 2 && s.slice(-2).join("/") === short2 && p !== path;
+    });
+    if (hasConflict && segments.length >= 3) { return "…/" + segments.slice(-3).join("/"); }
+    return "…/" + short2;
+  }, [conversations]);
+
+  // Count conversations per workspace for group badge
+  const wsCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    conversations.forEach((c) => {
+      if (c.workspace_dir && !c.parent_conversation_id) {
+        map.set(c.workspace_dir, (map.get(c.workspace_dir) ?? 0) + 1);
+      }
+    });
+    return map;
+  }, [conversations]);
 
   const renderGroupLabel = useCallback(
     (group: string) => {
-      if (group.startsWith("cat:")) {
-        const catId = group.slice(4);
-        const cat = categories.find((c) => c.id === catId);
-        if (!cat) { return group; }
-
+      if (group.startsWith("ws:")) {
+        const wsPath = group.slice(3);
         return (
-          <SortableCategoryLabel
-            cat={cat}
-            menuActionRef={menuActionRef}
-            onCreateConversation={() => {
-              void handleNewConversation(cat.id);
-            }}
-            newConversationLabel={t("chat.newConversation")}
-            editLabel={t("chat.editCategory")}
-            deleteLabel={t("chat.deleteCategory")}
-            onEdit={() => {
-              setEditingCategory(cat);
-              setCategoryModalOpen(true);
-            }}
-            onDelete={() => void handleDeleteCategory(catId)}
-          />
-        );
-      }
-      if (group.startsWith("expert:")) {
-        const label = groupLabels[group];
-        if (label) {
-          return (
-            <span style={{ fontSize: 12, fontWeight: 500, color: token.colorTextSecondary }}>
-              {label}
+          <Tooltip title={wsPath}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                padding: "2px 6px 2px 0",
+                borderRadius: 4,
+                background: token.colorFillTertiary,
+                border: `1px solid ${token.colorBorderSecondary}`,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: token.colorText,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  userSelect: "none",
+                  minWidth: 0,
+                  flex: 1,
+                }}
+              >
+                <FolderOpen size={13} style={{ flexShrink: 0, color: token.colorPrimary }} />
+                <span className="truncate">{abbreviateWsPath(wsPath)}</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 400,
+                    color: token.colorTextQuaternary,
+                    flexShrink: 0,
+                    marginLeft: 2,
+                  }}
+                >
+                  ({wsCountMap.get(wsPath) ?? 0})
+                </span>
+              </span>
+              <Tooltip title={t("chat.newConversation")}>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleNewConversation();
+                  }}
+                  style={{
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "1px 4px",
+                    borderRadius: 3,
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = token.colorFillSecondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <MessageSquarePlus size={14} style={{ color: token.colorTextSecondary }} />
+                </span>
+              </Tooltip>
             </span>
-          );
-        }
-        return group;
+          </Tooltip>
+        );
       }
       return groupLabels[group] ?? group;
     },
-    [categories, groupLabels, t, handleDeleteCategory, handleNewConversation, token],
+    [groupLabels, token, abbreviateWsPath, handleNewConversation, t],
   );
-
-  const handleCreateCategory = useCallback(
-    async (data: CategoryEditFormData) => {
-      await createCategory({
-        name: data.name,
-        icon_type: data.icon_type,
-        icon_value: data.icon_value,
-        system_prompt: data.system_prompt,
-        default_provider_id: data.default_provider_id,
-        default_model_id: data.default_model_id,
-        default_temperature: data.default_temperature,
-        default_max_tokens: data.default_max_tokens,
-        default_top_p: data.default_top_p,
-        default_frequency_penalty: data.default_frequency_penalty,
-      });
-    },
-    [createCategory],
-  );
-
-  const handleUpdateCategory = useCallback(
-    async (data: CategoryEditFormData) => {
-      if (!editingCategory) { return; }
-      await updateCategory(editingCategory.id, {
-        name: data.name,
-        icon_type: data.icon_type,
-        icon_value: data.icon_value,
-        system_prompt: data.system_prompt,
-        default_provider_id: data.default_provider_id,
-        default_model_id: data.default_model_id,
-        default_temperature: data.default_temperature,
-        default_max_tokens: data.default_max_tokens,
-        default_top_p: data.default_top_p,
-        default_frequency_penalty: data.default_frequency_penalty,
-      });
-      setEditingCategory(null);
-    },
-    [editingCategory, updateCategory],
-  );
-
-  const moveToCategoryMenuItems = useMemo(() => {
-    return categories.map((cat) => ({
-      key: `move-to-cat:${cat.id}`,
-      label: (
-        <span className="flex items-center gap-1.5">
-          <CategoryIcon cat={cat} size={14} />
-          <span>{cat.name}</span>
-        </span>
-      ),
-    }));
-  }, [categories]);
 
   const handleRename = useCallback(
     (item: ConversationItemType) => {
-      let newTitle = String(item.label ?? "");
+      const conv = conversations.find((c) => c.id === String(item.key));
+      const title = conv?.title ?? "";
+      let newTitle = title;
       modal.confirm({
         title: t("chat.rename"),
         mask: { enabled: true, blur: true },
         content: (
           <Input
-            defaultValue={newTitle}
+            defaultValue={title}
             onChange={(e) => {
               newTitle = e.target.value;
             }}
@@ -1090,7 +866,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         },
       });
     },
-    [updateConversation, t, modal],
+    [updateConversation, t, modal, conversations],
   );
 
   const handleDelete = useCallback(
@@ -1183,44 +959,74 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
           }
         },
       },
+      {
+        key: "export-html",
+        label: t("chat.exportHtml"),
+        icon: <FileCode size={14} />,
+        onClick: async () => {
+          try {
+            const msgs = await invoke<Message[]>("list_messages", { conversationId: convId });
+            if (msgs.length === 0) {
+              messageApi.warning(t("chat.noMessages"));
+              return;
+            }
+            const ok = await exportAsHTML(msgs, title);
+            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+          } catch (e) {
+            console.error("Export HTML failed:", e);
+            messageApi.error(t("chat.exportFailed"));
+          }
+        },
+      },
     ],
     [t, messageApi],
   );
+
+  // Compute distinct workspace directories for "move to workspace" menu
+  const wsDirs = useMemo(() => {
+    const dirs = new Set<string>();
+    conversations.forEach((c) => {
+      if (c.workspace_dir) { dirs.add(c.workspace_dir); }
+    });
+    return Array.from(dirs).sort();
+  }, [conversations]);
 
   const menuConfig = useCallback(
     (item: ConversationItemType) => {
       if (multiSelectMode) { return { items: [] }; }
       const conv = conversations.find((c) => c.id === String(item.key));
-      const isPinned = conv?.is_pinned ?? false;
-      const categoryItems: any[] = [];
-      if (categories.length > 0) {
-        const moveChildren = moveToCategoryMenuItems.filter(
-          (mi) => mi.key !== `move-to-cat:${conv?.category_id}`,
-        );
-        if (conv?.category_id) {
-          moveChildren.unshift({
-            key: "remove-from-category",
-            label: (
-              <span className="flex items-center gap-1.5">
-                <X size={13} />
-                <span>{t("chat.removeFromCategory")}</span>
-              </span>
-            ),
-          });
-        }
-        if (moveChildren.length > 0) {
-          categoryItems.push({
-            key: "move-to-category",
-            label: (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <FolderOpen size={14} />
-                {t("chat.moveToCategory")}
-              </span>
-            ),
-            children: moveChildren,
-          });
-        }
+      if (!conv) { return { items: [] }; }
+      const isPinned = conv.is_pinned ?? false;
+      const title = conv.title ?? "";
+      const hasParent = !!conv.parent_conversation_id;
+      const parentId = conv.parent_conversation_id;
+
+      // Build "move to workspace" submenu
+      const wsChildren = wsDirs
+        .filter((d) => d !== conv.workspace_dir)
+        .map((d) => ({
+          key: `move-ws:${d}`,
+          label: <span className="truncate" style={{ maxWidth: 180, display: "inline-block" }}>{d}</span>,
+        }));
+      if (conv.workspace_dir) {
+        wsChildren.unshift({
+          key: "remove-ws",
+          label: <span style={{ fontStyle: "italic", opacity: 0.6 }}>{t("chat.removeFromWorkspace")}</span>,
+        });
       }
+      const wsItems: any[] = wsChildren.length > 0
+        ? [{
+          key: "move-workspace",
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <FolderOpen size={14} />
+              {t("chat.moveToWorkspace")}
+            </span>
+          ),
+          children: wsChildren.slice(0, 15),
+        }]
+        : [];
+
       return {
         items: [
           {
@@ -1229,7 +1035,49 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             icon: isPinned ? <PinOff size={14} /> : <Pin size={14} />,
           },
           { key: "archive", label: t("chat.archive"), icon: <Archive size={14} /> },
-          ...categoryItems,
+          {
+            key: "ai-title",
+            label: t("chat.aiGenerateTitle"),
+            icon: <Sparkles size={14} />,
+          },
+          {
+            key: "fork",
+            label: t("chat.forkConversation"),
+            icon: <GitFork size={14} />,
+          },
+          {
+            key: "copy-id",
+            label: t("chat.copyConversationId"),
+            icon: <Copy size={14} />,
+          },
+          {
+            key: "copy-transcript",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <Copy size={14} />
+                {t("chat.copyTranscript")}
+              </span>
+            ),
+            children: [
+              { key: "copy-md", label: "Markdown", icon: <FileCode size={14} /> },
+              { key: "copy-txt", label: t("chat.exportTxt"), icon: <FileType size={14} /> },
+            ],
+          },
+          ...wsItems,
+          ...(hasParent
+            ? [{
+              key: "detach-parent",
+              label: t("chat.detachFromParent"),
+              icon: <Link2 size={14} style={{ transform: "rotate(45deg)" }} />,
+            }]
+            : []),
+          ...(hasParent
+            ? [{
+              key: "go-parent",
+              label: t("chat.goToParent"),
+              icon: <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />,
+            }]
+            : []),
           { key: "rename", label: t("chat.rename"), icon: <Pencil size={14} /> },
           {
             key: "export",
@@ -1239,26 +1087,64 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                 {t("chat.export")}
               </span>
             ),
-            children: buildExportChildren(String(item.key), String(item.label ?? "")),
+            children: buildExportChildren(conv.id, title),
           },
           { key: "delete", label: t("chat.delete"), icon: <Trash2 size={14} />, danger: true },
         ],
         onClick: (menuInfo: { key: string }) => {
-          if (menuInfo.key.startsWith("move-to-cat:")) {
-            const catId = menuInfo.key.slice("move-to-cat:".length);
-            void updateConversation(String(item.key), { category_id: catId });
+          if (menuInfo.key.startsWith("move-ws:")) {
+            void invoke("agent_update_session", {
+              conversationId: conv.id,
+              cwd: menuInfo.key.slice("move-ws:".length),
+            });
             return;
           }
-          if (menuInfo.key === "remove-from-category") {
-            void updateConversation(String(item.key), { category_id: null });
+          if (menuInfo.key === "remove-ws") {
+            void invoke("agent_update_session", { conversationId: conv.id, cwd: null });
+            return;
+          }
+          if (menuInfo.key === "fork") {
+            void forkConversation(conv.id);
+            return;
+          }
+          if (menuInfo.key === "copy-id") {
+            void navigator.clipboard.writeText(conv.id).then(() => messageApi.success(t("chat.copied")));
+            return;
+          }
+          if (menuInfo.key === "copy-md" || menuInfo.key === "copy-txt") {
+            (async () => {
+              try {
+                const msgs = await invoke<Message[]>("list_messages", { conversationId: conv.id });
+                if (msgs.length === 0) {
+                  messageApi.warning(t("chat.noMessages"));
+                  return;
+                }
+                const format = menuInfo.key === "copy-md" ? "markdown" : "text";
+                await copyTranscript(msgs, title, format as "markdown" | "text");
+                messageApi.success(t("chat.copied"));
+              } catch (_e) {
+                messageApi.error(t("chat.copyFailed"));
+              }
+            })();
+            return;
+          }
+          if (menuInfo.key === "detach-parent") {
+            void updateConversation(conv.id, { parent_conversation_id: null as unknown as string });
+            return;
+          }
+          if (menuInfo.key === "go-parent" && parentId) {
+            setActiveConversation(parentId);
             return;
           }
           switch (menuInfo.key) {
             case "pin":
-              togglePin(String(item.key));
+              togglePin(conv.id);
               break;
             case "archive":
-              void handleArchiveSingle(String(item.key));
+              void handleArchiveSingle(conv.id);
+              break;
+            case "ai-title":
+              void regenerateTitle(conv.id);
               break;
             case "rename":
               handleRename(item);
@@ -1273,15 +1159,18 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     [
       t,
       conversations,
+      wsDirs,
       multiSelectMode,
+      regenerateTitle,
+      forkConversation,
+      updateConversation,
       handleRename,
       handleDelete,
       togglePin,
       toggleArchive,
       buildExportChildren,
-      categories,
-      moveToCategoryMenuItems,
-      updateConversation,
+      setActiveConversation,
+      messageApi,
     ],
   );
 
@@ -1298,35 +1187,36 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     const conv = conversations.find((c) => c.id === rightClickedConvId);
     if (!conv) { return { items: [] as MenuProps["items"] }; }
     const isPinned = conv.is_pinned ?? false;
-    const categoryItems: any[] = [];
-    if (categories.length > 0) {
-      const moveChildren = moveToCategoryMenuItems.filter(
-        (mi) => mi.key !== `move-to-cat:${conv.category_id}`,
-      );
-      if (conv.category_id) {
-        moveChildren.unshift({
-          key: "remove-from-category",
-          label: (
-            <span className="flex items-center gap-1.5">
-              <X size={13} />
-              <span>{t("chat.removeFromCategory")}</span>
-            </span>
-          ),
-        });
-      }
-      if (moveChildren.length > 0) {
-        categoryItems.push({
-          key: "move-to-category",
-          label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <FolderOpen size={14} />
-              {t("chat.moveToCategory")}
-            </span>
-          ),
-          children: moveChildren,
-        });
-      }
+    const title = conv.title ?? "";
+    const hasParent = !!conv.parent_conversation_id;
+    const parentId = conv.parent_conversation_id;
+
+    const wsChildren = wsDirs
+      .filter((d) => d !== conv.workspace_dir)
+      .map((d) => ({
+        key: `move-ws:${d}`,
+        label: <span className="truncate" style={{ maxWidth: 180, display: "inline-block" }}>{d}</span>,
+      }));
+    if (conv.workspace_dir) {
+      wsChildren.unshift({
+        key: "remove-ws",
+        label: <span style={{ fontStyle: "italic", opacity: 0.6 }}>{t("chat.removeFromWorkspace")}</span>,
+      });
     }
+    const wsItems: any[] = wsChildren.length > 0
+      ? [{
+        key: "move-workspace",
+        label: (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <FolderOpen size={14} />
+            {t("chat.moveToWorkspace")}
+          </span>
+        ),
+        children: wsChildren.slice(0, 15),
+      }]
+      : [];
+
+    const item = { key: conv.id, label: title } as ConversationItemType;
     return {
       items: [
         {
@@ -1335,7 +1225,37 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
           icon: isPinned ? <PinOff size={14} /> : <Pin size={14} />,
         },
         { key: "archive", label: t("chat.archive"), icon: <Archive size={14} /> },
-        ...categoryItems,
+        { key: "ai-title", label: t("chat.aiGenerateTitle"), icon: <Sparkles size={14} /> },
+        { key: "fork", label: t("chat.forkConversation"), icon: <GitFork size={14} /> },
+        { key: "copy-id", label: t("chat.copyConversationId"), icon: <Copy size={14} /> },
+        {
+          key: "copy-transcript",
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Copy size={14} />
+              {t("chat.copyTranscript")}
+            </span>
+          ),
+          children: [
+            { key: "copy-md", label: "Markdown", icon: <FileCode size={14} /> },
+            { key: "copy-txt", label: t("chat.exportTxt"), icon: <FileType size={14} /> },
+          ],
+        },
+        ...wsItems,
+        ...(hasParent
+          ? [{
+            key: "detach-parent",
+            label: t("chat.detachFromParent"),
+            icon: <Link2 size={14} style={{ transform: "rotate(45deg)" }} />,
+          }]
+          : []),
+        ...(hasParent
+          ? [{
+            key: "go-parent",
+            label: t("chat.goToParent"),
+            icon: <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />,
+          }]
+          : []),
         { key: "rename", label: t("chat.rename"), icon: <Pencil size={14} /> },
         {
           key: "export",
@@ -1345,27 +1265,61 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
               {t("chat.export")}
             </span>
           ),
-          children: buildExportChildren(conv.id, conv.title),
+          children: buildExportChildren(conv.id, title),
         },
         { key: "delete", label: t("chat.delete"), icon: <Trash2 size={14} />, danger: true },
       ],
       onClick: (menuInfo: { key: string }) => {
-        if (menuInfo.key.startsWith("move-to-cat:")) {
-          const catId = menuInfo.key.slice("move-to-cat:".length);
-          void updateConversation(conv.id, { category_id: catId });
+        if (menuInfo.key.startsWith("move-ws:")) {
+          void invoke("agent_update_session", { conversationId: conv.id, cwd: menuInfo.key.slice("move-ws:".length) });
           return;
         }
-        if (menuInfo.key === "remove-from-category") {
-          void updateConversation(conv.id, { category_id: null });
+        if (menuInfo.key === "remove-ws") {
+          void invoke("agent_update_session", { conversationId: conv.id, cwd: null });
           return;
         }
-        const item = { key: conv.id, label: conv.title } as ConversationItemType;
+        if (menuInfo.key === "fork") {
+          void forkConversation(conv.id);
+          return;
+        }
+        if (menuInfo.key === "copy-id") {
+          void navigator.clipboard.writeText(conv.id).then(() => messageApi.success(t("chat.copied")));
+          return;
+        }
+        if (menuInfo.key === "copy-md" || menuInfo.key === "copy-txt") {
+          (async () => {
+            try {
+              const msgs = await invoke<Message[]>("list_messages", { conversationId: conv.id });
+              if (msgs.length === 0) {
+                messageApi.warning(t("chat.noMessages"));
+                return;
+              }
+              const format = menuInfo.key === "copy-md" ? "markdown" : "text";
+              await copyTranscript(msgs, title, format as "markdown" | "text");
+              messageApi.success(t("chat.copied"));
+            } catch (_e) {
+              messageApi.error(t("chat.copyFailed"));
+            }
+          })();
+          return;
+        }
+        if (menuInfo.key === "detach-parent") {
+          void updateConversation(conv.id, { parent_conversation_id: null as unknown as string });
+          return;
+        }
+        if (menuInfo.key === "go-parent" && parentId) {
+          setActiveConversation(parentId);
+          return;
+        }
         switch (menuInfo.key) {
           case "pin":
             togglePin(conv.id);
             break;
           case "archive":
             void handleArchiveSingle(conv.id);
+            break;
+          case "ai-title":
+            void regenerateTitle(conv.id);
             break;
           case "rename":
             handleRename(item);
@@ -1379,15 +1333,18 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   }, [
     rightClickedConvId,
     conversations,
+    wsDirs,
     t,
+    regenerateTitle,
+    forkConversation,
+    updateConversation,
     togglePin,
     toggleArchive,
     handleRename,
     handleDelete,
     buildExportChildren,
-    categories,
-    moveToCategoryMenuItems,
-    updateConversation,
+    setActiveConversation,
+    messageApi,
   ]);
 
   if (isCollapsed) {
@@ -1525,18 +1482,6 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
-                <Tooltip title={t("chat.createCategory")}>
-                  <Button
-                    type="text"
-                    icon={<FolderPlus size={16} />}
-                    size="small"
-                    onClick={() => {
-                      setEditingCategory(null);
-                      setCategoryModalOpen(true);
-                    }}
-                    style={{ color: token.colorPrimary }}
-                  />
-                </Tooltip>
                 <Tooltip title={shortcutHint(t("chat.newConversation"), "newConversation")}>
                   <Button
                     type="text"
@@ -1610,7 +1555,19 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     icon={<Archive size={16} />}
                     size="small"
                     disabled={selectedIds.size === 0}
-                    onClick={handleBatchArchive}
+                    onClick={async () => {
+                      const ids = Array.from(selectedIds);
+                      if (ids.length === 0) { return; }
+                      modal.confirm({
+                        title: t("chat.archiveConfirm"),
+                        content: t("chat.batchArchiveContent", { count: ids.length }),
+                        mask: { enabled: true, blur: true },
+                        onOk: async () => {
+                          await batchArchive(ids);
+                          exitMultiSelect();
+                        },
+                      });
+                    }}
                     style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
@@ -1676,7 +1633,14 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = "";
                       }}
-                      onClick={() => archivedMultiSelect && toggleArchivedSelect(conv.id)}
+                      onClick={() => {
+                        if (archivedMultiSelect) {
+                          toggleArchivedSelect(conv.id);
+                        } else {
+                          setActiveConversation(conv.id);
+                          setShowArchived(false);
+                        }
+                      }}
                     >
                       {archivedMultiSelect && (
                         <Checkbox
@@ -1783,47 +1747,32 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                 }
               `}
                 </style>
-                {conversationItems.length > 0
+                {conversationsLoading && conversations.length === 0
                   ? (
-                    <DndContext
-                      sensors={dndSensors}
-                      collisionDetection={closestCenter}
-                      onDragStart={handleCategoryDragStart}
-                      onDragOver={handleCategoryDragOver}
-                      onDragEnd={handleCategoryDragEnd}
-                      onDragCancel={handleCategoryDragCancel}
-                    >
-                      <Conversations
-                        items={conversationItems}
-                        activeKey={multiSelectMode ? undefined : (activeConversationId ?? undefined)}
-                        onActiveChange={handleConversationClick}
-                        groupable={{
-                          label: (group: string) => renderGroupLabel(group),
-                          collapsible: (group: string) => group.startsWith("cat:"),
-                          expandedKeys: expandedKeys,
-                          onExpand: handleGroupExpand,
-                        }}
-                        menu={menuConfig}
-                      />
-                      <DragOverlay>
-                        {activeDragCatId
-                          ? (() => {
-                            const cat = categories.find((c) => c.id === activeDragCatId);
-                            if (!cat) { return null; }
-                            return (
-                              <div
-                                className="flex items-center gap-1"
-                                style={{ opacity: 0.8, cursor: "grabbing", fontSize: 13 }}
-                              >
-                                <GripVertical size={12} style={{ opacity: 0.4 }} />
-                                <CategoryIcon cat={cat} size={14} />
-                                <span>{cat.name}</span>
-                              </div>
-                            );
-                          })()
-                          : null}
-                      </DragOverlay>
-                    </DndContext>
+                    <div style={{ padding: "8px 12px" }}>
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="ax-skeleton"
+                          style={{ height: 36, marginBottom: 8, borderRadius: 6, opacity: 1 - i * 0.12 }}
+                        />
+                      ))}
+                    </div>
+                  )
+                  : conversationItems.length > 0
+                  ? (
+                    <Conversations
+                      items={conversationItems}
+                      activeKey={multiSelectMode ? undefined : (activeConversationId ?? undefined)}
+                      onActiveChange={handleConversationClick}
+                      groupable={{
+                        label: (group: string) => renderGroupLabel(group),
+                        collapsible: (group: string) => group.startsWith("ws:"),
+                        expandedKeys: expandedKeys,
+                        onExpand: handleGroupExpand,
+                      }}
+                      menu={menuConfig}
+                    />
                   )
                   : (
                     <div className="flex items-center justify-center h-full">
@@ -1886,28 +1835,13 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         </Radio.Group>
       </Modal>
 
-      <CategoryEditModal
-        open={categoryModalOpen}
-        onClose={() => {
-          setCategoryModalOpen(false);
-          setEditingCategory(null);
-        }}
-        onOk={editingCategory ? handleUpdateCategory : handleCreateCategory}
-        initialName={editingCategory?.name ?? ""}
-        initialIconType={editingCategory?.icon_type}
-        initialIconValue={editingCategory?.icon_value}
-        initialSystemPrompt={editingCategory?.system_prompt}
-        initialDefaultProviderId={editingCategory?.default_provider_id}
-        initialDefaultModelId={editingCategory?.default_model_id}
-        initialDefaultTemperature={editingCategory?.default_temperature}
-        initialDefaultMaxTokens={editingCategory?.default_max_tokens}
-        initialDefaultTopP={editingCategory?.default_top_p}
-        initialDefaultFrequencyPenalty={editingCategory?.default_frequency_penalty}
-        title={editingCategory ? t("chat.editCategory") : t("chat.createCategory")}
-      />
       <SessionSearchPanel
         visible={advancedSearchVisible}
         onClose={() => setAdvancedSearchVisible(false)}
+        onSelectResult={(result) => {
+          setActiveConversation(result.session_id);
+          setAdvancedSearchVisible(false);
+        }}
       />
     </div>
   );

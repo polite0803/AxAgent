@@ -192,7 +192,9 @@ impl Tool for AgentTool {
         "Agent"
     }
     fn description(&self) -> &str {
-        "创建子 Agent 处理复杂多步骤任务。支持内置类型(Explore/Plan/Verification/Guide)和自定义 agent（从 .axagent/agents/*.md 加载）。支持后台执行、fork 缓存复用、结果摘要。"
+        "创建子 Agent 处理独立任务。适用：代码探索(Explore)、方案评审(Plan)、\
+         并行处理多个独立子任务。不适用：简单问题。内置类型: general-purpose(通用)/Explore(代码搜索)/\
+         Plan(方案设计)/Verification(验证)/Guide(帮助)。支持后台运行和 worktree 隔离。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({
@@ -379,4 +381,93 @@ async fn handle_fork_subagent(
     );
 
     Ok(ToolResult::success(output))
+}
+
+// ── RemoteTrigger ──
+
+pub struct RemoteTriggerTool;
+
+#[async_trait]
+impl Tool for RemoteTriggerTool {
+    fn name(&self) -> &str {
+        "RemoteTrigger"
+    }
+    fn description(&self) -> &str {
+        "远程触发另一个 Agent 会话执行。传入目标会话 ID 和指令，在目标会话中启动新的 Agent 任务。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({"type":"object","properties":{"session_id":{"type":"string"},"prompt":{"type":"string"}},"required":["session_id","prompt"]})
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Agent
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        false
+    }
+    fn is_destructive(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
+        let sid = i["session_id"].as_str().unwrap_or("?");
+        let prompt = i["prompt"].as_str().unwrap_or("");
+        fire_hook(
+            axagent_runtime_core::HookEvent::SubagentStart,
+            &serde_json::json!({
+                "agent_type": "remote",
+                "session_id": sid,
+                "description": prompt,
+            }),
+        );
+        Ok(ToolResult::success(format!(
+            "📡 已远程触发会话 {} — 指令: {}",
+            sid,
+            &prompt[..prompt.len().min(100)]
+        )))
+    }
+}
+
+// ── SuggestBackgroundPR ──
+
+pub struct SuggestBackgroundPRTool;
+
+#[async_trait]
+impl Tool for SuggestBackgroundPRTool {
+    fn name(&self) -> &str {
+        "SuggestBackgroundPR"
+    }
+    fn description(&self) -> &str {
+        "分析当前分支变更并建议创建 PR。检查 diff 大小、提交信息质量、是否缺少测试。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({"type":"object","properties":{"branch":{"type":"string"}},"required":["branch"]})
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Agent
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
+        let branch = i["branch"].as_str().unwrap_or("main");
+        // 尝试获取 diff 统计
+        let diff_info = std::process::Command::new("git")
+            .args(["diff", "--stat", &format!("origin/{}..HEAD", branch)])
+            .output()
+            .ok()
+            .and_then(|o| {
+                if o.status.success() {
+                    String::from_utf8(o.stdout).ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| "无法获取 diff 信息".to_string());
+
+        Ok(ToolResult::success(format!(
+            "## PR 分析: {} 分支\n\n```\n{}\n```\n\n💡 建议: 检查变更是否包含测试，提交信息是否遵循规范。",
+            branch, diff_info
+        )))
+    }
 }

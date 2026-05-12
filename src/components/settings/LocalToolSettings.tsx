@@ -1,16 +1,21 @@
 import { useLocalToolStore } from "@/stores";
-import type { LocalToolGroupInfo } from "@/types";
-import { Spin, Switch, Tag, Typography } from "antd";
+import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
+import { Alert, Collapse, Empty, Spin, Switch, Tag, Tooltip, Typography } from "antd";
 import {
   BookOpen,
-  Brain,
+  Bot,
+  ExternalLink,
   FileEdit,
   FileSearch,
+  GitBranch,
   Globe,
   HardDrive,
+  Image,
   MessageSquare,
-  Search,
+  MousePointer,
+  Shield,
   Terminal,
+  Timer,
   Wrench,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -18,67 +23,105 @@ import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
 
-/** Map group_id to a display icon */
 const GROUP_ICONS: Record<string, React.ReactNode> = {
-  "builtin-fetch": <Globe size={18} />,
-  "builtin-search-file": <FileSearch size={18} />,
-  "builtin-filesystem": <FileEdit size={18} />,
-  "builtin-system": <Terminal size={18} />,
-  "builtin-search": <Search size={18} />,
-  "builtin-knowledge": <BookOpen size={18} />,
-  "builtin-storage": <HardDrive size={18} />,
-  "builtin-skills": <Wrench size={18} />,
-  "builtin-session": <MessageSquare size={18} />,
-  "builtin-memory": <Brain size={18} />,
+  "builtin-file-read": <FileSearch size={16} />,
+  "builtin-file-write": <FileEdit size={16} />,
+  "builtin-shell": <Terminal size={16} />,
+  "builtin-network": <Globe size={16} />,
+  "builtin-system-tools": <Wrench size={16} />,
+  "builtin-agent": <Bot size={16} />,
+  "builtin-vcs": <GitBranch size={16} />,
+  "builtin-automation": <Timer size={16} />,
+  "builtin-communication": <MessageSquare size={16} />,
+  "builtin-ai-media": <Image size={16} />,
+  "builtin-integration": <ExternalLink size={16} />,
+  "builtin-storage": <HardDrive size={16} />,
+  "builtin-knowledge": <BookOpen size={16} />,
+  "builtin-browser": <Globe size={16} />,
+  "builtin-desktop": <MousePointer size={16} />,
 };
 
-/** i18n key for group display name */
-const GROUP_NAME_KEYS: Record<string, string> = {
-  "builtin-fetch": "settings.localTools.groupFetch",
-  "builtin-search-file": "settings.localTools.groupSearchFile",
-  "builtin-filesystem": "settings.localTools.groupFilesystem",
-  "builtin-system": "settings.localTools.groupSystem",
-  "builtin-search": "settings.localTools.groupSearch",
-  "builtin-knowledge": "settings.localTools.groupKnowledge",
-  "builtin-storage": "settings.localTools.groupStorage",
-  "builtin-skills": "settings.localTools.groupSkills",
-  "builtin-session": "settings.localTools.groupSession",
-  "builtin-memory": "settings.localTools.groupMemory",
-};
-
-function ToolGroupCard({ group, onToggle }: { group: LocalToolGroupInfo; onToggle: (groupId: string) => void }) {
-  const { t } = useTranslation();
-  const icon = GROUP_ICONS[group.groupId] ?? <Wrench size={18} />;
-  const nameKey = GROUP_NAME_KEYS[group.groupId];
-  const displayName = nameKey ? t(nameKey) : group.groupName;
-
+function ToolItem({
+  tool,
+  groupEnabled,
+  onToggle,
+}: {
+  tool: LocalToolInfo;
+  groupEnabled: boolean;
+  onToggle: (name: string) => void;
+}) {
   return (
-    <div className="flex items-center justify-between py-3 px-4 border-b border-border last:border-b-0">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <span className="text-text-secondary shrink-0">{icon}</span>
-        <div className="min-w-0 flex-1">
-          <Text strong className="block">{displayName}</Text>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {group.tools.map((tool) => (
-              <Tag key={tool.toolName} className="text-xs">
-                {tool.toolName}
+    <div className="flex items-start justify-between py-2.5 px-3 border-b border-border/50 last:border-b-0 hover:bg-bg-container-hover transition-colors">
+      <div className="flex-1 min-w-0 mr-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Text strong className="text-sm">{tool.name}</Text>
+          {tool.isDestructive && (
+            <Tooltip title="破坏性操作——执行后不可逆">
+              <Tag color="red" className="text-[10px] leading-none px-1 py-0">
+                <Shield size={10} className="inline mr-0.5" />
+                破坏性
               </Tag>
-            ))}
-          </div>
+            </Tooltip>
+          )}
+          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">只读</Tag>}
         </div>
+        <Paragraph
+          type="secondary"
+          className="text-xs mt-0.5 mb-0 leading-snug"
+          ellipsis={{ rows: 2 }}
+        >
+          {tool.description}
+        </Paragraph>
       </div>
-      <Switch
-        checked={group.enabled}
-        onChange={() => onToggle(group.groupId)}
-        className="shrink-0 ml-3"
-      />
+      <Tooltip title={groupEnabled ? (tool.enabled ? "点击禁用此工具" : "点击启用此工具") : "分类已禁用，无法单独控制"}>
+        <Switch
+          size="small"
+          checked={tool.enabled && groupEnabled}
+          disabled={!groupEnabled}
+          onChange={() => onToggle(tool.name)}
+        />
+      </Tooltip>
     </div>
   );
 }
 
-function LocalToolSettings() {
+function GroupHeader({
+  group,
+  onToggleGroup,
+}: {
+  group: LocalToolGroupInfo;
+  onToggleGroup: (id: string) => void;
+}) {
+  const icon = GROUP_ICONS[group.groupId] ?? <Wrench size={16} />;
+  const enabledCount = group.tools.filter((t) => t.enabled).length;
+  const totalCount = group.tools.length;
+
+  return (
+    <div className="flex items-center gap-3 w-full">
+      <span className="text-text-secondary shrink-0">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <Text strong>{group.groupName}</Text>
+        <Text type="secondary" className="text-xs ml-2">
+          {enabledCount}/{totalCount} 已启用
+        </Text>
+        <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug">
+          {group.description}
+        </Paragraph>
+      </div>
+      <Tooltip title={group.enabled ? "禁用整个分类" : "启用整个分类"}>
+        <Switch
+          checked={group.enabled}
+          onChange={() => onToggleGroup(group.groupId)}
+          onClick={(_, e) => e.stopPropagation()}
+        />
+      </Tooltip>
+    </div>
+  );
+}
+
+export default function LocalToolSettings() {
   const { t } = useTranslation();
-  const { groups, loading, loadGroups, toggleGroup } = useLocalToolStore();
+  const { groups, loading, error, loadGroups, toggleGroup, toggleTool } = useLocalToolStore();
 
   useEffect(() => {
     loadGroups();
@@ -93,7 +136,7 @@ function LocalToolSettings() {
   }
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 max-w-3xl">
       <Typography.Title level={4}>
         {t("settings.localTools.title")}
       </Typography.Title>
@@ -101,17 +144,30 @@ function LocalToolSettings() {
         {t("settings.localTools.description")}
       </Paragraph>
 
-      <div className="border border-border rounded-lg overflow-hidden">
-        {groups.map((group) => (
-          <ToolGroupCard
-            key={group.groupId}
-            group={group}
-            onToggle={toggleGroup}
-          />
-        ))}
-      </div>
+      {error && <Alert message={error} type="error" showIcon className="mb-4" closable />}
+
+      {groups.length === 0 ? <Empty description="暂无工具数据" /> : (
+        <Collapse
+          size="small"
+          expandIconPosition="end"
+          items={groups.map((group) => ({
+            key: group.groupId,
+            label: <GroupHeader group={group} onToggleGroup={toggleGroup} />,
+            children: (
+              <div className="border border-border rounded-lg overflow-hidden -mt-2">
+                {group.tools.map((tool) => (
+                  <ToolItem
+                    key={tool.name}
+                    tool={tool}
+                    groupEnabled={group.enabled}
+                    onToggle={toggleTool}
+                  />
+                ))}
+              </div>
+            ),
+          }))}
+        />
+      )}
     </div>
   );
 }
-
-export default LocalToolSettings;

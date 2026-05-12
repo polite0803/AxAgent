@@ -19,6 +19,7 @@ pub struct Model {
     pub source_message_id: Option<String>,
     pub memory_nature: String,
     pub tags: String,
+    pub namespace_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

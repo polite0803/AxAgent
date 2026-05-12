@@ -49,7 +49,7 @@ impl Tool for GetStorageInfoTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Storage
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -97,7 +97,7 @@ impl Tool for ListStorageFilesTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::FileRead
+        ToolCategory::Storage
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -164,7 +164,10 @@ impl Tool for UploadStorageFileTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::FileWrite
+        ToolCategory::Storage
+    }
+    fn is_destructive(&self) -> bool {
+        true
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -236,7 +239,7 @@ impl Tool for DownloadStorageFileTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::FileRead
+        ToolCategory::Storage
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -293,7 +296,7 @@ impl Tool for DeleteStorageFileTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::FileWrite
+        ToolCategory::Storage
     }
 
     fn is_destructive(&self) -> bool {

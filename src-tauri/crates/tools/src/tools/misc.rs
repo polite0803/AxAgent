@@ -985,7 +985,7 @@ impl Tool for GenerateImageTool {
         serde_json::json!({"type":"object","properties":{"prompt":{"type":"string"},"provider":{"type":"string","enum":["flux","dall-e"]},"width":{"type":"integer"},"height":{"type":"integer"},"steps":{"type":"integer"},"seed":{"type":"integer"},"api_key":{"type":"string"}},"required":["prompt"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::AiMedia
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1033,7 +1033,7 @@ impl Tool for GenerateChartConfigTool {
         serde_json::json!({"type":"object","properties":{"description":{"type":"string"},"data":{"type":"object"},"chart_type":{"type":"string"},"title":{"type":"string"},"api_key":{"type":"string"},"base_url":{"type":"string"},"model":{"type":"string"}},"required":["description"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::AiMedia
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -1078,7 +1078,7 @@ impl Tool for SequentialThinkingTool {
         serde_json::json!({"type":"object","properties":{"thought":{"type":"string"},"thought_number":{"type":"integer"},"total_thoughts":{"type":"integer"},"next_thought_needed":{"type":"boolean"},"is_revision":{"type":"boolean"},"revises_thought":{"type":"integer"},"branch_from_thought":{"type":"integer"},"branch_id":{"type":"string"},"needs_more_thoughts":{"type":"boolean"}},"required":["thought","thought_number","total_thoughts","next_thought_needed"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::AiMedia
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -1148,7 +1148,7 @@ impl Tool for DifyListBasesTool {
         serde_json::json!({"type":"object","properties":{"api_base":{"type":"string"},"api_key":{"type":"string"}}})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Integration
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -1192,7 +1192,7 @@ impl Tool for DifySearchTool {
         serde_json::json!({"type":"object","properties":{"api_base":{"type":"string"},"api_key":{"type":"string"},"base_id":{"type":"string"},"query":{"type":"string"},"top_k":{"type":"integer","default":5}},"required":["api_base","api_key","base_id","query"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Integration
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {

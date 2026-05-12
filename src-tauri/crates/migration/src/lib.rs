@@ -1,13 +1,31 @@
 pub use sea_orm_migration::prelude::*;
 
 mod m20240101_000001_init;
+mod m20240101_000002_init_workflow;
+mod m20240101_000003_init_gateway_tools;
+mod m20240101_000004_init_knowledge;
+mod m20240101_000005_init_trajectory;
+mod m20240101_000006_init_prompt;
+mod m20240101_000007_init_background_tasks;
+mod m20240101_000008_enhance_prompt;
+mod m20250512_000001_memory_namespace_link;
 
 pub struct Migrator;
 
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        vec![Box::new(m20240101_000001_init::Migration)]
+        vec![
+            Box::new(m20240101_000001_init::Migration),
+            Box::new(m20240101_000002_init_workflow::Migration),
+            Box::new(m20240101_000003_init_gateway_tools::Migration),
+            Box::new(m20240101_000004_init_knowledge::Migration),
+            Box::new(m20240101_000005_init_trajectory::Migration),
+            Box::new(m20240101_000006_init_prompt::Migration),
+            Box::new(m20240101_000007_init_background_tasks::Migration),
+            Box::new(m20240101_000008_enhance_prompt::Migration),
+            Box::new(m20250512_000001_memory_namespace_link::Migration),
+        ]
     }
 }
 

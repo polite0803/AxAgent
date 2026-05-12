@@ -29,7 +29,7 @@ impl Tool for SendMessageTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Communication
     }
     fn is_concurrency_safe(&self) -> bool {
         false
@@ -56,7 +56,7 @@ impl Tool for ListPeersTool {
         serde_json::json!({"type":"object","properties":{}})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Communication
     }
     fn is_concurrency_safe(&self) -> bool {
         true

@@ -2,8 +2,8 @@ use sea_orm::*;
 use serde_json;
 
 use crate::entity::{
-    conversation_summaries, conversations, knowledge_attributes, knowledge_documents,
-    knowledge_entities, knowledge_flows, knowledge_relations, messages,
+    agent_sessions, conversation_summaries, conversations, knowledge_attributes,
+    knowledge_documents, knowledge_entities, knowledge_flows, knowledge_relations, messages,
 };
 use crate::error::{AxAgentError, Result};
 use crate::types::{
@@ -39,6 +39,7 @@ pub fn conversation_from_entity(m: conversations::Model) -> Conversation {
         mode: m.mode,
         work_strategy: m.work_strategy,
         scenario: m.scenario,
+        workspace_dir: None,
         enabled_skill_ids: parse_string_list(&m.enabled_skill_ids),
         expert_role_id: m.expert_role_id,
         agent_profile_id: m.agent_profile_id,
@@ -59,6 +60,28 @@ fn stringify_string_list(values: &[String]) -> String {
     serde_json::to_string(values).expect("failed to serialize conversation preference JSON")
 }
 
+async fn attach_workspace_dirs(
+    db: &DatabaseConnection,
+    mut convs: Vec<Conversation>,
+) -> Result<Vec<Conversation>> {
+    if convs.is_empty() {
+        return Ok(convs);
+    }
+    let ids: Vec<String> = convs.iter().map(|c| c.id.clone()).collect();
+    let sessions = agent_sessions::Entity::find()
+        .filter(agent_sessions::Column::ConversationId.is_in(ids))
+        .all(db)
+        .await?;
+    let cwd_map: std::collections::HashMap<String, Option<String>> = sessions
+        .into_iter()
+        .map(|s| (s.conversation_id, s.cwd))
+        .collect();
+    for conv in &mut convs {
+        conv.workspace_dir = cwd_map.get(&conv.id).cloned().flatten();
+    }
+    Ok(convs)
+}
+
 pub async fn list_conversations(db: &DatabaseConnection) -> Result<Vec<Conversation>> {
     let rows = conversations::Entity::find()
         .filter(conversations::Column::IsArchived.eq(0))
@@ -67,7 +90,8 @@ pub async fn list_conversations(db: &DatabaseConnection) -> Result<Vec<Conversat
         .all(db)
         .await?;
 
-    Ok(rows.into_iter().map(conversation_from_entity).collect())
+    let convs: Vec<Conversation> = rows.into_iter().map(conversation_from_entity).collect();
+    attach_workspace_dirs(db, convs).await
 }
 
 pub async fn list_archived_conversations(db: &DatabaseConnection) -> Result<Vec<Conversation>> {
@@ -77,7 +101,8 @@ pub async fn list_archived_conversations(db: &DatabaseConnection) -> Result<Vec<
         .all(db)
         .await?;
 
-    Ok(rows.into_iter().map(conversation_from_entity).collect())
+    let convs: Vec<Conversation> = rows.into_iter().map(conversation_from_entity).collect();
+    attach_workspace_dirs(db, convs).await
 }
 
 pub async fn get_conversation(db: &DatabaseConnection, id: &str) -> Result<Conversation> {

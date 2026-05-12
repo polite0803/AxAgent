@@ -1,7 +1,13 @@
-use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::context_keys;
+use crate::{ProgressEntry, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_core::html_cleaner::HtmlCleaner;
+use axagent_core::search::{
+    estimate_credibility, execute_search_with_config, rerank_search_results, SearchServiceConfig,
+};
 use serde_json::Value;
 use std::collections::HashSet;
+use std::time::Instant;
 
 const MAX_FETCH_URLS: usize = 3;
 const MAX_CONTENT_LENGTH: usize = 60_000;
@@ -55,8 +61,37 @@ impl Tool for WebSearchTool {
         Ok(())
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let query = input["query"].as_str().unwrap();
+        let start = Instant::now();
+
+        // 从 ToolContext.extra 读取搜索配置，fallback 到 DDG
+        let config = SearchServiceConfig {
+            provider_type: ctx
+                .extra
+                .get(context_keys::SEARCH_PROVIDER_TYPE)
+                .cloned()
+                .unwrap_or_else(|| "ddg".to_string()),
+            endpoint: ctx.extra.get(context_keys::SEARCH_ENDPOINT).cloned(),
+            api_key: ctx.extra.get(context_keys::SEARCH_API_KEY).cloned(),
+            max_results: ctx
+                .extra
+                .get(context_keys::SEARCH_MAX_RESULTS)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(5),
+            timeout_ms: ctx
+                .extra
+                .get(context_keys::SEARCH_TIMEOUT_MS)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(15000),
+            region: ctx.extra.get(context_keys::SEARCH_REGION).cloned(),
+            safe_search: ctx
+                .extra
+                .get(context_keys::SEARCH_SAFE_SEARCH)
+                .and_then(|s| s.parse().ok()),
+        };
+
+        let mut progress = Vec::new();
 
         let expansion = axagent_core::search::expand_search_queries(query);
         let queries: Vec<&str> = expansion
@@ -69,18 +104,27 @@ impl Tool for WebSearchTool {
         let mut all_results: Vec<axagent_core::search::SearchResult> = Vec::new();
         let mut seen_urls: HashSet<String> = HashSet::new();
 
-        for q in &queries {
-            if let Ok(resp) =
-                axagent_core::search::execute_search("ddg", None, "", q, 5, 15000).await
-            {
-                if resp.ok {
-                    for r in resp.results {
+        let total_queries = queries.len();
+        for (idx, q) in queries.iter().enumerate() {
+            progress.push(ProgressEntry {
+                phase: "searching".into(),
+                message: format!("正在搜索 ({}/{})：{}", idx + 1, total_queries, q),
+                percent: Some(((idx + 1) as u8 * 100 / total_queries as u8).min(100)),
+                timestamp_ms: start.elapsed().as_millis() as u64,
+            });
+
+            let resp = execute_search_with_config(&config, q).await;
+            match resp {
+                Ok(resp) if resp.ok => {
+                    for mut r in resp.results {
                         let url_key = r.url.trim_end_matches('/').to_lowercase();
                         if seen_urls.insert(url_key) {
+                            r.credibility = Some(estimate_credibility(&r.url));
                             all_results.push(r);
                         }
                     }
-                }
+                },
+                _ => continue,
             }
         }
 
@@ -91,7 +135,31 @@ impl Tool for WebSearchTool {
         });
         all_results.truncate(10);
 
-        axagent_core::search::rerank_search_results(query, &mut all_results);
+        rerank_search_results(query, &mut all_results);
+
+        // 填充 relevance_score
+        let query_terms: Vec<String> = query
+            .to_lowercase()
+            .split_whitespace()
+            .map(|w| w.chars().filter(|c| c.is_alphanumeric()).collect())
+            .filter(|w: &String| !w.is_empty())
+            .collect();
+        for r in &mut all_results {
+            if r.relevance_score.is_none() && !query_terms.is_empty() {
+                let title_lower = r.title.to_lowercase();
+                let content_lower = r.content.to_lowercase();
+                let mut s: f32 = 0.0;
+                for qt in &query_terms {
+                    if title_lower.contains(qt) {
+                        s += 0.3;
+                    }
+                    if content_lower.contains(qt) {
+                        s += 0.1;
+                    }
+                }
+                r.relevance_score = Some(s.min(1.0));
+            }
+        }
 
         if all_results.is_empty() {
             return Ok(ToolResult::success(format!("No search results found for '{}'", query)));
@@ -100,12 +168,19 @@ impl Tool for WebSearchTool {
         let brief: Vec<String> = all_results
             .iter()
             .enumerate()
-            .map(|(i, r)| format!("{}. {}\n   {}\n   {}", i + 1, r.title, r.content, r.url))
+            .map(|(i, r)| {
+                let cred = r
+                    .credibility
+                    .map(|c| format!(" [可信度:{:.0}]", c * 10.0))
+                    .unwrap_or_default();
+                format!("{}. {}{}\n   {}\n   {}", i + 1, r.title, cred, r.content, r.url)
+            })
             .collect();
         let mut enriched = format!(
-            "Web search results for '{}' (expanded queries: {}):\n{}\n\n---\n\n## Full Page Content\n\n",
+            "Web search results for '{}' (expanded queries: {}, provider: {}):\n{}\n\n---\n\n## Full Page Content\n\n",
             query,
             queries.join(", "),
+            config.provider_type,
             brief.join("\n")
         );
 
@@ -117,17 +192,21 @@ impl Tool for WebSearchTool {
             .collect();
 
         if !top_urls.is_empty() {
-            let client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(20))
-                .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build()
-                .unwrap_or_default();
-
+            let client = axagent_core::search::shared_http_client();
+            let cleaner = HtmlCleaner::new();
             let mut fetched = 0usize;
-            for url in &top_urls {
+
+            for (idx, url) in top_urls.iter().enumerate() {
                 if fetched >= MAX_FETCH_URLS {
                     break;
                 }
+                progress.push(ProgressEntry {
+                    phase: "fetching".into(),
+                    message: format!("正在抓取页面内容 ({}/{})：{}", idx + 1, top_urls.len(), url),
+                    percent: None,
+                    timestamp_ms: start.elapsed().as_millis() as u64,
+                });
+
                 match client.get(*url).send().await {
                     Ok(resp) if resp.status().is_success() => {
                         let ct = resp
@@ -140,16 +219,10 @@ impl Tool for WebSearchTool {
                         let body = resp.text().await.unwrap_or_default();
 
                         if ct.contains("text/html") || ct.contains("application/xhtml") {
-                            let text = extract_page_text(&body);
+                            let per_url_limit = MAX_CONTENT_LENGTH / MAX_FETCH_URLS;
+                            let text = cleaner.extract_text(&body, per_url_limit);
                             if !text.is_empty() {
-                                let per_url_limit = MAX_CONTENT_LENGTH / MAX_FETCH_URLS;
-                                let truncated = if text.len() > per_url_limit {
-                                    format!("{}...\n[Content truncated]", &text[..per_url_limit])
-                                } else {
-                                    text
-                                };
-                                enriched
-                                    .push_str(&format!("### Source: {}\n\n{}\n\n", url, truncated));
+                                enriched.push_str(&format!("### Source: {}\n\n{}\n\n", url, text));
                                 fetched += 1;
                             }
                         }
@@ -164,46 +237,35 @@ impl Tool for WebSearchTool {
             enriched.push_str("\n\n[Total content truncated]");
         }
 
-        Ok(ToolResult::success(enriched))
+        progress.push(ProgressEntry {
+            phase: "done".into(),
+            message: format!(
+                "搜索完成：{} 条结果，耗时 {}ms",
+                all_results.len(),
+                start.elapsed().as_millis()
+            ),
+            percent: Some(100),
+            timestamp_ms: start.elapsed().as_millis() as u64,
+        });
+
+        let metadata = serde_json::json!({
+            "results": all_results.iter().map(|r| serde_json::json!({
+                "title": r.title,
+                "url": r.url,
+                "credibility": r.credibility,
+                "relevance_score": r.relevance_score,
+            })).collect::<Vec<_>>(),
+            "provider": config.provider_type,
+            "query": query,
+        });
+
+        Ok(ToolResult {
+            content: enriched,
+            truncated: false,
+            is_error: false,
+            metadata: Some(metadata),
+            duration_ms: Some(start.elapsed().as_millis() as u64),
+            progress,
+        })
     }
-}
-
-fn extract_page_text(html: &str) -> String {
-    let mut doc = scraper::Html::parse_document(html);
-
-    let noise_sel = scraper::Selector::parse(
-        "script, style, nav, footer, header, aside, iframe, noscript, svg, form, \
-         button, input, select, textarea, [role='navigation'], [role='banner'], \
-         [role='contentinfo'], [role='complementary'], .sidebar, .nav, .menu, \
-         .footer, .header, .ad, .ads, .advertisement, .cookie, .popup, .modal, \
-         .overlay, #sidebar, #nav, #footer, #header, #menu, .social, .share, \
-         .related, .comments",
-    )
-    .unwrap();
-
-    let noise_ids: Vec<ego_tree::NodeId> = doc.select(&noise_sel).map(|el| el.id()).collect();
-    for nid in noise_ids {
-        if let Some(mut node) = doc.tree.get_mut(nid) {
-            node.detach();
-        }
-    }
-
-    let content_sel = scraper::Selector::parse(
-        "main, article, [role='main'], [role='article'], .content, .post, \
-         .article, .entry, #content, #main, .main-content, .post-content, \
-         .article-content, .entry-content",
-    )
-    .unwrap();
-
-    let root = doc
-        .select(&content_sel)
-        .next()
-        .unwrap_or_else(|| doc.root_element());
-
-    root.text()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
 }

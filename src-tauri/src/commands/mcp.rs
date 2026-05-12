@@ -40,11 +40,91 @@ pub async fn delete_mcp_server(state: State<'_, AppState>, id: String) -> Result
 
 #[tauri::command]
 pub async fn test_mcp_server(
-    _state: State<'_, AppState>,
-    _id: String,
+    state: State<'_, AppState>,
+    id: String,
 ) -> Result<serde_json::Value, String> {
-    // Mock implementation — return success with capabilities
-    Ok(serde_json::json!({"ok": true, "capabilities": ["tools"]}))
+    const TEST_TIMEOUT_SECS: u64 = 10;
+
+    let server = axagent_core::repo::mcp_server::get_mcp_server(&state.sea_db, &id)
+        .await
+        .map_err(|e| format!("获取 MCP 服务器配置失败: {e}"))?;
+
+    if !server.enabled {
+        return Ok(serde_json::json!({"ok": false, "error": "服务器未启用"}));
+    }
+
+    // Builtin servers don't need real connection testing
+    if server.transport == "builtin" {
+        let tools = axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, &id)
+            .await
+            .map_err(|e| e.to_string())?;
+        return Ok(serde_json::json!({
+            "ok": true,
+            "capabilities": {"tools": true},
+            "toolCount": tools.len(),
+            "serverInfo": {"name": server.name, "version": "builtin"}
+        }));
+    }
+
+    let timeout_duration = std::time::Duration::from_secs(TEST_TIMEOUT_SECS);
+
+    let result = tokio::time::timeout(timeout_duration, async {
+        match server.transport.as_str() {
+            "stdio" => {
+                let command = server
+                    .command
+                    .as_deref()
+                    .ok_or_else(|| "stdio 服务器缺少 command 配置".to_string())?;
+                let args: Vec<String> = server
+                    .args_json
+                    .as_ref()
+                    .and_then(|s| serde_json::from_str(s).ok())
+                    .unwrap_or_default();
+                let env: std::collections::HashMap<String, String> = server
+                    .env_json
+                    .as_ref()
+                    .and_then(|s| serde_json::from_str(s).ok())
+                    .unwrap_or_default();
+
+                let tools = axagent_core::mcp_client::discover_tools_stdio(command, &args, &env)
+                    .await
+                    .map_err(|e| format!("连接失败: {e}"))?;
+                Ok::<_, String>(serde_json::json!({
+                    "ok": true,
+                    "capabilities": {"tools": true},
+                    "toolCount": tools.len(),
+                    "toolNames": tools.iter().map(|t| &t.name).collect::<Vec<_>>()
+                }))
+            },
+            "http" | "sse" => {
+                let endpoint = server
+                    .endpoint
+                    .as_deref()
+                    .ok_or_else(|| format!("{} 服务器缺少 endpoint 配置", server.transport))?;
+
+                let tools = if server.transport == "http" {
+                    axagent_core::mcp_client::discover_tools_http(endpoint)
+                        .await
+                        .map_err(|e| format!("连接失败: {e}"))?
+                } else {
+                    axagent_core::mcp_client::discover_tools_sse(endpoint)
+                        .await
+                        .map_err(|e| format!("连接失败: {e}"))?
+                };
+                Ok::<_, String>(serde_json::json!({
+                    "ok": true,
+                    "capabilities": {"tools": true},
+                    "toolCount": tools.len(),
+                    "toolNames": tools.iter().map(|t| &t.name).collect::<Vec<_>>()
+                }))
+            },
+            other => Err(format!("不支持的传输类型: {other}")),
+        }
+    })
+    .await
+    .map_err(|_| format!("连接测试超时（{} 秒）", TEST_TIMEOUT_SECS))?;
+
+    result
 }
 
 #[tauri::command]
@@ -62,89 +142,27 @@ pub async fn discover_mcp_tools(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Vec<ToolDescriptor>, String> {
-    if id.starts_with("builtin-") {
-        let registry = state.local_tool_registry.lock().await;
-        let groups = registry.get_tool_groups();
-        if let Some(group) = groups.into_iter().find(|g| g.group_id == id) {
-            let tools: Vec<ToolDescriptor> = group
-                .tools
-                .into_iter()
-                .map(|t| ToolDescriptor {
-                    id: format!("{}-{}", id, t.name),
-                    server_id: id.clone(),
-                    name: t.name,
-                    description: Some(t.description),
-                    input_schema_json: Some(t.input_schema.to_string()),
-                })
-                .collect();
-            return Ok(tools);
-        }
-        return Err(format!("Builtin server '{}' not found", id));
-    }
+    // 委托给统一的内部实现
+    let discovered = discover_mcp_tools_inner(&state, &id).await?;
 
-    let server = axagent_core::repo::mcp_server::get_mcp_server(&state.sea_db, &id)
+    // 持久化到 DB（使用原始 DiscoveredTool）
+    axagent_core::repo::mcp_server::save_tool_descriptors(&state.sea_db, &id, discovered.clone())
         .await
         .map_err(|e| e.to_string())?;
 
-    let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
-    let timeout_duration = std::time::Duration::from_secs(timeout_secs);
+    // 转换为 ToolDescriptor 返回前端
+    let tools: Vec<ToolDescriptor> = discovered
+        .into_iter()
+        .map(|t| ToolDescriptor {
+            id: format!("{}-{}", id, t.name),
+            server_id: id.clone(),
+            name: t.name,
+            description: t.description,
+            input_schema_json: t.input_schema.map(|s| s.to_string()),
+        })
+        .collect();
 
-    let tools = match server.transport.as_str() {
-        "stdio" => {
-            let command = server
-                .command
-                .as_deref()
-                .ok_or_else(|| "stdio server has no command configured".to_string())?;
-            let args: Vec<String> = server
-                .args_json
-                .as_ref()
-                .and_then(|s| serde_json::from_str(s).ok())
-                .unwrap_or_default();
-            let env: std::collections::HashMap<String, String> = server
-                .env_json
-                .as_ref()
-                .and_then(|s| serde_json::from_str(s).ok())
-                .unwrap_or_default();
-            tokio::time::timeout(
-                timeout_duration,
-                axagent_core::mcp_client::discover_tools_stdio(command, &args, &env),
-            )
-            .await
-            .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
-            .map_err(|e| e.to_string())?
-        },
-        "http" => {
-            let endpoint = server
-                .endpoint
-                .as_deref()
-                .ok_or_else(|| "HTTP server has no endpoint configured".to_string())?;
-            tokio::time::timeout(
-                timeout_duration,
-                axagent_core::mcp_client::discover_tools_http(endpoint),
-            )
-            .await
-            .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
-            .map_err(|e| e.to_string())?
-        },
-        "sse" => {
-            let endpoint = server
-                .endpoint
-                .as_deref()
-                .ok_or_else(|| "SSE server has no endpoint configured".to_string())?;
-            tokio::time::timeout(
-                timeout_duration,
-                axagent_core::mcp_client::discover_tools_sse(endpoint),
-            )
-            .await
-            .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
-            .map_err(|e| e.to_string())?
-        },
-        other => return Err(format!("Unsupported transport: {}", other)),
-    };
-
-    axagent_core::repo::mcp_server::save_tool_descriptors(&state.sea_db, &id, tools)
-        .await
-        .map_err(|e| e.to_string())
+    Ok(tools)
 }
 
 #[tauri::command]
@@ -204,22 +222,22 @@ async fn discover_mcp_tools_inner(
     state: &AppState,
     id: &str,
 ) -> Result<Vec<axagent_core::mcp_client::DiscoveredTool>, String> {
+    // Builtin servers: 从 DB 的 tool_descriptors 表读取（已持久化的工具列表）
     if id.starts_with("builtin-") {
-        let registry = state.local_tool_registry.lock().await;
-        let groups = registry.get_tool_groups();
-        if let Some(group) = groups.into_iter().find(|g| g.group_id == id) {
-            let tools: Vec<axagent_core::mcp_client::DiscoveredTool> = group
-                .tools
-                .into_iter()
-                .map(|t| axagent_core::mcp_client::DiscoveredTool {
-                    name: t.name,
-                    description: Some(t.description),
-                    input_schema: Some(t.input_schema),
-                })
-                .collect();
-            return Ok(tools);
-        }
-        return Err(format!("Builtin server '{}' not found", id));
+        let descriptors = axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, id)
+            .await
+            .map_err(|e| e.to_string())?;
+        let tools: Vec<axagent_core::mcp_client::DiscoveredTool> = descriptors
+            .into_iter()
+            .map(|d| axagent_core::mcp_client::DiscoveredTool {
+                name: d.name,
+                description: d.description,
+                input_schema: d
+                    .input_schema_json
+                    .and_then(|s| serde_json::from_str(&s).ok()),
+            })
+            .collect();
+        return Ok(tools);
     }
 
     let server = axagent_core::repo::mcp_server::get_mcp_server(&state.sea_db, id)
@@ -229,58 +247,31 @@ async fn discover_mcp_tools_inner(
     let timeout_secs = server.discover_timeout_secs.unwrap_or(30) as u64;
     let timeout_duration = std::time::Duration::from_secs(timeout_secs);
 
-    let tools = match server.transport.as_str() {
-        "stdio" => {
-            let command = server
-                .command
-                .as_deref()
-                .ok_or_else(|| "stdio server has no command configured".to_string())?;
-            let args: Vec<String> = server
-                .args_json
-                .as_ref()
-                .and_then(|s| serde_json::from_str(s).ok())
-                .unwrap_or_default();
-            let env: std::collections::HashMap<String, String> = server
-                .env_json
-                .as_ref()
-                .and_then(|s| serde_json::from_str(s).ok())
-                .unwrap_or_default();
-            tokio::time::timeout(
-                timeout_duration,
-                axagent_core::mcp_client::discover_tools_stdio(command, &args, &env),
-            )
-            .await
-            .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
-            .map_err(|e| e.to_string())?
-        },
-        "http" => {
-            let endpoint = server
-                .endpoint
-                .as_deref()
-                .ok_or_else(|| "HTTP server has no endpoint configured".to_string())?;
-            tokio::time::timeout(
-                timeout_duration,
-                axagent_core::mcp_client::discover_tools_http(endpoint),
-            )
-            .await
-            .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
-            .map_err(|e| e.to_string())?
-        },
-        "sse" => {
-            let endpoint = server
-                .endpoint
-                .as_deref()
-                .ok_or_else(|| "SSE server has no endpoint configured".to_string())?;
-            tokio::time::timeout(
-                timeout_duration,
-                axagent_core::mcp_client::discover_tools_sse(endpoint),
-            )
-            .await
-            .map_err(|_| format!("Tool discovery timed out after {}s", timeout_secs))?
-            .map_err(|e| e.to_string())?
-        },
-        other => return Err(format!("Unsupported transport: {}", other)),
-    };
+    let command = server.command.as_deref();
+    let args: Option<Vec<String>> = server
+        .args_json
+        .as_ref()
+        .and_then(|s| serde_json::from_str(s).ok());
+    let env: Option<std::collections::HashMap<String, String>> = server
+        .env_json
+        .as_ref()
+        .and_then(|s| serde_json::from_str(s).ok());
+    let endpoint = server.endpoint.as_deref();
+
+    // 使用统一的发现入口
+    let tools = tokio::time::timeout(
+        timeout_duration,
+        axagent_core::mcp_client::discover_tools_unified(
+            &server.transport,
+            command,
+            args.as_deref(),
+            env.as_ref(),
+            endpoint,
+        ),
+    )
+    .await
+    .map_err(|_| format!("工具发现超时（{} 秒）", timeout_secs))?
+    .map_err(|e| e.to_string())?;
 
     Ok(tools)
 }
@@ -298,5 +289,86 @@ pub struct DiscoveredMcpServer {
 
 #[tauri::command]
 pub async fn discover_available_mcp_servers() -> Result<Vec<DiscoveredMcpServer>, String> {
-    Ok(Vec::new())
+    let mut servers: Vec<DiscoveredMcpServer> = Vec::new();
+
+    // 1. 从官方注册表获取预置条目
+    let official = axagent_tools::mcp::registry::official_registry();
+    for entry in official {
+        let transport = match entry.transport {
+            axagent_tools::mcp::McpTransport::Stdio => "stdio",
+            axagent_tools::mcp::McpTransport::Http => "http",
+            axagent_tools::mcp::McpTransport::Sse => "sse",
+            axagent_tools::mcp::McpTransport::Ws => "ws",
+            _ => "stdio",
+        };
+        servers.push(DiscoveredMcpServer {
+            name: entry.name.clone(),
+            package_name: entry.command.clone(),
+            description: Some(entry.description),
+            command: entry.command,
+            args: entry.args,
+            transport: transport.to_string(),
+        });
+    }
+
+    // 2. 从 settings.json 中的 mcpServers 配置扫描已安装的服务器
+    let config_paths = discover_mcp_config_paths();
+    for path in config_paths {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Ok(root) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(mcp_servers) = root.get("mcpServers").and_then(|v| v.as_object()) {
+                    for (name, config) in mcp_servers {
+                        let command = config
+                            .get("command")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let args: Vec<String> = config
+                            .get("args")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|v| v.as_str().map(String::from))
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        let transport = config
+                            .get("transport")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("stdio")
+                            .to_string();
+
+                        servers.push(DiscoveredMcpServer {
+                            name: name.clone(),
+                            package_name: command.clone(),
+                            description: config
+                                .get("description")
+                                .and_then(|v| v.as_str())
+                                .map(String::from),
+                            command,
+                            args,
+                            transport,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(servers)
+}
+
+/// 扫描 settings.json 配置文件路径
+fn discover_mcp_config_paths() -> Vec<std::path::PathBuf> {
+    let mut paths = Vec::new();
+    let home = dirs::home_dir().unwrap_or_default();
+
+    paths.push(home.join(".axagent").join("settings.json"));
+
+    if let Ok(cwd) = std::env::current_dir() {
+        paths.push(cwd.join(".axagent").join("settings.json"));
+        paths.push(cwd.join(".axagent").join("settings.local.json"));
+    }
+
+    paths
 }

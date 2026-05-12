@@ -1,6 +1,8 @@
 use std::net::IpAddr;
+use std::sync::Arc;
 use std::time::Instant;
 
+use chrono::Datelike;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -71,6 +73,12 @@ pub struct SearchResult {
     pub title: String,
     pub content: String,
     pub url: String,
+    /// 可信度分数 0.0-1.0
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credibility: Option<f32>,
+    /// 相关性分数 0.0-1.0
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relevance_score: Option<f32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,6 +102,32 @@ pub struct TestResult {
     pub result_count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+}
+
+/// 搜索服务完整配置（替代散落参数，通过 ToolContext.extra 传递）
+#[derive(Debug, Clone)]
+pub struct SearchServiceConfig {
+    pub provider_type: String,
+    pub endpoint: Option<String>,
+    pub api_key: Option<String>,
+    pub max_results: i32,
+    pub timeout_ms: i32,
+    pub region: Option<String>,
+    pub safe_search: Option<i32>,
+}
+
+impl Default for SearchServiceConfig {
+    fn default() -> Self {
+        Self {
+            provider_type: "ddg".to_string(),
+            endpoint: None,
+            api_key: None,
+            max_results: 5,
+            timeout_ms: 15000,
+            region: None,
+            safe_search: None,
+        }
+    }
 }
 
 // ── Default endpoints ─────────────────────────────────────
@@ -175,7 +209,8 @@ pub fn expand_search_queries(original: &str) -> QueryExpansion {
     }
 
     queries.push(format!("{} 教程 文档", trimmed));
-    queries.push(format!("{} 最新 2025", trimmed));
+    let current_year = chrono::Utc::now().year();
+    queries.push(format!("{} 最新 {}", trimmed, current_year));
 
     queries.dedup();
     queries.truncate(5);
@@ -390,9 +425,23 @@ pub fn classify_search_intent(query: &str) -> SearchIntent {
     SearchIntent::ShouldSearch
 }
 
+// ── Search result cache ─────────────────────────────────────
+
+static SEARCH_CACHE: std::sync::OnceLock<quick_cache::sync::Cache<String, SearchResponse>> =
+    std::sync::OnceLock::new();
+
+fn get_search_cache() -> &'static quick_cache::sync::Cache<String, SearchResponse> {
+    SEARCH_CACHE.get_or_init(|| quick_cache::sync::Cache::new(200))
+}
+
+fn make_cache_key(provider_type: &str, query: &str, max_results: i32) -> String {
+    format!("{}|{}|{}", provider_type, query.trim().to_lowercase(), max_results)
+}
+
 // ── Main search dispatch (unified entry point) ──────────────
 
 /// Unified search: tries configured provider first, falls back to DDG.
+/// Results are cached for 5 minutes per provider+query combination.
 /// All search paths (Agent, Q&A, MCP) should call this single function.
 pub async fn execute_search(
     provider_type: &str,
@@ -402,6 +451,11 @@ pub async fn execute_search(
     max_results: i32,
     timeout_ms: i32,
 ) -> Result<SearchResponse> {
+    let cache_key = make_cache_key(provider_type, query, max_results);
+    if let Some(cached) = get_search_cache().get(&cache_key) {
+        return Ok(cached);
+    }
+
     let start = Instant::now();
 
     // 1. Try the configured search provider
@@ -421,36 +475,59 @@ pub async fn execute_search(
 
     let latency = start.elapsed().as_millis() as u64;
 
-    match result {
-        Ok(results) if !results.is_empty() => Ok(SearchResponse {
+    let response = match result {
+        Ok(results) if !results.is_empty() => SearchResponse {
             ok: true,
             query: query.to_string(),
             results,
             latency_ms: latency,
             error: None,
-        }),
+        },
         _ => {
             // 2. DuckDuckGo fallback
             let ddg = search_duckduckgo(query, max_results).await;
             let latency = start.elapsed().as_millis() as u64;
             match ddg {
-                Ok(results) => Ok(SearchResponse {
+                Ok(results) => SearchResponse {
                     ok: true,
                     query: query.to_string(),
                     results,
                     latency_ms: latency,
                     error: None,
-                }),
-                Err(e) => Ok(SearchResponse {
+                },
+                Err(e) => SearchResponse {
                     ok: false,
                     query: query.to_string(),
                     results: vec![],
                     latency_ms: latency,
                     error: Some(e.to_string()),
-                }),
+                },
             }
         },
+    };
+
+    // 缓存成功结果（5 分钟 TTL 由 quick_cache 的容量管理间接限制）
+    if response.ok {
+        get_search_cache().insert(cache_key, response.clone());
     }
+
+    Ok(response)
+}
+
+/// 使用结构化配置的搜索入口（替代散落参数）
+pub async fn execute_search_with_config(
+    config: &SearchServiceConfig,
+    query: &str,
+) -> Result<SearchResponse> {
+    execute_search(
+        &config.provider_type,
+        config.endpoint.as_deref(),
+        config.api_key.as_deref().unwrap_or(""),
+        query,
+        config.max_results,
+        config.timeout_ms,
+    )
+    .await
 }
 
 /// Unified search that returns formatted text (for LLM consumption)
@@ -685,6 +762,118 @@ fn is_official_source(url: &str) -> bool {
         .any(|d| url.to_lowercase().contains(d))
 }
 
+/// 评估 URL 可信度分数 0.0-1.0
+pub fn estimate_credibility(url: &str) -> f32 {
+    let domain = url.split('/').nth(2).unwrap_or("");
+    let high_credibility = [
+        "arxiv.org",
+        "github.com",
+        "stackoverflow.com",
+        "wikipedia.org",
+        "doi.org",
+        "pubmed.gov",
+        "nature.com",
+        "science.org",
+        "docs.microsoft.com",
+        "developer.mozilla.org",
+        "python.org",
+        "rust-lang.org",
+        "nodejs.org",
+        "react.dev",
+        "angular.io",
+        "vuejs.org",
+        "tensorflow.org",
+        "pytorch.org",
+        "openai.com",
+        "anthropic.com",
+    ];
+
+    for credible in &high_credibility {
+        if domain.ends_with(credible) {
+            return 0.9;
+        }
+    }
+
+    if domain.is_empty() {
+        0.5
+    } else {
+        0.7
+    }
+}
+
+/// DNS rebinding 防护：解析主机名后检查 IP 是否为私有/回环地址
+pub async fn is_safe_url_deep(url_str: &str) -> bool {
+    if !is_safe_url(url_str) {
+        return false;
+    }
+
+    let parsed = match reqwest::Url::parse(url_str) {
+        Ok(u) => u,
+        Err(_) => return false,
+    };
+
+    let host = match parsed.host_str() {
+        Some(h) => h,
+        None => return false,
+    };
+
+    // 如果已经是 IP 字面量，is_safe_url 已检查过
+    if host.parse::<std::net::IpAddr>().is_ok() {
+        return true;
+    }
+
+    // DNS 解析后检查
+    if let Ok(addrs) = tokio::net::lookup_host(format!("{}:0", host)).await {
+        for addr in addrs {
+            match addr.ip() {
+                std::net::IpAddr::V4(v4)
+                    if v4.is_private() || v4.is_loopback() || v4.is_unspecified() =>
+                {
+                    return false;
+                },
+                std::net::IpAddr::V6(v6) if v6.is_loopback() || v6.is_unspecified() => {
+                    return false
+                },
+                _ => {},
+            }
+        }
+    }
+
+    true
+}
+
+/// 共享 HTTP 客户端（带 redirect policy、cookie store、timeout）
+pub fn shared_http_client() -> Arc<reqwest::Client> {
+    use std::sync::OnceLock;
+    static CLIENT: OnceLock<Arc<reqwest::Client>> = OnceLock::new();
+    CLIENT
+        .get_or_init(|| {
+            Arc::new(
+                reqwest::Client::builder()
+                    .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .timeout(std::time::Duration::from_secs(30))
+                    .connect_timeout(std::time::Duration::from_secs(10))
+                    .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                        if attempt.previous().len() >= 5 {
+                            attempt.stop()
+                        } else {
+                            let url = attempt.url();
+                            let _host = url.host_str().unwrap_or("");
+                            if is_safe_url(url.as_str()) {
+                                attempt.follow()
+                            } else {
+                                attempt.stop()
+                            }
+                        }
+                    }))
+                    .cookie_store(true)
+                    .build()
+                    .expect("Failed to build shared HTTP client"),
+            )
+        })
+        .clone()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CascadeSearchResult {
     pub query: String,
@@ -854,6 +1043,8 @@ async fn search_tavily(
             title: r.title.unwrap_or_else(|| "No title".to_string()),
             content: r.content.unwrap_or_default(),
             url: r.url.unwrap_or_default(),
+            credibility: None,
+            relevance_score: None,
         })
         .collect())
 }
@@ -929,6 +1120,8 @@ async fn search_zhipu(
             title: r.title.unwrap_or_else(|| "No title".to_string()),
             content: r.content.unwrap_or_default(),
             url: r.link.unwrap_or_default(),
+            credibility: None,
+            relevance_score: None,
         })
         .collect())
 }
@@ -1034,6 +1227,8 @@ async fn search_bocha(
             title: r.name.unwrap_or_else(|| "No title".to_string()),
             content: r.summary.or(r.snippet).unwrap_or_default(),
             url: r.url.unwrap_or_default(),
+            credibility: None,
+            relevance_score: None,
         })
         .collect())
 }
@@ -1066,6 +1261,8 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                         title: "摘要".to_string(),
                         content: abs.to_string(),
                         url: url.to_string(),
+                        credibility: None,
+                        relevance_score: None,
                     });
                 }
             }
@@ -1077,6 +1274,8 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                             title: text.chars().take(80).collect(),
                             content: text.to_string(),
                             url: url.to_string(),
+                            credibility: None,
+                            relevance_score: None,
                         });
                     }
                 }
@@ -1145,6 +1344,8 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                             title,
                             content: snippet,
                             url,
+                            credibility: None,
+                            relevance_score: None,
                         });
                     }
                 }
@@ -1163,6 +1364,8 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
                                         title: text.chars().take(80).collect(),
                                         content: text.to_string(),
                                         url: String::new(),
+                                        credibility: None,
+                                        relevance_score: None,
                                     });
                                 }
                             }
@@ -1232,6 +1435,8 @@ async fn search_serpapi(
             title: r.title.unwrap_or_default(),
             content: r.snippet.unwrap_or_default(),
             url: r.link.unwrap_or_default(),
+            credibility: None,
+            relevance_score: None,
         })
         .collect())
 }
@@ -1294,6 +1499,8 @@ async fn search_brave(
             title: r.title.unwrap_or_default(),
             content: r.description.unwrap_or_default(),
             url: r.url.unwrap_or_default(),
+            credibility: None,
+            relevance_score: None,
         })
         .collect())
 }
@@ -1356,6 +1563,8 @@ async fn search_bing(
             title: r.name.unwrap_or_default(),
             content: r.snippet.unwrap_or_default(),
             url: r.url.unwrap_or_default(),
+            credibility: None,
+            relevance_score: None,
         })
         .collect())
 }
@@ -1416,6 +1625,8 @@ async fn search_google_pse(
             title: r.title.unwrap_or_default(),
             content: r.snippet.unwrap_or_default(),
             url: r.link.unwrap_or_default(),
+            credibility: None,
+            relevance_score: None,
         })
         .collect())
 }

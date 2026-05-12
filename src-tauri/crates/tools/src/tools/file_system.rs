@@ -112,6 +112,7 @@ impl Tool for ListDirectoryTool {
             is_error: false,
             metadata: None,
             duration_ms: None,
+            progress: Vec::new(),
         })
     }
 }

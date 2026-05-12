@@ -1134,9 +1134,105 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
 
     // ── Phase 2: MCP Servers ──────────────────────────────────────────
     case "list_local_tools":
+      return [
+        {
+          groupId: "builtin-file-read",
+          groupName: "文件读取",
+          description: "只读文件操作：读取、搜索、列出目录和文件信息",
+          enabled: true,
+          tools: [
+            {
+              name: "FileRead",
+              description: "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。",
+              category: "file_read",
+              isDestructive: false,
+              isReadOnly: true,
+              isConcurrencySafe: true,
+              enabled: true,
+            },
+            {
+              name: "Glob",
+              description: "使用 glob 模式搜索文件。返回匹配的文件路径列表。",
+              category: "file_read",
+              isDestructive: false,
+              isReadOnly: true,
+              isConcurrencySafe: true,
+              enabled: true,
+            },
+            {
+              name: "Grep",
+              description: "在文件中搜索匹配正则表达式的内容。",
+              category: "file_read",
+              isDestructive: false,
+              isReadOnly: true,
+              isConcurrencySafe: true,
+              enabled: true,
+            },
+          ],
+        },
+        {
+          groupId: "builtin-file-write",
+          groupName: "文件写入",
+          description: "写入文件操作：创建、编辑、删除、移动文件",
+          enabled: true,
+          tools: [
+            {
+              name: "FileWrite",
+              description: "创建新文件或完全覆盖已有文件（⚠️ 不可逆）。",
+              category: "file_write",
+              isDestructive: true,
+              isReadOnly: false,
+              isConcurrencySafe: false,
+              enabled: true,
+            },
+            {
+              name: "FileEdit",
+              description: "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。",
+              category: "file_write",
+              isDestructive: true,
+              isReadOnly: false,
+              isConcurrencySafe: false,
+              enabled: false,
+            },
+            {
+              name: "DeleteFile",
+              description: "删除指定路径的文件。此操作不可逆。",
+              category: "file_write",
+              isDestructive: true,
+              isReadOnly: false,
+              isConcurrencySafe: false,
+              enabled: true,
+            },
+          ],
+        },
+        {
+          groupId: "builtin-shell",
+          groupName: "Shell 命令",
+          description: "Shell 命令执行和代码 REPL",
+          enabled: false,
+          tools: [
+            {
+              name: "Bash",
+              description: "执行 shell 命令。适用：运行测试、构建、git 操作。危险命令需权限确认。",
+              category: "shell",
+              isDestructive: true,
+              isReadOnly: false,
+              isConcurrencySafe: false,
+              enabled: true,
+            },
+          ],
+        },
+      ] as T;
+    case "toggle_local_tool_group":
+      return {
+        groupId: (args as Record<string, unknown>)?.groupId,
+        groupName: "",
+        description: "",
+        enabled: true,
+        tools: [],
+      } as T;
+    case "toggle_single_tool":
       return [] as T;
-    case "toggle_local_tool":
-      return { groupId: (args as Record<string, unknown>)?.groupId, groupName: "", enabled: true, tools: [] } as T;
     case "list_mcp_servers":
       return getStore("mcp_servers", []) as T;
     case "create_mcp_server": {

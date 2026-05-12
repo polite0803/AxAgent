@@ -10,8 +10,10 @@
 
 use sea_orm::DatabaseConnection;
 
+use std::sync::Arc;
+
 use axagent_core::error::{AxAgentError, Result};
-use axagent_core::rag::{self, ChunkStrategy, KnowledgeRAG, MemoryRAG};
+use axagent_core::rag::{self, ChunkStrategy, KnowledgeRAG, LlmCallFn, MemoryRAG};
 use axagent_core::types::*;
 use axagent_core::vector_store::{VectorSearchResult, VectorStore};
 
@@ -37,6 +39,24 @@ impl rag::AsyncEmbedFn for ProviderEmbedFn {
     ) -> Result<EmbedResponse> {
         generate_embeddings(db, master_key, embedding_provider, texts, dimensions).await
     }
+}
+
+// ── RAG Pipeline LLM helper ───────────────────────────────────────────────────
+
+/// Build a `LlmCallFn` from the first enabled provider in the DB.
+/// Used by the RAG pipeline for query enhancement LLM calls.
+pub async fn build_rag_llm_fn(db: &DatabaseConnection, master_key: &[u8; 32]) -> Option<LlmCallFn> {
+    let bridge = axagent_agent::llm_bridge::build_llm_bridge_from_db(db, master_key).await?;
+
+    Some(Arc::new(move |prompt: String| {
+        let bridge = bridge.clone();
+        Box::pin(async move {
+            bridge
+                .call_llm("", &prompt)
+                .await
+                .map_err(|e| AxAgentError::Provider(e))
+        })
+    }))
 }
 
 // ── Low-level embedding utilities ────────────────────────────────────────────
@@ -569,17 +589,63 @@ pub async fn collect_rag_context(
         };
     }
 
-    let cache_key = format!("{:?}|{:?}|{:?}|{}", kb_ids, mem_ids, wiki_ids, query);
-    {
-        let cache = RAG_CACHE.lock().await;
-        if let Some((timestamp, result)) = cache.get(&cache_key) {
-            if timestamp.elapsed().as_secs() < RAG_CACHE_TTL_SECS {
-                return result.clone();
+    // Read pipeline config from global settings
+    let pipeline_config = axagent_core::repo::settings::get_settings(db)
+        .await
+        .map(|s| s.rag_pipeline_config)
+        .unwrap_or_default();
+
+    let use_pipeline = pipeline_config.query_enhancement.enabled
+        || pipeline_config.rerank.enabled
+        || pipeline_config.self_rag.enabled;
+
+    if !use_pipeline {
+        // Fast path: no pipeline features enabled, use existing cached search
+        let cache_key = format!("{:?}|{:?}|{:?}|{}", kb_ids, mem_ids, wiki_ids, query);
+        {
+            let cache = RAG_CACHE.lock().await;
+            if let Some((timestamp, result)) = cache.get(&cache_key) {
+                if timestamp.elapsed().as_secs() < RAG_CACHE_TTL_SECS {
+                    return result.clone();
+                }
             }
         }
+
+        let result = rag::collect_rag_context(
+            db,
+            master_key,
+            vector_store,
+            kb_ids,
+            mem_ids,
+            wiki_ids,
+            query,
+            top_k,
+            ProviderEmbedFn,
+        )
+        .await;
+
+        let mut cache = RAG_CACHE.lock().await;
+        cache.insert(cache_key, (std::time::Instant::now(), result.clone()));
+        cache.retain(|_, (ts, _)| ts.elapsed().as_secs() < 300);
+        return result;
     }
 
-    let result = rag::collect_rag_context(
+    // Pipeline path: build LLM function if query enhancement is enabled
+    tracing::info!(
+        "RAG pipeline active: enhancement={}, rerank={}, self_rag={}",
+        pipeline_config.query_enhancement.enabled,
+        pipeline_config.rerank.enabled,
+        pipeline_config.self_rag.enabled,
+    );
+
+    let llm_fn = if pipeline_config.query_enhancement.enabled {
+        build_rag_llm_fn(db, master_key).await
+    } else {
+        None
+    };
+
+    // Pipeline results are not cached (involve LLM calls whose outputs vary)
+    rag::collect_rag_context_with_pipeline(
         db,
         master_key,
         vector_store,
@@ -589,16 +655,8 @@ pub async fn collect_rag_context(
         query,
         top_k,
         ProviderEmbedFn,
+        &pipeline_config,
+        llm_fn,
     )
-    .await;
-
-    // Store in cache
-    {
-        let mut cache = RAG_CACHE.lock().await;
-        cache.insert(cache_key, (std::time::Instant::now(), result.clone()));
-        // Prune entries older than 5 minutes
-        cache.retain(|_, (ts, _)| ts.elapsed().as_secs() < 300);
-    }
-
-    result
+    .await
 }

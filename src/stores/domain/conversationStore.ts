@@ -231,7 +231,7 @@ interface ConversationState {
   mcpMode: "auto" | "manual" | "disabled";
   enabledMcpServerIds: string[];
   enabledKnowledgeBaseIds: string[];
-  enabledMemoryNamespaceIds: string[];
+  activeMemoryNamespaceId: string | null;
   enabledWikiIds: string[];
   setSearchEnabled: (enabled: boolean) => void;
   setSearchProviderId: (id: string | null) => void;
@@ -239,7 +239,7 @@ interface ConversationState {
   setMcpMode: (mode: "auto" | "manual" | "disabled") => void;
   setThinkingBudget: (budget: number | null) => void;
   toggleKnowledgeBase: (id: string) => void;
-  toggleMemoryNamespace: (id: string) => void;
+  setActiveMemoryNamespace: (id: string | null) => void;
   toggleWiki: (id: string) => void;
 }
 
@@ -269,7 +269,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   mcpMode: usePreferenceStore.getState().mcpMode,
   enabledMcpServerIds: usePreferenceStore.getState().enabledMcpServerIds,
   enabledKnowledgeBaseIds: usePreferenceStore.getState().enabledKnowledgeBaseIds,
-  enabledMemoryNamespaceIds: usePreferenceStore.getState().enabledMemoryNamespaceIds,
+  activeMemoryNamespaceId: usePreferenceStore.getState().activeMemoryNamespaceId,
   enabledWikiIds: usePreferenceStore.getState().enabledWikiIds,
   setMcpMode: (mode: "auto" | "manual" | "disabled") => {
     usePreferenceStore.getState().setMcpMode(mode);
@@ -304,11 +304,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     usePreferenceStore.getState().toggleKnowledgeBase(id);
     set({ enabledKnowledgeBaseIds: next });
   },
-  toggleMemoryNamespace: (id) => {
-    const current = get().enabledMemoryNamespaceIds;
-    const next = current.includes(id) ? current.filter((s) => s !== id) : [...current, id];
-    usePreferenceStore.getState().toggleMemoryNamespace(id);
-    set({ enabledMemoryNamespaceIds: next });
+  setActiveMemoryNamespace: (id) => {
+    const current = get().activeMemoryNamespaceId;
+    const nextId = current === id ? null : id;
+    usePreferenceStore.getState().setActiveMemoryNamespace(id);
+    set({ activeMemoryNamespaceId: nextId });
   },
   toggleWiki: (id) => {
     const current = get().enabledWikiIds;
@@ -499,7 +499,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       mcpMode: prefState.mcpMode,
       enabledMcpServerIds: prefState.enabledMcpServerIds,
       enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
-      enabledMemoryNamespaceIds: prefState.enabledMemoryNamespaceIds,
+      activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
       enabledWikiIds: prefState.enabledWikiIds,
     });
     // Sync preference state from the conversation (direct setState to avoid triggering persistence)
@@ -836,32 +836,24 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   batchDelete: async (ids) => {
-    const errors: string[] = [];
     // Cancel any active streams for the conversations being deleted
     for (const id of ids) {
       if (isConvStreaming(useStreamStore.getState().activeStreams, id)) {
         useStreamStore.getState().cancelCurrentStream(id);
       }
     }
-    for (const id of ids) {
-      try {
-        await invoke("delete_conversation", { id });
-      } catch (e) {
-        errors.push(String(e));
-      }
-    }
+    await invoke("batch_delete_conversations", { ids });
     // Clean up other stores for all deleted conversations
     for (const id of ids) {
       useAgentStore.getState().clearConversation(id);
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
-      // dreamStore is global, no per-conversation cleanup needed
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
       activeConversationId: ids.includes(s.activeConversationId ?? "") ? null : s.activeConversationId,
       messages: ids.includes(s.activeConversationId ?? "") ? [] : s.messages,
-      error: errors.length ? errors.join("; ") : null,
+      error: null,
     }));
   },
 
@@ -948,7 +940,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     // Create assistant placeholder upfront (for search status or streaming)
     const tempAssistantId = `temp-assistant-${Date.now()}`;
     kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-    memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+    const activeMemId1 = usePreferenceStore.getState().activeMemoryNamespaceId;
+    memIds = activeMemId1 ? [activeMemId1] : [];
     const wikiIds = usePreferenceStore.getState().enabledWikiIds;
     const hasKnowledgeRag = kbIds.length > 0;
     const hasMemoryRag = memIds.length > 0;
@@ -1026,7 +1019,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       mcpIds = usePreferenceStore.getState().enabledMcpServerIds;
       thinkingBudget = getEffectiveThinkingBudget(conversationId);
       kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-      memIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const activeMemNsIdForSend = usePreferenceStore.getState().activeMemoryNamespaceId;
+      memIds = activeMemNsIdForSend ? [activeMemNsIdForSend] : [];
       const wikiIdsForSend = usePreferenceStore.getState().enabledWikiIds;
       const userMessage = await invoke<Message>("send_message", {
         conversationId,
@@ -1870,7 +1864,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const rMcpIds = usePreferenceStore.getState().enabledMcpServerIds;
       const rThinkingBudget = getEffectiveThinkingBudget(conversationId);
       const rKbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-      const rMemIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const rMemNsId = usePreferenceStore.getState().activeMemoryNamespaceId;
+      const rMemIds = rMemNsId ? [rMemNsId] : [];
       const rWikiIds = usePreferenceStore.getState().enabledWikiIds;
       await invoke("regenerate_message", {
         conversationId,
@@ -1993,7 +1988,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const rMcpIds = usePreferenceStore.getState().enabledMcpServerIds;
       const rThinkingBudget = getEffectiveThinkingBudget(conversationId);
       const rKbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-      const rMemIds = usePreferenceStore.getState().enabledMemoryNamespaceIds;
+      const rMemNsId2 = usePreferenceStore.getState().activeMemoryNamespaceId;
+      const rMemIds = rMemNsId2 ? [rMemNsId2] : [];
       const rWikiIds = usePreferenceStore.getState().enabledWikiIds;
       await invoke("regenerate_with_model", {
         conversationId,
@@ -2313,8 +2309,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
         // Auto incremental memory extraction after stream completes
         import("@/lib/invoke").then(({ invoke }) => {
+          const memNsId = usePreferenceStore.getState().activeMemoryNamespaceId;
           void invoke("auto_extract_incremental_memories", {
             conversationId: conversation_id,
+            namespaceId: memNsId ?? null,
           }).catch(() => {});
           void invoke("extract_conversation_entities", {
             conversationId: conversation_id,

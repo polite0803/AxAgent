@@ -39,13 +39,13 @@ impl Tool for ComputerUseTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Desktop
     }
     fn is_concurrency_safe(&self) -> bool {
         false
     }
     fn is_destructive(&self) -> bool {
-        false
+        true
     }
 
     fn check_permissions(&self, _input: &Value, _ctx: &ToolContext) -> PermissionResult {

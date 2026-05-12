@@ -153,10 +153,13 @@ impl Tool for TaskCreateTool {
         })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         false
+    }
+    fn is_destructive(&self) -> bool {
+        true
     }
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let title = input["title"].as_str().unwrap_or("untitled").to_string();
@@ -193,7 +196,7 @@ impl Tool for TaskGetTool {
         serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"}},"required":["task_id"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -221,7 +224,7 @@ impl Tool for TaskListTool {
         serde_json::json!({"type":"object","properties":{}})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -248,10 +251,13 @@ impl Tool for TaskStopTool {
         serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"}},"required":["task_id"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         false
+    }
+    fn is_destructive(&self) -> bool {
+        true
     }
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let id = input["task_id"].as_str().unwrap_or("?");
@@ -276,10 +282,13 @@ impl Tool for TaskUpdateTool {
         serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"},"status":{"type":"string"}},"required":["task_id"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         false
+    }
+    fn is_destructive(&self) -> bool {
+        true
     }
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let id = input["task_id"].as_str().unwrap_or("?");
@@ -305,7 +314,7 @@ impl Tool for TaskOutputTool {
         serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"}},"required":["task_id"]})
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true

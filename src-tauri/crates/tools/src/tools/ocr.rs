@@ -21,7 +21,7 @@ impl Tool for OcrImageTool {
         serde_json::json!({ "type": "object", "properties": { "file_path": { "type": "string" }, "lang": { "type": "string", "default": "eng" } }, "required": ["file_path"] })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::AiMedia
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -98,7 +98,7 @@ impl Tool for OcrDetectLangsTool {
         serde_json::json!({ "type": "object", "properties": {} })
     }
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::AiMedia
     }
     fn is_concurrency_safe(&self) -> bool {
         true

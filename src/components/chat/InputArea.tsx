@@ -31,7 +31,7 @@ import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/t
 import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Select, Tag, theme, Tooltip } from "antd";
+import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Radio, Select, Tag, theme, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import {
   ArrowUp,
@@ -318,8 +318,8 @@ export function InputArea() {
   // Memory state
   const memoryNamespaces = useMemoryStore((s) => s.namespaces);
   const loadMemoryNamespaces = useMemoryStore((s) => s.loadNamespaces);
-  const enabledMemoryNamespaceIds = useConversationStore((s) => s.enabledMemoryNamespaceIds);
-  const toggleMemoryNamespace = useConversationStore((s) => s.toggleMemoryNamespace);
+  const activeMemoryNamespaceId = useConversationStore((s) => s.activeMemoryNamespaceId);
+  const setActiveMemoryNamespace = useConversationStore((s) => s.setActiveMemoryNamespace);
 
   // Wiki vault state
   const wikis = useLlmWikiStore((s) => s.wikis);
@@ -366,33 +366,33 @@ export function InputArea() {
 
   // Load search providers on mount
   useEffect(() => {
-    if (searchProviders.length === 0) { loadSearchProviders(); }
-  }, [searchProviders.length, loadSearchProviders]);
+    if ((searchProviders ?? []).length === 0) { loadSearchProviders(); }
+  }, [searchProviders, loadSearchProviders]);
 
   // Load MCP servers on mount
   useEffect(() => {
-    if (mcpServers.length === 0) { loadMcpServers(); }
-  }, [mcpServers.length, loadMcpServers]);
+    if ((mcpServers ?? []).length === 0) { loadMcpServers(); }
+  }, [mcpServers, loadMcpServers]);
 
   // Load knowledge bases on mount
   useEffect(() => {
-    if (knowledgeBases.length === 0) { loadKnowledgeBases(); }
-  }, [knowledgeBases.length, loadKnowledgeBases]);
+    if ((knowledgeBases ?? []).length === 0) { loadKnowledgeBases(); }
+  }, [knowledgeBases, loadKnowledgeBases]);
 
   // Load memory namespaces on mount
   useEffect(() => {
-    if (memoryNamespaces.length === 0) { loadMemoryNamespaces(); }
-  }, [memoryNamespaces.length, loadMemoryNamespaces]);
+    if ((memoryNamespaces ?? []).length === 0) { loadMemoryNamespaces(); }
+  }, [memoryNamespaces, loadMemoryNamespaces]);
 
   // Load wiki vaults on mount
   useEffect(() => {
-    if (wikis.length === 0) { loadWikis(); }
-  }, [wikis.length, loadWikis]);
+    if ((wikis ?? []).length === 0) { loadWikis(); }
+  }, [wikis, loadWikis]);
 
   // Load gateway links on mount
   useEffect(() => {
-    if (gatewayLinks.length === 0) { fetchGatewayLinks(); }
-  }, [gatewayLinks.length, fetchGatewayLinks]);
+    if ((gatewayLinks ?? []).length === 0) { fetchGatewayLinks(); }
+  }, [gatewayLinks, fetchGatewayLinks]);
 
   // Set default workspace directory when in agent mode and no conversation is active
   useEffect(() => {
@@ -918,7 +918,10 @@ export function InputArea() {
   }, [activeConversationId, t]);
 
   const sourcePopoverContent = useMemo(() => {
-    const totalSources = knowledgeBases.length + memoryNamespaces.length + wikis.length;
+    const safeKb = knowledgeBases ?? [];
+    const safeMem = memoryNamespaces ?? [];
+    const safeWikis = wikis ?? [];
+    const totalSources = safeKb.length + safeMem.length + safeWikis.length;
     if (totalSources === 0) {
       return (
         <div style={{ padding: "8px 0", minWidth: 200 }}>
@@ -941,10 +944,10 @@ export function InputArea() {
     }
     return (
       <div style={{ minWidth: 220, maxHeight: 400, overflowY: "auto" }}>
-        {knowledgeBases.length > 0 && (
+        {safeKb.length > 0 && (
           <div
             style={{
-              marginBottom: knowledgeBases.length > 0 && (memoryNamespaces.length > 0 || wikis.length > 0) ? 8 : 0,
+              marginBottom: safeKb.length > 0 && (safeMem.length > 0 || safeWikis.length > 0) ? 8 : 0,
             }}
           >
             <div
@@ -963,7 +966,7 @@ export function InputArea() {
               <BookOpen size={11} />
               {t("chat.knowledge.title")}
             </div>
-            {knowledgeBases.map((kb) => (
+            {safeKb.map((kb) => (
               <div key={kb.id} style={{ padding: "2px 0" }}>
                 <Checkbox
                   checked={enabledKnowledgeBaseIds.includes(kb.id)}
@@ -978,8 +981,8 @@ export function InputArea() {
             ))}
           </div>
         )}
-        {memoryNamespaces.length > 0 && (
-          <div style={{ marginBottom: memoryNamespaces.length > 0 && wikis.length > 0 ? 8 : 0 }}>
+        {safeMem.length > 0 && (
+          <div style={{ marginBottom: safeMem.length > 0 && safeWikis.length > 0 ? 8 : 0 }}>
             <div
               style={{
                 fontSize: 11,
@@ -996,22 +999,23 @@ export function InputArea() {
               <Brain size={11} />
               {t("chat.memory.title")}
             </div>
-            {memoryNamespaces.map((ns) => (
-              <div key={ns.id} style={{ padding: "2px 0" }}>
-                <Checkbox
-                  checked={enabledMemoryNamespaceIds.includes(ns.id)}
-                  onChange={() => toggleMemoryNamespace(ns.id)}
-                >
+            <Radio.Group
+              value={activeMemoryNamespaceId}
+              onChange={(e) => setActiveMemoryNamespace(e.target.value || null)}
+              style={{ display: "flex", flexDirection: "column", gap: 2 }}
+            >
+              {safeMem.map((ns) => (
+                <Radio key={ns.id} value={ns.id}>
                   <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
                     <NamespaceIcon ns={ns} size={16} />
                     {ns.name}
                   </span>
-                </Checkbox>
-              </div>
-            ))}
+                </Radio>
+              ))}
+            </Radio.Group>
           </div>
         )}
-        {wikis.length > 0 && (
+        {safeWikis.length > 0 && (
           <div>
             <div
               style={{
@@ -1029,7 +1033,7 @@ export function InputArea() {
               <Library size={11} />
               {t("chat.wiki.title")}
             </div>
-            {wikis.map((wiki) => (
+            {safeWikis.map((wiki) => (
               <div key={wiki.id} style={{ padding: "2px 0" }}>
                 <Checkbox
                   checked={enabledWikiIds.includes(wiki.id)}
@@ -1051,10 +1055,10 @@ export function InputArea() {
     memoryNamespaces,
     wikis,
     enabledKnowledgeBaseIds,
-    enabledMemoryNamespaceIds,
+    activeMemoryNamespaceId,
     enabledWikiIds,
     toggleKnowledgeBase,
-    toggleMemoryNamespace,
+    setActiveMemoryNamespace,
     toggleWiki,
     token,
     t,
@@ -1360,7 +1364,7 @@ export function InputArea() {
           const conversationId = await useGatewayLinkStore.getState().createGatewayConversation(selectedGatewayId);
           useConversationStore.getState().setActiveConversation(conversationId);
         } else {
-          if (providersLoading || providers.length === 0) {
+          if (providersLoading || (providers ?? []).length === 0) {
             messageApi.warning(t("chat.noModelsAvailable"));
             return;
           }
@@ -2201,7 +2205,7 @@ export function InputArea() {
             >
               <Tooltip title={t("chat.sources.title")} open={sourcePopoverOpen ? false : undefined}>
                 <Badge
-                  count={enabledKnowledgeBaseIds.length + enabledMemoryNamespaceIds.length + enabledWikiIds.length}
+                  count={enabledKnowledgeBaseIds.length + (activeMemoryNamespaceId ? 1 : 0) + enabledWikiIds.length}
                   size="small"
                   offset={[-4, 4]}
                   color={token.colorPrimary}
@@ -2210,7 +2214,7 @@ export function InputArea() {
                     type="text"
                     size="small"
                     icon={<Database size={14} />}
-                    style={(enabledKnowledgeBaseIds.length + enabledMemoryNamespaceIds.length + enabledWikiIds.length)
+                    style={(enabledKnowledgeBaseIds.length + (activeMemoryNamespaceId ? 1 : 0) + enabledWikiIds.length)
                         > 0
                       ? { color: token.colorPrimary }
                       : undefined}

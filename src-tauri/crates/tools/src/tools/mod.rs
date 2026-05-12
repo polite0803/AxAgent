@@ -1,12 +1,17 @@
 //! 内置工具实现
 
 pub mod agent;
+pub mod agent_memory;
 pub mod bash;
 pub mod batch_missing;
 pub mod browser;
+pub mod ci;
 pub mod computer_use;
 pub mod context;
 pub mod cron;
+pub mod database;
+pub mod devops;
+pub mod export;
 pub mod file_edit;
 pub mod file_read;
 pub mod file_system;
@@ -14,8 +19,10 @@ pub mod file_write;
 pub mod git;
 pub mod glob;
 pub mod grep;
+pub mod integration;
 pub mod knowledge;
 pub mod lsp;
+pub mod media;
 pub mod messaging;
 pub mod misc;
 pub mod monitor;
@@ -28,9 +35,12 @@ pub mod skill;
 pub mod storage;
 pub mod system_info;
 pub mod task_system;
+pub mod testing;
 pub mod todo_write;
 pub mod web_fetch;
 pub mod web_search;
+pub mod workspace;
+pub mod worktree;
 
 pub use todo_write::{AskUserQuestionTool, NotebookEditTool};
 
@@ -63,7 +73,7 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         // ── 计划模式 ──
         std::sync::Arc::new(plan::EnterPlanModeTool),
         std::sync::Arc::new(plan::ExitPlanModeTool),
-        std::sync::Arc::new(batch_missing::VerifyPlanExecutionTool),
+        std::sync::Arc::new(plan::VerifyPlanExecutionTool),
         // ── 桌面控制 ──
         std::sync::Arc::new(computer_use::ComputerUseTool),
         // ── 浏览器 ──
@@ -89,22 +99,22 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(task_system::TaskUpdateTool),
         std::sync::Arc::new(task_system::TaskOutputTool),
         // ── Worktree ──
-        std::sync::Arc::new(batch_missing::EnterWorktreeTool),
-        std::sync::Arc::new(batch_missing::ExitWorktreeTool),
-        // ── 工具管理 ──
+        std::sync::Arc::new(worktree::EnterWorktreeTool),
+        std::sync::Arc::new(worktree::ExitWorktreeTool),
+        // ── 系统工具 ──
         std::sync::Arc::new(batch_missing::SleepTool),
         std::sync::Arc::new(batch_missing::ToolSearchTool),
         std::sync::Arc::new(batch_missing::ConfigTool),
         std::sync::Arc::new(batch_missing::ReviewArtifactTool),
         std::sync::Arc::new(batch_missing::TerminalCaptureTool),
-        std::sync::Arc::new(batch_missing::DiscoverSkillsTool),
+        std::sync::Arc::new(skill::DiscoverSkillsTool),
         // ── 消息和文件 ──
         std::sync::Arc::new(batch_missing::BriefTool),
         std::sync::Arc::new(batch_missing::SendUserFileTool),
         std::sync::Arc::new(batch_missing::SubscribePRTool),
         std::sync::Arc::new(batch_missing::WorkflowTool),
-        std::sync::Arc::new(batch_missing::RemoteTriggerTool),
-        std::sync::Arc::new(batch_missing::SuggestBackgroundPRTool),
+        std::sync::Arc::new(agent::RemoteTriggerTool),
+        std::sync::Arc::new(agent::SuggestBackgroundPRTool),
         // ── 通信: SendMessage + ListPeers + Team ──
         std::sync::Arc::new(messaging::SendMessageTool),
         std::sync::Arc::new(messaging::ListPeersTool),
@@ -147,29 +157,53 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(obsidian::ObsidianGetVaultsTool),
         std::sync::Arc::new(obsidian::ObsidianListFilesTool),
         std::sync::Arc::new(obsidian::ObsidianReadFileTool),
-        // ── 杂项工具 ──
-        std::sync::Arc::new(misc::ExportWordTool),
+        // ── 导出与格式 ──
+        std::sync::Arc::new(export::ExportWordTool),
+        std::sync::Arc::new(export::PdfInfoTool),
+        std::sync::Arc::new(export::DetectEncodingTool),
+        // ── 远程文件 ──
         std::sync::Arc::new(misc::RemoteFileUploadTool),
         std::sync::Arc::new(misc::RemoteFileListTool),
         std::sync::Arc::new(misc::RemoteFileDeleteTool),
-        std::sync::Arc::new(misc::PdfInfoTool),
-        std::sync::Arc::new(misc::DetectEncodingTool),
-        std::sync::Arc::new(misc::Base64ImageTool),
+        // ── 缓存管理 ──
         std::sync::Arc::new(misc::CacheInfoTool),
         std::sync::Arc::new(misc::CacheClearTool),
-        std::sync::Arc::new(misc::WorkspaceReadTool),
-        std::sync::Arc::new(misc::WorkspaceWriteTool),
-        std::sync::Arc::new(misc::SessionSearchTool),
-        std::sync::Arc::new(misc::MemoryFlushTool),
-        std::sync::Arc::new(misc::AgentCheckpointTool),
-        std::sync::Arc::new(misc::AgentStatusTool),
-        std::sync::Arc::new(misc::AgentRememberTool),
-        std::sync::Arc::new(misc::GenerateImageTool),
-        std::sync::Arc::new(misc::GenerateChartConfigTool),
-        std::sync::Arc::new(misc::SequentialThinkingTool),
-        std::sync::Arc::new(misc::DifyListBasesTool),
-        std::sync::Arc::new(misc::DifySearchTool),
+        // ── 工作区记忆 ──
+        std::sync::Arc::new(workspace::WorkspaceReadTool),
+        std::sync::Arc::new(workspace::WorkspaceWriteTool),
+        // ── Agent 记忆 ──
+        std::sync::Arc::new(agent_memory::SessionSearchTool),
+        std::sync::Arc::new(agent_memory::MemoryFlushTool),
+        std::sync::Arc::new(agent_memory::AgentCheckpointTool),
+        std::sync::Arc::new(agent_memory::AgentStatusTool),
+        std::sync::Arc::new(agent_memory::AgentRememberTool),
+        // ── AI 媒体 ──
+        std::sync::Arc::new(media::GenerateImageTool),
+        std::sync::Arc::new(media::GenerateChartConfigTool),
+        std::sync::Arc::new(media::SequentialThinkingTool),
+        std::sync::Arc::new(media::Base64ImageTool),
+        // ── 外部集成 ──
+        std::sync::Arc::new(integration::DifyListBasesTool),
+        std::sync::Arc::new(integration::DifySearchTool),
         // ── 通知 ──
         std::sync::Arc::new(push_notification::PushNotificationTool),
+        // ── 数据库管理 ──
+        std::sync::Arc::new(database::DatabaseQueryTool),
+        std::sync::Arc::new(database::DatabaseListTablesTool),
+        std::sync::Arc::new(database::DatabaseMigrationStatusTool),
+        // ── 测试运行 ──
+        std::sync::Arc::new(testing::RunTestsTool),
+        std::sync::Arc::new(testing::RunLinterTool),
+        std::sync::Arc::new(testing::RunTestCoverageTool),
+        // ── CI/CD ──
+        std::sync::Arc::new(ci::CiStatusTool),
+        std::sync::Arc::new(ci::CiTriggerTool),
+        std::sync::Arc::new(ci::CiListWorkflowsTool),
+        // ── DevOps ──
+        std::sync::Arc::new(devops::SecurityAuditTool),
+        std::sync::Arc::new(devops::DeadCodeDetectTool),
+        std::sync::Arc::new(devops::BundleAnalyzeTool),
+        std::sync::Arc::new(devops::IssueCreateTool),
+        std::sync::Arc::new(devops::IssueListTool),
     ]);
 }

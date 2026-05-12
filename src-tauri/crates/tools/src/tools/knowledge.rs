@@ -52,7 +52,7 @@ impl Tool for ListKnowledgeBasesTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Knowledge
     }
 
     fn is_concurrency_safe(&self) -> bool {
@@ -133,7 +133,7 @@ impl Tool for SearchKnowledgeTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Knowledge
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -258,7 +258,7 @@ impl Tool for CreateKnowledgeEntityTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Knowledge
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -356,7 +356,7 @@ impl Tool for CreateKnowledgeFlowTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Knowledge
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -451,7 +451,7 @@ impl Tool for CreateKnowledgeInterfaceTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Knowledge
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -543,7 +543,7 @@ impl Tool for AddKnowledgeDocumentTool {
     }
 
     fn category(&self) -> ToolCategory {
-        ToolCategory::System
+        ToolCategory::Knowledge
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {

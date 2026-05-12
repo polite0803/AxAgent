@@ -3,6 +3,7 @@
 //! 管理所有已注册工具的生命周期：注册、查找、列举、启用/禁用。
 //! 集成 MCP 执行、DB 审计记录、缓存、使用统计。
 
+use crate::audit::{shared_auditor, AuditEntry, ToolAuditor};
 use crate::hooks::executors::execute_hook;
 use crate::hooks::registry::HookRegistry;
 use crate::hooks::{HookAction, HookConfig, HookEventType};
@@ -301,6 +302,8 @@ pub struct UnifiedToolRegistry {
     pub permission_policy: PermissionPolicy,
     /// Hook 注册表（集成到执行路径）
     pub hook_registry: HookRegistry,
+    /// 工具调用审计器
+    pub auditor: Arc<ToolAuditor>,
     /// 结果缓存（待集成）
     #[allow(dead_code)]
     result_cache: HashMap<(String, u64), (String, Instant)>,
@@ -313,8 +316,12 @@ pub struct UnifiedToolRegistry {
     message_id: Option<String>,
     /// 工具组启用状态（从 DB 加载）
     pub group_enabled: HashMap<String, bool>,
+    /// 单个工具禁用列表（从 DB 加载，空=全部启用）
+    pub disabled_tools: HashSet<String>,
     /// 工具组显示名称
     pub group_names: HashMap<String, String>,
+    /// 搜索/网络配置（通过 ToolContext.extra 传递给工具）
+    pub tool_extra: HashMap<String, String>,
 }
 
 impl UnifiedToolRegistry {
@@ -328,6 +335,7 @@ impl UnifiedToolRegistry {
             usage_stats: ToolUsageStats::new(),
             permission_policy: PermissionPolicy::new(PermissionMode::WorkspaceWrite),
             hook_registry: HookRegistry::new(),
+            auditor: shared_auditor(),
             result_cache: HashMap::new(),
             allowed_tools: HashSet::new(),
             blocked_tools: HashSet::new(),
@@ -335,7 +343,9 @@ impl UnifiedToolRegistry {
             conversation_id: None,
             message_id: None,
             group_enabled: HashMap::new(),
+            disabled_tools: HashSet::new(),
             group_names: HashMap::new(),
+            tool_extra: HashMap::new(),
         };
         reg.init_all();
         reg
@@ -451,11 +461,12 @@ impl UnifiedToolRegistry {
         self
     }
 
-    /// 从 DB 加载工具组启用状态
+    /// 从 DB 加载工具组启用状态及单工具禁用列表
     pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
         use axagent_core::entity::settings;
         use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
+        // 加载分类启用状态
         let key = "tool_groups_enabled";
         let result = settings::Entity::find()
             .filter(settings::Column::Key.eq(key))
@@ -468,6 +479,19 @@ impl UnifiedToolRegistry {
             }
         }
 
+        // 加载单工具禁用列表
+        let dt_key = "disabled_tools";
+        let dt_result = settings::Entity::find()
+            .filter(settings::Column::Key.eq(dt_key))
+            .one(db)
+            .await;
+
+        if let Ok(Some(record)) = dt_result {
+            if let Ok(list) = serde_json::from_str::<Vec<String>>(&record.value) {
+                self.disabled_tools = list.into_iter().collect();
+            }
+        }
+
         // 初始化默认组名
         let default_groups: Vec<(&str, &str)> = vec![
             ("builtin-file-read", "文件读取"),
@@ -476,6 +500,15 @@ impl UnifiedToolRegistry {
             ("builtin-network", "网络请求"),
             ("builtin-system-tools", "系统工具"),
             ("builtin-agent", "Agent 工具"),
+            ("builtin-vcs", "版本控制"),
+            ("builtin-automation", "自动化"),
+            ("builtin-communication", "通信"),
+            ("builtin-ai-media", "AI 媒体"),
+            ("builtin-integration", "外部集成"),
+            ("builtin-storage", "存储管理"),
+            ("builtin-knowledge", "知识库"),
+            ("builtin-browser", "浏览器"),
+            ("builtin-desktop", "桌面控制"),
         ];
         for (gid, gname) in &default_groups {
             self.group_names
@@ -495,6 +528,15 @@ impl UnifiedToolRegistry {
                 ToolCategory::Network => "builtin-network",
                 ToolCategory::System => "builtin-system-tools",
                 ToolCategory::Agent => "builtin-agent",
+                ToolCategory::Vcs => "builtin-vcs",
+                ToolCategory::Automation => "builtin-automation",
+                ToolCategory::Communication => "builtin-communication",
+                ToolCategory::AiMedia => "builtin-ai-media",
+                ToolCategory::Integration => "builtin-integration",
+                ToolCategory::Storage => "builtin-storage",
+                ToolCategory::Knowledge => "builtin-knowledge",
+                ToolCategory::Browser => "builtin-browser",
+                ToolCategory::Desktop => "builtin-desktop",
             };
             let entry = groups_map.entry(gid.to_string()).or_insert_with(|| {
                 let name = self
@@ -560,6 +602,50 @@ impl UnifiedToolRegistry {
         Ok(new_state)
     }
 
+    /// 切换单个工具启用状态并持久化到 DB
+    pub async fn toggle_tool(
+        &mut self,
+        db: &sea_orm::DatabaseConnection,
+        tool_name: &str,
+    ) -> Result<bool, String> {
+        use axagent_core::entity::settings;
+        use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+
+        let currently_disabled = self.disabled_tools.contains(tool_name);
+        if currently_disabled {
+            self.disabled_tools.remove(tool_name);
+        } else {
+            self.disabled_tools.insert(tool_name.to_string());
+        }
+
+        let key = "disabled_tools";
+        let existing = settings::Entity::find()
+            .filter(settings::Column::Key.eq(key))
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let serialized = serde_json::to_string(&self.disabled_tools.iter().collect::<Vec<_>>())
+            .map_err(|e| e.to_string())?;
+
+        match existing {
+            Some(record) => {
+                let mut active: settings::ActiveModel = record.into();
+                active.value = Set(serialized);
+                active.update(db).await.map_err(|e| e.to_string())?;
+            },
+            None => {
+                let active = settings::ActiveModel {
+                    key: Set(key.to_string()),
+                    value: Set(serialized),
+                };
+                active.insert(db).await.map_err(|e| e.to_string())?;
+            },
+        }
+
+        Ok(!currently_disabled)
+    }
+
     /// 获取所有已启用工具名称
     pub fn enabled_tool_names(&self) -> Vec<String> {
         self.tools
@@ -573,6 +659,15 @@ impl UnifiedToolRegistry {
                     ToolCategory::Network => "builtin-network",
                     ToolCategory::System => "builtin-system-tools",
                     ToolCategory::Agent => "builtin-agent",
+                    ToolCategory::Vcs => "builtin-vcs",
+                    ToolCategory::Automation => "builtin-automation",
+                    ToolCategory::Communication => "builtin-communication",
+                    ToolCategory::AiMedia => "builtin-ai-media",
+                    ToolCategory::Integration => "builtin-integration",
+                    ToolCategory::Storage => "builtin-storage",
+                    ToolCategory::Knowledge => "builtin-knowledge",
+                    ToolCategory::Browser => "builtin-browser",
+                    ToolCategory::Desktop => "builtin-desktop",
                 };
                 self.group_enabled.get(gid).copied().unwrap_or(true)
             })
@@ -630,8 +725,18 @@ impl UnifiedToolRegistry {
         tool_name: &str,
         input: &str,
     ) -> Result<ToolResult, crate::ToolError> {
+        // ── 频率限制检查（审计器） ──
+        if let Err(rate_limit_msg) = self.auditor.check_rate_limit(tool_name).await {
+            return Err(ToolError::permission_denied(tool_name, &rate_limit_msg));
+        }
+
+        // ── 输入脱敏 ──
+        let sanitized_input = self.auditor.sanitize_input(input);
+
         // ── 权限检查（集成 PermissionPolicy） ──
-        let decision = self.permission_policy.authorize(tool_name, input);
+        let decision = self
+            .permission_policy
+            .authorize(tool_name, &sanitized_input);
         if decision.is_denied() {
             return Err(ToolError::permission_denied(tool_name, &decision.reason));
         }
@@ -683,7 +788,7 @@ impl UnifiedToolRegistry {
                     allow_execute: true,
                     allow_network: true,
                     abort_signal: None,
-                    extra: HashMap::new(),
+                    extra: self.tool_extra.clone(),
                 };
 
                 match tool.call(input_val, &ctx).await {
@@ -701,6 +806,35 @@ impl UnifiedToolRegistry {
                 Err(ToolError::not_found(tool_name))
             }
         };
+
+        // ── 审计日志记录 ──
+        let duration_ms = start.elapsed().as_millis() as u64;
+        let success = result.is_ok();
+        let output_content = result.as_ref().map(|r| &r.content).map(|c| {
+            if c.len() > 200 {
+                format!("{}...", &c[..200])
+            } else {
+                c.clone()
+            }
+        });
+        let has_sensitive_output = output_content
+            .as_ref()
+            .map(|c| self.auditor.scan_output(c))
+            .unwrap_or(false);
+        let has_sensitive_input = input != sanitized_input;
+
+        self.auditor
+            .log(AuditEntry {
+                timestamp: chrono::Utc::now().timestamp_millis(),
+                tool_name: tool_name.to_string(),
+                conversation_id: self.conversation_id.clone(),
+                success,
+                duration_ms,
+                output_preview: output_content.unwrap_or_default(),
+                has_sensitive_input,
+                has_sensitive_output,
+            })
+            .await;
 
         // ── PostToolUse / PostToolUseFailure Hooks ──
         let is_error = result.is_err();
@@ -745,74 +879,96 @@ impl UnifiedToolRegistry {
 
         let arguments: Value = serde_json::from_str(input).unwrap_or(Value::Null);
         let timeout = server.get_timeout();
+        let started = std::time::Instant::now();
 
-        let result = tokio::time::timeout(timeout, async {
-            match server.transport.as_str() {
-                "stdio" => {
-                    let cmd = server.command.clone().unwrap_or_default();
-                    let args: Vec<String> = server
-                        .args_json
-                        .as_ref()
-                        .and_then(|s| serde_json::from_str(s).ok())
-                        .unwrap_or_default();
-                    let env: HashMap<String, String> = server
-                        .env_json
-                        .as_ref()
-                        .and_then(|s| serde_json::from_str(s).ok())
-                        .unwrap_or_default();
+        // 准备传输参数
+        let transport = server.transport.as_str();
+        let command = server.command.as_deref();
+        let args: Option<Vec<String>> = server
+            .args_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let env: Option<HashMap<String, String>> = server
+            .env_json
+            .as_ref()
+            .and_then(|s| serde_json::from_str(s).ok());
+        let endpoint = server.endpoint.as_deref();
 
-                    axagent_core::mcp_client::call_tool_stdio_pooled(
-                        &cmd, &args, &env, tool_name, arguments,
-                    )
-                    .await
-                    .map(|r| ToolResult {
-                        content: r.content,
-                        truncated: false,
-                        is_error: r.is_error,
-                        metadata: None,
-                        duration_ms: None,
-                    })
-                    .map_err(|e| ToolError::execution_failed(e.to_string()))
-                },
-                "http" => {
-                    let endpoint = server.endpoint.clone().unwrap_or_default();
-                    axagent_core::mcp_client::call_tool_http(&endpoint, tool_name, arguments)
-                        .await
-                        .map(|r| ToolResult {
-                            content: r.content,
-                            truncated: false,
-                            is_error: r.is_error,
-                            metadata: None,
-                            duration_ms: None,
-                        })
-                        .map_err(|e| ToolError::execution_failed(e.to_string()))
-                },
-                "sse" => {
-                    let endpoint = server.endpoint.clone().unwrap_or_default();
-                    axagent_core::mcp_client::call_tool_sse(&endpoint, tool_name, arguments)
-                        .await
-                        .map(|r| ToolResult {
-                            content: r.content,
-                            truncated: false,
-                            is_error: r.is_error,
-                            metadata: None,
-                            duration_ms: None,
-                        })
-                        .map_err(|e| ToolError::execution_failed(e.to_string()))
-                },
-                other => Err(ToolError::execution_failed(format!("不支持的传输方式: {}", other))),
-            }
-        })
+        // 使用统一的 MCP 客户端入口
+        let result = tokio::time::timeout(
+            timeout,
+            axagent_core::mcp_client::call_tool_unified(
+                transport,
+                command,
+                args.as_deref(),
+                env.as_ref(),
+                endpoint,
+                tool_name,
+                arguments,
+            ),
+        )
         .await;
 
+        let duration_ms: u64 = started.elapsed().as_millis() as u64;
+
         match result {
-            Ok(r) => r,
+            Ok(Ok(mcp_result)) => {
+                // 将 MCP 进度条目转换为 ToolResult 进度
+                let progress: Vec<crate::ProgressEntry> = mcp_result
+                    .progress
+                    .iter()
+                    .map(|p| crate::ProgressEntry {
+                        phase: p.phase.clone(),
+                        message: p.message.clone(),
+                        percent: p.percent,
+                        timestamp_ms: 0,
+                    })
+                    .collect();
+
+                let tool_result = ToolResult {
+                    content: mcp_result.content.clone(),
+                    truncated: false,
+                    is_error: mcp_result.is_error,
+                    metadata: None,
+                    duration_ms: Some(duration_ms),
+                    progress,
+                };
+
+                // 写入执行记录
+                if let Some(ref recorder) = self.recorder {
+                    let input_preview = truncate_str(input, 200);
+                    let _ = recorder
+                        .record_start(
+                            "", // conversation_id 由调用方设置
+                            None,
+                            &config.server_id,
+                            tool_name,
+                            Some(&input_preview),
+                        )
+                        .await;
+                }
+
+                Ok(tool_result)
+            },
+            Ok(Err(e)) => {
+                let err_msg = format!("MCP 工具调用失败: {e}");
+                Err(ToolError::execution_failed_for(tool_name, err_msg))
+            },
             Err(_) => Err(ToolError {
                 error_code: format!("tool.{}.timeout", tool_name),
-                message: format!("MCP 工具 '{}' 执行超时", tool_name),
+                message: format!("MCP 工具 '{}' 执行超时（{} 秒）", tool_name, timeout.as_secs()),
                 kind: ToolErrorKind::Timeout,
             }),
         }
+    }
+}
+
+/// 截断字符串到指定长度，用于输入预览
+fn truncate_str(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len])
     }
 }
 

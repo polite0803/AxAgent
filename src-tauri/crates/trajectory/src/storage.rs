@@ -795,6 +795,7 @@ impl TrajectoryStorage {
                         extraction_method: "unknown".to_string(),
                     }),
                     tags: serde_json::from_str(&m.tags).unwrap_or_default(),
+                    namespace_id: m.namespace_id.clone(),
                 })
                 .collect())
         })
@@ -827,6 +828,7 @@ impl TrajectoryStorage {
                 source_message_id: Set(source_msg_id),
                 memory_nature: Set(mem.nature.as_str().to_string()),
                 tags: Set(serde_json::to_string(&mem.tags).unwrap_or_else(|_| "[]".to_string())),
+                namespace_id: Set(mem.namespace_id.clone()),
             })
             .on_conflict(
                 sea_orm::sea_query::OnConflict::column(trajectory_memories::Column::Id)
@@ -841,6 +843,7 @@ impl TrajectoryStorage {
                         trajectory_memories::Column::ExpiresAt,
                         trajectory_memories::Column::MemoryNature,
                         trajectory_memories::Column::Tags,
+                        trajectory_memories::Column::NamespaceId,
                         trajectory_memories::Column::SourceConversationId,
                         trajectory_memories::Column::SourceMessageId,
                     ])
