@@ -27,6 +27,7 @@ pub mod git_tools;
 pub mod html_cleaner;
 pub mod hybrid_search;
 pub mod incremental_indexer;
+pub mod inference;
 pub mod markdown_parser;
 pub mod marketplace;
 pub mod marketplace_service;

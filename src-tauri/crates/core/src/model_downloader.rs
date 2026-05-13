@@ -103,7 +103,10 @@ impl ModelDownloader {
 
         // 优先 HuggingFace Hub
         if let Some(repo) = &preset.hf_repo {
-            match self.download_from_hf(repo, &preset.filename, &preset.sha256).await {
+            match self
+                .download_from_hf(repo, &preset.filename, &preset.sha256)
+                .await
+            {
                 Ok(path) => return Ok(path),
                 Err(e) => {
                     tracing::warn!("HF download failed: {}, trying direct URL", e);
@@ -130,9 +133,14 @@ impl ModelDownloader {
         filename: &str,
         expected_sha256: &str,
     ) -> Result<PathBuf> {
-        tokio::fs::create_dir_all(&self.cache_dir).await.map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("Failed to create cache dir: {}", e))
-        })?;
+        tokio::fs::create_dir_all(&self.cache_dir)
+            .await
+            .map_err(|e| {
+                crate::error::AxAgentError::ModelDownload(format!(
+                    "Failed to create cache dir: {}",
+                    e
+                ))
+            })?;
 
         // hf_hub 的 API 是同步的，用 spawn_blocking 避免阻塞 async 运行时
         let cache_dir = self.cache_dir.clone();
@@ -180,9 +188,14 @@ impl ModelDownloader {
         url: &str,
         expected_sha256: &str,
     ) -> Result<PathBuf> {
-        tokio::fs::create_dir_all(&self.cache_dir).await.map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("Failed to create cache dir: {}", e))
-        })?;
+        tokio::fs::create_dir_all(&self.cache_dir)
+            .await
+            .map_err(|e| {
+                crate::error::AxAgentError::ModelDownload(format!(
+                    "Failed to create cache dir: {}",
+                    e
+                ))
+            })?;
 
         let model_path = self.cache_dir.join(filename);
         let tmp_path = model_path.with_extension("download");
@@ -226,8 +239,7 @@ impl ModelDownloader {
         if !status.is_success() {
             return Err(crate::error::AxAgentError::ModelDownload(format!(
                 "HTTP {} for {}",
-                status,
-                url
+                status, url
             )));
         }
 
@@ -238,20 +250,23 @@ impl ModelDownloader {
                 .open(&tmp_path)
                 .await
                 .map_err(|e| {
-                    crate::error::AxAgentError::ModelDownload(
-                        format!("Cannot open temp file: {}", e),
-                    )
+                    crate::error::AxAgentError::ModelDownload(format!(
+                        "Cannot open temp file: {}",
+                        e
+                    ))
                 })?
         } else {
             tokio::fs::OpenOptions::new()
                 .create(true)
+                .truncate(true)
                 .write(true)
                 .open(&tmp_path)
                 .await
                 .map_err(|e| {
-                    crate::error::AxAgentError::ModelDownload(
-                        format!("Cannot open temp file: {}", e),
-                    )
+                    crate::error::AxAgentError::ModelDownload(format!(
+                        "Cannot open temp file: {}",
+                        e
+                    ))
                 })?
         };
 
@@ -268,9 +283,11 @@ impl ModelDownloader {
             })?;
         }
 
-        tokio::fs::rename(&tmp_path, &model_path).await.map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("Rename temp file: {}", e))
-        })?;
+        tokio::fs::rename(&tmp_path, &model_path)
+            .await
+            .map_err(|e| {
+                crate::error::AxAgentError::ModelDownload(format!("Rename temp file: {}", e))
+            })?;
 
         // SHA256 完整性校验
         if !expected_sha256.is_empty() {
@@ -327,7 +344,7 @@ impl ModelDownloader {
     pub fn remove_model(&self, filename: &str) -> Result<()> {
         let path = self.cache_dir.join(filename);
         if path.exists() {
-            std::fs::remove_file(&path).map_err(|e| crate::error::AxAgentError::Io(e))?;
+            std::fs::remove_file(&path).map_err(crate::error::AxAgentError::Io)?;
         }
         Ok(())
     }
@@ -335,12 +352,10 @@ impl ModelDownloader {
     /// 计算文件的 SHA256 哈希（流式读取，避免一次性加载到内存）
     pub fn sha256_file(path: &Path) -> Result<String> {
         use sha2::{Digest, Sha256};
-        let file =
-            std::fs::File::open(path).map_err(|e| crate::error::AxAgentError::Io(e))?;
+        let file = std::fs::File::open(path).map_err(crate::error::AxAgentError::Io)?;
         let mut reader = std::io::BufReader::new(file);
         let mut hasher = Sha256::new();
-        std::io::copy(&mut reader, &mut hasher)
-            .map_err(|e| crate::error::AxAgentError::Io(e))?;
+        std::io::copy(&mut reader, &mut hasher).map_err(crate::error::AxAgentError::Io)?;
         Ok(hex::encode(hasher.finalize()))
     }
 }
@@ -390,9 +405,6 @@ mod tests {
         let mut f = std::fs::File::create(&path).unwrap();
         f.write_all(b"hello world").unwrap();
         let hash = ModelDownloader::sha256_file(&path).unwrap();
-        assert_eq!(
-            hash,
-            "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
-        );
+        assert_eq!(hash, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
     }
 }
