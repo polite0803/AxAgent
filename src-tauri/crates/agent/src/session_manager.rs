@@ -123,9 +123,7 @@ pub fn append_user_message(session: &mut Session, text: &str) -> Result<(), Stri
     session
         .push_message(ConversationMessage {
             role: MessageRole::User,
-            blocks: vec![ContentBlock::Text {
-                text: processed,
-            }],
+            blocks: vec![ContentBlock::Text { text: processed }],
             usage: None,
         })
         .map_err(|e| e.to_string())

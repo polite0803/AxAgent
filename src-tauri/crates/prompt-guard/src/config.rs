@@ -3,21 +3,16 @@
 use serde::{Deserialize, Serialize};
 
 /// 防护模式
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GuardMode {
     /// 仅标记，不拦截
     Audit,
     /// 高风险拦截，其他标记
+    #[default]
     Standard,
     /// 严格模式，中风险也拦截
     Strict,
-}
-
-impl Default for GuardMode {
-    fn default() -> Self {
-        Self::Standard
-    }
 }
 
 /// 检测结果

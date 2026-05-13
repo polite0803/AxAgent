@@ -202,10 +202,8 @@ impl FileAuthorizer {
                     return false;
                 }
                 // 如果规范化前后的路径不同，检查是否为符号链接导致
-                if real != path {
-                    if path.is_symlink() {
-                        return false;
-                    }
+                if real != path && path.is_symlink() {
+                    return false;
                 }
                 true
             },
