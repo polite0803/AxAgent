@@ -1,7 +1,7 @@
 use crate::AppState;
 use axagent_agent::{AxAgentApiClient, McpServerConfig, ToolRegistry};
 use axagent_core::cloud_workspace::CloudWorkspace;
-use axagent_core::repo::{conversation, message, provider};
+use axagent_core::repo::{conversation, message, provider, search_provider};
 use axagent_core::types::{
     Attachment, AttachmentInput, ChatTool, ChatToolFunction, McpServer, MessageRole,
     ProviderProxyConfig,
@@ -9,6 +9,7 @@ use axagent_core::types::{
 use axagent_core::workspace_uri::WorkspaceUri;
 use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext};
 use axagent_runtime::workflow_engine::SessionCallback;
+use axagent_tools::context_keys;
 use base64::Engine;
 use futures::FutureExt;
 use sea_orm::{DatabaseConnection, EntityTrait, Set};
@@ -398,8 +399,7 @@ pub struct AgentQueryRequest {
     #[serde(rename = "thinkingBudget")]
     pub thinking_budget: Option<u32>,
     /// ID of the search provider to enable web search for this agent session.
-    /// WebSearch 配置现在由 UnifiedToolRegistry 统一处理，此字段保留用于前端 API 兼容。
-    #[allow(dead_code)]
+    /// 配置通过 UnifiedToolRegistry.tool_extra 传递给 WebSearchTool。
     #[serde(rename = "searchProviderId")]
     pub search_provider_id: Option<String>,
     /// Attachments (images, files) to include with the user message.
@@ -962,6 +962,53 @@ pub async fn agent_query(
             app_state.sea_db.clone(),
         )))
         .with_execution_context(conversation_id.clone(), None);
+
+    // ── 加载搜索提供商配置，注入到 tool_extra ──
+    // 优先使用请求中指定的 search_provider_id，否则取第一个已启用的提供商
+    let search_provider_used = if let Some(ref sp_id) = request.search_provider_id {
+        search_provider::get_search_provider(&app_state.sea_db, sp_id)
+            .await
+            .ok()
+    } else {
+        search_provider::list_search_providers(&app_state.sea_db)
+            .await
+            .ok()
+            .and_then(|providers| providers.into_iter().find(|p| p.enabled))
+    };
+    if let Some(ref sp) = search_provider_used {
+        let api_key = axagent_core::entity::search_providers::Entity::find_by_id(&sp.id)
+            .one(&app_state.sea_db)
+            .await
+            .ok()
+            .flatten()
+            .and_then(|e| e.api_key_ref)
+            .and_then(|enc| axagent_core::crypto::decrypt_key(&enc, &app_state.master_key).ok())
+            .unwrap_or_default();
+        tool_registry = tool_registry
+            .with_tool_extra(context_keys::SEARCH_PROVIDER_TYPE, &sp.provider_type)
+            .with_tool_extra(context_keys::SEARCH_MAX_RESULTS, sp.result_limit.to_string())
+            .with_tool_extra(context_keys::SEARCH_TIMEOUT_MS, sp.timeout_ms.to_string());
+        if let Some(ref endpoint) = sp.endpoint {
+            tool_registry =
+                tool_registry.with_tool_extra(context_keys::SEARCH_ENDPOINT, endpoint.as_str());
+        }
+        if !api_key.is_empty() {
+            tool_registry = tool_registry.with_tool_extra(context_keys::SEARCH_API_KEY, &api_key);
+        }
+        if let Some(ref region) = sp.region {
+            tool_registry =
+                tool_registry.with_tool_extra(context_keys::SEARCH_REGION, region.as_str());
+        }
+        if let Some(safe_search) = sp.safe_search {
+            tool_registry = tool_registry.with_tool_extra(
+                context_keys::SEARCH_SAFE_SEARCH,
+                if safe_search { "1" } else { "0" },
+            );
+        }
+        info!("[agent] Search provider configured: type={}, id={}", sp.provider_type, sp.id);
+    } else {
+        info!("[agent] No search provider configured — WebSearch will fall back to DDG");
+    }
 
     // Register skill tool handlers in tool_registry for execution
     // This is done AFTER tool_registry is fully configured to ensure MCP tools are available

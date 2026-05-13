@@ -186,9 +186,17 @@ interface ConversationState {
   batchArchive: (ids: string[]) => Promise<void>;
   sendMessage: (content: string, attachments?: AttachmentInput[], searchProviderId?: string | null) => Promise<void>;
   /** Send a message in agent mode (non-streaming MVP) */
-  sendAgentMessage: (content: string, attachments?: AttachmentInput[]) => Promise<void>;
+  sendAgentMessage: (
+    content: string,
+    attachments?: AttachmentInput[],
+    searchProviderId?: string | null,
+  ) => Promise<void>;
   /** Send a message in plan mode: generates plan first, awaits approval, then executes */
-  sendPlanMessage: (content: string, attachments?: AttachmentInput[]) => Promise<void>;
+  sendPlanMessage: (
+    content: string,
+    attachments?: AttachmentInput[],
+    searchProviderId?: string | null,
+  ) => Promise<void>;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
   regenerateWithModel: (targetMessageId: string, providerId: string, model_id: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
@@ -1170,7 +1178,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
   },
 
-  sendAgentMessage: async (content, attachments = []) => {
+  sendAgentMessage: async (content, attachments = [], searchProviderId: string | null = null) => {
     const conversationId = get().activeConversationId;
     if (!conversationId) { throw new Error("No active conversation"); }
 
@@ -1592,6 +1600,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           expertRoleId: conversation.expert_role_id ?? undefined,
           agentProfileId: conversation.agent_profile_id ?? undefined,
           systemPrompt: conversation.system_prompt ?? undefined,
+          searchProviderId: searchProviderId ?? undefined,
         },
       }, 0);
       // Wait for agent-done or agent-error event
@@ -1641,7 +1650,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
   },
 
-  sendPlanMessage: async (content, attachments = []) => {
+  sendPlanMessage: async (content, attachments = [], _searchProviderId: string | null = null) => {
     const conversationId = get().activeConversationId;
     if (!conversationId) { throw new Error("No active conversation"); }
 

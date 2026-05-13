@@ -461,6 +461,24 @@ impl UnifiedToolRegistry {
         self
     }
 
+    /// 设置工具执行时的额外上下文参数（如搜索提供商配置）
+    /// 这些参数会通过 ToolContext.extra 传递给工具的 call() 方法
+    pub fn with_tool_extra(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.tool_extra.insert(key.into(), value.into());
+        self
+    }
+
+    /// 批量设置工具执行时的额外上下文参数
+    pub fn with_tool_extras(
+        mut self,
+        extras: impl IntoIterator<Item = (impl Into<String>, impl Into<String>)>,
+    ) -> Self {
+        for (k, v) in extras {
+            self.tool_extra.insert(k.into(), v.into());
+        }
+        self
+    }
+
     /// 从 DB 加载工具组启用状态及单工具禁用列表
     pub async fn load_enabled_state(&mut self, db: &sea_orm::DatabaseConnection) {
         use axagent_core::entity::settings;

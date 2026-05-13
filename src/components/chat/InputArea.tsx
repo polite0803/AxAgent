@@ -1406,9 +1406,9 @@ export function InputArea() {
         }
       });
       if (currentMode === "agent" && workStrategy === "plan") {
-        await sendPlanMessage(trimmed, attachments);
+        await sendPlanMessage(trimmed, attachments, searchEnabled ? searchProviderId : null);
       } else if (currentMode === "agent") {
-        await sendAgentMessage(trimmed, attachments);
+        await sendAgentMessage(trimmed, attachments, searchEnabled ? searchProviderId : null);
       } else if (companionModels.length > 0) {
         await sendMultiModelMessage(trimmed, companionModels, attachments, searchEnabled ? searchProviderId : null);
       } else {
