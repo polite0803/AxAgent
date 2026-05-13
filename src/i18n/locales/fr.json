@@ -1382,6 +1382,14 @@
     },
     "rag": {
       "advanced": "Advanced Retrieval Settings",
+      "models": "Local Model Management",
+      "modelDownload": "Download",
+      "modelDelete": "Delete",
+      "modelDownloaded": "Downloaded",
+      "modelNotDownloaded": "Not Downloaded",
+      "modelDownloading": "Downloading...",
+      "rerankerModel": "Reranker Model",
+      "judgeModel": "Judge Model",
       "rerank": {
         "title": "Smart Reranking",
         "desc": "Semantic reranking using cross-encoder models for better relevance",

@@ -2368,6 +2368,14 @@
     },
     "rag": {
       "advanced": "高级检索设置",
+      "models": "本地模型管理",
+      "modelDownload": "下载",
+      "modelDelete": "删除",
+      "modelDownloaded": "已下载",
+      "modelNotDownloaded": "未下载",
+      "modelDownloading": "下载中...",
+      "rerankerModel": "重排序模型",
+      "judgeModel": "裁判模型",
       "rerank": {
         "title": "智能重排序",
         "desc": "启用跨编码器模型对检索结果进行语义精排",

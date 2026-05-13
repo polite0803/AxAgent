@@ -39,6 +39,7 @@ pub mod image_gen;
 pub mod image_gen_settings;
 pub mod knowledge;
 pub mod llm_wiki;
+pub mod local_models;
 pub mod local_tool;
 pub mod mcp;
 pub mod memory;

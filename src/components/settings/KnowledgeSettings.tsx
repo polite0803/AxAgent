@@ -4,7 +4,13 @@ import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { invoke, listen } from "@/lib/invoke";
 import { useKnowledgeStore, useSettingsStore } from "@/stores";
 import type { IndexingStatus, KnowledgeBase, KnowledgeDocument } from "@/types";
-import { SettingOutlined } from "@ant-design/icons";
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -19,6 +25,7 @@ import {
   Form,
   Input,
   InputNumber,
+  List,
   message,
   Modal,
   Popconfirm,
@@ -370,6 +377,38 @@ function KnowledgeBaseDetail({
     },
     [ragAdvancedConfig, saveSettings],
   );
+
+  // ── Local model management ────────────────────────────────
+  const [modelList, setModelList] = useState<any[]>([]);
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke<any[]>("list_local_models").then(setModelList).catch(() => {});
+  }, []);
+
+  const handleDownloadModel = async (filename: string) => {
+    setDownloading(filename);
+    try {
+      await invoke("download_model", { filename });
+      const updated = await invoke<any[]>("list_local_models");
+      setModelList(updated);
+      messageApi.success(t("settings.rag.modelDownloaded"));
+    } catch (e: any) {
+      messageApi.error(String(e));
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleDeleteModel = async (filename: string) => {
+    try {
+      await invoke("delete_model", { filename });
+      const updated = await invoke<any[]>("list_local_models");
+      setModelList(updated);
+    } catch (e: any) {
+      messageApi.error(String(e));
+    }
+  };
 
   const handleOpenSyncWikiModal = useCallback(async (doc: KnowledgeDocument) => {
     setSyncWikiDocId(doc.id);
@@ -1169,6 +1208,78 @@ function KnowledgeBaseDetail({
                 </div>
               )}
             </>
+          ),
+        }]}
+      />
+
+      {/* Local Model Management */}
+      <Collapse
+        ghost
+        size="small"
+        className="mb-3"
+        items={[{
+          key: "rag-models",
+          label: (
+            <Space>
+              <DownloadOutlined />
+              {t("settings.rag.models")}
+            </Space>
+          ),
+          children: (
+            <List
+              size="small"
+              dataSource={modelList}
+              locale={{ emptyText: <Empty description={t("settings.rag.modelNotDownloaded")} /> }}
+              renderItem={(model: any) => (
+                <List.Item
+                  actions={[
+                    model.is_downloaded
+                      ? (
+                        <Popconfirm
+                          title={t("settings.rag.modelDelete")}
+                          onConfirm={() => handleDeleteModel(model.name)}
+                          okText={t("common.yes")}
+                          cancelText={t("common.no")}
+                        >
+                          <Button size="small" danger icon={<DeleteOutlined />}>
+                            {t("settings.rag.modelDelete")}
+                          </Button>
+                        </Popconfirm>
+                      )
+                      : (
+                        <Button
+                          size="small"
+                          type="primary"
+                          loading={downloading === model.name}
+                          icon={<DownloadOutlined />}
+                          onClick={() => handleDownloadModel(model.name)}
+                        >
+                          {downloading === model.name
+                            ? t("settings.rag.modelDownloading")
+                            : t("settings.rag.modelDownload")}
+                        </Button>
+                      ),
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={model.is_downloaded
+                      ? <CheckCircleOutlined style={{ color: "var(--ant-color-success)", fontSize: 16 }} />
+                      : <ClockCircleOutlined style={{ color: "var(--ant-color-text-secondary)", fontSize: 16 }} />}
+                    title={model.name}
+                    description={
+                      <Space size={4}>
+                        <Tag>
+                          {model.model_type === "Reranker"
+                            ? t("settings.rag.rerankerModel")
+                            : t("settings.rag.judgeModel")}
+                        </Tag>
+                        <Typography.Text type="secondary">{formatBytes(model.size_bytes)}</Typography.Text>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
           ),
         }]}
       />
