@@ -9,5 +9,5 @@ pub mod pipeline;
 pub mod trust_labels;
 pub mod wrappers;
 
-pub use config::GuardConfig;
+pub use config::{DetectionResult, GuardConfig, GuardMode};
 pub use pipeline::PromptGuardPipeline;

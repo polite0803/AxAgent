@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Prompt injection defense with 4-layer filtering pipeline"
+publish = false
 
 [dependencies]
 serde.workspace = true
@@ -11,3 +12,6 @@ serde_json.workspace = true
 regex = "1"
 tracing.workspace = true
 thiserror.workspace = true
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(mobile)'] }

@@ -1,3 +1,5 @@
+//! Configuration types and detection result model for the prompt guard pipeline.
+
 use serde::{Deserialize, Serialize};
 
 /// 防护模式
@@ -19,7 +21,7 @@ impl Default for GuardMode {
 }
 
 /// 检测结果
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DetectionResult {
     /// 安全通过
     Clean,
