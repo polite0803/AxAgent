@@ -81,4 +81,5 @@ pub mod workspace_uri;
 
 pub use memory_forgetting::{ForgettingConfig, MemoryEntry, MemoryForgettingEngine};
 pub use oauth_pkce::{generate_pkce, PkceParams};
+pub use resource_limits::ResourceLimits;
 pub use service_container::ServiceContainer;

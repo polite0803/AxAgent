@@ -30,6 +30,12 @@ impl SandboxRunner {
     }
 
     pub async fn execute(&self, code: &str, language: &str) -> Result<ExecutionResult> {
+        // 应用沙箱资源限制
+        let limits = crate::resource_limits::ResourceLimits::default_sandbox();
+        if let Err(e) = limits.apply_to_current_process() {
+            tracing::warn!("Failed to apply sandbox resource limits: {}", e);
+        }
+
         match language {
             "javascript" | "js" | "typescript" | "ts" => self.execute_js(code).await,
             "python" | "py" => self.execute_python(code).await,
@@ -38,6 +44,8 @@ impl SandboxRunner {
     }
 
     async fn execute_js(&self, code: &str) -> Result<ExecutionResult> {
+        // 安全边界：此方法仅在 SecuritySandbox::check_command 通过后调用
+        // 网络隔离已由调用方 SecuritySandbox（network_enabled=false）保证
         let temp_dir = std::env::temp_dir();
         let script_path = temp_dir.join(format!("axagent_sandbox_{}.js", uuid::Uuid::new_v4()));
 

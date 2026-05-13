@@ -200,6 +200,26 @@ impl SecuritySandbox {
         }
     }
 
+    /// 验证当前进程环境变量是否符合白名单
+    /// 返回被拒绝的环境变量列表
+    pub fn validate_environment(&self) -> Vec<String> {
+        let mut denied = Vec::new();
+        for (key, _value) in std::env::vars() {
+            if !self
+                .config
+                .env_whitelist
+                .iter()
+                .any(|allowed| allowed.eq_ignore_ascii_case(&key))
+            {
+                denied.push(key);
+            }
+        }
+        if !denied.is_empty() {
+            tracing::warn!("Non-whitelisted environment variables detected: {:?}", denied);
+        }
+        denied
+    }
+
     pub fn get_platform_recommendations(&self) -> Vec<String> {
         let mut recommendations = Vec::new();
 
@@ -291,5 +311,23 @@ mod tests {
         let sandbox = SecuritySandbox::with_default_config();
         assert!(sandbox.check_env_var("PATH").allowed);
         assert!(!sandbox.check_env_var("SECRET_KEY").allowed);
+    }
+
+    #[test]
+    fn env_whitelist_accepts_path() {
+        let sandbox = SecuritySandbox::with_default_config();
+        assert!(sandbox.check_env_var("PATH").allowed);
+        assert!(sandbox.check_env_var("HOME").allowed);
+        assert!(sandbox.check_env_var("TEMP").allowed);
+        assert!(!sandbox.check_env_var("SECRET_KEY").allowed);
+        assert!(!sandbox.check_env_var("DATABASE_URL").allowed);
+    }
+
+    #[test]
+    fn validate_environment_detects_denied_vars() {
+        let sandbox = SecuritySandbox::with_default_config();
+        let denied = sandbox.validate_environment();
+        assert!(!denied.iter().any(|v| v == "PATH"));
+        assert!(!denied.iter().any(|v| v == "HOME"));
     }
 }

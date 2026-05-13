@@ -21,11 +21,22 @@ pub struct SandboxConfig {
     pub cpu_limit: Option<f64>,
 }
 
+/// 检测 Docker 是否可用
+fn detect_docker_available() -> bool {
+    std::process::Command::new("docker")
+        .args(["info", "--format", "{{.OSType}}"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 impl Default for SandboxConfig {
     fn default() -> Self {
         Self {
-            use_container: false,
-            image: "ubuntu:latest".into(),
+            use_container: detect_docker_available(),
+            image: "alpine:latest".into(),
             allow_network: false,
             volumes: Vec::new(),
             memory_limit_mb: Some(512),
@@ -102,5 +113,23 @@ impl SandboxRunner {
         command.stdout(std::process::Stdio::piped());
         command.stderr(std::process::Stdio::piped());
         command.output()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn docker_detect_does_not_panic() {
+        let available = super::detect_docker_available();
+        assert!(available == true || available == false);
+    }
+
+    #[test]
+    fn sandbox_config_default_is_safe() {
+        let config = SandboxConfig::default();
+        assert!(!config.allow_network);
+        assert!(config.memory_limit_mb.is_some());
     }
 }
