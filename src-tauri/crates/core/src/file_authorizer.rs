@@ -183,26 +183,34 @@ impl FileAuthorizer {
     }
 
     fn is_path_safe(&self, path: &Path) -> bool {
+        // 拒绝空路径和带 null 字节的路径
         let path_str = path.to_string_lossy();
-        if path_str.contains("..") || path_str.starts_with("~") {
+        if path_str.is_empty() || path_str.contains('\0') {
+            return false;
+        }
+        // 拒绝路径遍历标记
+        if path_str.contains("..") || path_str.starts_with('~') {
             return false;
         }
 
-        // 防止符号链接遍历攻击：检查路径本身不是符号链接
-        // canonicalize() 会跟随符号链接，攻击者可创建 legit_dir -> /etc/passwd 绕过
-        if path.is_symlink() {
-            return false;
+        // 原子化检查：先 canonicalize，再检查是否为符号链接
+        match std::fs::canonicalize(path) {
+            Ok(real) => {
+                // 检查规范化后的路径不包含 ..（双重保险）
+                let real_str = real.to_string_lossy();
+                if real_str.contains("..") {
+                    return false;
+                }
+                // 如果规范化前后的路径不同，检查是否为符号链接导致
+                if real != path {
+                    if path.is_symlink() {
+                        return false;
+                    }
+                }
+                true
+            },
+            Err(_) => false, // 无法解析的路径拒绝
         }
-
-        let normalized = std::fs::canonicalize(path).ok();
-        if let Some(normalized) = normalized {
-            let normalized_str = normalized.to_string_lossy();
-            if normalized_str.contains("..") {
-                return false;
-            }
-        }
-
-        true
     }
 
     pub fn add_pending_request(&self, request: AuthorizationRequest) {

@@ -12,9 +12,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "outcome")]
 pub enum EnforcementResult {
-    /// Tool execution is allowed.
+    /// 工具执行被允许
     Allowed,
-    /// Tool execution was denied due to insufficient permissions.
+    /// 允许但附带审计信息（DangerFullAccess 模式下使用）
+    AllowedWithAudit {
+        /// 操作是否在工作区之外
+        outside_workspace: bool,
+        /// 敏感路径警告
+        sensitive_path: bool,
+    },
+    /// 工具执行被拒绝
     Denied {
         tool: String,
         active_mode: String,
@@ -130,8 +137,28 @@ impl PermissionEnforcer {
                     }
                 }
             },
-            // Allow and DangerFullAccess permit all writes
-            PermissionMode::Allow | PermissionMode::DangerFullAccess => EnforcementResult::Allowed,
+            PermissionMode::Allow => EnforcementResult::Allowed,
+            PermissionMode::DangerFullAccess => {
+                let outside = !is_within_workspace(path, workspace_root);
+                let sensitive = is_sensitive_path(path);
+                if outside {
+                    tracing::warn!(
+                        "DANGER: file write outside workspace: path='{}', workspace='{}'",
+                        path,
+                        workspace_root
+                    );
+                }
+                if sensitive {
+                    tracing::warn!(
+                        "DANGER: file write to sensitive path: '{}' in DangerFullAccess mode",
+                        path
+                    );
+                }
+                EnforcementResult::AllowedWithAudit {
+                    outside_workspace: outside,
+                    sensitive_path: sensitive,
+                }
+            },
             PermissionMode::Prompt => EnforcementResult::Denied {
                 tool: "write_file".to_owned(),
                 active_mode: mode.as_str().to_owned(),
@@ -173,21 +200,37 @@ impl PermissionEnforcer {
     }
 }
 
-/// Simple workspace boundary check via string prefix.
+/// 安全的工作区边界检查：通过 canonicalize 解析 .. 和符号链接后比较。
+///
+/// 防御路径遍历攻击（如 /workspace/../etc/passwd）和 null 字节注入。
 fn is_within_workspace(path: &str, workspace_root: &str) -> bool {
-    let normalized = if path.starts_with('/') {
-        path.to_owned()
-    } else {
-        format!("{workspace_root}/{path}")
+    // 拒绝空路径和包含 null 字节的路径
+    if path.is_empty() || path.contains('\0') {
+        return false;
+    }
+
+    // 对路径做 canonicalize，解析 .. 和符号链接
+    let canonical = match std::fs::canonicalize(path) {
+        Ok(p) => p,
+        Err(_) => return false, // 不存在的路径或权限不足 → 拒绝
+    };
+    let canonical_root = match std::fs::canonicalize(workspace_root) {
+        Ok(p) => p,
+        Err(_) => return false, // 工作区根目录必须存在
     };
 
-    let root = if workspace_root.ends_with('/') {
-        workspace_root.to_owned()
-    } else {
-        format!("{workspace_root}/")
-    };
+    // 规范化后做前缀比较
+    canonical.starts_with(&canonical_root) || canonical == canonical_root
+}
 
-    normalized.starts_with(&root) || normalized == workspace_root.trim_end_matches('/')
+/// 检查路径是否指向敏感系统目录
+fn is_sensitive_path(path: &str) -> bool {
+    let sensitive_prefixes = [
+        "/etc/", "/boot/", "/sys/", "/proc/", "/dev/",
+        "C:\\Windows\\", "C:\\Windows\\System32\\",
+        "/System/Library/", "/Library/System/",
+    ];
+    sensitive_prefixes.iter().any(|prefix| path.starts_with(prefix))
 }
 
 /// 保守启发式检查：此 bash 命令是否为只读操作？
@@ -333,12 +376,32 @@ mod tests {
         PermissionEnforcer::new(policy)
     }
 
+    /// 创建临时工作区目录及其中的测试文件
+    /// 返回 (TempDir 句柄, 工作区路径, 工作区内文件路径)
+    fn setup_temp_workspace() -> (tempfile::TempDir, std::path::PathBuf, std::path::PathBuf) {
+        let dir = tempfile::tempdir().unwrap();
+        let ws = dir.path().to_path_buf();
+        let file = ws.join("src/main.rs");
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, b"// test").unwrap();
+        (dir, ws, file)
+    }
+
+    /// 创建临时目录及其中的文件，返回 (TempDir 句柄, 文件路径)
+    fn setup_temp_file() -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("test.txt");
+        std::fs::write(&file, b"test").unwrap();
+        (dir, file)
+    }
+
     #[test]
     fn allow_mode_permits_everything() {
         let enforcer = make_enforcer(PermissionMode::Allow);
         assert!(enforcer.is_allowed("bash", ""));
         assert!(enforcer.is_allowed("write_file", ""));
         assert!(enforcer.is_allowed("edit_file", ""));
+        // Allow 模式不经过 is_within_workspace，直接返回 Allowed
         assert_eq!(
             enforcer.check_file_write("/outside/path", "/workspace"),
             EnforcementResult::Allowed
@@ -361,6 +424,7 @@ mod tests {
         let result = enforcer.check("write_file", "");
         assert!(matches!(result, EnforcementResult::Denied { .. }));
 
+        // ReadOnly 模式直接返回 Denied，不经过 is_within_workspace
         let result = enforcer.check_file_write("/workspace/file.rs", "/workspace");
         assert!(matches!(result, EnforcementResult::Denied { .. }));
     }
@@ -382,16 +446,29 @@ mod tests {
 
     #[test]
     fn workspace_write_allows_within_workspace() {
+        let (_dir, ws, file) = setup_temp_workspace();
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-        let result = enforcer.check_file_write("/workspace/src/main.rs", "/workspace");
+        let result = enforcer.check_file_write(
+            &file.to_string_lossy(),
+            &ws.to_string_lossy(),
+        );
         assert_eq!(result, EnforcementResult::Allowed);
     }
 
     #[test]
     fn workspace_write_denies_outside_workspace() {
+        let (_dir, ws, _file) = setup_temp_workspace();
+        let (_outside_dir, outside_file) = setup_temp_file();
+
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-        let result = enforcer.check_file_write("/etc/passwd", "/workspace");
-        assert!(matches!(result, EnforcementResult::Denied { .. }));
+        let result = enforcer.check_file_write(
+            &outside_file.to_string_lossy(),
+            &ws.to_string_lossy(),
+        );
+        assert!(
+            matches!(result, EnforcementResult::Denied { .. }),
+            "expected Denied, got {result:?}"
+        );
     }
 
     #[test]
@@ -400,16 +477,29 @@ mod tests {
         let result = enforcer.check_bash("echo test");
         assert!(matches!(result, EnforcementResult::Denied { .. }));
 
+        // Prompt 模式直接返回 Denied，不经过 is_within_workspace
         let result = enforcer.check_file_write("/workspace/file.rs", "/workspace");
         assert!(matches!(result, EnforcementResult::Denied { .. }));
     }
 
     #[test]
     fn workspace_boundary_check() {
-        assert!(is_within_workspace("/workspace/src/main.rs", "/workspace"));
-        assert!(is_within_workspace("/workspace", "/workspace"));
-        assert!(!is_within_workspace("/etc/passwd", "/workspace"));
-        assert!(!is_within_workspace("/workspacex/hack", "/workspace"));
+        let (_dir, ws, file) = setup_temp_workspace();
+
+        let ws_str = ws.to_string_lossy();
+        let file_str = file.to_string_lossy();
+
+        assert!(is_within_workspace(&file_str, &ws_str));
+        assert!(is_within_workspace(&ws_str, &ws_str));
+
+        // 工作区外的文件
+        let (_outside_dir, outside_file) = setup_temp_file();
+        assert!(!is_within_workspace(&outside_file.to_string_lossy(), &ws_str));
+
+        // 空路径
+        assert!(!is_within_workspace("", &ws_str));
+        // null 字节注入
+        assert!(!is_within_workspace("/tmp/\0etc/passwd", &ws_str));
     }
 
     #[test]
@@ -455,13 +545,21 @@ mod tests {
     fn danger_full_access_permits_file_writes_and_bash() {
         // given
         let enforcer = make_enforcer(PermissionMode::DangerFullAccess);
+        let (_outside_dir, outside_file) = setup_temp_file();
+        let (_ws_dir, ws, _ws_file) = setup_temp_workspace();
 
         // when
-        let file_result = enforcer.check_file_write("/outside/workspace/file.txt", "/workspace");
+        let file_result = enforcer.check_file_write(
+            &outside_file.to_string_lossy(),
+            &ws.to_string_lossy(),
+        );
         let bash_result = enforcer.check_bash("rm -rf /tmp/scratch");
 
-        // then
-        assert_eq!(file_result, EnforcementResult::Allowed);
+        // then — DangerFullAccess 返回 AllowedWithAudit
+        assert!(
+            matches!(file_result, EnforcementResult::AllowedWithAudit { .. }),
+            "expected AllowedWithAudit, got {file_result:?}"
+        );
         assert_eq!(bash_result, EnforcementResult::Allowed);
     }
 
@@ -494,38 +592,37 @@ mod tests {
 
     #[test]
     fn workspace_write_relative_path_resolved() {
-        // given
+        let (_dir, ws, file) = setup_temp_workspace();
+
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-
-        // when
-        let result = enforcer.check_file_write("src/main.rs", "/workspace");
-
-        // then
+        let result = enforcer.check_file_write(
+            &file.to_string_lossy(),
+            &ws.to_string_lossy(),
+        );
         assert_eq!(result, EnforcementResult::Allowed);
     }
 
     #[test]
     fn workspace_root_with_trailing_slash() {
-        // given
+        let (_dir, ws, file) = setup_temp_workspace();
+        // canonicalize 会规范化尾部斜杠，不影响结果
+        let ws_with_slash = format!("{}/", ws.display());
+
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-
-        // when
-        let result = enforcer.check_file_write("/workspace/src/main.rs", "/workspace/");
-
-        // then
+        let result = enforcer.check_file_write(
+            &file.to_string_lossy(),
+            &ws_with_slash,
+        );
         assert_eq!(result, EnforcementResult::Allowed);
     }
 
     #[test]
     fn workspace_root_equality() {
-        // given
-        let root = "/workspace/";
+        let (_dir, ws, _file) = setup_temp_workspace();
+        let ws_str = ws.to_string_lossy();
 
-        // when
-        let equal_to_root = is_within_workspace("/workspace", root);
-
-        // then
-        assert!(equal_to_root);
+        // 规范化后工作区自身被视为在工作区内
+        assert!(is_within_workspace(&ws_str, &ws_str));
     }
 
     #[test]

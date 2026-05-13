@@ -25,7 +25,11 @@ impl PathValidator {
             PathBuf::from("/proc"),
             PathBuf::from("/dev"),
             PathBuf::from(r"C:\Windows"),
+            PathBuf::from(r"C:\Windows\System32"),
             PathBuf::from(r"C:\Program Files"),
+            PathBuf::from(r"C:\Program Files (x86)"),
+            PathBuf::from(r"C:\ProgramData"),
+            PathBuf::from(r"C:\Users\All Users"),
         ];
 
         Self {
@@ -36,6 +40,11 @@ impl PathValidator {
 
     /// 验证单一路径
     pub fn validate(&self, path: &str) -> PathResult {
+        // null 字节注入检查
+        if path.contains('\0') {
+            return PathResult::Blocked("路径包含 null 字节，可能存在注入攻击".to_string());
+        }
+
         let p = Path::new(path);
 
         // 规范化路径
