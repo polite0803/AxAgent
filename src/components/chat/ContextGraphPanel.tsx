@@ -15,6 +15,7 @@ import {
   ReactFlow,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { useKnowledgeStore, useMcpStore, useMemoryStore, useSkillExtensionStore } from "@/stores";
@@ -163,6 +164,8 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
   const { token } = theme.useToken();
 
   const [collapsed, setCollapsed] = useState(true);
+  // 选中的图例类型（用于筛选图谱展示），null = 全部显示
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
 
   // Get detail info from various stores
   const knowledgeBases = useKnowledgeStore((s) => s.bases ?? []);
@@ -261,6 +264,44 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState(layout.nodes);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState(layout.edges);
+
+  // 根据 hiddenTypes 筛选可见节点和边
+  const visibleNodes = useMemo(
+    () => {
+      if (hiddenTypes.size === 0) { return rfNodes; }
+      return rfNodes.filter((n) => {
+        const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
+        const nt = nodeData?.nodeType;
+        if (!nt) { return true; }
+        return !hiddenTypes.has(nt);
+      });
+    },
+    [rfNodes, hiddenTypes],
+  );
+  const visibleNodeIds = useMemo(
+    () => new Set(visibleNodes.map((n) => n.id)),
+    [visibleNodes],
+  );
+  const visibleEdges = useMemo(
+    () => {
+      if (hiddenTypes.size === 0) { return rfEdges; }
+      return rfEdges.filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
+    },
+    [rfEdges, visibleNodeIds, hiddenTypes],
+  );
+
+  const toggleType = (type: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHiddenTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
 
   // Update nodes/edges when layout changes
   const prevLayoutRef = React.useRef<string>("");
@@ -370,31 +411,49 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Legend — only when expanded */}
+          {/* Legend — only when expanded, click to toggle visibility */}
           {!collapsed && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {Object.entries(nodeTypeStyles).slice(0, 5).map(([type, style]) => (
-                <span
-                  key={type}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                    fontSize: 10,
-                    color: style.border,
-                  }}
-                >
-                  {style.icon} {type === "conversation"
-                    ? t("chat.contextGraph.legend.conversation", "对话")
-                    : type === "model"
-                    ? t("chat.contextGraph.legend.model", "模型")
-                    : type === "knowledge"
-                    ? t("chat.contextGraph.legend.knowledge", "知识")
-                    : type === "memory"
-                    ? t("chat.contextGraph.legend.memory", "记忆")
-                    : t("chat.contextGraph.legend.mcp", "MCP")}
-                </span>
-              ))}
+              {Object.entries(nodeTypeStyles).map(([type, style]) => {
+                const isHidden = hiddenTypes.has(type);
+                const label = type === "conversation"
+                  ? t("chat.contextGraph.legend.conversation", "对话")
+                  : type === "model"
+                  ? t("chat.contextGraph.legend.model", "模型")
+                  : type === "knowledge"
+                  ? t("chat.contextGraph.legend.knowledge", "知识")
+                  : type === "memory"
+                  ? t("chat.contextGraph.legend.memory", "记忆")
+                  : type === "mcp"
+                  ? t("chat.contextGraph.legend.mcp", "MCP")
+                  : type === "search"
+                  ? t("chat.contextGraph.legend.search", "搜索")
+                  : t("chat.contextGraph.legend.skill", "技能");
+                return (
+                  <span
+                    key={type}
+                    onClick={(e) => toggleType(type, e)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                      fontSize: 10,
+                      color: isHidden ? token.colorTextQuaternary : style.border,
+                      cursor: "pointer",
+                      opacity: isHidden ? 0.4 : 1,
+                      padding: "1px 4px",
+                      borderRadius: 4,
+                      transition: "opacity 0.15s",
+                      userSelect: "none",
+                    }}
+                    title={isHidden
+                      ? t("chat.contextGraph.showType", "点击显示")
+                      : t("chat.contextGraph.hideType", "点击隐藏")}
+                  >
+                    {style.icon} {label}
+                  </span>
+                );
+              })}
             </div>
           )}
           {collapsed
@@ -408,31 +467,14 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
         <div style={{ height: 280, width: "100%" }}>
           {totalSources > 0
             ? (
-              <ReactFlow
-                nodes={rfNodes}
-                edges={rfEdges}
+              <GraphCanvas
+                nodes={visibleNodes}
+                edges={visibleEdges}
                 nodeTypes={nodeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
-                fitView
-                fitViewOptions={{ padding: 0.3 }}
-                attributionPosition="bottom-left"
-                nodesDraggable={false}
-                nodesConnectable={false}
-                elementsSelectable={false}
-                proOptions={{ hideAttribution: true }}
-              >
-                <Background color={token.colorBorderSecondary} gap={16} />
-                <Controls showInteractive={false} />
-                <MiniMap
-                  style={{ height: 60 }}
-                  nodeColor={(n: Node) => {
-                    const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
-                    const style = nodeData?.nodeType ? nodeTypeStyles[nodeData.nodeType] : undefined;
-                    return style?.border || "#ddd";
-                  }}
-                />
-              </ReactFlow>
+                token={token}
+              />
             )
             : (
               <div
@@ -453,3 +495,54 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     </div>
   );
 });
+
+// ── Inner graph canvas (separate component so useReactFlow is safe) ──────
+
+interface GraphCanvasProps {
+  nodes: Node[];
+  edges: Edge[];
+  nodeTypes: NodeTypes;
+  onNodesChange: any;
+  onEdgesChange: any;
+  token: any;
+}
+
+function GraphCanvas({ nodes, edges, nodeTypes, onNodesChange, onEdgesChange, token }: GraphCanvasProps) {
+  const { fitView } = useReactFlow();
+
+  const prevNodeCountRef = React.useRef(nodes.length);
+  React.useEffect(() => {
+    if (nodes.length !== prevNodeCountRef.current) {
+      prevNodeCountRef.current = nodes.length;
+      setTimeout(() => fitView({ padding: 0.3 }), 50);
+    }
+  }, [nodes.length, fitView]);
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      fitView
+      fitViewOptions={{ padding: 0.3 }}
+      attributionPosition="bottom-left"
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={false}
+      proOptions={{ hideAttribution: true }}
+    >
+      <Background color={token.colorBorderSecondary} gap={16} />
+      <Controls showInteractive={false} />
+      <MiniMap
+        style={{ height: 60 }}
+        nodeColor={(n: Node) => {
+          const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
+          const style = nodeData?.nodeType ? nodeTypeStyles[nodeData.nodeType] : undefined;
+          return style?.border || "#ddd";
+        }}
+      />
+    </ReactFlow>
+  );
+}
