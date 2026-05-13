@@ -246,6 +246,15 @@ pub struct WorkflowStep {
     /// Override the agent_role from the profile. None = use profile default.
     #[serde(default)]
     pub agent_role_override: Option<AgentRole>,
+    /// 降级步骤 ID：当前步骤失败后可自动执行的替代步骤
+    #[serde(default)]
+    pub fallback_step_id: Option<String>,
+    /// 步骤超时（秒），覆盖全局 step_timeout
+    #[serde(default)]
+    pub timeout_secs: Option<u64>,
+    /// 输出 JSON Schema，用于校验步骤输出格式
+    #[serde(default)]
+    pub expected_output_schema: Option<String>,
 }
 
 fn default_max_retries() -> u32 {
@@ -270,6 +279,9 @@ impl Default for WorkflowStep {
             circuit_breaker: CircuitBreaker::default(),
             agent_profile_id: None,
             agent_role_override: None,
+            fallback_step_id: None,
+            timeout_secs: None,
+            expected_output_schema: None,
         }
     }
 }
@@ -1101,6 +1113,9 @@ mod tests {
             circuit_breaker: CircuitBreaker::default(),
             agent_profile_id: None,
             agent_role_override: None,
+            fallback_step_id: None,
+            timeout_secs: None,
+            expected_output_schema: None,
         }
     }
 

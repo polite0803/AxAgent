@@ -40,6 +40,7 @@ pub struct ConflictRecord {
 }
 
 /// 多 Agent 协作的全局工作记忆
+#[derive(Debug)]
 pub struct SharedBlackboard {
     pub task_id: String,
     pub goal: String,

@@ -2927,6 +2927,9 @@ fn skill_steps_to_workflow_steps(
                 circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
                 agent_profile_id: None,
                 agent_role_override: None,
+                fallback_step_id: None,
+                timeout_secs: None,
+                expected_output_schema: None,
             }
         })
         .collect()
@@ -4080,6 +4083,9 @@ pub async fn workflow_create(
                 agent_role_override: s
                     .agent_role_override
                     .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r)),
+                fallback_step_id: None,
+                timeout_secs: None,
+                expected_output_schema: None,
             }
         })
         .collect();
