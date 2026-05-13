@@ -64,13 +64,7 @@ impl SharedBlackboard {
     }
 
     /// 记录 Agent 决策
-    pub fn record_decision(
-        &mut self,
-        agent_id: &str,
-        task_id: &str,
-        field: &str,
-        value: &str,
-    ) {
+    pub fn record_decision(&mut self, agent_id: &str, task_id: &str, field: &str, value: &str) {
         let decision = AgentDecision {
             agent_id: agent_id.to_string(),
             timestamp_ms: now_ms(),
@@ -93,11 +87,8 @@ impl SharedBlackboard {
 
     /// 获取所有 Agent 对某个 field 的共识值
     pub fn get_consensus(&self, field: &str) -> Option<String> {
-        let relevant: Vec<&AgentDecision> = self
-            .decisions
-            .iter()
-            .filter(|d| d.field == field)
-            .collect();
+        let relevant: Vec<&AgentDecision> =
+            self.decisions.iter().filter(|d| d.field == field).collect();
         if relevant.is_empty() {
             return None;
         }
@@ -141,10 +132,7 @@ impl SharedBlackboard {
                     vote_count: max_votes,
                 }
             } else {
-                let first = decisions
-                    .iter()
-                    .min_by_key(|d| d.timestamp_ms)
-                    .unwrap();
+                let first = decisions.iter().min_by_key(|d| d.timestamp_ms).unwrap();
                 ConflictResolution::TieBreak {
                     chosen: first.value.clone(),
                     reason: "平局，选择首个完成者的决策".to_string(),
