@@ -1159,13 +1159,36 @@ async fn execute_tool_call(
 
 const DEFAULT_TITLE_PROMPT: &str = "You are a title generator. Based on the conversation below, generate a concise and descriptive title (maximum 30 characters). Reply with the title only, no quotes or extra text.";
 
+/// 将多条 (role, content) 消息格式化为 "User: ... Assistant: ..." 交替文本。
+/// 每条 Assistant 消息截断到 300 字符，总长度达 max_chars 时停止。
+fn format_conversation_for_title(messages: &[(MessageRole, String)], max_chars: usize) -> String {
+    let mut text = String::new();
+    for (role, content) in messages {
+        let prefix = match role {
+            MessageRole::User => "User",
+            MessageRole::Assistant => "Assistant",
+            _ => continue,
+        };
+        if text.len() >= max_chars {
+            text.push_str("... (truncated)");
+            break;
+        }
+        let preview: String = if matches!(role, MessageRole::Assistant) {
+            content.chars().take(300).collect()
+        } else {
+            content.clone()
+        };
+        text.push_str(&format!("{}: {}\n\n", prefix, preview));
+    }
+    text
+}
+
 /// Generate an AI-powered conversation title using the configured title summary model.
 /// Returns Err with the actual error message if generation fails.
 #[allow(clippy::too_many_arguments)]
 pub async fn generate_ai_title(
     db: &sea_orm::DatabaseConnection,
-    user_content: &str,
-    assistant_content: &str,
+    conversation_messages: &[(MessageRole, String)],
     fallback_provider: &ProviderConfig,
     fallback_ctx: &ProviderRequestContext,
     fallback_model_id: &str,
@@ -1200,8 +1223,7 @@ pub async fn generate_ai_title(
                     fallback_provider,
                     fallback_ctx,
                     fallback_model_id,
-                    user_content,
-                    assistant_content,
+                    conversation_messages,
                     settings,
                     umc,
                 )
@@ -1217,8 +1239,7 @@ pub async fn generate_ai_title(
                     fallback_provider,
                     fallback_ctx,
                     fallback_model_id,
-                    user_content,
-                    assistant_content,
+                    conversation_messages,
                     settings,
                     umc,
                 )
@@ -1234,8 +1255,7 @@ pub async fn generate_ai_title(
                     fallback_provider,
                     fallback_ctx,
                     fallback_model_id,
-                    user_content,
-                    assistant_content,
+                    conversation_messages,
                     settings,
                     umc,
                 )
@@ -1260,8 +1280,7 @@ pub async fn generate_ai_title(
             store_response: None,
         };
         let umc = lookup_umc(pid, mid, db).await;
-        generate_ai_title_with(&provider, &ctx, mid, user_content, assistant_content, settings, umc)
-            .await
+        generate_ai_title_with(&provider, &ctx, mid, conversation_messages, settings, umc).await
     } else {
         // No title summary provider configured, use conversation model
         let umc = lookup_umc(&fallback_ctx.provider_id, fallback_model_id, db).await;
@@ -1269,8 +1288,7 @@ pub async fn generate_ai_title(
             fallback_provider,
             fallback_ctx,
             fallback_model_id,
-            user_content,
-            assistant_content,
+            conversation_messages,
             settings,
             umc,
         )
@@ -1282,8 +1300,7 @@ async fn generate_ai_title_with(
     provider: &ProviderConfig,
     ctx: &ProviderRequestContext,
     model_id: &str,
-    user_content: &str,
-    assistant_content: &str,
+    conversation_messages: &[(MessageRole, String)],
     settings: &AppSettings,
     use_max_completion_tokens: Option<bool>,
 ) -> Result<String, String> {
@@ -1292,13 +1309,7 @@ async fn generate_ai_title_with(
         .as_deref()
         .unwrap_or(DEFAULT_TITLE_PROMPT);
 
-    // Build conversation context for title generation
-    let mut conversation_text = format!("User: {}", user_content);
-    if !assistant_content.is_empty() {
-        // Include a truncated assistant response for better context
-        let assistant_preview: String = assistant_content.chars().take(500).collect();
-        conversation_text.push_str(&format!("\n\nAssistant: {}", assistant_preview));
-    }
+    let conversation_text = format_conversation_for_title(conversation_messages, 3000);
 
     let messages = vec![
         ChatMessage {
@@ -1378,9 +1389,13 @@ async fn generate_ai_title_with(
             .trim_matches('"')
             .to_string();
         if fallback.is_empty() {
-            let fallback = user_content.chars().take(40).collect::<String>();
-            tracing::warn!("[title-gen] AI empty, using fallback: {}", fallback);
-            Ok(fallback)
+            let first_user = conversation_messages
+                .iter()
+                .find(|(r, _)| matches!(r, MessageRole::User))
+                .map(|(_, c)| c.chars().take(40).collect::<String>())
+                .unwrap_or_default();
+            tracing::warn!("[title-gen] AI empty, using fallback: {}", first_user);
+            Ok(first_user)
         } else {
             tracing::warn!("[title-gen] AI empty after trim, using raw: {}", fallback);
             Ok(fallback)
@@ -1405,24 +1420,19 @@ pub async fn regenerate_conversation_title(
         .await
         .map_err(|e| e.to_string())?;
 
-    // Load messages to get first user + assistant content
+    // Load all messages to build full conversation context for title generation
     let messages = axagent_core::repo::message::list_messages(&db, &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    let user_content = messages
+    let conversation_messages: Vec<(MessageRole, String)> = messages
         .iter()
-        .find(|m| m.role == MessageRole::User)
-        .map(|m| m.content.clone())
-        .unwrap_or_default();
-    let assistant_content = messages
-        .iter()
-        .find(|m| m.role == MessageRole::Assistant)
-        .map(|m| m.content.clone())
-        .unwrap_or_default();
+        .filter(|m| m.role == MessageRole::User || m.role == MessageRole::Assistant)
+        .map(|m| (m.role, m.content.clone()))
+        .collect();
 
-    if user_content.is_empty() {
-        return Err("No user message found to generate title from".to_string());
+    if conversation_messages.is_empty() {
+        return Err("No messages found to generate title from".to_string());
     }
 
     // Load provider for fallback
@@ -1474,8 +1484,7 @@ pub async fn regenerate_conversation_title(
     tokio::spawn(async move {
         let ai_title = generate_ai_title(
             &db,
-            &user_content,
-            &assistant_content,
+            &conversation_messages,
             &provider,
             &ctx,
             &conv_model_id,
@@ -2096,11 +2105,15 @@ fn spawn_stream_task(
                 },
             );
 
-            // Try AI-powered title generation
+            // Try AI-powered title generation — first message, so full
+            // conversation is user message + current assistant response
+            let auto_messages = vec![
+                (MessageRole::User, user_content.clone()),
+                (MessageRole::Assistant, total_content.clone()),
+            ];
             let ai_title = generate_ai_title(
                 &db,
-                &user_content,
-                &total_content,
+                &auto_messages,
                 &provider,
                 &ctx,
                 &model_id,
