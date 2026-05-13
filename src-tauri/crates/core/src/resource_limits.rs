@@ -62,25 +62,13 @@ impl ResourceLimits {
         )?;
 
         // RLIMIT_AS: 进程可用虚拟内存（字节）
-        self.set_rlimit(
-            libc::RLIMIT_AS,
-            self.max_memory_bytes,
-            self.max_memory_bytes,
-        )?;
+        self.set_rlimit(libc::RLIMIT_AS, self.max_memory_bytes, self.max_memory_bytes)?;
 
         // RLIMIT_NPROC: 最大子进程数
-        self.set_rlimit(
-            libc::RLIMIT_NPROC,
-            self.max_processes as u64,
-            self.max_processes as u64,
-        )?;
+        self.set_rlimit(libc::RLIMIT_NPROC, self.max_processes as u64, self.max_processes as u64)?;
 
         // RLIMIT_FSIZE: 最大文件写入（字节）
-        self.set_rlimit(
-            libc::RLIMIT_FSIZE,
-            self.max_file_size_bytes,
-            self.max_file_size_bytes,
-        )?;
+        self.set_rlimit(libc::RLIMIT_FSIZE, self.max_file_size_bytes, self.max_file_size_bytes)?;
 
         Ok(())
     }
@@ -110,9 +98,9 @@ impl ResourceLimits {
         use std::os::windows::ffi::OsStrExt;
         use windows_sys::Win32::Foundation::HANDLE;
         use windows_sys::Win32::System::JobObjects::{
-            AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject,
-            JobObjectExtendedLimitInformation, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-            JOB_OBJECT_LIMIT_PROCESS_MEMORY, JOB_OBJECT_LIMIT_JOB_MEMORY,
+            AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+            SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+            JOB_OBJECT_LIMIT_JOB_MEMORY, JOB_OBJECT_LIMIT_PROCESS_MEMORY,
         };
 
         let name: Vec<u16> = std::ffi::OsStr::new("AxAgent_Sandbox_Job")

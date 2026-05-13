@@ -215,10 +215,7 @@ impl SecuritySandbox {
             }
         }
         if !denied.is_empty() {
-            tracing::warn!(
-                "Non-whitelisted environment variables detected: {:?}",
-                denied
-            );
+            tracing::warn!("Non-whitelisted environment variables detected: {:?}", denied);
         }
         denied
     }
