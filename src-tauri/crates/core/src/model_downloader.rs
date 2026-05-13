@@ -1,14 +1,32 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use crate::error::Result;
 
-/// 模型下载管理器——按需从远程拉取模型文件到本地缓存
+/// 模型下载管理器——从 HuggingFace Hub 或自定义 URL 下载 GGUF 模型文件
 #[derive(Debug, Clone)]
 pub struct ModelDownloader {
     cache_dir: PathBuf,
 }
 
-/// 本地已下载模型的信息
+/// 预定义模型清单
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PresetModel {
+    pub filename: String,
+    pub hf_repo: Option<String>,
+    pub direct_url: Option<String>,
+    pub sha256: String,
+    pub model_type: PresetModelType,
+    pub display_name: String,
+    pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub enum PresetModelType {
+    Reranker,
+    Judge,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LocalModelInfo {
     pub name: String,
@@ -16,11 +34,12 @@ pub struct LocalModelInfo {
     pub size_bytes: u64,
     pub downloaded_at: String,
     pub sha256: String,
+    pub model_type: PresetModelType,
+    pub is_downloaded: bool,
 }
 
 impl ModelDownloader {
-    /// 创建下载管理器，缓存目录默认为 ~/.axagent/models
-    #[allow(clippy::new_without_default)]
+    /// 使用默认缓存路径创建下载管理器（~/.axagent/models/）
     pub fn new() -> Self {
         let cache_dir = dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
@@ -29,35 +48,110 @@ impl ModelDownloader {
         Self { cache_dir }
     }
 
-    /// 指定自定义缓存目录
+    /// 使用指定缓存路径创建下载管理器
     pub fn with_cache_dir(cache_dir: PathBuf) -> Self {
         Self { cache_dir }
     }
 
-    /// 确保指定模型已下载。若本地不存在则从 url 下载并校验 SHA256。
-    pub async fn ensure_model(
-        &self,
-        name: &str,
-        url: &str,
-        expected_sha256: &str,
-    ) -> Result<PathBuf> {
-        let model_path = self.cache_dir.join(name);
-        if model_path.exists() {
-            let actual = Self::sha256_file(&model_path)?;
-            if actual == expected_sha256 {
-                tracing::info!(name = %name, "Model already cached");
-                return Ok(model_path);
-            }
-            tracing::warn!(name = %name, "Cached model hash mismatch, re-downloading");
-            std::fs::remove_file(&model_path).ok();
-        }
-        self.download_model(name, url, expected_sha256).await
+    /// 返回缓存目录路径
+    pub fn cache_dir(&self) -> &Path {
+        &self.cache_dir
     }
 
-    /// 下载模型文件（支持断点续传）
-    async fn download_model(
+    /// 返回预定义的模型清单
+    pub fn preset_models() -> Vec<PresetModel> {
+        vec![
+            PresetModel {
+                filename: "bge-reranker-v2-m3.Q4_K_M.gguf".to_string(),
+                hf_repo: Some("gpustack/bge-reranker-v2-m3-GGUF".to_string()),
+                direct_url: None,
+                sha256: String::new(),
+                model_type: PresetModelType::Reranker,
+                display_name: "BGE-Reranker-v2-m3 (Q4_K_M)".to_string(),
+                size_bytes: 316_000_000,
+            },
+            PresetModel {
+                filename: "qwen2.5-0.5b.Q4_K_M.gguf".to_string(),
+                hf_repo: Some("Qwen/Qwen2.5-0.5B-GGUF".to_string()),
+                direct_url: None,
+                sha256: String::new(),
+                model_type: PresetModelType::Judge,
+                display_name: "Qwen2.5 0.5B (Q4_K_M)".to_string(),
+                size_bytes: 400_000_000,
+            },
+        ]
+    }
+
+    /// 确保指定模型已下载，返回模型文件的路径
+    pub async fn ensure_model(&self, preset: &PresetModel) -> Result<PathBuf> {
+        let model_path = self.cache_dir.join(&preset.filename);
+        if model_path.exists() {
+            if !preset.sha256.is_empty() {
+                let actual = Self::sha256_file(&model_path)?;
+                if actual == preset.sha256 {
+                    tracing::info!(name = %preset.filename, "Model already cached");
+                    return Ok(model_path);
+                }
+                tracing::warn!(
+                    name = %preset.filename,
+                    "Cached model hash mismatch, re-downloading"
+                );
+                std::fs::remove_file(&model_path).ok();
+            } else {
+                return Ok(model_path);
+            }
+        }
+
+        // 优先 HuggingFace Hub
+        if let Some(repo) = &preset.hf_repo {
+            match self.download_from_hf(repo, &preset.filename).await {
+                Ok(path) => return Ok(path),
+                Err(e) => {
+                    tracing::warn!("HF download failed: {}, trying direct URL", e);
+                },
+            }
+        }
+
+        // 回退到直链
+        if let Some(url) = &preset.direct_url {
+            self.download_direct(&preset.filename, url, &preset.sha256)
+                .await
+        } else {
+            Err(crate::error::AxAgentError::ModelDownload(format!(
+                "No download source for {}",
+                preset.filename
+            )))
+        }
+    }
+
+    /// 从 HuggingFace Hub 下载模型文件
+    async fn download_from_hf(&self, repo: &str, filename: &str) -> Result<PathBuf> {
+        std::fs::create_dir_all(&self.cache_dir).map_err(|e| {
+            crate::error::AxAgentError::ModelDownload(format!("Failed to create cache dir: {}", e))
+        })?;
+
+        let api = hf_hub::api::sync::Api::new().map_err(|e| {
+            crate::error::AxAgentError::ModelDownload(format!("hf-hub API error: {}", e))
+        })?;
+
+        let repo = api.model(repo.to_string());
+        let path = repo.get(filename).map_err(|e| {
+            crate::error::AxAgentError::ModelDownload(format!("HF download failed: {}", e))
+        })?;
+
+        let dest = self.cache_dir.join(filename);
+        std::fs::copy(&path, &dest).map_err(|e| {
+            crate::error::AxAgentError::ModelDownload(format!("Copy to cache: {}", e))
+        })?;
+
+        tracing::info!(filename = %filename, "Downloaded from HuggingFace Hub");
+        Ok(dest)
+    }
+
+    /// 从直链下载模型文件（支持断点续传）
+    async fn download_direct(
         &self,
-        name: &str,
+        filename: &str,
         url: &str,
         expected_sha256: &str,
     ) -> Result<PathBuf> {
@@ -65,7 +159,7 @@ impl ModelDownloader {
             crate::error::AxAgentError::ModelDownload(format!("Failed to create cache dir: {}", e))
         })?;
 
-        let model_path = self.cache_dir.join(name);
+        let model_path = self.cache_dir.join(filename);
         let tmp_path = model_path.with_extension("download");
 
         let client = reqwest::Client::builder()
@@ -80,7 +174,11 @@ impl ModelDownloader {
             if let Ok(meta) = std::fs::metadata(&tmp_path) {
                 let range = format!("bytes={}-", meta.len());
                 request = request.header("Range", range);
-                tracing::info!(name = %name, bytes = meta.len(), "Resuming download");
+                tracing::info!(
+                    filename = %filename,
+                    bytes = meta.len(),
+                    "Resuming download"
+                );
             }
         }
 
@@ -104,7 +202,6 @@ impl ModelDownloader {
                 crate::error::AxAgentError::ModelDownload(format!("Cannot open temp file: {}", e))
             })?;
 
-        use std::io::Write;
         let bytes = response.bytes().await.map_err(|e| {
             crate::error::AxAgentError::ModelDownload(format!("Read response: {}", e))
         })?;
@@ -116,56 +213,77 @@ impl ModelDownloader {
             crate::error::AxAgentError::ModelDownload(format!("Rename temp file: {}", e))
         })?;
 
-        let actual = Self::sha256_file(&model_path)?;
-        if actual != expected_sha256 {
-            std::fs::remove_file(&model_path).ok();
-            return Err(crate::error::AxAgentError::ModelIntegrity {
-                expected: expected_sha256.to_string(),
-                actual,
-            });
-        }
-
-        tracing::info!(name = %name, "Model downloaded and verified");
-        Ok(model_path)
-    }
-
-    /// 列出所有本地已下载的模型
-    pub fn list_local_models(&self) -> Result<Vec<LocalModelInfo>> {
-        if !self.cache_dir.exists() {
-            return Ok(vec![]);
-        }
-        let mut models = Vec::new();
-        for entry in std::fs::read_dir(&self.cache_dir).map_err(crate::error::AxAgentError::Io)? {
-            let entry = entry.map_err(crate::error::AxAgentError::Io)?;
-            let path = entry.path();
-            if path.is_file() && path.extension().is_none() {
-                let meta = entry.metadata().map_err(crate::error::AxAgentError::Io)?;
-                models.push(LocalModelInfo {
-                    name: entry.file_name().to_string_lossy().to_string(),
-                    file_path: path.to_string_lossy().to_string(),
-                    size_bytes: meta.len(),
-                    downloaded_at: chrono::Utc::now().to_rfc3339(),
-                    sha256: Self::sha256_file(&path).unwrap_or_default(),
+        if !expected_sha256.is_empty() {
+            let actual = Self::sha256_file(&model_path)?;
+            if actual != expected_sha256 {
+                std::fs::remove_file(&model_path).ok();
+                return Err(crate::error::AxAgentError::ModelIntegrity {
+                    expected: expected_sha256.to_string(),
+                    actual,
                 });
             }
         }
-        Ok(models)
+
+        tracing::info!(filename = %filename, "Model downloaded and verified");
+        Ok(model_path)
     }
 
-    /// 删除指定模型
-    pub fn remove_model(&self, name: &str) -> Result<()> {
-        let path = self.cache_dir.join(name);
+    /// 列出所有模型（含下载状态）
+    pub fn list_all_models(&self) -> Vec<LocalModelInfo> {
+        ModelDownloader::preset_models()
+            .into_iter()
+            .map(|p| {
+                let path = self.cache_dir.join(&p.filename);
+                let is_downloaded = path.exists();
+                let meta = std::fs::metadata(&path).ok();
+                LocalModelInfo {
+                    name: p.display_name.clone(),
+                    file_path: path.to_string_lossy().to_string(),
+                    size_bytes: meta.as_ref().map(|m| m.len()).unwrap_or(p.size_bytes),
+                    downloaded_at: if is_downloaded {
+                        meta.and_then(|m| m.modified().ok())
+                            .map(|t| {
+                                chrono::DateTime::<chrono::Utc>::from(t)
+                                    .format("%Y-%m-%d %H:%M")
+                                    .to_string()
+                            })
+                            .unwrap_or_default()
+                    } else {
+                        String::new()
+                    },
+                    sha256: if is_downloaded {
+                        Self::sha256_file(&path).unwrap_or_default()
+                    } else {
+                        String::new()
+                    },
+                    model_type: p.model_type,
+                    is_downloaded,
+                }
+            })
+            .collect()
+    }
+
+    /// 移除缓存的模型文件
+    pub fn remove_model(&self, filename: &str) -> Result<()> {
+        let path = self.cache_dir.join(filename);
         if path.exists() {
-            std::fs::remove_file(&path).map_err(crate::error::AxAgentError::Io)?;
+            std::fs::remove_file(&path).map_err(|e| crate::error::AxAgentError::Io(e))?;
         }
         Ok(())
     }
 
-    fn sha256_file(path: &Path) -> Result<String> {
+    /// 计算文件的 SHA256 哈希
+    pub fn sha256_file(path: &Path) -> Result<String> {
         use sha2::{Digest, Sha256};
-        let data = std::fs::read(path).map_err(crate::error::AxAgentError::Io)?;
+        let data = std::fs::read(path).map_err(|e| crate::error::AxAgentError::Io(e))?;
         let hash = Sha256::digest(&data);
         Ok(hex::encode(hash))
+    }
+}
+
+impl Default for ModelDownloader {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -175,18 +293,28 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_list_empty_cache() {
+    fn test_preset_models_not_empty() {
+        let models = ModelDownloader::preset_models();
+        assert_eq!(models.len(), 2);
+        assert_eq!(models[0].model_type, PresetModelType::Reranker);
+        assert_eq!(models[1].model_type, PresetModelType::Judge);
+    }
+
+    #[test]
+    fn test_list_all_models_shows_all() {
         let tmp = TempDir::new().unwrap();
         let dl = ModelDownloader::with_cache_dir(tmp.path().to_path_buf());
-        let models = dl.list_local_models().unwrap();
-        assert!(models.is_empty());
+        let models = dl.list_all_models();
+        assert_eq!(models.len(), 2);
+        assert!(!models[0].is_downloaded);
+        assert!(!models[1].is_downloaded);
     }
 
     #[test]
     fn test_remove_nonexistent_model() {
         let tmp = TempDir::new().unwrap();
         let dl = ModelDownloader::with_cache_dir(tmp.path().to_path_buf());
-        let result = dl.remove_model("nonexistent");
+        let result = dl.remove_model("nonexistent.gguf");
         assert!(result.is_ok());
     }
 

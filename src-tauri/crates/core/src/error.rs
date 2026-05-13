@@ -101,6 +101,9 @@ pub enum AxAgentError {
 
     #[error("Model integrity error: expected {expected}, got {actual}")]
     ModelIntegrity { expected: String, actual: String },
+
+    #[error("Model inference error: {0}")]
+    Inference(String),
 }
 
 impl AxAgentError {
@@ -209,6 +212,7 @@ impl AxAgentError {
             },
             AxAgentError::ModelDownload(_) => ErrorCode::NetworkError,
             AxAgentError::ModelIntegrity { .. } => ErrorCode::ValidationError,
+            AxAgentError::Inference(_) => ErrorCode::AgentError,
         }
     }
 
@@ -254,6 +258,7 @@ impl AxAgentError {
             AxAgentError::StructuredError { context, .. } => context.retry_count < 3,
             AxAgentError::ModelDownload(_) => true,
             AxAgentError::ModelIntegrity { .. } => false,
+            AxAgentError::Inference(_) => false,
             _ => false,
         }
     }
