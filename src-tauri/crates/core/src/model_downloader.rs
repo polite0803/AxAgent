@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use crate::error::Result;
@@ -96,7 +95,7 @@ impl ModelDownloader {
                     name = %preset.filename,
                     "Cached model hash mismatch, re-downloading"
                 );
-                std::fs::remove_file(&model_path).ok();
+                tokio::fs::remove_file(&model_path).await.ok();
             } else {
                 return Ok(model_path);
             }
@@ -104,7 +103,7 @@ impl ModelDownloader {
 
         // 优先 HuggingFace Hub
         if let Some(repo) = &preset.hf_repo {
-            match self.download_from_hf(repo, &preset.filename).await {
+            match self.download_from_hf(repo, &preset.filename, &preset.sha256).await {
                 Ok(path) => return Ok(path),
                 Err(e) => {
                     tracing::warn!("HF download failed: {}, trying direct URL", e);
@@ -125,24 +124,50 @@ impl ModelDownloader {
     }
 
     /// 从 HuggingFace Hub 下载模型文件
-    async fn download_from_hf(&self, repo: &str, filename: &str) -> Result<PathBuf> {
-        std::fs::create_dir_all(&self.cache_dir).map_err(|e| {
+    async fn download_from_hf(
+        &self,
+        repo: &str,
+        filename: &str,
+        expected_sha256: &str,
+    ) -> Result<PathBuf> {
+        tokio::fs::create_dir_all(&self.cache_dir).await.map_err(|e| {
             crate::error::AxAgentError::ModelDownload(format!("Failed to create cache dir: {}", e))
         })?;
 
-        let api = hf_hub::api::sync::Api::new().map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("hf-hub API error: {}", e))
-        })?;
+        // hf_hub 的 API 是同步的，用 spawn_blocking 避免阻塞 async 运行时
+        let cache_dir = self.cache_dir.clone();
+        let repo_id = repo.to_string();
+        let fname = filename.to_string();
+        let path = tokio::task::spawn_blocking(move || {
+            let api = hf_hub::api::sync::Api::new().map_err(|e| {
+                crate::error::AxAgentError::ModelDownload(format!("hf-hub API error: {}", e))
+            })?;
+            let repo = api.model(repo_id);
+            repo.get(&fname).map_err(|e| {
+                crate::error::AxAgentError::ModelDownload(format!("HF download failed: {}", e))
+            })
+        })
+        .await
+        .map_err(|e| {
+            crate::error::AxAgentError::ModelDownload(format!("spawn_blocking error: {}", e))
+        })??;
 
-        let repo = api.model(repo.to_string());
-        let path = repo.get(filename).map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("HF download failed: {}", e))
-        })?;
-
-        let dest = self.cache_dir.join(filename);
-        std::fs::copy(&path, &dest).map_err(|e| {
+        let dest = cache_dir.join(filename);
+        tokio::fs::copy(&path, &dest).await.map_err(|e| {
             crate::error::AxAgentError::ModelDownload(format!("Copy to cache: {}", e))
         })?;
+
+        // SHA256 完整性校验
+        if !expected_sha256.is_empty() {
+            let actual = Self::sha256_file(&dest)?;
+            if actual != expected_sha256 {
+                tokio::fs::remove_file(&dest).await.ok();
+                return Err(crate::error::AxAgentError::ModelIntegrity {
+                    expected: expected_sha256.to_string(),
+                    actual,
+                });
+            }
+        }
 
         tracing::info!(filename = %filename, "Downloaded from HuggingFace Hub");
         Ok(dest)
@@ -155,7 +180,7 @@ impl ModelDownloader {
         url: &str,
         expected_sha256: &str,
     ) -> Result<PathBuf> {
-        std::fs::create_dir_all(&self.cache_dir).map_err(|e| {
+        tokio::fs::create_dir_all(&self.cache_dir).await.map_err(|e| {
             crate::error::AxAgentError::ModelDownload(format!("Failed to create cache dir: {}", e))
         })?;
 
@@ -170,8 +195,9 @@ impl ModelDownloader {
             })?;
 
         let mut request = client.get(url);
-        if tmp_path.exists() {
-            if let Ok(meta) = std::fs::metadata(&tmp_path) {
+        let has_partial = tmp_path.exists();
+        if has_partial {
+            if let Ok(meta) = tokio::fs::metadata(&tmp_path).await {
                 let range = format!("bytes={}-", meta.len());
                 request = request.header("Range", range);
                 tracing::info!(
@@ -186,37 +212,71 @@ impl ModelDownloader {
             crate::error::AxAgentError::ModelDownload(format!("Download failed: {}", e))
         })?;
 
-        if !response.status().is_success() {
+        let status = response.status();
+
+        // 检查服务器是否支持断点续传（206 Partial Content）
+        if has_partial && status != reqwest::StatusCode::PARTIAL_CONTENT {
+            tracing::warn!(
+                filename = %filename,
+                "Server does not support resume, restarting download"
+            );
+            tokio::fs::remove_file(&tmp_path).await.ok();
+        }
+
+        if !status.is_success() {
             return Err(crate::error::AxAgentError::ModelDownload(format!(
                 "HTTP {} for {}",
-                response.status(),
+                status,
                 url
             )));
         }
 
-        let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&tmp_path)
-            .map_err(|e| {
-                crate::error::AxAgentError::ModelDownload(format!("Cannot open temp file: {}", e))
+        // 以追加模式打开（续传）或创建新文件
+        let mut file = if tmp_path.exists() {
+            tokio::fs::OpenOptions::new()
+                .append(true)
+                .open(&tmp_path)
+                .await
+                .map_err(|e| {
+                    crate::error::AxAgentError::ModelDownload(
+                        format!("Cannot open temp file: {}", e),
+                    )
+                })?
+        } else {
+            tokio::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .open(&tmp_path)
+                .await
+                .map_err(|e| {
+                    crate::error::AxAgentError::ModelDownload(
+                        format!("Cannot open temp file: {}", e),
+                    )
+                })?
+        };
+
+        // 流式写入响应体，避免内存爆满
+        use futures::StreamExt;
+        use tokio::io::AsyncWriteExt;
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| {
+                crate::error::AxAgentError::ModelDownload(format!("Read response: {}", e))
             })?;
+            file.write_all(&chunk).await.map_err(|e| {
+                crate::error::AxAgentError::ModelDownload(format!("Write temp file: {}", e))
+            })?;
+        }
 
-        let bytes = response.bytes().await.map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("Read response: {}", e))
-        })?;
-        file.write_all(&bytes).map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("Write temp file: {}", e))
-        })?;
-
-        std::fs::rename(&tmp_path, &model_path).map_err(|e| {
+        tokio::fs::rename(&tmp_path, &model_path).await.map_err(|e| {
             crate::error::AxAgentError::ModelDownload(format!("Rename temp file: {}", e))
         })?;
 
+        // SHA256 完整性校验
         if !expected_sha256.is_empty() {
             let actual = Self::sha256_file(&model_path)?;
             if actual != expected_sha256 {
-                std::fs::remove_file(&model_path).ok();
+                tokio::fs::remove_file(&model_path).await.ok();
                 return Err(crate::error::AxAgentError::ModelIntegrity {
                     expected: expected_sha256.to_string(),
                     actual,
@@ -272,12 +332,16 @@ impl ModelDownloader {
         Ok(())
     }
 
-    /// 计算文件的 SHA256 哈希
+    /// 计算文件的 SHA256 哈希（流式读取，避免一次性加载到内存）
     pub fn sha256_file(path: &Path) -> Result<String> {
         use sha2::{Digest, Sha256};
-        let data = std::fs::read(path).map_err(|e| crate::error::AxAgentError::Io(e))?;
-        let hash = Sha256::digest(&data);
-        Ok(hex::encode(hash))
+        let file =
+            std::fs::File::open(path).map_err(|e| crate::error::AxAgentError::Io(e))?;
+        let mut reader = std::io::BufReader::new(file);
+        let mut hasher = Sha256::new();
+        std::io::copy(&mut reader, &mut hasher)
+            .map_err(|e| crate::error::AxAgentError::Io(e))?;
+        Ok(hex::encode(hasher.finalize()))
     }
 }
 
@@ -326,6 +390,9 @@ mod tests {
         let mut f = std::fs::File::create(&path).unwrap();
         f.write_all(b"hello world").unwrap();
         let hash = ModelDownloader::sha256_file(&path).unwrap();
-        assert_eq!(hash, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
+        assert_eq!(
+            hash,
+            "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+        );
     }
 }
