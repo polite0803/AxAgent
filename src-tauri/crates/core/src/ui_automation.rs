@@ -225,13 +225,12 @@ $results | ConvertTo-Json -Compress
 
         Ok(elements)
     }
-}
 
-// ── macOS: UI 元素枚举 ──
+    // ── macOS: UI 元素枚举 ──
 
-#[cfg(target_os = "macos")]
-async fn get_macos_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
-    let script = r#"
+    #[cfg(target_os = "macos")]
+    async fn get_macos_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
+        let script = r#"
 tell application "System Events"
     set allProcs to every process whose visible is true
     set output to ""
@@ -251,163 +250,164 @@ end tell
 return output
 "#;
 
-    let output = tokio::process::Command::new("osascript")
-        .args(["-e", script])
-        .output()
-        .await?;
+        let output = tokio::process::Command::new("osascript")
+            .args(["-e", script])
+            .output()
+            .await?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!(
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!(
                 "osascript 执行失败: {}\n提示: 请在 系统偏好设置 > 隐私与安全性 > 辅助功能 中授权终端/Tauri 应用",
                 stderr.trim()
             );
-    }
-
-    let text = String::from_utf8_lossy(&output.stdout);
-    let mut elements = Vec::new();
-    for line in text.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
         }
-        let parts: Vec<&str> = line.split("|||").collect();
-        if parts.len() < 6 {
-            continue;
-        }
-        let app = parts[0].trim();
-        let title = parts[1].trim();
-        let x: f64 = parts[2].trim().parse().unwrap_or(0.0);
-        let y: f64 = parts[3].trim().parse().unwrap_or(0.0);
-        let w: f64 = parts[4].trim().parse().unwrap_or(0.0);
-        let h: f64 = parts[5].trim().parse().unwrap_or(0.0);
 
-        if let Some(ref name_filter) = query.name_contains {
-            if !title.contains(name_filter) && !app.contains(name_filter) {
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut elements = Vec::new();
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() {
                 continue;
             }
-        }
+            let parts: Vec<&str> = line.split("|||").collect();
+            if parts.len() < 6 {
+                continue;
+            }
+            let app = parts[0].trim();
+            let title = parts[1].trim();
+            let x: f64 = parts[2].trim().parse().unwrap_or(0.0);
+            let y: f64 = parts[3].trim().parse().unwrap_or(0.0);
+            let w: f64 = parts[4].trim().parse().unwrap_or(0.0);
+            let h: f64 = parts[5].trim().parse().unwrap_or(0.0);
 
-        elements.push(UIElement {
-            role: "window".to_string(),
-            name: format!("{} - {}", app, title),
-            value: None,
-            bounds: CGRect {
-                x,
-                y,
-                width: w,
-                height: h,
-            },
-            is_clickable: w > 0.0 && h > 0.0,
-            is_editable: false,
-            children_count: None,
-            application: app.to_string(),
-            window_title: title.to_string(),
-        });
-    }
-
-    Ok(elements)
-}
-
-// ── Linux: UI 元素枚举 ──
-
-#[cfg(target_os = "linux")]
-async fn get_linux_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
-    // 尝试 wmctrl (X11 窗口管理器)
-    if which::which("wmctrl").is_ok() {
-        let output = tokio::process::Command::new("wmctrl")
-            .args(["-l", "-G"])
-            .output()
-            .await?;
-
-        if output.status.success() {
-            let text = String::from_utf8_lossy(&output.stdout);
-            let mut elements = Vec::new();
-            for line in text.lines() {
-                let line = line.trim();
-                if line.is_empty() {
+            if let Some(ref name_filter) = query.name_contains {
+                if !title.contains(name_filter) && !app.contains(name_filter) {
                     continue;
                 }
-                // wmctrl -l -G 输出格式: 窗口ID 桌面 X Y W H 主机名 标题...
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 8 {
-                    let x: f64 = parts[2].parse().unwrap_or(0.0);
-                    let y: f64 = parts[3].parse().unwrap_or(0.0);
-                    let w: f64 = parts[4].parse().unwrap_or(0.0);
-                    let h: f64 = parts[5].parse().unwrap_or(0.0);
-                    let title = parts[7..].join(" ");
-
-                    if let Some(ref name_filter) = query.name_contains {
-                        if !title.contains(name_filter) {
-                            continue;
-                        }
-                    }
-
-                    elements.push(UIElement {
-                        role: "window".to_string(),
-                        name: title.clone(),
-                        value: None,
-                        bounds: CGRect {
-                            x,
-                            y,
-                            width: w,
-                            height: h,
-                        },
-                        is_clickable: w > 0.0 && h > 0.0,
-                        is_editable: false,
-                        children_count: None,
-                        application: String::new(),
-                        window_title: title,
-                    });
-                }
             }
-            return Ok(elements);
-        }
-    }
 
-    // Wayland 回退: 尝试 AT-SPI2 通过 gdbus
-    if which::which("gdbus").is_ok() {
-        let output = tokio::process::Command::new("gdbus")
-            .args([
-                "call",
-                "--session",
-                "--dest",
-                "org.a11y.atspi.Registry",
-                "--object-path",
-                "/org/a11y/atspi/accessible/root",
-                "--method",
-                "org.a11y.atspi.Accessible.GetChildCount",
-            ])
-            .output()
-            .await?;
-
-        if output.status.success() {
-            // AT-SPI2 可用，返回有限的信息
-            let mut elements = Vec::new();
             elements.push(UIElement {
-                role: "desktop".to_string(),
-                name: "Accessible desktop (AT-SPI2)".to_string(),
+                role: "window".to_string(),
+                name: format!("{} - {}", app, title),
                 value: None,
                 bounds: CGRect {
-                    x: 0.0,
-                    y: 0.0,
-                    width: 0.0,
-                    height: 0.0,
+                    x,
+                    y,
+                    width: w,
+                    height: h,
                 },
-                is_clickable: false,
+                is_clickable: w > 0.0 && h > 0.0,
                 is_editable: false,
                 children_count: None,
-                application: String::new(),
-                window_title: String::new(),
+                application: app.to_string(),
+                window_title: title.to_string(),
             });
-            return Ok(elements);
         }
+
+        Ok(elements)
     }
 
-    anyhow::bail!(
-        "Linux 窗口枚举需要 wmctrl (X11) 或 AT-SPI2 (Wayland)。\n\
+    // ── Linux: UI 元素枚举 ──
+
+    #[cfg(target_os = "linux")]
+    async fn get_linux_elements(query: &UIElementQuery) -> Result<Vec<UIElement>> {
+        // 尝试 wmctrl (X11 窗口管理器)
+        if which::which("wmctrl").is_ok() {
+            let output = tokio::process::Command::new("wmctrl")
+                .args(["-l", "-G"])
+                .output()
+                .await?;
+
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout);
+                let mut elements = Vec::new();
+                for line in text.lines() {
+                    let line = line.trim();
+                    if line.is_empty() {
+                        continue;
+                    }
+                    // wmctrl -l -G 输出格式: 窗口ID 桌面 X Y W H 主机名 标题...
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 8 {
+                        let x: f64 = parts[2].parse().unwrap_or(0.0);
+                        let y: f64 = parts[3].parse().unwrap_or(0.0);
+                        let w: f64 = parts[4].parse().unwrap_or(0.0);
+                        let h: f64 = parts[5].parse().unwrap_or(0.0);
+                        let title = parts[7..].join(" ");
+
+                        if let Some(ref name_filter) = query.name_contains {
+                            if !title.contains(name_filter) {
+                                continue;
+                            }
+                        }
+
+                        elements.push(UIElement {
+                            role: "window".to_string(),
+                            name: title.clone(),
+                            value: None,
+                            bounds: CGRect {
+                                x,
+                                y,
+                                width: w,
+                                height: h,
+                            },
+                            is_clickable: w > 0.0 && h > 0.0,
+                            is_editable: false,
+                            children_count: None,
+                            application: String::new(),
+                            window_title: title,
+                        });
+                    }
+                }
+                return Ok(elements);
+            }
+        }
+
+        // Wayland 回退: 尝试 AT-SPI2 通过 gdbus
+        if which::which("gdbus").is_ok() {
+            let output = tokio::process::Command::new("gdbus")
+                .args([
+                    "call",
+                    "--session",
+                    "--dest",
+                    "org.a11y.atspi.Registry",
+                    "--object-path",
+                    "/org/a11y/atspi/accessible/root",
+                    "--method",
+                    "org.a11y.atspi.Accessible.GetChildCount",
+                ])
+                .output()
+                .await?;
+
+            if output.status.success() {
+                // AT-SPI2 可用，返回有限的信息
+                let mut elements = Vec::new();
+                elements.push(UIElement {
+                    role: "desktop".to_string(),
+                    name: "Accessible desktop (AT-SPI2)".to_string(),
+                    value: None,
+                    bounds: CGRect {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 0.0,
+                        height: 0.0,
+                    },
+                    is_clickable: false,
+                    is_editable: false,
+                    children_count: None,
+                    application: String::new(),
+                    window_title: String::new(),
+                });
+                return Ok(elements);
+            }
+        }
+
+        anyhow::bail!(
+            "Linux 窗口枚举需要 wmctrl (X11) 或 AT-SPI2 (Wayland)。\n\
              安装 wmctrl: sudo apt install wmctrl / sudo pacman -S wmctrl"
-    )
+        )
+    }
 }
 
 /// 将按键名称映射到 enigo::Key
