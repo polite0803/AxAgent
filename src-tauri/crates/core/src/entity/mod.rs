@@ -46,6 +46,8 @@ pub mod rl_policies;
 
 pub mod stored_files;
 
+pub mod workflow_snapshots;
+
 pub mod workflow_template;
 
 pub mod workflow_template_version;

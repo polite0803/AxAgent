@@ -9,6 +9,7 @@ mod m20240101_000006_init_prompt;
 mod m20240101_000007_init_background_tasks;
 mod m20240101_000008_enhance_prompt;
 mod m20250512_000001_memory_namespace_link;
+mod m20250513_000001_workflow_snapshots;
 
 pub struct Migrator;
 
@@ -25,6 +26,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000007_init_background_tasks::Migration),
             Box::new(m20240101_000008_enhance_prompt::Migration),
             Box::new(m20250512_000001_memory_namespace_link::Migration),
+            Box::new(m20250513_000001_workflow_snapshots::Migration),
         ]
     }
 }
