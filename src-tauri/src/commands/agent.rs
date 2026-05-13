@@ -98,18 +98,23 @@ fn load_pricing_from_disk(app_handle: &tauri::AppHandle) -> Result<PricingConfig
         .path()
         .resource_dir()
         .map_err(|e| format!("Failed to get resource dir: {}", e))?;
-    let path = resource_dir.join("pricing.toml");
-    // Also check next to the executable
-    let path = if path.exists() {
-        path
-    } else {
+    let mut path = resource_dir.join("pricing.toml");
+    // Also check next to the executable (production fallback)
+    if !path.exists() {
         let exe_dir = std::env::current_exe()
             .map_err(|e| format!("Failed to get exe dir: {}", e))?
             .parent()
             .ok_or("No exe parent dir")?
             .to_path_buf();
-        exe_dir.join("pricing.toml")
-    };
+        path = exe_dir.join("pricing.toml");
+    }
+    // Development fallback: check CARGO_MANIFEST_DIR baked at compile time
+    if !path.exists() {
+        let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("pricing.toml");
+        if dev_path.exists() {
+            path = dev_path;
+        }
+    }
     let content = fs::read_to_string(&path)
         .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
     let config: PricingConfigFile =

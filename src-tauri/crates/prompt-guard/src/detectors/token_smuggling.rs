@@ -26,14 +26,15 @@ impl TokenSmugglingDetector {
         input
             .chars()
             .filter(|c| {
-                matches!(*c,
-                '\u{200B}' | // ZERO WIDTH SPACE
+                matches!(
+                    *c,
+                    '\u{200B}' | // ZERO WIDTH SPACE
                 '\u{200C}' | // ZERO WIDTH NON-JOINER
                 '\u{200D}' | // ZERO WIDTH JOINER
                 '\u{FEFF}' | // ZERO WIDTH NO-BREAK SPACE (BOM)
                 '\u{200E}' | // LEFT-TO-RIGHT MARK
-                '\u{200F}'   // RIGHT-TO-LEFT MARK
-            )
+                '\u{200F}' // RIGHT-TO-LEFT MARK
+                )
             })
             .collect()
     }
@@ -167,7 +168,9 @@ mod tests {
     fn detects_suspicious_repetition() {
         let detector = TokenSmugglingDetector::new(GuardConfig::default());
         // 需要 >=100 字符触发检测，其中 40 个连续相同字符
-        let mut input = String::from("padding text to reach the minimum length requirement for repetition detection: ");
+        let mut input = String::from(
+            "padding text to reach the minimum length requirement for repetition detection: ",
+        );
         for _ in 0..40 {
             input.push('A');
         }

@@ -12,9 +12,7 @@ impl XmlWrapper {
 
     /// 包装外部数据源（带信任标签）
     pub fn wrap_external_data(content: &str, label: &str) -> String {
-        format!(
-            "<external_data source=\"{label}\" trusted=\"false\">\n{content}\n</external_data>"
-        )
+        format!("<external_data source=\"{label}\" trusted=\"false\">\n{content}\n</external_data>")
     }
 
     /// 生成系统提示词中的分隔指令

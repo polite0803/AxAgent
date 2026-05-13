@@ -226,11 +226,19 @@ fn is_within_workspace(path: &str, workspace_root: &str) -> bool {
 /// 检查路径是否指向敏感系统目录
 fn is_sensitive_path(path: &str) -> bool {
     let sensitive_prefixes = [
-        "/etc/", "/boot/", "/sys/", "/proc/", "/dev/",
-        "C:\\Windows\\", "C:\\Windows\\System32\\",
-        "/System/Library/", "/Library/System/",
+        "/etc/",
+        "/boot/",
+        "/sys/",
+        "/proc/",
+        "/dev/",
+        "C:\\Windows\\",
+        "C:\\Windows\\System32\\",
+        "/System/Library/",
+        "/Library/System/",
     ];
-    sensitive_prefixes.iter().any(|prefix| path.starts_with(prefix))
+    sensitive_prefixes
+        .iter()
+        .any(|prefix| path.starts_with(prefix))
 }
 
 /// 保守启发式检查：此 bash 命令是否为只读操作？
@@ -448,10 +456,7 @@ mod tests {
     fn workspace_write_allows_within_workspace() {
         let (_dir, ws, file) = setup_temp_workspace();
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-        let result = enforcer.check_file_write(
-            &file.to_string_lossy(),
-            &ws.to_string_lossy(),
-        );
+        let result = enforcer.check_file_write(&file.to_string_lossy(), &ws.to_string_lossy());
         assert_eq!(result, EnforcementResult::Allowed);
     }
 
@@ -461,10 +466,8 @@ mod tests {
         let (_outside_dir, outside_file) = setup_temp_file();
 
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-        let result = enforcer.check_file_write(
-            &outside_file.to_string_lossy(),
-            &ws.to_string_lossy(),
-        );
+        let result =
+            enforcer.check_file_write(&outside_file.to_string_lossy(), &ws.to_string_lossy());
         assert!(
             matches!(result, EnforcementResult::Denied { .. }),
             "expected Denied, got {result:?}"
@@ -549,10 +552,8 @@ mod tests {
         let (_ws_dir, ws, _ws_file) = setup_temp_workspace();
 
         // when
-        let file_result = enforcer.check_file_write(
-            &outside_file.to_string_lossy(),
-            &ws.to_string_lossy(),
-        );
+        let file_result =
+            enforcer.check_file_write(&outside_file.to_string_lossy(), &ws.to_string_lossy());
         let bash_result = enforcer.check_bash("rm -rf /tmp/scratch");
 
         // then — DangerFullAccess 返回 AllowedWithAudit
@@ -595,10 +596,7 @@ mod tests {
         let (_dir, ws, file) = setup_temp_workspace();
 
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-        let result = enforcer.check_file_write(
-            &file.to_string_lossy(),
-            &ws.to_string_lossy(),
-        );
+        let result = enforcer.check_file_write(&file.to_string_lossy(), &ws.to_string_lossy());
         assert_eq!(result, EnforcementResult::Allowed);
     }
 
@@ -609,10 +607,7 @@ mod tests {
         let ws_with_slash = format!("{}/", ws.display());
 
         let enforcer = make_enforcer(PermissionMode::WorkspaceWrite);
-        let result = enforcer.check_file_write(
-            &file.to_string_lossy(),
-            &ws_with_slash,
-        );
+        let result = enforcer.check_file_write(&file.to_string_lossy(), &ws_with_slash);
         assert_eq!(result, EnforcementResult::Allowed);
     }
 
