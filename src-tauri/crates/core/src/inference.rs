@@ -45,6 +45,15 @@ enum LoadedModel {
     },
 }
 
+/// 模型加载类型——用于 `load_model` 辅助方法
+#[allow(dead_code)]
+enum LoadedModelKind {
+    /// 重排序模型
+    Reranker,
+    /// 裁判模型
+    Judge,
+}
+
 /// 裁判输出——相关性判断结果
 #[derive(Debug, Clone)]
 pub struct JudgeOutput {
@@ -72,35 +81,16 @@ impl InferenceEngine {
 
     /// 加载重排序模型（GGUF → 内存）
     pub async fn load_reranker_model(&self, gguf_path: &Path) -> Result<()> {
-        let filename = gguf_path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| "unknown".to_string());
-
-        let tokenizer_path = gguf_path.with_extension("tokenizer.json");
-
-        if !tokenizer_path.exists() {
-            tracing::warn!(
-                "Tokenizer not found at {}, judge will use fallback",
-                tokenizer_path.display()
-            );
-        }
-
-        let mut models = self.loaded_models.lock().await;
-        models.insert(
-            filename,
-            LoadedModel::Reranker {
-                model_path: gguf_path.to_path_buf(),
-                tokenizer_path,
-            },
-        );
-
-        tracing::info!("Reranker model registered: {}", gguf_path.display());
-        Ok(())
+        self.load_model(gguf_path, LoadedModelKind::Reranker).await
     }
 
     /// 加载裁判模型（GGUF → 内存）
     pub async fn load_judge_model(&self, gguf_path: &Path) -> Result<()> {
+        self.load_model(gguf_path, LoadedModelKind::Judge).await
+    }
+
+    /// 通用模型加载逻辑（消除 load_reranker_model / load_judge_model 的重复代码）
+    async fn load_model(&self, gguf_path: &Path, kind: LoadedModelKind) -> Result<()> {
         let filename = gguf_path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -116,15 +106,26 @@ impl InferenceEngine {
         }
 
         let mut models = self.loaded_models.lock().await;
-        models.insert(
-            filename,
-            LoadedModel::Judge {
+        let model = match kind {
+            LoadedModelKind::Reranker => LoadedModel::Reranker {
                 model_path: gguf_path.to_path_buf(),
                 tokenizer_path,
             },
-        );
+            LoadedModelKind::Judge => LoadedModel::Judge {
+                model_path: gguf_path.to_path_buf(),
+                tokenizer_path,
+            },
+        };
+        models.insert(filename, model);
 
-        tracing::info!("Judge model registered: {}", gguf_path.display());
+        tracing::info!(
+            "{} model registered: {}",
+            match kind {
+                LoadedModelKind::Reranker => "Reranker",
+                LoadedModelKind::Judge => "Judge",
+            },
+            gguf_path.display()
+        );
         Ok(())
     }
 
@@ -138,12 +139,12 @@ impl InferenceEngine {
         documents: &[String],
     ) -> Result<Vec<f32>> {
         let models = self.loaded_models.lock().await;
-        let _loaded = models.get(model_filename).ok_or_else(|| {
-            crate::error::AxAgentError::Inference(format!(
+        if !models.contains_key(model_filename) {
+            return Err(crate::error::AxAgentError::Inference(format!(
                 "Reranker model '{}' not loaded",
                 model_filename
-            ))
-        })?;
+            )));
+        }
 
         // Stub implementation — returns placeholder scores
         // TODO: Integrate actual candle BERT inference
@@ -156,7 +157,10 @@ impl InferenceEngine {
 
         // Simple heuristic: longer documents with more query term overlap get higher scores
         let query_lower = query.to_lowercase();
-        let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
+        let query_terms: Vec<&str> = query_lower
+            .split_whitespace()
+            .filter(|w| w.len() > 1)
+            .collect();
 
         Ok(documents
             .iter()
@@ -185,12 +189,12 @@ impl InferenceEngine {
         chunk_content: &str,
     ) -> Result<JudgeOutput> {
         let models = self.loaded_models.lock().await;
-        let _loaded = models.get(model_filename).ok_or_else(|| {
-            crate::error::AxAgentError::Inference(format!(
+        if !models.contains_key(model_filename) {
+            return Err(crate::error::AxAgentError::Inference(format!(
                 "Judge model '{}' not loaded",
                 model_filename
-            ))
-        })?;
+            )));
+        }
 
         // Stub implementation — returns heuristic judgment
         // TODO: Integrate actual candle LLaMA inference
@@ -324,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rerank_heuristic_outputs() {
+    fn test_judge_output_low_score() {
         // Test struct construction directly (stub doesn't require loading)
         let output = JudgeOutput {
             relevant: false,
@@ -333,5 +337,61 @@ mod tests {
         };
         assert!(!output.relevant);
         assert!(output.score < 0.5);
+    }
+
+    // ── 正路径测试：加载真实文件后执行推理 ──────────────────────────────
+
+    #[tokio::test]
+    async fn test_load_and_rerank_happy_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let gguf_path = dir.path().join("reranker.gguf");
+        let tok_path = dir.path().join("reranker.tokenizer.json");
+        std::fs::write(&gguf_path, b"dummy gguf").unwrap();
+        std::fs::write(&tok_path, b"{}").unwrap();
+
+        let engine = InferenceEngine::new();
+        engine.load_reranker_model(&gguf_path).await.unwrap();
+        assert!(engine.is_loaded("reranker.gguf").await);
+
+        let scores = engine
+            .rerank(
+                "reranker.gguf",
+                "rust programming",
+                &[
+                    "I love rust programming".to_string(),
+                    "I like python".to_string(),
+                ],
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(scores.len(), 2);
+        // 第一个文档匹配两个词项，第二个不匹配任何词项
+        assert!(scores[0] > scores[1], "matching document should score higher than non-matching");
+    }
+
+    #[tokio::test]
+    async fn test_load_and_judge_happy_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let gguf_path = dir.path().join("judge.gguf");
+        let tok_path = dir.path().join("judge.tokenizer.json");
+        std::fs::write(&gguf_path, b"dummy gguf").unwrap();
+        std::fs::write(&tok_path, b"{}").unwrap();
+
+        let engine = InferenceEngine::new();
+        engine.load_judge_model(&gguf_path).await.unwrap();
+        assert!(engine.is_loaded("judge.gguf").await);
+
+        let output = engine
+            .judge("judge.gguf", "rust programming", "I love rust programming")
+            .await
+            .unwrap();
+
+        // "rust programming" 过滤后两个词项长度均 > 1，chunk 包含两者
+        assert!(output.relevant, "fully matching chunk should be relevant");
+        assert!(
+            (output.score - 1.0).abs() < f32::EPSILON,
+            "all query terms matched, score should be 1.0"
+        );
     }
 }
