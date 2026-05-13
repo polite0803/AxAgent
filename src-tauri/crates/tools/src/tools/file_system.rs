@@ -21,7 +21,7 @@ fn human_size(bytes: u64) -> String {
 }
 
 /// 验证并解析路径（仅允许 workspace 内的路径）
-fn validate_and_resolve_path(path: &str) -> Result<std::path::PathBuf, String> {
+fn validate_and_resolve_path(path: &str, ctx: &ToolContext) -> Result<std::path::PathBuf, String> {
     if path.is_empty() {
         return Err("路径不能为空".into());
     }
@@ -32,7 +32,7 @@ fn validate_and_resolve_path(path: &str) -> Result<std::path::PathBuf, String> {
         }
         Ok(p.to_path_buf())
     } else {
-        let cwd = std::env::current_dir().map_err(|e| format!("无法获取当前目录: {}", e))?;
+        let cwd = Path::new(&ctx.working_dir);
         Ok(cwd.join(p))
     }
 }
@@ -72,10 +72,11 @@ impl Tool for ListDirectoryTool {
         true
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = input.get("path").and_then(|v| v.as_str()).unwrap_or(".");
 
-        let resolved_path = validate_and_resolve_path(path).map_err(ToolError::invalid_input)?;
+        let resolved_path =
+            validate_and_resolve_path(path, ctx).map_err(ToolError::invalid_input)?;
 
         let mut entries = tokio::fs::read_dir(&resolved_path)
             .await
@@ -152,7 +153,7 @@ impl Tool for DeleteFileTool {
         true
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = input
             .get("path")
             .and_then(|v| v.as_str())
@@ -162,7 +163,8 @@ impl Tool for DeleteFileTool {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
         }
 
-        let resolved_path = validate_and_resolve_path(path).map_err(ToolError::invalid_input)?;
+        let resolved_path =
+            validate_and_resolve_path(path, ctx).map_err(ToolError::invalid_input)?;
 
         let path_str = resolved_path.to_string_lossy();
         tokio::fs::remove_file(&*path_str)
@@ -204,7 +206,7 @@ impl Tool for CreateDirectoryTool {
         ToolCategory::FileWrite
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = input
             .get("path")
             .and_then(|v| v.as_str())
@@ -214,7 +216,8 @@ impl Tool for CreateDirectoryTool {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
         }
 
-        let resolved_path = validate_and_resolve_path(path).map_err(ToolError::invalid_input)?;
+        let resolved_path =
+            validate_and_resolve_path(path, ctx).map_err(ToolError::invalid_input)?;
 
         let path_str = resolved_path.to_string_lossy();
         tokio::fs::create_dir_all(&*path_str)
@@ -260,7 +263,7 @@ impl Tool for FileExistsTool {
         true
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = input
             .get("path")
             .and_then(|v| v.as_str())
@@ -270,7 +273,7 @@ impl Tool for FileExistsTool {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
         }
 
-        let exists = match validate_and_resolve_path(path) {
+        let exists = match validate_and_resolve_path(path, ctx) {
             Ok(resolved) => Path::new(&resolved.to_string_lossy().to_string()).exists(),
             Err(_) => false,
         };
@@ -318,7 +321,7 @@ impl Tool for GetFileInfoTool {
         true
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let path = input
             .get("path")
             .and_then(|v| v.as_str())
@@ -328,7 +331,8 @@ impl Tool for GetFileInfoTool {
             return Ok(ToolResult::error("Error: path 参数是必需的"));
         }
 
-        let resolved_path = validate_and_resolve_path(path).map_err(ToolError::invalid_input)?;
+        let resolved_path =
+            validate_and_resolve_path(path, ctx).map_err(ToolError::invalid_input)?;
 
         let path_str = resolved_path.to_string_lossy();
         let meta = std::fs::metadata(&*path_str)
@@ -385,7 +389,7 @@ impl Tool for MoveFileTool {
         true
     }
 
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let source = input
             .get("source")
             .and_then(|v| v.as_str())
@@ -403,9 +407,9 @@ impl Tool for MoveFileTool {
             return Ok(ToolResult::error("Error: 源路径和目标路径相同"));
         }
 
-        let resolved_source = validate_and_resolve_path(source)
+        let resolved_source = validate_and_resolve_path(source, ctx)
             .map_err(|e| ToolError::invalid_input(format!("源路径: {}", e)))?;
-        let resolved_dest = validate_and_resolve_path(destination)
+        let resolved_dest = validate_and_resolve_path(destination, ctx)
             .map_err(|e| ToolError::invalid_input(format!("目标路径: {}", e)))?;
 
         let source_str = resolved_source.to_string_lossy();

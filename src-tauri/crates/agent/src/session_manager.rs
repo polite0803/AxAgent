@@ -286,20 +286,27 @@ impl SessionManager {
             guard.clone()
         };
 
-        let cwd_to_use = if session.session().workspace_root.is_none() {
-            default_workspace_dir.as_deref()
+        let cwd_to_use: Option<String> = if session.session().workspace_root.is_none() {
+            default_workspace_dir.clone()
         } else {
             session
                 .session()
                 .workspace_root
                 .as_ref()
-                .map(|p| p.to_str().unwrap_or(""))
+                .and_then(|p| p.to_str().map(|s| s.to_string()))
         };
+
+        // 将解析出的 workspace_root 同步到运行时 Session 对象
+        if let Some(ref cwd) = cwd_to_use {
+            if !cwd.is_empty() {
+                session.session_mut().workspace_root = Some(std::path::PathBuf::from(cwd.as_str()));
+            }
+        }
 
         let axagent_session = agent_session::upsert_agent_session(
             &self.db,
             &conversation_id,
-            cwd_to_use,
+            cwd_to_use.as_deref(),
             Some("default"),
         )
         .await

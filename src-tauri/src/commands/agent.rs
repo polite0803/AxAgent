@@ -1527,6 +1527,14 @@ pub async fn agent_query(
     .flatten();
     let workspace_root_for_prompt = db_session.as_ref().and_then(|s| s.cwd.clone());
 
+    // 将 workspace cwd 注入工具注册表，确保工具执行时使用正确的工作目录
+    if let Some(ref cwd) = workspace_root_for_prompt {
+        if !cwd.is_empty() {
+            tool_registry = tool_registry.with_working_dir(cwd.as_str());
+            info!("[agent] Tool registry working_dir set to: {}", cwd);
+        }
+    }
+
     let app_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
         .await
         .ok()

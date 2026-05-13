@@ -122,9 +122,7 @@ impl Tool for CtxInspectTool {
             .unwrap_or("basic");
         let is_full = detail == "full";
 
-        let cwd = std::env::current_dir()
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "unknown".to_string());
+        let cwd = ctx.working_dir.clone();
 
         let root = git_root().unwrap_or_else(|| cwd.clone());
         let branch = git_branch();

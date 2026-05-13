@@ -314,6 +314,8 @@ pub struct UnifiedToolRegistry {
     /// 会话上下文
     conversation_id: Option<String>,
     message_id: Option<String>,
+    /// 当前工作目录（来自 agent session 的 workspace cwd）
+    pub working_dir: String,
     /// 工具组启用状态（从 DB 加载）
     pub group_enabled: HashMap<String, bool>,
     /// 单个工具禁用列表（从 DB 加载，空=全部启用）
@@ -342,6 +344,9 @@ impl UnifiedToolRegistry {
             strict_mode: false,
             conversation_id: None,
             message_id: None,
+            working_dir: std::env::current_dir()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| ".".to_string()),
             group_enabled: HashMap::new(),
             disabled_tools: HashSet::new(),
             group_names: HashMap::new(),
@@ -458,6 +463,12 @@ impl UnifiedToolRegistry {
     }
 
     pub fn with_local_tools<T>(self, _local_tools: T) -> Self {
+        self
+    }
+
+    /// 设置工具执行时的工作目录（来自 agent session 的 workspace cwd）
+    pub fn with_working_dir(mut self, dir: impl Into<String>) -> Self {
+        self.working_dir = dir.into();
         self
     }
 
@@ -796,10 +807,7 @@ impl UnifiedToolRegistry {
                 let input_val: Value =
                     serde_json::from_str(&effective_input).unwrap_or(Value::Null);
                 let ctx = crate::ToolContext {
-                    working_dir: std::env::current_dir()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
+                    working_dir: self.working_dir.clone(),
                     conversation_id: self.conversation_id.clone(),
                     message_id: self.message_id.clone(),
                     allow_write: true,
@@ -1034,9 +1042,7 @@ impl RuntimeToolExecutor for UnifiedToolRegistry {
             .collect();
 
         let ctx = crate::ToolContext {
-            working_dir: std::env::current_dir()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_default(),
+            working_dir: self.working_dir.clone(),
             conversation_id: None,
             message_id: None,
             allow_write: true,
