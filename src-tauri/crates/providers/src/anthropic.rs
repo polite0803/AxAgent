@@ -140,15 +140,32 @@ fn extract_text_content(content: &ChatContent) -> String {
     }
 }
 
+/// 将内部消息格式转换为 Anthropic API 格式。
+///
+/// System 消息从 messages 数组中提取，合并后通过 Anthropic 原生的 `system` 参数发送，
+/// 实现协议级隔离，避免 system prompt 被用户注入内容污染。
+/// 只有 user/assistant/tool 角色保留在 `messages` 数组中。
 fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicMessage>) {
-    let mut system = None;
+    // 收集所有 system 消息并合并，而非仅保留最后一条
+    let system_texts: Vec<&str> = messages
+        .iter()
+        .filter(|m| m.role == "system")
+        .filter_map(|m| match &m.content {
+            ChatContent::Text(text) => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+
+    let system = if system_texts.is_empty() {
+        None
+    } else {
+        Some(system_texts.join("\n\n"))
+    };
+
     let mut result = Vec::new();
 
     for msg in messages {
         if msg.role == "system" {
-            if let ChatContent::Text(text) = &msg.content {
-                system = Some(text.clone());
-            }
             continue;
         }
 

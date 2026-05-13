@@ -9,6 +9,7 @@ axagent-core = { path = "../core" }
 axagent-providers = { path = "../providers" }
 axagent-runtime-core = { path = "../runtime-core" }
 axagent-tools = { path = "../tools" }
+axagent-prompt-guard = { path = "../prompt-guard" }
 axagent-trajectory = { path = "../trajectory" }
 sea-orm = { workspace = true }
 tokio = { workspace = true }

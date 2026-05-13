@@ -4,10 +4,12 @@ use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::ToolRegistry;
 use axagent_core::repo::agent_session;
+use axagent_prompt_guard::{GuardConfig, PromptGuardPipeline};
 use axagent_runtime_core::{
-    compact_session, should_compact, CompactionConfig, ConversationRuntime, HookEvent,
-    HookProgressEvent, HookProgressReporter, PermissionMode, PermissionPolicy,
-    PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
+    compact_session, should_compact, CompactionConfig, ContentBlock, ConversationMessage,
+    ConversationRuntime, HookEvent, HookProgressEvent, HookProgressReporter, MessageRole,
+    PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
+    PermissionRequest, RuntimeError, Session,
 };
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -107,6 +109,26 @@ pub fn dynamic_max_iterations(complexity: &axagent_trajectory::Complexity) -> us
         axagent_trajectory::Complexity::Medium => 50,
         axagent_trajectory::Complexity::High => 100,
     }
+}
+
+/// 处理并追加用户消息到 agent 会话（带提示词注入防护）
+///
+/// 使用 PromptGuardPipeline 对用户输入进行多层过滤后，
+/// 直接推送已处理的消息到 Session，避免 push_user_text 的二次包装。
+pub fn append_user_message(session: &mut Session, text: &str) -> Result<(), String> {
+    let config = GuardConfig::default();
+    let pipeline = PromptGuardPipeline::new(config);
+    let processed = pipeline.process_user_input(text)?;
+    // 直接推送已处理的消息，避免 push_user_text 的二次包装
+    session
+        .push_message(ConversationMessage {
+            role: MessageRole::User,
+            blocks: vec![ContentBlock::Text {
+                text: processed,
+            }],
+            usage: None,
+        })
+        .map_err(|e| e.to_string())
 }
 
 /// Agent Session wrapper
