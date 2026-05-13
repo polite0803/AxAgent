@@ -61,6 +61,7 @@ pub mod search_planner;
 pub mod search_provider;
 pub mod self_verifier;
 pub mod session_manager;
+pub mod shared_blackboard;
 pub mod source_classifier;
 pub mod source_validator;
 pub mod steer_manager;

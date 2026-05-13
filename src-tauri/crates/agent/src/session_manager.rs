@@ -2,6 +2,7 @@
 
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
+use crate::shared_blackboard::SharedBlackboard;
 use crate::ToolRegistry;
 use axagent_core::repo::agent_session;
 use axagent_prompt_guard::{GuardConfig, PromptGuardPipeline};
@@ -14,7 +15,7 @@ use axagent_runtime_core::{
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
 use tracing::info;
@@ -138,6 +139,8 @@ pub struct AgentSession {
     team_id: Option<String>,
     role: Option<String>,
     axagent_session_id: Option<String>,
+    /// 多 Agent 协作 Blackboard（可选）
+    pub blackboard: Option<Arc<RwLock<SharedBlackboard>>>,
 }
 
 impl AgentSession {
@@ -149,6 +152,7 @@ impl AgentSession {
             team_id: None,
             role: None,
             axagent_session_id: None,
+            blackboard: None,
         }
     }
 
@@ -164,6 +168,11 @@ impl AgentSession {
 
     pub fn with_axagent_session_id(mut self, axagent_session_id: String) -> Self {
         self.axagent_session_id = Some(axagent_session_id);
+        self
+    }
+
+    pub fn with_blackboard(mut self, bb: Arc<RwLock<SharedBlackboard>>) -> Self {
+        self.blackboard = Some(bb);
         self
     }
 
@@ -193,6 +202,20 @@ impl AgentSession {
 
     pub fn axagent_session_id(&self) -> Option<&str> {
         self.axagent_session_id.as_deref()
+    }
+
+    /// 记录此 Agent 的决策到 Blackboard
+    pub fn record_to_blackboard(&self, field: &str, value: &str) {
+        if let Some(ref bb) = self.blackboard {
+            if let Ok(mut board) = bb.write() {
+                board.record_decision(
+                    &self.axagent_session_id.clone().unwrap_or_default(),
+                    &self.conversation_id,
+                    field,
+                    value,
+                );
+            }
+        }
     }
 }
 

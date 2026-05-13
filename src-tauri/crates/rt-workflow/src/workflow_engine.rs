@@ -246,6 +246,15 @@ pub struct WorkflowStep {
     /// Override the agent_role from the profile. None = use profile default.
     #[serde(default)]
     pub agent_role_override: Option<AgentRole>,
+    /// 降级步骤 ID：当前步骤失败后可自动执行的替代步骤
+    #[serde(default)]
+    pub fallback_step_id: Option<String>,
+    /// 步骤超时（秒），覆盖全局 step_timeout
+    #[serde(default)]
+    pub timeout_secs: Option<u64>,
+    /// 输出 JSON Schema，用于校验步骤输出格式
+    #[serde(default)]
+    pub expected_output_schema: Option<String>,
 }
 
 fn default_max_retries() -> u32 {
@@ -270,6 +279,9 @@ impl Default for WorkflowStep {
             circuit_breaker: CircuitBreaker::default(),
             agent_profile_id: None,
             agent_role_override: None,
+            fallback_step_id: None,
+            timeout_secs: None,
+            expected_output_schema: None,
         }
     }
 }
@@ -646,6 +658,18 @@ impl WorkflowEngine {
         Ok(workflow.clone())
     }
 
+    /// 将当前工作流序列化为 JSON（用于快照持久化）
+    pub fn serialize_workflow(&self, workflow_id: &str) -> Result<String, WorkflowError> {
+        let workflows = self
+            .workflows
+            .read()
+            .map_err(|_| WorkflowError::LockError)?;
+        let wf = workflows
+            .get(workflow_id)
+            .ok_or(WorkflowError::WorkflowNotFound)?;
+        serde_json::to_string(wf).map_err(|e| WorkflowError::SerializationError(e.to_string()))
+    }
+
     pub async fn run_workflow(&self, workflow_id: &str) -> Result<Workflow, WorkflowError> {
         let executor: StepExecutor =
             Arc::new(|step: WorkflowStep, _deps: HashMap<String, String>| {
@@ -668,6 +692,7 @@ pub enum WorkflowError {
     StepNotFound,
     LockError,
     CycleDetected,
+    SerializationError(String),
 }
 
 fn current_timestamp() -> u64 {
@@ -688,6 +713,7 @@ impl std::fmt::Display for WorkflowError {
             Self::StepNotFound => write!(f, "Step not found"),
             Self::LockError => write!(f, "Failed to acquire lock"),
             Self::CycleDetected => write!(f, "Cycle detected in workflow"),
+            Self::SerializationError(msg) => write!(f, "Serialization error: {msg}"),
         }
     }
 }
@@ -765,7 +791,7 @@ impl WorkflowRunner {
                 let executor = Arc::clone(&self.executor);
                 let wid = workflow_id.to_string();
                 let sid = step_id.clone();
-                let step_timeout = self.step_timeout;
+                let default_step_timeout = self.step_timeout;
 
                 running_ids.insert(step_id.clone());
                 running_count += 1;
@@ -788,6 +814,12 @@ impl WorkflowRunner {
                             },
                         );
                     };
+
+                    // 使用 step 自定义超时，否则回退到全局 step_timeout
+                    let step_timeout = step
+                        .timeout_secs
+                        .map(std::time::Duration::from_secs)
+                        .unwrap_or(default_step_timeout);
 
                     // Get only the dependency results (P1-9: selective result passing)
                     let deps_results = engine_clone
@@ -972,15 +1004,53 @@ impl WorkflowRunner {
                                         .ok();
                                 },
                                 OnStepFailure::Abort => {
-                                    self.engine
-                                        .update_step_status(
-                                            workflow_id,
-                                            &outcome.step_id,
-                                            StepStatus::Failed,
-                                            None,
-                                            Some(e),
-                                        )
-                                        .ok();
+                                    // 检查是否有降级节点
+                                    let fallback_id = {
+                                        let workflows = self.engine.workflows.read().ok();
+                                        workflows.and_then(|w| {
+                                            w.get(workflow_id).and_then(|wf| {
+                                                wf.steps
+                                                    .iter()
+                                                    .find(|s| s.id == outcome.step_id)
+                                                    .and_then(|s| s.fallback_step_id.clone())
+                                            })
+                                        })
+                                    };
+                                    if let Some(ref fb_id) = fallback_id {
+                                        tracing::info!(
+                                            "Step {} failed, activating fallback step {}",
+                                            outcome.step_id,
+                                            fb_id
+                                        );
+                                        self.engine
+                                            .update_step_status(
+                                                workflow_id,
+                                                fb_id,
+                                                StepStatus::Ready,
+                                                None,
+                                                None,
+                                            )
+                                            .ok();
+                                        self.engine
+                                            .update_step_status(
+                                                workflow_id,
+                                                &outcome.step_id,
+                                                StepStatus::Skipped,
+                                                None,
+                                                Some(e),
+                                            )
+                                            .ok();
+                                    } else {
+                                        self.engine
+                                            .update_step_status(
+                                                workflow_id,
+                                                &outcome.step_id,
+                                                StepStatus::Failed,
+                                                None,
+                                                Some(e),
+                                            )
+                                            .ok();
+                                    }
                                 },
                             }
                         }
@@ -1101,6 +1171,9 @@ mod tests {
             circuit_breaker: CircuitBreaker::default(),
             agent_profile_id: None,
             agent_role_override: None,
+            fallback_step_id: None,
+            timeout_secs: None,
+            expected_output_schema: None,
         }
     }
 

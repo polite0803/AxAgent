@@ -93,6 +93,12 @@ pub enum MessagePayload {
         code: String,
         message: String,
     },
+    /// Blackboard 状态同步消息
+    BlackboardSync {
+        task_id: String,
+        shared_state: std::collections::HashMap<String, String>,
+        from_agent: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
