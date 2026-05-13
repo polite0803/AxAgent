@@ -203,4 +203,10 @@ mod tests {
         let result = parse_json_string_array("not json at all");
         assert!(result.is_empty());
     }
+
+    #[test]
+    fn test_parse_empty_string() {
+        let result = parse_json_string_array("");
+        assert!(result.is_empty());
+    }
 }
