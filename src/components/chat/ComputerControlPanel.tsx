@@ -8,6 +8,8 @@ interface CaptureResult {
   image_base64: string;
   width: number;
   height: number;
+  monitor_index?: number;
+  scale_factor?: number;
 }
 
 interface UIElement {
@@ -29,6 +31,7 @@ export function ComputerControlPanel() {
   const [loading, setLoading] = useState(false);
   const [clickCoords, setClickCoords] = useState<{ x: number; y: number } | null>(null);
   const [nativeResolution, setNativeResolution] = useState({ width: 1920, height: 1080 });
+  const [dpiScale, setDpiScale] = useState(1.0);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const handleCapture = async () => {
@@ -37,6 +40,9 @@ export function ComputerControlPanel() {
       const result = await invoke<CaptureResult>("screen_capture", { monitor: 0 });
       setNativeResolution({ width: result.width, height: result.height });
       setScreenshot(`data:image/png;base64,${result.image_base64}`);
+      if (result.scale_factor && result.scale_factor > 0) {
+        setDpiScale(result.scale_factor);
+      }
     } catch (e) {
       message.error(String(e));
     } finally {
@@ -132,6 +138,7 @@ export function ComputerControlPanel() {
         </Tooltip>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           {t("computerControl.resolution")}: {nativeResolution.width}x{nativeResolution.height}
+          {dpiScale !== 1.0 && ` (${Math.round(dpiScale * 100)}% DPI)`}
         </Typography.Text>
       </Space>
 

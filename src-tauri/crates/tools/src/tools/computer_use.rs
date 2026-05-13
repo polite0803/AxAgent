@@ -2,6 +2,7 @@
 
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
+use axagent_core::computer_control;
 use serde_json::Value;
 
 pub struct ComputerUseTool;
@@ -12,7 +13,7 @@ impl Tool for ComputerUseTool {
         "ComputerUse"
     }
     fn description(&self) -> &str {
-        "控制计算机桌面：截图、鼠标点击、键盘输入、滚动。适用于 GUI 自动化和浏览器交互。"
+        "控制计算机桌面：截图、鼠标点击、键盘输入、滚动、鼠标移动。适用于 GUI 自动化和浏览器交互。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({
@@ -28,7 +29,12 @@ impl Tool for ComputerUseTool {
                     "items": { "type": "number" },
                     "description": "坐标 [x, y]"
                 },
-                "text": { "type": "string", "description": "要输入的文本或按键" },
+                "text": { "type": "string", "description": "要输入的文本或按键名称" },
+                "modifiers": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["ctrl", "alt", "shift", "meta"] },
+                    "description": "修饰键列表（仅 key 操作使用）"
+                },
                 "scroll_direction": {
                     "type": "string",
                     "enum": ["up", "down", "left", "right"]
@@ -53,108 +59,116 @@ impl Tool for ComputerUseTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let action = input["action"].as_str().unwrap();
+        let name = self.name();
+        let action = input["action"].as_str().unwrap_or("screenshot");
 
-        let mut output = match action {
+        let output = match action {
             "screenshot" => {
-                // 调用屏幕截图
-                capture_screenshot().await?
+                let result = computer_control::screen_capture(None, None, None)
+                    .await
+                    .map_err(|e| ToolError::execution_failed_for(name, e.to_string()))?;
+                let image_base64 = result["image_base64"].as_str().unwrap_or("");
+                let width = result["width"].as_u64().unwrap_or(0);
+                let height = result["height"].as_u64().unwrap_or(0);
+                format!(
+                    "## 屏幕截图\n({}x{})\n\n![screenshot](data:image/png;base64,{})",
+                    width, height, image_base64
+                )
             },
             "click" => {
                 let coord = input["coordinate"].as_array().ok_or_else(|| {
-                    ToolError::invalid_input_for("ComputerUse", "click 需要 coordinate [x, y]")
+                    ToolError::invalid_input_for(name, "click 需要 coordinate [x, y]")
                 })?;
-                let x = coord[0].as_f64().unwrap_or(0.0) as i32;
-                let y = coord[1].as_f64().unwrap_or(0.0) as i32;
-                format!("🖱️ 点击坐标: ({}, {})", x, y)
+                let x = coord[0].as_f64().unwrap_or(0.0);
+                let y = coord[1].as_f64().unwrap_or(0.0);
+                let button = input["button"].as_str().unwrap_or("left");
+                computer_control::mouse_click(x, y, Some(button.to_string()))
+                    .await
+                    .map_err(|e| ToolError::execution_failed_for(name, e.to_string()))?;
+                format!("鼠标点击: ({}, {}) [{}]", x, y, button)
             },
             "type" => {
-                let text = input["text"].as_str().unwrap_or("");
-                format!("⌨️ 输入文本: {}", text)
+                let text = input["text"]
+                    .as_str()
+                    .ok_or_else(|| ToolError::invalid_input_for(name, "type 需要 text 参数"))?;
+                let x = input["coordinate"]
+                    .as_array()
+                    .and_then(|c| c.first()?.as_f64());
+                let y = input["coordinate"]
+                    .as_array()
+                    .and_then(|c| c.get(1)?.as_f64());
+                computer_control::type_text(text.to_string(), x, y)
+                    .await
+                    .map_err(|e| ToolError::execution_failed_for(name, e.to_string()))?;
+                match (x, y) {
+                    (Some(cx), Some(cy)) => {
+                        format!("在 ({}, {}) 输入文本: {}", cx, cy, text)
+                    },
+                    _ => format!("输入文本: {}", text),
+                }
+            },
+            "key" => {
+                let key = input["text"].as_str().ok_or_else(|| {
+                    ToolError::invalid_input_for(name, "key 需要 text 参数（按键名称）")
+                })?;
+                let modifiers: Vec<String> = input["modifiers"]
+                    .as_array()
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let desc = if modifiers.is_empty() {
+                    format!("按键: {}", key)
+                } else {
+                    format!("组合键: {}+{}", modifiers.join("+"), key)
+                };
+                computer_control::press_key(key.to_string(), modifiers)
+                    .await
+                    .map_err(|e| ToolError::execution_failed_for(name, e.to_string()))?;
+                desc
             },
             "scroll" => {
+                let coord = input["coordinate"].as_array().ok_or_else(|| {
+                    ToolError::invalid_input_for(name, "scroll 需要 coordinate [x, y]")
+                })?;
+                let x = coord[0].as_f64().unwrap_or(0.0);
+                let y = coord[1].as_f64().unwrap_or(0.0);
                 let dir = input["scroll_direction"].as_str().unwrap_or("down");
                 let amount = input["scroll_amount"].as_f64().unwrap_or(3.0) as i32;
-                format!("📜 滚动: {} x{}", dir, amount)
+                let delta = match dir {
+                    "up" => amount,
+                    "down" => -amount,
+                    _ => -amount,
+                };
+                computer_control::mouse_scroll(x, y, delta)
+                    .await
+                    .map_err(|e| ToolError::execution_failed_for(name, e.to_string()))?;
+                format!("滚动: {} x{} (at {}, {})", dir, amount, x, y)
+            },
+            "move" => {
+                let coord = input["coordinate"].as_array().ok_or_else(|| {
+                    ToolError::invalid_input_for(name, "move 需要 coordinate [x, y]")
+                })?;
+                let x = coord[0].as_f64().unwrap_or(0.0);
+                let y = coord[1].as_f64().unwrap_or(0.0);
+                computer_control::mouse_move(x, y)
+                    .await
+                    .map_err(|e| ToolError::execution_failed_for(name, e.to_string()))?;
+                format!("鼠标移动到: ({}, {})", x, y)
             },
             _ => {
                 return Err(ToolError::invalid_input_for(
-                    "ComputerUse",
-                    format!("未知操作: {}", action),
+                    name,
+                    format!(
+                        "未知操作: {}。支持: screenshot, click, type, key, scroll, move",
+                        action
+                    ),
                 ))
             },
         };
 
-        output.push_str("\n\n[桌面控制功能通过 AxAgent 后端执行]");
         Ok(ToolResult::success(output))
-    }
-}
-
-async fn capture_screenshot() -> Result<String, ToolError> {
-    #[cfg(target_os = "windows")]
-    {
-        use xcap::Monitor;
-        let monitors = Monitor::all()
-            .map_err(|e| ToolError::execution_failed_for("X", format!("获取显示器失败: {}", e)))?;
-        if let Some(monitor) = monitors.first() {
-            let image = monitor
-                .capture_image()
-                .map_err(|e| ToolError::execution_failed_for("X", format!("截图失败: {}", e)))?;
-            let width = image.width();
-            let height = image.height();
-
-            // 编码为 PNG bytes
-            let mut buf = std::io::Cursor::new(Vec::new());
-            image
-                .write_to(&mut buf, image::ImageFormat::Png)
-                .map_err(|e| {
-                    ToolError::execution_failed_for("X", format!("编码截图失败: {}", e))
-                })?;
-            let bytes = buf.into_inner();
-
-            use base64::Engine;
-            let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-
-            Ok(format!(
-                "## 屏幕截图\n({}x{})\n\n![screenshot](data:image/png;base64,{})",
-                width, height, b64
-            ))
-        } else {
-            Err(ToolError::execution_failed_for("ComputerUse", "未找到显示器"))
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        // macOS/Linux: 使用系统命令
-        use std::process::Command;
-        let tmp = std::env::temp_dir().join("axagent_screenshot.png");
-        let tmp_str = tmp.to_string_lossy().to_string();
-
-        let status = if cfg!(target_os = "macos") {
-            Command::new("screencapture")
-                .arg("-x")
-                .arg(&tmp_str)
-                .status()
-        } else {
-            Command::new("import")
-                .arg("-window")
-                .arg("root")
-                .arg(&tmp_str)
-                .status()
-        };
-
-        match status {
-            Ok(s) if s.success() => {
-                let bytes = std::fs::read(&tmp_str).map_err(|e| {
-                    ToolError::execution_failed_for("X", format!("读取截图失败: {}", e))
-                })?;
-                use base64::Engine;
-                let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-                let _ = std::fs::remove_file(&tmp_str);
-                Ok(format!("## 屏幕截图\n\n![screenshot](data:image/png;base64,{})", b64))
-            },
-            _ => Err(ToolError::execution_failed_for("ComputerUse", "截图命令执行失败")),
-        }
     }
 }

@@ -11,6 +11,7 @@ pub mod context;
 pub mod cron;
 pub mod database;
 pub mod devops;
+pub mod document;
 pub mod export;
 pub mod file_edit;
 pub mod file_read;
@@ -158,7 +159,13 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(obsidian::ObsidianListFilesTool),
         std::sync::Arc::new(obsidian::ObsidianReadFileTool),
         // ── 导出与格式 ──
-        std::sync::Arc::new(export::ExportWordTool),
+        std::sync::Arc::new(document::ExportWordTool),
+        std::sync::Arc::new(document::RenderMarkdownTool),
+        std::sync::Arc::new(document::ExportPdfTool),
+        std::sync::Arc::new(document::ExportXlsxTool),
+        std::sync::Arc::new(document::ExportPptxTool),
+        std::sync::Arc::new(document::ReadXlsxTool),
+        std::sync::Arc::new(document::ReadPptxTool),
         std::sync::Arc::new(export::PdfInfoTool),
         std::sync::Arc::new(export::DetectEncodingTool),
         // ── 远程文件 ──

@@ -53,3 +53,10 @@ pub async fn mouse_scroll(x: f64, y: f64, delta: i32) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn mouse_move(x: f64, y: f64) -> Result<(), String> {
+    computer_control::mouse_move(x, y)
+        .await
+        .map_err(|e| e.to_string())
+}

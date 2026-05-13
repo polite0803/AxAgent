@@ -1,6 +1,6 @@
 //! 导出与格式工具
 //!
-//! ExportWord (Markdown→DOCX), PdfInfo, DetectEncoding
+//! PdfInfo, DetectEncoding
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
@@ -12,61 +12,6 @@ fn truncate_text(s: &str, max: usize) -> String {
         s.to_string()
     } else {
         format!("{}...", &s[..max])
-    }
-}
-
-// ── ExportWord ──
-
-pub struct ExportWordTool;
-
-#[async_trait]
-impl Tool for ExportWordTool {
-    fn name(&self) -> &str {
-        "ExportWord"
-    }
-    fn description(&self) -> &str {
-        "将 Markdown 导出为 Word (.docx) 文件。支持标题、列表、引用、代码块等格式。"
-    }
-    fn input_schema(&self) -> Value {
-        serde_json::json!({"type":"object","properties":{"markdown":{"type":"string"},"output_path":{"type":"string"},"title":{"type":"string","default":"Document"}},"required":["markdown","output_path"]})
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::FileWrite
-    }
-    fn is_destructive(&self) -> bool {
-        true
-    }
-
-    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let markdown = input
-            .get("markdown")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let output_path = input
-            .get("output_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        let _title = input
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Document");
-
-        if markdown.is_empty() || output_path.is_empty() {
-            return Ok(ToolResult::error("Error: markdown 和 output_path 是必需的"));
-        }
-        // 简化实现：将 Markdown 保存为 .md 文件（完整 docx 转换需要额外依赖）
-        let path = Path::new(output_path);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).ok();
-        }
-        std::fs::write(path, markdown)
-            .map_err(|e| ToolError::execution_failed(format!("写入失败: {}", e)))?;
-
-        Ok(ToolResult::success(format!(
-            "已导出到: {} ({} bytes)",
-            output_path,
-            markdown.len()
-        )))
     }
 }
 

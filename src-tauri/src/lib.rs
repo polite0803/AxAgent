@@ -390,6 +390,8 @@ pub fn run() {
             #[cfg(not(mobile))]
             commands::computer_control::mouse_scroll,
             #[cfg(not(mobile))]
+            commands::computer_control::mouse_move,
+            #[cfg(not(mobile))]
             commands::browser::browser_navigate,
             #[cfg(not(mobile))]
             commands::browser::browser_screenshot,

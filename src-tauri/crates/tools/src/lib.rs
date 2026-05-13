@@ -13,6 +13,7 @@ pub mod context_keys;
 pub mod global_state;
 pub mod hooks;
 pub mod knowledge_callback;
+pub mod markdown;
 pub mod mcp;
 pub mod orchestration;
 pub mod permissions;

@@ -52,3 +52,7 @@ pub async fn press_key(key: String, modifiers: Vec<String>) -> Result<()> {
 pub async fn mouse_scroll(x: f64, y: f64, delta: i32) -> Result<()> {
     UIAutomation::scroll(x, y, delta).await
 }
+
+pub async fn mouse_move(x: f64, y: f64) -> Result<()> {
+    UIAutomation::move_mouse(x, y).await
+}
