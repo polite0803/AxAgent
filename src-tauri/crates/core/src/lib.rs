@@ -50,6 +50,7 @@ pub mod rag_pipeline;
 pub mod recall_pipeline;
 pub mod repo;
 pub mod reranker;
+pub mod resource_limits;
 pub mod s3_backup;
 pub mod sandbox_runner;
 pub mod screen_capture;
