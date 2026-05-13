@@ -58,6 +58,9 @@ impl GitContext {
     pub fn render(&self) -> String {
         let mut lines = Vec::new();
 
+        // 添加来源信任标签
+        lines.push("[CONTEXT:git risk=low]".to_string());
+
         if let Some(branch) = &self.branch {
             lines.push(format!("Git branch: {branch}"));
         }
@@ -77,6 +80,9 @@ impl GitContext {
                 lines.push(format!("  {file}"));
             }
         }
+
+        // 关闭标签
+        lines.push("[/CONTEXT:git]".to_string());
 
         lines.join("\n")
     }
@@ -273,6 +279,8 @@ mod tests {
         let rendered = context.render();
 
         // then
+        assert!(rendered.contains("[CONTEXT:git"));
+        assert!(rendered.contains("[/CONTEXT:git]"));
         assert!(rendered.contains("Git branch: feat/test"));
         assert!(rendered.contains("abc1234 add feature"));
         assert!(rendered.contains("def5678 fix bug"));

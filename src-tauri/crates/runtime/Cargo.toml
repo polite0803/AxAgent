@@ -29,6 +29,7 @@ dirs = "5"
 sea-orm = { workspace = true }
 axagent-core = { path = "../core" }
 axagent-runtime-core = { path = "../runtime-core" }
+axagent-prompt-guard = { path = "../prompt-guard" }
 axagent-rt-workflow = { path = "../rt-workflow" }
 axagent-rt-messaging = { path = "../rt-messaging" }
 axagent-rt-webhook = { path = "../rt-webhook" }

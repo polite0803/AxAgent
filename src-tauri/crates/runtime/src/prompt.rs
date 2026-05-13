@@ -174,6 +174,9 @@ impl SystemPromptBuilder {
                 sections.push(directive.to_string());
             }
         }
+        // 注入提示词注入防护的分隔指令
+        sections
+            .push(axagent_prompt_guard::wrappers::XmlWrapper::boundary_instruction().to_string());
         sections.extend(self.append_sections.iter().cloned());
         sections
     }

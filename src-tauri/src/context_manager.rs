@@ -124,7 +124,9 @@ pub fn build_context_with_query(
         out.push(ChatMessage {
             role: "system".to_string(),
             content: ChatContent::Text(format!(
-                "[对话历史摘要 / Conversation History Summary]\n{}",
+                "[UNTRUSTED-SOURCE:summary/conversation-history]\n\
+                 [对话历史摘要 / Conversation History Summary]\n{}\n\
+                 [/UNTRUSTED-SOURCE]",
                 summary_text
             )),
             tool_calls: None,

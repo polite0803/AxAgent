@@ -128,6 +128,8 @@ pub enum SessionError {
     Io(std::io::Error),
     Json(JsonError),
     Format(String),
+    /// 用户输入被提示词注入防护拦截
+    ContentBlocked(String),
 }
 
 impl Display for SessionError {
@@ -136,6 +138,7 @@ impl Display for SessionError {
             Self::Io(error) => write!(f, "{error}"),
             Self::Json(error) => write!(f, "{error}"),
             Self::Format(error) => write!(f, "{error}"),
+            Self::ContentBlocked(reason) => write!(f, "Content blocked by prompt guard: {reason}"),
         }
     }
 }
@@ -243,7 +246,28 @@ impl Session {
     }
 
     pub fn push_user_text(&mut self, text: impl Into<String>) -> Result<(), SessionError> {
-        self.push_message(ConversationMessage::user_text(text))
+        let raw_text: String = text.into();
+
+        // 提示词注入防护：调用 prompt-guard pipeline
+        let processed_text = {
+            let config = axagent_prompt_guard::GuardConfig::default();
+            let pipeline = axagent_prompt_guard::PromptGuardPipeline::new(config);
+            match pipeline.process_user_input(&raw_text) {
+                Ok(wrapped) => wrapped,
+                Err(reason) => {
+                    tracing::warn!("User input blocked by prompt-guard: {}", reason);
+                    return Err(SessionError::ContentBlocked(reason));
+                },
+            }
+        };
+
+        self.push_message(ConversationMessage {
+            role: MessageRole::User,
+            blocks: vec![ContentBlock::Text {
+                text: processed_text,
+            }],
+            usage: None,
+        })
     }
 
     pub fn record_compaction(&mut self, summary: impl Into<String>, removed_message_count: usize) {
@@ -1179,7 +1203,17 @@ mod tests {
         fs::remove_file(&path).expect("temp file should be removable");
 
         assert_eq!(restored.messages.len(), 2);
-        assert_eq!(restored.messages[0], ConversationMessage::user_text("hi"));
+        assert_eq!(
+            restored.messages[0],
+            ConversationMessage {
+                role: MessageRole::User,
+                blocks: vec![ContentBlock::Text {
+                    text: "<user_query role=\"user\" sanitized=\"true\">\nhi\n</user_query>"
+                        .to_string(),
+                }],
+                usage: None,
+            }
+        );
     }
 
     #[test]
