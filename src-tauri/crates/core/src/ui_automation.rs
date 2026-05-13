@@ -382,8 +382,7 @@ return output
 
             if output.status.success() {
                 // AT-SPI2 可用，返回有限的信息
-                let mut elements = Vec::new();
-                elements.push(UIElement {
+                return Ok(vec![UIElement {
                     role: "desktop".to_string(),
                     name: "Accessible desktop (AT-SPI2)".to_string(),
                     value: None,
@@ -398,8 +397,7 @@ return output
                     children_count: None,
                     application: String::new(),
                     window_title: String::new(),
-                });
-                return Ok(elements);
+                }]);
             }
         }
 
