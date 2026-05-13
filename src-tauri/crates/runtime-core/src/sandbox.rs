@@ -65,6 +65,12 @@ pub struct SandboxStatus {
     pub in_container: bool,
     pub container_markers: Vec<String>,
     pub fallback_reason: Option<String>,
+    /// Docker 是否可用
+    #[serde(default)]
+    pub docker_available: bool,
+    /// 资源限制是否已激活
+    #[serde(default)]
+    pub resource_limits_active: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -188,6 +194,7 @@ pub fn resolve_sandbox_status_for_request(request: &SandboxRequest, cwd: &Path) 
         && (!request.network_isolation || network_supported);
 
     let allowed_mounts = normalize_mounts(&request.allowed_mounts, cwd);
+    let docker_available = detect_docker_available();
 
     SandboxStatus {
         enabled: request.enabled,
@@ -204,6 +211,8 @@ pub fn resolve_sandbox_status_for_request(request: &SandboxRequest, cwd: &Path) 
         in_container: container.in_container,
         container_markers: container.markers,
         fallback_reason: (!fallback_reasons.is_empty()).then(|| fallback_reasons.join("; ")),
+        docker_available,
+        resource_limits_active: request.enabled,
     }
 }
 
@@ -292,6 +301,21 @@ fn unshare_user_namespace_works() -> bool {
         std::process::Command::new("unshare")
             .args(["--user", "--map-root-user", "true"])
             .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    })
+}
+
+/// 检测 Docker 是否可用（缓存结果）
+fn detect_docker_available() -> bool {
+    use std::sync::OnceLock;
+    static DOCKER_CHECK: OnceLock<bool> = OnceLock::new();
+    *DOCKER_CHECK.get_or_init(|| {
+        std::process::Command::new("docker")
+            .args(["info", "--format", "{{.OSType}}"])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status()

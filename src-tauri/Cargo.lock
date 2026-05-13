@@ -846,6 +846,7 @@ dependencies = [
  "hex",
  "hf-hub",
  "image",
+ "libc",
  "libsqlite3-sys",
  "md5",
  "notify",
@@ -875,6 +876,7 @@ dependencies = [
  "uuid",
  "walkdir",
  "which",
+ "windows-sys 0.59.0",
  "xcap",
  "zip 2.4.2",
 ]
