@@ -17,7 +17,7 @@ pub struct RAGPipeline {
 impl RAGPipeline {
     pub fn new(config: &RAGPipelineConfig) -> Self {
         Self {
-            rerank_pipeline: reranker::create_rerank_pipeline(&config.rerank),
+            rerank_pipeline: reranker::create_rerank_pipeline(&config.rerank, None),
             self_rag_gate: SelfRagGate::new(config.self_rag.clone()),
         }
     }

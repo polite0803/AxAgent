@@ -1,16 +1,18 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 use crate::hybrid_search::HybridSearchResult;
+use crate::inference::InferenceEngine;
 
-// ── 配置 ──────────────────────────────────────────────────
+// ── Config ──────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RerankConfig {
     pub enabled: bool,
     /// 后端类型: "rule" | "cross_encoder" | "pipeline"
     pub backend: String,
-    /// Cross-encoder 使用的 Ollama 模型名
+    /// Cross-encoder 使用的 GGUF 模型文件名
     pub cross_encoder_model: Option<String>,
     /// 最终保留数
     pub top_n: usize,
@@ -20,8 +22,6 @@ pub struct RerankConfig {
     pub rule_filter_keep: usize,
     /// 最低分数阈值
     pub score_threshold: Option<f32>,
-    /// Ollama endpoint
-    pub ollama_endpoint: Option<String>,
 }
 
 impl Default for RerankConfig {
@@ -29,17 +29,16 @@ impl Default for RerankConfig {
         Self {
             enabled: true,
             backend: "rule".to_string(),
-            cross_encoder_model: Some("bge-reranker-v2-m3".to_string()),
+            cross_encoder_model: Some("bge-reranker-v2-m3.Q4_K_M.gguf".to_string()),
             top_n: 5,
             candidate_k: 30,
             rule_filter_keep: 15,
             score_threshold: None,
-            ollama_endpoint: Some("http://localhost:11434".to_string()),
         }
     }
 }
 
-// ── 结果类型 ───────────────────────────────────────────────
+// ── Result types ─────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 pub struct RerankedResult {
@@ -52,7 +51,7 @@ pub struct RerankedResult {
     pub rerank_reason: Option<String>,
 }
 
-// ── 可插拔后端 trait ───────────────────────────────────────
+// ── Pluggable backend trait ──────────────────────────────────
 
 #[async_trait]
 pub trait RerankBackend: Send + Sync {
@@ -64,7 +63,7 @@ pub trait RerankBackend: Send + Sync {
     ) -> crate::error::Result<Vec<(String, f32)>>;
 }
 
-// ── 规则后端（现有逻辑迁移）────────────────────────────────
+// ── Rule backend (migrated from existing logic) ──────────────
 
 pub struct RuleReranker;
 
@@ -76,7 +75,10 @@ impl RerankBackend for RuleReranker {
         chunks: &[(String, String, f32)],
     ) -> crate::error::Result<Vec<(String, f32)>> {
         let query_lower = query.to_lowercase();
-        let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
+        let query_terms: Vec<&str> = query_lower
+            .split_whitespace()
+            .filter(|w| w.len() > 1)
+            .collect();
         let mut scored: Vec<(String, f32)> = chunks
             .iter()
             .map(|(id, content, orig_score)| {
@@ -117,61 +119,19 @@ impl RerankBackend for RuleReranker {
     }
 }
 
-// ── Cross-Encoder 后端（Ollama）────────────────────────────
+// ── Cross-Encoder backend (candle local inference) ───────────
 
 pub struct CrossEncoderReranker {
-    model_name: String,
-    ollama_endpoint: String,
+    model_filename: String,
+    engine: Arc<InferenceEngine>,
 }
 
 impl CrossEncoderReranker {
-    pub fn new(model_name: String, ollama_endpoint: String) -> Self {
+    pub fn new(model_filename: String, engine: Arc<InferenceEngine>) -> Self {
         Self {
-            model_name,
-            ollama_endpoint,
+            model_filename,
+            engine,
         }
-    }
-
-    async fn call_ollama_rerank(
-        &self,
-        query: &str,
-        documents: &[String],
-    ) -> crate::error::Result<Vec<f32>> {
-        let client = reqwest::Client::new();
-        let body = serde_json::json!({
-            "model": self.model_name,
-            "query": query,
-            "documents": documents,
-        });
-
-        let resp = client
-            .post(format!("{}/api/rerank", self.ollama_endpoint))
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| {
-                crate::error::AxAgentError::Provider(format!("Ollama rerank request failed: {}", e))
-            })?;
-
-        if !resp.status().is_success() {
-            return Err(crate::error::AxAgentError::Provider(format!(
-                "Ollama rerank HTTP {}",
-                resp.status()
-            )));
-        }
-
-        let data: serde_json::Value = resp.json().await.map_err(|e| {
-            crate::error::AxAgentError::Provider(format!("Ollama rerank parse: {}", e))
-        })?;
-
-        let scores: Vec<f32> = data["results"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .iter()
-            .map(|r| r["relevance_score"].as_f64().unwrap_or(0.0) as f32)
-            .collect();
-
-        Ok(scores)
     }
 }
 
@@ -185,10 +145,13 @@ impl RerankBackend for CrossEncoderReranker {
         if chunks.is_empty() {
             return Ok(vec![]);
         }
-
         let documents: Vec<String> = chunks.iter().map(|(_, c, _)| c.clone()).collect();
 
-        match self.call_ollama_rerank(query, &documents).await {
+        match self
+            .engine
+            .rerank(&self.model_filename, query, &documents)
+            .await
+        {
             Ok(scores) => {
                 let mut result: Vec<(String, f32)> = chunks
                     .iter()
@@ -199,17 +162,14 @@ impl RerankBackend for CrossEncoderReranker {
                 Ok(result)
             },
             Err(e) => {
-                tracing::warn!(
-                    "Cross-encoder rerank failed, falling back to original ordering: {}",
-                    e
-                );
+                tracing::warn!("Cross-encoder rerank failed, fallback: {}", e);
                 Ok(chunks.iter().map(|(id, _, s)| (id.clone(), *s)).collect())
             },
         }
     }
 }
 
-// ── 管线编排 ──────────────────────────────────────────────
+// ── Pipeline orchestrator ────────────────────────────────────
 
 pub struct RerankPipeline {
     stages: Vec<Box<dyn RerankBackend>>,
@@ -230,7 +190,6 @@ impl RerankPipeline {
         self.stages.push(backend);
     }
 
-    /// 执行两级管线：RuleReranker(初筛) → CrossEncoderReranker(精排)
     pub async fn execute(
         &self,
         query: &str,
@@ -304,36 +263,38 @@ impl RerankPipeline {
     }
 }
 
-// ── 工厂函数 ──────────────────────────────────────────────
+// ── Factory ──────────────────────────────────────────────────
 
-pub fn create_rerank_pipeline(config: &RerankConfig) -> RerankPipeline {
+pub fn create_rerank_pipeline(
+    config: &RerankConfig,
+    engine: Option<Arc<InferenceEngine>>,
+) -> RerankPipeline {
     let mut pipeline = RerankPipeline::new();
     match config.backend.as_str() {
         "rule" => {
             pipeline.add_stage(Box::new(RuleReranker));
         },
         "cross_encoder" => {
-            let endpoint = config
-                .ollama_endpoint
-                .clone()
-                .unwrap_or_else(|| "http://localhost:11434".to_string());
-            let model = config
-                .cross_encoder_model
-                .clone()
-                .unwrap_or_else(|| "bge-reranker-v2-m3".to_string());
-            pipeline.add_stage(Box::new(CrossEncoderReranker::new(model, endpoint)));
+            if let Some(eng) = engine {
+                let model = config
+                    .cross_encoder_model
+                    .clone()
+                    .unwrap_or_else(|| "bge-reranker-v2-m3.Q4_K_M.gguf".to_string());
+                pipeline.add_stage(Box::new(CrossEncoderReranker::new(model, eng)));
+            } else {
+                tracing::warn!("No InferenceEngine, falling back to rule reranker");
+                pipeline.add_stage(Box::new(RuleReranker));
+            }
         },
         "pipeline" => {
             pipeline.add_stage(Box::new(RuleReranker));
-            let endpoint = config
-                .ollama_endpoint
-                .clone()
-                .unwrap_or_else(|| "http://localhost:11434".to_string());
-            let model = config
-                .cross_encoder_model
-                .clone()
-                .unwrap_or_else(|| "bge-reranker-v2-m3".to_string());
-            pipeline.add_stage(Box::new(CrossEncoderReranker::new(model, endpoint)));
+            if let Some(eng) = engine {
+                let model = config
+                    .cross_encoder_model
+                    .clone()
+                    .unwrap_or_else(|| "bge-reranker-v2-m3.Q4_K_M.gguf".to_string());
+                pipeline.add_stage(Box::new(CrossEncoderReranker::new(model, eng)));
+            }
         },
         _ => {
             pipeline.add_stage(Box::new(RuleReranker));
@@ -342,7 +303,7 @@ pub fn create_rerank_pipeline(config: &RerankConfig) -> RerankPipeline {
     pipeline
 }
 
-// ── 测试 ──────────────────────────────────────────────────
+// ── Tests ────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
@@ -362,7 +323,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_rule_reranker_sorts_by_relevance() {
-        let pipeline = create_rerank_pipeline(&RerankConfig::default());
+        let pipeline = create_rerank_pipeline(&RerankConfig::default(), None);
         let results = vec![
             make_result("1", "The quick brown fox", 0.5),
             make_result("2", "fox jumps over the lazy dog", 0.9),
@@ -375,7 +336,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_empty_results() {
-        let pipeline = create_rerank_pipeline(&RerankConfig::default());
+        let pipeline = create_rerank_pipeline(&RerankConfig::default(), None);
         let reranked = pipeline
             .execute("test", vec![], &RerankConfig::default())
             .await;
@@ -386,7 +347,7 @@ mod tests {
     async fn test_disabled_config() {
         let mut config = RerankConfig::default();
         config.enabled = false;
-        let pipeline = create_rerank_pipeline(&config);
+        let pipeline = create_rerank_pipeline(&config, None);
         let results = vec![make_result("1", "test content", 0.8)];
         let reranked = pipeline.execute("test", results, &config).await;
         assert_eq!(reranked.len(), 1);
@@ -398,7 +359,7 @@ mod tests {
         let mut config = RerankConfig::default();
         config.top_n = 2;
         config.candidate_k = 5;
-        let pipeline = create_rerank_pipeline(&config);
+        let pipeline = create_rerank_pipeline(&config, None);
         let results = vec![
             make_result("1", "a", 0.3),
             make_result("2", "b", 0.5),
