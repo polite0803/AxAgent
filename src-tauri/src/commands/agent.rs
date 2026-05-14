@@ -222,6 +222,16 @@ impl Drop for AsyncRunningAgentGuard {
 // Payload types for Tauri events
 // ---------------------------------------------------------------------------
 
+/// Agent 运行阶段状态，前端据此更新加载提示
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentStatusPayload {
+    #[serde(rename = "conversationId")]
+    pub conversation_id: String,
+    /// 当前阶段: "init" | "setup" | "running" | "done" | "error"
+    pub phase: String,
+    pub message: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentDonePayload {
     #[serde(rename = "conversationId")]
@@ -530,6 +540,18 @@ pub struct AgentEnsureWorkspaceResponse {
 // ---------------------------------------------------------------------------
 
 /// Execute an agent query
+/// 发射 agent 状态事件，让前端实时展示后端进度
+fn emit_status(app: &AppHandle, conversation_id: &str, phase: &str, message: &str) {
+    let _ = app.emit(
+        "agent-status",
+        AgentStatusPayload {
+            conversation_id: conversation_id.to_string(),
+            phase: phase.to_string(),
+            message: message.to_string(),
+        },
+    );
+}
+
 #[tauri::command]
 pub async fn agent_query(
     app: AppHandle,
@@ -538,6 +560,7 @@ pub async fn agent_query(
 ) -> Result<AgentQueryResponse, String> {
     let conversation_id = request.conversation_id.clone();
     info!("[agent_query] Starting for conversation: {}", conversation_id);
+    emit_status(&app, &conversation_id, "init", "正在初始化...");
 
     let conversation = conversation::get_conversation(&app_state.sea_db, &conversation_id)
         .await
@@ -1636,6 +1659,7 @@ pub async fn agent_query(
     // post-compaction, and session persistence)
     let session_id = session.session().session_id.clone();
     info!("[agent_query] About to run_turn_with_tools for session: {}", session_id);
+    emit_status(&app, &conversation_id, "running", "正在调用模型...");
 
     // Create and register a cancel token for this agent run
     let cancel_token = Arc::new(std::sync::atomic::AtomicBool::new(false));

@@ -1256,6 +1256,29 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     let unlistenStreamThinking: UnlistenFn | null = null;
     let unlistenMessageId: UnlistenFn | null = null;
     let unlistenWorkflowComplete: UnlistenFn | null = null;
+    let unlistenStatus: UnlistenFn | null = null;
+
+    // Agent 超时保护：10 分钟无响应则报错
+    const AGENT_TIMEOUT_MS = 10 * 60 * 1000;
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      if (!isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) { return; }
+      cleanup();
+      set((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === currentMsgId
+            ? { ...m, content: "Agent 执行超时（10 分钟无响应），请重试", status: "error" as const }
+            : m
+        ),
+      }));
+      useStreamStore.setState((s) => ({
+        ...stopConversationStream(s.activeStreams, conversationId),
+        streamingStartTimestamps: (() => {
+          const t = { ...s.streamingStartTimestamps };
+          delete t[conversationId];
+          return t;
+        })(),
+      }));
+    }, AGENT_TIMEOUT_MS);
 
     // ── Agent stream buffering (same pattern as Q&A _pendingUiChunk) ──
     let _agentPendingText = "";
@@ -1401,18 +1424,24 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     const cleanup = () => {
       clearAgentStreamBuffer();
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       unlistenStreamText?.();
       unlistenStreamThinking?.();
       unlistenDone?.();
       unlistenError?.();
       unlistenMessageId?.();
       unlistenWorkflowComplete?.();
+      unlistenStatus?.();
       unlistenStreamText = null;
       unlistenStreamThinking = null;
       unlistenDone = null;
       unlistenError = null;
       unlistenMessageId = null;
       unlistenWorkflowComplete = null;
+      unlistenStatus = null;
     };
 
     try {
@@ -1584,6 +1613,41 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }).then((fn) => {
           unlistenError = fn;
         });
+      });
+
+      // Listen for agent status updates — update placeholder message to show progress
+      listen<{ conversationId: string; phase: string; message: string }>("agent-status", (event) => {
+        if (event.payload.conversationId !== conversationId) { return; }
+        // Reset timeout on each status event
+        if (timeoutId !== null) { clearTimeout(timeoutId); }
+        timeoutId = setTimeout(() => {
+          if (!isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) { return; }
+          cleanup();
+          set((s) => ({
+            messages: s.messages.map((m) =>
+              m.id === currentMsgId
+                ? { ...m, content: "Agent 执行超时，请重试", status: "error" as const }
+                : m
+            ),
+          }));
+          useStreamStore.setState((s) => ({
+            ...stopConversationStream(s.activeStreams, conversationId),
+            streamingStartTimestamps: (() => {
+              const t = { ...s.streamingStartTimestamps };
+              delete t[conversationId];
+              return t;
+            })(),
+          }));
+        }, AGENT_TIMEOUT_MS);
+        set((s) => ({
+          messages: s.messages.map((m) =>
+            m.id === currentMsgId
+              ? { ...m, content: `🔄 ${event.payload.message}` }
+              : m
+          ),
+        }));
+      }).then((fn) => {
+        unlistenStatus = fn;
       });
 
       // Invoke the backend command (this creates the real user message in DB)
