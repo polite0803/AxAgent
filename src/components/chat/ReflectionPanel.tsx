@@ -1,6 +1,7 @@
 import { Alert, Badge, Button, Card, Progress, Tag, Typography } from "antd";
 import { AlertTriangle, Brain, CheckCircle, Clock, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -135,6 +136,7 @@ function PatternList({
 }
 
 function InsightCard({ insight }: { insight: Insight }) {
+  const { t } = useTranslation();
   return (
     <Card size="small" className="insight-card">
       <div className="flex items-start justify-between">
@@ -159,7 +161,7 @@ function InsightCard({ insight }: { insight: Insight }) {
             {tag}
           </Tag>
         ))}
-        {insight.usage_count > 0 && <Badge count={insight.usage_count} size="small" title="Usage count" />}
+        {insight.usage_count > 0 && <Badge count={insight.usage_count} size="small" title={t("reflection.usageCount")} />}
       </div>
     </Card>
   );
@@ -172,6 +174,7 @@ export function ReflectionPanel({
   initialReflection = null,
   isRefecting: initialIsRefecting = false,
 }: ReflectionPanelProps) {
+  const { t } = useTranslation();
   const [isRefecting, setIsRefecting] = useState(initialIsRefecting);
   const [reflection, setReflection] = useState<ReflectionData | null>(initialReflection);
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -259,7 +262,7 @@ export function ReflectionPanel({
       <Card size="small" className="reflection-panel">
         <div className="flex items-center justify-center h-32 text-gray-400">
           <Brain size={24} className="mr-2" />
-          <Text type="secondary">No reflection available</Text>
+          <Text type="secondary">{t("reflection.noReflection")}</Text>
         </div>
         {taskDescription && (
           <div className="mt-4">
@@ -312,7 +315,7 @@ export function ReflectionPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain size={16} className="text-purple-500" />
-            <span>Reflection</span>
+            <span>{t("reflection.title")}</span>
             <Tag color="purple">{taskId || "unknown"}</Tag>
           </div>
           <Button
@@ -350,14 +353,14 @@ export function ReflectionPanel({
           </div>
 
           <AnalysisSection
-            title="Quality Analysis"
+            title={t("reflection.qualityAnalysis")}
             icon={<CheckCircle size={14} className="text-green-500" />}
             content={reflection.quality_analysis}
             type="success"
           />
 
           <AnalysisSection
-            title="Efficiency Analysis"
+            title={t("reflection.efficiencyAnalysis")}
             icon={<Clock size={14} className="text-blue-500" />}
             content={reflection.efficiency_analysis}
             type="info"
@@ -385,7 +388,7 @@ export function ReflectionPanel({
           {insights.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
-                <Text strong>Generated Insights</Text>
+                <Text strong>{t("reflection.generatedInsights")}</Text>
                 <Badge count={insights.length} />
               </div>
               <div className="space-y-2">

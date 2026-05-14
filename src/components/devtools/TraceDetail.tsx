@@ -5,6 +5,7 @@ import { DurationChart } from "./DurationChart";
 import { SpanDetail } from "./SpanDetail";
 import { SpanTree } from "./SpanTree";
 import { Timeline } from "./Timeline";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -26,6 +27,7 @@ function formatTokens(tokens: number): string {
 }
 
 export function TraceDetail() {
+  const { t } = useTranslation();
   const { selectedTrace, selectedSpan, tree, metrics, exportTrace } = useTracerStore();
 
   if (!selectedTrace) { return null; }
@@ -49,8 +51,8 @@ export function TraceDetail() {
             </Text>
           </div>
           <Space>
-            <Button onClick={() => handleExport("json")}>导出 JSON</Button>
-            <Button onClick={() => handleExport("csv")}>导出 CSV</Button>
+            <Button onClick={() => handleExport("json")}>{t("devtools.exportJson")}</Button>
+            <Button onClick={() => handleExport("csv")}>{t("devtools.exportCsv")}</Button>
           </Space>
         </div>
 
@@ -58,13 +60,13 @@ export function TraceDetail() {
           <Col span={6}>
             <Card size="small">
               <Descriptions column={1} size="small">
-                <Descriptions.Item label="持续时间">
+                <Descriptions.Item label={t("devtools.duration")}>
                   {formatDuration(summary.duration_ms)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Span 数量">
+                <Descriptions.Item label={t("devtools.spansCount")}>
                   {summary.span_count}
                 </Descriptions.Item>
-                <Descriptions.Item label="错误数量">
+                <Descriptions.Item label={t("devtools.errorCount")}>
                   <Tag color={summary.error_count > 0 ? "red" : "green"}>
                     {summary.error_count}
                   </Tag>
@@ -75,13 +77,13 @@ export function TraceDetail() {
           <Col span={6}>
             <Card size="small">
               <Descriptions column={1} size="small">
-                <Descriptions.Item label="Model">
+                <Descriptions.Item label={t("devtools.model")}>
                   {trace.metadata.model}
                 </Descriptions.Item>
-                <Descriptions.Item label="Total Tokens">
+                <Descriptions.Item label={t("devtools.totalTokens")}>
                   {formatTokens(trace.metadata.total_tokens)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Cost">
+                <Descriptions.Item label={t("devtools.cost")}>
                   {formatCost(trace.metadata.total_cost_usd)}
                 </Descriptions.Item>
               </Descriptions>
@@ -93,10 +95,10 @@ export function TraceDetail() {
                 <Descriptions.Item label="User ID">
                   {trace.metadata.user_id}
                 </Descriptions.Item>
-                <Descriptions.Item label="Agent Version">
+                <Descriptions.Item label={t("devtools.agentVersion")}>
                   {trace.metadata.agent_version}
                 </Descriptions.Item>
-                <Descriptions.Item label="Started At">
+                <Descriptions.Item label={t("devtools.startedAt")}>
                   {new Date(summary.started_at).toLocaleString()}
                 </Descriptions.Item>
               </Descriptions>
@@ -106,13 +108,13 @@ export function TraceDetail() {
             <Card size="small">
               {metrics && (
                 <Descriptions column={1} size="small">
-                  <Descriptions.Item label="Input Tokens">
+                  <Descriptions.Item label={t("devtools.inputTokens")}>
                     {formatTokens(metrics.cost.input_tokens)}
                   </Descriptions.Item>
-                  <Descriptions.Item label="Output Tokens">
+                  <Descriptions.Item label={t("devtools.outputTokens")}>
                     {formatTokens(metrics.cost.output_tokens)}
                   </Descriptions.Item>
-                  <Descriptions.Item label="Cache Read">
+                  <Descriptions.Item label={t("devtools.cacheRead")}>
                     {formatTokens(metrics.cost.cache_read_tokens)}
                   </Descriptions.Item>
                 </Descriptions>
@@ -123,7 +125,7 @@ export function TraceDetail() {
       </div>
 
       <Tabs defaultActiveKey="tree" className="flex-1 overflow-hidden px-4">
-        <Tabs.TabPane tab="调用树" key="tree">
+        <Tabs.TabPane tab={t("devtools.callTree")} key="tree">
           <div className="flex h-full">
             <div className="flex-1 overflow-auto pr-4">
               <SpanTree spans={tree} />
@@ -135,13 +137,13 @@ export function TraceDetail() {
             )}
           </div>
         </Tabs.TabPane>
-        <Tabs.TabPane tab="时间线" key="timeline">
+        <Tabs.TabPane tab={t("devtools.timeline")} key="timeline">
           <Timeline spans={trace.spans} />
         </Tabs.TabPane>
-        <Tabs.TabPane tab="成本分析" key="cost">
+        <Tabs.TabPane tab={t("devtools.costAnalysis")} key="cost">
           {metrics && <CostChart metrics={metrics} />}
         </Tabs.TabPane>
-        <Tabs.TabPane tab="耗时分析" key="duration">
+        <Tabs.TabPane tab={t("devtools.durationAnalysis")} key="duration">
           {metrics && <DurationChart metrics={metrics} />}
         </Tabs.TabPane>
       </Tabs>

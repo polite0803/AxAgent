@@ -1,4 +1,5 @@
 import { Switch, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
@@ -12,11 +13,12 @@ export function CacheConfigPanel({
   enableCacheBreakpoints,
   onToggleCacheBreakpoints,
 }: CacheConfigPanelProps) {
+  const { t } = useTranslation();
   return (
     <div className="p-6">
-      <SettingsGroup title="Prompt Cache">
+      <SettingsGroup title={t("cacheConfig.title")}>
         <div className="flex items-center justify-between">
-          <span>Enable Cache Breakpoints</span>
+          <span>{t("cacheConfig.enableBreakpoints")}</span>
           <Switch
             id="cache-config-panel-switch-41"
             checked={enableCacheBreakpoints}

@@ -409,6 +409,9 @@ pub async fn validate_workflow_template(
     let mut adjacency: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
     for edge in &edges {
+        if edge.edge_type == EdgeType::LoopBack {
+            continue;
+        }
         adjacency
             .entry(edge.source.clone())
             .or_default()
@@ -511,7 +514,7 @@ fn infer_agent_from_n8n(
             "code-reviewer",
             "reviewer",
             "code-reviewer",
-            "代码审查专家: 审查代码的正确性、安全性、性能和可维护性。提供具体的改进建议。",
+            "Code Review Expert: Review code for correctness, security, performance, and maintainability. Provide specific improvement suggestions.",
         );
     }
     if n.contains("debug") || n.contains("fix") || n.contains("troubleshoot") {
@@ -519,7 +522,7 @@ fn infer_agent_from_n8n(
             "debug-expert",
             "developer",
             "debug-expert",
-            "调试专家: 系统性分析错误日志，定位根因。验证修复方案。",
+            "Debug Expert: Systematically analyze error logs, identify root causes. Verify fix solutions.",
         );
     }
     if n.contains("test") || n.contains("qa") || n.contains("quality") {
@@ -527,7 +530,7 @@ fn infer_agent_from_n8n(
             "debug-expert",
             "reviewer",
             "debug-expert",
-            "测试工程师: 编写和执行测试用例，验证功能正确性。",
+            "Test Engineer: Write and execute test cases, verify functional correctness.",
         );
     }
     if n.contains("doc") || n.contains("report") || n.contains("summary") || n.contains("write") {
@@ -535,7 +538,7 @@ fn infer_agent_from_n8n(
             "tech-writer",
             "synthesizer",
             "tech-writer",
-            "技术文档专家: 撰写清晰、准确的技术文档和报告。",
+            "Technical Writer: Write clear and accurate technical documentation and reports.",
         );
     }
     if n.contains("plan") || n.contains("design") || n.contains("architect") {
@@ -543,7 +546,7 @@ fn infer_agent_from_n8n(
             "architect",
             "planner",
             "architect",
-            "系统架构师: 负责系统设计、技术选型和架构评审。",
+            "System Architect: Responsible for system design, technology selection, and architecture review.",
         );
     }
     if n.contains("monitor") || n.contains("alert") || n.contains("watch") {
@@ -551,7 +554,7 @@ fn infer_agent_from_n8n(
             "devops-engineer",
             "executor",
             "devops-engineer",
-            "DevOps工程师: 监控系统状态、处理告警和自动化运维。",
+            "DevOps Engineer: Monitor system status, handle alerts, and automate operations.",
         );
     }
     if n.contains("analyze") || n.contains("insight") || n.contains("report") {
@@ -559,7 +562,7 @@ fn infer_agent_from_n8n(
             "data-analyst",
             "researcher",
             "data-analyst",
-            "数据分析师: 数据清洗、统计分析和可视化。",
+            "Data Analyst: Data cleaning, statistical analysis, and visualization.",
         );
     }
 
@@ -570,7 +573,7 @@ fn infer_agent_from_n8n(
         || t.contains("graphql")
         || t.contains("request")
     {
-        ("devops-engineer", "executor", "devops-engineer", "DevOps工程师: 负责API集成、CI/CD管道、HTTP请求自动化。确保接口调用的可靠性和错误处理。")
+        ("devops-engineer", "executor", "devops-engineer", "DevOps Engineer: Responsible for API integration, CI/CD pipelines, HTTP request automation. Ensure reliability and error handling of interface calls.")
     } else if t.contains("database")
         || t.contains("sql")
         || t.contains("postgres")
@@ -582,7 +585,7 @@ fn infer_agent_from_n8n(
             "sql-expert",
             "researcher",
             "sql-expert",
-            "SQL专家: 精通数据库查询优化、数据建模和SQL编写。考虑索引策略和并发控制。",
+            "SQL Expert: Proficient in database query optimization, data modeling, and SQL writing. Consider indexing strategies and concurrency control.",
         )
     } else if t.contains("code")
         || t.contains("function")
@@ -594,7 +597,7 @@ fn infer_agent_from_n8n(
             "senior-developer",
             "developer",
             "senior-developer",
-            "高级开发工程师: 精通多种语言和框架，遵循最佳实践。编写清晰、高效、可维护的代码。",
+            "Senior Developer: Proficient in multiple languages and frameworks, following best practices. Write clear, efficient, and maintainable code.",
         )
     } else if t.contains("email")
         || t.contains("slack")
@@ -606,7 +609,7 @@ fn infer_agent_from_n8n(
             "product-manager",
             "coordinator",
             "product-manager",
-            "产品经理: 沟通协调、需求分析和通知管理。",
+            "Product Manager: Communication coordination, requirements analysis, and notification management.",
         )
     } else if t.contains("ai")
         || t.contains("llm")
@@ -618,7 +621,7 @@ fn infer_agent_from_n8n(
             "general-assistant",
             "coordinator",
             "general-assistant",
-            "通用AI助手: 全能型助手，处理各类任务和问题。",
+            "General AI Assistant: Versatile assistant handling various tasks and questions.",
         )
     } else if t.contains("file")
         || t.contains("csv")
@@ -631,14 +634,14 @@ fn infer_agent_from_n8n(
             "data-analyst",
             "researcher",
             "data-analyst",
-            "数据分析师: 数据清洗、统计分析和可视化，擅于从数据中提取洞察。",
+            "Data Analyst: Data cleaning, statistical analysis, and visualization, skilled at extracting insights from data.",
         )
     } else if t.contains("security") || t.contains("auth") || t.contains("oauth") {
         (
             "security-auditor",
             "reviewer",
             "security-auditor",
-            "安全审计专家: OWASP Top 10审查、认证授权检查、数据加密和隐私保护。",
+            "Security Auditor: OWASP Top 10 review, authentication/authorization checks, data encryption, and privacy protection.",
         )
     } else if t.contains("transform")
         || t.contains("convert")
@@ -650,14 +653,14 @@ fn infer_agent_from_n8n(
             "tech-writer",
             "synthesizer",
             "tech-writer",
-            "技术文档专家: 整理、转换和聚合数据，输出结构化结果。",
+            "Technical Writer: Organize, transform, and aggregate data, output structured results.",
         )
     } else {
         (
             "debug-expert",
             "executor",
             "debug-expert",
-            "调试专家: 系统性分析、定位问题根因，验证修复方案。",
+            "Debug Expert: Systematic analysis, identify root causes, verify fix solutions.",
         )
     }
 }
@@ -889,13 +892,68 @@ async fn convert_n8n_to_axagent(
 
         name_to_id.insert(node_name.clone(), node_id.clone());
 
+        let n8n_type_lower = n8n_type.to_lowercase();
+
+        let position = n8n_node
+            .get("position")
+            .map(|p| Position {
+                x: p.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                y: p.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            })
+            .unwrap_or(Position { x: 0.0, y: 0.0 });
+
+        let base = WorkflowNodeBase {
+            id: node_id.clone(),
+            title: node_name.clone(),
+            description: None,
+            position: position.clone(),
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        };
+
+        if n8n_type_lower.contains("if") || n8n_type_lower.contains("switch") {
+            let condition_node = WorkflowNode::Condition(ConditionNode {
+                base,
+                config: ConditionNodeConfig {
+                    conditions: Vec::new(),
+                    logical_op: LogicalOperator::And,
+                },
+            });
+            ax_nodes.push(condition_node);
+            continue;
+        }
+
+        if n8n_type_lower.contains("merge") {
+            let merge_node = WorkflowNode::Merge(MergeNode {
+                base,
+                config: MergeNodeConfig {
+                    merge_type: "all".to_string(),
+                    inputs: Vec::new(),
+                },
+            });
+            ax_nodes.push(merge_node);
+            continue;
+        }
+
+        if n8n_type_lower.contains("wait") {
+            let delay_node = WorkflowNode::Delay(DelayNode {
+                base,
+                config: DelayNodeConfig {
+                    delay_type: "seconds".to_string(),
+                    seconds: 5,
+                    until: None,
+                },
+            });
+            ax_nodes.push(delay_node);
+            continue;
+        }
+
         let (agent_profile_id, agent_role, expert_id, expert_prompt) =
             infer_agent_from_n8n(&n8n_type, &node_name);
 
-        // Ensure AgentRole exists in DB
         ensure_agent_role(db, agent_role).await?;
 
-        // Ensure AgentProfile exists in DB (create if missing, with Expert link)
         ensure_agent_profile(
             db,
             agent_profile_id,
@@ -907,14 +965,6 @@ async fn convert_n8n_to_axagent(
         .await?;
 
         let goal = extract_goal_from_n8n(n8n_node);
-
-        let position = n8n_node
-            .get("position")
-            .map(|p| Position {
-                x: p.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                y: p.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            })
-            .unwrap_or(Position { x: 0.0, y: 0.0 });
 
         let base = WorkflowNodeBase {
             id: node_id.clone(),
@@ -949,8 +999,21 @@ async fn convert_n8n_to_axagent(
     let last_position = ax_nodes
         .iter()
         .filter_map(|n| match n {
-            WorkflowNode::Agent(a) => Some(a.base.position.clone()),
-            _ => None,
+            WorkflowNode::Trigger(t) => Some(t.base.position.clone()),
+            WorkflowNode::Agent(t) => Some(t.base.position.clone()),
+            WorkflowNode::Llm(t) => Some(t.base.position.clone()),
+            WorkflowNode::Condition(t) => Some(t.base.position.clone()),
+            WorkflowNode::Parallel(t) => Some(t.base.position.clone()),
+            WorkflowNode::Loop(t) => Some(t.base.position.clone()),
+            WorkflowNode::Merge(t) => Some(t.base.position.clone()),
+            WorkflowNode::Delay(t) => Some(t.base.position.clone()),
+            WorkflowNode::Validation(t) => Some(t.base.position.clone()),
+            WorkflowNode::Tool(t) => Some(t.base.position.clone()),
+            WorkflowNode::Code(t) => Some(t.base.position.clone()),
+            WorkflowNode::SubWorkflow(t) => Some(t.base.position.clone()),
+            WorkflowNode::DocumentParser(t) => Some(t.base.position.clone()),
+            WorkflowNode::VectorRetrieve(t) => Some(t.base.position.clone()),
+            WorkflowNode::End(t) => Some(t.base.position.clone()),
         })
         .next_back()
         .unwrap_or(Position { x: 250.0, y: 0.0 });
@@ -1089,37 +1152,25 @@ async fn convert_n8n_to_axagent(
     })
 }
 
-#[tauri::command]
-pub async fn import_workflow_template(
-    state: State<'_, AppState>,
+async fn do_import_workflow(
+    db: &DatabaseConnection,
     json_data: String,
 ) -> Result<serde_json::Value, String> {
-    let db = &state.sea_db;
-
-    // Detect n8n format and convert to AxAgent format
     let raw_json: serde_json::Value =
         serde_json::from_str(&json_data).map_err(|e| format!("Invalid JSON: {}", e))?;
 
-    // Check for duplicate workflow name
     let workflow_name = raw_json
         .get("name")
         .and_then(|v| v.as_str())
         .unwrap_or("Imported Workflow")
         .to_string();
-    if let Some(existing) = check_workflow_duplicate(db, &workflow_name).await? {
-        return Err(format!(
-            "Workflow '{}' is semantically similar to existing '{}' (similarity ≥ 0.6). Please rename and try again.",
-            workflow_name, existing
-        ));
-    }
 
-    let new_template = if is_n8n_format(&raw_json) {
+    let mut new_template = if is_n8n_format(&raw_json) {
         convert_n8n_to_axagent(db, &raw_json).await?
     } else {
         let template: WorkflowTemplateResponse = serde_json::from_value(raw_json)
             .map_err(|e| format!("Invalid AxAgent format: {}", e))?;
 
-        // Auto-migrate legacy Tool/Code nodes to Agent nodes on import
         let mut nodes = template.nodes.clone();
         let migrated_nodes: Vec<axagent_core::workflow_types::WorkflowNode> =
             if axagent_core::workflow_types::WorkflowMigrator::has_legacy_nodes(&nodes) {
@@ -1152,12 +1203,18 @@ pub async fn import_workflow_template(
         }
     };
 
+    let mut warnings: Vec<String> = Vec::new();
+    if let Some(_existing) = check_workflow_duplicate(db, &workflow_name).await? {
+        let new_name = format!("{} (Imported)", workflow_name);
+        warnings.push(format!("Workflow renamed from '{}' to '{}' due to similarity with existing workflow", workflow_name, new_name));
+        new_template.name = new_name;
+    }
+
     let active_model = model_to_active_model(&new_template);
     db_repo::insert_workflow_template(db, active_model)
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut warnings: Vec<String> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
 
     if new_template.nodes.is_empty() {
@@ -1204,6 +1261,14 @@ pub async fn import_workflow_template(
         "warnings": warnings,
         "errors": errors,
     }))
+}
+
+#[tauri::command]
+pub async fn import_workflow_template(
+    state: State<'_, AppState>,
+    json_data: String,
+) -> Result<serde_json::Value, String> {
+    do_import_workflow(&state.sea_db, json_data).await
 }
 
 /// 批量导入 n8n 目录中的所有工作流 JSON 文件
@@ -1304,6 +1369,7 @@ pub async fn import_workflow_directory(
     use std::fs;
     use std::path::Path;
 
+    let db = &state.sea_db;
     let dir = Path::new(&path);
     if !dir.is_dir() {
         return Err(format!("Path does not exist or is not a directory: {}", path));
@@ -1323,7 +1389,7 @@ pub async fn import_workflow_directory(
             continue;
         }
 
-        match import_workflow_template(state.clone(), content).await {
+        match do_import_workflow(db, content).await {
             Ok(val) => {
                 if let Some(id) = val.get("id").and_then(|v| v.as_str()) {
                     imported.push(id.to_string());

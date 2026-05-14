@@ -2,6 +2,7 @@ import { invoke } from "@/lib/invoke";
 import { Button, Image, Input, message, Select, Slider, Space, Typography } from "antd";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface GeneratedImage {
   url?: string;
@@ -40,6 +41,7 @@ export function ImageGenPanel({
   defaultProvider = "flux",
   onImageGenerated,
 }: ImageGenPanelProps) {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [provider, setProvider] = useState(defaultProvider);
@@ -50,12 +52,12 @@ export function ImageGenPanel({
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      message.warning("请输入提示词");
+      message.warning(t("imageGen.enterPrompt"));
       return;
     }
 
     if (!apiKey) {
-      message.error("请配置 API Key");
+      message.error(t("imageGen.configureApiKey"));
       return;
     }
 
@@ -86,7 +88,7 @@ export function ImageGenPanel({
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
         <Sparkles size={18} style={{ color: "#722ed1" }} />
-        <Typography.Text strong>图像生成</Typography.Text>
+        <Typography.Text strong>{t("imageGen.title")}</Typography.Text>
       </div>
 
       <Space>
@@ -108,7 +110,7 @@ export function ImageGenPanel({
         id="image-gen-panel-input-textarea-23"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="描述你想生成的图片..."
+        placeholder={t("imageGen.promptPlaceholder")}
         rows={3}
       />
 
@@ -116,12 +118,12 @@ export function ImageGenPanel({
         id="image-gen-panel-input-24"
         value={negativePrompt}
         onChange={(e) => setNegativePrompt(e.target.value)}
-        placeholder="负面提示词（可选）"
+        placeholder={t("imageGen.negativePrompt")}
       />
 
       {provider === "flux" && (
         <div>
-          <Typography.Text type="secondary">推理步数: {steps}</Typography.Text>
+          <Typography.Text type="secondary">{t("imageGen.inferenceSteps")}: {steps}</Typography.Text>
           <Slider min={1} max={50} value={steps} onChange={setSteps} />
         </div>
       )}
@@ -133,13 +135,13 @@ export function ImageGenPanel({
         block
         icon={<Sparkles size={14} />}
       >
-        生成图片
+        {t("imageGen.generateImage")}
       </Button>
 
       {result && (
         <div>
           <Typography.Text type="secondary">
-            模型: {result.model_used} | 耗时: {(result.elapsed_ms / 1000).toFixed(1)}s
+            {t("imageGen.model")}: {result.model_used} | {t("imageGen.elapsed")}: {(result.elapsed_ms / 1000).toFixed(1)}s
           </Typography.Text>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
             {result.images.map((img, i) => (

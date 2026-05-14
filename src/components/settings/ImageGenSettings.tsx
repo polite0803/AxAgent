@@ -1,6 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import { Button, Card, Form, Input, Select, Switch, Typography } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ImageGenConfig {
   default_provider: string;
@@ -25,6 +26,7 @@ const DEFAULT_CONFIG: ImageGenConfig = {
 };
 
 export function ImageGenSettings() {
+  const { t } = useTranslation();
   const [form] = Form.useForm<ImageGenConfig>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -52,24 +54,24 @@ export function ImageGenSettings() {
 
   if (initialLoading) {
     return (
-      <Card title="图像生成" style={{ marginBottom: 16 }}>
-        <Typography.Text>加载中...</Typography.Text>
+      <Card title={t("imageGen.title")} style={{ marginBottom: 16 }}>
+        <Typography.Text>{t("imageGen.loading")}</Typography.Text>
       </Card>
     );
   }
 
   return (
     <Card
-      title="图像生成"
+      title={t("imageGen.title")}
       style={{ marginBottom: 16 }}
       extra={
         <Button type="primary" onClick={handleSave} loading={loading}>
-          保存
+          {t("common.save")}
         </Button>
       }
     >
       <Form form={form} layout="vertical" initialValues={DEFAULT_CONFIG}>
-        <Form.Item name="default_provider" label="默认 Provider">
+        <Form.Item name="default_provider" label={t("imageGen.defaultProvider")}>
           <Select
             options={[
               { value: "flux", label: "Flux (Replicate)" },
@@ -90,7 +92,7 @@ export function ImageGenSettings() {
           <Input name="openai_base_url" placeholder="https://api.openai.com/v1" />
         </Form.Item>
 
-        <Form.Item name="save_to_artifact" label="自动保存为 Artifact" valuePropName="checked">
+        <Form.Item name="save_to_artifact" label={t("imageGen.autoSaveArtifact")} valuePropName="checked">
           <Switch />
         </Form.Item>
       </Form>

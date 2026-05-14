@@ -2,6 +2,7 @@ export { AboutPage } from "./AboutPage";
 export { AcpSettings } from "./AcpSettings";
 export { AdvancedSettings } from "./AdvancedSettings";
 export { DashboardPluginsSettings } from "./DashboardPluginsSettings";
+export { default as CloudWorkspaceSettings } from "./CloudWorkspaceSelector";
 export { DataManager } from "./DataManager";
 export { DisplaySettings } from "./DisplaySettings";
 export { EvolutionSettings } from "./EvolutionSettings";
@@ -22,7 +23,6 @@ export { SettingsPanel } from "./SettingsPanel";
 export { SettingsSelect } from "./SettingsSelect";
 export { SettingsSidebar } from "./SettingsSidebar";
 export { ShortcutSettings } from "./ShortcutSettings";
-export { SkillsHubSettings } from "./SkillsHubSettings";
 export { ToolManager } from "./ToolManager";
 export { WebhookSettings } from "./WebhookSettings";
 

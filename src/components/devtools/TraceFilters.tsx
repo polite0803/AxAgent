@@ -2,10 +2,12 @@ import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { TraceFilter } from "@/types";
 import { Button, DatePicker, Input, Select, Space } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { RangePicker } = DatePicker;
 
 export function TraceFilters() {
+  const { t } = useTranslation();
   const { filter, setFilter } = useTracerStore();
   const [localFilter, setLocalFilter] = useState<TraceFilter>(filter);
 
@@ -23,10 +25,10 @@ export function TraceFilters() {
     <div className="p-3 border-b">
       <div className="space-y-3">
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">会话 ID</label>
+          <label className="text-xs text-gray-500 mb-1 block">{t("devtools.sessionId")}</label>
           <Input
             id="trace-filters-input-36"
-            placeholder="过滤会话"
+            placeholder={t("devtools.filterSession")}
             value={localFilter.session_id || ""}
             onChange={(e) => setLocalFilter({ ...localFilter, session_id: e.target.value || undefined })}
             allowClear
@@ -34,7 +36,7 @@ export function TraceFilters() {
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">时间范围</label>
+          <label className="text-xs text-gray-500 mb-1 block">{t("devtools.timeRange")}</label>
           <RangePicker
             className="w-full"
             showTime
@@ -57,11 +59,11 @@ export function TraceFilters() {
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">最小耗时 (ms)</label>
+          <label className="text-xs text-gray-500 mb-1 block">{t("devtools.minDuration")}</label>
           <Input
             id="trace-filters-input-37"
             type="number"
-            placeholder="最小耗时"
+            placeholder={t("devtools.minDuration")}
             value={localFilter.min_duration_ms || ""}
             onChange={(e) =>
               setLocalFilter({
@@ -73,11 +75,11 @@ export function TraceFilters() {
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">最大耗时 (ms)</label>
+          <label className="text-xs text-gray-500 mb-1 block">{t("devtools.maxDuration")}</label>
           <Input
             id="trace-filters-input-38"
             type="number"
-            placeholder="最大耗时"
+            placeholder={t("devtools.maxDuration")}
             value={localFilter.max_duration_ms || ""}
             onChange={(e) =>
               setLocalFilter({
@@ -89,10 +91,10 @@ export function TraceFilters() {
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">错误筛选</label>
+          <label className="text-xs text-gray-500 mb-1 block">{t("devtools.errorFilter")}</label>
           <Select
             className="w-full"
-            placeholder="是否包含错误"
+            placeholder={t("devtools.includeErrors")}
             value={localFilter.has_errors}
             onChange={(value) => setLocalFilter({ ...localFilter, has_errors: value })}
             allowClear
@@ -107,7 +109,7 @@ export function TraceFilters() {
           <Button type="primary" onClick={handleApply} className="flex-1">
             应用
           </Button>
-          <Button onClick={handleReset}>重置</Button>
+          <Button onClick={handleReset}>{t("common.reset")}</Button>
         </Space>
       </div>
     </div>

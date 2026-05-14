@@ -3,6 +3,7 @@ import {
   AcpSettings,
   AdvancedSettings,
   BackupCenter,
+  CloudWorkspaceSettings,
   DashboardPluginsSettings,
   DataManager,
   DisplaySettings,
@@ -19,7 +20,6 @@ import {
   SettingsPanel,
   SettingsSidebar,
   ShortcutSettings,
-  SkillsHubSettings,
   StorageSpaceManager,
   ToolManager,
   UserProfileSettings,
@@ -30,6 +30,7 @@ import { ConversationSettings } from "@/components/settings/ConversationSettings
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
+import { SkillsPage } from "@/pages/SkillsPage";
 import { WorkflowEditor } from "@/components/workflow";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
@@ -41,6 +42,7 @@ import { ReactFlowProvider } from "reactflow";
 const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   providers: ProviderSettings,
   conversationSettings: ConversationSettings,
+  cloudWorkspace: CloudWorkspaceSettings,
   defaultModel: DefaultModelSettings,
   general: GeneralSettings,
   display: DisplaySettings,
@@ -58,7 +60,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   workflow: WorkflowSettings,
   appConfig: SettingsPanel,
   userProfile: UserProfileSettings,
-  skillsHub: SkillsHubSettings,
+  skillsHub: SkillsPage,
   dashboardPlugins: DashboardPluginsSettings,
   webhooks: WebhookSettings,
   messageChannels: MessageChannelSettings,
@@ -84,7 +86,7 @@ function SectionErrorBoundary({ sectionKey, children }: { sectionKey: string; ch
             extra={
               <span className="flex gap-2">
                 <Button onClick={() => window.location.reload()}>
-                  刷新页面
+                  {t("settingsPage.refreshPage")}
                 </Button>
                 <Button type="primary" onClick={() => setSettingsSection("general")}>
                   {t("settings.general.title")}

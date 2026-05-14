@@ -12,6 +12,7 @@ import {
   Card,
   Col,
   Collapse,
+  Empty,
   Progress,
   Row,
   Space,
@@ -21,6 +22,7 @@ import {
   Tag,
   Timeline,
   Typography,
+  theme,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
@@ -73,95 +75,6 @@ interface PerformanceMetrics {
   minNodeDuration: { nodeName: string; duration: number };
 }
 
-const mockNodeExecutions: NodeExecution[] = [
-  {
-    nodeId: "node-1",
-    nodeName: "Trigger",
-    nodeType: "trigger",
-    status: "completed",
-    startTime: Date.now() - 5000,
-    endTime: Date.now() - 4900,
-    duration: 100,
-    input: { type: "webhook" },
-    output: { result: "triggered" },
-    retryCount: 0,
-  },
-  {
-    nodeId: "node-2",
-    nodeName: "Fetch User Input",
-    nodeType: "agent",
-    status: "completed",
-    startTime: Date.now() - 4900,
-    endTime: Date.now() - 4200,
-    duration: 700,
-    input: { query: "weather" },
-    output: { data: { location: "Beijing", temp: 25 } },
-    retryCount: 0,
-  },
-  {
-    nodeId: "node-3",
-    nodeName: "Call LLM",
-    nodeType: "llm",
-    status: "completed",
-    startTime: Date.now() - 4200,
-    endTime: Date.now() - 2000,
-    duration: 2200,
-    input: { prompt: "What is the weather?" },
-    output: { response: "The weather is sunny." },
-    retryCount: 0,
-  },
-  {
-    nodeId: "node-4",
-    nodeName: "Format Response",
-    nodeType: "code",
-    status: "failed",
-    startTime: Date.now() - 2000,
-    endTime: Date.now() - 1800,
-    duration: 200,
-    input: { data: "{}" },
-    error: "JSON parse error: unexpected token",
-    retryCount: 2,
-  },
-];
-
-const mockSnapshots: VariableSnapshot[] = [
-  {
-    timestamp: Date.now() - 5000,
-    variables: { triggerType: "webhook", requestId: "req-123" },
-  },
-  {
-    timestamp: Date.now() - 4900,
-    variables: {
-      triggerType: "webhook",
-      requestId: "req-123",
-      userQuery: "weather",
-    },
-  },
-  {
-    timestamp: Date.now() - 4200,
-    variables: {
-      triggerType: "webhook",
-      requestId: "req-123",
-      userQuery: "weather",
-      weatherData: { location: "Beijing", temp: 25 },
-    },
-  },
-];
-
-const mockTrace: ExecutionTrace = {
-  id: "trace-001",
-  workflowId: "wf-001",
-  workflowName: "Weather Query Workflow",
-  status: "failed",
-  startTime: Date.now() - 5000,
-  endTime: Date.now(),
-  duration: 5000,
-  nodeExecutions: mockNodeExecutions,
-  variableSnapshots: mockSnapshots,
-  triggerType: "webhook",
-  userId: "user-001",
-};
-
 function calculateMetrics(executions: NodeExecution[]): PerformanceMetrics {
   const completedExecutions = executions.filter((e) => e.status === "completed");
   const failedExecutions = executions.filter((e) => e.status === "failed");
@@ -211,11 +124,20 @@ function getStatusIcon(status: NodeExecution["status"]) {
 }
 
 interface DebugPanelProps {
-  trace?: ExecutionTrace;
+  trace: ExecutionTrace | null;
 }
 
-export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
+export function DebugPanel({ trace }: DebugPanelProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
+
+  if (!trace) {
+    return (
+      <div className="h-full flex items-center justify-center" style={{ background: token.colorBgElevated }}>
+        <Empty description={t("workflow.debug.noExecutionData")} />
+      </div>
+    );
+  }
   const [showVariables, setShowVariables] = useState(true);
   const [showPerformance, setShowPerformance] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -259,10 +181,10 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col" style={{ background: "#252525" }}>
+    <div className="h-full flex flex-col" style={{ background: token.colorBgElevated }}>
       <div
         className="border-b p-4"
-        style={{ borderColor: "#333" }}
+        style={{ borderColor: token.colorBorderSecondary }}
       >
         <div className="flex items-center justify-between">
           <Space>
@@ -277,9 +199,9 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
           </Space>
           <Space>
             <Switch size="small" checked={showVariables} onChange={setShowVariables} />
-            <Text type="secondary">Variables</Text>
+            <Text type="secondary">{t("workflow.debug.variables")}</Text>
             <Switch size="small" checked={showPerformance} onChange={setShowPerformance} />
-            <Text type="secondary">Performance</Text>
+            <Text type="secondary">{t("workflow.debug.performance")}</Text>
           </Space>
         </div>
         <Text type="secondary" className="text-sm">
@@ -377,7 +299,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
             </Title>
             <div className="space-y-3">
               <div>
-                <Text type="secondary">Slowest Node</Text>
+                <Text type="secondary">{t("workflow.debug.slowestNode")}</Text>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress
                     percent={Math.min(100, (metrics.maxNodeDuration.duration / metrics.totalDuration) * 100)}
@@ -388,7 +310,7 @@ export function DebugPanel({ trace = mockTrace }: DebugPanelProps) {
                 </div>
               </div>
               <div>
-                <Text type="secondary">Fastest Node</Text>
+                <Text type="secondary">{t("workflow.debug.fastestNode")}</Text>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress
                     percent={metrics.minNodeDuration.duration > 0

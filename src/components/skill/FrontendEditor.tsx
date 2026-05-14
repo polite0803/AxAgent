@@ -1,6 +1,7 @@
 import type { SkillCapability, SkillManifest } from "@/types";
 import { Button, Input, message, Modal, Typography } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface FrontendEditorProps {
   skillName: string;
@@ -10,6 +11,7 @@ interface FrontendEditorProps {
 }
 
 export function FrontendEditor({ skillName, currentManifest, onSaved }: FrontendEditorProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [jsonText, setJsonText] = useState(
     currentManifest
@@ -37,11 +39,11 @@ export function FrontendEditor({ skillName, currentManifest, onSaved }: Frontend
         name: skillName,
         manifest: JSON.parse(jsonText),
       });
-      message.success("清单配置已保存");
+      message.success(t("skillEditor.manifestSaved"));
       setVisible(false);
       onSaved();
     } catch (e) {
-      message.error(`JSON 格式错误: ${String(e)}`);
+      message.error(t("skillEditor.jsonFormatError", { error: String(e) }));
       setSaving(false);
     }
   };
@@ -49,22 +51,20 @@ export function FrontendEditor({ skillName, currentManifest, onSaved }: Frontend
   return (
     <>
       <Button size="small" onClick={() => setVisible(true)}>
-        编辑清单
+        {t("skillEditor.editManifest")}
       </Button>
       <Modal
-        title={`编辑 Skill 清单 — ${skillName}`}
+        title={t("skillEditor.editManifestTitle", { name: skillName })}
         open={visible}
         onCancel={() => setVisible(false)}
         onOk={handleSave}
         confirmLoading={saving}
         width={700}
-        okText="保存"
-        cancelText="取消"
+        okText={t("common.save")}
+        cancelText={t("common.cancel")}
       >
         <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
-          编辑{" "}
-          <code>skill-manifest.json</code>。支持的 capability
-          类型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。
+          {t("skillEditor.editManifestDesc")}{" "}<code>skill-manifest.json</code>. {t("skillEditor.supportedCapabilities")}: page, panel, toolbar, chatCommand, statusBar, navigation, settings.
         </Typography.Paragraph>
         <Input.TextArea
           id="frontend-editor-input-textarea-62"

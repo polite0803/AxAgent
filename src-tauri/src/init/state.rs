@@ -8,9 +8,7 @@ use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
-#[cfg(mobile)]
-use axagent_core::cloud_storage::CloudStorageConfig;
-use axagent_core::cloud_storage::SyncEngine;
+use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let DatabaseInitResult {
@@ -263,7 +261,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         )),
         proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         dashboard_registry: Some(Arc::new(
-            axagent_runtime::dashboard_registry::DashboardRegistry::new(),
+            axagent_runtime::dashboard_registry::DashboardRegistry::new_with_config(
+                axagent_runtime::dashboard_registry::DashboardRegistryConfig {
+                    plugin_dirs: vec![axagent_core::storage_paths::documents_root().join("dashboard-plugins")],
+                    auto_load: true,
+                },
+            ),
         )),
         webhook_subscription_manager: Some(Arc::new(
             axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new(),
@@ -365,21 +368,13 @@ fn create_sync_engine(
     _sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_core::types::AppSettings,
 ) -> Option<Arc<SyncEngine>> {
-    #[cfg(mobile)]
-    {
-        let cloud_config = load_cloud_storage_config(_sea_db, _app_settings)?;
-        let backend = cloud_config.create_backend().ok()?;
-        let device_id = hostname_or_uuid();
-        let profile_name = cloud_config.profile_name.clone();
-        Some(Arc::new(SyncEngine::new(backend, &profile_name, &device_id)))
-    }
-    #[cfg(not(mobile))]
-    {
-        None
-    }
+    let cloud_config = load_cloud_storage_config(_sea_db, _app_settings)?;
+    let backend = cloud_config.create_backend().ok()?;
+    let device_id = hostname_or_uuid();
+    let profile_name = cloud_config.profile_name.clone();
+    Some(Arc::new(SyncEngine::new(backend, &profile_name, &device_id)))
 }
 
-#[cfg(mobile)]
 fn load_cloud_storage_config(
     sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_core::types::AppSettings,
@@ -435,7 +430,6 @@ fn load_cloud_storage_config(
     Some(cloud_config)
 }
 
-#[cfg(mobile)]
 fn hostname_or_uuid() -> String {
     std::env::var("HOSTNAME")
         .ok()

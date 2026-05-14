@@ -1,4 +1,4 @@
-import { Button, Input, message, Popover, Space, Tooltip } from "antd";
+import { Button, Input, Popover, Space, Tooltip, theme } from "antd";
 import { ArrowLeft, Bot, Bug, Download, Eye, Keyboard, Redo2, Save, Share2, Sparkles, Undo2 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -41,6 +41,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(templateName);
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   useEffect(() => {
     if (!isEditing) {
@@ -72,20 +73,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     onSave();
   }, [onSave]);
 
-  const handlePreview = useCallback(() => {
-    message.info(t("workflow.previewInDevelopment"));
-  }, [t]);
-
-  const handlePublish = useCallback(() => {
-    message.info(t("workflow.publishInDevelopment"));
-  }, [t]);
-
   return (
     <div
       style={{
         height: 56,
-        background: "#252525",
-        borderBottom: "1px solid #333",
+        background: token.colorBgElevated,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
         display: "flex",
         alignItems: "center",
         padding: "0 16px",
@@ -97,7 +90,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           type="text"
           icon={<ArrowLeft size={18} />}
           onClick={onClose}
-          style={{ color: "#999" }}
+          style={{ color: token.colorTextSecondary }}
         />
       )}
 
@@ -118,10 +111,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         : (
           <span
             onClick={() => setIsEditing(true)}
-            style={{ color: "#fff", cursor: "pointer", fontSize: 14 }}
+            style={{ color: token.colorText, cursor: "pointer", fontSize: 14 }}
           >
             {name}
-            {isDirty && <span style={{ color: "#faad14", marginLeft: 4 }}>*</span>}
+            {isDirty && <span style={{ color: token.colorWarning, marginLeft: 4 }}>*</span>}
           </span>
         )}
 
@@ -135,7 +128,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               icon={<Undo2 size={18} />}
               onClick={onUndo}
               disabled={!canUndo}
-              style={{ color: canUndo ? "#999" : "#444" }}
+              style={{ color: canUndo ? token.colorTextSecondary : token.colorTextQuaternary }}
             />
           </Tooltip>
         )}
@@ -147,7 +140,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               icon={<Redo2 size={18} />}
               onClick={onRedo}
               disabled={!canRedo}
-              style={{ color: canRedo ? "#999" : "#444" }}
+              style={{ color: canRedo ? token.colorTextSecondary : token.colorTextQuaternary }}
             />
           </Tooltip>
         )}
@@ -155,7 +148,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         <Popover
           content={
             <div style={{ minWidth: 220 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: token.colorText, marginBottom: 8 }}>
                 {t("workflow.shortcuts.title")}
               </div>
               {[
@@ -170,15 +163,15 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   key={item.keys}
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}
                 >
-                  <span style={{ fontSize: 12, color: "#ccc" }}>{item.label}</span>
+                  <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{item.label}</span>
                   <kbd
                     style={{
                       fontSize: 11,
                       padding: "1px 6px",
-                      background: "#333",
-                      border: "1px solid #444",
+                      background: token.colorBgContainer,
+                      border: `1px solid ${token.colorBorderSecondary}`,
                       borderRadius: 3,
-                      color: "#999",
+                      color: token.colorTextSecondary,
                     }}
                   >
                     {item.keys}
@@ -193,7 +186,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
           <Button
             type="text"
             icon={<Keyboard size={18} />}
-            style={{ color: "#999" }}
+            style={{ color: token.colorTextSecondary }}
           />
         </Popover>
 
@@ -204,7 +197,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               data-testid="workflow-ai-panel-btn"
               icon={<Sparkles size={18} />}
               onClick={onToggleAIPanel}
-              style={{ color: aiPanelVisible ? "#1890ff" : "#999" }}
+              style={{ color: aiPanelVisible ? "#1890ff" : token.colorTextSecondary }}
             />
           </Tooltip>
         )}
@@ -215,7 +208,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               type="text"
               icon={<Bug size={18} />}
               onClick={onToggleDebugPanel}
-              style={{ color: debugPanelVisible ? "#1890ff" : "#999" }}
+              style={{ color: debugPanelVisible ? "#1890ff" : token.colorTextSecondary }}
             />
           </Tooltip>
         )}
@@ -227,17 +220,17 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               data-testid="workflow-import-export-btn"
               icon={<Download size={18} />}
               onClick={onOpenImportExport}
-              style={{ color: "#999" }}
+              style={{ color: token.colorTextSecondary }}
             />
           </Tooltip>
         )}
 
         <Tooltip title={t("workflow.preview")}>
-          <Button type="text" icon={<Eye size={18} />} onClick={handlePreview} style={{ color: "#999" }} />
+          <Button type="text" icon={<Eye size={18} />} disabled style={{ color: token.colorTextSecondary }} />
         </Tooltip>
 
         <Tooltip title={t("workflow.publish")}>
-          <Button type="text" icon={<Share2 size={18} />} onClick={handlePublish} style={{ color: "#999" }} />
+          <Button type="text" icon={<Share2 size={18} />} disabled style={{ color: token.colorTextSecondary }} />
         </Tooltip>
 
         <Button

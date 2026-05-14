@@ -131,6 +131,7 @@ function MonacoDiffEditor({
 // ── Diff Stat Bar ────────────────────────────────────────────────────────
 
 function DiffStatBar({ original, modified }: { original: string; modified: string }) {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const stats = useMemo(() => {
     const origLines = original.split("\n");
@@ -166,7 +167,7 @@ function DiffStatBar({ original, modified }: { original: string; modified: strin
         <Minus size={12} /> {stats.deletions}
       </span>
       <span style={{ color: token.colorTextSecondary }}>
-        {stats.total} 行
+        {stats.total} {t("chat.diff.lines")}
       </span>
     </div>
   );
@@ -228,7 +229,7 @@ export const FileChangeCard = React.memo(function FileChangeCard({
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
-        aria-label={`${change.filePath} - ${isNew ? "新建" : isDeleted ? "删除" : "修改"}`}
+        aria-label={`${change.filePath} - ${isNew ? t("chat.diff.newFile") : isDeleted ? t("chat.diff.deleted") : t("chat.diff.modified")}`}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -255,10 +256,10 @@ export const FileChangeCard = React.memo(function FileChangeCard({
           <Typography.Text style={{ fontSize: 13, fontFamily: "monospace" }}>
             {change.filePath}
           </Typography.Text>
-          {isNew && <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>新建</Tag>}
-          {isDeleted && <Tag color="red" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>删除</Tag>}
+          {isNew && <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.newFile")}</Tag>}
+          {isDeleted && <Tag color="red" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.deleted")}</Tag>}
           {change.operation === "edit" && (
-            <Tag color="orange" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>修改</Tag>
+            <Tag color="orange" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.modified")}</Tag>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -322,7 +323,7 @@ export const FileChangeCard = React.memo(function FileChangeCard({
                     gap: 4,
                   }}
                 >
-                  <Plus size={12} /> 新文件
+                  <Plus size={12} /> {t("diffViewer.newFileLabel")}
                 </div>
                 {change.modifiedContent}
               </div>
@@ -352,7 +353,7 @@ export const FileChangeCard = React.memo(function FileChangeCard({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-            <Minus size={12} /> 已删除内容
+            <Minus size={12} /> {t("diffViewer.deletedContent")}
           </div>
           {change.originalContent}
         </div>
@@ -395,7 +396,7 @@ export const FileChangeList = React.memo(function FileChangeList({
       >
         <Typography.Text strong style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
           <GitBranch size={14} />
-          {changes.length} {t("chat.diff.fileChanges", "个文件变更")}
+          {changes.length} {t("chat.diff.fileChanges")}
         </Typography.Text>
         <Space size={4}>
           <Button

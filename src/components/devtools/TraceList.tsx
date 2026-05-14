@@ -3,6 +3,7 @@ import type { TraceSummary } from "@/types";
 import { Card, DatePicker, Input, List, Space, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -66,6 +67,7 @@ function TraceItem({ trace, isSelected, onClick }: TraceItemProps) {
 }
 
 export function TraceList() {
+  const { t } = useTranslation();
   const { traces, selectedTrace, selectTrace, loadTraces, filter, setFilter } = useTracerStore();
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export function TraceList() {
     <div className="p-3">
       <Space direction="vertical" className="w-full mb-4">
         <Input.Search
-          placeholder="搜索 trace ID..."
+          placeholder={t("devtools.searchTraceId")}
           onSearch={(value) => {
             setFilter({ ...filter, trace_id: value || undefined });
             loadTraces({ ...filter, trace_id: value || undefined });

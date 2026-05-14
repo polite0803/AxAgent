@@ -117,7 +117,7 @@ export default function InsightPanel() {
                 handleFlush();
               }
             }}
-            placeholder="e.g. User prefers dark mode..."
+            placeholder={t("insight.placeholder")}
             className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
           />
           <button

@@ -1,6 +1,7 @@
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Form, Input, Modal, Select, Space } from "antd";
 import { Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export type TeammateBackendType = "InProcess" | "SubProcess";
 
@@ -28,6 +29,7 @@ export function CreateTeamModal({
   loading = false,
 }: CreateTeamModalProps) {
   const [form] = Form.useForm<CreateTeamData>();
+  const { t } = useTranslation();
 
   const handleOk = async () => {
     try {
@@ -49,15 +51,15 @@ export function CreateTeamModal({
       title={
         <span className="flex items-center gap-2">
           <Users size={18} />
-          创建团队
+          {t("createTeam.createTeam")}
         </span>
       }
       open={open}
       onOk={handleOk}
       onCancel={handleCancel}
       confirmLoading={loading}
-      okText="创建团队"
-      cancelText="取消"
+      okText={t("createTeam.createTeam")}
+      cancelText={t("common.cancel")}
       destroyOnHidden
       width={560}
     >
@@ -72,13 +74,13 @@ export function CreateTeamModal({
       >
         <Form.Item
           name="teamName"
-          label="团队名称"
-          rules={[{ required: true, message: "请输入团队名称" }]}
+          label={t("createTeam.teamName")}
+          rules={[{ required: true, message: t("createTeam.teamNameRequired") }]}
         >
-          <Input name="teamName" placeholder="例如：前端开发组、数据分析组" />
+          <Input name="teamName" placeholder={t("createTeam.teamNamePlaceholder")} />
         </Form.Item>
 
-        <Form.Item label="队友列表">
+        <Form.Item label={t("createTeam.memberList")}>
           <Form.List name="teammates">
             {(fields, { add, remove }) => (
               <>
@@ -91,24 +93,24 @@ export function CreateTeamModal({
                     <Form.Item
                       {...rest}
                       name={[name, "name"]}
-                      rules={[{ required: true, message: "请输入队友名称" }]}
+                      rules={[{ required: true, message: t("createTeam.memberNameRequired") }]}
                       style={{ marginBottom: 0 }}
                     >
-                      <Input id="create-team-modal-input-12" placeholder="队友名称" style={{ width: 200 }} />
+                      <Input id="create-team-modal-input-12" placeholder={t("createTeam.memberNamePlaceholder")} style={{ width: 200 }} />
                     </Form.Item>
 
                     <Form.Item
                       {...rest}
                       name={[name, "backendType"]}
-                      rules={[{ required: true, message: "请选择后端类型" }]}
+                      rules={[{ required: true, message: t("createTeam.backendTypeRequired") }]}
                       style={{ marginBottom: 0 }}
                     >
                       <Select
-                        placeholder="后端类型"
+                        placeholder={t("createTeam.backendTypePlaceholder")}
                         style={{ width: 140 }}
                         options={[
-                          { label: "进程内 (InProcess)", value: "InProcess" },
-                          { label: "子进程 (SubProcess)", value: "SubProcess" },
+                          { label: t("createTeam.inProcess"), value: "InProcess" },
+                          { label: t("createTeam.subProcess"), value: "SubProcess" },
                         ]}
                       />
                     </Form.Item>
@@ -131,7 +133,7 @@ export function CreateTeamModal({
                   icon={<PlusOutlined />}
                   block
                 >
-                  添加队友
+                  {t("createTeam.addTeammate")}
                 </Button>
               </>
             )}

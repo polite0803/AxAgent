@@ -1,5 +1,6 @@
 import { Alert, Button, Modal, Space, Spin, Steps, Table, Tag, Typography } from "antd";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDecompositionStore } from "../../stores/feature/decompositionStore";
 import type { ToolDependency } from "../../types";
 import { ToolDependencyList } from "./ToolDependencyList";
@@ -29,6 +30,7 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
   onComplete,
 }) => {
   const { preview, loading, confirmDecomposition } = useDecompositionStore();
+  const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const [activeDep, setActiveDep] = useState<ToolDependency | null>(null);
 
@@ -52,20 +54,20 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
 
   return (
     <Modal
-      title="复合技能分解预览"
+      title={t("decomposition.title")}
       open={visible}
       onCancel={onClose}
       width={720}
       footer={
         <Space>
-          <Button onClick={onClose}>取消</Button>
+          <Button onClick={onClose}>{t("decomposition.cancel")}</Button>
           <Button
             type="primary"
             loading={confirming}
             disabled={!!hasUnresolvedDeps}
             onClick={handleConfirm}
           >
-            确认分解
+            {t("decomposition.confirmDecompose")}
           </Button>
         </Space>
       }
@@ -78,9 +80,9 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 size="small"
                 current={1}
                 items={[
-                  { title: "解析" },
-                  { title: "分解预览" },
-                  { title: "完成" },
+                  { title: t("decomposition.stepParse") },
+                  { title: t("decomposition.stepPreview") },
+                  { title: t("decomposition.stepComplete") },
                 ]}
                 style={{ marginBottom: 24 }}
               />
@@ -90,18 +92,18 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                   type="warning"
                   showIcon
                   style={{ marginBottom: 16 }}
-                  message="存在未解决的工具依赖，请处理后再确认分解"
+                  message={t("decomposition.unresolvedDeps")}
                 />
               )}
 
-              <Typography.Title level={5}>工作流步骤</Typography.Title>
+              <Typography.Title level={5}>{t("decomposition.workflowSteps")}</Typography.Title>
               <Table
                 dataSource={[]}
                 columns={[
-                  { title: "名称", dataIndex: "name", key: "name" },
-                  { title: "描述", dataIndex: "description", key: "description", ellipsis: true },
+                  { title: t("decomposition.colName"), dataIndex: "name", key: "name" },
+                  { title: t("decomposition.colDescription"), dataIndex: "description", key: "description", ellipsis: true },
                   {
-                    title: "入口类型",
+                    title: t("decomposition.colEntryType"),
                     dataIndex: "entry_type",
                     key: "entry_type",
                     width: 90,
@@ -116,7 +118,7 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
 
               {preview.tool_dependencies.length > 0 && (
                 <>
-                  <Typography.Title level={5}>工具依赖 ({preview.tool_dependencies.length})</Typography.Title>
+                  <Typography.Title level={5}>{t("decomposition.toolDependencies")} ({preview.tool_dependencies.length})</Typography.Title>
                   <ToolDependencyList
                     dependencies={preview.tool_dependencies}
                     onAction={handleDepAction}
@@ -132,7 +134,7 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                         border: "1px solid #d9d9d9",
                       }}
                     >
-                      <Typography.Title level={5} style={{ marginTop: 0 }}>处理: {activeDep.name}</Typography.Title>
+                      <Typography.Title level={5} style={{ marginTop: 0 }}>{t("decomposition.processing")} {activeDep.name}</Typography.Title>
                       {(activeDep.status === "needs_generation")
                         ? (
                           <>
@@ -154,17 +156,17 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 </>
               )}
 
-              <Typography.Title level={5}>来源信息</Typography.Title>
+              <Typography.Title level={5}>{t("decomposition.sourceInfo")}</Typography.Title>
               <Paragraph type="secondary">
-                市场: {preview.original_source.market}
-                {preview.original_source.repo && ` | 仓库: ${preview.original_source.repo}`}
-                {preview.original_source.version && ` | 版本: ${preview.original_source.version}`}
+                {t("decomposition.market")}: {preview.original_source.market}
+                {preview.original_source.repo && ` | ${t("decomposition.repo")}: ${preview.original_source.repo}`}
+                {preview.original_source.version && ` | ${t("decomposition.version")}: ${preview.original_source.version}`}
               </Paragraph>
             </div>
           )
           : (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <Text type="secondary">正在解析复合技能...</Text>
+              <Text type="secondary">{t("decomposition.parsing")}</Text>
             </div>
           )}
       </Spin>

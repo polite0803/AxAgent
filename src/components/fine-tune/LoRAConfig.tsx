@@ -80,7 +80,7 @@ export function LoRAConfig() {
 
           <Form.Item
             name="datasetId"
-            label="Dataset"
+            label={t("loraConfig.dataset")}
             rules={[{ required: true, message: "Please select a dataset" }]}
           >
             <Select placeholder={t("devtools.fineTune.selectDataset")}>
@@ -94,7 +94,7 @@ export function LoRAConfig() {
 
           <Form.Item
             name="baseModel"
-            label="Base Model"
+            label={t("loraConfig.baseModel")}
             rules={[{ required: true, message: "Please select a base model" }]}
           >
             <Select placeholder={t("devtools.fineTune.selectBaseModel")}>
@@ -110,7 +110,7 @@ export function LoRAConfig() {
 
           <Form.Item
             name="rank"
-            label="Rank"
+            label={t("loraConfig.rank")}
             extra="Higher rank = more parameters, better quality, slower training"
           >
             <Slider min={2} max={64} marks={{ 2: "2", 8: "8", 16: "16", 32: "32", 64: "64" }} />
@@ -118,7 +118,7 @@ export function LoRAConfig() {
 
           <Form.Item
             name="alpha"
-            label="Alpha"
+            label={t("loraConfig.alpha")}
             extra="Scaling factor for LoRA weights"
           >
             <Slider min={1} max={128} marks={{ 1: "1", 16: "16", 32: "32", 64: "64", 128: "128" }} />
@@ -126,7 +126,7 @@ export function LoRAConfig() {
 
           <Form.Item
             name="learningRate"
-            label="Learning Rate"
+            label={t("loraConfig.learningRate")}
           >
             <Slider
               min={0.00001}
@@ -143,7 +143,7 @@ export function LoRAConfig() {
 
           <Form.Item
             name="batchSize"
-            label="Batch Size"
+            label={t("loraConfig.batchSize")}
           >
             <Slider
               min={1}
@@ -154,7 +154,7 @@ export function LoRAConfig() {
 
           <Form.Item
             name="epochs"
-            label="Epochs"
+            label={t("loraConfig.epochs")}
           >
             <Slider
               min={1}
@@ -175,7 +175,7 @@ export function LoRAConfig() {
               >
                 Create Training Job
               </Button>
-              <Button onClick={() => form.resetFields()}>Reset</Button>
+              <Button onClick={() => form.resetFields()}>{t("loraConfig.reset")}</Button>
             </Space>
           </Form.Item>
         </Form>

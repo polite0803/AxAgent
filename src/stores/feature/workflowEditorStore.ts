@@ -34,6 +34,8 @@ interface PendingWorkflowData {
   workflowDescription?: string;
 }
 
+type HistoryEntry = { nodes: WorkflowNode[]; edges: WorkflowEdge[]; name: string; description?: string; icon: string; tags: string[] };
+
 interface WorkflowEditorState {
   currentTemplate: WorkflowTemplateResponse | null;
   templates: WorkflowTemplateResponse[];
@@ -45,8 +47,8 @@ interface WorkflowEditorState {
   validationResult: ValidationResult | null;
   filter: TemplateFilter;
   error: string | null;
-  past: Array<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }>;
-  future: Array<{ nodes: WorkflowNode[]; edges: WorkflowEdge[] }>;
+  past: Array<HistoryEntry>;
+  future: Array<HistoryEntry>;
   _lastUndoRecordTime: number;
   undo: () => void;
   redo: () => void;
@@ -193,6 +195,15 @@ const createEmptyTemplate = (): Omit<WorkflowTemplateResponse, "id" | "created_a
   error_config: undefined,
 });
 
+const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
+  nodes: [...state.nodes],
+  edges: [...state.edges],
+  name: state.currentTemplate?.name || "",
+  description: state.currentTemplate?.description,
+  icon: state.currentTemplate?.icon || "Bot",
+  tags: state.currentTemplate?.tags || [],
+});
+
 export const useWorkflowEditorStore = create<WorkflowEditorState>()(
   immer((set, get) => ({
     currentTemplate: null,
@@ -222,9 +233,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
       const previous = past[past.length - 1];
       set((state) => {
-        state.future.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.future.push(buildHistoryEntry(state));
         state.nodes = previous.nodes;
         state.edges = previous.edges;
+        if (state.currentTemplate) {
+          state.currentTemplate.name = previous.name;
+          state.currentTemplate.description = previous.description;
+          state.currentTemplate.icon = previous.icon;
+          state.currentTemplate.tags = previous.tags;
+        }
         state.past = state.past.slice(0, -1);
         state.isDirty = true;
       });
@@ -236,9 +253,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
       const next = future[future.length - 1];
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.past.push(buildHistoryEntry(state));
         state.nodes = next.nodes;
         state.edges = next.edges;
+        if (state.currentTemplate) {
+          state.currentTemplate.name = next.name;
+          state.currentTemplate.description = next.description;
+          state.currentTemplate.icon = next.icon;
+          state.currentTemplate.tags = next.tags;
+        }
         state.future = state.future.slice(0, -1);
         state.isDirty = true;
       });
@@ -514,7 +537,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     addNode: (node: WorkflowNode) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.past.push(buildHistoryEntry(state));
         state.future = [];
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
@@ -529,7 +552,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       set((state) => {
         const now = Date.now();
         if (now - state._lastUndoRecordTime >= 1000) {
-          state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+          state.past.push(buildHistoryEntry(state));
           state.future = [];
           if (state.past.length > 50) {
             state.past = state.past.slice(-50);
@@ -546,7 +569,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     deleteNode: (nodeId: string) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.past.push(buildHistoryEntry(state));
         state.future = [];
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
@@ -563,7 +586,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     addEdge: (edge: WorkflowEdge) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.past.push(buildHistoryEntry(state));
         state.future = [];
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
@@ -578,7 +601,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       set((state) => {
         const now = Date.now();
         if (now - state._lastUndoRecordTime >= 1000) {
-          state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+          state.past.push(buildHistoryEntry(state));
           state.future = [];
           if (state.past.length > 50) {
             state.past = state.past.slice(-50);
@@ -595,7 +618,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     deleteEdge: (edgeId: string) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.past.push(buildHistoryEntry(state));
         state.future = [];
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
@@ -611,7 +634,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     setNodes: (nodes: WorkflowNode[]) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.past.push(buildHistoryEntry(state));
         state.future = [];
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
@@ -624,7 +647,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     setEdges: (edges: WorkflowEdge[]) => {
       set((state) => {
-        state.past.push({ nodes: [...state.nodes], edges: [...state.edges] });
+        state.past.push(buildHistoryEntry(state));
         state.future = [];
         if (state.past.length > 50) {
           state.past = state.past.slice(-50);
@@ -638,6 +661,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     updateTemplateMetadata: (metadata) => {
       set((state) => {
         if (state.currentTemplate) {
+          const now = Date.now();
+          if (now - state._lastUndoRecordTime >= 1000) {
+            state.past.push(buildHistoryEntry(state));
+            state.future = [];
+            if (state.past.length > 50) {
+              state.past = state.past.slice(-50);
+            }
+            state._lastUndoRecordTime = now;
+          }
           if (metadata.name !== undefined) { state.currentTemplate.name = metadata.name; }
           if (metadata.description !== undefined) { state.currentTemplate.description = metadata.description; }
           if (metadata.icon !== undefined) { state.currentTemplate.icon = metadata.icon; }

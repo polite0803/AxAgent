@@ -46,10 +46,10 @@ export function ToolRecommendationPanel() {
 
   return (
     <div style={{ padding: "24px" }}>
-      <Card title="Tool Recommendation">
+      <Card title={t("recommendation.title")}>
         <Space direction="vertical" style={{ width: "100%" }} size="large">
           <div>
-            <Title level={5}>Task Description</Title>
+            <Title level={5}>{t("recommendation.taskDescription")}</Title>
             <TextArea
               placeholder={t("devtools.toolRecommender.taskPlaceholder")}
               value={localTask}
@@ -87,7 +87,7 @@ export function ToolRecommendationPanel() {
               <Divider />
 
               <div>
-                <Title level={5}>Analysis Result</Title>
+                <Title level={5}>{t("recommendation.analysisResult")}</Title>
                 <Progress
                   percent={Math.round(recommendations.confidence * 100)}
                   status={recommendations.confidence >= 0.7 ? "success" : "active"}
@@ -102,7 +102,7 @@ export function ToolRecommendationPanel() {
               <Divider />
 
               <div>
-                <Title level={5}>Recommended Tools</Title>
+                <Title level={5}>{t("recommendation.recommendedTools")}</Title>
                 <List
                   itemLayout="horizontal"
                   dataSource={recommendations.tools}
@@ -135,7 +135,7 @@ export function ToolRecommendationPanel() {
                 <>
                   <Divider />
                   <div>
-                    <Title level={5}>Alternative Approaches</Title>
+                    <Title level={5}>{t("recommendation.alternativeApproaches")}</Title>
                     <List
                       itemLayout="horizontal"
                       dataSource={recommendations.alternatives}
@@ -177,7 +177,7 @@ export function ToolRecommendationPanel() {
       </Card>
 
       {availableTools.length > 0 && (
-        <Card title="Available Tools" style={{ marginTop: "16px" }}>
+        <Card title={t("recommendation.availableTools")} style={{ marginTop: "16px" }}>
           <List
             grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
             dataSource={availableTools}

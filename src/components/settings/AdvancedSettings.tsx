@@ -25,14 +25,14 @@ function BashValidationSection() {
   const [timeout, setTimeout_] = useExtSetting("bash_timeout_secs", 120);
 
   return (
-    <SettingsGroup title={t("advanced.bashSecurity", "Bash 命令安全验证")}>
+    <SettingsGroup title={t("advancedSettings.bashSecurity", "Bash 命令安全验证")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.dangerousCmdDetect", "启用危险命令检测")}</span>
         <Switch id="advanced-settings-switch-4" checked={dangerous} onChange={setDangerous} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advanced.networkCmdDetect", "启用网络命令检测")}</span>
+        <span>{t("advancedSettings.networkCmdDetect", "启用网络命令检测")}</span>
         <Switch id="advanced-settings-switch-5" checked={network} onChange={setNetwork} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
@@ -63,16 +63,16 @@ function PermissionEnforcerSection() {
   const [shellConfirm, setShellConfirm] = useExtSetting("permission_shell_confirm", true);
 
   return (
-    <SettingsGroup title={t("advanced.permissionStrategy", "权限执行策略")}>
+    <SettingsGroup title={t("advancedSettings.permissionStrategy", "权限执行策略")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advanced.defaultPermission", "默认权限模式")}</span>
+        <span>{t("advancedSettings.defaultPermission", "默认权限模式")}</span>
         <Select
           id="advanced-settings-select-7"
           value={permMode}
           options={[
-            { value: "default", label: t("advanced.perm.default", "默认（每次询问）") },
-            { value: "accept_edits", label: t("advanced.perm.acceptEdits", "接受编辑") },
-            { value: "full_access", label: t("advanced.perm.fullAccess", "完全访问") },
+            { value: "default", label: t("advancedSettings.perm.default", "默认（每次询问）") },
+            { value: "accept_edits", label: t("advancedSettings.perm.acceptEdits", "接受编辑") },
+            { value: "full_access", label: t("advancedSettings.perm.fullAccess", "完全访问") },
           ]}
           onChange={setPermMode}
           style={{ width: 150 }}
@@ -85,12 +85,12 @@ function PermissionEnforcerSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advanced.networkConfirm", "网络请求需确认")}</span>
+        <span>{t("advancedSettings.networkConfirm", "网络请求需确认")}</span>
         <Switch id="advanced-settings-switch-9" checked={netConfirm} onChange={setNetConfirm} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advanced.shellConfirm", "Shell 执行需确认")}</span>
+        <span>{t("advancedSettings.shellConfirm", "Shell 执行需确认")}</span>
         <Switch id="advanced-settings-switch-10" checked={shellConfirm} onChange={setShellConfirm} />
       </div>
     </SettingsGroup>
@@ -102,22 +102,23 @@ function PermissionEnforcerSection() {
 // ---------------------------------------------------------------------------
 
 function ModeSelectorSection() {
+  const { t } = useTranslation();
   const [agentMode, setAgentMode] = useExtSetting("agent_mode", "general");
   const [budget, setBudget] = useExtSetting("token_budget_limit", 180000);
   const [budgetEnabled, setBudgetEnabled] = useExtSetting("token_budget_enabled", true);
 
   return (
-    <SettingsGroup title="Agent 运行模式">
+    <SettingsGroup title={t("advancedSettings.agentMode")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>默认模式</span>
+        <span>{t("advancedSettings.defaultMode")}</span>
         <Select
           id="advanced-settings-select-11"
           value={agentMode}
           options={[
-            { value: "general", label: "通用模式" },
-            { value: "speed", label: "快速模式（轻量）" },
-            { value: "deep", label: "深度模式（研究）" },
-            { value: "plan", label: "计划模式" },
+            { value: "general", label: t("advancedSettings.mode.general") },
+            { value: "speed", label: t("advancedSettings.mode.speed") },
+            { value: "deep", label: t("advancedSettings.mode.deep") },
+            { value: "plan", label: t("advancedSettings.mode.plan") },
           ]}
           onChange={setAgentMode}
           style={{ width: 150 }}
@@ -125,7 +126,7 @@ function ModeSelectorSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>Token 预算上限</span>
+        <span>{t("advancedSettings.tokenBudgetLimit")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-12"
           min={10000}
@@ -138,7 +139,7 @@ function ModeSelectorSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>启用 Token 预算检测</span>
+        <span>{t("advancedSettings.enableTokenBudget")}</span>
         <Switch id="advanced-settings-switch-13" checked={budgetEnabled} onChange={setBudgetEnabled} />
       </div>
     </SettingsGroup>
@@ -150,20 +151,21 @@ function ModeSelectorSection() {
 // ---------------------------------------------------------------------------
 
 function RecoveryRecipesSection() {
+  const { t } = useTranslation();
   const [autoRetry, setAutoRetry] = useExtSetting("recovery_auto_retry", true);
   const [maxRetries, setMaxRetries] = useExtSetting("recovery_max_retries", 3);
   const [delay, setDelay] = useExtSetting("recovery_retry_delay_secs", 5);
   const [fallback, setFallback] = useExtSetting("recovery_model_fallback", true);
 
   return (
-    <SettingsGroup title="故障恢复策略">
+    <SettingsGroup title={t("advancedSettings.faultRecovery")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>自动重试</span>
+        <span>{t("advancedSettings.autoRetry")}</span>
         <Switch id="advanced-settings-switch-14" checked={autoRetry} onChange={setAutoRetry} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>最大重试次数</span>
+        <span>{t("advancedSettings.maxRetries")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-15"
           min={1}
@@ -175,7 +177,7 @@ function RecoveryRecipesSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>重试延迟（秒）</span>
+        <span>{t("advancedSettings.retryDelay")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-16"
           min={1}
@@ -187,7 +189,7 @@ function RecoveryRecipesSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>模型降级回退</span>
+        <span>{t("advancedSettings.modelFallback")}</span>
         <Switch id="advanced-settings-switch-17" checked={fallback} onChange={setFallback} />
       </div>
     </SettingsGroup>
@@ -195,20 +197,21 @@ function RecoveryRecipesSection() {
 }
 
 function GreenContractSection() {
+  const { t } = useTranslation();
   const [cpuLimit, setCpuLimit] = useExtSetting("resource_cpu_limit", 80);
   const [memLimit, setMemLimit] = useExtSetting("resource_memory_limit_mb", 4096);
   const [idleDetect, setIdleDetect] = useExtSetting("resource_idle_detect", true);
   const [idleTimeout, setIdleTimeout] = useExtSetting("resource_idle_timeout_secs", 300);
 
   return (
-    <SettingsGroup title="资源管控 & 环保策略">
+    <SettingsGroup title={t("advancedSettings.resourceControl")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>CPU 使用率上限（%）</span>
+        <span>{t("advancedSettings.cpuLimit")}</span>
         <Slider min={10} max={90} value={cpuLimit} onChange={setCpuLimit} style={{ width: 150 }} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>内存使用上限（MB）</span>
+        <span>{t("advancedSettings.memoryLimit")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-18"
           min={256}
@@ -221,12 +224,12 @@ function GreenContractSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>启用空转检测</span>
+        <span>{t("advancedSettings.enableIdleDetection")}</span>
         <Switch id="advanced-settings-switch-19" checked={idleDetect} onChange={setIdleDetect} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>空闲超时（秒）</span>
+        <span>{t("advancedSettings.idleTimeout")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-20"
           min={30}
@@ -241,15 +244,16 @@ function GreenContractSection() {
 }
 
 function CompactionThresholdSection() {
+  const { t } = useTranslation();
   const [autoThresh, setAutoThresh] = useExtSetting("compact_auto_threshold", 13000);
   const [warnBuffer, setWarnBuffer] = useExtSetting("compact_warning_buffer", 20000);
   const [maxFails, setMaxFails] = useExtSetting("compact_max_failures", 3);
   const [memCompact, setMemCompact] = useExtSetting("session_memory_compact_enabled", true);
 
   return (
-    <SettingsGroup title="上下文压缩阈值">
+    <SettingsGroup title={t("advancedSettings.contextCompression")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>自动压缩阈值（token）</span>
+        <span>{t("advancedSettings.autoCompressThreshold")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-21"
           min={10000}
@@ -262,7 +266,7 @@ function CompactionThresholdSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>警告阈值缓冲（token）</span>
+        <span>{t("advancedSettings.warningBuffer")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-22"
           min={5000}
@@ -275,7 +279,7 @@ function CompactionThresholdSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>最大连续压缩失败</span>
+        <span>{t("advancedSettings.maxConsecutiveFailures")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-23"
           min={1}
@@ -287,7 +291,7 @@ function CompactionThresholdSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>启用会话记忆压缩</span>
+        <span>{t("advancedSettings.enableMemoryCompression")}</span>
         <Switch id="advanced-settings-switch-24" checked={memCompact} onChange={setMemCompact} />
       </div>
     </SettingsGroup>
@@ -295,20 +299,21 @@ function CompactionThresholdSection() {
 }
 
 function DreamConsolidationSection() {
+  const { t } = useTranslation();
   const [enabled, setEnabled] = useExtSetting("dream_enabled", true);
   const [intervalH, setIntervalH] = useExtSetting("dream_min_interval_hours", 1);
   const [minSessions, setMinSessions] = useExtSetting("dream_min_sessions", 3);
   const [maxDuration, setMaxDuration] = useExtSetting("dream_max_duration_secs", 120);
 
   return (
-    <SettingsGroup title="Dream 后台巩固">
+    <SettingsGroup title={t("advancedSettings.dreamConsolidation")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>启用 Dream 巩固</span>
+        <span>{t("advancedSettings.enableDream")}</span>
         <Switch id="advanced-settings-switch-25" checked={enabled} onChange={setEnabled} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>最小间隔（小时）</span>
+        <span>{t("advancedSettings.minInterval")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-26"
           min={1}
@@ -320,7 +325,7 @@ function DreamConsolidationSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>最小新会话数</span>
+        <span>{t("advancedSettings.minNewSessions")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-27"
           min={1}
@@ -332,7 +337,7 @@ function DreamConsolidationSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>最大持续时间（秒）</span>
+        <span>{t("advancedSettings.maxDuration")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-28"
           min={30}
@@ -347,25 +352,26 @@ function DreamConsolidationSection() {
 }
 
 function LspDiagnosticsSection() {
+  const { t } = useTranslation();
   const [enabled, setEnabled] = useExtSetting("lsp_enabled", false);
   const [level, setLevel] = useExtSetting("lsp_diagnostic_level", "warning");
 
   return (
-    <SettingsGroup title="LSP 语言服务器">
+    <SettingsGroup title={t("advancedSettings.lspServer")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>启用 LSP 诊断</span>
+        <span>{t("advancedSettings.enableLspDiagnostics")}</span>
         <Switch id="advanced-settings-switch-29" checked={enabled} onChange={setEnabled} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>诊断级别</span>
+        <span>{t("advancedSettings.diagnosticLevelLabel")}</span>
         <Select
           id="advanced-settings-select-30"
           value={level}
           options={[
-            { value: "error", label: "仅错误" },
-            { value: "warning", label: "错误+警告" },
-            { value: "information", label: "全部" },
+            { value: "error", label: t("advancedSettings.diagnosticLevel.error") },
+            { value: "warning", label: t("advancedSettings.diagnosticLevel.warning") },
+            { value: "information", label: t("advancedSettings.diagnosticLevel.information") },
           ]}
           onChange={setLevel}
           style={{ width: 130 }}

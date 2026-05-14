@@ -619,6 +619,7 @@ function LocalGraphView({
   token: ReturnType<typeof theme.useToken>["token"];
   onNodeClick: (nodeId: string) => void;
 }) {
+  const { t } = useTranslation();
   const initialNodes: Node[] = useMemo(
     () =>
       data.nodes.map((n, i) => ({
@@ -662,7 +663,7 @@ function LocalGraphView({
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   if (data.nodes.length === 0) {
-    return <Empty description="No connected nodes" className="mt-8" />;
+    return <Empty description={t("wiki.graph.noConnectedNodes")} className="mt-8" />;
   }
 
   return (

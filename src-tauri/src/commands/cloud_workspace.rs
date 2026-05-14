@@ -1,4 +1,4 @@
-use axagent_core::cloud_storage::S3ProviderPreset;
+use axagent_core::cloud_storage::{BackendType, CloudStorageConfig, S3Config, S3ProviderPreset, WebDavConfig};
 use axagent_core::sync_conflict::{ConflictResolution, ConflictStrategy};
 use axagent_core::workspace_uri::WorkspaceUri;
 use tauri::State;
@@ -325,4 +325,70 @@ pub async fn set_cloud_conflict_strategy(
 
     cloud_workspace.set_conflict_strategy(strategy);
     Ok(())
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CheckCloudConnectionRequest {
+    pub storage_type: String,
+    pub endpoint: Option<String>,
+    pub region: Option<String>,
+    pub bucket: Option<String>,
+    pub access_key_id: Option<String>,
+    pub secret_access_key: Option<String>,
+    pub root: Option<String>,
+    pub use_path_style: Option<bool>,
+    pub host: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub path: Option<String>,
+}
+
+#[tauri::command]
+pub async fn check_cloud_connection(config: CheckCloudConnectionRequest) -> Result<bool, String> {
+    let backend_type = match config.storage_type.as_str() {
+        "s3" => BackendType::S3,
+        "webdav" => BackendType::WebDav,
+        other => return Err(format!("Unknown storage type: {}", other)),
+    };
+
+    let cloud_config = CloudStorageConfig {
+        provider_preset: S3ProviderPreset::Custom,
+        backend_type,
+        sync_enabled: true,
+        sync_mode: axagent_core::cloud_storage::SyncMode::Sync,
+        profile_name: "test".to_string(),
+        s3: if backend_type == BackendType::S3 {
+            Some(S3Config {
+                endpoint: config.endpoint.unwrap_or_default(),
+                region: config.region.unwrap_or_else(|| "auto".to_string()),
+                bucket: config.bucket.unwrap_or_default(),
+                access_key_id: config.access_key_id.unwrap_or_default(),
+                secret_access_key: config.secret_access_key.unwrap_or_default(),
+                root: config.root.unwrap_or_default(),
+                use_path_style: config.use_path_style.unwrap_or(false),
+            })
+        } else {
+            None
+        },
+        webdav: if backend_type == BackendType::WebDav {
+            Some(WebDavConfig {
+                host: config.host.unwrap_or_default(),
+                username: config.username.unwrap_or_default(),
+                password: config.password.unwrap_or_default(),
+                path: config.path.unwrap_or_else(|| "/".to_string()),
+                accept_invalid_certs: false,
+            })
+        } else {
+            None
+        },
+    };
+
+    let backend = cloud_config
+        .create_backend()
+        .map_err(|e| format!("Failed to create backend: {}", e))?;
+
+    backend
+        .check_connection()
+        .await
+        .map_err(|e| format!("Connection check failed: {}", e))
 }

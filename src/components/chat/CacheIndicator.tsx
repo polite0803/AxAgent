@@ -1,5 +1,6 @@
 import { Tag, Tooltip } from "antd";
 import { AlertTriangle, Clock, Database } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CacheIndicatorProps {
   cacheValid: boolean;
@@ -14,9 +15,10 @@ export function CacheIndicator({
   tokensSaved,
   cacheHits,
 }: CacheIndicatorProps) {
+  const { t } = useTranslation();
   if (!cacheValid && !hasPendingChanges) {
     return (
-      <Tooltip title="Prompt cache not established. First turn in session.">
+      <Tooltip title={t("cacheIndicator.notEstablished")}>
         <Tag icon={<Clock size={12} />} color="default" style={{ margin: 0 }}>
           Fresh
         </Tag>
@@ -26,7 +28,7 @@ export function CacheIndicator({
 
   if (hasPendingChanges) {
     return (
-      <Tooltip title="Pending changes detected. Changes apply next session. Use --now to force.">
+      <Tooltip title={t("cacheIndicator.pendingChanges")}>
         <Tag icon={<AlertTriangle size={12} />} color="warning" style={{ margin: 0 }}>
           Pending
         </Tag>

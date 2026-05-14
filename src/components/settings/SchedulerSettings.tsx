@@ -753,8 +753,8 @@ export function SchedulerSettings() {
                     <Popconfirm
                       title={t("settings.scheduler.deleteTaskConfirm")}
                       onConfirm={() => handleDeleteTask(task.id)}
-                      okText="Yes"
-                      cancelText="No"
+                      okText={t("common.yes")}
+                      cancelText={t("common.no")}
                     >
                       <Button
                         type="text"
@@ -835,7 +835,7 @@ export function SchedulerSettings() {
         onCancel={() => setTaskModalOpen(false)}
         confirmLoading={loading}
         okText={editingTask ? t("settings.scheduler.updateTask") : t("settings.scheduler.createTask")}
-        cancelText="Cancel"
+        cancelText={t("common.cancel")}
         width={700}
       >
         {!editingTask && (

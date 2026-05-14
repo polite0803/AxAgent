@@ -12,7 +12,6 @@ const LazyKnowledgeHubPage = lazy(() =>
 );
 const LazyGatewayLinkPage = lazy(() => import("@/pages/GatewayLinkPage").then((m) => ({ default: m.GatewayLinkPage })));
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
-const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
 const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
 const LazyTraceExplorer = lazy(() =>
   import("@/pages/DevTools/TraceExplorer").then((m) => ({ default: m.TraceExplorer }))
@@ -98,7 +97,6 @@ export function ContentArea() {
       <Route path="/link" element={<SafeLazyPage Page={LazyGatewayLinkPage} />} />
       <Route path="/gateway" element={<SafeLazyPage Page={LazyGatewayLinkPage} />} />
       <Route path="/settings/*" element={<SafeLazyPage Page={LazySettingsPage} />} />
-      <Route path="/skills" element={<SafeLazyPage Page={LazySkillsPage} />} />
       <Route path="/workflow" element={<SafeLazyPage Page={LazyWorkflowPage} />} />
       <Route path="/llm-wiki" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
       <Route path="/llm-wiki/:wikiId/graph" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />

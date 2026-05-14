@@ -1,4 +1,4 @@
-import { Tag, Tooltip } from "antd";
+import { Tag, Tooltip, theme } from "antd";
 import { AlertCircle, AlertTriangle, CheckCircle, Circle, Maximize2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -24,6 +24,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onResetZoom,
 }) => {
   const { t } = useTranslation("chat");
+  const { token } = theme.useToken();
 
   const getValidationIcon = () => {
     if (!validationResult) { return null; }
@@ -31,7 +32,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     if (validationResult.errors.length > 0) {
       return (
         <Tooltip title={t("workflow.statusBar.errors", { count: validationResult.errors.length })}>
-          <AlertCircle size={14} style={{ color: "#ff4d4f" }} />
+          <AlertCircle size={14} style={{ color: token.colorError }} />
         </Tooltip>
       );
     }
@@ -39,14 +40,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     if (validationResult.warnings.length > 0) {
       return (
         <Tooltip title={t("workflow.statusBar.warnings", { count: validationResult.warnings.length })}>
-          <AlertTriangle size={14} style={{ color: "#faad14" }} />
+          <AlertTriangle size={14} style={{ color: token.colorWarning }} />
         </Tooltip>
       );
     }
 
     return (
       <Tooltip title={t("workflow.statusBar.valid")}>
-        <CheckCircle size={14} style={{ color: "#52c41a" }} />
+        <CheckCircle size={14} style={{ color: token.colorSuccess }} />
       </Tooltip>
     );
   };
@@ -55,18 +56,18 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     <div
       style={{
         height: 28,
-        background: "#1a1a1a",
-        borderTop: "1px solid #333",
+        background: token.colorBgContainer,
+        borderTop: `1px solid ${token.colorBorderSecondary}`,
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
         gap: 16,
         fontSize: 11,
-        color: "#666",
+        color: token.colorTextTertiary,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Circle size={10} fill={isDirty ? "#faad14" : "#52c41a"} color={isDirty ? "#faad14" : "#52c41a"} />
+        <Circle size={10} fill={isDirty ? token.colorWarning : token.colorSuccess} color={isDirty ? token.colorWarning : token.colorSuccess} />
         <span>{isDirty ? t("workflow.statusBar.unsaved") : t("workflow.statusBar.saved")}</span>
       </div>
 
@@ -93,7 +94,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <Tooltip title={t("workflow.statusBar.resetZoom")}>
         <span
           onClick={onResetZoom}
-          style={{ cursor: "pointer", color: "#999", userSelect: "none" }}
+          style={{ cursor: "pointer", color: token.colorTextSecondary, userSelect: "none" }}
         >
           {Math.round(zoom * 100)}%
         </span>
@@ -103,7 +104,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <Maximize2
           size={14}
           onClick={onFitView}
-          style={{ cursor: "pointer", color: "#999" }}
+          style={{ cursor: "pointer", color: token.colorTextSecondary }}
         />
       </Tooltip>
 

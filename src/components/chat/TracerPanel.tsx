@@ -134,7 +134,7 @@ export default function TracerPanel() {
                 <button
                   onClick={() => handleDelete(trace.trace_id)}
                   className="p-0.5 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-red-500 transition-colors"
-                  title="Delete trace"
+                  title={t("devtools.deleteTrace")}
                 >
                   <Trash2 size={12} />
                 </button>

@@ -7,7 +7,7 @@ import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, use
 import type { PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar, theme, Tooltip } from "antd";
-import { Database, HelpCircle, MessageSquare, Router, Sparkles, User } from "lucide-react";
+import { Database, HelpCircle, MessageSquare, Router, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -15,7 +15,6 @@ import { UserProfileModal } from "./UserProfileModal";
 
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
-  skills: "/skills",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",
@@ -47,13 +46,6 @@ const builtinNavItems: NavItem[] = [
     icon: <MessageSquare size={18} color={NAV_ICON_COLORS.MessageSquare} />,
     labelKey: "nav.chat",
     path: "/",
-    isPlugin: false,
-  },
-  {
-    key: "skills",
-    icon: <Sparkles size={18} color={NAV_ICON_COLORS.Sparkles} />,
-    labelKey: "nav.skills",
-    path: "/skills",
     isPlugin: false,
   },
   {
@@ -138,7 +130,7 @@ export function Sidebar() {
     sections.push({
       key: "tools",
       labelKey: "sidebar.sectionTools",
-      items: builtinNavItems.filter((n) => n.key === "skills" || n.key === "knowledge"),
+      items: builtinNavItems.filter((n) => n.key === "knowledge"),
     });
 
     sections.push({

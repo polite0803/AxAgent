@@ -3,6 +3,7 @@ import type { SkillManifest } from "@/types";
 import { Button, Input, message, Modal, Space, Tabs, Typography } from "antd";
 import { Lightbulb } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -24,6 +25,7 @@ const DEFAULT_MANIFEST: Partial<SkillManifest> = {
 };
 
 export function FrontendEditorModal({ open, skillName, currentManifest, onClose, onSaved }: FrontendEditorModalProps) {
+  const { t } = useTranslation();
   const [editorTab, setEditorTab] = useState<"json" | "preview">("json");
   const [jsonText, setJsonText] = useState(formatJson(DEFAULT_MANIFEST));
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -90,8 +92,8 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
       onOk={handleSave}
       confirmLoading={saving}
       width={700}
-      okText="保存"
-      cancelText="取消"
+      okText={t("common.save")}
+      cancelText={t("common.cancel")}
       footer={(_, { OkBtn, CancelBtn }) => (
         <Space>
           <Button

@@ -5,6 +5,7 @@ import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, TeamOutlined
 const _EMPTY: never[] = [];
 import { Button, Collapse, message, Tag, Typography } from "antd";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { type CreateTeamData, CreateTeamModal, type TeammateBackendType } from "./CreateTeamModal";
 
 const { Text } = Typography;
@@ -28,29 +29,29 @@ function getTeammateStatus(item: AgentPoolItem): TeammateStatus {
   }
 }
 
-function getStatusConfig(status: TeammateStatus) {
+function getStatusConfig(status: TeammateStatus, t: (key: string) => string) {
   const configs: Record<
     TeammateStatus,
     { color: string; label: string; icon: React.ReactNode }
   > = {
     idle: {
       color: "default",
-      label: "空闲",
+      label: t("teammatePanel.statusIdle"),
       icon: <CheckCircleOutlined style={{ fontSize: 12 }} />,
     },
     busy: {
       color: "processing",
-      label: "工作中",
+      label: t("teammatePanel.statusBusy"),
       icon: <LoadingOutlined spin style={{ fontSize: 12 }} />,
     },
     offline: {
       color: "default",
-      label: "离线",
+      label: t("teammatePanel.statusOffline"),
       icon: <CloseCircleOutlined style={{ fontSize: 12 }} />,
     },
     error: {
       color: "error",
-      label: "异常",
+      label: t("teammatePanel.statusError"),
       icon: <CloseCircleOutlined style={{ fontSize: 12 }} />,
     },
   };
@@ -89,6 +90,7 @@ export function TeammatePanel({
 }: TeammatePanelProps) {
   const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
   const upsertPoolItem = useExecutionStore((s) => s.upsertPoolItem);
+  const { t } = useTranslation();
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);
 
@@ -99,7 +101,7 @@ export function TeammatePanel({
       if (item.type !== "worker") {
         continue;
       }
-      const team = item.teamName || "默认团队";
+      const team = item.teamName || t("teammatePanel.defaultTeam");
       if (!teams[team]) {
         teams[team] = [];
       }
@@ -124,14 +126,14 @@ export function TeammatePanel({
         <span className="flex items-center gap-2">
           <TeamOutlined />
           <span>{teamName}</span>
-          <Tag>{teammates.length} 名队友</Tag>
+          <Tag>{t("teammatePanel.memberCount", { count: teammates.length })}</Tag>
         </span>
       ),
       children: (
         <div className="flex flex-col gap-2">
           {teammates.map((tm) => {
             const ts = getTeammateStatus(tm);
-            const sc = getStatusConfig(ts);
+            const sc = getStatusConfig(ts, t);
 
             return (
               <div
@@ -150,7 +152,7 @@ export function TeammatePanel({
                 {/* 当前任务 */}
                 <div className="mb-1">
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    {tm.currentTask || tm.taskDescription || "空闲中"}
+                    {tm.currentTask || tm.taskDescription || t("teammatePanel.idle")}
                   </Text>
                 </div>
 
@@ -173,7 +175,7 @@ export function TeammatePanel({
                 {tm.duration !== undefined && tm.status === "completed" && (
                   <div className="mt-1">
                     <Text type="secondary" style={{ fontSize: 11 }}>
-                      耗时 {(tm.duration / 1000).toFixed(1)}s
+                      {t("teammatePanel.duration", { seconds: (tm.duration / 1000).toFixed(1) })}
                     </Text>
                   </div>
                 )}
@@ -196,7 +198,7 @@ export function TeammatePanel({
       >
         <Text strong style={{ fontSize: 13 }}>
           <TeamOutlined className="mr-1" />
-          Swarm 队友 ({teamNames.reduce((acc, t) => acc + grouped[t].length, 0)})
+          {t("teammatePanel.title")} ({teamNames.reduce((acc, t) => acc + grouped[t].length, 0)})
         </Text>
         <Button
           size="small"
@@ -205,7 +207,7 @@ export function TeammatePanel({
           icon={<TeamOutlined />}
           onClick={() => setTeamModalOpen(true)}
         >
-          创建团队
+          {t("teammatePanel.createTeam")}
         </Button>
       </div>
       <div className="px-2 py-1">
@@ -224,7 +226,7 @@ export function TeammatePanel({
         onCreate={(data: CreateTeamData) => {
           setCreatingTeam(true);
           // 将队友添加到 agentPool
-          const teamName = data.teamName || "新团队";
+          const teamName = data.teamName || t("teammatePanel.newTeam");
           for (const tm of data.teammates) {
             upsertPoolItem({
               id: `${teamName}-${tm.name}-${Date.now()}`,
@@ -234,10 +236,10 @@ export function TeammatePanel({
               status: "pending",
               teamName,
               agentType: tm.backendType as TeammateBackendType,
-              currentTask: "等待分配任务",
+              currentTask: t("teammatePanel.waitingForTask"),
             });
           }
-          message.success(`团队 "${teamName}" 已创建，共 ${data.teammates.length} 名队友`);
+          message.success(t("teammatePanel.teamCreated", { name: teamName, count: data.teammates.length }));
           setCreatingTeam(false);
           setTeamModalOpen(false);
         }}

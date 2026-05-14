@@ -516,7 +516,7 @@ pub struct TriggerNode {
     pub config: TriggerConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum EdgeType {
     #[serde(rename = "direct")]
     Direct,

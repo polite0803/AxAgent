@@ -64,6 +64,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   promptTemplates: <FileText size={16} color={SETTINGS_ICON_COLORS.FileText} />,
   appConfig: <Bot size={16} color={SETTINGS_ICON_COLORS.Bot} />,
   evolution: <Dna size={16} color={SETTINGS_ICON_COLORS.Palette} />,
+  cloudWorkspace: <Cloud size={16} color={SETTINGS_ICON_COLORS.Cloud} />,
 };
 
 // 分组定义：tab key → 包含的 sections
@@ -72,7 +73,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
   appearance: ["general", "display", "shortcuts"],
   extensions: ["tools", "skillsHub", "dashboardPlugins", "workflow", "appConfig", "userProfile"],
   network: ["proxy", "messageChannels", "webhooks", "acp"],
-  data: ["data", "storage", "backup", "scheduler"],
+  data: ["data", "storage", "cloudWorkspace", "backup", "scheduler"],
   system: ["advanced", "evolution", "about"],
 };
 
@@ -191,9 +192,7 @@ export function SettingsSidebar() {
           items={items}
           style={{ borderInlineEnd: "none" }}
           onClick={({ key }) => {
-            if (typeof key === "string" && key === "skillsHub") {
-              navigate("/skills");
-            } else if (typeof key === "string" && key.startsWith("skill:")) {
+            if (typeof key === "string" && key.startsWith("skill:")) {
               setSettingsSection(key as SettingsSection);
             } else {
               setSettingsSection(key as SettingsSection);

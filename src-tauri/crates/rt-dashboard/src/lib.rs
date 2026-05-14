@@ -6,4 +6,4 @@ pub mod dashboard_registry;
 pub use dashboard_plugin::{
     DashboardPlugin, DashboardPluginAdapter, DashboardPluginManifest, PanelPosition,
 };
-pub use dashboard_registry::{DashboardPluginInfo, DashboardRegistry};
+pub use dashboard_registry::{DashboardPluginInfo, DashboardRegistry, DashboardRegistryConfig};

@@ -3,6 +3,7 @@
 import { BellOutlined } from "@ant-design/icons";
 import { Badge, Dropdown, Empty, Typography } from "antd";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -33,6 +34,7 @@ export function pushNotification(type: NotificationItem["type"], message: string
 export function NotificationBell() {
   const [, setTick] = useState(0);
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
 
   // 订阅全局通知变化
   const refresh = useCallback(() => setTick((n) => n + 1), []);
@@ -46,7 +48,7 @@ export function NotificationBell() {
   const unreadCount = globalNotifications.length;
 
   const items = globalNotifications.length === 0
-    ? [{ key: "empty", label: <Empty description="暂无通知" image={Empty.PRESENTED_IMAGE_SIMPLE} />, disabled: true }]
+    ? [{ key: "empty", label: <Empty description={t("notification.empty")} image={Empty.PRESENTED_IMAGE_SIMPLE} />, disabled: true }]
     : globalNotifications.slice(0, 20).map((n) => ({
       key: n.id,
       label: (

@@ -53,19 +53,20 @@ function ToolItem({
   groupEnabled: boolean;
   onToggle: (name: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start justify-between py-2.5 px-3 border-b border-border/50 last:border-b-0 hover:bg-bg-container-hover transition-colors">
       <div className="flex-1 min-w-0 mr-3">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Text strong className="text-sm">{tool.name}</Text>
           {tool.isDestructive && (
-            <Tooltip title="破坏性操作——执行后不可逆">
+            <Tooltip title={t("toolManager.destructiveTooltip")}>
               <Tag color="red" className="text-[10px] leading-none px-1 py-0">
-                <Shield size={10} className="inline mr-0.5" />破坏性
+                <Shield size={10} className="inline mr-0.5" />{t("toolManager.destructive")}
               </Tag>
             </Tooltip>
           )}
-          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">只读</Tag>}
+          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>}
         </div>
         <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug" ellipsis={{ rows: 2 }}>
           {tool.description}

@@ -1,12 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Button, Card, Form, Input, message, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Descriptions, Form, Input, message, Modal, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { AlertTriangle, CheckCircle, Cloud, FolderOpen, Globe, RefreshCw, Settings2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle, Cloud, FolderOpen, Globe, Link, RefreshCw, Settings2, Upload, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../../stores";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 type CloudStorageType = "s3" | "webdav";
 
@@ -74,6 +74,8 @@ export default function CloudWorkspaceSelector() {
   const [conflicts, setConflicts] = useState<CloudConflictDto[]>([]);
   const [conflictStrategy, setConflictStrategy] = useState("latest_wins");
   const [syncResult, setSyncResult] = useState<CloudSyncResponse | null>(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"unknown" | "success" | "failed">("unknown");
 
   useEffect(() => {
     const loadPresets = async () => {
@@ -137,7 +139,49 @@ export default function CloudWorkspaceSelector() {
       setStorageType("s3");
     }
 
+    setConnectionStatus("unknown");
     setConfigModalOpen(true);
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      setTestingConnection(true);
+      setConnectionStatus("unknown");
+
+      const values = await configForm.validateFields();
+      const config: Record<string, unknown> = {
+        storageType,
+      };
+
+      if (storageType === "s3") {
+        config.endpoint = values.s3Endpoint as string;
+        config.region = (values.s3Region as string) || "auto";
+        config.bucket = values.s3Bucket as string;
+        config.accessKeyId = values.s3AccessKey as string;
+        config.secretAccessKey = values.s3SecretKey as string;
+        config.root = (values.s3Root as string) || "/";
+        config.usePathStyle = values.s3UsePathStyle as boolean;
+      } else {
+        config.host = values.webdavUrl as string;
+        config.username = values.webdavUsername as string;
+        config.password = values.webdavPassword as string;
+        config.path = (values.webdavPath as string) || "/";
+      }
+
+      const result = await invoke<boolean>("check_cloud_connection", { config });
+      setConnectionStatus(result ? "success" : "failed");
+
+      if (result) {
+        message.success(t("cloudWorkspace.connectionSuccess"));
+      } else {
+        message.error(t("cloudWorkspace.connectionFailed"));
+      }
+    } catch (e) {
+      setConnectionStatus("failed");
+      message.error(t("cloudWorkspace.connectionFailed") + ": " + String(e));
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -416,90 +460,163 @@ export default function CloudWorkspaceSelector() {
     },
   ];
 
+  const isConfigured = !!settings.workspace_uri;
+  const backendLabel = settings.cloud_backend === "webdav" ? "WebDAV" : "S3";
+
   return (
-    <>
-      <Card
-        size="small"
-        title={
-          <Space>
-            <Cloud size={16} />
-            {t("cloudWorkspace.title")}
-          </Space>
-        }
-        extra={
-          <Space>
-            <Button
-              size="small"
-              icon={<Settings2 size={14} />}
-              onClick={openConfigModal}
-            >
-              {t("cloudWorkspace.configure")}
-            </Button>
-            <Button
-              size="small"
-              icon={<FolderOpen size={14} />}
-              onClick={openBrowserModal}
-            >
-              {t("cloudWorkspace.browse")}
-            </Button>
-            {settings.workspace_uri && (
+    <div className="p-6 pb-12 space-y-6">
+      <div className="flex items-center justify-between">
+        <Title level={4} style={{ margin: 0 }}>
+          <Cloud size={20} className="inline mr-2" />
+          {t("cloudWorkspace.title")}
+        </Title>
+        <Space>
+          <Button
+            icon={<Settings2 size={14} />}
+            onClick={openConfigModal}
+          >
+            {isConfigured ? t("cloudWorkspace.configure") : t("cloudWorkspace.configureFirst")}
+          </Button>
+          {isConfigured && (
+            <>
               <Button
-                size="small"
+                icon={<FolderOpen size={14} />}
+                onClick={openBrowserModal}
+              >
+                {t("cloudWorkspace.browse")}
+              </Button>
+              <Button
+                icon={<RefreshCw size={14} />}
+                loading={syncing}
+                onClick={handleSyncCloud}
+                type="primary"
+              >
+                {t("cloudWorkspace.sync")}
+              </Button>
+              {conflicts.length > 0 && (
+                <Button
+                  icon={<AlertTriangle size={14} />}
+                  danger
+                  onClick={loadConflicts}
+                >
+                  {t("cloudWorkspace.viewConflicts", { count: conflicts.length })}
+                </Button>
+              )}
+            </>
+          )}
+        </Space>
+      </div>
+
+      {!isConfigured ? (
+        <Card>
+          <div className="text-center py-8">
+            <Cloud size={48} className="mx-auto mb-4 opacity-40" />
+            <Title level={5} type="secondary">{t("cloudWorkspace.notConfigured")}</Title>
+            <Text type="secondary" className="block mb-4">
+              {t("cloudWorkspace.notConfiguredDesc")}
+            </Text>
+            <Button type="primary" icon={<Settings2 size={14} />} onClick={openConfigModal}>
+              {t("cloudWorkspace.configureFirst")}
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <>
+          <Card size="small">
+            <Descriptions column={2} size="small">
+              <Descriptions.Item label={t("cloudWorkspace.currentWorkspace")}>
+                <Space>
+                  <Tag icon={<Cloud size={12} />} color="blue">
+                    {settings.workspace_uri}
+                  </Tag>
+                  <Tag color={settings.cloud_backend === "webdav" ? "green" : "purple"}>
+                    {backendLabel}
+                  </Tag>
+                  <Tag icon={<CheckCircle size={12} />} color="success">
+                    {t("cloudWorkspace.active")}
+                  </Tag>
+                </Space>
+              </Descriptions.Item>
+              {settings.s3_endpoint && (
+                <Descriptions.Item label={t("cloudWorkspace.s3Endpoint")}>
+                  <Text code>{settings.s3_endpoint}</Text>
+                </Descriptions.Item>
+              )}
+              {settings.s3_bucket && (
+                <Descriptions.Item label={t("cloudWorkspace.s3Bucket")}>
+                  <Text code>{settings.s3_bucket}</Text>
+                </Descriptions.Item>
+              )}
+              {settings.s3_region && (
+                <Descriptions.Item label={t("cloudWorkspace.s3Region")}>
+                  <Text code>{settings.s3_region}</Text>
+                </Descriptions.Item>
+              )}
+              {settings.webdav_host && (
+                <Descriptions.Item label={t("cloudWorkspace.webdavUrl")}>
+                  <Text code>{settings.webdav_host}</Text>
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+          </Card>
+
+          {syncResult && (
+            <Card size="small" title={t("cloudWorkspace.lastSyncResult")}>
+              <Space size="large">
+                <span>
+                  <Link size={14} className="mr-1" />
+                  {t("cloudWorkspace.downloaded", { count: syncResult.downloaded })}
+                </span>
+                <span>
+                  <Upload size={14} className="mr-1" />
+                  {t("cloudWorkspace.uploaded", { count: syncResult.uploaded })}
+                </span>
+                {syncResult.conflicts_detected > 0 && (
+                  <span>
+                    <AlertTriangle size={14} className="mr-1 text-orange-500" />
+                    {t("cloudWorkspace.conflicts", { count: syncResult.conflicts_detected })}
+                  </span>
+                )}
+              </Space>
+              <div className="mt-2">
+                <Text type="secondary" className="text-xs">
+                  {t("cloudWorkspace.cacheDir")}: {syncResult.local_cache_dir}
+                </Text>
+              </div>
+            </Card>
+          )}
+
+          <Card size="small" title={t("cloudWorkspace.quickActions")}>
+            <Space wrap>
+              <Button
                 icon={<RefreshCw size={14} />}
                 loading={syncing}
                 onClick={handleSyncCloud}
               >
-                {t("cloudWorkspace.sync")}
+                {t("cloudWorkspace.syncNow")}
               </Button>
-            )}
-            {conflicts.length > 0 && (
               <Button
-                size="small"
+                icon={<FolderOpen size={14} />}
+                onClick={openBrowserModal}
+              >
+                {t("cloudWorkspace.browse")}
+              </Button>
+              <Button
                 icon={<AlertTriangle size={14} />}
-                type="primary"
-                danger
                 onClick={loadConflicts}
               >
                 {t("cloudWorkspace.viewConflicts", { count: conflicts.length })}
               </Button>
-            )}
-          </Space>
-        }
-      >
-        {settings.workspace_uri
-          ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Text strong>{t("cloudWorkspace.currentWorkspace")}</Text>
-                  <Tag icon={<Cloud size={12} />} color="blue">
-                    {settings.workspace_uri}
-                  </Tag>
-                  {settings.cloud_backend === "webdav" && <Tag color="green">WebDAV</Tag>}
-                  {settings.cloud_backend === "s3" && <Tag color="purple">S3</Tag>}
-                </div>
-                <Tag icon={<CheckCircle size={12} />} color="success">
-                  {t("cloudWorkspace.active")}
-                </Tag>
-              </div>
-              {syncResult && (
-                <Text type="secondary" className="block text-xs">
-                  {t("cloudWorkspace.syncResult", {
-                    downloaded: syncResult.downloaded,
-                    uploaded: syncResult.uploaded,
-                    cacheDir: syncResult.local_cache_dir,
-                  })}
-                </Text>
-              )}
-            </div>
-          )
-          : (
-            <div className="text-center py-4 text-gray-400">
-              <Cloud size={32} className="mx-auto mb-2 opacity-50" />
-              <p>{t("cloudWorkspace.notConfigured")}</p>
-            </div>
-          )}
-      </Card>
+              <Button
+                icon={<Settings2 size={14} />}
+                onClick={openConfigModal}
+              >
+                {t("cloudWorkspace.configure")}
+              </Button>
+            </Space>
+          </Card>
+        </>
+      )}
 
       <Modal
         title={
@@ -509,18 +626,50 @@ export default function CloudWorkspaceSelector() {
           </Space>
         }
         open={configModalOpen}
-        onOk={handleSaveConfig}
         onCancel={() => setConfigModalOpen(false)}
-        okText={t("common.save")}
-        cancelText={t("common.cancel")}
         width={600}
+        footer={
+          <Space style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+            <Button
+              icon={connectionStatus === "success" ? <Wifi size={14} /> : <WifiOff size={14} />}
+              loading={testingConnection}
+              onClick={handleTestConnection}
+            >
+              {t("cloudWorkspace.testConnection")}
+            </Button>
+            <Space>
+              <Button onClick={() => setConfigModalOpen(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="primary" onClick={handleSaveConfig}>
+                {t("common.save")}
+              </Button>
+            </Space>
+          </Space>
+        }
       >
+        {connectionStatus === "success" && (
+          <Alert
+            type="success"
+            message={t("cloudWorkspace.connectionSuccess")}
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {connectionStatus === "failed" && (
+          <Alert
+            type="error"
+            message={t("cloudWorkspace.connectionFailed")}
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
         <Form form={configForm} layout="vertical">
           <Form.Item label={t("cloudWorkspace.storageType")}>
             <Select
               id="cloud-workspace-selector-select-42"
               value={storageType}
-              onChange={setStorageType}
+              onChange={(v) => { setStorageType(v); setConnectionStatus("unknown"); }}
               options={[
                 { label: "Amazon S3 / S3-Compatible", value: "s3" },
                 { label: "WebDAV", value: "webdav" },
@@ -540,6 +689,7 @@ export default function CloudWorkspaceSelector() {
                     value: p.key,
                   }))}
                   placeholder={t("cloudWorkspace.providerPresetPlaceholder")}
+                  onChange={() => setConnectionStatus("unknown")}
                 />
               </Form.Item>
               <Form.Item
@@ -549,7 +699,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.endpointRequired") },
                 ]}
               >
-                <Input name="s3Endpoint" placeholder="https://s3.amazonaws.com" />
+                <Input name="s3Endpoint" placeholder="https://s3.amazonaws.com" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item
                 name="s3AccessKey"
@@ -558,7 +708,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.accessKeyRequired") },
                 ]}
               >
-                <Input name="s3AccessKey" />
+                <Input name="s3AccessKey" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item
                 name="s3SecretKey"
@@ -567,10 +717,10 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.secretKeyRequired") },
                 ]}
               >
-                <Input.Password name="s3SecretKey" />
+                <Input.Password name="s3SecretKey" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item name="s3Region" label={t("cloudWorkspace.s3Region")}>
-                <Input name="s3Region" placeholder="auto" />
+                <Input name="s3Region" placeholder="auto" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item
                 name="s3Bucket"
@@ -579,10 +729,10 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.bucketRequired") },
                 ]}
               >
-                <Input name="s3Bucket" placeholder={t("cloudWorkspace.bucketPlaceholder")} />
+                <Input name="s3Bucket" placeholder={t("cloudWorkspace.bucketPlaceholder")} onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item name="s3Root" label={t("cloudWorkspace.s3Root")}>
-                <Input name="s3Root" placeholder="/" />
+                <Input name="s3Root" placeholder="/" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
             </>
           )}
@@ -596,7 +746,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.webdavUrlRequired") },
                 ]}
               >
-                <Input name="webdavUrl" placeholder="https://dav.example.com/remote.php/webdav" />
+                <Input name="webdavUrl" placeholder="https://dav.example.com/remote.php/webdav" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item
                 name="webdavUsername"
@@ -605,7 +755,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.usernameRequired") },
                 ]}
               >
-                <Input name="webdavUsername" />
+                <Input name="webdavUsername" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item
                 name="webdavPassword"
@@ -614,13 +764,13 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.passwordRequired") },
                 ]}
               >
-                <Input.Password name="webdavPassword" />
+                <Input.Password name="webdavPassword" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
               <Form.Item
                 name="webdavPath"
                 label={t("cloudWorkspace.webdavPath")}
               >
-                <Input name="webdavPath" placeholder="/" />
+                <Input name="webdavPath" placeholder="/" onChange={() => setConnectionStatus("unknown")} />
               </Form.Item>
             </>
           )}
@@ -713,6 +863,6 @@ export default function CloudWorkspaceSelector() {
           locale={{ emptyText: t("cloudWorkspace.noConflicts") }}
         />
       </Modal>
-    </>
+    </div>
   );
 }

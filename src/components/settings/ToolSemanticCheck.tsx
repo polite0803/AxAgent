@@ -1,8 +1,9 @@
+import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
 import type { ToolUpgradeSuggestion } from "@/components/workflow/types/workflow.types";
 import { invoke } from "@/lib/invoke";
-import { Button, Card, Divider, Input, List, message, Modal, Typography } from "antd";
-import { ArrowRight, CheckCircle, RefreshCw, Search, Zap } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Button, Card, Empty, Input, List, message, Modal, Spin, Typography } from "antd";
+import { ArrowRight, CheckCircle, Search, Zap } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
@@ -58,19 +59,38 @@ export default function ToolSemanticCheck() {
   const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeSuggestion, setUpgradeSuggestion] = useState<ToolUpgradeSuggestion | null>(null);
+  const [selectedTool, setSelectedTool] = useState<LocalToolInfo | null>(null);
+  const [allTools, setAllTools] = useState<LocalToolInfo[]>([]);
+  const [toolsLoading, setToolsLoading] = useState(false);
 
-  const checkSemanticMatches = useCallback(async () => {
-    if (!searchTerm.trim()) {
-      message.error(t("settings.toolSemanticCheck.emptySearch"));
-      return;
-    }
+  useEffect(() => {
+    const loadTools = async () => {
+      setToolsLoading(true);
+      try {
+        const groups = await invoke<LocalToolGroupInfo[]>("list_local_tool_groups", {});
+        const tools = groups.flatMap(g => g.tools);
+        setAllTools(tools);
+      } catch (e) {
+        message.error(String(e));
+      } finally {
+        setToolsLoading(false);
+      }
+    };
+    loadTools();
+  }, []);
 
+  const filteredTools = allTools.filter(tool =>
+    tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tool.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const checkSemanticMatches = useCallback(async (tool: LocalToolInfo) => {
     setSearchLoading(true);
     try {
       const toolsToCheck: ToolToCheck[] = [
         {
-          name: searchTerm,
-          description: searchTerm,
+          name: tool.name,
+          description: tool.description,
           tool_type: "local",
         },
       ];
@@ -89,7 +109,12 @@ export default function ToolSemanticCheck() {
     } finally {
       setSearchLoading(false);
     }
-  }, [searchTerm, t]);
+  }, [t]);
+
+  useEffect(() => {
+    if (!selectedTool) { return; }
+    checkSemanticMatches(selectedTool);
+  }, [selectedTool, checkSemanticMatches]);
 
   const handleUpgradeTool = useCallback(async () => {
     if (!selectedMatch) { return; }
@@ -123,108 +148,128 @@ export default function ToolSemanticCheck() {
   }, []);
 
   return (
-    <div className="max-w-3xl">
-      <Card
-        title={
-          <div className="flex items-center gap-2">
-            <Search size={18} />
-            {t("settings.toolSemanticCheck.title")}
-          </div>
-        }
-        className="mb-6"
-      >
-        <p className="text-sm text-gray-500 mb-4">{t("settings.toolSemanticCheck.description")}</p>
-        <div className="flex gap-2">
+    <div className="flex gap-4 flex-1" style={{ minHeight: 0 }}>
+      <div className="w-1/3 border rounded-lg overflow-hidden flex flex-col" style={{ minHeight: 0 }}>
+        <div className="p-3 border-b shrink-0">
           <AntSearch
             placeholder={t("settings.toolSemanticCheck.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onSearch={checkSemanticMatches}
-            enterButton={
-              <Button type="primary" loading={searchLoading}>
-                {t("common.search")}
-              </Button>
-            }
-            style={{ flex: 1 }}
+            allowClear
           />
-          <Button
-            icon={<RefreshCw size={16} />}
-            onClick={() => {
-              setSearchTerm("");
-              setMatches([]);
-            }}
-          >
-            {t("common.reset")}
-          </Button>
         </div>
-      </Card>
-
-      <List
-        className="max-w-3xl"
-        itemLayout="vertical"
-        size="large"
-        dataSource={matches}
-        locale={{ emptyText: t("settings.toolSemanticCheck.empty") }}
-        renderItem={(item) => (
-          <List.Item
-            key={item.tool_name}
-            actions={[
-              <Button
-                key="upgrade"
-                type="primary"
-                icon={<Zap size={16} />}
-                onClick={() =>
-                  handleMatchSelect({ name: item.tool_name, description: "", tool_type: "local" }, item.matches[0])}
-              >
-                {t("settings.toolSemanticCheck.upgrade")}
-              </Button>,
-            ]}
-          >
-            <List.Item.Meta
-              title={
-                <div className="flex items-center gap-2">
-                  <Text strong>{item.tool_name}</Text>
-                  <Text type="secondary">
-                    ({t("settings.toolSemanticCheck.matches", { count: item.matches.length })})
-                  </Text>
-                </div>
-              }
-              description={t("settings.toolSemanticCheck.checkingTool", { tool: item.tool_name })}
-            />
-            <div className="mt-2">
-              {item.matches.map((match, index) => (
-                <Card
-                  key={index}
-                  size="small"
-                  className="mb-2"
-                  extra={
-                    <Text type="success">
-                      {t("settings.toolSemanticCheck.similarity", { score: Math.round(match.similarity_score * 100) })}%
-                    </Text>
-                  }
-                >
-                  <div className="flex items-start gap-3">
-                    <CheckCircle size={18} className="text-success mt-1 shrink-0" />
-                    <div className="flex-1">
-                      <Text strong>{match.tool_name}</Text>
-                      <Text type="secondary" className="block mt-1 text-sm">
-                        {match.description}
-                      </Text>
-                      <div className="mt-2">
-                        {match.match_reasons.map((reason, rIndex) => (
-                          <Text key={rIndex} type="secondary" className="block text-xs">
-                            • {reason}
-                          </Text>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+        <div className="flex-1 overflow-auto" style={{ minHeight: 0 }}>
+          {toolsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Spin />
             </div>
-          </List.Item>
+          ) : filteredTools.length === 0 ? (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.toolSemanticCheck.empty")} className="py-8" />
+          ) : (
+            filteredTools.map(tool => (
+              <div
+                key={tool.name}
+                className={`px-3 py-2 cursor-pointer hover:bg-bg-container-hover border-b border-border/50 ${selectedTool?.name === tool.name ? 'bg-primary/10' : ''}`}
+                onClick={() => setSelectedTool(tool)}
+              >
+                <Text strong className="text-sm">{tool.name}</Text>
+                <Text type="secondary" className="block text-xs mt-0.5 line-clamp-2">{tool.description}</Text>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
+        {selectedTool ? (
+          <Card
+            title={
+              <div className="flex items-center gap-2">
+                <Search size={18} />
+                {t("settings.toolSemanticCheck.checkingTool", { tool: selectedTool.name })}
+              </div>
+            }
+            className="flex-1 flex flex-col"
+            styles={{ body: { flex: 1, overflow: 'auto', minHeight: 0 } }}
+          >
+            {searchLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <Spin />
+              </div>
+            ) : (
+              <List
+                itemLayout="vertical"
+                size="large"
+                dataSource={matches}
+                locale={{ emptyText: t("settings.toolSemanticCheck.empty") }}
+                renderItem={(item) => (
+                  <List.Item
+                    key={item.tool_name}
+                    actions={[
+                      <Button
+                        key="upgrade"
+                        type="primary"
+                        icon={<Zap size={16} />}
+                        onClick={() =>
+                          handleMatchSelect({ name: item.tool_name, description: "", tool_type: "local" }, item.matches[0])}
+                      >
+                        {t("settings.toolSemanticCheck.upgrade")}
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      title={
+                        <div className="flex items-center gap-2">
+                          <Text strong>{item.tool_name}</Text>
+                          <Text type="secondary">
+                            ({t("settings.toolSemanticCheck.matches", { count: item.matches.length })})
+                          </Text>
+                        </div>
+                      }
+                      description={t("settings.toolSemanticCheck.checkingTool", { tool: item.tool_name })}
+                    />
+                    <div className="mt-2">
+                      {item.matches.map((match, index) => (
+                        <Card
+                          key={index}
+                          size="small"
+                          className="mb-2"
+                          extra={
+                            <Text type="success">
+                              {t("settings.toolSemanticCheck.similarity", { score: Math.round(match.similarity_score * 100) })}%
+                            </Text>
+                          }
+                        >
+                          <div className="flex items-start gap-3">
+                            <CheckCircle size={18} className="text-success mt-1 shrink-0" />
+                            <div className="flex-1">
+                              <Text strong>{match.tool_name}</Text>
+                              <Text type="secondary" className="block mt-1 text-sm">
+                                {match.description}
+                              </Text>
+                              <div className="mt-2">
+                                {match.match_reasons.map((reason, rIndex) => (
+                                  <Text key={rIndex} type="secondary" className="block text-xs">
+                                    • {reason}
+                                  </Text>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            )}
+          </Card>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <Empty description={t("settings.toolSemanticCheck.selectTool")} />
+          </div>
         )}
-      />
+      </div>
 
       <Modal
         title={t("settings.toolSemanticCheck.upgradeModalTitle")}
@@ -276,7 +321,6 @@ export default function ToolSemanticCheck() {
 
             {upgradeSuggestion && (
               <div className="mt-6">
-                <Divider>{t("settings.toolSemanticCheck.upgradeSuggestion")}</Divider>
                 <Card size="small" className="bg-blue-50">
                   <Text strong>{upgradeSuggestion.name}</Text>
                   <Text type="secondary" className="block mt-1">

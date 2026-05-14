@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
-  skills: "/skills",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",

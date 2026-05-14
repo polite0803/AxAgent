@@ -13,9 +13,9 @@ import {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { SimilarWorkflow, useWorkflowEditorStore } from "@/stores";
+import { useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { Button, message, Modal, Spin, theme } from "antd";
+import { message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { DebugPanel } from "./DebugPanel";
@@ -117,30 +117,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   const [reactFlowEdges, setREdges, onEdgesChange] = useEdgesState([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
-  const [_upgradeModalState, setUpgradeModalState] = React.useState<{
-    visible: boolean;
-    generatedSkillName: string;
-    generatedSkillDescription: string;
-    nodeId: string;
-  }>({
-    visible: false,
-    generatedSkillName: "",
-    generatedSkillDescription: "",
-    nodeId: "",
-  });
-
-  const [similarWorkflowsModal, setSimilarWorkflowsModal] = useState<{
-    visible: boolean;
-    workflows: SimilarWorkflow[];
-    pendingWorkflowName: string;
-    pendingWorkflowDescription: string;
-  }>({
-    visible: false,
-    workflows: [],
-    pendingWorkflowName: "",
-    pendingWorkflowDescription: "",
-  });
-
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
@@ -148,20 +124,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
   const {
     isDecompositionTemplate,
-    checkSkillSemanticMatches,
-    similarWorkflowsForReview,
-    pendingWorkflowData,
-    forceSaveSkillWorkflow,
-    clearSimilarWorkflowsForReview,
     saveSkillWorkflowFromLlm,
-    semanticCheckResult,
-    applySemanticAction,
     generateWorkflowFromPrompt,
     optimizeAgentPrompt,
     recommendNodes,
     exportTemplate,
     importTemplate,
     loadTemplates,
+    templates,
   } = useWorkflowEditorStore();
 
   useEffect(() => {
@@ -173,44 +143,35 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   }, [templateId]);
 
   useEffect(() => {
-    if (!isDirty || !currentTemplate?.id || isSaving || isDecompositionTemplate) { return; }
+    if (!isDirty || isSaving || isDecompositionTemplate) { return; }
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       const input = {
-        name: currentTemplate.name,
-        description: currentTemplate.description,
-        icon: currentTemplate.icon,
-        tags: currentTemplate.tags,
-        trigger_config: currentTemplate.trigger_config,
+        name: currentTemplate?.name || "Unnamed Workflow",
+        description: currentTemplate?.description,
+        icon: currentTemplate?.icon || "Bot",
+        tags: currentTemplate?.tags || [],
+        trigger_config: currentTemplate?.trigger_config,
         nodes,
         edges,
-        input_schema: currentTemplate.input_schema,
-        output_schema: currentTemplate.output_schema,
-        variables: currentTemplate.variables,
-        error_config: currentTemplate.error_config,
+        input_schema: currentTemplate?.input_schema,
+        output_schema: currentTemplate?.output_schema,
+        variables: currentTemplate?.variables || [],
+        error_config: currentTemplate?.error_config,
       };
-      updateTemplate(currentTemplate.id, input);
+
+      if (currentTemplate?.id) {
+        await updateTemplate(currentTemplate.id, input);
+      } else {
+        const newId = await createTemplate(input);
+        if (newId) {
+          await loadTemplate(newId);
+        }
+      }
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [isDirty, nodes, edges, currentTemplate, isSaving, isDecompositionTemplate, updateTemplate]);
-
-  useEffect(() => {
-    if (isInitialized && isDecompositionTemplate && nodes.length > 0) {
-      checkSkillSemanticMatches(nodes);
-    }
-  }, [isInitialized, isDecompositionTemplate, nodes, checkSkillSemanticMatches]);
-
-  useEffect(() => {
-    if (similarWorkflowsForReview.length > 0 && pendingWorkflowData) {
-      setSimilarWorkflowsModal({
-        visible: true,
-        workflows: similarWorkflowsForReview,
-        pendingWorkflowName: pendingWorkflowData.workflowName,
-        pendingWorkflowDescription: pendingWorkflowData.workflowDescription || "",
-      });
-    }
-  }, [similarWorkflowsForReview, pendingWorkflowData]);
+  }, [isDirty, nodes, edges, currentTemplate, isSaving, isDecompositionTemplate, updateTemplate, createTemplate, loadTemplate]);
 
   useEffect(() => {
     if (currentTemplate) {
@@ -229,20 +190,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         const typeInfo = NODE_TYPE_MAP[node.type] || { labelKey: "", color: token.colorTextQuaternary };
         const nodeType = NODE_TYPE_MAP[node.type] ? node.type : "base";
 
-        let semanticMatch = undefined;
-        if (semanticCheckResult?.matches && node.type === "agent") {
-          const match = semanticCheckResult.matches.find((m) => m.node_id === node.id);
-          if (match?.matches && match.matches.length > 0) {
-            const bestMatch = match.matches[0];
-            semanticMatch = {
-              existing_skill_id: bestMatch.existing_skill.id,
-              existing_skill_name: bestMatch.existing_skill.name,
-              similarity_score: bestMatch.similarity_score,
-              match_reasons: bestMatch.match_reasons,
-            };
-          }
-        }
-
         let validationState: "error" | "warning" | undefined;
         if (errorNodeIds.has(node.id)) {
           validationState = "error";
@@ -259,9 +206,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
             label: node.title,
             color: typeInfo.color,
             nodeType: node.type,
-            semanticMatch,
-            onSemanticAction: applySemanticAction,
-            onUpgradeRequest: handleUpgradeRequest,
             ...(validationState ? { validationState } : {}),
             ...(node.type === "agent" && (node as AgentNodeType).config
               ? {
@@ -302,32 +246,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       setIsInitialized(true);
     }
   }, [currentTemplate, nodes, edges, validationResult]);
-
-  const handleUpgradeRequest = useCallback(
-    (
-      nodeId: string,
-      existingSkillId: string,
-      _existingSkillName: string,
-      generatedSkillName: string,
-      generatedSkillDescription: string,
-    ) => {
-      if (!semanticCheckResult) { return; }
-
-      const match = semanticCheckResult.matches.find((m) => m.node_id === nodeId);
-      if (!match || !match.matches || match.matches.length === 0) { return; }
-
-      const bestMatch = match.matches.find((m) => m.existing_skill.id === existingSkillId);
-      if (!bestMatch) { return; }
-
-      setUpgradeModalState({
-        visible: true,
-        generatedSkillName,
-        generatedSkillDescription,
-        nodeId,
-      });
-    },
-    [semanticCheckResult],
-  );
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -465,9 +383,60 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
   }, [reactFlowInstance, setRNodes]);
 
+  const handleSave = useCallback(async () => {
+    if (!currentTemplate) { return; }
+
+    if (isDecompositionTemplate) {
+      try {
+        await saveSkillWorkflowFromLlm(currentTemplate.name, currentTemplate.description);
+        message.success(t("workflow.decompositionSaved"));
+        onClose?.();
+      } catch (e) {
+        message.error(String(e));
+      }
+      return;
+    }
+
+    const validation = await validateTemplate();
+    if (validation && !validation.is_valid) {
+      message.error(t("workflow.validationFailed", { count: validation.errors.length }));
+      return;
+    }
+
+    const input = {
+      name: currentTemplate.name,
+      description: currentTemplate.description,
+      icon: currentTemplate.icon,
+      tags: currentTemplate.tags,
+      trigger_config: currentTemplate.trigger_config,
+      nodes,
+      edges,
+      input_schema: currentTemplate.input_schema,
+      output_schema: currentTemplate.output_schema,
+      variables: currentTemplate.variables,
+      error_config: currentTemplate.error_config,
+    };
+
+    if (currentTemplate.id) {
+      await updateTemplate(currentTemplate.id, input);
+    } else {
+      const newId = await createTemplate(input);
+      if (newId) {
+        await loadTemplate(newId);
+        message.success(t("workflow.saved"));
+      }
+    }
+  }, [currentTemplate, nodes, edges, createTemplate, updateTemplate, validateTemplate, t, onClose, isDecompositionTemplate, saveSkillWorkflowFromLlm, loadTemplate]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if (isCtrlOrCmd && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
 
       if (isCtrlOrCmd && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
@@ -546,7 +515,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo, selectedNodeId, deleteNode, setSelectedNode, nodes, addNode]);
+  }, [undo, redo, selectedNodeId, deleteNode, setSelectedNode, nodes, addNode, handleSave]);
 
   const handleNodesChange = useCallback(
     (changes: any) => {
@@ -579,57 +548,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     [onEdgesChange, deleteEdge],
   );
 
-  const handleSave = useCallback(async () => {
-    if (!currentTemplate) { return; }
-
-    if (isDecompositionTemplate) {
-      try {
-        await saveSkillWorkflowFromLlm(currentTemplate.name, currentTemplate.description);
-        message.success(t("workflow.decompositionSaved"));
-        onClose?.();
-      } catch (e) {
-        message.error(String(e));
-      }
-      return;
-    }
-
-    const validation = await validateTemplate();
-    if (validation && !validation.is_valid) {
-      message.error(t("workflow.validationFailed", { count: validation.errors.length }));
-      return;
-    }
-
-    const input = {
-      name: currentTemplate.name,
-      description: currentTemplate.description,
-      icon: currentTemplate.icon,
-      tags: currentTemplate.tags,
-      trigger_config: currentTemplate.trigger_config,
-      nodes,
-      edges,
-      input_schema: currentTemplate.input_schema,
-      output_schema: currentTemplate.output_schema,
-      variables: currentTemplate.variables,
-      error_config: currentTemplate.error_config,
-    };
-
-    if (currentTemplate.id) {
-      await updateTemplate(currentTemplate.id, input);
-    } else {
-      const newId = await createTemplate(input);
-      if (newId) {
-        await loadTemplate(newId);
-        message.success(t("workflow.saved"));
-      }
-    }
-  }, [currentTemplate, nodes, edges, createTemplate, updateTemplate, validateTemplate, t, onClose]);
-
   const handleNameChange = useCallback(
     (name: string) => {
       updateTemplateMetadata({ name });
     },
     [updateTemplateMetadata],
   );
+
+  const handleImportedTemplate = useCallback((id: string) => {
+    loadTemplate(id);
+  }, [loadTemplate]);
 
   const handleClose = useCallback(() => {
     if (isDirty) {
@@ -776,7 +704,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
             overflow: "hidden",
           }}
         >
-          <DebugPanel />
+          <DebugPanel trace={null} />
         </div>
       )}
 
@@ -796,68 +724,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         </div>
       )}
 
-      <Modal
-        title={t("workflow.similarWorkflowsFound", { count: similarWorkflowsModal.workflows.length })}
-        open={similarWorkflowsModal.visible}
-        onCancel={() => {
-          setSimilarWorkflowsModal((prev) => ({ ...prev, visible: false }));
-          clearSimilarWorkflowsForReview();
-        }}
-        footer={[
-          <Button
-            key="new"
-            onClick={async () => {
-              setSimilarWorkflowsModal((prev) => ({ ...prev, visible: false }));
-              message.success(t("workflow.workflowSavedAsNew"));
-              handleClose();
-            }}
-          >
-            {t("workflow.saveAsNew")}
-          </Button>,
-          ...similarWorkflowsModal.workflows.map((wf) => (
-            <Button
-              key={wf.workflow_id}
-              type="primary"
-              onClick={async () => {
-                try {
-                  await forceSaveSkillWorkflow(
-                    wf.workflow_id,
-                    similarWorkflowsModal.pendingWorkflowName,
-                    similarWorkflowsModal.pendingWorkflowDescription,
-                  );
-                  message.success(t("workflow.workflowUpdated", { name: wf.name }));
-                  setSimilarWorkflowsModal((prev) => ({ ...prev, visible: false }));
-                  handleClose();
-                } catch (e) {
-                  message.error(String(e));
-                }
-              }}
-            >
-              {t("workflow.replaceExisting", { name: wf.name, similarity: Math.round(wf.similarity * 100) })}
-            </Button>
-          )),
-        ]}
-      >
-        <p>{t("workflow.similarWorkflowsExplanation")}</p>
-        <ul>
-          {similarWorkflowsModal.workflows.map((wf) => (
-            <li key={wf.workflow_id}>
-              <strong>{wf.name}</strong> - {Math.round(wf.similarity * 100)}% {t("workflow.similarity")}
-              <br />
-              <small>{t("workflow.skills")}: {wf.skill_ids.join(", ")}</small>
-            </li>
-          ))}
-        </ul>
-      </Modal>
-
       <ImportExportModal
         open={importExportModalVisible}
         onClose={() => setImportExportModalVisible(false)}
         onExport={exportTemplate}
         onImport={importTemplate}
+        templates={templates}
         onImportComplete={() => {
           loadTemplates();
         }}
+        onImportedTemplate={handleImportedTemplate}
       />
     </div>
   );

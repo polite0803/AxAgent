@@ -2,6 +2,7 @@ import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminal
 import { Badge, Button, Empty, Select, Tooltip } from "antd";
 import { AlertTriangle, CheckCircle, Maximize2, Minimize2, Plus, RefreshCw, Terminal, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface IntegratedTerminalProps {
   defaultCwd?: string;
@@ -18,6 +19,7 @@ export function IntegratedTerminal({
   onOutput,
   onError,
 }: IntegratedTerminalProps) {
+  const { t } = useTranslation();
   const {
     sessions,
     activeSessionId,
@@ -250,7 +252,7 @@ export function IntegratedTerminal({
         )}
 
         <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
-          <Tooltip title="New Terminal">
+          <Tooltip title={t("terminal.newTerminal")}>
             <Button
               size="small"
               type="text"
@@ -263,7 +265,7 @@ export function IntegratedTerminal({
 
           {activeSessionId && (
             <>
-              <Tooltip title="Analyze Output">
+              <Tooltip title={t("terminal.analyzeOutput")}>
                 <Button
                   size="small"
                   type="text"
@@ -272,7 +274,7 @@ export function IntegratedTerminal({
                   style={{ color: "#f9e2af" }}
                 />
               </Tooltip>
-              <Tooltip title="Clear">
+              <Tooltip title={t("terminal.clear")}>
                 <Button
                   size="small"
                   type="text"
@@ -281,7 +283,7 @@ export function IntegratedTerminal({
                   style={{ color: "#89b4fa" }}
                 />
               </Tooltip>
-              <Tooltip title="Kill Process">
+              <Tooltip title={t("terminal.killProcess")}>
                 <Button
                   size="small"
                   type="text"
@@ -290,7 +292,7 @@ export function IntegratedTerminal({
                   style={{ color: "#f38ba8" }}
                 />
               </Tooltip>
-              <Tooltip title="Close Session">
+              <Tooltip title={t("terminal.closeSession")}>
                 <Button
                   size="small"
                   type="text"

@@ -127,7 +127,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         icon: <Sparkles size={16} color={CHAT_ICON_COLORS.Sparkles} />,
         category: nav,
         action: () => {
-          navigate("/skills");
+          navigate("/settings");
+          useUIStore.getState().setSettingsSection("skillsHub");
           onClose();
         },
       },

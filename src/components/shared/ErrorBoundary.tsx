@@ -1,4 +1,5 @@
 import { Button, Result } from "antd";
+import i18next from "i18next";
 import React from "react";
 
 interface ErrorBoundaryState {
@@ -39,7 +40,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <Result
           status="error"
-          title="Something went wrong"
+          title={i18next.t("errorBoundary.title")}
           subTitle={this.state.error?.message || "An unexpected error occurred"}
           extra={
             <Button type="primary" onClick={this.handleReset}>

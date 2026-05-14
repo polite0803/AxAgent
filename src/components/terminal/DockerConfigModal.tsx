@@ -1,5 +1,6 @@
 import { Input, Modal, Typography } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -10,6 +11,7 @@ interface DockerConfigModalProps {
 }
 
 export function DockerConfigModal({ open, onClose, onConnect }: DockerConfigModalProps) {
+  const { t } = useTranslation();
   const [socketPath, setSocketPath] = useState("");
 
   const handleConnect = () => {
@@ -19,15 +21,15 @@ export function DockerConfigModal({ open, onClose, onConnect }: DockerConfigModa
 
   return (
     <Modal
-      title="Docker Configuration"
+      title={t("dockerConfig.title")}
       open={open}
       onCancel={onClose}
       onOk={handleConnect}
-      okText="Connect"
+      okText={t("dockerConfig.connect")}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
-          <Text type="secondary">Docker Socket Path</Text>
+          <Text type="secondary">{t("dockerConfig.socketPath")}</Text>
           <Input
             id="docker-config-modal-input-64"
             value={socketPath}

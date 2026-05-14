@@ -665,7 +665,6 @@ export type BuiltinPageKey =
   | "gateway"
   | "files"
   | "settings"
-  | "skills"
   | "marketplace"
   | "wiki";
 export type PageKey = BuiltinPageKey | string;
@@ -696,6 +695,7 @@ export type SettingsSection =
   | "promptTemplates"
   | "acp"
   | "evolution"
+  | "cloudWorkspace"
   | string;
 
 // === Generated Tool ===

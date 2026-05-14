@@ -2,6 +2,7 @@ import { CheckCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined }
 import { Button, Card, Divider, Select, Space, Tabs, Tag, Typography } from "antd";
 import DOMPurify from "dompurify";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title } = Typography;
@@ -48,6 +49,7 @@ function getSourceTypeName(sourceType: string): string {
 }
 
 export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewerProps) {
+  const { t } = useTranslation();
   const [selectedFormat, setSelectedFormat] = useState<ReportFormat>("markdown");
 
   if (!report) {
@@ -56,7 +58,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
         <div className="flex items-center justify-center h-64 text-gray-400">
           <div className="text-center">
             <FileTextOutlined style={{ fontSize: 48 }} className="mb-4" />
-            <div>暂无生成报告</div>
+            <div>{t("reportViewer.noReport")}</div>
           </div>
         </div>
       </Card>
@@ -197,7 +199,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
                 ))}
               </ol>
             )
-            : <Text type="secondary">暂无参考文献</Text>}
+            : <Text type="secondary">{t("reportViewer.noReferences")}</Text>}
         </div>
       ),
     },
@@ -206,7 +208,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
       label: "摘要",
       children: (
         <Card className="bg-gray-50">
-          <Text>{report.summary || "暂无摘要"}</Text>
+          <Text>{report.summary || t("reportViewer.noSummary")}</Text>
         </Card>
       ),
     },
@@ -276,10 +278,11 @@ interface ReportOutlineViewProps {
 }
 
 export function ReportOutlineView({ outline, onSectionClick }: ReportOutlineViewProps) {
+  const { t } = useTranslation();
   if (!outline) {
     return (
       <Card size="small">
-        <Text type="secondary">暂无大纲</Text>
+        <Text type="secondary">{t("reportViewer.noOutline")}</Text>
       </Card>
     );
   }

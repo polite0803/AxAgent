@@ -378,6 +378,8 @@ pub fn run() {
             commands::dashboard::dashboard_disable_plugin,
             commands::dashboard::dashboard_render_panel,
             commands::dashboard::dashboard_reload_plugins,
+            commands::dashboard::dashboard_open_plugins_folder,
+            commands::dashboard::dashboard_install_plugin,
             #[cfg(not(mobile))]
             commands::computer_control::screen_capture,
             #[cfg(not(mobile))]
@@ -435,6 +437,7 @@ pub fn run() {
             commands::cloud_workspace::get_cloud_conflicts,
             commands::cloud_workspace::resolve_cloud_conflict,
             commands::cloud_workspace::set_cloud_conflict_strategy,
+            commands::cloud_workspace::check_cloud_connection,
             commands::storage::get_storage_inventory,
             commands::storage::open_storage_directory,
             commands::storage::validate_documents_root,

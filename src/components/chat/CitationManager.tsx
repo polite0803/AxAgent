@@ -1,5 +1,6 @@
 import { CheckCircleOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, List, Space, Tag, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title } = Typography;
@@ -47,6 +48,7 @@ export function CitationManager({
   onAddNew,
   selectedCitationId,
 }: CitationManagerProps) {
+  const { t } = useTranslation();
   const citationsInReport = citations.filter((c) => c.inReport);
   const citationsNotInReport = citations.filter((c) => !c.inReport);
 
@@ -134,7 +136,7 @@ export function CitationManager({
                       e.stopPropagation();
                       onToggleInReport?.(item.id);
                     }}
-                    title="添加到报告"
+                    title={t("citationManager.addToReport")}
                   />,
                   <Button
                     type="text"
@@ -187,6 +189,7 @@ interface CitationStatsProps {
 }
 
 export function CitationStats({ citations }: CitationStatsProps) {
+  const { t } = useTranslation();
   const stats = {
     total: citations.length,
     inReport: citations.filter((c) => c.inReport).length,
@@ -203,15 +206,15 @@ export function CitationStats({ citations }: CitationStatsProps) {
     <div className="citation-stats">
       <Space direction="vertical" size="small" style={{ width: "100%" }}>
         <div className="flex justify-between">
-          <Text type="secondary">总引用数:</Text>
+          <Text type="secondary">{t("citationManager.totalCitations")}</Text>
           <Text strong>{stats.total}</Text>
         </div>
         <div className="flex justify-between">
-          <Text type="secondary">报告中使用:</Text>
+          <Text type="secondary">{t("citationManager.usedInReport")}</Text>
           <Text strong>{stats.inReport}</Text>
         </div>
         <div className="flex justify-between">
-          <Text type="secondary">平均可信度:</Text>
+          <Text type="secondary">{t("citationManager.avgCredibility")}</Text>
           <CredibilityBadge score={stats.avgCredibility} />
         </div>
         <div>

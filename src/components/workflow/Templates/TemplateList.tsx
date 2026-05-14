@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Card, Dropdown, Empty, Input, message, Modal, Select, Spin, Tag } from "antd";
+import { Button, Card, Dropdown, Empty, Input, message, Modal, Select, Spin, Tag, theme } from "antd";
 import { Copy, Download, Edit2, Eye, History, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -58,6 +58,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   onEditTemplate,
 }) => {
   const { t } = useTranslation("chat");
+  const { token } = theme.useToken();
   const { templates, isLoading, loadTemplates, deleteTemplate, duplicateTemplate } = useWorkflowEditorStore();
   const [searchText, setSearchText] = useState("");
   const [filterTag, setFilterTag] = useState<string | undefined>(undefined);
@@ -177,8 +178,8 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         hoverable
         onClick={() => onSelectTemplate(template)}
         style={{
-          background: "#1e1e1e",
-          border: "1px solid #333",
+          background: token.colorBgContainer,
+          border: `1px solid ${token.colorBorderSecondary}`,
           cursor: "pointer",
           transition: "all 0.2s",
         }}
@@ -190,7 +191,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 16 }}>{template.icon || "📋"}</span>
-              <span style={{ fontWeight: 500, color: "#fff", fontSize: 14 }}>
+              <span style={{ fontWeight: 500, color: token.colorText, fontSize: 14 }}>
                 {template.is_preset && PRESET_I18N_KEY[template.id]
                   ? t(`chat.workflow.${PRESET_I18N_KEY[template.id]}.name`, template.name)
                   : template.name}
@@ -208,7 +209,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             </div>
             <div
               style={{
-                color: "#888",
+                color: token.colorTextSecondary,
                 fontSize: 12,
                 marginBottom: 8,
                 overflow: "hidden",
@@ -245,7 +246,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
               size="small"
               icon={<MoreVertical size={14} />}
               onClick={(e) => e.stopPropagation()}
-              style={{ color: "#666" }}
+              style={{ color: token.colorTextTertiary }}
             />
           </Dropdown>
         </div>
@@ -268,7 +269,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           <Input
             id="template-list-input-129"
             placeholder={t("workflow.templateList.searchPlaceholder")}
-            prefix={<Search size={14} color="#666" />}
+            prefix={<Search size={14} color={token.colorTextTertiary} />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             size="small"

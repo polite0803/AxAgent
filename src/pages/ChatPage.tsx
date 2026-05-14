@@ -323,7 +323,7 @@ export function ChatPage() {
                 fontSize: 12,
               }}
             >
-              加载中…
+              {t("chatPage.loading")}
             </div>
           )}
         </div>

@@ -1,14 +1,14 @@
 use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use std::future::Future;
 use std::io::{Read, Write};
 use std::path::Path;
+use std::sync::Mutex;
 use zip::write::SimpleFileOptions;
 
 use crate::error::{AxAgentError, Result};
-
-// === Types ===
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -37,11 +37,10 @@ pub struct BackupZipContents {
     pub master_key_path: Option<std::path::PathBuf>,
 }
 
-// === WebDAV Client ===
-
 pub struct WebDavClient {
     client: Client,
     config: WebDavConfig,
+    mkdir_cache: Mutex<HashSet<String>>,
 }
 
 impl WebDavClient {
@@ -51,10 +50,18 @@ impl WebDavClient {
             .timeout(std::time::Duration::from_secs(300))
             .build()
             .map_err(|e| AxAgentError::Gateway(format!("Failed to create HTTP client: {}", e)))?;
-        Ok(Self { client, config })
+        Ok(Self {
+            client,
+            config,
+            mkdir_cache: Mutex::new(HashSet::new()),
+        })
     }
 
-    fn base_url(&self) -> String {
+    pub fn config(&self) -> &WebDavConfig {
+        &self.config
+    }
+
+    pub fn base_url(&self) -> String {
         let host = self.config.host.trim_end_matches('/');
         let path = self.config.path.trim_matches('/');
         if path.is_empty() {
@@ -64,11 +71,10 @@ impl WebDavClient {
         }
     }
 
-    fn file_url(&self, filename: &str) -> String {
+    pub fn file_url(&self, filename: &str) -> String {
         format!("{}{}", self.base_url(), filename)
     }
 
-    /// Check connection and auto-create remote directory if missing.
     pub async fn check_connection(&self) -> Result<bool> {
         let url = self.base_url();
         let method = Method::from_bytes(b"PROPFIND")
@@ -86,7 +92,7 @@ impl WebDavClient {
         match response.status() {
             StatusCode::MULTI_STATUS | StatusCode::OK => Ok(true),
             StatusCode::NOT_FOUND => {
-                self.mkdir().await?;
+                self.ensure_dir().await?;
                 Ok(true)
             },
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
@@ -96,12 +102,18 @@ impl WebDavClient {
         }
     }
 
-    /// Create the remote directory tree.
-    async fn mkdir(&self) -> Result<()> {
+    pub async fn ensure_dir(&self) -> Result<()> {
         let host = self.config.host.trim_end_matches('/');
         let path = self.config.path.trim_matches('/');
         if path.is_empty() {
             return Ok(());
+        }
+
+        {
+            let cache = self.mkdir_cache.lock().unwrap();
+            if cache.contains(path) {
+                return Ok(());
+            }
         }
 
         let parts: Vec<&str> = path.split('/').filter(|p| !p.is_empty()).collect();
@@ -113,6 +125,13 @@ impl WebDavClient {
             } else {
                 format!("{}/{}", current, part)
             };
+
+            {
+                let cache = self.mkdir_cache.lock().unwrap();
+                if cache.contains(&current) {
+                    continue;
+                }
+            }
 
             let url = format!("{}/{}/", host, current);
             let method = Method::from_bytes(b"MKCOL")
@@ -126,7 +145,6 @@ impl WebDavClient {
                 .await
                 .map_err(|e| AxAgentError::Gateway(format!("WebDAV MKCOL failed: {}", e)))?;
 
-            // CREATED=success, METHOD_NOT_ALLOWED=already exists
             match response.status() {
                 StatusCode::CREATED | StatusCode::OK | StatusCode::METHOD_NOT_ALLOWED => {},
                 status => {
@@ -136,91 +154,120 @@ impl WebDavClient {
                     )));
                 },
             }
+
+            self.mkdir_cache.lock().unwrap().insert(current.clone());
         }
         Ok(())
     }
 
-    /// List axagent backup .zip files in the remote directory.
-    pub async fn list_files(&self) -> Result<Vec<WebDavFileInfo>> {
-        run_after_directory_ready(
-            || self.check_connection(),
-            || async {
-                let url = self.base_url();
-                let method = Method::from_bytes(b"PROPFIND")
-                    .map_err(|e| AxAgentError::Gateway(format!("Invalid method: {}", e)))?;
+    pub async fn ensure_parent_dir(&self, key: &str) -> Result<()> {
+        if let Some(parent) = key.rfind('/') {
+            let parent_path = &key[..parent];
+            let host = self.config.host.trim_end_matches('/');
+            let base_path = self.config.path.trim_matches('/');
 
-                let body = r#"<?xml version="1.0" encoding="utf-8"?>
-<D:propfind xmlns:D="DAV:">
-  <D:prop>
-    <D:getcontentlength/>
-    <D:getlastmodified/>
-    <D:resourcetype/>
-  </D:prop>
-</D:propfind>"#;
+            let full_parent = if base_path.is_empty() {
+                parent_path.to_string()
+            } else {
+                format!("{}/{}", base_path, parent_path)
+            };
+
+            {
+                let cache = self.mkdir_cache.lock().unwrap();
+                if cache.contains(&full_parent) {
+                    return Ok(());
+                }
+            }
+
+            let parts: Vec<&str> = full_parent.split('/').filter(|p| !p.is_empty()).collect();
+            let mut current = String::new();
+
+            for part in parts {
+                current = if current.is_empty() {
+                    part.to_string()
+                } else {
+                    format!("{}/{}", current, part)
+                };
+
+                {
+                    let cache = self.mkdir_cache.lock().unwrap();
+                    if cache.contains(&current) {
+                        continue;
+                    }
+                }
+
+                let url = format!("{}/{}/", host, current);
+                let method = Method::from_bytes(b"MKCOL")
+                    .map_err(|e| AxAgentError::Gateway(format!("Invalid method: {}", e)))?;
 
                 let response = self
                     .client
                     .request(method, &url)
                     .basic_auth(&self.config.username, Some(&self.config.password))
-                    .header("Depth", "1")
-                    .header("Content-Type", "application/xml; charset=utf-8")
-                    .body(body)
                     .send()
                     .await
-                    .map_err(|e| AxAgentError::Gateway(format!("WebDAV PROPFIND failed: {}", e)))?;
-
-                if response.status() != StatusCode::MULTI_STATUS && !response.status().is_success()
-                {
-                    return Err(AxAgentError::Gateway(format!(
-                        "WebDAV list failed: HTTP {}",
-                        response.status()
-                    )));
-                }
-
-                let text = response.text().await.map_err(|e| {
-                    AxAgentError::Gateway(format!("Failed to read response: {}", e))
-                })?;
-
-                parse_propfind_response(&text)
-            },
-        )
-        .await
-    }
-
-    /// Upload a local file to the remote directory.
-    pub async fn upload_file(&self, filename: &str, local_path: &Path) -> Result<()> {
-        run_after_directory_ready(
-            || self.check_connection(),
-            || async {
-                let data = std::fs::read(local_path)
-                    .map_err(|e| AxAgentError::Gateway(format!("Failed to read file: {}", e)))?;
-                let url = self.file_url(filename);
-
-                let response = self
-                    .client
-                    .put(&url)
-                    .basic_auth(&self.config.username, Some(&self.config.password))
-                    .header("Content-Type", "application/octet-stream")
-                    .body(data)
-                    .send()
-                    .await
-                    .map_err(|e| AxAgentError::Gateway(format!("WebDAV upload failed: {}", e)))?;
+                    .map_err(|e| AxAgentError::Gateway(format!("WebDAV MKCOL failed: {}", e)))?;
 
                 match response.status() {
-                    StatusCode::CREATED | StatusCode::OK | StatusCode::NO_CONTENT => Ok(()),
+                    StatusCode::CREATED | StatusCode::OK | StatusCode::METHOD_NOT_ALLOWED => {},
                     status => {
-                        Err(AxAgentError::Gateway(format!("WebDAV upload failed: HTTP {}", status)))
+                        return Err(AxAgentError::Gateway(format!(
+                            "WebDAV mkdir failed for '{}': HTTP {}",
+                            current, status
+                        )));
                     },
                 }
-            },
-        )
-        .await
+
+                self.mkdir_cache.lock().unwrap().insert(current.clone());
+            }
+        }
+        Ok(())
     }
 
-    /// Download a file from the remote directory to a local path.
-    pub async fn download_file(&self, filename: &str, local_path: &Path) -> Result<()> {
-        let url = self.file_url(filename);
+    pub async fn propfind(&self, url: &str, depth: &str) -> Result<String> {
+        let body = r#"<?xml version="1.0" encoding="utf-8"?>
+<D:propfind xmlns:D="DAV:">
+  <D:prop>
+    <D:getcontentlength/>
+    <D:getlastmodified/>
+    <D:getetag/>
+    <D:resourcetype/>
+  </D:prop>
+</D:propfind>"#;
 
+        let method = Method::from_bytes(b"PROPFIND")
+            .map_err(|e| AxAgentError::Gateway(format!("Invalid method: {}", e)))?;
+
+        let response = self
+            .client
+            .request(method, url)
+            .basic_auth(&self.config.username, Some(&self.config.password))
+            .header("Depth", depth)
+            .header("Content-Type", "application/xml; charset=utf-8")
+            .body(body)
+            .send()
+            .await
+            .map_err(|e| AxAgentError::Gateway(format!("WebDAV PROPFIND failed: {}", e)))?;
+
+        if response.status() == StatusCode::FORBIDDEN && depth == "infinity" {
+            return Err(AxAgentError::Gateway("Depth infinity not supported".to_string()));
+        }
+
+        if response.status() != StatusCode::MULTI_STATUS && !response.status().is_success() {
+            return Err(AxAgentError::Gateway(format!(
+                "WebDAV PROPFIND failed: HTTP {}",
+                response.status()
+            )));
+        }
+
+        response
+            .text()
+            .await
+            .map_err(|e| AxAgentError::Gateway(format!("Failed to read response: {}", e)))
+    }
+
+    pub async fn get_raw(&self, key: &str) -> Result<(Vec<u8>, Option<String>, Option<String>)> {
+        let url = self.file_url(key);
         let response = self
             .client
             .get(&url)
@@ -236,38 +283,217 @@ impl WebDavClient {
             )));
         }
 
+        let etag = response
+            .headers()
+            .get("etag")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string());
+
+        let last_modified = response
+            .headers()
+            .get("last-modified")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string());
+
         let data = response
             .bytes()
             .await
-            .map_err(|e| AxAgentError::Gateway(format!("Failed to read download: {}", e)))?;
+            .map(|b| b.to_vec())
+            .map_err(|e| AxAgentError::Gateway(format!("Failed to read response: {}", e)))?;
 
-        std::fs::write(local_path, &data)
-            .map_err(|e| AxAgentError::Gateway(format!("Failed to write file: {}", e)))?;
-        Ok(())
+        Ok((data, etag, last_modified))
     }
 
-    /// Delete a file from the remote directory.
-    pub async fn delete_file(&self, filename: &str) -> Result<()> {
-        let url = self.file_url(filename);
+    pub async fn put_raw(
+        &self,
+        key: &str,
+        data: &[u8],
+        if_match: Option<&str>,
+    ) -> Result<Option<String>> {
+        self.ensure_parent_dir(key).await?;
 
-        let response = self
+        let url = self.file_url(key);
+        let mut req = self
+            .client
+            .put(&url)
+            .basic_auth(&self.config.username, Some(&self.config.password))
+            .header("Content-Type", "application/octet-stream")
+            .body(data.to_vec());
+
+        if let Some(etag) = if_match {
+            req = req.header("If-Match", etag);
+        }
+
+        let response = req
+            .send()
+            .await
+            .map_err(|e| AxAgentError::Gateway(format!("WebDAV upload failed: {}", e)))?;
+
+        if response.status() == StatusCode::PRECONDITION_FAILED {
+            return Err(AxAgentError::Gateway(
+                "WebDAV precondition failed: ETag mismatch".to_string(),
+            ));
+        }
+
+        match response.status() {
+            StatusCode::CREATED | StatusCode::OK | StatusCode::NO_CONTENT => {},
+            status => {
+                return Err(AxAgentError::Gateway(format!(
+                    "WebDAV upload failed: HTTP {}",
+                    status
+                )));
+            },
+        }
+
+        let etag = response
+            .headers()
+            .get("etag")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string());
+
+        Ok(etag)
+    }
+
+    pub async fn delete_raw(&self, key: &str, if_match: Option<&str>) -> Result<()> {
+        let url = self.file_url(key);
+        let mut req = self
             .client
             .delete(&url)
-            .basic_auth(&self.config.username, Some(&self.config.password))
+            .basic_auth(&self.config.username, Some(&self.config.password));
+
+        if let Some(etag) = if_match {
+            req = req.header("If-Match", etag);
+        }
+
+        let response = req
             .send()
             .await
             .map_err(|e| AxAgentError::Gateway(format!("WebDAV delete failed: {}", e)))?;
+
+        if response.status() == StatusCode::PRECONDITION_FAILED {
+            return Err(AxAgentError::Gateway(
+                "WebDAV precondition failed: ETag mismatch".to_string(),
+            ));
+        }
 
         match response.status() {
             StatusCode::OK | StatusCode::NO_CONTENT | StatusCode::NOT_FOUND => Ok(()),
             status => Err(AxAgentError::Gateway(format!("WebDAV delete failed: HTTP {}", status))),
         }
     }
+
+    pub async fn head_raw(&self, key: &str) -> Result<(Option<String>, Option<String>, i64)> {
+        let url = self.file_url(key);
+        let response = self
+            .client
+            .head(&url)
+            .basic_auth(&self.config.username, Some(&self.config.password))
+            .send()
+            .await
+            .map_err(|e| AxAgentError::Gateway(format!("WebDAV HEAD failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(AxAgentError::NotFound(format!("WebDAV object not found: {}", key)));
+        }
+
+        let etag = response
+            .headers()
+            .get("etag")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string());
+
+        let last_modified = response
+            .headers()
+            .get("last-modified")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string());
+
+        let size = response
+            .headers()
+            .get("content-length")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.parse::<i64>().ok())
+            .unwrap_or(0);
+
+        Ok((etag, last_modified, size))
+    }
+
+    pub async fn list_files(&self) -> Result<Vec<WebDavFileInfo>> {
+        run_after_directory_ready(
+            || self.check_connection(),
+            || async {
+                let url = self.base_url();
+                let text = self.propfind(&url, "1").await?;
+                parse_propfind_response(&text)
+            },
+        )
+        .await
+    }
+
+    pub async fn upload_file(&self, filename: &str, local_path: &Path) -> Result<()> {
+        run_after_directory_ready(
+            || self.check_connection(),
+            || async {
+                let data = std::fs::read(local_path)
+                    .map_err(|e| AxAgentError::Gateway(format!("Failed to read file: {}", e)))?;
+                self.put_raw(filename, &data, None).await?;
+                Ok(())
+            },
+        )
+        .await
+    }
+
+    pub async fn download_file(&self, filename: &str, local_path: &Path) -> Result<()> {
+        let (data, _, _) = self.get_raw(filename).await?;
+        std::fs::write(local_path, &data)
+            .map_err(|e| AxAgentError::Gateway(format!("Failed to write file: {}", e)))?;
+        Ok(())
+    }
+
+    pub async fn delete_file(&self, filename: &str) -> Result<()> {
+        self.delete_raw(filename, None).await
+    }
+
+    pub async fn list_recursive(&self, prefix: &str) -> Result<Vec<crate::cloud_storage::StorageObjectMeta>> {
+        let url = if prefix.is_empty() {
+            self.base_url()
+        } else {
+            format!("{}{}", self.base_url(), prefix)
+        };
+
+        match self.propfind(&url, "infinity").await {
+            Ok(text) => {
+                let objects = parse_propfind_responses_for_sync(&text, prefix)?;
+                Ok(objects)
+            },
+            Err(_) => {
+                self.list_recursive_iterative(prefix).await
+            },
+        }
+    }
+
+    async fn list_recursive_iterative(&self, prefix: &str) -> Result<Vec<crate::cloud_storage::StorageObjectMeta>> {
+        let mut all_objects = Vec::new();
+        let mut dirs_to_visit = vec![prefix.to_string()];
+
+        while let Some(dir) = dirs_to_visit.pop() {
+            let url = if dir.is_empty() {
+                self.base_url()
+            } else {
+                format!("{}{}", self.base_url(), dir)
+            };
+
+            let text = self.propfind(&url, "1").await?;
+            let (files, subdirs) = parse_propfind_responses_with_dirs(&text, &dir)?;
+
+            all_objects.extend(files);
+            dirs_to_visit.extend(subdirs);
+        }
+
+        Ok(all_objects)
+    }
 }
 
-// === ZIP Backup Utilities ===
-
-/// Create a backup ZIP containing the database snapshot and metadata.
 pub fn create_backup_zip(
     db_path: &Path,
     documents_dir: Option<&Path>,
@@ -282,7 +508,6 @@ pub fn create_backup_zip(
     let mut zip = zip::ZipWriter::new(file);
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-    // axagent.db
     let db_data = std::fs::read(db_path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to read database: {}", e)))?;
     let db_checksum = format!("{:x}", Sha256::digest(&db_data));
@@ -292,7 +517,6 @@ pub fn create_backup_zip(
     zip.write_all(&db_data)
         .map_err(|e| AxAgentError::Gateway(format!("ZIP write error: {}", e)))?;
 
-    // metadata.json
     let metadata = serde_json::json!({
         "version": 1,
         "app_version": app_version,
@@ -313,7 +537,6 @@ pub fn create_backup_zip(
     zip.write_all(metadata_json.as_bytes())
         .map_err(|e| AxAgentError::Gateway(format!("ZIP write error: {}", e)))?;
 
-    // Optional: master.key for cross-device restore
     if let Some(key_path) = master_key_path {
         if key_path.exists() {
             let key_data = std::fs::read(key_path)
@@ -325,14 +548,12 @@ pub fn create_backup_zip(
         }
     }
 
-    // Optional: documents/ directory
     if let Some(docs_dir) = documents_dir {
         if docs_dir.exists() {
             add_directory_to_zip(&mut zip, docs_dir, "documents", options)?;
         }
     }
 
-    // Optional: workspace/ directory
     if let Some(ws_dir) = workspace_dir {
         if ws_dir.exists() {
             add_directory_to_zip(&mut zip, ws_dir, "workspace", options)?;
@@ -344,7 +565,6 @@ pub fn create_backup_zip(
     Ok(())
 }
 
-/// Extract a backup ZIP and return its contents.
 pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipContents> {
     let file = std::fs::File::open(zip_path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to open ZIP: {}", e)))?;
@@ -367,7 +587,7 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
         let name = entry.name().to_string();
 
         if name.contains("..") {
-            continue; // path traversal protection
+            continue;
         }
 
         if name == "axagent.db" {
@@ -429,7 +649,6 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
     })
 }
 
-/// Verify the checksum of an extracted database against metadata.
 pub fn verify_db_checksum(db_path: &Path, expected_checksum: &str) -> Result<bool> {
     let data = std::fs::read(db_path)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to read db for checksum: {}", e)))?;
@@ -437,19 +656,15 @@ pub fn verify_db_checksum(db_path: &Path, expected_checksum: &str) -> Result<boo
     Ok(actual == expected_checksum)
 }
 
-/// Generate a backup filename with timestamp and hostname.
 pub fn generate_backup_filename() -> String {
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
     let hostname = get_hostname();
     format!("axagent-backup-{}.{}.zip", timestamp, hostname)
 }
 
-/// Parse hostname from a backup filename.
 pub fn parse_hostname_from_filename(filename: &str) -> String {
-    // Format: axagent-backup-YYYYMMDD_HHMMSS.hostname.zip
     let name = filename.trim_end_matches(".zip");
     if let Some(rest) = name.strip_prefix("axagent-backup-") {
-        // rest = "YYYYMMDD_HHMMSS.hostname"
         if let Some(dot_pos) = rest.find('.') {
             return rest[dot_pos + 1..].to_string();
         }
@@ -478,8 +693,6 @@ where
     check().await?;
     action().await
 }
-
-// === Internal Helpers ===
 
 fn get_hostname() -> String {
     std::process::Command::new("hostname")
@@ -534,14 +747,12 @@ fn collect_files(dir: &Path, files: &mut Vec<std::path::PathBuf>) -> Result<()> 
     Ok(())
 }
 
-/// Parse WebDAV PROPFIND XML response to extract file information.
 fn parse_propfind_response(xml: &str) -> Result<Vec<WebDavFileInfo>> {
     let mut files = Vec::new();
     let response_blocks = split_xml_responses(xml);
 
     for block in response_blocks {
         let lower_block = block.to_lowercase();
-        // Skip collections (directories)
         if lower_block.contains("<d:collection") || lower_block.contains("<collection") {
             continue;
         }
@@ -575,9 +786,147 @@ fn parse_propfind_response(xml: &str) -> Result<Vec<WebDavFileInfo>> {
         });
     }
 
-    // Newest first (filenames contain timestamps)
     files.sort_by(|a, b| b.file_name.cmp(&a.file_name));
     Ok(files)
+}
+
+fn parse_propfind_responses_for_sync(
+    xml: &str,
+    prefix: &str,
+) -> Result<Vec<crate::cloud_storage::StorageObjectMeta>> {
+    let mut files = Vec::new();
+    let response_blocks = split_xml_responses(xml);
+    let base_href = {
+        let base = if prefix.is_empty() { "/" } else { prefix };
+        base.trim_matches('/').to_string()
+    };
+
+    for block in response_blocks {
+        let lower_block = block.to_lowercase();
+        if lower_block.contains("<d:collection") || lower_block.contains("<collection") {
+            continue;
+        }
+
+        let href = extract_xml_value(&block, "href").unwrap_or_default();
+        if href.is_empty() || href.ends_with('/') {
+            continue;
+        }
+
+        let decoded_href = url_decode(&href);
+        let file_name = decoded_href
+            .split('/')
+            .rfind(|s| !s.is_empty())
+            .unwrap_or("");
+        if file_name.is_empty() {
+            continue;
+        }
+
+        let key = if prefix.is_empty() {
+            let base_path = extract_path_after_prefix(&decoded_href, &base_href);
+            base_path
+        } else {
+            let base_path = extract_path_after_prefix(&decoded_href, &base_href);
+            base_path
+        };
+
+        if key.is_empty() {
+            continue;
+        }
+
+        let size: i64 = extract_xml_value(&block, "getcontentlength")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
+        let last_modified = extract_xml_value(&block, "getlastmodified");
+        let etag = extract_xml_value(&block, "getetag")
+            .map(|s| s.trim_matches('"').to_string());
+
+        files.push(crate::cloud_storage::StorageObjectMeta {
+            key,
+            etag,
+            last_modified,
+            size,
+        });
+    }
+    Ok(files)
+}
+
+fn parse_propfind_responses_with_dirs(
+    xml: &str,
+    prefix: &str,
+) -> Result<(Vec<crate::cloud_storage::StorageObjectMeta>, Vec<String>)> {
+    let mut files = Vec::new();
+    let mut subdirs = Vec::new();
+    let response_blocks = split_xml_responses(xml);
+    let base_href = {
+        let base = if prefix.is_empty() { "/" } else { prefix };
+        base.trim_matches('/').to_string()
+    };
+
+    for block in response_blocks {
+        let lower_block = block.to_lowercase();
+        let href = extract_xml_value(&block, "href").unwrap_or_default();
+        if href.is_empty() {
+            continue;
+        }
+
+        let decoded_href = url_decode(&href);
+
+        if lower_block.contains("<d:collection") || lower_block.contains("<collection") {
+            if decoded_href.ends_with('/') {
+                let dir_name = decoded_href.trim_end_matches('/');
+                let dir_part = dir_name.split('/').next_back().unwrap_or("");
+                if !dir_part.is_empty() && dir_part != base_href.split('/').next_back().unwrap_or("") {
+                    let sub_prefix = if prefix.is_empty() {
+                        dir_part.to_string()
+                    } else {
+                        format!("{}/{}", prefix, dir_part)
+                    };
+                    subdirs.push(sub_prefix);
+                }
+            }
+            continue;
+        }
+
+        let file_name = decoded_href
+            .split('/')
+            .rfind(|s| !s.is_empty())
+            .unwrap_or("");
+        if file_name.is_empty() {
+            continue;
+        }
+
+        let key = extract_path_after_prefix(&decoded_href, &base_href);
+        if key.is_empty() {
+            continue;
+        }
+
+        let size: i64 = extract_xml_value(&block, "getcontentlength")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
+        let last_modified = extract_xml_value(&block, "getlastmodified");
+        let etag = extract_xml_value(&block, "getetag")
+            .map(|s| s.trim_matches('"').to_string());
+
+        files.push(crate::cloud_storage::StorageObjectMeta {
+            key,
+            etag,
+            last_modified,
+            size,
+        });
+    }
+    Ok((files, subdirs))
+}
+
+fn extract_path_after_prefix(href: &str, prefix: &str) -> String {
+    let prefix_lower = prefix.to_lowercase();
+    let href_lower = href.to_lowercase();
+
+    if let Some(pos) = href_lower.find(&prefix_lower) {
+        let after = &href[pos + prefix.len()..];
+        after.trim_start_matches('/').to_string()
+    } else {
+        href.trim_start_matches('/').to_string()
+    }
 }
 
 fn split_xml_responses(xml: &str) -> Vec<String> {
@@ -615,7 +964,7 @@ fn split_xml_responses(xml: &str) -> Vec<String> {
     blocks
 }
 
-fn extract_xml_value(xml: &str, tag_local_name: &str) -> Option<String> {
+pub fn extract_xml_value(xml: &str, tag_local_name: &str) -> Option<String> {
     let lower = xml.to_lowercase();
     let tag = tag_local_name.to_lowercase();
 
@@ -635,7 +984,7 @@ fn extract_xml_value(xml: &str, tag_local_name: &str) -> Option<String> {
     None
 }
 
-fn url_decode(s: &str) -> String {
+pub fn url_decode(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     let bytes = s.as_bytes();
     let mut i = 0;

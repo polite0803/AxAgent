@@ -118,12 +118,12 @@ const SOURCE_LABELS: Record<string, string> = {
   axagent: "AxAgent",
   claude: "Claude",
   agents: "Agents",
-  builtin: "内置",
-  bundled: "捆绑",
+  builtin: "skills.source.builtin",
+  bundled: "skills.source.bundled",
   codebuddy: "CodeBuddy",
   trae: "Trae",
   workbuddy: "WorkBuddy",
-  project: "项目",
+  project: "skills.source.project",
 };
 
 const ALL_SOURCE_ICON = <Layers size={14} color={CHAT_ICON_COLORS.Layers} />;

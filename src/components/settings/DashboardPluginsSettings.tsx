@@ -1,4 +1,5 @@
 import { invoke } from "@/lib/invoke";
+import { open } from "@tauri-apps/plugin-dialog";
 import { Button, Card, Empty, message, Spin, Switch, Table, Tag, Typography } from "antd";
 import { FolderOpen, PanelRight, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -36,6 +37,7 @@ export function DashboardPluginsSettings() {
   const [plugins, setPlugins] = useState<DashboardPluginInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const [unloadingId, setUnloadingId] = useState<string | null>(null);
 
   const loadPlugins = async () => {
@@ -63,6 +65,36 @@ export function DashboardPluginsSettings() {
       message.error(`Refresh failed: ${error}`);
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleInstall = async () => {
+    setInstalling(true);
+    try {
+      const selected = await open({
+        multiple: false,
+        directory: true,
+        title: t("settings.dashboardPlugins.install"),
+      });
+      if (!selected) {
+        setInstalling(false);
+        return;
+      }
+      await invoke("dashboard_install_plugin", { sourcePath: selected });
+      await loadPlugins();
+      message.success(t("settings.dashboardPlugins.enabled"));
+    } catch (error) {
+      message.error(`Install failed: ${error}`);
+    } finally {
+      setInstalling(false);
+    }
+  };
+
+  const handleOpenPluginsFolder = async () => {
+    try {
+      await invoke("dashboard_open_plugins_folder");
+    } catch (error) {
+      message.error(`Failed to open folder: ${error}`);
     }
   };
 
@@ -203,7 +235,7 @@ export function DashboardPluginsSettings() {
           >
             {t("settings.dashboardPlugins.refresh")}
           </Button>
-          <Button type="primary" icon={<Plus size={16} />} onClick={handleRefresh}>
+          <Button type="primary" icon={<Plus size={16} />} onClick={handleInstall} loading={installing}>
             {t("settings.dashboardPlugins.install")}
           </Button>
         </div>
@@ -225,7 +257,7 @@ export function DashboardPluginsSettings() {
               description={
                 <div>
                   <Paragraph>{t("settings.dashboardPlugins.noPlugins")}</Paragraph>
-                  <Button type="primary" icon={<Plus size={16} />} onClick={handleRefresh}>
+                  <Button type="primary" icon={<Plus size={16} />} onClick={handleInstall} loading={installing}>
                     {t("settings.dashboardPlugins.installFirst")}
                   </Button>
                 </div>
@@ -239,7 +271,7 @@ export function DashboardPluginsSettings() {
         <Paragraph type="secondary" className="mb-4">
           {t("settings.dashboardPlugins.pluginDirsDescription")}
         </Paragraph>
-        <Button icon={<FolderOpen size={16} />} onClick={handleRefresh}>
+        <Button icon={<FolderOpen size={16} />} onClick={handleOpenPluginsFolder}>
           {t("settings.dashboardPlugins.openPluginsFolder")}
         </Button>
       </Card>

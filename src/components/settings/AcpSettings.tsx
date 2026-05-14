@@ -282,16 +282,16 @@ export function AcpSettings() {
                     }
                     description={
                       <Descriptions size="small" column={2} colon={false}>
-                        <Descriptions.Item label="目录">
+                        <Descriptions.Item label={t("acp.directory")}>
                           <Text style={{ fontSize: 12 }}>{s.workDir}</Text>
                         </Descriptions.Item>
-                        <Descriptions.Item label="权限">
+                        <Descriptions.Item label={t("acp.permission")}>
                           <Tag style={{ fontSize: 11 }}>{s.permissionMode}</Tag>
                         </Descriptions.Item>
-                        <Descriptions.Item label="活跃任务">
+                        <Descriptions.Item label={t("acp.activeTasks")}>
                           <Text style={{ fontSize: 12 }}>{s.activeTasks}</Text>
                         </Descriptions.Item>
-                        <Descriptions.Item label="最后活跃">
+                        <Descriptions.Item label={t("acp.lastActive")}>
                           <Text style={{ fontSize: 12 }}>
                             {new Date(s.lastActive).toLocaleString("zh-CN")}
                           </Text>

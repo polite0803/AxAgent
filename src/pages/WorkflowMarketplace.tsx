@@ -553,6 +553,7 @@ export function WorkflowMarketplace() {
         onClose={() => setImportModalOpen(false)}
         onImport={handleImportSubmit}
         onExport={async () => null}
+        templates={[]}
       />
     </div>
   );

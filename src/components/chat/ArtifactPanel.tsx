@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Card, Dropdown, message, Segmented, Space, Tooltip } from "antd";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArtifactPreview } from "./ArtifactPreview";
 
 interface ArtifactPanelProps {
@@ -31,6 +32,7 @@ export function ArtifactPanel({
   onPreviewModeChange,
   onFullscreen,
 }: ArtifactPanelProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [currentMode, setCurrentMode] = useState<ArtifactPreviewMode>(previewMode);
 
@@ -108,7 +110,7 @@ export function ArtifactPanel({
           <Tooltip title={copied ? "Copied!" : "Copy code"}>
             <Button size="small" icon={copied ? <CheckOutlined /> : <CopyOutlined />} onClick={handleCopy} />
           </Tooltip>
-          <Tooltip title="Fullscreen">
+          <Tooltip title={t("artifactPanel.fullscreen")}>
             <Button size="small" icon={<ExpandOutlined />} onClick={onFullscreen} />
           </Tooltip>
           <Dropdown

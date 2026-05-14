@@ -9,13 +9,14 @@
 /// - `CloudStorageConfig`: user-facing configuration (WebDAV or S3)
 /// - `SyncManifest`: cloud sync state tracking (version, file list, checksums)
 use async_trait::async_trait;
-use reqwest::{Client, Method, StatusCode};
+use reqwest::{Client, Method};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::error::{AxAgentError, Result};
+use crate::webdav::WebDavClient;
 
 // ─── Storage Object Types ─────────────────────────────────────────────
 
@@ -51,7 +52,7 @@ pub trait StorageBackend: Send + Sync {
     async fn get(&self, key: &str) -> Result<StorageObject>;
     async fn put(&self, key: &str, data: &[u8], content_type: &str) -> Result<StorageObjectMeta>;
     async fn delete(&self, key: &str) -> Result<()>;
-    async fn list(&self, prefix: &str, limit: usize) -> Result<ListResult>;
+    async fn list(&self, prefix: &str, limit: usize, continuation_token: Option<&str>) -> Result<ListResult>;
     async fn head(&self, key: &str) -> Result<StorageObjectMeta>;
     async fn check_connection(&self) -> Result<bool>;
 }
@@ -435,7 +436,7 @@ impl StorageBackend for S3Backend {
         Ok(())
     }
 
-    async fn list(&self, prefix: &str, max_keys: usize) -> Result<ListResult> {
+    async fn list(&self, prefix: &str, max_keys: usize, continuation_token: Option<&str>) -> Result<ListResult> {
         let full_prefix = if prefix.is_empty() && !self.config.root.is_empty() {
             format!("{}/", self.config.root.trim_matches('/'))
         } else if !self.config.root.is_empty() {
@@ -448,6 +449,9 @@ impl StorageBackend for S3Backend {
         query_params.insert("list-type".to_string(), "2".to_string());
         query_params.insert("prefix".to_string(), full_prefix);
         query_params.insert("max-keys".to_string(), max_keys.to_string());
+        if let Some(token) = continuation_token {
+            query_params.insert("continuation-token".to_string(), token.to_string());
+        }
 
         let (headers, url) = self.sign_request(Method::GET, "/", &query_params, "");
         let resp = self
@@ -466,10 +470,13 @@ impl StorageBackend for S3Backend {
         let body = resp.text().await.unwrap_or_default();
         let objects = parse_s3_list_response(&body)?;
 
+        let is_truncated = parse_s3_is_truncated(&body);
+        let next_token = parse_s3_next_continuation_token(&body);
+
         Ok(ListResult {
             objects,
-            is_truncated: false,
-            continuation_token: None,
+            is_truncated,
+            continuation_token: next_token,
         })
     }
 
@@ -512,7 +519,7 @@ impl StorageBackend for S3Backend {
     }
 
     async fn check_connection(&self) -> Result<bool> {
-        match self.list("", 1).await {
+        match self.list("", 1, None).await {
             Ok(_) => Ok(true),
             Err(_) => Ok(false),
         }
@@ -521,127 +528,23 @@ impl StorageBackend for S3Backend {
 
 // ─── WebDAV Client with StorageBackend Implementation ─────────────────
 
-/// WebDAV-compatible storage configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WebDavConfig {
-    pub host: String,
-    pub username: String,
-    pub password: String,
-    pub path: String,
-    pub accept_invalid_certs: bool,
-}
+pub use crate::webdav::WebDavConfig;
 
 pub struct WebDavBackend {
-    client: Client,
-    config: WebDavConfig,
+    client: WebDavClient,
 }
 
 impl WebDavBackend {
     pub fn new(config: WebDavConfig) -> Result<Self> {
-        let client = Client::builder()
-            .danger_accept_invalid_certs(config.accept_invalid_certs)
-            .timeout(std::time::Duration::from_secs(300))
-            .build()
-            .map_err(|e| AxAgentError::Gateway(format!("Failed to create HTTP client: {}", e)))?;
-        Ok(Self { client, config })
-    }
-
-    fn base_url(&self) -> String {
-        let host = self.config.host.trim_end_matches('/');
-        let path = self.config.path.trim_matches('/');
-        if path.is_empty() {
-            format!("{}/", host)
-        } else {
-            format!("{}/{}/", host, path)
-        }
-    }
-
-    fn file_url(&self, filename: &str) -> String {
-        format!("{}{}", self.base_url(), filename)
-    }
-
-    /// Auto-create remote directory tree if missing.
-    async fn mkdir(&self) -> Result<()> {
-        let host = self.config.host.trim_end_matches('/');
-        let path = self.config.path.trim_matches('/');
-        if path.is_empty() {
-            return Ok(());
-        }
-
-        let parts: Vec<&str> = path.split('/').filter(|p| !p.is_empty()).collect();
-        let mut current = String::new();
-
-        for part in parts {
-            current = if current.is_empty() {
-                part.to_string()
-            } else {
-                format!("{}/{}", current, part)
-            };
-
-            let url = format!("{}/{}/", host, current);
-            let method = Method::from_bytes(b"MKCOL")
-                .map_err(|e| AxAgentError::Gateway(format!("Invalid method: {}", e)))?;
-
-            let response = self
-                .client
-                .request(method, &url)
-                .basic_auth(&self.config.username, Some(&self.config.password))
-                .send()
-                .await
-                .map_err(|e| AxAgentError::Gateway(format!("WebDAV MKCOL failed: {}", e)))?;
-
-            match response.status() {
-                StatusCode::CREATED | StatusCode::OK | StatusCode::METHOD_NOT_ALLOWED => {},
-                status => {
-                    return Err(AxAgentError::Gateway(format!(
-                        "WebDAV mkdir failed for '{}': HTTP {}",
-                        current, status
-                    )));
-                },
-            }
-        }
-        Ok(())
+        let client = WebDavClient::new(config)?;
+        Ok(Self { client })
     }
 }
 
 #[async_trait]
 impl StorageBackend for WebDavBackend {
     async fn get(&self, key: &str) -> Result<StorageObject> {
-        let url = self.file_url(key);
-        let response = self
-            .client
-            .get(&url)
-            .basic_auth(&self.config.username, Some(&self.config.password))
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("WebDAV download failed: {}", e)))?;
-
-        if !response.status().is_success() {
-            return Err(AxAgentError::Gateway(format!(
-                "WebDAV download failed: HTTP {}",
-                response.status()
-            )));
-        }
-
-        let etag = response
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
-
-        let last_modified = response
-            .headers()
-            .get("last-modified")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
-
-        let data = response
-            .bytes()
-            .await
-            .map(|b| b.to_vec())
-            .map_err(|e| AxAgentError::Gateway(format!("Failed to read response: {}", e)))?;
-
+        let (data, etag, last_modified) = self.client.get_raw(key).await?;
         let data_len = data.len() as i64;
 
         Ok(StorageObject {
@@ -655,35 +558,7 @@ impl StorageBackend for WebDavBackend {
     }
 
     async fn put(&self, key: &str, data: &[u8], _content_type: &str) -> Result<StorageObjectMeta> {
-        // Ensure directory exists before uploading
-        self.mkdir().await?;
-
-        let url = self.file_url(key);
-        let response = self
-            .client
-            .put(&url)
-            .basic_auth(&self.config.username, Some(&self.config.password))
-            .header("Content-Type", "application/octet-stream")
-            .body(data.to_vec())
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("WebDAV upload failed: {}", e)))?;
-
-        match response.status() {
-            StatusCode::CREATED | StatusCode::OK | StatusCode::NO_CONTENT => {},
-            status => {
-                return Err(AxAgentError::Gateway(format!(
-                    "WebDAV upload failed: HTTP {}",
-                    status
-                )));
-            },
-        }
-
-        let etag = response
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+        let etag = self.client.put_raw(key, data, None).await?;
 
         Ok(StorageObjectMeta {
             key: key.to_string(),
@@ -694,62 +569,11 @@ impl StorageBackend for WebDavBackend {
     }
 
     async fn delete(&self, key: &str) -> Result<()> {
-        let url = self.file_url(key);
-        let response = self
-            .client
-            .delete(&url)
-            .basic_auth(&self.config.username, Some(&self.config.password))
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("WebDAV delete failed: {}", e)))?;
-
-        match response.status() {
-            StatusCode::OK | StatusCode::NO_CONTENT | StatusCode::NOT_FOUND => Ok(()),
-            status => Err(AxAgentError::Gateway(format!("WebDAV delete failed: HTTP {}", status))),
-        }
+        self.client.delete_raw(key, None).await
     }
 
-    async fn list(&self, prefix: &str, _limit: usize) -> Result<ListResult> {
-        let url = if prefix.is_empty() {
-            self.base_url()
-        } else {
-            format!("{}{}", self.base_url(), prefix)
-        };
-
-        let body = r#"<?xml version="1.0" encoding="utf-8"?>
-<D:propfind xmlns:D="DAV:">
-  <D:prop>
-    <D:getcontentlength/>
-    <D:getlastmodified/>
-    <D:getetag/>
-    <D:resourcetype/>
-  </D:prop>
-</D:propfind>"#;
-
-        let response = self
-            .client
-            .request(Method::from_bytes(b"PROPFIND").unwrap(), &url)
-            .basic_auth(&self.config.username, Some(&self.config.password))
-            .header("Depth", "1")
-            .header("Content-Type", "application/xml; charset=utf-8")
-            .body(body)
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("WebDAV PROPFIND failed: {}", e)))?;
-
-        if response.status() != StatusCode::MULTI_STATUS && !response.status().is_success() {
-            return Err(AxAgentError::Gateway(format!(
-                "WebDAV list failed: HTTP {}",
-                response.status()
-            )));
-        }
-
-        let text = response
-            .text()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("Failed to read response: {}", e)))?;
-
-        let objects = parse_propfind_responses(&text, prefix)?;
+    async fn list(&self, prefix: &str, _limit: usize, _continuation_token: Option<&str>) -> Result<ListResult> {
+        let objects = self.client.list_recursive(prefix).await?;
         Ok(ListResult {
             objects,
             is_truncated: false,
@@ -758,65 +582,18 @@ impl StorageBackend for WebDavBackend {
     }
 
     async fn head(&self, key: &str) -> Result<StorageObjectMeta> {
-        let url = self.file_url(key);
-        let response = self
-            .client
-            .head(&url)
-            .basic_auth(&self.config.username, Some(&self.config.password))
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("WebDAV HEAD failed: {}", e)))?;
-
-        if !response.status().is_success() {
-            return Err(AxAgentError::NotFound(format!("WebDAV object not found: {}", key)));
-        }
-
-        let etag = response
-            .headers()
-            .get("etag")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
-
-        let size = response
-            .headers()
-            .get("content-length")
-            .and_then(|h| h.to_str().ok())
-            .and_then(|s| s.parse::<i64>().ok())
-            .unwrap_or(0);
+        let (etag, last_modified, size) = self.client.head_raw(key).await?;
 
         Ok(StorageObjectMeta {
             key: key.to_string(),
             etag,
-            last_modified: None,
+            last_modified,
             size,
         })
     }
 
     async fn check_connection(&self) -> Result<bool> {
-        let url = self.base_url();
-        let method = Method::from_bytes(b"PROPFIND")
-            .map_err(|e| AxAgentError::Gateway(format!("Invalid method: {}", e)))?;
-
-        let response = self
-            .client
-            .request(method, &url)
-            .basic_auth(&self.config.username, Some(&self.config.password))
-            .header("Depth", "0")
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Gateway(format!("WebDAV connection check failed: {}", e)))?;
-
-        match response.status() {
-            StatusCode::MULTI_STATUS | StatusCode::OK => Ok(true),
-            StatusCode::NOT_FOUND => {
-                self.mkdir().await?;
-                Ok(true)
-            },
-            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
-                Err(AxAgentError::Gateway("WebDAV authentication failed".to_string()))
-            },
-            status => Err(AxAgentError::Gateway(format!("WebDAV error: HTTP {}", status))),
-        }
+        self.client.check_connection().await
     }
 }
 
@@ -1260,110 +1037,25 @@ fn parse_s3_list_response(xml: &str) -> Result<Vec<StorageObjectMeta>> {
     Ok(files)
 }
 
-fn parse_propfind_responses(xml: &str, prefix: &str) -> Result<Vec<StorageObjectMeta>> {
-    let mut files = Vec::new();
-    let lower = xml.to_lowercase();
-    let tag = if lower.contains("<d:response>") {
-        "d:response"
-    } else {
-        "response"
-    };
-
-    let open1 = format!("<{}>", tag);
-    let open2 = format!("<{} ", tag);
-    let close = format!("</{}>", tag);
-
-    let mut pos = 0;
-    while pos < lower.len() {
-        let start = lower[pos..]
-            .find(&open1)
-            .or_else(|| lower[pos..].find(&open2));
-        if let Some(s) = start {
-            let abs_start = pos + s;
-            if let Some(end) = lower[abs_start..].find(&close) {
-                let abs_end = abs_start + end + close.len();
-                let block = &xml[abs_start..abs_end];
-                let lower_block = block.to_lowercase();
-
-                // Skip directories
-                if !lower_block.contains("<d:collection") && !lower_block.contains("<collection") {
-                    if let Some(href) = extract_xml_value(block, "href") {
-                        let href_lower = href.to_lowercase();
-                        if href_lower.ends_with('/') || href_lower.is_empty() {
-                            pos = abs_end;
-                            continue;
-                        }
-                        // Only include files under the prefix
-                        if prefix.is_empty() || href_lower.contains(&prefix.to_lowercase()) {
-                            let file_name =
-                                url_decode(href.split('/').rfind(|s| !s.is_empty()).unwrap_or(""));
-                            if !file_name.is_empty() {
-                                let size: i64 = extract_xml_value(block, "getcontentlength")
-                                    .and_then(|s| s.parse().ok())
-                                    .unwrap_or(0);
-                                let last_modified = extract_xml_value(block, "getlastmodified");
-                                let etag = extract_xml_value(block, "getetag")
-                                    .map(|s| s.trim_matches('"').to_string());
-
-                                files.push(StorageObjectMeta {
-                                    key: file_name,
-                                    etag,
-                                    last_modified,
-                                    size,
-                                });
-                            }
-                        }
-                    }
-                }
-                pos = abs_end;
-            } else {
-                break;
-            }
-        } else {
-            break;
-        }
-    }
-    Ok(files)
+fn parse_s3_is_truncated(xml: &str) -> bool {
+    roxmltree::Document::parse(xml)
+        .ok()
+        .and_then(|doc| {
+            doc.descendants()
+                .find(|n| n.has_tag_name("IsTruncated"))
+                .and_then(|n| n.text())
+                .and_then(|t| t.parse::<bool>().ok())
+        })
+        .unwrap_or(false)
 }
 
-fn extract_xml_value(xml: &str, tag_local_name: &str) -> Option<String> {
-    let lower = xml.to_lowercase();
-    let tag = tag_local_name.to_lowercase();
-
-    let patterns = [
-        (format!("<d:{}>", tag), format!("</d:{}>", tag)),
-        (format!("<{}>", tag), format!("</{}>", tag)),
-    ];
-
-    for (open, close) in &patterns {
-        if let Some(start) = lower.find(open) {
-            let content_start = start + open.len();
-            if let Some(end) = lower[content_start..].find(close) {
-                return Some(xml[content_start..content_start + end].trim().to_string());
-            }
-        }
-    }
-    None
-}
-
-fn url_decode(s: &str) -> String {
-    let mut result = String::with_capacity(s.len());
-    let bytes = s.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() {
-            let h1 = (bytes[i + 1] as char).to_digit(16);
-            let h2 = (bytes[i + 2] as char).to_digit(16);
-            if let (Some(h1), Some(h2)) = (h1, h2) {
-                result.push((h1 * 16 + h2) as u8 as char);
-                i += 3;
-                continue;
-            }
-        }
-        result.push(bytes[i] as char);
-        i += 1;
-    }
-    result
+fn parse_s3_next_continuation_token(xml: &str) -> Option<String> {
+    roxmltree::Document::parse(xml).ok().and_then(|doc| {
+        doc.descendants()
+            .find(|n| n.has_tag_name("NextContinuationToken"))
+            .and_then(|n| n.text())
+            .map(|t| t.to_string())
+    })
 }
 
 fn current_epoch_ms() -> u64 {

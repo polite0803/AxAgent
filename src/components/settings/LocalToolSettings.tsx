@@ -50,20 +50,21 @@ function ToolItem({
   groupEnabled: boolean;
   onToggle: (name: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start justify-between py-2.5 px-3 border-b border-border/50 last:border-b-0 hover:bg-bg-container-hover transition-colors">
       <div className="flex-1 min-w-0 mr-3">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Text strong className="text-sm">{tool.name}</Text>
           {tool.isDestructive && (
-            <Tooltip title="破坏性操作——执行后不可逆">
+            <Tooltip title={t("toolManager.destructiveTooltip")}>
               <Tag color="red" className="text-[10px] leading-none px-1 py-0">
                 <Shield size={10} className="inline mr-0.5" />
-                破坏性
+                {t("toolManager.destructive")}
               </Tag>
             </Tooltip>
           )}
-          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">只读</Tag>}
+          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>}
         </div>
         <Paragraph
           type="secondary"
@@ -73,7 +74,7 @@ function ToolItem({
           {tool.description}
         </Paragraph>
       </div>
-      <Tooltip title={groupEnabled ? (tool.enabled ? "点击禁用此工具" : "点击启用此工具") : "分类已禁用，无法单独控制"}>
+      <Tooltip title={groupEnabled ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable")) : t("toolManager.groupDisabled")}>
         <Switch
           id="local-tool-settings-switch-90"
           size="small"
@@ -96,6 +97,7 @@ function GroupHeader({
   const icon = GROUP_ICONS[group.groupId] ?? <Wrench size={16} />;
   const enabledCount = group.tools.filter((t) => t.enabled).length;
   const totalCount = group.tools.length;
+  const { t } = useTranslation();
 
   return (
     <div className="flex items-center gap-3 w-full">
@@ -103,13 +105,13 @@ function GroupHeader({
       <div className="flex-1 min-w-0">
         <Text strong>{group.groupName}</Text>
         <Text type="secondary" className="text-xs ml-2">
-          {enabledCount}/{totalCount} 已启用
+          {enabledCount}/{totalCount} {t("toolManager.enabled")}
         </Text>
         <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug">
           {group.description}
         </Paragraph>
       </div>
-      <Tooltip title={group.enabled ? "禁用整个分类" : "启用整个分类"}>
+      <Tooltip title={group.enabled ? t("toolManager.disableGroup") : t("toolManager.enableGroup")}>
         <Switch
           id="local-tool-settings-switch-91"
           checked={group.enabled}
@@ -148,7 +150,7 @@ export function LocalToolSettings() {
 
       {error && <Alert message={error} type="error" showIcon className="mb-4" closable />}
 
-      {groups.length === 0 ? <Empty description="暂无工具数据" /> : (
+      {groups.length === 0 ? <Empty description={t("toolManager.noTools")} /> : (
         <Collapse
           size="small"
           expandIconPosition="end"

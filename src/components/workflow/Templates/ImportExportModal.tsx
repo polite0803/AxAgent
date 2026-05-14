@@ -1,9 +1,10 @@
 import { invoke } from "@/lib/invoke";
-import { Alert, Button, Descriptions, Divider, Input, message, Modal, Tabs, Upload } from "antd";
+import { Alert, Button, Descriptions, Divider, Input, message, Modal, Select, Tabs, Typography, Upload } from "antd";
 import type { UploadProps } from "antd";
 import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { WorkflowTemplateResponse } from "../types";
 
 function getImportPreview(
   jsonStr: string,
@@ -36,6 +37,7 @@ function getImportPreview(
 function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void }) {
   const { t } = useTranslation();
   const [importing, setImporting] = useState(false);
+  const [progressText, setProgressText] = useState<string>("");
   const [result, setResult] = useState<
     {
       imported: number;
@@ -56,6 +58,7 @@ function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void })
       setImporting(true);
       setResult(null);
       setShowAllErrors(false);
+      setProgressText(t("workflow.importExport.scanningFolder"));
       const res = await invoke<{
         imported: number;
         imported_names: string[];
@@ -79,6 +82,7 @@ function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void })
       message.error(String(e));
     } finally {
       setImporting(false);
+      setProgressText("");
     }
   };
 
@@ -92,6 +96,9 @@ function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void })
       >
         {t("workflow.importExport.selectN8nDir")}
       </Button>
+      {importing && progressText && (
+        <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>{progressText}</div>
+      )}
       {result && (
         <Alert
           style={{ marginTop: 8 }}
@@ -132,6 +139,7 @@ function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void })
 function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void }) {
   const { t } = useTranslation();
   const [importing, setImporting] = useState(false);
+  const [progressText, setProgressText] = useState<string>("");
   const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null);
 
   const handleBatchImport = async () => {
@@ -142,6 +150,7 @@ function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void
 
       setImporting(true);
       setResult(null);
+      setProgressText(t("workflow.importExport.scanningFolder"));
 
       const res = await invoke<{
         imported: number;
@@ -163,6 +172,7 @@ function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void
       message.error(String(e));
     } finally {
       setImporting(false);
+      setProgressText("");
     }
   };
 
@@ -176,6 +186,9 @@ function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void
       >
         {t("workflow.importExport.selectFolder")}
       </Button>
+      {importing && progressText && (
+        <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>{progressText}</div>
+      )}
       {result && (
         <Alert
           style={{ marginTop: 8 }}
@@ -214,6 +227,8 @@ interface ImportExportModalProps {
   onExport: (id: string) => Promise<string | null>;
   onImport: (jsonData: string) => Promise<{ id: string; warnings: string[]; errors: string[] } | null>;
   onImportComplete?: () => void;
+  onImportedTemplate?: (id: string) => void;
+  templates: WorkflowTemplateResponse[];
 }
 
 export const ImportExportModal: React.FC<ImportExportModalProps> = ({
@@ -222,6 +237,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   onExport,
   onImport,
   onImportComplete,
+  onImportedTemplate,
+  templates,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("export");
@@ -239,14 +256,14 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   }, [importData]);
 
   const handleExport = async () => {
-    if (!exportId.trim()) {
+    if (!exportId) {
       message.warning(t("workflow.importExport.pleaseEnterId"));
       return;
     }
     setIsExporting(true);
     setExportResult(null);
     try {
-      const result = await onExport(exportId.trim());
+      const result = await onExport(exportId);
       if (result) {
         setExportResult(result);
         message.success(t("workflow.importExport.exportSuccess"));
@@ -279,6 +296,9 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         setImportData("");
         setImportWarnings(result.warnings || []);
         onImportComplete?.();
+        if (result.id) {
+          onImportedTemplate?.(result.id);
+        }
         if (!result.warnings?.length && !result.errors?.length) {
           onClose();
         }
@@ -339,12 +359,21 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 8 }}>
               {t("workflow.importExport.templateId")}
             </label>
-            <Input
-              id="import-export-modal-input-126"
+            <Select
+              showSearch
               placeholder={t("workflow.importExport.enterTemplateId")}
-              value={exportId}
-              onChange={(e) => setExportId(e.target.value)}
+              value={exportId || undefined}
+              onChange={(val) => setExportId(val)}
               size="large"
+              style={{ width: "100%" }}
+              optionFilterProp="label"
+              options={templates.map((template) => ({
+                value: template.id,
+                label: template.name,
+              }))}
+              filterOption={(input, option) =>
+                (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+              }
             />
           </div>
 
@@ -485,10 +514,15 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           </p>
 
           <Divider style={{ margin: "12px 0", fontSize: 11 }}>{t("workflow.importExport.batchImport")}</Divider>
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+            {t("workflow.importExport.axagentFolderHint")}
+          </Typography.Text>
           <BatchImportFolder onImportComplete={onImportComplete} />
 
           <Divider style={{ margin: "12px 0", fontSize: 11 }}>{t("workflow.importExport.n8nBatchImport")}</Divider>
-
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+            {t("workflow.importExport.n8nFolderHint")}
+          </Typography.Text>
           <BatchImportN8n onImportComplete={onImportComplete} />
         </div>
       ),

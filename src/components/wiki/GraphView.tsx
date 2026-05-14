@@ -797,7 +797,7 @@ function GraphViewInner({
               </div>
               {communities && communities.size > 0 && (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 10, width: "100%" }}>Communities</Text>
+                  <Text type="secondary" style={{ fontSize: 10, width: "100%" }}>{t("wiki.graph.communities")}</Text>
                   {Array.from(new Set(communities.values())).slice(0, 8).map((cid) => (
                     <Tag
                       key={cid}

@@ -122,11 +122,36 @@ pub struct NodeToolMatches {
 }
 
 fn compute_word_set(text: &str) -> std::collections::HashSet<String> {
-    text.to_lowercase()
-        .split(|c: char| !c.is_alphanumeric() && c != '_')
-        .filter(|s| !s.is_empty() && s.len() > 1)
-        .map(|s| s.to_string())
-        .collect()
+    let mut set = std::collections::HashSet::new();
+
+    let lower = text.to_lowercase();
+
+    for token in lower.split(|c: char| !c.is_alphanumeric() && c != '_') {
+        if token.is_empty() || token.len() <= 1 {
+            continue;
+        }
+        set.insert(token.to_string());
+
+        let chars: Vec<char> = token.chars().collect();
+        let has_cjk = chars.iter().any(|c| {
+            ('\u{4E00}'..='\u{9FFF}').contains(c)
+                || ('\u{3400}'..='\u{4DBF}').contains(c)
+                || ('\u{F900}'..='\u{FAFF}').contains(c)
+        });
+
+        if has_cjk {
+            for window in chars.windows(2) {
+                let bigram: String = window.iter().collect();
+                set.insert(bigram);
+            }
+            for window in chars.windows(3) {
+                let trigram: String = window.iter().collect();
+                set.insert(trigram);
+            }
+        }
+    }
+
+    set
 }
 
 fn jaccard_similarity(

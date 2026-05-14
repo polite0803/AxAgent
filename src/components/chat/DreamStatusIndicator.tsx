@@ -2,6 +2,7 @@ import { useDreamStore } from "@/stores";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import { Brain, Moon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./DreamStatusIndicator.css";
 
 /**
@@ -18,6 +19,7 @@ export function DreamStatusIndicator() {
   const totalConsolidations = useDreamStore((s) => s.totalConsolidations);
   const totalMemories = useDreamStore((s) => s.totalMemoriesExtracted);
   const totalPatterns = useDreamStore((s) => s.totalPatternsDiscovered);
+  const { t } = useTranslation();
 
   const [showResult, setShowResult] = useState(false);
 
@@ -36,9 +38,9 @@ export function DreamStatusIndicator() {
 
   if (status === "running") {
     return (
-      <div className="dream-indicator dream-indicator--running" title="Dream 巩固运行中...">
+      <div className="dream-indicator dream-indicator--running" title={t("dreamStatus.running")}>
         <Moon size={14} className="dream-indicator__icon dream-indicator__icon--pulse" />
-        <span className="dream-indicator__text">Dream 巩固中...</span>
+        <span className="dream-indicator__text">{t("dreamStatus.consolidating")}</span>
       </div>
     );
   }
@@ -46,18 +48,18 @@ export function DreamStatusIndicator() {
   if (showResult && lastResult) {
     const parts: string[] = [];
     if (lastResult.memoriesExtracted > 0) {
-      parts.push(`${lastResult.memoriesExtracted} 条记忆`);
+      parts.push(t("dreamStatus.memoriesCount", { count: lastResult.memoriesExtracted }));
     }
     if (lastResult.patternsDiscovered > 0) {
-      parts.push(`${lastResult.patternsDiscovered} 个模式`);
+      parts.push(t("dreamStatus.patternsCount", { count: lastResult.patternsDiscovered }));
     }
     if (lastResult.error) {
-      parts.push(`错误: ${lastResult.error}`);
+      parts.push(t("dreamStatus.errorLabel", { error: lastResult.error }));
     }
-    const summary = parts.length > 0 ? parts.join("，") : "巩固完成";
+    const summary = parts.length > 0 ? parts.join(t("dreamStatus.separator")) : t("dreamStatus.completed");
 
     return (
-      <div className="dream-indicator dream-indicator--completed" title={`Dream 完成 (${lastResult.durationSecs}s)`}>
+      <div className="dream-indicator dream-indicator--completed" title={t("dreamStatus.completedTitle", { secs: lastResult.durationSecs })}>
         <CheckCircleOutlined className="dream-indicator__icon dream-indicator__icon--done" />
         <span className="dream-indicator__text">
           {summary}
@@ -72,10 +74,10 @@ export function DreamStatusIndicator() {
   // 空闲但有过历史记录 — 显示累计统计
   if (totalConsolidations > 0) {
     return (
-      <div className="dream-indicator dream-indicator--idle" title={`累计 ${totalConsolidations} 次巩固`}>
+      <div className="dream-indicator dream-indicator--idle" title={t("dreamStatus.totalConsolidations", { count: totalConsolidations })}>
         <Brain size={13} className="dream-indicator__icon" />
         <span className="dream-indicator__text">
-          {totalMemories} 记忆 · {totalPatterns} 模式
+          {t("dreamStatus.statsSummary", { memories: totalMemories, patterns: totalPatterns })}
         </span>
       </div>
     );

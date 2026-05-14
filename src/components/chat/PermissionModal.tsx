@@ -180,7 +180,7 @@ export const PermissionModal: React.FC = () => {
       title={
         <Space size={8}>
           <Shield size={18} style={{ color: "var(--ant-color-primary)" }} />
-          <span>权限审批</span>
+          <span>{t("permissionModal.title")}</span>
           {permissionRequest && (
             <Tag color={riskCfg.color} style={{ display: "inline-flex", alignItems: "center", gap: 4, margin: 0 }}>
               {riskCfg.icon}

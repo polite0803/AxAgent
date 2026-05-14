@@ -1,6 +1,7 @@
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { Tooltip } from "antd";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ExpertBadgeProps {
   expertRoleId: string | null;
@@ -9,12 +10,13 @@ interface ExpertBadgeProps {
 
 export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
   const getRoleById = useExpertStore((s) => s.getRoleById);
+  const { t } = useTranslation();
 
   const role = expertRoleId ? getRoleById(expertRoleId) : null;
 
   if (!role) {
     return (
-      <Tooltip title="选择专家角色">
+      <Tooltip title={t("expertBadge.selectExpert")}>
         <button
           onClick={onClick}
           style={{
@@ -32,7 +34,7 @@ export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
           }}
         >
           <span>{"\uD83E\uDD16"}</span>
-          <span>通用助手</span>
+          <span>{t("expertBadge.generalAssistant")}</span>
           <ChevronDown size={12} />
         </button>
       </Tooltip>

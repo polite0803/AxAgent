@@ -1,6 +1,7 @@
 import type { BenchmarkTask, TaskResult } from "@/types";
 import { formatDuration, formatScore, getDifficultyLabel } from "@/types";
 import { Button, Table, Tag } from "antd";
+import { useTranslation } from "react-i18next";
 import { TaskResultCard } from "./TaskResult";
 
 interface TaskListProps {
@@ -10,9 +11,10 @@ interface TaskListProps {
 }
 
 export function TaskList({ tasks, results, onRetry }: TaskListProps) {
+  const { t } = useTranslation();
   const columns = [
     {
-      title: "任务",
+      title: t("benchmark.task"),
       dataIndex: "name",
       key: "name",
       render: (_name: string, record: BenchmarkTask) => {
@@ -25,7 +27,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       },
     },
     {
-      title: "难度",
+      title: t("benchmark.difficulty"),
       dataIndex: "difficulty",
       key: "difficulty",
       width: 80,
@@ -34,22 +36,22 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       ),
     },
     {
-      title: "状态",
+      title: t("benchmark.status"),
       dataIndex: "task_id",
       key: "status",
       width: 100,
       render: (_: string, record: BenchmarkTask) => {
         const result = results.find((r) => r.task_id === record.id);
-        if (!result) { return <Tag>等待</Tag>; }
+        if (!result) { return <Tag>{t("benchmark.waiting")}</Tag>; }
         return (
           <Tag color={result.success ? "green" : "red"}>
-            {result.success ? "通过" : "失败"}
+            {result.success ? t("benchmark.passed") : t("benchmark.failed")}
           </Tag>
         );
       },
     },
     {
-      title: "得分",
+      title: t("benchmark.score"),
       dataIndex: "task_id",
       key: "score",
       width: 80,
@@ -60,7 +62,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       },
     },
     {
-      title: "耗时",
+      title: t("benchmark.duration"),
       dataIndex: "task_id",
       key: "duration",
       width: 100,
@@ -71,13 +73,13 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       },
     },
     {
-      title: "操作",
+      title: t("benchmark.action"),
       dataIndex: "task_id",
       key: "action",
       width: 100,
       render: (taskId: string) => (
         <Button size="small" onClick={() => onRetry?.(taskId)}>
-          重试
+          {t("benchmark.retry")}
         </Button>
       ),
     },
@@ -94,7 +96,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
         expandable={{
           expandedRowRender: (record) => {
             const result = results.find((r) => r.task_id === record.id);
-            if (!result) { return <div className="p-4 text-gray-500">暂无结果</div>; }
+            if (!result) { return <div className="p-4 text-gray-500">{t("benchmark.noResult")}</div>; }
             return <TaskResultCard result={result} />;
           },
         }}

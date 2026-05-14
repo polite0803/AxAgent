@@ -635,10 +635,13 @@ impl CloudWorkspace {
         prefix: &str,
     ) -> Result<HashMap<String, RemoteFileInfo>, AxAgentError> {
         let mut files = HashMap::new();
-        let mut _continuation_token: Option<String> = None;
+        let mut continuation_token: Option<String> = None;
 
         loop {
-            let list_result = self.backend.list(prefix, 1000).await?;
+            let list_result = self
+                .backend
+                .list(prefix, 1000, continuation_token.as_deref())
+                .await?;
 
             for item in &list_result.objects {
                 let relative = item.key.strip_prefix(prefix).unwrap_or(&item.key);
@@ -648,7 +651,6 @@ impl CloudWorkspace {
                     continue;
                 }
 
-                // Skip sync state files
                 if relative.starts_with(".axagent") {
                     continue;
                 }
@@ -669,7 +671,7 @@ impl CloudWorkspace {
             }
 
             if list_result.is_truncated && list_result.continuation_token.is_some() {
-                _continuation_token = list_result.continuation_token.clone();
+                continuation_token = list_result.continuation_token.clone();
             } else {
                 break;
             }
@@ -789,7 +791,7 @@ impl CloudWorkspace {
             format!("{}/", workspace_prefix.trim_end_matches('/'))
         };
 
-        let list_result = self.backend.list(&query_prefix, 1000).await?;
+        let list_result = self.backend.list(&query_prefix, 1000, None).await?;
 
         let mut entries: Vec<CloudDirEntry> = Vec::new();
         let mut seen_dirs = std::collections::HashSet::new();

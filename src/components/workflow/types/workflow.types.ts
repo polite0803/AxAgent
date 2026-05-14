@@ -423,7 +423,6 @@ export const NODE_CATEGORIES = [
 
 export const NODE_TYPE_MAP: Record<string, { labelKey: string; category: string; color: string }> = {
   trigger: { labelKey: "workflow.nodeTypes.trigger", category: "trigger", color: "#722ed1" },
-  atomicSkill: { labelKey: "workflow.nodeTypes.atomicSkill", category: "execution", color: "#52c41a" },
   agent: { labelKey: "workflow.nodeTypes.agent", category: "agent", color: "#1890ff" },
   llm: { labelKey: "workflow.nodeTypes.llm", category: "llm", color: "#13c2c2" },
   condition: { labelKey: "workflow.nodeTypes.condition", category: "flow", color: "#fa8c16" },

@@ -1,6 +1,7 @@
 import type { Span } from "@/types";
 import { Card, Descriptions, Table, Tag, Typography } from "antd";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -19,6 +20,7 @@ interface SpanDetailProps {
 }
 
 export function SpanDetail({ span }: SpanDetailProps) {
+  const { t } = useTranslation();
   const errorColumns = [
     { title: "Type", dataIndex: "error_type", key: "error_type" },
     { title: "Message", dataIndex: "message", key: "message" },
@@ -32,17 +34,17 @@ export function SpanDetail({ span }: SpanDetailProps) {
   return (
     <div className="py-2">
       <div className="text-sm font-medium text-gray-600 mb-3">
-        Span 详情
+        {t("devtools.spanDetail")}
       </div>
 
       <Card size="small" className="mb-3">
         <Descriptions column={1} size="small">
-          <Descriptions.Item label="ID">
+          <Descriptions.Item label={t("devtools.spanId")}>
             <Text code copyable className="text-xs">
               {span.id}
             </Text>
           </Descriptions.Item>
-          <Descriptions.Item label="Trace ID">
+          <Descriptions.Item label={t("devtools.traceId")}>
             <Text code copyable className="text-xs">
               {span.trace_id}
             </Text>
@@ -54,23 +56,23 @@ export function SpanDetail({ span }: SpanDetailProps) {
               </Text>
             </Descriptions.Item>
           )}
-          <Descriptions.Item label="Name">{span.name}</Descriptions.Item>
-          <Descriptions.Item label="Type">
+          <Descriptions.Item label={t("devtools.name")}>{span.name}</Descriptions.Item>
+          <Descriptions.Item label={t("devtools.type")}>
             <Tag>{span.span_type.replace("_", " ")}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Status">
+          <Descriptions.Item label={t("devtools.statusLabel")}>
             <Tag color={span.status === "ok" ? "green" : "red"}>
               {span.status}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Duration">
+          <Descriptions.Item label={t("devtools.duration")}>
             {formatDuration(span.duration_ms)}
           </Descriptions.Item>
-          <Descriptions.Item label="Start Time">
+          <Descriptions.Item label={t("devtools.startedAt")}>
             {formatTimestamp(span.start_time)}
           </Descriptions.Item>
           {span.end_time && (
-            <Descriptions.Item label="End Time">
+            <Descriptions.Item label={t("devtools.endTime")}>
               {formatTimestamp(span.end_time)}
             </Descriptions.Item>
           )}
@@ -80,7 +82,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
       {span.service_name && (
         <Card size="small" className="mb-3">
           <Descriptions column={1} size="small">
-            <Descriptions.Item label="Service">
+            <Descriptions.Item label={t("devtools.service")}>
               {span.service_name}
             </Descriptions.Item>
           </Descriptions>
@@ -88,7 +90,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
       )}
 
       {span.inputs !== undefined && (
-        <Card size="small" title="Inputs" className="mb-3">
+        <Card size="small" title={t("devtools.inputs")} className="mb-3">
           <pre className="max-h-48 overflow-auto text-xs bg-gray-50 p-2 rounded">
             {JSON.stringify(span.inputs, null, 2)}
           </pre>
@@ -96,7 +98,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
       )}
 
       {span.outputs !== undefined && (
-        <Card size="small" title="Outputs" className="mb-3">
+        <Card size="small" title={t("devtools.outputs")} className="mb-3">
           <pre className="max-h-48 overflow-auto text-xs bg-gray-50 p-2 rounded">
             {JSON.stringify(span.outputs, null, 2)}
           </pre>
@@ -104,7 +106,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
       )}
 
       {Object.keys(span.attributes).length > 0 && (
-        <Card size="small" title="Attributes" className="mb-3">
+        <Card size="small" title={t("devtools.attributes")} className="mb-3">
           <Descriptions column={1} size="small">
             {Object.entries(span.attributes).map(([key, value]) => (
               <Descriptions.Item key={key} label={key}>
@@ -116,7 +118,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
       )}
 
       {span.events.length > 0 && (
-        <Card size="small" title="Events" className="mb-3">
+        <Card size="small" title={t("devtools.events")} className="mb-3">
           <Table
             dataSource={span.events}
             columns={eventColumns}
@@ -128,7 +130,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
       )}
 
       {span.errors.length > 0 && (
-        <Card size="small" title="Errors" className="mb-3">
+        <Card size="small" title={t("devtools.errors")} className="mb-3">
           <Table
             dataSource={span.errors}
             columns={errorColumns}

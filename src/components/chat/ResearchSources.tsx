@@ -1,5 +1,6 @@
 import { PlusOutlined } from "@ant-design/icons";
 import { Button, Card, List, Space, Tag, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title, Paragraph } = Typography;
@@ -37,17 +38,17 @@ function getSourceTypeColor(sourceType: string): string {
   return colorMap[sourceType.toLowerCase()] || "default";
 }
 
-function getSourceTypeName(sourceType: string): string {
+function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
   const nameMap: Record<string, string> = {
-    web: "网页",
-    academic: "学术",
-    wikipedia: "维基百科",
+    web: t("research.sourceTypeWeb"),
+    academic: t("research.sourceTypeAcademic"),
+    wikipedia: t("research.sourceTypeWikipedia"),
     github: "GitHub",
-    documentation: "文档",
-    news: "新闻",
-    blog: "博客",
-    forum: "论坛",
-    unknown: "未知",
+    documentation: t("research.sourceTypeDocumentation"),
+    news: t("research.sourceTypeNews"),
+    blog: t("research.sourceTypeBlog"),
+    forum: t("research.sourceTypeForum"),
+    unknown: t("research.sourceTypeUnknown"),
   };
   return nameMap[sourceType.toLowerCase()] || sourceType;
 }
@@ -59,6 +60,7 @@ export function ResearchSources({
   selectedSourceId,
   maxDisplay,
 }: ResearchSourcesProps) {
+  const { t } = useTranslation();
   const displaySources = maxDisplay ? sources.slice(0, maxDisplay) : sources;
 
   return (
@@ -66,7 +68,7 @@ export function ResearchSources({
       <List
         size="small"
         dataSource={displaySources}
-        locale={{ emptyText: "暂无搜索结果" }}
+        locale={{ emptyText: t("research.noSearchResults") }}
         renderItem={(item) => (
           <List.Item
             className={`cursor-pointer hover:bg-gray-50 ${
@@ -81,11 +83,11 @@ export function ResearchSources({
                     {item.title}
                   </a>
                   <Tag color={getSourceTypeColor(item.sourceType)}>
-                    {getSourceTypeName(item.sourceType)}
+                    {getSourceTypeName(item.sourceType, t)}
                   </Tag>
                   {item.relevanceScore > 0 && (
                     <Tag color={item.relevanceScore > 0.7 ? "green" : item.relevanceScore > 0.4 ? "orange" : "red"}>
-                      相关度: {Math.round(item.relevanceScore * 100)}%
+                      {t("research.relevance")}: {Math.round(item.relevanceScore * 100)}%
                     </Tag>
                   )}
                 </Space>
@@ -107,7 +109,7 @@ export function ResearchSources({
                           onAddToCitation(item);
                         }}
                       >
-                        添加到引用
+                        {t("research.addToCitation")}
                       </Button>
                     )}
                   </Space>
@@ -119,7 +121,7 @@ export function ResearchSources({
       />
       {maxDisplay && sources.length > maxDisplay && (
         <Text type="secondary" className="text-sm">
-          还有 {sources.length - maxDisplay} 个来源...
+          {t("research.moreSources", { count: sources.length - maxDisplay })}
         </Text>
       )}
     </div>
@@ -132,11 +134,12 @@ interface SourceDetailPanelProps {
 }
 
 export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanelProps) {
+  const { t } = useTranslation();
   if (!source) {
     return (
       <Card size="small" className="h-full">
         <div className="flex items-center justify-center h-full text-gray-400">
-          选择一个来源查看详情
+          {t("research.selectSourceToView")}
         </div>
       </Card>
     );
@@ -145,13 +148,13 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
   return (
     <Card size="small" className="h-full">
       <Title level={5} className="mb-2">
-        来源详情
+        {t("research.sourceDetail")}
       </Title>
 
       <div className="space-y-3">
         <div>
           <Text type="secondary" className="text-sm">
-            标题
+            {t("research.sourceTitle")}
           </Text>
           <div>
             <a href={source.url} target="_blank" rel="noopener noreferrer">
@@ -162,11 +165,11 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
 
         <div>
           <Text type="secondary" className="text-sm">
-            来源类型
+            {t("research.sourceType")}
           </Text>
           <div>
             <Tag color={getSourceTypeColor(source.sourceType)}>
-              {getSourceTypeName(source.sourceType)}
+              {getSourceTypeName(source.sourceType, t)}
             </Tag>
           </div>
         </div>
@@ -184,7 +187,7 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
 
         <div>
           <Text type="secondary" className="text-sm">
-            摘要
+            {t("research.snippet")}
           </Text>
           <div>
             <Text>{source.snippet}</Text>
@@ -193,21 +196,21 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
 
         <div>
           <Text type="secondary" className="text-sm">
-            可信度评分
+            {t("research.credibilityScore")}
           </Text>
           <div>
             {source.credibilityScore !== null
               ? <CredibilityBadge score={source.credibilityScore} />
-              : <Text type="secondary">未评估</Text>}
+              : <Text type="secondary">{t("research.notEvaluated")}</Text>}
           </div>
         </div>
 
         <div>
           <Text type="secondary" className="text-sm">
-            相关度评分
+            {t("research.relevanceScore")}
           </Text>
           <div>
-            <Text>{source.relevanceScore > 0 ? `${Math.round(source.relevanceScore * 100)}%` : "未评估"}</Text>
+            <Text>{source.relevanceScore > 0 ? `${Math.round(source.relevanceScore * 100)}%` : t("research.notEvaluated")}</Text>
           </div>
         </div>
 
@@ -218,7 +221,7 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             onClick={() => onAddToCitation(source)}
             block
           >
-            添加到报告引用
+            {t("research.addToReportCitation")}
           </Button>
         )}
       </div>

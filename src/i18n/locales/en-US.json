@@ -480,7 +480,8 @@
       "suggestionReason": "Using a workflow provides more structured multi-step execution",
       "switchToWorkflow": "Switch to Workflow",
       "unnamed": "Workflow",
-      "viewDetails": "View Details"
+      "viewDetails": "View Details",
+      "presetsNotImported": "Development workflow templates (code review, bug fix, refactoring, etc.) require importing built-in experts in the expert selector first."
     },
     "agentTaskList": {
       "title": "Agent Tasks",
@@ -809,7 +810,11 @@
       "fileChanges": "File Changes",
       "collapseAll": "Collapse All",
       "expandAll": "Expand All",
-      "acceptAll": "Accept All"
+      "acceptAll": "Accept All",
+      "lines": "lines",
+      "newFile": "New",
+      "deleted": "Deleted",
+      "modified": "Modified"
     },
     "selfEvolution": "Self Evolution",
     "tracer": "Tracer",
@@ -953,6 +958,26 @@
     "templateDescCursor": "AI-native editor based on VS Code, with deep integration of code completion and chat",
     "connectedTools": "Connected Tools"
   },
+  "gatewayMonitor": {
+    "refresh": "Refresh",
+    "clear": "Clear",
+    "totalRequests": "Total Requests",
+    "totalTokens": "Total Tokens",
+    "activeConnections": "Active Connections",
+    "avgLatency": "Avg Latency",
+    "errorCount": "Error Count",
+    "uptime": "Uptime",
+    "requestLogs": "Request Logs",
+    "clearLogsConfirm": "Clear all logs?",
+    "loadMetricsFailed": "Failed to load gateway metrics: {{error}}",
+    "title": "Gateway Monitor",
+    "colTime": "Time",
+    "colMethod": "Method",
+    "colPath": "Path",
+    "colStatus": "Status",
+    "colLatency": "Latency",
+    "noRequestLogs": "No request logs"
+  },
   "link": {
     "title": "Link",
     "searchGateways": "Search gateways",
@@ -1053,7 +1078,9 @@
     "providers": "Provider Management",
     "conversationSettings": "Conversation",
     "defaultModel": "Default Model",
-    "general": "General",
+    "general": {
+      "title": "General"
+    },
     "display": "Display",
     "proxy": "Proxy",
     "messageChannels": "Message Channels",
@@ -1097,6 +1124,9 @@
     "appConfigDesc": "Model selection, feature flags, agent management & hook configuration",
     "data": {
       "title": "Data Management"
+    },
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
     },
     "about": "About",
     "evolution": "Self-Evolution",
@@ -1972,10 +2002,11 @@
     "toolSemanticCheck": {
       "title": "Tool Semantic Check",
       "description": "Find similar tools and upgrade existing ones using AI",
-      "searchPlaceholder": "Enter tool name or description",
+      "searchPlaceholder": "Search tools...",
       "emptySearch": "Please enter a search term",
       "noMatches": "No similar tools found",
-      "empty": "Enter a search term to find similar tools",
+      "empty": "Select a tool from the left to find similar tools",
+      "selectTool": "Select a tool from the left panel to start semantic checking",
       "matches": "{{count}} matches",
       "checkingTool": "Checking for tools similar to {{tool}}",
       "similarity": "Similarity",
@@ -2830,6 +2861,7 @@
       "claude": "Claude",
       "agents": "Agents",
       "builtin": "Built-in",
+      "bundled": "Bundled",
       "project": "Project"
     },
     "enabled": "Enabled",
@@ -3045,6 +3077,7 @@
     "aiPanel": {
       "enterWorkflowDesc": "Please enter a workflow description",
       "workflowGenerated": "Workflow generated",
+      "explanation": "Explanation",
       "generationFailed": "Generation failed",
       "enterPromptToOptimize": "Please enter a prompt to optimize",
       "promptOptimized": "Prompt optimized",
@@ -3101,7 +3134,11 @@
       "noTemplates": "No templates",
       "confirmDelete": "Confirm Delete",
       "confirmDeleteMessage": "Are you sure you want to delete template \"{{name}}\"?",
-      "irreversible": "This action cannot be undone"
+      "irreversible": "This action cannot be undone",
+      "presetsImported": "{{count}} preset templates imported",
+      "presetsImportFailed": "Import failed: {{error}}",
+      "importPresetsTitle": "Import Preset Templates",
+      "importPresets": "Import Presets"
     },
     "previewInDevelopment": "Preview feature is in development",
     "publishInDevelopment": "Publish feature is in development",
@@ -3129,6 +3166,7 @@
       "pasteJsonPlaceholder": "Paste template JSON data...",
       "importTemplate": "Import Template",
       "importHint": "Importing will create a new copy of the template. Imported templates are custom by default (not preset).",
+      "scanningFolder": "Scanning folder...",
       "batchImport": "Batch Import",
       "n8nBatchImport": "n8n Batch Import",
       "importSuccess": "Successfully imported {{count}} workflow(s)",
@@ -3139,6 +3177,8 @@
       "batchImportSuccess": "Successfully imported {{count}} workflow template(s)",
       "noJsonFound": "No JSON files found in directory",
       "selectFolder": "Select folder to batch import workflows",
+      "axagentFolderHint": "Select a folder containing AxAgent format JSON files. All workflow templates will be automatically scanned and imported.",
+      "n8nFolderHint": "Select a folder containing n8n format JSON files. All n8n workflows will be automatically converted and imported.",
       "batchResult": "Imported {{count}}",
       "moreErrors": "...and {{count}} more errors",
       "pleaseEnterId": "Please enter a template ID",
@@ -3462,7 +3502,12 @@
       "failed": "Failed",
       "avgNodeTime": "Avg Node Time",
       "nodeExecutions": "Node Executions",
-      "selectedNodeDetails": "Selected Node Details"
+      "selectedNodeDetails": "Selected Node Details",
+      "noExecutionData": "No execution data. Please run the workflow first.",
+      "variables": "Variables",
+      "performance": "Performance",
+      "slowestNode": "Slowest Node",
+      "fastestNode": "Fastest Node"
     },
     "applySemanticCheck": "Apply",
     "applyUpgrade": "Apply Upgrade",
@@ -3724,6 +3769,25 @@
     "events": "Events",
     "errors": "Errors",
     "cost": "Cost",
+    "sessionId": "Session ID",
+    "filterSession": "Filter session",
+    "timeRange": "Time Range",
+    "minDuration": "Min Duration",
+    "maxDuration": "Max Duration",
+    "errorFilter": "Error Filter",
+    "includeErrors": "Include errors",
+    "searchTraceId": "Search trace ID...",
+    "deleteTrace": "Delete trace",
+    "spanId": "Span ID",
+    "name": "Name",
+    "type": "Type",
+    "statusLabel": "Status",
+    "duration": "Duration",
+    "endTime": "End Time",
+    "service": "Service",
+    "exportJson": "Export JSON",
+    "exportCsv": "Export CSV",
+    "model": "Model",
     "toolRecommender": {
       "taskPlaceholder": "Describe your task (e.g., 'I need to search for information about Rust programming and write it to a file')"
     },
@@ -3741,7 +3805,12 @@
       "systemPromptPlaceholder": "Enter system prompt",
       "selectDataset": "Select a dataset",
       "selectBaseModel": "Select a base model"
-    }
+    },
+    "callTree": "Call Tree",
+    "timeline": "Timeline",
+    "costAnalysis": "Cost Analysis",
+    "durationAnalysis": "Duration Analysis",
+    "spanDetail": "Span Detail"
   },
   "browser": {
     "control": "Browser Control",
@@ -3767,7 +3836,12 @@
   "recommendation": {
     "toolTitle": "Tool Recommendation",
     "describePlaceholder": "Describe your task...",
-    "availableTools": "Available Tools"
+    "availableTools": "Available Tools",
+    "title": "Tool Recommendation",
+    "taskDescription": "Task Description",
+    "analysisResult": "Analysis Result",
+    "recommendedTools": "Recommended Tools",
+    "alternativeApproaches": "Alternative Approaches"
   },
   "benchmark": {
     "selectBenchmarkFirst": "Please select a benchmark first",
@@ -3784,7 +3858,29 @@
     "taskId": "Task ID",
     "traceId": "Trace ID",
     "error": "Error",
-    "scoreDetails": "Score Details"
+    "scoreDetails": "Score Details",
+    "reportTitle": "Test Report",
+    "exportJson": "Export JSON",
+    "exportMarkdown": "Export Markdown",
+    "passRate": "Pass Rate",
+    "overallScore": "Overall Score",
+    "taskCount": "Task Count",
+    "totalDuration": "Total Duration",
+    "waiting": "Waiting",
+    "noResult": "No Result",
+    "maxDifficulty": "Max Difficulty",
+    "noLimit": "No Limit",
+    "selectBenchmark": "Select Benchmark",
+    "task": "Task",
+    "difficulty": "Difficulty",
+    "status": "Status",
+    "score": "Score",
+    "duration": "Duration",
+    "criteria": "Criteria",
+    "taskDetails": "Task Details",
+    "recommendations": "Recommendations",
+    "action": "Action",
+    "retry": "Retry"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -3941,7 +4037,12 @@
   },
   "terminal": {
     "online": "Online",
-    "offline": "Offline"
+    "offline": "Offline",
+    "newTerminal": "New Terminal",
+    "analyzeOutput": "Analyze Output",
+    "clear": "Clear",
+    "killProcess": "Kill Process",
+    "closeSession": "Close Session"
   },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
@@ -4030,6 +4131,8 @@
       "nodes": "Nodes",
       "stats": "Stats",
       "title": "Knowledge Graph",
+      "communities": "Communities",
+      "noConnectedNodes": "No connected nodes",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
       "edgeType": {
@@ -4486,7 +4589,13 @@
     "agenticOptions": "Additional Options",
     "includeConv": "Include conversation",
     "includeFiles": "Include files",
-    "includeSelection": "Include selection"
+    "includeSelection": "Include selection",
+    "manifestSaved": "Manifest configuration saved",
+    "jsonFormatError": "JSON format error: {{error}}",
+    "editManifest": "Edit Manifest",
+    "editManifestTitle": "Edit Skill Manifest — {{name}}",
+    "editManifestDesc": "Edit",
+    "supportedCapabilities": "Supported capability types"
   },
   "computerControl": {
     "capture": "Screenshot",
@@ -4754,7 +4863,15 @@
     "syncNow": "Sync Now",
     "syncing": "Syncing...",
     "settings": "Cloud Workspace Settings",
-    "lastSync": "Last Sync"
+    "lastSync": "Last Sync",
+    "notConfiguredDesc": "Configure S3 or WebDAV cloud storage to sync your workspace",
+    "configureFirst": "Configure Now",
+    "testConnection": "Test Connection",
+    "connectionSuccess": "Connection successful",
+    "connectionFailed": "Connection failed",
+    "lastSyncResult": "Last Sync Result",
+    "cacheDir": "Cache Directory",
+    "quickActions": "Quick Actions"
   },
   "agentGenerator": {
     "parseJsonError": "Failed to parse JSON from response",
@@ -4837,7 +4954,9 @@
       "source": "By Source"
     },
     "sortDir": "Ascending",
-    "sortDirDesc": "Descending"
+    "sortDirDesc": "Descending",
+    "capabilityDetail": "Capability Details",
+    "detail": "Detail"
   },
   "agentProfile": {
     "importSuccess": "Successfully imported {{count}} roles",
@@ -4880,7 +4999,11 @@
     "testFirst": "Please test connection first",
     "noSessions": "No active sessions",
     "confirmClose": "Confirm close this session?",
-    "close": "Close"
+    "close": "Close",
+    "directory": "Directory",
+    "permission": "Permission",
+    "activeTasks": "Active Tasks",
+    "lastActive": "Last Active"
   },
   "sourceManager": {
     "type": {
@@ -4994,5 +5117,365 @@
     "failed": "Failed"
   },
   "markdown": "Markdown",
-  "success": "Success"
+  "success": "Success",
+  "advancedSettings": {
+    "agentMode": "Agent Run Mode",
+    "defaultMode": "Default Mode",
+    "enableTokenBudget": "Enable Token Budget Detection",
+    "autoRetry": "Auto Retry",
+    "maxRetries": "Max Retries",
+    "retryDelay": "Retry Delay (seconds)",
+    "modelFallback": "Model Fallback",
+    "memoryLimit": "Memory Limit (MB)",
+    "enableIdleDetection": "Enable Idle Detection",
+    "idleTimeout": "Idle Timeout (seconds)",
+    "faultRecovery": "Fault Recovery Strategy",
+    "resourceControl": "Resource Control & Eco Strategy",
+    "contextCompression": "Context Compression Threshold",
+    "autoCompressThreshold": "Auto Compress Threshold (token)",
+    "warningBuffer": "Warning Buffer (token)",
+    "maxConsecutiveFailures": "Max Consecutive Compression Failures",
+    "enableMemoryCompression": "Enable Session Memory Compression",
+    "dreamConsolidation": "Dream Background Consolidation",
+    "enableDream": "Enable Dream Consolidation",
+    "minInterval": "Min Interval (hours)",
+    "minNewSessions": "Min New Sessions",
+    "maxDuration": "Max Duration (seconds)",
+    "lspServer": "LSP Language Server",
+    "enableLspDiagnostics": "Enable LSP Diagnostics",
+    "tokenBudgetLimit": "Token Budget Limit",
+    "cpuLimit": "CPU Usage Limit (%)",
+    "mode": {
+      "general": "General Mode",
+      "speed": "Speed Mode (Lightweight)",
+      "deep": "Deep Mode (Research)",
+      "plan": "Plan Mode"
+    },
+    "diagnosticLevelLabel": "Diagnostic Level",
+    "diagnosticLevel": {
+      "error": "Errors Only",
+      "warning": "Errors + Warnings",
+      "information": "All"
+    }
+  },
+  "filePermission": {
+    "title": "File Access Authorization",
+    "authLevel": "Authorization Level",
+    "authDuration": "Authorization Duration",
+    "minutes": "minutes",
+    "deny": "Deny",
+    "close": "Close",
+    "purposePlaceholder": "Describe the purpose of accessing this file...",
+    "requestReason": "Request Reason",
+    "authId": "Authorization ID",
+    "filePath": "File Path",
+    "authRequest": "Authorization Request",
+    "authSuccess": "Authorization Successful",
+    "authFailed": "Authorization Failed",
+    "levelRead": "Read Only",
+    "levelReadDesc": "Can only read file contents",
+    "levelWrite": "Write Only",
+    "levelWriteDesc": "Can only write file contents",
+    "levelReadWrite": "Read & Write",
+    "levelReadWriteDesc": "Can read and write file contents",
+    "levelTemp": "Temporary",
+    "levelTempDesc": "Temporary authorization, auto-revoked",
+    "accessRequestDesc": "The application requests access to the following file:",
+    "maxDuration": "(max 24 hours)",
+    "duration30min": "30 minutes",
+    "duration1hour": "1 hour",
+    "duration4hours": "4 hours",
+    "authorize": "Authorize",
+    "validUntil": "Valid until: ",
+    "revoke": "Revoke",
+    "done": "Done"
+  },
+  "imageGen": {
+    "title": "Image Generation",
+    "inferenceSteps": "Inference Steps",
+    "promptPlaceholder": "Describe the image you want to generate...",
+    "negativePrompt": "Negative Prompt (optional)",
+    "loading": "Loading...",
+    "defaultProvider": "Default Provider",
+    "autoSaveArtifact": "Auto Save as Artifact",
+    "enterPrompt": "Please enter a prompt",
+    "configureApiKey": "Please configure API Key",
+    "generateImage": "Generate Image",
+    "model": "Model",
+    "elapsed": "Elapsed"
+  },
+  "diffViewer": {
+    "newFile": "New",
+    "deleted": "Deleted",
+    "modified": "Modified",
+    "newFileLabel": "New File",
+    "deletedContent": "Deleted Content"
+  },
+  "research": {
+    "highCredibility": "High Credibility",
+    "mediumCredibility": "Medium Credibility",
+    "lowCredibility": "Low Credibility",
+    "topic": "Research Topic:",
+    "searchResults": "Search Results",
+    "generatedReport": "Generated Research Report",
+    "startNew": "Start New Research",
+    "notEvaluated": "Not Evaluated",
+    "topicPlaceholder": "Enter research topic, e.g.: History and future trends of AI",
+    "noSearchResults": "No search results",
+    "relevance": "Relevance",
+    "addToCitation": "Add to Citation",
+    "moreSources": "{{count}} more sources...",
+    "sourceDetail": "Source Detail",
+    "sourceTitle": "Title",
+    "sourceType": "Source Type",
+    "snippet": "Snippet",
+    "credibilityScore": "Credibility Score",
+    "relevanceScore": "Relevance Score",
+    "addToReportCitation": "Add to Report Citation",
+    "sourceTypeWeb": "Web",
+    "sourceTypeAcademic": "Academic",
+    "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeDocumentation": "Documentation",
+    "sourceTypeNews": "News",
+    "sourceTypeBlog": "Blog",
+    "sourceTypeForum": "Forum",
+    "sourceTypeUnknown": "Unknown",
+    "selectSourceToView": "Select a source to view details",
+    "phasePlanning": "Planning",
+    "phaseSearching": "Searching",
+    "phaseExtracting": "Extracting",
+    "phaseAnalyzing": "Analyzing",
+    "phaseSynthesizing": "Synthesizing",
+    "phaseReporting": "Reporting",
+    "mockTitle1": "Latest Research on Artificial Intelligence",
+    "mockSnippet1": "This article explores the current state and future trends of AI technology...",
+    "mockTitle2": "Deep Learning Research Survey",
+    "mockSnippet2": "This paper surveys the applications and research progress of deep learning in various fields...",
+    "mockSummary": "This report is based on {{count}} sources and provides an in-depth analysis of \"{{topic}}\".",
+    "mockContent": "# Research Report on \"{{topic}}\"\n\n## Summary\n\nThis report is based on research from {{count}} sources and provides an in-depth analysis of \"{{topic}}\".\n\n## Key Findings\n\n{{findings}}\n\n## Conclusion\n\nThrough in-depth research and analysis of {{count}} sources, we have gained a more comprehensive understanding of \"{{topic}}\".\n\n## References",
+    "errorOccurred": "An error occurred during research",
+    "researchAgent": "Research Agent",
+    "stop": "Stop",
+    "inputHint": "Enter a research topic, AI will automatically search, analyze multiple sources and generate a research report.",
+    "startResearch": "Start Research",
+    "pause": "Pause",
+    "continue": "Continue",
+    "error": "Error",
+    "citations": "Citations",
+    "copyReport": "Copy Report"
+  },
+  "reportViewer": {
+    "noReport": "No report generated yet",
+    "noReferences": "No references available",
+    "noOutline": "No outline available",
+    "noSummary": "No summary available"
+  },
+  "citationManager": {
+    "totalCitations": "Total Citations:",
+    "usedInReport": "Used in Report:",
+    "avgCredibility": "Average Credibility:",
+    "addToReport": "Add to Report"
+  },
+  "decomposition": {
+    "cancel": "Cancel",
+    "workflowSteps": "Workflow Steps",
+    "toolDependencies": "Tool Dependencies",
+    "processing": "Processing:",
+    "sourceInfo": "Source Info",
+    "parsing": "Parsing composite skill...",
+    "title": "Composite Skill Decomposition Preview",
+    "unresolvedDeps": "There are unresolved tool dependencies. Please resolve them before confirming decomposition",
+    "confirmDecompose": "Confirm Decomposition",
+    "stepParse": "Parse",
+    "stepPreview": "Decomposition Preview",
+    "stepComplete": "Complete",
+    "colName": "Name",
+    "colDescription": "Description",
+    "colEntryType": "Entry Type",
+    "market": "Market",
+    "repo": "Repository",
+    "version": "Version",
+    "promptTemplate": "Prompt Template",
+    "toolName": "Tool Name",
+    "originalName": "Original Name",
+    "implementation": "Implementation",
+    "description": "Description",
+    "promptTemplateDesc": "Developer Agent will analyze tool requirements and generate a Prompt template as the implementation. The template contains {{input}} placeholders that are replaced with actual input at runtime before calling the LLM."
+  },
+  "settingsPage": {
+    "refreshPage": "Refresh Page"
+  },
+  "createTeam": {
+    "createTeam": "Create Team",
+    "cancel": "Cancel",
+    "teamName": "Team Name",
+    "memberList": "Member List",
+    "teamNamePlaceholder": "e.g.: Frontend Team, Data Analysis Team",
+    "memberNamePlaceholder": "Member Name",
+    "backendTypePlaceholder": "Backend Type",
+    "teamNameRequired": "Please enter a team name",
+    "memberNameRequired": "Please enter a teammate name",
+    "backendTypeRequired": "Please select a backend type",
+    "inProcess": "In-Process",
+    "subProcess": "Sub-Process",
+    "addTeammate": "Add Teammate"
+  },
+  "toolManager": {
+    "destructive": "Destructive",
+    "destructiveTooltip": "Destructive operation — irreversible after execution",
+    "readOnly": "Read Only",
+    "noTools": "No tool data available",
+    "clickToDisable": "Click to disable this tool",
+    "clickToEnable": "Click to enable this tool",
+    "groupDisabled": "Category disabled, cannot control individually",
+    "enabled": "enabled",
+    "disableGroup": "Disable entire category",
+    "enableGroup": "Enable entire category"
+  },
+  "dreamStatus": {
+    "running": "Dream consolidation running...",
+    "consolidating": "Dream consolidating...",
+    "memoriesCount": "{{count}} memories",
+    "patternsCount": "{{count}} patterns",
+    "errorLabel": "Error: {{error}}",
+    "separator": ", ",
+    "completed": "Consolidation completed",
+    "completedTitle": "Dream completed ({{secs}}s)",
+    "totalConsolidations": "{{count}} consolidations total",
+    "statsSummary": "{{memories}} memories · {{patterns}} patterns"
+  },
+  "expertBadge": {
+    "generalAssistant": "General Assistant",
+    "selectExpert": "Select Expert Role"
+  },
+  "permissionModal": {
+    "title": "Permission Approval"
+  },
+  "teammatePanel": {
+    "memberCount": "{{count}} teammates",
+    "statusIdle": "Idle",
+    "statusBusy": "Working",
+    "statusOffline": "Offline",
+    "statusError": "Error",
+    "defaultTeam": "Default Team",
+    "idle": "Idle",
+    "duration": "Duration {{seconds}}s",
+    "title": "Swarm Teammates",
+    "createTeam": "Create Team",
+    "newTeam": "New Team",
+    "waitingForTask": "Waiting for task assignment",
+    "teamCreated": "Team \"{{name}}\" created with {{count}} teammates"
+  },
+  "chatPage": {
+    "loading": "Loading..."
+  },
+  "sshConfig": {
+    "title": "SSH Configuration",
+    "connect": "Connect",
+    "host": "Host",
+    "port": "Port",
+    "username": "Username"
+  },
+  "dockerConfig": {
+    "title": "Docker Configuration",
+    "connect": "Connect",
+    "socketPath": "Docker Socket Path"
+  },
+  "datasetManager": {
+    "title": "Fine-Tune Dataset Manager",
+    "name": "Name",
+    "description": "Description",
+    "samples": "Samples",
+    "created": "Created",
+    "action": "Action",
+    "deleteConfirm": "Delete this dataset?",
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel",
+    "createNew": "Create New Dataset"
+  },
+  "loraConfig": {
+    "trainingSetup": "Training Setup",
+    "dataset": "Dataset",
+    "baseModel": "Base Model",
+    "rank": "Rank",
+    "alpha": "Alpha",
+    "learningRate": "Learning Rate",
+    "batchSize": "Batch Size",
+    "epochs": "Epochs",
+    "reset": "Reset"
+  },
+  "trainingJob": {
+    "title": "Training Jobs",
+    "totalJobs": "Total Jobs",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "id": "ID",
+    "status": "Status",
+    "baseModel": "Base Model",
+    "datasetId": "Dataset ID",
+    "progress": "Progress",
+    "loss": "Loss",
+    "loraOutput": "LoRA Output",
+    "action": "Action",
+    "ready": "Ready"
+  },
+  "errorRecovery": {
+    "noError": "No error to recover from",
+    "title": "Error Recovery",
+    "attempts": "Recovery Attempts",
+    "status": "Status",
+    "attemptsLabel": "Attempts",
+    "time": "Time"
+  },
+  "cronResult": {
+    "success": "Success",
+    "failed": "Failed",
+    "schedule": "Schedule",
+    "platform": "Platform",
+    "time": "Time"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "retryLoad": "Retry loading this module"
+  },
+  "cacheIndicator": {
+    "notEstablished": "Prompt cache not established. First turn in session.",
+    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force."
+  },
+  "artifactPanel": {
+    "fullscreen": "Fullscreen"
+  },
+  "cronManager": {
+    "deleteConfirm": "Delete this cron job?",
+    "title": "Cron Jobs",
+    "addJob": "Add Job",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "name": "Name",
+    "prompt": "Prompt",
+    "never": "Never"
+  },
+  "cacheConfig": {
+    "title": "Prompt Cache",
+    "enableBreakpoints": "Enable Cache Breakpoints"
+  },
+  "reflection": {
+    "noReflection": "No reflection available",
+    "title": "Reflection",
+    "qualityAnalysis": "Quality Analysis",
+    "efficiencyAnalysis": "Efficiency Analysis",
+    "generatedInsights": "Generated Insights",
+    "usageCount": "Usage count"
+  },
+  "subAgentCard": {
+    "fork": "Fork"
+  },
+  "modelParam": {
+    "topP": "Top P"
+  },
+  "insight": {
+    "placeholder": "e.g. User prefers dark mode..."
+  }
 }

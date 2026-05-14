@@ -1,6 +1,7 @@
 import { ReloadOutlined, WarningOutlined } from "@ant-design/icons";
 import { Button, theme, Tooltip, Typography } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -73,6 +74,7 @@ interface DefaultModuleFallbackProps {
 
 function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFallbackProps) {
   const { token } = theme.useToken();
+  const { t } = useTranslation();
 
   return (
     <div
@@ -106,7 +108,7 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
           {error.message}
         </Text>
       )}
-      <Tooltip title="Retry loading this module">
+      <Tooltip title={t("errorBoundary.retryLoad")}>
         <Button
           type="text"
           size="small"

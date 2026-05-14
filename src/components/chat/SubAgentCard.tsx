@@ -7,6 +7,7 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import "./SubAgentCard.css";
 
 const AGENT_COLORS: Record<string, string> = {
@@ -56,6 +57,7 @@ interface SubAgentCardProps {
 
 export function SubAgentCard({ card }: SubAgentCardProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const color = getAgentColor(card.agentType);
   const icon = getAgentIcon(card.agentType);
   const isRunning = card.status === "running";
@@ -80,7 +82,7 @@ export function SubAgentCard({ card }: SubAgentCardProps) {
       <div className="sub-agent-card__header">
         <span className="sub-agent-card__icon">{icon}</span>
         <span className="sub-agent-card__name" style={{ color }}>
-          {card.isFork && <BranchesOutlined style={{ marginRight: 4, color: "#722ed1" }} title="Fork" />}
+          {card.isFork && <BranchesOutlined style={{ marginRight: 4, color: "#722ed1" }} title={t("subAgentCard.fork")} />}
           {card.agentName || card.agentType}
         </span>
         <span className="sub-agent-card__status">

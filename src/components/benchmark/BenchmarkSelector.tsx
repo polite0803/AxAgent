@@ -2,6 +2,7 @@ import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
 import type { Benchmark } from "@/types";
 import { getCategoryLabel } from "@/types";
 import { Select, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -13,6 +14,7 @@ interface BenchmarkOption {
 
 export function BenchmarkSelector() {
   const { benchmarks, selectedBenchmark, selectBenchmark } = useEvaluatorStore();
+  const { t } = useTranslation();
 
   const options: BenchmarkOption[] = benchmarks.map((b) => ({
     value: b.id,
@@ -28,7 +30,7 @@ export function BenchmarkSelector() {
     <div>
       <Select
         className="w-full"
-        placeholder="选择基准测试"
+        placeholder={t("benchmark.selectBenchmark")}
         value={selectedBenchmark?.id}
         onChange={handleChange}
         options={options}

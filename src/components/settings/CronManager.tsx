@@ -82,7 +82,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       title: "Last Run",
       dataIndex: "last_run_at",
       key: "last_run_at",
-      render: (t: number | null) => t ? new Date(t).toLocaleString() : <Text type="secondary">Never</Text>,
+      render: (lastRun: number | null) => lastRun ? new Date(lastRun).toLocaleString() : <Text type="secondary">{t("cronManager.never")}</Text>,
     },
     {
       title: "Status",
@@ -105,7 +105,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
         <Popconfirm
           title="Delete this cron job?"
           onConfirm={() => onDelete(record.id)}
-          okText="Delete"
+          okText={t("cronManager.delete")}
           cancelText="Cancel"
         >
           <Button type="text" danger size="small" icon={<Trash2 size={14} />} />
@@ -116,7 +116,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
 
   return (
     <div className="p-6">
-      <SettingsGroup title="Cron Jobs">
+      <SettingsGroup title={t("cronManager.title")}>
         <div style={{ marginBottom: 12 }}>
           <Button type="primary" icon={<Plus size={14} />} onClick={() => setModalOpen(true)}>
             Add Cron Job
@@ -133,15 +133,15 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       </SettingsGroup>
 
       <Modal
-        title="Add Cron Job"
+        title={t("cronManager.addJob")}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={handleAdd}
-        okText="Add Job"
+        okText={t("cronManager.addJob")}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
-            <Text type="secondary">Name</Text>
+            <Text type="secondary">{t("cronManager.name")}</Text>
             <Input
               id="cron-manager-input-46"
               value={name}
@@ -162,7 +162,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
             </Text>
           </div>
           <div>
-            <Text type="secondary">Prompt</Text>
+            <Text type="secondary">{t("cronManager.prompt")}</Text>
             <Input.TextArea
               id="cron-manager-input-textarea-48"
               value={prompt}

@@ -1,5 +1,6 @@
 import { Input, InputNumber, Modal, Typography } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -15,6 +16,7 @@ interface SshConfigModalProps {
 }
 
 export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps) {
+  const { t } = useTranslation();
   const [host, setHost] = useState("");
   const [port, setPort] = useState(22);
   const [username, setUsername] = useState("");
@@ -28,16 +30,16 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
 
   return (
     <Modal
-      title="SSH Configuration"
+      title={t("sshConfig.title")}
       open={open}
       onCancel={onClose}
       onOk={handleConnect}
-      okText="Connect"
+      okText={t("sshConfig.connect")}
       okButtonProps={{ disabled: !host.trim() }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
-          <Text type="secondary">Host</Text>
+          <Text type="secondary">{t("sshConfig.host")}</Text>
           <Input
             id="ssh-config-modal-input-65"
             value={host}
@@ -46,7 +48,7 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
           />
         </div>
         <div>
-          <Text type="secondary">Port</Text>
+          <Text type="secondary">{t("sshConfig.port")}</Text>
           <InputNumber
             id="ssh-config-modal-inputnumber-66"
             value={port}
@@ -57,7 +59,7 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
           />
         </div>
         <div>
-          <Text type="secondary">Username</Text>
+          <Text type="secondary">{t("sshConfig.username")}</Text>
           <Input
             id="ssh-config-modal-input-67"
             value={username}

@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -144,6 +145,7 @@ export function ErrorRecoveryPanel({
   initialAttempts = [],
   initialResult = null,
 }: ErrorRecoveryPanelProps) {
+  const { t } = useTranslation();
   const [isRecovering, setIsRecovering] = useState(initialIsRecovering);
   const [attempts, setAttempts] = useState<RecoveryAttempt[]>(initialAttempts);
   const [result, setResult] = useState<RecoveryResult | null>(initialResult);
@@ -215,7 +217,7 @@ export function ErrorRecoveryPanel({
       <Card size="small" className="error-recovery-panel">
         <div className="flex items-center justify-center h-32 text-gray-400">
           <AlertCircle size={24} className="mr-2" />
-          <Text type="secondary">No error to recover from</Text>
+          <Text type="secondary">{t("errorRecovery.noError")}</Text>
         </div>
       </Card>
     );
@@ -231,7 +233,7 @@ export function ErrorRecoveryPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle size={16} className="text-orange-500" />
-            <span>Error Recovery</span>
+            <span>{t("errorRecovery.title")}</span>
             {errorType && <ErrorTypeTag type={errorType} />}
           </div>
           {isRecovering && <RefreshCw size={14} className="animate-spin text-blue-500" />}
@@ -281,7 +283,7 @@ export function ErrorRecoveryPanel({
       {attempts.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <Text strong>Recovery Attempts</Text>
+            <Text strong>{t("errorRecovery.attempts")}</Text>
             <Text type="secondary" className="text-sm">
               {attempts.filter((a) => a.success).length} / {attempts.length} succeeded
             </Text>
@@ -297,7 +299,7 @@ export function ErrorRecoveryPanel({
         <div className="border-t pt-4">
           <div className="grid grid-cols-3 gap-4 mb-4">
             <Statistic
-              title="Status"
+              title={t("errorRecovery.status")}
               value={result.success ? "Success" : "Failed"}
               valueStyle={{
                 color: result.success ? "#3f8600" : "#cf1322",
@@ -305,12 +307,12 @@ export function ErrorRecoveryPanel({
               prefix={result.success ? <CheckCircle size={16} /> : <XCircle size={16} />}
             />
             <Statistic
-              title="Attempts"
+              title={t("errorRecovery.attemptsLabel")}
               value={result.attempts_made}
               suffix={`/ ${result.strategy_used}`}
             />
             <Statistic
-              title="Time"
+              title={t("errorRecovery.time")}
               value={formatDuration(result.recovery_time_ms)}
               suffix={result.recovered ? "" : ""}
             />

@@ -11,6 +11,7 @@ import {
 } from "@ant-design/icons";
 import { Alert, Button, Card, Divider, Input, List, Progress, Space, Tag, Typography } from "antd";
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -69,13 +70,13 @@ interface ResearchPanelProps {
   className?: string;
 }
 
-const phaseSteps: { key: ResearchPhase; label: string; icon: React.ReactNode }[] = [
-  { key: "planning", label: "规划", icon: <ClockCircleOutlined /> },
-  { key: "searching", label: "搜索", icon: <SearchOutlined /> },
-  { key: "extracting", label: "提取", icon: <LinkOutlined /> },
-  { key: "analyzing", label: "分析", icon: <StarOutlined /> },
-  { key: "synthesizing", label: "综合", icon: <CheckCircleOutlined /> },
-  { key: "reporting", label: "报告", icon: <FileTextOutlined /> },
+const phaseSteps = (t: (key: string) => string): { key: ResearchPhase; label: string; icon: React.ReactNode }[] => [
+  { key: "planning", label: t("research.phasePlanning"), icon: <ClockCircleOutlined /> },
+  { key: "searching", label: t("research.phaseSearching"), icon: <SearchOutlined /> },
+  { key: "extracting", label: t("research.phaseExtracting"), icon: <LinkOutlined /> },
+  { key: "analyzing", label: t("research.phaseAnalyzing"), icon: <StarOutlined /> },
+  { key: "synthesizing", label: t("research.phaseSynthesizing"), icon: <CheckCircleOutlined /> },
+  { key: "reporting", label: t("research.phaseReporting"), icon: <FileTextOutlined /> },
 ];
 
 function getSourceTypeColor(sourceType: string): string {
@@ -93,38 +94,40 @@ function getSourceTypeColor(sourceType: string): string {
   return colorMap[sourceType.toLowerCase()] || "default";
 }
 
-function getSourceTypeName(sourceType: string): string {
+function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
   const nameMap: Record<string, string> = {
-    web: "网页",
-    academic: "学术",
-    wikipedia: "维基百科",
+    web: t("research.sourceTypeWeb"),
+    academic: t("research.sourceTypeAcademic"),
+    wikipedia: t("research.sourceTypeWikipedia"),
     github: "GitHub",
-    documentation: "文档",
-    news: "新闻",
-    blog: "博客",
-    forum: "论坛",
-    unknown: "未知",
+    documentation: t("research.sourceTypeDocumentation"),
+    news: t("research.sourceTypeNews"),
+    blog: t("research.sourceTypeBlog"),
+    forum: t("research.sourceTypeForum"),
+    unknown: t("research.sourceTypeUnknown"),
   };
   return nameMap[sourceType.toLowerCase()] || sourceType;
 }
 
 function CredibilityBadge({ score }: { score: number }) {
+  const { t } = useTranslation();
   if (score >= 0.8) {
-    return <Tag color="green">高可信度</Tag>;
+    return <Tag color="green">{t("research.highCredibility")}</Tag>;
   } else if (score >= 0.5) {
-    return <Tag color="orange">中可信度</Tag>;
+    return <Tag color="orange">{t("research.mediumCredibility")}</Tag>;
   } else {
-    return <Tag color="red">低可信度</Tag>;
+    return <Tag color="red">{t("research.lowCredibility")}</Tag>;
   }
 }
 
-function PhaseProgress({ currentPhase, percentage }: { currentPhase: ResearchPhase; percentage: number }) {
-  const currentIndex = phaseSteps.findIndex((p) => p.key === currentPhase);
+function PhaseProgress({ currentPhase, percentage, t }: { currentPhase: ResearchPhase; percentage: number; t: (key: string) => string }) {
+  const steps = phaseSteps(t);
+  const currentIndex = steps.findIndex((p) => p.key === currentPhase);
 
   return (
     <div className="phase-progress">
       <div className="flex items-center justify-between mb-2">
-        {phaseSteps.map((step, index) => {
+        {steps.map((step, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = index === currentIndex;
           return (
@@ -152,6 +155,7 @@ function PhaseProgress({ currentPhase, percentage }: { currentPhase: ResearchPha
 }
 
 export function ResearchPanel({ className }: ResearchPanelProps) {
+  const { t } = useTranslation();
   const [topic, setTopic] = useState("");
   const [isResearching, setIsResearching] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -205,8 +209,8 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           id: "1",
           sourceType: "web",
           url: "https://example.com/article",
-          title: "关于人工智能的最新研究",
-          snippet: "本文探讨了人工智能技术的发展现状和未来趋势...",
+          title: t("research.mockTitle1"),
+          snippet: t("research.mockSnippet1"),
           credibilityScore: 0.7,
           relevanceScore: 0.9,
         },
@@ -214,8 +218,8 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           id: "2",
           sourceType: "academic",
           url: "https://scholar.google.com/scholar?q=ai",
-          title: "深度学习研究综述",
-          snippet: "本文综述了深度学习在各个领域的应用和研究进展...",
+          title: t("research.mockTitle2"),
+          snippet: t("research.mockSnippet2"),
           credibilityScore: 0.9,
           relevanceScore: 0.95,
         },
@@ -313,25 +317,8 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
       const mockReport: ResearchReport = {
         id: crypto.randomUUID(),
         topic,
-        summary: `本报告基于 ${mockCitations.length} 个来源，对「${topic}」进行了深入分析。`,
-        content: `# 关于「${topic}」的研究报告
-
-## 摘要
-
-本报告基于对 ${mockCitations.length} 个来源的研究，对「${topic}」进行了深入分析。
-
-## 主要发现
-
-${mockResults.map((r, idx) => `### 发现 ${idx + 1}: ${r.title}\n\n${r.snippet}\n`).join("\n")}
-
-## 结论
-
-通过对 ${mockCitations.length} 个来源的深入研究和分析，我们对「${topic}」有了更全面的认识。
-
-## 参考文献
-
-${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`).join("\n")}
-`,
+        summary: t("research.mockSummary", { count: mockCitations.length, topic }),
+        content: t("research.mockContent", { count: mockCitations.length, topic, findings: mockResults.map((r, idx) => t("research.mockFinding", { num: idx + 1, title: r.title, snippet: r.snippet })).join("\n") }),
         citations: mockCitations,
       };
 
@@ -347,7 +334,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
           : null
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "研究过程出错");
+      setError(err instanceof Error ? err.message : t("research.errorOccurred"));
       setState((prev) => prev ? { ...prev, status: "failed" } : null);
     } finally {
       setLoading(false);
@@ -385,7 +372,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
         <div className="flex items-center gap-2">
           <SearchOutlined size={20} />
           <Title level={4} style={{ margin: 0 }}>
-            研究型 Agent
+            {t("research.researchAgent")}
           </Title>
         </div>
         {isResearching && (
@@ -395,7 +382,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
             icon={<StopOutlined />}
             onClick={stopResearch}
           >
-            停止
+            {t("research.stop")}
           </Button>
         )}
       </div>
@@ -403,10 +390,10 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
       {!isResearching && !state && (
         <div className="research-start">
           <Paragraph type="secondary" className="mb-4">
-            输入研究主题，AI 将自动搜索、分析多个信息源并生成研究报告。
+            {t("research.inputHint")}
           </Paragraph>
           <TextArea
-            placeholder="输入研究主题，例如：人工智能的发展历史和未来趋势"
+            placeholder={t("research.topicPlaceholder")}
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             rows={3}
@@ -420,7 +407,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
             loading={loading}
             block
           >
-            开始研究
+            {t("research.startResearch")}
           </Button>
         </div>
       )}
@@ -428,7 +415,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
       {state && (
         <div className="research-progress">
           <div className="mb-4">
-            <Text strong>研究主题：</Text>
+            <Text strong>{t("research.topic")}</Text>
             <Paragraph className="mb-2">{state.topic}</Paragraph>
           </div>
 
@@ -436,6 +423,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
             <PhaseProgress
               currentPhase={state.currentPhase}
               percentage={state.progress.percentage}
+              t={t}
             />
           )}
 
@@ -448,7 +436,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
                 onClick={pauseResearch}
                 disabled={isPaused}
               >
-                暂停
+                {t("research.pause")}
               </Button>
             </div>
           )}
@@ -460,14 +448,14 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
                 icon={<PlayCircleOutlined />}
                 onClick={resumeResearch}
               >
-                继续
+                {t("research.continue")}
               </Button>
             </div>
           )}
 
           {error && (
             <Alert
-              message="错误"
+              message={t("research.error")}
               description={error}
               type="error"
               showIcon
@@ -479,7 +467,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
 
           {state.searchResults.length > 0 && (
             <div className="sources-section mb-4">
-              <Title level={5}>搜索结果 ({state.searchResults.length})</Title>
+              <Title level={5}>{t("research.searchResults")} ({state.searchResults.length})</Title>
               <List
                 size="small"
                 dataSource={state.searchResults}
@@ -492,7 +480,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
                             {item.title}
                           </a>
                           <Tag color={getSourceTypeColor(item.sourceType)}>
-                            {getSourceTypeName(item.sourceType)}
+                            {getSourceTypeName(item.sourceType, t)}
                           </Tag>
                         </Space>
                       }
@@ -517,7 +505,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
           {state.citations.length > 0 && (
             <div className="citations-section mb-4">
               <Title level={5}>
-                引用 ({state.citations.length})
+                {t("research.citations")} ({state.citations.length})
               </Title>
               <List
                 size="small"
@@ -527,7 +515,7 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
                     <Space>
                       <CheckCircleOutlined style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }} />
                       <Text>{item.sourceTitle}</Text>
-                      <Tag>{getSourceTypeName(item.sourceType)}</Tag>
+                      <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
                       <CredibilityBadge score={item.credibility} />
                     </Space>
                   </List.Item>
@@ -541,16 +529,16 @@ ${mockCitations.map((c, idx) => `[${idx + 1}] ${c.sourceTitle} - ${c.sourceUrl}`
       {report && (
         <div className="report-section">
           <Divider />
-          <Title level={5}>生成的研究报告</Title>
+          <Title level={5}>{t("research.generatedReport")}</Title>
 
           <div className="flex gap-2 mb-4">
             <Button
               icon={<FileTextOutlined />}
               onClick={() => navigator.clipboard.writeText(report.content)}
             >
-              复制报告
+              {t("research.copyReport")}
             </Button>
-            <Button onClick={resetResearch}>开始新研究</Button>
+            <Button onClick={resetResearch}>{t("research.startNew")}</Button>
           </div>
 
           <Card className="report-preview" style={{ background: "#fafafa" }}>

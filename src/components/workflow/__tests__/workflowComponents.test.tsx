@@ -392,14 +392,13 @@ describe("ImportExportModal Component", () => {
         onClose={mockOnClose}
         onExport={mockOnExport}
         onImport={mockOnImport}
+        templates={[]}
       />,
     );
 
     expect(screen.getByText("导入/导出模板")).toBeTruthy();
-    // Export tab is active by default — its label and content should be visible
     expect(screen.getAllByText("导出")).toBeTruthy();
     expect(screen.getByText("导出模板")).toBeTruthy();
-    // Import tab label should be visible (tabs render all labels, but not all content)
     expect(screen.getByText("导入")).toBeTruthy();
   });
 
@@ -412,10 +411,10 @@ describe("ImportExportModal Component", () => {
         onClose={mockOnClose}
         onExport={mockOnExport}
         onImport={mockOnImport}
+        templates={[]}
       />,
     );
 
-    expect(screen.getByPlaceholderText("输入要导出的模板 ID")).toBeTruthy();
     expect(screen.getByText("导出模板")).toBeTruthy();
   });
 
@@ -429,15 +428,14 @@ describe("ImportExportModal Component", () => {
         onClose={mockOnClose}
         onExport={mockOnExport}
         onImport={mockOnImport}
+        templates={[]}
       />,
     );
 
-    // Click the import tab
     const importTab = screen.getByText("导入");
     fireEvent.click(importTab);
 
     await waitFor(() => {
-      // After switching to import tab, import-specific content should appear
       expect(screen.getByPlaceholderText("粘贴模板 JSON 数据...")).toBeTruthy();
       expect(screen.getByText("导入模板")).toBeTruthy();
     });

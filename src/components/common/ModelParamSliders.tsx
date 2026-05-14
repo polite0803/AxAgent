@@ -192,7 +192,7 @@ export function ModelParamSliders({
             return (
               <ParamRow
                 key="topP"
-                label="Top P"
+                label={t("modelParam.topP")}
                 tooltip={t("settings.topPTooltip")}
                 value={values.topP}
                 defaultValue={d.topP}

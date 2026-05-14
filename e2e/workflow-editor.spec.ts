@@ -22,70 +22,56 @@ test.describe("Workflow Editor E2E Tests", () => {
 
   test("should load workflow page", async ({ page }) => {
     const searchInput = page.locator('input[placeholder="搜索模板..."]');
-    if (await searchInput.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await expect(searchInput).toBeVisible();
-    }
+    await expect(searchInput).toBeVisible({ timeout: 10000 });
   });
 
   test("should display template list", async ({ page }) => {
     const newButton = page.locator('button:has-text("新建模板")').first();
-    if (await newButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await expect(newButton).toBeVisible();
-    }
+    await expect(newButton).toBeVisible({ timeout: 5000 });
   });
 
   test("should create new template", async ({ page }) => {
     const newButton = page.locator('button:has-text("新建模板")').first();
-    if (await newButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await newButton.click();
-      await page.waitForTimeout(2000);
-      const reactFlow = page.locator(".react-flow");
-      if (await reactFlow.isVisible({ timeout: 10000 }).catch(() => false)) {
-        await expect(reactFlow).toBeVisible();
-      }
-    }
+    await expect(newButton).toBeVisible({ timeout: 5000 });
+    await newButton.click();
+    const reactFlow = page.locator(".react-flow");
+    await expect(reactFlow).toBeVisible({ timeout: 10000 });
   });
 
   test("should filter templates by search", async ({ page }) => {
     const searchInput = page.locator('input[placeholder="搜索模板..."]');
-    if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await searchInput.fill("code");
-      await page.waitForTimeout(500);
-    }
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
+    await searchInput.fill("code");
+    await expect(searchInput).toHaveValue("code");
   });
 
   test("should delete a template", async ({ page }) => {
     const moreBtn = page.locator(".ant-card-actions button").first();
-    if (await moreBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await moreBtn.click();
-      await page.waitForTimeout(300);
+    await expect(moreBtn).toBeVisible({ timeout: 3000 });
+    await moreBtn.click();
+    await page.waitForTimeout(300);
 
-      const deleteOption = page.locator(".ant-dropdown-menu-item").filter({ hasText: "删除" }).first();
-      if (await deleteOption.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await deleteOption.click();
-        await page.waitForTimeout(500);
+    const deleteOption = page.locator(".ant-dropdown-menu-item").filter({ hasText: "删除" }).first();
+    await expect(deleteOption).toBeVisible({ timeout: 3000 });
+    await deleteOption.click();
+    await page.waitForTimeout(500);
 
-        const confirmBtn = page.locator(".ant-btn-dangerous").first();
-        if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await confirmBtn.click();
-          await page.waitForTimeout(1000);
-        }
-      }
-    }
+    const confirmBtn = page.locator(".ant-btn-dangerous").first();
+    await expect(confirmBtn).toBeVisible({ timeout: 3000 });
+    await confirmBtn.click();
+    await page.waitForTimeout(1000);
   });
 
   test("should duplicate a template", async ({ page }) => {
     const moreBtn = page.locator(".ant-card-actions button").first();
-    if (await moreBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await moreBtn.click();
-      await page.waitForTimeout(300);
+    await expect(moreBtn).toBeVisible({ timeout: 3000 });
+    await moreBtn.click();
+    await page.waitForTimeout(300);
 
-      const duplicateOption = page.locator(".ant-dropdown-menu-item").filter({ hasText: "复制" }).first();
-      if (await duplicateOption.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await duplicateOption.click();
-        await page.waitForTimeout(1000);
-      }
-    }
+    const duplicateOption = page.locator(".ant-dropdown-menu-item").filter({ hasText: "复制" }).first();
+    await expect(duplicateOption).toBeVisible({ timeout: 3000 });
+    await duplicateOption.click();
+    await page.waitForTimeout(1000);
   });
 });
 
@@ -96,54 +82,41 @@ test.describe("Workflow Editor Canvas", () => {
     await dismissModals(page);
 
     const newButton = page.locator('button:has-text("新建模板")').first();
-    if (await newButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await newButton.click({ force: true });
-      await page.waitForTimeout(2000);
-      await dismissModals(page);
-    }
+    await expect(newButton).toBeVisible({ timeout: 5000 });
+    await newButton.click({ force: true });
+    await page.waitForTimeout(2000);
+    await dismissModals(page);
   });
 
   test("should display node palette when canvas is open", async ({ page }) => {
     const triggerLabel = page.locator("text=触发器").first();
-    if (await triggerLabel.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await expect(triggerLabel).toBeVisible();
-    }
+    await expect(triggerLabel).toBeVisible({ timeout: 10000 });
   });
 
   test("should show zoom controls when canvas is open", async ({ page }) => {
     const controls = page.locator(".react-flow__controls");
-    if (await controls.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await expect(controls).toBeVisible();
-    }
+    await expect(controls).toBeVisible({ timeout: 10000 });
   });
 
   test("should open AI panel", async ({ page }) => {
     const aiPanelBtn = page.locator('[data-testid="workflow-ai-panel-btn"]');
-    if (await aiPanelBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await aiPanelBtn.click();
-      await page.waitForTimeout(500);
-      const textarea = page.locator("textarea").first();
-      if (await textarea.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(textarea).toBeVisible();
-      }
-    }
+    await expect(aiPanelBtn).toBeVisible({ timeout: 5000 });
+    await aiPanelBtn.click();
+    await page.waitForTimeout(500);
+    const textarea = page.locator("textarea").first();
+    await expect(textarea).toBeVisible({ timeout: 5000 });
   });
 
   test("should open import/export modal", async ({ page }) => {
     const importExportBtn = page.locator('[data-testid="workflow-import-export-btn"]');
-    if (await importExportBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await importExportBtn.click();
-      const modal = page.locator("text=导出").or(page.locator("text=导入")).first();
-      if (await modal.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(modal).toBeVisible();
-      }
-    }
+    await expect(importExportBtn).toBeVisible({ timeout: 5000 });
+    await importExportBtn.click();
+    const modal = page.locator("text=导出").or(page.locator("text=导入")).first();
+    await expect(modal).toBeVisible({ timeout: 5000 });
   });
 
   test("should show save indicator when dirty", async ({ page }) => {
     const savedIndicator = page.locator("text=已保存").or(page.locator("text=Saved")).first();
-    if (await savedIndicator.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await expect(savedIndicator).toBeVisible();
-    }
+    await expect(savedIndicator).toBeVisible({ timeout: 5000 });
   });
 });

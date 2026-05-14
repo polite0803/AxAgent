@@ -58,7 +58,7 @@ export function DatasetManager() {
   return (
     <div className="p-4">
       <Card
-        title="Fine-Tune Dataset Manager"
+        title={t("datasetManager.title")}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
             Create Dataset
@@ -78,17 +78,17 @@ export function DatasetManager() {
               loading={isLoading}
               pagination={false}
             >
-              <Column title="Name" dataIndex="name" key="name" />
-              <Column title="Description" dataIndex="description" key="description" ellipsis />
-              <Column title="Samples" dataIndex="num_samples" key="num_samples" />
+              <Column title={t("datasetManager.name")} dataIndex="name" key="name" />
+              <Column title={t("datasetManager.description")} dataIndex="description" key="description" ellipsis />
+              <Column title={t("datasetManager.samples")} dataIndex="num_samples" key="num_samples" />
               <Column
-                title="Created"
+                title={t("datasetManager.created")}
                 dataIndex="created_at"
                 key="created_at"
                 render={(date: string) => new Date(date).toLocaleDateString()}
               />
               <Column
-                title="Action"
+                title={t("datasetManager.action")}
                 key="action"
                 render={(_: unknown, record: { id: string }) => (
                   <Space>
@@ -102,8 +102,8 @@ export function DatasetManager() {
                     <Popconfirm
                       title="Delete this dataset?"
                       onConfirm={() => handleDeleteDataset(record.id)}
-                      okText="Yes"
-                      cancelText="No"
+                      okText={t("datasetManager.yes")}
+                      cancelText={t("datasetManager.no")}
                     >
                       <Button size="small" danger icon={<DeleteOutlined />}>
                         Delete
@@ -117,7 +117,7 @@ export function DatasetManager() {
       </Card>
 
       <Modal
-        title="Create New Dataset"
+        title={t("datasetManager.createNew")}
         open={createModalVisible}
         onCancel={() => setCreateModalVisible(false)}
         footer={null}
@@ -177,7 +177,7 @@ export function DatasetManager() {
               <Button type="primary" htmlType="submit">
                 Add Sample
               </Button>
-              <Button onClick={() => setAddSampleModalVisible(false)}>Cancel</Button>
+              <Button onClick={() => setAddSampleModalVisible(false)}>{t("datasetManager.cancel")}</Button>
             </Space>
           </Form.Item>
         </Form>

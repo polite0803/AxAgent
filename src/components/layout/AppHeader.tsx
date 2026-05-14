@@ -6,7 +6,6 @@ import { useLocation } from "react-router-dom";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": "nav.chat",
-  "/skills": "nav.skills",
   "/knowledge": "nav.knowledge",
   "/memory": "nav.memory",
   "/gateway": "nav.gateway",
@@ -19,7 +18,7 @@ const PAGE_LABELS: Record<string, string> = {
 function resolvePageLabel(pathname: string): string | null {
   if (PAGE_LABELS[pathname]) { return PAGE_LABELS[pathname]; }
   if (pathname.startsWith("/settings")) { return "nav.settings"; }
-  if (pathname.startsWith("/skill/")) { return "nav.skills"; }
+  if (pathname.startsWith("/skill/")) { return "settings.skillsHub"; }
   if (pathname.startsWith("/devtools/")) { return "nav.devTools"; }
   if (pathname.startsWith("/llm-wiki")) { return "nav.wiki"; }
   if (pathname.startsWith("/wiki/")) { return "nav.wiki"; }

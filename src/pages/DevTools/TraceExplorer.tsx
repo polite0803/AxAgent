@@ -3,9 +3,11 @@ import { TraceList } from "@/components/devtools/TraceList";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Empty, Spin } from "antd";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export function TraceExplorer() {
   const { selectedTrace, isLoading, loadTraces } = useTracerStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadTraces();
@@ -25,7 +27,7 @@ export function TraceExplorer() {
           )
           : selectedTrace
           ? <TraceDetail />
-          : <Empty description="选择一个追踪记录查看详情" className="mt-20" />}
+          : <Empty description={t("traceExplorer.selectTrace")} className="mt-20" />}
       </div>
     </div>
   );

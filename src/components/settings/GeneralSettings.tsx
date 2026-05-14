@@ -5,7 +5,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { Button, Divider, Switch, Typography } from "antd";
 import { FolderOpen, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import CloudWorkspaceSelector from "./CloudWorkspaceSelector";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
 
@@ -166,9 +165,6 @@ export function GeneralSettings() {
           </div>
         </div>
       </SettingsGroup>
-
-      {/* Cloud Workspace */}
-      <CloudWorkspaceSelector />
     </div>
   );
 }

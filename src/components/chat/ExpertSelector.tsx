@@ -578,7 +578,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                             ))}
                             {role.systemPrompt && (
                               <Popover
-                                title={`${role.icon} ${role.name} - 能力详情`}
+                                title={`${role.icon} ${role.name} - ${t("expertSelector.capabilityDetail")}`}
                                 content={
                                   <div
                                     style={{
@@ -607,7 +607,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                                   }}
                                   onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 >
-                                  <Info size={10} style={{ marginRight: 2 }} /> 详
+                                  <Info size={10} style={{ marginRight: 2 }} /> {t("expertSelector.detail")}
                                 </Tag>
                               </Popover>
                             )}
