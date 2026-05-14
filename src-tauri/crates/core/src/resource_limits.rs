@@ -56,30 +56,38 @@ impl ResourceLimits {
     fn apply_rlimit(&self) -> Result<(), String> {
         // RLIMIT_CPU: 进程可使用的 CPU 时间（秒）
         self.set_rlimit(
-            libc::RLIMIT_CPU,
+            libc::RLIMIT_CPU as u32,
             self.max_cpu_seconds,
             self.max_cpu_seconds.saturating_add(5),
         )?;
 
         // RLIMIT_AS: 进程可用虚拟内存（字节）
-        self.set_rlimit(libc::RLIMIT_AS, self.max_memory_bytes, self.max_memory_bytes)?;
+        self.set_rlimit(libc::RLIMIT_AS as u32, self.max_memory_bytes, self.max_memory_bytes)?;
 
         // RLIMIT_NPROC: 最大子进程数
-        self.set_rlimit(libc::RLIMIT_NPROC, self.max_processes as u64, self.max_processes as u64)?;
+        self.set_rlimit(
+            libc::RLIMIT_NPROC as u32,
+            self.max_processes as u64,
+            self.max_processes as u64,
+        )?;
 
         // RLIMIT_FSIZE: 最大文件写入（字节）
-        self.set_rlimit(libc::RLIMIT_FSIZE, self.max_file_size_bytes, self.max_file_size_bytes)?;
+        self.set_rlimit(
+            libc::RLIMIT_FSIZE as u32,
+            self.max_file_size_bytes,
+            self.max_file_size_bytes,
+        )?;
 
         Ok(())
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn set_rlimit(&self, resource: libc::c_int, soft: u64, hard: u64) -> Result<(), String> {
+    fn set_rlimit(&self, resource: u32, soft: u64, hard: u64) -> Result<(), String> {
         let rlim = libc::rlimit {
             rlim_cur: soft.min(hard),
             rlim_max: hard,
         };
-        let ret = unsafe { libc::setrlimit(resource, &rlim) };
+        let ret = unsafe { libc::setrlimit(resource as _, &rlim) };
         if ret != 0 {
             let err = std::io::Error::last_os_error();
             tracing::warn!("Failed to set rlimit {:?}: {}", resource, err);
