@@ -59,7 +59,10 @@ export function DreamStatusIndicator() {
     const summary = parts.length > 0 ? parts.join(t("dreamStatus.separator")) : t("dreamStatus.completed");
 
     return (
-      <div className="dream-indicator dream-indicator--completed" title={t("dreamStatus.completedTitle", { secs: lastResult.durationSecs })}>
+      <div
+        className="dream-indicator dream-indicator--completed"
+        title={t("dreamStatus.completedTitle", { secs: lastResult.durationSecs })}
+      >
         <CheckCircleOutlined className="dream-indicator__icon dream-indicator__icon--done" />
         <span className="dream-indicator__text">
           {summary}
@@ -74,7 +77,10 @@ export function DreamStatusIndicator() {
   // 空闲但有过历史记录 — 显示累计统计
   if (totalConsolidations > 0) {
     return (
-      <div className="dream-indicator dream-indicator--idle" title={t("dreamStatus.totalConsolidations", { count: totalConsolidations })}>
+      <div
+        className="dream-indicator dream-indicator--idle"
+        title={t("dreamStatus.totalConsolidations", { count: totalConsolidations })}
+      >
         <Brain size={13} className="dream-indicator__icon" />
         <span className="dream-indicator__text">
           {t("dreamStatus.statsSummary", { memories: totalMemories, patterns: totalPatterns })}

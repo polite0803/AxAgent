@@ -64,7 +64,9 @@ function ToolItem({
               </Tag>
             </Tooltip>
           )}
-          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>}
+          {tool.isReadOnly && (
+            <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>
+          )}
         </div>
         <Paragraph
           type="secondary"
@@ -74,7 +76,11 @@ function ToolItem({
           {tool.description}
         </Paragraph>
       </div>
-      <Tooltip title={groupEnabled ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable")) : t("toolManager.groupDisabled")}>
+      <Tooltip
+        title={groupEnabled
+          ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable"))
+          : t("toolManager.groupDisabled")}
+      >
         <Switch
           id="local-tool-settings-switch-90"
           size="small"

@@ -214,7 +214,8 @@ export function FilePermissionDialog({
                         <Typography.Text>{result.message}</Typography.Text>
                         {result.expires_at && (
                           <Tag icon={<Clock size={12} />}>
-                            {t("filePermission.validUntil")}{new Date(result.expires_at).toLocaleString()}
+                            {t("filePermission.validUntil")}
+                            {new Date(result.expires_at).toLocaleString()}
                           </Tag>
                         )}
                       </Space>

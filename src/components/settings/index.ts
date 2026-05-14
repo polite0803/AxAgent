@@ -1,8 +1,8 @@
 export { AboutPage } from "./AboutPage";
 export { AcpSettings } from "./AcpSettings";
 export { AdvancedSettings } from "./AdvancedSettings";
-export { DashboardPluginsSettings } from "./DashboardPluginsSettings";
 export { default as CloudWorkspaceSettings } from "./CloudWorkspaceSelector";
+export { DashboardPluginsSettings } from "./DashboardPluginsSettings";
 export { DataManager } from "./DataManager";
 export { DisplaySettings } from "./DisplaySettings";
 export { EvolutionSettings } from "./EvolutionSettings";

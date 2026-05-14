@@ -1,11 +1,11 @@
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Button, Card, Col, Descriptions, Row, Space, Tabs, Tag, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { CostChart } from "./CostChart";
 import { DurationChart } from "./DurationChart";
 import { SpanDetail } from "./SpanDetail";
 import { SpanTree } from "./SpanTree";
 import { Timeline } from "./Timeline";
-import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 

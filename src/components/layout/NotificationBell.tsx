@@ -48,7 +48,11 @@ export function NotificationBell() {
   const unreadCount = globalNotifications.length;
 
   const items = globalNotifications.length === 0
-    ? [{ key: "empty", label: <Empty description={t("notification.empty")} image={Empty.PRESENTED_IMAGE_SIMPLE} />, disabled: true }]
+    ? [{
+      key: "empty",
+      label: <Empty description={t("notification.empty")} image={Empty.PRESENTED_IMAGE_SIMPLE} />,
+      disabled: true,
+    }]
     : globalNotifications.slice(0, 20).map((n) => ({
       key: n.id,
       label: (

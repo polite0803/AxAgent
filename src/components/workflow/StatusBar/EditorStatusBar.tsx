@@ -1,4 +1,4 @@
-import { Tag, Tooltip, theme } from "antd";
+import { Tag, theme, Tooltip } from "antd";
 import { AlertCircle, AlertTriangle, CheckCircle, Circle, Maximize2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -67,7 +67,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Circle size={10} fill={isDirty ? token.colorWarning : token.colorSuccess} color={isDirty ? token.colorWarning : token.colorSuccess} />
+        <Circle
+          size={10}
+          fill={isDirty ? token.colorWarning : token.colorSuccess}
+          color={isDirty ? token.colorWarning : token.colorSuccess}
+        />
         <span>{isDirty ? t("workflow.statusBar.unsaved") : t("workflow.statusBar.saved")}</span>
       </div>
 

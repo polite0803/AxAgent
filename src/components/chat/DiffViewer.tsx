@@ -229,7 +229,9 @@ export const FileChangeCard = React.memo(function FileChangeCard({
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
-        aria-label={`${change.filePath} - ${isNew ? t("chat.diff.newFile") : isDeleted ? t("chat.diff.deleted") : t("chat.diff.modified")}`}
+        aria-label={`${change.filePath} - ${
+          isNew ? t("chat.diff.newFile") : isDeleted ? t("chat.diff.deleted") : t("chat.diff.modified")
+        }`}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -256,8 +258,12 @@ export const FileChangeCard = React.memo(function FileChangeCard({
           <Typography.Text style={{ fontSize: 13, fontFamily: "monospace" }}>
             {change.filePath}
           </Typography.Text>
-          {isNew && <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.newFile")}</Tag>}
-          {isDeleted && <Tag color="red" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.deleted")}</Tag>}
+          {isNew && (
+            <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.newFile")}</Tag>
+          )}
+          {isDeleted && (
+            <Tag color="red" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.deleted")}</Tag>
+          )}
           {change.operation === "edit" && (
             <Tag color="orange" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.modified")}</Tag>
           )}

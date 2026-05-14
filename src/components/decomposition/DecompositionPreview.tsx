@@ -101,7 +101,12 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 dataSource={[]}
                 columns={[
                   { title: t("decomposition.colName"), dataIndex: "name", key: "name" },
-                  { title: t("decomposition.colDescription"), dataIndex: "description", key: "description", ellipsis: true },
+                  {
+                    title: t("decomposition.colDescription"),
+                    dataIndex: "description",
+                    key: "description",
+                    ellipsis: true,
+                  },
                   {
                     title: t("decomposition.colEntryType"),
                     dataIndex: "entry_type",
@@ -118,7 +123,9 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
 
               {preview.tool_dependencies.length > 0 && (
                 <>
-                  <Typography.Title level={5}>{t("decomposition.toolDependencies")} ({preview.tool_dependencies.length})</Typography.Title>
+                  <Typography.Title level={5}>
+                    {t("decomposition.toolDependencies")} ({preview.tool_dependencies.length})
+                  </Typography.Title>
                   <ToolDependencyList
                     dependencies={preview.tool_dependencies}
                     onAction={handleDepAction}
@@ -134,7 +141,9 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                         border: "1px solid #d9d9d9",
                       }}
                     >
-                      <Typography.Title level={5} style={{ marginTop: 0 }}>{t("decomposition.processing")} {activeDep.name}</Typography.Title>
+                      <Typography.Title level={5} style={{ marginTop: 0 }}>
+                        {t("decomposition.processing")} {activeDep.name}
+                      </Typography.Title>
                       {(activeDep.status === "needs_generation")
                         ? (
                           <>
@@ -160,7 +169,8 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
               <Paragraph type="secondary">
                 {t("decomposition.market")}: {preview.original_source.market}
                 {preview.original_source.repo && ` | ${t("decomposition.repo")}: ${preview.original_source.repo}`}
-                {preview.original_source.version && ` | ${t("decomposition.version")}: ${preview.original_source.version}`}
+                {preview.original_source.version
+                  && ` | ${t("decomposition.version")}: ${preview.original_source.version}`}
               </Paragraph>
             </div>
           )

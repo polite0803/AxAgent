@@ -141,7 +141,8 @@ export function ImageGenPanel({
       {result && (
         <div>
           <Typography.Text type="secondary">
-            {t("imageGen.model")}: {result.model_used} | {t("imageGen.elapsed")}: {(result.elapsed_ms / 1000).toFixed(1)}s
+            {t("imageGen.model")}: {result.model_used} | {t("imageGen.elapsed")}:{" "}
+            {(result.elapsed_ms / 1000).toFixed(1)}s
           </Typography.Text>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
             {result.images.map((img, i) => (

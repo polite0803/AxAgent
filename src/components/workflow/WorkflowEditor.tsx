@@ -171,7 +171,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [isDirty, nodes, edges, currentTemplate, isSaving, isDecompositionTemplate, updateTemplate, createTemplate, loadTemplate]);
+  }, [
+    isDirty,
+    nodes,
+    edges,
+    currentTemplate,
+    isSaving,
+    isDecompositionTemplate,
+    updateTemplate,
+    createTemplate,
+    loadTemplate,
+  ]);
 
   useEffect(() => {
     if (currentTemplate) {
@@ -426,7 +436,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         message.success(t("workflow.saved"));
       }
     }
-  }, [currentTemplate, nodes, edges, createTemplate, updateTemplate, validateTemplate, t, onClose, isDecompositionTemplate, saveSkillWorkflowFromLlm, loadTemplate]);
+  }, [
+    currentTemplate,
+    nodes,
+    edges,
+    createTemplate,
+    updateTemplate,
+    validateTemplate,
+    t,
+    onClose,
+    isDecompositionTemplate,
+    saveSkillWorkflowFromLlm,
+    loadTemplate,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

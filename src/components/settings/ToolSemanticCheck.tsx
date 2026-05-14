@@ -1,6 +1,6 @@
-import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
 import type { ToolUpgradeSuggestion } from "@/components/workflow/types/workflow.types";
 import { invoke } from "@/lib/invoke";
+import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
 import { Button, Card, Empty, Input, List, message, Modal, Spin, Typography } from "antd";
 import { ArrowRight, CheckCircle, Search, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -80,8 +80,8 @@ export default function ToolSemanticCheck() {
   }, []);
 
   const filteredTools = allTools.filter(tool =>
-    tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tool.description.toLowerCase().includes(searchTerm.toLowerCase())
+    tool.name.toLowerCase().includes(searchTerm.toLowerCase())
+    || tool.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const checkSemanticMatches = useCallback(async (tool: LocalToolInfo) => {
@@ -159,116 +159,135 @@ export default function ToolSemanticCheck() {
           />
         </div>
         <div className="flex-1 overflow-auto" style={{ minHeight: 0 }}>
-          {toolsLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <Spin />
-            </div>
-          ) : filteredTools.length === 0 ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.toolSemanticCheck.empty")} className="py-8" />
-          ) : (
-            filteredTools.map(tool => (
-              <div
-                key={tool.name}
-                className={`px-3 py-2 cursor-pointer hover:bg-bg-container-hover border-b border-border/50 ${selectedTool?.name === tool.name ? 'bg-primary/10' : ''}`}
-                onClick={() => setSelectedTool(tool)}
-              >
-                <Text strong className="text-sm">{tool.name}</Text>
-                <Text type="secondary" className="block text-xs mt-0.5 line-clamp-2">{tool.description}</Text>
+          {toolsLoading
+            ? (
+              <div className="flex justify-center items-center py-8">
+                <Spin />
               </div>
-            ))
-          )}
+            )
+            : filteredTools.length === 0
+            ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t("settings.toolSemanticCheck.empty")}
+                className="py-8"
+              />
+            )
+            : (
+              filteredTools.map(tool => (
+                <div
+                  key={tool.name}
+                  className={`px-3 py-2 cursor-pointer hover:bg-bg-container-hover border-b border-border/50 ${
+                    selectedTool?.name === tool.name ? "bg-primary/10" : ""
+                  }`}
+                  onClick={() => setSelectedTool(tool)}
+                >
+                  <Text strong className="text-sm">{tool.name}</Text>
+                  <Text type="secondary" className="block text-xs mt-0.5 line-clamp-2">{tool.description}</Text>
+                </div>
+              ))
+            )}
         </div>
       </div>
 
       <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
-        {selectedTool ? (
-          <Card
-            title={
-              <div className="flex items-center gap-2">
-                <Search size={18} />
-                {t("settings.toolSemanticCheck.checkingTool", { tool: selectedTool.name })}
-              </div>
-            }
-            className="flex-1 flex flex-col"
-            styles={{ body: { flex: 1, overflow: 'auto', minHeight: 0 } }}
-          >
-            {searchLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <Spin />
-              </div>
-            ) : (
-              <List
-                itemLayout="vertical"
-                size="large"
-                dataSource={matches}
-                locale={{ emptyText: t("settings.toolSemanticCheck.empty") }}
-                renderItem={(item) => (
-                  <List.Item
-                    key={item.tool_name}
-                    actions={[
-                      <Button
-                        key="upgrade"
-                        type="primary"
-                        icon={<Zap size={16} />}
-                        onClick={() =>
-                          handleMatchSelect({ name: item.tool_name, description: "", tool_type: "local" }, item.matches[0])}
+        {selectedTool
+          ? (
+            <Card
+              title={
+                <div className="flex items-center gap-2">
+                  <Search size={18} />
+                  {t("settings.toolSemanticCheck.checkingTool", { tool: selectedTool.name })}
+                </div>
+              }
+              className="flex-1 flex flex-col"
+              styles={{ body: { flex: 1, overflow: "auto", minHeight: 0 } }}
+            >
+              {searchLoading
+                ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Spin />
+                  </div>
+                )
+                : (
+                  <List
+                    itemLayout="vertical"
+                    size="large"
+                    dataSource={matches}
+                    locale={{ emptyText: t("settings.toolSemanticCheck.empty") }}
+                    renderItem={(item) => (
+                      <List.Item
+                        key={item.tool_name}
+                        actions={[
+                          <Button
+                            key="upgrade"
+                            type="primary"
+                            icon={<Zap size={16} />}
+                            onClick={() =>
+                              handleMatchSelect(
+                                { name: item.tool_name, description: "", tool_type: "local" },
+                                item.matches[0],
+                              )}
+                          >
+                            {t("settings.toolSemanticCheck.upgrade")}
+                          </Button>,
+                        ]}
                       >
-                        {t("settings.toolSemanticCheck.upgrade")}
-                      </Button>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      title={
-                        <div className="flex items-center gap-2">
-                          <Text strong>{item.tool_name}</Text>
-                          <Text type="secondary">
-                            ({t("settings.toolSemanticCheck.matches", { count: item.matches.length })})
-                          </Text>
-                        </div>
-                      }
-                      description={t("settings.toolSemanticCheck.checkingTool", { tool: item.tool_name })}
-                    />
-                    <div className="mt-2">
-                      {item.matches.map((match, index) => (
-                        <Card
-                          key={index}
-                          size="small"
-                          className="mb-2"
-                          extra={
-                            <Text type="success">
-                              {t("settings.toolSemanticCheck.similarity", { score: Math.round(match.similarity_score * 100) })}%
-                            </Text>
-                          }
-                        >
-                          <div className="flex items-start gap-3">
-                            <CheckCircle size={18} className="text-success mt-1 shrink-0" />
-                            <div className="flex-1">
-                              <Text strong>{match.tool_name}</Text>
-                              <Text type="secondary" className="block mt-1 text-sm">
-                                {match.description}
+                        <List.Item.Meta
+                          title={
+                            <div className="flex items-center gap-2">
+                              <Text strong>{item.tool_name}</Text>
+                              <Text type="secondary">
+                                ({t("settings.toolSemanticCheck.matches", { count: item.matches.length })})
                               </Text>
-                              <div className="mt-2">
-                                {match.match_reasons.map((reason, rIndex) => (
-                                  <Text key={rIndex} type="secondary" className="block text-xs">
-                                    • {reason}
-                                  </Text>
-                                ))}
-                              </div>
                             </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </List.Item>
+                          }
+                          description={t("settings.toolSemanticCheck.checkingTool", { tool: item.tool_name })}
+                        />
+                        <div className="mt-2">
+                          {item.matches.map((match, index) => (
+                            <Card
+                              key={index}
+                              size="small"
+                              className="mb-2"
+                              extra={
+                                <Text type="success">
+                                  {t("settings.toolSemanticCheck.similarity", {
+                                    score: Math.round(match.similarity_score * 100),
+                                  })}%
+                                </Text>
+                              }
+                            >
+                              <div className="flex items-start gap-3">
+                                <CheckCircle size={18} className="text-success mt-1 shrink-0" />
+                                <div className="flex-1">
+                                  <Text strong>{match.tool_name}</Text>
+                                  <Text type="secondary" className="block mt-1 text-sm">
+                                    {match.description}
+                                  </Text>
+                                  <div className="mt-2">
+                                    {match.match_reasons.map((reason, rIndex) => (
+                                      <Text key={rIndex} type="secondary" className="block text-xs">
+                                        • {reason}
+                                      </Text>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      </List.Item>
+                    )}
+                  />
                 )}
-              />
-            )}
-          </Card>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <Empty description={t("settings.toolSemanticCheck.selectTool")} />
-          </div>
-        )}
+            </Card>
+          )
+          : (
+            <div className="flex-1 flex items-center justify-center">
+              <Empty description={t("settings.toolSemanticCheck.selectTool")} />
+            </div>
+          )}
       </div>
 
       <Modal

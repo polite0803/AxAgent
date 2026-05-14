@@ -82,7 +82,8 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       title: "Last Run",
       dataIndex: "last_run_at",
       key: "last_run_at",
-      render: (lastRun: number | null) => lastRun ? new Date(lastRun).toLocaleString() : <Text type="secondary">{t("cronManager.never")}</Text>,
+      render: (lastRun: number | null) =>
+        lastRun ? new Date(lastRun).toLocaleString() : <Text type="secondary">{t("cronManager.never")}</Text>,
     },
     {
       title: "Status",

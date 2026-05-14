@@ -94,7 +94,13 @@ export function GatewayMonitor() {
       width: 70,
       render: (s: number) => <Tag color={s < 300 ? "green" : s < 500 ? "orange" : "red"}>{s}</Tag>,
     },
-    { title: t("gatewayMonitor.colLatency"), dataIndex: "duration_ms", key: "dur", width: 70, render: (d: number) => `${d}ms` },
+    {
+      title: t("gatewayMonitor.colLatency"),
+      dataIndex: "duration_ms",
+      key: "dur",
+      width: 70,
+      render: (d: number) => `${d}ms`,
+    },
     {
       title: "Token",
       key: "tokens",
@@ -136,16 +142,33 @@ export function GatewayMonitor() {
             }}
           >
             <Card size="small">
-              <Statistic title={t("gatewayMonitor.totalRequests")} value={metrics.total_requests} prefix={<Activity size={16} />} />
+              <Statistic
+                title={t("gatewayMonitor.totalRequests")}
+                value={metrics.total_requests}
+                prefix={<Activity size={16} />}
+              />
             </Card>
             <Card size="small">
-              <Statistic title={t("gatewayMonitor.totalTokens")} value={metrics.total_tokens} prefix={<BarChart3 size={16} />} />
+              <Statistic
+                title={t("gatewayMonitor.totalTokens")}
+                value={metrics.total_tokens}
+                prefix={<BarChart3 size={16} />}
+              />
             </Card>
             <Card size="small">
-              <Statistic title={t("gatewayMonitor.activeConnections")} value={metrics.active_connections} prefix={<Server size={16} />} />
+              <Statistic
+                title={t("gatewayMonitor.activeConnections")}
+                value={metrics.active_connections}
+                prefix={<Server size={16} />}
+              />
             </Card>
             <Card size="small">
-              <Statistic title={t("gatewayMonitor.avgLatency")} value={metrics.avg_latency_ms} suffix="ms" precision={0} />
+              <Statistic
+                title={t("gatewayMonitor.avgLatency")}
+                value={metrics.avg_latency_ms}
+                suffix="ms"
+                precision={0}
+              />
             </Card>
             <Card size="small">
               <Statistic
@@ -155,7 +178,11 @@ export function GatewayMonitor() {
               />
             </Card>
             <Card size="small">
-              <Statistic title={t("gatewayMonitor.uptime")} value={formatUptime(metrics.uptime_seconds)} prefix={<Clock size={16} />} />
+              <Statistic
+                title={t("gatewayMonitor.uptime")}
+                value={formatUptime(metrics.uptime_seconds)}
+                prefix={<Clock size={16} />}
+              />
             </Card>
           </div>
         )}

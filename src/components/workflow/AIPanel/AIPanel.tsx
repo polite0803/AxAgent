@@ -161,7 +161,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               <div
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}
               >
-                <span style={{ color: token.colorTextSecondary, fontSize: 11, fontWeight: 500 }}>{t("workflow.aiPanel.explanation")}</span>
+                <span style={{ color: token.colorTextSecondary, fontSize: 11, fontWeight: 500 }}>
+                  {t("workflow.aiPanel.explanation")}
+                </span>
                 <Button
                   type="text"
                   size="small"
@@ -227,7 +229,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           {optimizedResult && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <label style={{ color: token.colorTextSecondary, fontSize: 12 }}>{t("workflow.aiPanel.optimizedResult")}</label>
+                <label style={{ color: token.colorTextSecondary, fontSize: 12 }}>
+                  {t("workflow.aiPanel.optimizedResult")}
+                </label>
                 <Button type="text" size="small" onClick={handleCopyOptimized}>
                   {t("workflow.aiPanel.copy")}
                 </Button>
@@ -327,7 +331,11 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, flexShrink: 0 }}>
                         <span
                           style={{
-                            color: node.confidence >= 0.8 ? token.colorSuccess : node.confidence >= 0.5 ? token.colorWarning : token.colorError,
+                            color: node.confidence >= 0.8
+                              ? token.colorSuccess
+                              : node.confidence >= 0.5
+                              ? token.colorWarning
+                              : token.colorError,
                             fontSize: 11,
                             fontWeight: 500,
                           }}

@@ -6,8 +6,8 @@ import {
   LoadingOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import "./SubAgentCard.css";
 
 const AGENT_COLORS: Record<string, string> = {
@@ -82,7 +82,9 @@ export function SubAgentCard({ card }: SubAgentCardProps) {
       <div className="sub-agent-card__header">
         <span className="sub-agent-card__icon">{icon}</span>
         <span className="sub-agent-card__name" style={{ color }}>
-          {card.isFork && <BranchesOutlined style={{ marginRight: 4, color: "#722ed1" }} title={t("subAgentCard.fork")} />}
+          {card.isFork && (
+            <BranchesOutlined style={{ marginRight: 4, color: "#722ed1" }} title={t("subAgentCard.fork")} />
+          )}
           {card.agentName || card.agentType}
         </span>
         <span className="sub-agent-card__status">

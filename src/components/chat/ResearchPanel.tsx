@@ -120,7 +120,9 @@ function CredibilityBadge({ score }: { score: number }) {
   }
 }
 
-function PhaseProgress({ currentPhase, percentage, t }: { currentPhase: ResearchPhase; percentage: number; t: (key: string) => string }) {
+function PhaseProgress(
+  { currentPhase, percentage, t }: { currentPhase: ResearchPhase; percentage: number; t: (key: string) => string },
+) {
   const steps = phaseSteps(t);
   const currentIndex = steps.findIndex((p) => p.key === currentPhase);
 
@@ -318,7 +320,13 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
         id: crypto.randomUUID(),
         topic,
         summary: t("research.mockSummary", { count: mockCitations.length, topic }),
-        content: t("research.mockContent", { count: mockCitations.length, topic, findings: mockResults.map((r, idx) => t("research.mockFinding", { num: idx + 1, title: r.title, snippet: r.snippet })).join("\n") }),
+        content: t("research.mockContent", {
+          count: mockCitations.length,
+          topic,
+          findings: mockResults.map((r, idx) =>
+            t("research.mockFinding", { num: idx + 1, title: r.title, snippet: r.snippet })
+          ).join("\n"),
+        }),
         citations: mockCitations,
       };
 

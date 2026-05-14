@@ -30,8 +30,8 @@ import { ConversationSettings } from "@/components/settings/ConversationSettings
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
-import { SkillsPage } from "@/pages/SkillsPage";
 import { WorkflowEditor } from "@/components/workflow";
+import { SkillsPage } from "@/pages/SkillsPage";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
 import { Button, Result, theme } from "antd";

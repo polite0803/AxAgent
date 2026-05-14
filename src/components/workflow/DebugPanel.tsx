@@ -20,9 +20,9 @@ import {
   Switch,
   Table,
   Tag,
+  theme,
   Timeline,
   Typography,
-  theme,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";

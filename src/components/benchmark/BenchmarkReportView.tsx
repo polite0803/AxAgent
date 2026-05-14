@@ -19,7 +19,9 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
       title: t("benchmark.status"),
       dataIndex: "success",
       key: "success",
-      render: (success: boolean) => <Tag color={success ? "green" : "red"}>{success ? t("benchmark.passed") : t("benchmark.failed")}</Tag>,
+      render: (success: boolean) => (
+        <Tag color={success ? "green" : "red"}>{success ? t("benchmark.passed") : t("benchmark.failed")}</Tag>
+      ),
     },
     { title: t("benchmark.score"), dataIndex: "score", key: "score", render: formatScore },
     { title: t("benchmark.duration"), dataIndex: "duration_ms", key: "duration_ms", render: formatDuration },

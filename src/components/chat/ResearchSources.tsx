@@ -210,7 +210,9 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             {t("research.relevanceScore")}
           </Text>
           <div>
-            <Text>{source.relevanceScore > 0 ? `${Math.round(source.relevanceScore * 100)}%` : t("research.notEvaluated")}</Text>
+            <Text>
+              {source.relevanceScore > 0 ? `${Math.round(source.relevanceScore * 100)}%` : t("research.notEvaluated")}
+            </Text>
           </div>
         </div>
 

@@ -943,7 +943,9 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
 
   // 默认仅显示通用模板，开发场景工作流（代码审查/重构/调试等）需用户主动导入内置专家后解锁
   const hasFullPresets = (() => {
-    try { return localStorage.getItem("axagent_builtin_experts_imported") === "true"; } catch {
+    try {
+      return localStorage.getItem("axagent_builtin_experts_imported") === "true";
+    } catch {
       return false;
     }
   })();
@@ -1062,15 +1064,20 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
           </div>
         </Card>
         {!hasFullPresets && filteredTemplates.length === 0 && (
-          <div style={{
-            gridColumn: "1 / -1",
-            padding: "12px 16px",
-            background: "var(--ant-color-fill-tertiary, #f5f5f5)",
-            borderRadius: 8,
-            fontSize: 12,
-            color: "var(--ant-color-text-secondary, #666)",
-          }}>
-            {t("chat.workflow.presetsNotImported", "开发场景工作流模板（代码审查、Bug修复、重构等）需先在专家选择器中「导入内置专家」后解锁。")}
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              padding: "12px 16px",
+              background: "var(--ant-color-fill-tertiary, #f5f5f5)",
+              borderRadius: 8,
+              fontSize: 12,
+              color: "var(--ant-color-text-secondary, #666)",
+            }}
+          >
+            {t(
+              "chat.workflow.presetsNotImported",
+              "开发场景工作流模板（代码审查、Bug修复、重构等）需先在专家选择器中「导入内置专家」后解锁。",
+            )}
           </div>
         )}
         {filteredTemplates.map((template) => (

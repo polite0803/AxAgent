@@ -161,7 +161,9 @@ function InsightCard({ insight }: { insight: Insight }) {
             {tag}
           </Tag>
         ))}
-        {insight.usage_count > 0 && <Badge count={insight.usage_count} size="small" title={t("reflection.usageCount")} />}
+        {insight.usage_count > 0 && (
+          <Badge count={insight.usage_count} size="small" title={t("reflection.usageCount")} />
+        )}
       </div>
     </Card>
   );

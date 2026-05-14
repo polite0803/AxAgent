@@ -96,7 +96,11 @@ export function CreateTeamModal({
                       rules={[{ required: true, message: t("createTeam.memberNameRequired") }]}
                       style={{ marginBottom: 0 }}
                     >
-                      <Input id="create-team-modal-input-12" placeholder={t("createTeam.memberNamePlaceholder")} style={{ width: 200 }} />
+                      <Input
+                        id="create-team-modal-input-12"
+                        placeholder={t("createTeam.memberNamePlaceholder")}
+                        style={{ width: 200 }}
+                      />
                     </Form.Item>
 
                     <Form.Item

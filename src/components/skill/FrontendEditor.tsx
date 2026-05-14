@@ -64,7 +64,8 @@ export function FrontendEditor({ skillName, currentManifest, onSaved }: Frontend
         cancelText={t("common.cancel")}
       >
         <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
-          {t("skillEditor.editManifestDesc")}{" "}<code>skill-manifest.json</code>. {t("skillEditor.supportedCapabilities")}: page, panel, toolbar, chatCommand, statusBar, navigation, settings.
+          {t("skillEditor.editManifestDesc")} <code>skill-manifest.json</code>.{" "}
+          {t("skillEditor.supportedCapabilities")}: page, panel, toolbar, chatCommand, statusBar, navigation, settings.
         </Typography.Paragraph>
         <Input.TextArea
           id="frontend-editor-input-textarea-62"

@@ -34,7 +34,14 @@ interface PendingWorkflowData {
   workflowDescription?: string;
 }
 
-type HistoryEntry = { nodes: WorkflowNode[]; edges: WorkflowEdge[]; name: string; description?: string; icon: string; tags: string[] };
+type HistoryEntry = {
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  name: string;
+  description?: string;
+  icon: string;
+  tags: string[];
+};
 
 interface WorkflowEditorState {
   currentTemplate: WorkflowTemplateResponse | null;

@@ -96,9 +96,7 @@ function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void })
       >
         {t("workflow.importExport.selectN8nDir")}
       </Button>
-      {importing && progressText && (
-        <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>{progressText}</div>
-      )}
+      {importing && progressText && <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>{progressText}</div>}
       {result && (
         <Alert
           style={{ marginTop: 8 }}
@@ -186,9 +184,7 @@ function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void
       >
         {t("workflow.importExport.selectFolder")}
       </Button>
-      {importing && progressText && (
-        <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>{progressText}</div>
-      )}
+      {importing && progressText && <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>{progressText}</div>}
       {result && (
         <Alert
           style={{ marginTop: 8 }}
@@ -371,9 +367,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                 value: template.id,
                 label: template.name,
               }))}
-              filterOption={(input, option) =>
-                (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
-              }
+              filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
             />
           </div>
 

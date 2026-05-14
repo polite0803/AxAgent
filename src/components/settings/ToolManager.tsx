@@ -62,11 +62,14 @@ function ToolItem({
           {tool.isDestructive && (
             <Tooltip title={t("toolManager.destructiveTooltip")}>
               <Tag color="red" className="text-[10px] leading-none px-1 py-0">
-                <Shield size={10} className="inline mr-0.5" />{t("toolManager.destructive")}
+                <Shield size={10} className="inline mr-0.5" />
+                {t("toolManager.destructive")}
               </Tag>
             </Tooltip>
           )}
-          {tool.isReadOnly && <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>}
+          {tool.isReadOnly && (
+            <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>
+          )}
         </div>
         <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug" ellipsis={{ rows: 2 }}>
           {tool.description}
