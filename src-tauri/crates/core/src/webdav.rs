@@ -825,13 +825,7 @@ fn parse_propfind_responses_for_sync(
             continue;
         }
 
-        let key = if prefix.is_empty() {
-            let base_path = extract_path_after_prefix(&decoded_href, &base_href);
-            base_path
-        } else {
-            let base_path = extract_path_after_prefix(&decoded_href, &base_href);
-            base_path
-        };
+        let key = extract_path_after_prefix(&decoded_href, &base_href);
 
         if key.is_empty() {
             continue;
