@@ -56,24 +56,24 @@ impl ResourceLimits {
     fn apply_rlimit(&self) -> Result<(), String> {
         // RLIMIT_CPU: 进程可使用的 CPU 时间（秒）
         self.set_rlimit(
-            libc::RLIMIT_CPU as u32,
+            libc::RLIMIT_CPU as _,
             self.max_cpu_seconds,
             self.max_cpu_seconds.saturating_add(5),
         )?;
 
         // RLIMIT_AS: 进程可用虚拟内存（字节）
-        self.set_rlimit(libc::RLIMIT_AS as u32, self.max_memory_bytes, self.max_memory_bytes)?;
+        self.set_rlimit(libc::RLIMIT_AS as _, self.max_memory_bytes, self.max_memory_bytes)?;
 
         // RLIMIT_NPROC: 最大子进程数
         self.set_rlimit(
-            libc::RLIMIT_NPROC as u32,
+            libc::RLIMIT_NPROC as _,
             self.max_processes as u64,
             self.max_processes as u64,
         )?;
 
         // RLIMIT_FSIZE: 最大文件写入（字节）
         self.set_rlimit(
-            libc::RLIMIT_FSIZE as u32,
+            libc::RLIMIT_FSIZE as _,
             self.max_file_size_bytes,
             self.max_file_size_bytes,
         )?;
