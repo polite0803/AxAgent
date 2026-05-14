@@ -658,8 +658,12 @@ impl SessionManager {
         // approval via ChannelPermissionPrompter). Use block_in_place to tell
         // the tokio runtime that this section will block, allowing it to schedule
         // other tasks on this thread's core while we wait.
+        //
+        // NOTE: ChannelPermissionPrompter uses Arc internally (Clone just bumps
+        // the refcount). We clone instead of remove so agent_approve can still
+        // look up the prompter and deliver decisions during the run.
         let conv_id_for_prompter = conversation_id.clone();
-        let mut prompter_opt = prompters.lock().await.remove(&conv_id_for_prompter);
+        let mut prompter_opt = prompters.lock().await.get(&conv_id_for_prompter).cloned();
         let summary = tokio::task::block_in_place(|| {
             if let Some(ref mut p) = prompter_opt {
                 runtime.run_turn(user_input, Some(p))
@@ -667,10 +671,6 @@ impl SessionManager {
                 runtime.run_turn(user_input, None)
             }
         })?;
-        // Re-register the prompter (it may still be needed for subsequent approvals)
-        if let Some(p) = prompter_opt {
-            prompters.lock().await.insert(conv_id_for_prompter, p);
-        }
 
         // Extract updated session
         let updated_session = runtime.into_session();

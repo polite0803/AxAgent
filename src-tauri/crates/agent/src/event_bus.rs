@@ -5,11 +5,16 @@ use tokio::sync::broadcast;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentPermissionPayload {
+    #[serde(rename = "conversationId")]
     pub conversation_id: String,
+    #[serde(rename = "assistantMessageId")]
     pub assistant_message_id: String,
+    #[serde(rename = "toolName")]
     pub tool_name: String,
     pub input: serde_json::Value,
+    #[serde(rename = "riskLevel")]
     pub risk_level: String,
+    #[serde(rename = "requestId")]
     pub request_id: String,
     #[serde(rename = "toolUseId")]
     pub tool_use_id: Option<String>,
