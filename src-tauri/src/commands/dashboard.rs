@@ -144,15 +144,16 @@ pub async fn dashboard_install_plugin(
     } else if source.extension().and_then(|e| e.to_str()) == Some("json") {
         let manifest_str = std::fs::read_to_string(&source)
             .map_err(|e| format!("Failed to read manifest: {}", e))?;
-        let manifest: DashboardPluginManifest = serde_json::from_str(&manifest_str)
-            .map_err(|e| format!("Invalid manifest: {}", e))?;
+        let manifest: DashboardPluginManifest =
+            serde_json::from_str(&manifest_str).map_err(|e| format!("Invalid manifest: {}", e))?;
         let dest_dir = plugins_dir.join(&manifest.id);
         std::fs::create_dir_all(&dest_dir)
             .map_err(|e| format!("Failed to create plugin dir: {}", e))?;
         std::fs::copy(&source, dest_dir.join("manifest.json"))
             .map_err(|e| format!("Failed to copy manifest: {}", e))?;
     } else {
-        return Err("Please select a directory containing manifest.json or a manifest.json file".to_string());
+        return Err("Please select a directory containing manifest.json or a manifest.json file"
+            .to_string());
     }
 
     let registry = state

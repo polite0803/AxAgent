@@ -1206,7 +1206,10 @@ async fn do_import_workflow(
     let mut warnings: Vec<String> = Vec::new();
     if let Some(_existing) = check_workflow_duplicate(db, &workflow_name).await? {
         let new_name = format!("{} (Imported)", workflow_name);
-        warnings.push(format!("Workflow renamed from '{}' to '{}' due to similarity with existing workflow", workflow_name, new_name));
+        warnings.push(format!(
+            "Workflow renamed from '{}' to '{}' due to similarity with existing workflow",
+            workflow_name, new_name
+        ));
         new_template.name = new_name;
     }
 

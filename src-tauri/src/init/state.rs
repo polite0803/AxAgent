@@ -263,7 +263,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         dashboard_registry: Some(Arc::new(
             axagent_runtime::dashboard_registry::DashboardRegistry::new_with_config(
                 axagent_runtime::dashboard_registry::DashboardRegistryConfig {
-                    plugin_dirs: vec![axagent_core::storage_paths::documents_root().join("dashboard-plugins")],
+                    plugin_dirs: vec![
+                        axagent_core::storage_paths::documents_root().join("dashboard-plugins")
+                    ],
                     auto_load: true,
                 },
             ),

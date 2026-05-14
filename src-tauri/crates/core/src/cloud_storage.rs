@@ -52,7 +52,12 @@ pub trait StorageBackend: Send + Sync {
     async fn get(&self, key: &str) -> Result<StorageObject>;
     async fn put(&self, key: &str, data: &[u8], content_type: &str) -> Result<StorageObjectMeta>;
     async fn delete(&self, key: &str) -> Result<()>;
-    async fn list(&self, prefix: &str, limit: usize, continuation_token: Option<&str>) -> Result<ListResult>;
+    async fn list(
+        &self,
+        prefix: &str,
+        limit: usize,
+        continuation_token: Option<&str>,
+    ) -> Result<ListResult>;
     async fn head(&self, key: &str) -> Result<StorageObjectMeta>;
     async fn check_connection(&self) -> Result<bool>;
 }
@@ -436,7 +441,12 @@ impl StorageBackend for S3Backend {
         Ok(())
     }
 
-    async fn list(&self, prefix: &str, max_keys: usize, continuation_token: Option<&str>) -> Result<ListResult> {
+    async fn list(
+        &self,
+        prefix: &str,
+        max_keys: usize,
+        continuation_token: Option<&str>,
+    ) -> Result<ListResult> {
         let full_prefix = if prefix.is_empty() && !self.config.root.is_empty() {
             format!("{}/", self.config.root.trim_matches('/'))
         } else if !self.config.root.is_empty() {
@@ -572,7 +582,12 @@ impl StorageBackend for WebDavBackend {
         self.client.delete_raw(key, None).await
     }
 
-    async fn list(&self, prefix: &str, _limit: usize, _continuation_token: Option<&str>) -> Result<ListResult> {
+    async fn list(
+        &self,
+        prefix: &str,
+        _limit: usize,
+        _continuation_token: Option<&str>,
+    ) -> Result<ListResult> {
         let objects = self.client.list_recursive(prefix).await?;
         Ok(ListResult {
             objects,

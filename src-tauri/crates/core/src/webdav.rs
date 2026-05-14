@@ -454,7 +454,10 @@ impl WebDavClient {
         self.delete_raw(filename, None).await
     }
 
-    pub async fn list_recursive(&self, prefix: &str) -> Result<Vec<crate::cloud_storage::StorageObjectMeta>> {
+    pub async fn list_recursive(
+        &self,
+        prefix: &str,
+    ) -> Result<Vec<crate::cloud_storage::StorageObjectMeta>> {
         let url = if prefix.is_empty() {
             self.base_url()
         } else {
@@ -466,13 +469,14 @@ impl WebDavClient {
                 let objects = parse_propfind_responses_for_sync(&text, prefix)?;
                 Ok(objects)
             },
-            Err(_) => {
-                self.list_recursive_iterative(prefix).await
-            },
+            Err(_) => self.list_recursive_iterative(prefix).await,
         }
     }
 
-    async fn list_recursive_iterative(&self, prefix: &str) -> Result<Vec<crate::cloud_storage::StorageObjectMeta>> {
+    async fn list_recursive_iterative(
+        &self,
+        prefix: &str,
+    ) -> Result<Vec<crate::cloud_storage::StorageObjectMeta>> {
         let mut all_objects = Vec::new();
         let mut dirs_to_visit = vec![prefix.to_string()];
 
@@ -837,8 +841,7 @@ fn parse_propfind_responses_for_sync(
             .and_then(|s| s.parse().ok())
             .unwrap_or(0);
         let last_modified = extract_xml_value(&block, "getlastmodified");
-        let etag = extract_xml_value(&block, "getetag")
-            .map(|s| s.trim_matches('"').to_string());
+        let etag = extract_xml_value(&block, "getetag").map(|s| s.trim_matches('"').to_string());
 
         files.push(crate::cloud_storage::StorageObjectMeta {
             key,
@@ -875,7 +878,9 @@ fn parse_propfind_responses_with_dirs(
             if decoded_href.ends_with('/') {
                 let dir_name = decoded_href.trim_end_matches('/');
                 let dir_part = dir_name.split('/').next_back().unwrap_or("");
-                if !dir_part.is_empty() && dir_part != base_href.split('/').next_back().unwrap_or("") {
+                if !dir_part.is_empty()
+                    && dir_part != base_href.split('/').next_back().unwrap_or("")
+                {
                     let sub_prefix = if prefix.is_empty() {
                         dir_part.to_string()
                     } else {
@@ -904,8 +909,7 @@ fn parse_propfind_responses_with_dirs(
             .and_then(|s| s.parse().ok())
             .unwrap_or(0);
         let last_modified = extract_xml_value(&block, "getlastmodified");
-        let etag = extract_xml_value(&block, "getetag")
-            .map(|s| s.trim_matches('"').to_string());
+        let etag = extract_xml_value(&block, "getetag").map(|s| s.trim_matches('"').to_string());
 
         files.push(crate::cloud_storage::StorageObjectMeta {
             key,

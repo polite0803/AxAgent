@@ -1,4 +1,6 @@
-use axagent_core::cloud_storage::{BackendType, CloudStorageConfig, S3Config, S3ProviderPreset, WebDavConfig};
+use axagent_core::cloud_storage::{
+    BackendType, CloudStorageConfig, S3Config, S3ProviderPreset, WebDavConfig,
+};
 use axagent_core::sync_conflict::{ConflictResolution, ConflictStrategy};
 use axagent_core::workspace_uri::WorkspaceUri;
 use tauri::State;

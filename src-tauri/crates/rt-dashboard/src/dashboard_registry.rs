@@ -1,4 +1,6 @@
-use crate::dashboard_plugin::{DashboardPlugin, DashboardPluginAdapter, DashboardPluginManifest, PanelPosition};
+use crate::dashboard_plugin::{
+    DashboardPlugin, DashboardPluginAdapter, DashboardPluginManifest, PanelPosition,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -93,7 +95,11 @@ impl DashboardRegistry {
     }
 
     pub async fn get_plugin(&self, plugin_id: &str) -> Option<Arc<dyn DashboardPlugin>> {
-        self.entries.read().await.get(plugin_id).map(|e| e.plugin.clone())
+        self.entries
+            .read()
+            .await
+            .get(plugin_id)
+            .map(|e| e.plugin.clone())
     }
 
     pub async fn list_plugins(&self) -> Vec<DashboardPluginInfo> {
@@ -182,7 +188,10 @@ impl DashboardRegistry {
     }
 
     pub async fn reload(&self) -> Result<(), String> {
-        tracing::info!("Reloading dashboard plugins from {} director(ies)", self.config.plugin_dirs.len());
+        tracing::info!(
+            "Reloading dashboard plugins from {} director(ies)",
+            self.config.plugin_dirs.len()
+        );
 
         let mut entries = self.entries.write().await;
         let old_enabled: HashMap<String, bool> = entries
@@ -196,7 +205,8 @@ impl DashboardRegistry {
                 tracing::warn!("Plugin directory does not exist: {:?}", dir);
                 continue;
             }
-            let read_dir = std::fs::read_dir(dir).map_err(|e| format!("Failed to read plugin dir {:?}: {}", dir, e))?;
+            let read_dir = std::fs::read_dir(dir)
+                .map_err(|e| format!("Failed to read plugin dir {:?}: {}", dir, e))?;
             for entry in read_dir {
                 let entry = entry.map_err(|e| format!("Failed to read dir entry: {}", e))?;
                 let path = entry.path();
@@ -225,12 +235,18 @@ impl DashboardRegistry {
                 });
 
                 let id = plugin.manifest().id.clone();
-                let preserved_enabled = old_enabled.get(&id).copied().unwrap_or(self.config.auto_load);
+                let preserved_enabled = old_enabled
+                    .get(&id)
+                    .copied()
+                    .unwrap_or(self.config.auto_load);
                 plugin.on_load().await.ok();
-                entries.insert(id, PluginEntry {
-                    plugin: Arc::from(plugin),
-                    enabled: preserved_enabled,
-                });
+                entries.insert(
+                    id,
+                    PluginEntry {
+                        plugin: Arc::from(plugin),
+                        enabled: preserved_enabled,
+                    },
+                );
                 tracing::info!("Loaded plugin from: {:?}", path);
             }
         }
