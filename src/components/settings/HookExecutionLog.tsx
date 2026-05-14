@@ -199,6 +199,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
             {t("hookLog.filterLabel", "按事件过滤：")}
           </Text>
           <Select
+            id="hook-execution-log-select-65"
             allowClear
             size="small"
             placeholder={t("hookLog.allEvents", "全部事件")}

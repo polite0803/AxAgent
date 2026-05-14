@@ -375,6 +375,15 @@ impl UnifiedToolRegistry {
             .with_tool_requirement("ComputerUse", PermissionMode::DangerFullAccess);
     }
 
+    /// 已启用工具总数（排除禁用的）
+    pub fn count_enabled_tools(&self) -> u32 {
+        self.tools
+            .tools
+            .iter()
+            .filter(|(name, tool)| tool.is_enabled() && !self.disabled_tools.contains(*name))
+            .count() as u32
+    }
+
     pub fn with_recorder(mut self, recorder: ToolExecutionRecorder) -> Self {
         self.recorder = Some(recorder);
         self

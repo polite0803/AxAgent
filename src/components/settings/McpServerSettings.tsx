@@ -108,6 +108,7 @@ function McpServerList({
           />
         </div>
         <Switch
+          id="mcp-server-settings-switch-92"
           size="small"
           checked={s.enabled}
           loading={enablingServerIds.has(s.id)}
@@ -320,6 +321,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.name")}</span>
             <Input
+              id="mcp-server-settings-input-93"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
               onBlur={() => {
@@ -332,6 +334,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.transport")}</span>
             <Select
+              id="mcp-server-settings-select-94"
               value={server.transport}
               onChange={(val) => handleFieldChange("transport", val)}
               style={{ width: 280 }}
@@ -372,6 +375,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.command")}</span>
             <Input
+              id="mcp-server-settings-input-95"
               value={localCommand}
               onChange={(e) => setLocalCommand(e.target.value)}
               onBlur={() => handleFieldChange("command", localCommand || null)}
@@ -383,6 +387,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.args")}</span>
             <Input
+              id="mcp-server-settings-input-96"
               value={localArgs}
               onChange={(e) => setLocalArgs(e.target.value)}
               onBlur={() => {
@@ -402,6 +407,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.endpoint")}</span>
             <Input
+              id="mcp-server-settings-input-97"
               value={localEndpoint}
               onChange={(e) => setLocalEndpoint(e.target.value)}
               onBlur={() => handleFieldChange("endpoint", localEndpoint || null)}
@@ -413,6 +419,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.customHeaders")}</span>
             <Input.TextArea
+              id="mcp-server-settings-input-textarea-98"
               value={localHeaders}
               onChange={(e) => setLocalHeaders(e.target.value)}
               onBlur={() => {
@@ -438,6 +445,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.envVars")}</span>
             <Input.TextArea
+              id="mcp-server-settings-input-textarea-99"
               value={localEnv}
               onChange={(e) => setLocalEnv(e.target.value)}
               onBlur={() => {
@@ -463,6 +471,7 @@ function McpServerDetail({
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.discoverTimeout")}</span>
             <InputNumber
+              id="mcp-server-settings-inputnumber-100"
               value={server.discoverTimeoutSecs}
               onChange={(val) => handleFieldChange("discoverTimeoutSecs", val)}
               placeholder="30"
@@ -479,6 +488,7 @@ function McpServerDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("settings.mcpServers.executeTimeout")}</span>
         <InputNumber
+          id="mcp-server-settings-inputnumber-101"
           value={server.executeTimeoutSecs}
           onChange={(val) => handleFieldChange("executeTimeoutSecs", val)}
           placeholder="30"
@@ -493,6 +503,7 @@ function McpServerDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("common.enabled")}</span>
         <Switch
+          id="mcp-server-settings-switch-102"
           checked={server.enabled}
           loading={enabling}
           disabled={enabling}
@@ -740,7 +751,7 @@ export function McpServerSettings() {
               children: (
                 <Form form={form} layout="vertical" initialValues={{ transport: "stdio" }}>
                   <Form.Item name="name" label={t("settings.mcpServers.name")} rules={[{ required: true }]}>
-                    <Input />
+                    <Input name="name" />
                   </Form.Item>
                   <Form.Item name="transport" label={t("settings.mcpServers.transport")} rules={[{ required: true }]}>
                     <Select
@@ -775,16 +786,16 @@ export function McpServerSettings() {
                   {transport === "stdio" && (
                     <>
                       <Form.Item name="command" label={t("settings.mcpServers.command")}>
-                        <Input placeholder="npx" />
+                        <Input name="command" placeholder="npx" />
                       </Form.Item>
                       <Form.Item name="args" label={t("settings.mcpServers.args")}>
-                        <Input placeholder="-y @modelcontextprotocol/server-name" />
+                        <Input name="args" placeholder="-y @modelcontextprotocol/server-name" />
                       </Form.Item>
                     </>
                   )}
                   {(transport === "http" || transport === "sse") && (
                     <Form.Item name="endpoint" label={t("settings.mcpServers.endpoint")}>
-                      <Input placeholder="http://localhost:3000" />
+                      <Input name="endpoint" placeholder="http://localhost:3000" />
                     </Form.Item>
                   )}
                 </Form>
@@ -796,6 +807,7 @@ export function McpServerSettings() {
               children: (
                 <div>
                   <Input.TextArea
+                    id="mcp-server-settings-input-textarea-103"
                     rows={10}
                     value={importJson}
                     onChange={(e) => {

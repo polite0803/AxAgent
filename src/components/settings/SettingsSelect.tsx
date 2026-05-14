@@ -96,6 +96,7 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
           >
             <div style={{ padding: "4px 4px 2px" }}>
               <Input
+                id="select-input-169"
                 ref={searchRef}
                 size="small"
                 prefix={<Search size={12} style={{ opacity: 0.4 }} />}

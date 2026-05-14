@@ -90,6 +90,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       key: "enabled",
       render: (enabled: boolean, record: CronJob) => (
         <Switch
+          id="cron-manager-switch-45"
           checked={enabled}
           onChange={(v) => onToggle(record.id, v)}
           size="small"
@@ -142,6 +143,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
           <div>
             <Text type="secondary">Name</Text>
             <Input
+              id="cron-manager-input-46"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("settings.cron.namePlaceholder")}
@@ -150,6 +152,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
           <div>
             <Text type="secondary">{t("settings.cron.schedule")}</Text>
             <Input
+              id="cron-manager-input-47"
               value={schedule}
               onChange={(e) => setSchedule(e.target.value)}
               placeholder="0 9 * * *"
@@ -161,6 +164,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
           <div>
             <Text type="secondary">Prompt</Text>
             <Input.TextArea
+              id="cron-manager-input-textarea-48"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder={t("settings.cron.promptPlaceholder")}
@@ -170,6 +174,7 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
           <div>
             <Text type="secondary">{t("settings.cron.platform")}</Text>
             <Input
+              id="cron-manager-input-49"
               value={platform}
               onChange={(e) => setPlatform(e.target.value)}
               placeholder="telegram / discord / web"

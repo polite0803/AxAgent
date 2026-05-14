@@ -180,6 +180,7 @@ export function UserProfileSettings() {
             </div>
           </div>
           <Input
+            id="user-profile-settings-input-179"
             value={trajectoryProfile?.communication?.language || "en"}
             onChange={(e) => updateCommunicationPrefs({ language: e.target.value })}
             style={{ width: 150 }}

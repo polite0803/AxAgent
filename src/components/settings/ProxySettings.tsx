@@ -68,6 +68,7 @@ export function ProxySettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.proxyAddress")}</span>
           <Input
+            id="proxy-settings-input-148"
             value={settings.proxy_address ?? ""}
             onChange={(e) => saveSettings({ proxy_address: e.target.value || null })}
             placeholder="127.1.0.0"
@@ -79,6 +80,7 @@ export function ProxySettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.proxyPort")}</span>
           <InputNumber
+            id="proxy-settings-inputnumber-149"
             value={settings.proxy_port}
             onChange={(val) => saveSettings({ proxy_port: val ?? null })}
             placeholder="7890"

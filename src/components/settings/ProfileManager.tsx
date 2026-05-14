@@ -89,11 +89,13 @@ export function ProfileManager() {
       >
         <div className="space-y-3 py-2">
           <Input
+            id="profile-manager-input-108"
             placeholder={t("settings.profileName", "Name (alphanumeric, hyphens, underscores)")}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
           <Input
+            id="profile-manager-input-109"
             placeholder={t("settings.profileDisplayName", "Display Name")}
             value={newDisplayName}
             onChange={(e) => setNewDisplayName(e.target.value)}

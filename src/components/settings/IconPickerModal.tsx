@@ -51,6 +51,7 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
       destroyOnHidden
     >
       <Input
+        id="icon-picker-modal-input-66"
         prefix={<Search size={14} />}
         placeholder={t("settings.searchIcon")}
         value={search}

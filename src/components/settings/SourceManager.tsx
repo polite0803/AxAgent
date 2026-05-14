@@ -192,7 +192,7 @@ function CreateKnowledgeBaseModal({
     >
       <Form form={form} layout="vertical">
         <Form.Item name="name" label={t("settings.knowledge.name")} rules={[{ required: true }]}>
-          <Input />
+          <Input name="name" />
         </Form.Item>
         <Form.Item
           name="embeddingProvider"
@@ -249,7 +249,7 @@ function CreateMemoryNamespaceModal({
     >
       <Form form={form} layout="vertical">
         <Form.Item name="name" label={t("settings.memory.namespaceName")} rules={[{ required: true }]}>
-          <Input />
+          <Input name="name" />
         </Form.Item>
         <Form.Item
           name="embeddingProvider"
@@ -310,17 +310,17 @@ function CreateWikiModal({
           label={t("wiki.wiki.name")}
           rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}
         >
-          <Input placeholder={t("wiki.llm.namePlaceholder")} />
+          <Input name="name" placeholder={t("wiki.llm.namePlaceholder")} />
         </Form.Item>
         <Form.Item
           name="rootPath"
           label={t("wiki.wiki.rootPath")}
           rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}
         >
-          <Input placeholder={t("wiki.llm.pathPlaceholder")} />
+          <Input name="rootPath" placeholder={t("wiki.llm.pathPlaceholder")} />
         </Form.Item>
         <Form.Item name="description" label={t("wiki.wiki.description")}>
-          <Input.TextArea placeholder={t("wiki.llm.descriptionPlaceholder")} />
+          <Input.TextArea name="description" placeholder={t("wiki.llm.descriptionPlaceholder")} />
         </Form.Item>
       </Form>
     </Modal>
@@ -1041,6 +1041,7 @@ function AllSourcesTab({
       <Row gutter={[12, 12]} style={{ marginBottom: token.marginMD }}>
         <Col flex="auto">
           <Input
+            id="source-manager-input-176"
             prefix={<Search size={14} />}
             placeholder={t("sourceManager.searchPlaceholder")}
             value={searchQuery}

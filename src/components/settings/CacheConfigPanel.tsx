@@ -18,6 +18,7 @@ export function CacheConfigPanel({
         <div className="flex items-center justify-between">
           <span>Enable Cache Breakpoints</span>
           <Switch
+            id="cache-config-panel-switch-41"
             checked={enableCacheBreakpoints}
             onChange={onToggleCacheBreakpoints}
           />

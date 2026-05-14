@@ -1013,6 +1013,7 @@ function MemoryItemsPanel({
           <div className="flex items-center justify-between">
             <span>{t("settings.memory.embeddingDimensions")}</span>
             <InputNumber
+              id="memory-settings-inputnumber-104"
               value={settingsForm.embeddingDimensions}
               onChange={(val) => setSettingsForm(s => ({ ...s, embeddingDimensions: val ?? undefined }))}
               placeholder={t("settings.memory.embeddingDimensionsAuto")}
@@ -1025,6 +1026,7 @@ function MemoryItemsPanel({
           <div className="flex items-center justify-between">
             <span>{t("settings.memory.retrievalThreshold")}</span>
             <InputNumber
+              id="memory-settings-inputnumber-105"
               value={settingsForm.retrievalThreshold}
               onChange={(val) => setSettingsForm(s => ({ ...s, retrievalThreshold: val ?? 0.1 }))}
               min={0}
@@ -1037,6 +1039,7 @@ function MemoryItemsPanel({
           <div className="flex items-center justify-between">
             <span>{t("settings.memory.retrievalTopK")}</span>
             <InputNumber
+              id="memory-settings-inputnumber-106"
               value={settingsForm.retrievalTopK}
               onChange={(val) => setSettingsForm(s => ({ ...s, retrievalTopK: val ?? 5 }))}
               min={1}
@@ -1161,6 +1164,7 @@ function MemoryItemsPanel({
         </div>
         <div className="flex items-center gap-2">
           <Input
+            id="memory-settings-input-107"
             placeholder={t("settings.memory.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1648,7 +1652,7 @@ function MemoryItemsPanel({
       >
         <Form form={itemForm} layout="vertical">
           <Form.Item name="content" label={t("settings.memory.itemContent")} rules={[{ required: true }]}>
-            <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} />
+            <Input.TextArea name="content" autoSize={{ minRows: 3, maxRows: 8 }} />
           </Form.Item>
         </Form>
       </Modal>
@@ -1739,7 +1743,7 @@ export default function MemorySettings() {
       >
         <Form form={nsForm} layout="vertical">
           <Form.Item name="name" label={t("settings.memory.namespaceName")} rules={[{ required: true }]}>
-            <Input />
+            <Input name="name" />
           </Form.Item>
           <Form.Item
             name="embeddingProvider"

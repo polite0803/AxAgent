@@ -152,6 +152,7 @@ export function GatewayConfigPanel() {
                   <div key={field.key} className="flex items-center justify-between py-1">
                     <span>{t(field.label)}</span>
                     <Switch
+                      id="gateway-config-panel-switch-52"
                       checked={enabled}
                       onChange={(v) => handleChange(field.key, v)}
                     />
@@ -165,6 +166,7 @@ export function GatewayConfigPanel() {
                   {field.type === "select"
                     ? (
                       <Select
+                        id="gateway-config-panel-select-53"
                         value={(config[field.key] as string) ?? ""}
                         onChange={(v) => handleChange(field.key, v)}
                         options={field.options?.map((o) => ({ ...o, label: t(o.label) }))}
@@ -174,6 +176,7 @@ export function GatewayConfigPanel() {
                     : field.type === "password"
                     ? (
                       <Input.Password
+                        id="gateway-config-panel-input-password-54"
                         value={(config[field.key] as string) ?? ""}
                         onChange={(e) => handleChange(field.key, e.target.value)}
                         placeholder={field.placeholder ? t(field.placeholder) : undefined}
@@ -181,6 +184,7 @@ export function GatewayConfigPanel() {
                     )
                     : (
                       <Input
+                        id="gateway-config-panel-input-55"
                         value={(config[field.key] as string) ?? ""}
                         onChange={(e) => handleChange(field.key, e.target.value)}
                         placeholder={field.placeholder ? t(field.placeholder) : undefined}
@@ -197,6 +201,7 @@ export function GatewayConfigPanel() {
         <div className="flex items-center justify-between py-1">
           <span>{t("settings.platform.enableApiServer")}</span>
           <Switch
+            id="gateway-config-panel-switch-56"
             checked={config.api_server_enabled}
             onChange={(v) => handleChange("api_server_enabled", v)}
           />
@@ -205,6 +210,7 @@ export function GatewayConfigPanel() {
           <div className="mt-3">
             <Text type="secondary">{t("settings.platform.apiServerPort")}</Text>
             <Input
+              id="gateway-config-panel-input-57"
               type="number"
               value={config.api_server_port ?? 8080}
               onChange={(e) => handleChange("api_server_port", Number.parseInt(e.target.value, 10) || 8080)}
@@ -215,6 +221,7 @@ export function GatewayConfigPanel() {
         <div className="flex items-center justify-between py-1 mt-2">
           <span>{t("settings.platform.autoSyncMessages")}</span>
           <Switch
+            id="gateway-config-panel-switch-58"
             checked={config.auto_sync_messages}
             onChange={(v) => handleChange("auto_sync_messages", v)}
           />
@@ -222,6 +229,7 @@ export function GatewayConfigPanel() {
         <div className="mt-3">
           <Text type="secondary">{t("settings.platform.maxHistoryPerSession")}</Text>
           <Input
+            id="gateway-config-panel-input-59"
             type="number"
             value={config.max_history_per_session}
             onChange={(e) => handleChange("max_history_per_session", Number.parseInt(e.target.value, 10) || 100)}

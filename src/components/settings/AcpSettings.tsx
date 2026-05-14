@@ -127,6 +127,7 @@ export function AcpSettings() {
             <Server size={14} /> {t("acp.serverAddress", "服务端地址")}
           </span>
           <Input
+            id="acp-settings-input-2"
             value={baseUrl}
             onChange={(e) => handleBaseUrlChange(e.target.value)}
             placeholder="http://localhost:9876"
@@ -187,6 +188,7 @@ export function AcpSettings() {
           </span>
           <Space size={8}>
             <Input
+              id="acp-settings-input-3"
               value={workDir}
               onChange={(e) => setWorkDir(e.target.value)}
               placeholder={t("acp.workdirPlaceholder", "请输入项目工作目录路径")}

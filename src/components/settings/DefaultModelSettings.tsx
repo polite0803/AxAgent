@@ -57,6 +57,7 @@ function ContextCountParam({
           onChange={(v) => onChange(v)}
         />
         <InputNumber
+          id="default-model-settings-inputnumber-51"
           style={{ width: 72 }}
           min={0}
           max={50}

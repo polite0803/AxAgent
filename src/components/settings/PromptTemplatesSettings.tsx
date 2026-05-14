@@ -252,6 +252,7 @@ export function PromptTemplatesSettings() {
         {/* 搜索和筛选 */}
         <div className="flex gap-2 mb-4 flex-wrap">
           <Input
+            id="prompt-templates-settings-input-110"
             placeholder={t("promptTemplates.searchPlaceholder")}
             prefix={<SearchOutlined />}
             value={searchText}
@@ -260,6 +261,7 @@ export function PromptTemplatesSettings() {
             allowClear
           />
           <Select
+            id="prompt-templates-settings-select-111"
             placeholder={t("promptTemplates.filterByCategory")}
             value={categoryFilter}
             onChange={setCategoryFilter}
@@ -365,22 +367,22 @@ export function PromptTemplatesSettings() {
             label={t("common.name")}
             rules={[{ required: true, message: t("promptTemplates.nameRequired") }]}
           >
-            <Input placeholder={t("promptTemplates.namePlaceholder")} />
+            <Input name="name" placeholder={t("promptTemplates.namePlaceholder")} />
           </Form.Item>
           <Form.Item name="description" label={t("common.description")}>
-            <Input.TextArea placeholder={t("promptTemplates.descriptionPlaceholder")} rows={2} />
+            <Input.TextArea name="description" placeholder={t("promptTemplates.descriptionPlaceholder")} rows={2} />
           </Form.Item>
           <Form.Item name="category" label={t("promptTemplates.category")}>
-            <Input placeholder={t("promptTemplates.categoryPlaceholder")} />
+            <Input name="category" placeholder={t("promptTemplates.categoryPlaceholder")} />
           </Form.Item>
           <Form.Item name="tags" label={t("promptTemplates.tags")}>
-            <Input placeholder={t("promptTemplates.tagsPlaceholder")} />
+            <Input name="tags" placeholder={t("promptTemplates.tagsPlaceholder")} />
           </Form.Item>
           <Form.Item name="author" label={t("promptTemplates.author")}>
-            <Input placeholder={t("promptTemplates.authorPlaceholder")} />
+            <Input name="author" placeholder={t("promptTemplates.authorPlaceholder")} />
           </Form.Item>
           <Form.Item name="source" label={t("promptTemplates.source")}>
-            <Input placeholder={t("promptTemplates.sourcePlaceholder")} />
+            <Input name="source" placeholder={t("promptTemplates.sourcePlaceholder")} />
           </Form.Item>
           <Form.Item
             name="content"
@@ -388,13 +390,19 @@ export function PromptTemplatesSettings() {
             rules={[{ required: true, message: t("promptTemplates.contentRequired") }]}
           >
             <Input.TextArea
+              name="content"
               placeholder={t("promptTemplates.contentPlaceholder")}
               rows={8}
               className="font-mono text-sm"
             />
           </Form.Item>
           <Form.Item name="variablesSchema" label={t("promptTemplates.variablesSchema") + " (JSON)"}>
-            <Input.TextArea placeholder='{"variable": "type"}' rows={3} className="font-mono text-sm" />
+            <Input.TextArea
+              name="variablesSchema"
+              placeholder='{"variable": "type"}'
+              rows={3}
+              className="font-mono text-sm"
+            />
           </Form.Item>
         </Form>
       </Modal>

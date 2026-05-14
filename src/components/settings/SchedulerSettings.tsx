@@ -535,6 +535,7 @@ export function SchedulerSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
+            id="scheduler-settings-switch-150"
             checked={backupSettings?.enabled ?? false}
             onChange={handleAutoBackupChange}
           />
@@ -544,6 +545,7 @@ export function SchedulerSettings() {
           <span>{t("settings.scheduler.backupInterval")}</span>
           <div className="flex items-center gap-2">
             <InputNumber
+              id="scheduler-settings-inputnumber-151"
               min={1}
               max={720}
               value={backupSettings?.intervalHours ?? 24}
@@ -559,6 +561,7 @@ export function SchedulerSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.scheduler.maxCount")}</span>
           <InputNumber
+            id="scheduler-settings-inputnumber-152"
             min={1}
             max={100}
             value={backupSettings?.maxCount ?? 10}
@@ -586,6 +589,7 @@ export function SchedulerSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
+            id="scheduler-settings-switch-153"
             checked={settings.webdav_sync_enabled ?? false}
             onChange={handleWebdavSyncChange}
           />
@@ -594,6 +598,7 @@ export function SchedulerSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.scheduler.syncInterval")}</span>
           <Select
+            id="scheduler-settings-select-154"
             value={settings.webdav_sync_interval_minutes ?? 60}
             options={webdavIntervalOptions}
             onChange={handleWebdavIntervalChange}
@@ -604,6 +609,7 @@ export function SchedulerSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.scheduler.maxRemoteBackups")}</span>
           <InputNumber
+            id="scheduler-settings-inputnumber-155"
             min={1}
             max={100}
             value={settings.webdav_max_remote_backups ?? 10}
@@ -628,6 +634,7 @@ export function SchedulerSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
+            id="scheduler-settings-switch-156"
             checked={settings.closed_loop_enabled ?? true}
             onChange={handleClosedLoopChange}
           />
@@ -636,6 +643,7 @@ export function SchedulerSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.scheduler.nudgeInterval")}</span>
           <Select
+            id="scheduler-settings-select-157"
             value={settings.closed_loop_interval_minutes ?? 5}
             options={closedLoopIntervalOptions}
             onChange={handleClosedLoopIntervalChange}
@@ -912,13 +920,13 @@ export function SchedulerSettings() {
             label={t("settings.scheduler.taskName")}
             rules={[{ required: true, message: "Please input task name" }]}
           >
-            <Input placeholder={t("settings.scheduler.taskName")} />
+            <Input name="name" placeholder={t("settings.scheduler.taskName")} />
           </Form.Item>
           <Form.Item
             name="description"
             label={t("settings.scheduler.taskDescription")}
           >
-            <Input.TextArea placeholder={t("settings.scheduler.taskDescription")} rows={2} />
+            <Input.TextArea name="description" placeholder={t("settings.scheduler.taskDescription")} rows={2} />
           </Form.Item>
           <Divider>{t("settings.scheduler.scheduleSettings")}</Divider>
           <Form.Item

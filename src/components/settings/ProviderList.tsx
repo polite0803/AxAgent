@@ -94,6 +94,7 @@ function SortableProviderItem({
         <span style={{ color: isSelected ? token.colorPrimary : undefined }}>{provider.name}</span>
       </div>
       <Switch
+        id="provider-list-switch-146"
         size="small"
         checked={provider.enabled}
         onClick={(_, e) => e.stopPropagation()}
@@ -193,6 +194,7 @@ export function ProviderList() {
     <div className="flex h-full flex-col">
       <div className="p-3 flex items-center gap-2">
         <Input
+          id="provider-list-input-147"
           prefix={<Search size={14} />}
           placeholder={t("settings.filterProviders")}
           value={search}
@@ -287,7 +289,7 @@ export function ProviderList() {
             label={t("settings.providerName")}
             rules={[{ required: true }]}
           >
-            <Input />
+            <Input name="name" />
           </Form.Item>
           <Form.Item
             name="provider_type"
@@ -297,7 +299,7 @@ export function ProviderList() {
             <Select options={PROVIDER_TYPE_OPTIONS} onChange={handleTypeChange} />
           </Form.Item>
           <Form.Item name="api_host" label={t("settings.apiHost")}>
-            <Input placeholder="https://api.openai.com" />
+            <Input name="api_host" placeholder="https://api.openai.com" />
           </Form.Item>
         </Form>
       </Modal>

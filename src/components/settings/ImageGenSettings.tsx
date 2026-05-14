@@ -79,15 +79,15 @@ export function ImageGenSettings() {
         </Form.Item>
 
         <Form.Item name="flux_api_token" label="Replicate API Token">
-          <Input.Password placeholder="r8_..." />
+          <Input.Password name="flux_api_token" placeholder="r8_..." />
         </Form.Item>
 
         <Form.Item name="openai_api_key" label="OpenAI API Key (DALL-E)">
-          <Input.Password placeholder="sk-..." />
+          <Input.Password name="openai_api_key" placeholder="sk-..." />
         </Form.Item>
 
         <Form.Item name="openai_base_url" label="OpenAI Base URL">
-          <Input placeholder="https://api.openai.com/v1" />
+          <Input name="openai_base_url" placeholder="https://api.openai.com/v1" />
         </Form.Item>
 
         <Form.Item name="save_to_artifact" label="自动保存为 Artifact" valuePropName="checked">

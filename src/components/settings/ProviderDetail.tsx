@@ -1024,6 +1024,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         </div>
         <Space>
           <Switch
+            id="provider-detail-switch-112"
             checked={provider.enabled}
             onChange={(checked) => toggleProvider(providerId, checked)}
             checkedChildren={t("common.enabled")}
@@ -1074,6 +1075,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 >
                   <Space>
                     <Switch
+                      id="provider-detail-switch-113"
                       size="small"
                       checked={key.enabled}
                       onChange={(checked) => toggleProviderKey(key.id, checked)}
@@ -1134,6 +1136,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           >
             <Space.Compact style={{ width: "100%" }}>
               <Input
+                id="provider-detail-input-114"
                 value={apiHostLocal}
                 onChange={(e) => handleApiHostChange(e.target.value)}
                 placeholder={DEFAULT_HOSTS[provider.provider_type]}
@@ -1166,6 +1169,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             style={{ marginBottom: 0 }}
           >
             <Input
+              id="provider-detail-input-115"
               value={apiPathLocal || DEFAULT_PATHS[provider.provider_type]}
               onChange={(e) => handleApiPathChange(e.target.value)}
               placeholder={DEFAULT_PATHS[provider.provider_type]}
@@ -1371,6 +1375,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       >
         {showModelSearch && (
           <Input
+            id="provider-detail-input-116"
             prefix={<Search size={14} />}
             placeholder={t("settings.searchModels")}
             value={modelSearch}
@@ -1483,6 +1488,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           </Tooltip>
                         )}
                         <Switch
+                          id="provider-detail-switch-117"
                           size="small"
                           checked={someEnabled}
                           style={someEnabled && !allEnabled ? { backgroundColor: token.colorWarning } : undefined}
@@ -1613,6 +1619,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         );
                       })()}
                       <Switch
+                        id="provider-detail-switch-118"
                         size="small"
                         checked={model.enabled}
                         onChange={(checked) => toggleModel(providerId, model.model_id, checked)}
@@ -1662,6 +1669,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             label: t("settings.customHeaders"),
             children: (
               <Input.TextArea
+                id="provider-detail-input-textarea-119"
                 value={customHeadersLocal}
                 onChange={(e) => setCustomHeadersLocal(e.target.value)}
                 onBlur={() => {
@@ -1694,6 +1702,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               <Form layout="vertical" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <Form.Item label={t("settings.proxyType")} style={{ marginBottom: 0 }}>
                   <Select
+                    id="provider-detail-select-120"
                     value={provider.proxy_config?.proxy_type ?? "none"}
                     onChange={(val) =>
                       updateProvider(providerId, {
@@ -1713,6 +1722,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 </Form.Item>
                 <Form.Item label={t("settings.proxyAddress")} style={{ marginBottom: 0 }}>
                   <Input
+                    id="provider-detail-input-121"
                     value={provider.proxy_config?.proxy_address ?? ""}
                     onChange={(e) =>
                       updateProvider(providerId, {
@@ -1729,6 +1739,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 </Form.Item>
                 <Form.Item label={t("settings.proxyPort")} style={{ marginBottom: 0 }}>
                   <InputNumber
+                    id="provider-detail-inputnumber-122"
                     value={provider.proxy_config?.proxy_port}
                     onChange={(val) =>
                       updateProvider(providerId, {
@@ -1766,6 +1777,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         cancelText={t("common.cancel")}
       >
         <Input.Password
+          id="provider-detail-input-password-123"
           value={keyValue}
           onChange={(e) => setKeyValue(e.target.value)}
           placeholder="sk-..."
@@ -1807,6 +1819,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           </Form.Item>
           <Form.Item label={t("settings.modelName")}>
             <Input
+              id="provider-detail-input-124"
               value={addModelName}
               onChange={(e) => {
                 addModelNameDirty.current = true;
@@ -1817,6 +1830,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           </Form.Item>
           <Form.Item label={t("settings.modelGroup")}>
             <AutoComplete
+              id="provider-detail-autocomplete-125"
               value={addModelGroupName}
               onChange={(val) => {
                 addModelGroupDirty.current = true;
@@ -1828,6 +1842,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           </Form.Item>
           <Form.Item label={t("settings.modelType.title")} style={{ marginBottom: 0 }}>
             <Select
+              id="provider-detail-select-126"
               value={addModelType}
               onChange={(value) => setAddModelType(value as ModelType)}
               options={(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => ({
@@ -1906,6 +1921,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   {t("settings.modelGroup", "分组名称")}
                 </span>
                 <Input
+                  id="provider-detail-input-127"
                   value={editGroupName}
                   onChange={(e) => setEditGroupName(e.target.value)}
                   placeholder={t("settings.modelGroupPlaceholder", "输入分组名称")}
@@ -1986,6 +2002,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         {t("settings.contextWindow")}
                       </span>
                       <InputNumber
+                        id="provider-detail-inputnumber-128"
                         value={editMaxTokens}
                         onChange={(v) => v != null && setEditMaxTokens(v)}
                         min={1024}
@@ -2031,6 +2048,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       {t("settings.useMaxCompletionTokens")}
                     </span>
                     <Switch
+                      id="provider-detail-switch-129"
                       size="small"
                       checked={editUseMaxCompletionTokens}
                       onChange={setEditUseMaxCompletionTokens}
@@ -2038,17 +2056,28 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm" style={{ color: token.colorText }}>{t("settings.noSystemRole")}</span>
-                    <Switch size="small" checked={editNoSystemRole} onChange={setEditNoSystemRole} />
+                    <Switch
+                      id="provider-detail-switch-130"
+                      size="small"
+                      checked={editNoSystemRole}
+                      onChange={setEditNoSystemRole}
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm" style={{ color: token.colorText }}>{t("settings.forceMaxTokens")}</span>
-                    <Switch size="small" checked={editForceMaxTokens} onChange={setEditForceMaxTokens} />
+                    <Switch
+                      id="provider-detail-switch-131"
+                      size="small"
+                      checked={editForceMaxTokens}
+                      onChange={setEditForceMaxTokens}
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm" style={{ color: token.colorText }}>
                       {t("settings.thinkingParamStyle")}
                     </span>
                     <Select
+                      id="provider-detail-select-132"
                       size="small"
                       style={{ width: 180 }}
                       value={editThinkingParamStyle}
@@ -2065,6 +2094,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       {t("settings.requestDelayMs")}
                     </span>
                     <InputNumber
+                      id="provider-detail-inputnumber-133"
                       size="small"
                       style={{ width: 120 }}
                       min={0}
@@ -2126,7 +2156,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="font-medium" style={{ fontSize: 13 }}>{t("settings.modelType.title")}</div>
-                <Switch size="small" checked={batchModelTypeEnabled} onChange={setBatchModelTypeEnabled} />
+                <Switch
+                  id="provider-detail-switch-134"
+                  size="small"
+                  checked={batchModelTypeEnabled}
+                  onChange={setBatchModelTypeEnabled}
+                />
               </div>
               <div
                 className="flex gap-2 flex-wrap"
@@ -2160,7 +2195,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="font-medium" style={{ fontSize: 13 }}>{t("settings.modelAbilities")}</div>
-                <Switch size="small" checked={batchCapabilitiesEnabled} onChange={setBatchCapabilitiesEnabled} />
+                <Switch
+                  id="provider-detail-switch-135"
+                  size="small"
+                  checked={batchCapabilitiesEnabled}
+                  onChange={setBatchCapabilitiesEnabled}
+                />
               </div>
               <div
                 className="flex gap-2 flex-wrap"
@@ -2199,7 +2239,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-medium" style={{ fontSize: 13 }}>{t("settings.contextWindow")}</span>
-                <Switch size="small" checked={batchMaxTokensEnabled} onChange={setBatchMaxTokensEnabled} />
+                <Switch
+                  id="provider-detail-switch-136"
+                  size="small"
+                  checked={batchMaxTokensEnabled}
+                  onChange={setBatchMaxTokensEnabled}
+                />
               </div>
               <div
                 style={{
@@ -2209,6 +2254,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               >
                 <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
                   <InputNumber
+                    id="provider-detail-inputnumber-137"
                     value={batchMaxTokens}
                     onChange={(v) => v != null && setBatchMaxTokens(v)}
                     min={1024}
@@ -2286,6 +2332,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     </span>
                   </Space>
                   <Switch
+                    id="provider-detail-switch-138"
                     size="small"
                     checked={batchUseMaxCompletionTokens}
                     onChange={setBatchUseMaxCompletionTokens}
@@ -2301,6 +2348,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     <span className="text-sm" style={{ color: token.colorText }}>{t("settings.noSystemRole")}</span>
                   </Space>
                   <Switch
+                    id="provider-detail-switch-139"
                     size="small"
                     checked={batchNoSystemRole}
                     onChange={setBatchNoSystemRole}
@@ -2316,6 +2364,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     <span className="text-sm" style={{ color: token.colorText }}>{t("settings.forceMaxTokens")}</span>
                   </Space>
                   <Switch
+                    id="provider-detail-switch-140"
                     size="small"
                     checked={batchForceMaxTokens}
                     onChange={setBatchForceMaxTokens}
@@ -2333,6 +2382,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     </span>
                   </Space>
                   <Select
+                    id="provider-detail-select-141"
                     size="small"
                     style={{ width: 180 }}
                     value={batchThinkingParamStyle}
@@ -2374,6 +2424,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         <Form layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item label={t("settings.selectModel")}>
             <Select
+              id="provider-detail-select-142"
               showSearch
               value={singleTestModelId || undefined}
               onChange={setSingleTestModelId}
@@ -2460,6 +2511,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   {t("common.selectAll")} ({pickerSelected.size}/{pickerModels.length})
                 </Checkbox>
                 <Input
+                  id="provider-detail-input-143"
                   placeholder={t("settings.searchModels")}
                   prefix={<Search size={14} />}
                   value={pickerSearch}
@@ -2641,6 +2693,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         <Form layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item label={t("settings.providerName")}>
             <Input
+              id="provider-detail-input-144"
               value={editProviderName}
               onChange={(e) => setEditProviderName(e.target.value)}
               autoFocus
@@ -2648,6 +2701,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           </Form.Item>
           <Form.Item label={t("settings.endpointFormat")} style={{ marginBottom: 0 }}>
             <Select
+              id="provider-detail-select-145"
               value={editProviderType}
               onChange={(val) => setEditProviderType(val as ProviderType)}
               options={[

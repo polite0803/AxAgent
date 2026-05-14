@@ -905,6 +905,7 @@ function KnowledgeBaseDetail({
           <div className="flex items-center justify-between">
             <span>{t("settings.knowledge.embeddingDimensions")}</span>
             <InputNumber
+              id="knowledge-settings-inputnumber-67"
               value={settingsForm.embeddingDimensions}
               onChange={(val) => setSettingsForm(s => ({ ...s, embeddingDimensions: val ?? undefined }))}
               placeholder={t("settings.knowledge.embeddingDimensionsAuto")}
@@ -917,6 +918,7 @@ function KnowledgeBaseDetail({
           <div className="flex items-center justify-between">
             <span>{t("settings.knowledge.retrievalThreshold")}</span>
             <InputNumber
+              id="knowledge-settings-inputnumber-68"
               value={settingsForm.retrievalThreshold}
               onChange={(val) => setSettingsForm(s => ({ ...s, retrievalThreshold: val ?? 0.1 }))}
               min={0}
@@ -929,6 +931,7 @@ function KnowledgeBaseDetail({
           <div className="flex items-center justify-between">
             <span>{t("settings.knowledge.retrievalTopK")}</span>
             <InputNumber
+              id="knowledge-settings-inputnumber-69"
               value={settingsForm.retrievalTopK}
               onChange={(val) => setSettingsForm(s => ({ ...s, retrievalTopK: val ?? 5 }))}
               min={1}
@@ -943,6 +946,7 @@ function KnowledgeBaseDetail({
           <div className="flex items-center justify-between">
             <span>{t("settings.knowledge.chunkSize")}</span>
             <InputNumber
+              id="knowledge-settings-inputnumber-70"
               value={settingsForm.chunkSize}
               onChange={(val) => setSettingsForm(s => ({ ...s, chunkSize: val ?? undefined }))}
               placeholder="2000"
@@ -955,6 +959,7 @@ function KnowledgeBaseDetail({
           <div className="flex items-center justify-between">
             <span>{t("settings.knowledge.chunkOverlap")}</span>
             <InputNumber
+              id="knowledge-settings-inputnumber-71"
               value={settingsForm.chunkOverlap}
               onChange={(val) => setSettingsForm(s => ({ ...s, chunkOverlap: val ?? undefined }))}
               placeholder="200"
@@ -967,6 +972,7 @@ function KnowledgeBaseDetail({
           <div className="flex items-center justify-between">
             <span>{t("settings.knowledge.separator")}</span>
             <Input
+              id="knowledge-settings-input-72"
               value={settingsForm.separator}
               onChange={(e) => setSettingsForm(s => ({ ...s, separator: e.target.value || undefined }))}
               placeholder={t("settings.knowledge.separatorPlaceholder")}
@@ -977,6 +983,7 @@ function KnowledgeBaseDetail({
           <div className="flex flex-col gap-1">
             <span>{t("settings.knowledge.description")}</span>
             <Input.TextArea
+              id="knowledge-settings-input-textarea-73"
               value={settingsForm.description}
               onChange={(e) => setSettingsForm(s => ({ ...s, description: e.target.value }))}
               rows={3}
@@ -1051,6 +1058,7 @@ function KnowledgeBaseDetail({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm">{t("settings.rag.queryEnhancement.title")}</span>
                 <Switch
+                  id="knowledge-settings-switch-74"
                   checked={ragAdvancedConfig.queryEnhancementEnabled}
                   onChange={(v) => persistRagConfig({ queryEnhancementEnabled: v })}
                 />
@@ -1063,6 +1071,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.queryEnhancement.strategy")}</span>
                     <Select
+                      id="knowledge-settings-select-75"
                       size="small"
                       value={ragAdvancedConfig.queryEnhancementStrategy}
                       onChange={(v) => persistRagConfig({ queryEnhancementStrategy: v })}
@@ -1079,6 +1088,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.queryEnhancement.maxVariants")}</span>
                     <InputNumber
+                      id="knowledge-settings-inputnumber-76"
                       size="small"
                       min={2}
                       max={5}
@@ -1097,6 +1107,7 @@ function KnowledgeBaseDetail({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm">{t("settings.rag.rerank.title")}</span>
                 <Switch
+                  id="knowledge-settings-switch-77"
                   checked={ragAdvancedConfig.rerankEnabled}
                   onChange={(v) => persistRagConfig({ rerankEnabled: v })}
                 />
@@ -1109,6 +1120,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.rerank.backend")}</span>
                     <Select
+                      id="knowledge-settings-select-78"
                       size="small"
                       value={ragAdvancedConfig.rerankBackend}
                       onChange={(v) => persistRagConfig({ rerankBackend: v })}
@@ -1123,6 +1135,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.rerank.topN")}</span>
                     <InputNumber
+                      id="knowledge-settings-inputnumber-79"
                       size="small"
                       min={1}
                       max={20}
@@ -1134,6 +1147,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.rerank.candidateK")}</span>
                     <InputNumber
+                      id="knowledge-settings-inputnumber-80"
                       size="small"
                       min={5}
                       max={100}
@@ -1152,6 +1166,7 @@ function KnowledgeBaseDetail({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm">{t("settings.rag.selfRag.title")}</span>
                 <Switch
+                  id="knowledge-settings-switch-81"
                   checked={ragAdvancedConfig.selfRagEnabled}
                   onChange={(v) => persistRagConfig({ selfRagEnabled: v })}
                 />
@@ -1164,6 +1179,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.selfRag.judgeModel")}</span>
                     <Input
+                      id="knowledge-settings-input-82"
                       size="small"
                       value={ragAdvancedConfig.selfRagJudgeModel}
                       onChange={(e) => persistRagConfig({ selfRagJudgeModel: e.target.value })}
@@ -1173,6 +1189,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.selfRag.relevanceThreshold")}</span>
                     <InputNumber
+                      id="knowledge-settings-inputnumber-83"
                       size="small"
                       min={0.1}
                       max={1.0}
@@ -1185,6 +1202,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.selfRag.qualityThreshold")}</span>
                     <InputNumber
+                      id="knowledge-settings-inputnumber-84"
                       size="small"
                       min={0.1}
                       max={1.0}
@@ -1197,6 +1215,7 @@ function KnowledgeBaseDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("settings.rag.selfRag.maxRetries")}</span>
                     <InputNumber
+                      id="knowledge-settings-inputnumber-85"
                       size="small"
                       min={1}
                       max={5}
@@ -1308,6 +1327,7 @@ function KnowledgeBaseDetail({
           {base.embeddingProvider && (
             <>
               <Input
+                id="knowledge-settings-input-86"
                 placeholder={t("settings.knowledge.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1533,8 +1553,11 @@ function KnowledgeBaseDetail({
         mask={{ enabled: true, blur: true }}
       >
         <Input.TextArea
+          id="knowledge-settings-input-textarea-87"
           value={chunkViewContent}
-          onChange={chunkEditing ? (e) => setChunkViewContent(e.target.value) : undefined}
+          onChange={chunkEditing
+            ? (e) => setChunkViewContent(e.target.value)
+            : undefined}
           readOnly={!chunkEditing}
           autoSize={{ minRows: 8, maxRows: 20 }}
           style={{ fontSize: 13 }}
@@ -1578,6 +1601,7 @@ function KnowledgeBaseDetail({
         mask={{ enabled: true, blur: true }}
       >
         <Input.TextArea
+          id="knowledge-settings-input-textarea-88"
           value={addChunkContent}
           onChange={(e) => setAddChunkContent(e.target.value)}
           placeholder={t("settings.knowledge.addChunkPlaceholder")}
@@ -1603,6 +1627,7 @@ function KnowledgeBaseDetail({
             {t("wiki.sync.selectWiki", "Select Wiki")}
           </div>
           <Select
+            id="knowledge-settings-select-89"
             value={selectedVaultId ?? undefined}
             onChange={setSelectedVaultId}
             placeholder={t("wiki.sync.selectWiki", "Select Wiki")}
@@ -1706,7 +1731,7 @@ export default function KnowledgeSettings() {
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label={t("settings.knowledge.name")} rules={[{ required: true }]}>
-            <Input />
+            <Input name="name" />
           </Form.Item>
           <Form.Item
             name="embeddingProvider"

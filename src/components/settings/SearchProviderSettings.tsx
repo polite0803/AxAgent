@@ -132,6 +132,7 @@ function SearchProviderList({
                     </Tag>
                   </div>
                   <Switch
+                    id="search-provider-settings-switch-158"
                     size="small"
                     checked={p.enabled}
                     onClick={(_, e) => e.stopPropagation()}
@@ -252,6 +253,7 @@ function SearchProviderDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("settings.searchProviders.name")}</span>
         <Input
+          id="search-provider-settings-input-159"
           value={provider.name}
           onChange={(e) => handleFieldChange("name", e.target.value)}
           style={{ width: 280 }}
@@ -261,6 +263,7 @@ function SearchProviderDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("settings.searchProviders.type")}</span>
         <Select
+          id="search-provider-settings-select-160"
           value={provider.providerType}
           onChange={(val) => handleFieldChange("providerType", val)}
           style={{ width: 280 }}
@@ -272,6 +275,7 @@ function SearchProviderDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("settings.searchProviders.endpoint")}</span>
         <Input
+          id="search-provider-settings-input-161"
           value={provider.endpoint ?? ""}
           onChange={(e) => handleFieldChange("endpoint", e.target.value || null)}
           placeholder={DEFAULT_ENDPOINTS[provider.providerType] ?? "https://..."}
@@ -282,6 +286,7 @@ function SearchProviderDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>API Key</span>
         <Input.Password
+          id="search-provider-settings-input-password-162"
           value={apiKeyInput}
           onChange={(e) => setApiKeyInput(e.target.value)}
           onBlur={handleApiKeyBlur}
@@ -295,6 +300,7 @@ function SearchProviderDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("settings.searchProviders.resultLimit")}</span>
         <InputNumber
+          id="search-provider-settings-inputnumber-163"
           value={provider.resultLimit ?? 10}
           onChange={(val) => handleFieldChange("resultLimit", val)}
           min={1}
@@ -306,6 +312,7 @@ function SearchProviderDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("settings.searchProviders.timeout")}</span>
         <InputNumber
+          id="search-provider-settings-inputnumber-164"
           value={provider.timeoutMs ?? 5000}
           onChange={(val) => handleFieldChange("timeoutMs", val)}
           min={1000}
@@ -319,6 +326,7 @@ function SearchProviderDetail({
       <div style={rowStyle} className="flex items-center justify-between">
         <span>{t("common.enabled")}</span>
         <Switch
+          id="search-provider-settings-switch-165"
           checked={provider.enabled}
           onChange={(val) => handleFieldChange("enabled", val)}
         />
@@ -418,7 +426,7 @@ export function SearchProviderSettings() {
             label={t("settings.searchProviders.name")}
             rules={[{ required: true }]}
           >
-            <Input />
+            <Input name="name" />
           </Form.Item>
           <Form.Item
             name="provider_type"
@@ -434,13 +442,13 @@ export function SearchProviderSettings() {
             label="API Key"
             rules={[{ required: true, message: t("settings.searchProviders.apiKeyPlaceholder") }]}
           >
-            <Input.Password placeholder={t("settings.searchProviders.apiKeyPlaceholder")} />
+            <Input.Password name="api_key" placeholder={t("settings.searchProviders.apiKeyPlaceholder")} />
           </Form.Item>
           <Form.Item name="result_limit" label={t("settings.searchProviders.resultLimit")} initialValue={10}>
-            <InputNumber min={1} max={50} />
+            <InputNumber name="result_limit" min={1} max={50} />
           </Form.Item>
           <Form.Item name="timeout_ms" label={t("settings.searchProviders.timeout")} initialValue={5000}>
-            <InputNumber min={1000} max={30000} step={1000} />
+            <InputNumber name="timeout_ms" min={1000} max={30000} step={1000} />
           </Form.Item>
         </Form>
       </Modal>

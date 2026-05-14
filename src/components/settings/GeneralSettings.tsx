@@ -48,6 +48,7 @@ export function GeneralSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.autoStart")}</span>
           <Switch
+            id="general-settings-switch-60"
             checked={settings.auto_start}
             onChange={async (checked) => {
               saveSettings({ auto_start: checked });
@@ -71,6 +72,7 @@ export function GeneralSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.showOnStart")}</span>
           <Switch
+            id="general-settings-switch-61"
             checked={settings.show_on_start}
             onChange={(checked) => saveSettings({ show_on_start: checked })}
           />
@@ -79,6 +81,7 @@ export function GeneralSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("desktop.alwaysOnTop")}</span>
           <Switch
+            id="general-settings-switch-62"
             checked={settings.always_on_top ?? false}
             onChange={(checked) => {
               saveSettings({ always_on_top: checked });
@@ -95,6 +98,7 @@ export function GeneralSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("desktop.startMinimized")}</span>
           <Switch
+            id="general-settings-switch-63"
             checked={settings.start_minimized ?? false}
             onChange={(checked) => saveSettings({ start_minimized: checked })}
             disabled={!inTauri}
@@ -107,6 +111,7 @@ export function GeneralSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.minimizeToTray")}</span>
           <Switch
+            id="general-settings-switch-64"
             checked={settings.minimize_to_tray}
             onChange={(checked) => {
               saveSettings({ minimize_to_tray: checked });

@@ -242,6 +242,7 @@ export function AgentProfileManager() {
         </Text>
         <Space>
           <Input
+            id="agent-profile-manager-input-31"
             size="small"
             prefix={<Search size={12} />}
             placeholder={t("chat.workflow.agentProfileSearch")}
@@ -384,6 +385,7 @@ export function AgentProfileManager() {
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileIcon")}</Text>
             <Input
+              id="agent-profile-manager-input-32"
               size="small"
               value={form.icon}
               onChange={(e) => setForm({ ...form, icon: e.target.value })}
@@ -394,6 +396,7 @@ export function AgentProfileManager() {
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileCategory")}</Text>
             <Select
+              id="agent-profile-manager-select-33"
               size="small"
               style={{ width: "100%" }}
               value={form.category}
@@ -404,6 +407,7 @@ export function AgentProfileManager() {
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileRole")}</Text>
             <Select
+              id="agent-profile-manager-select-34"
               size="small"
               style={{ width: "100%" }}
               value={form.agentRole ?? ""}
@@ -418,6 +422,7 @@ export function AgentProfileManager() {
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("agentProfile.expertLabel", "Expert (领域知识)")}</Text>
             <Select
+              id="agent-profile-manager-select-35"
               size="small"
               style={{ width: "100%" }}
               value={form.expertId ?? ""}
@@ -432,6 +437,7 @@ export function AgentProfileManager() {
           <div style={{ gridColumn: "span 2" }}>
             <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileDesc")}</Text>
             <Input
+              id="agent-profile-manager-input-36"
               size="small"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -454,6 +460,7 @@ export function AgentProfileManager() {
               <div>
                 <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileRecommendedTools")}</Text>
                 <Input
+                  id="agent-profile-manager-input-37"
                   size="small"
                   value={form.recommendedTools?.join(", ") ?? ""}
                   onChange={(e) =>
@@ -466,6 +473,7 @@ export function AgentProfileManager() {
               <div>
                 <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileDisallowedTools")}</Text>
                 <Input
+                  id="agent-profile-manager-input-38"
                   size="small"
                   value={form.disallowedTools?.join(", ") ?? ""}
                   onChange={(e) =>
@@ -483,6 +491,7 @@ export function AgentProfileManager() {
               <div>
                 <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfilePermission")}</Text>
                 <Select
+                  id="agent-profile-manager-select-39"
                   size="small"
                   style={{ width: "100%" }}
                   value={form.recommendPermissionMode ?? ""}
@@ -499,6 +508,7 @@ export function AgentProfileManager() {
               <div>
                 <Text type="secondary" style={{ fontSize: 11 }}>{t("chat.workflow.agentProfileTags")}</Text>
                 <Input
+                  id="agent-profile-manager-input-40"
                   size="small"
                   value={form.tags?.join(", ") ?? ""}
                   onChange={(e) =>

@@ -27,6 +27,7 @@ pub mod media;
 pub mod messaging;
 pub mod misc;
 pub mod monitor;
+pub mod network;
 pub mod obsidian;
 pub mod ocr;
 pub mod plan;
@@ -64,6 +65,14 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(bash::BashTool),
         std::sync::Arc::new(web_fetch::WebFetchTool),
         std::sync::Arc::new(web_search::WebSearchTool),
+        // ── 网络工具 ──
+        std::sync::Arc::new(network::HttpRequestTool),
+        std::sync::Arc::new(network::PingTool),
+        std::sync::Arc::new(network::DnsLookupTool),
+        std::sync::Arc::new(network::JsonApiTool),
+        std::sync::Arc::new(network::RssReaderTool),
+        std::sync::Arc::new(network::GraphQLTool),
+        std::sync::Arc::new(network::WebSocketTool),
         // ── 任务和提问 ──
         std::sync::Arc::new(todo_write::TodoWriteTool),
         std::sync::Arc::new(todo_write::AskUserQuestionTool),

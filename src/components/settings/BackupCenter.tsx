@@ -356,6 +356,7 @@ export function BackupCenter() {
           <Divider />
           <Form.Item name="intervalHours" label={t("backup.intervalHours")}>
             <InputNumber
+              name="intervalHours"
               min={1}
               max={720}
               addonAfter={<span style={{ whiteSpace: "nowrap" }}>{t("backup.hours")}</span>}
@@ -364,6 +365,7 @@ export function BackupCenter() {
           </Form.Item>
           <Form.Item name="maxCount" label={t("backup.maxCount")}>
             <InputNumber
+              name="maxCount"
               min={1}
               max={100}
               addonAfter={<span style={{ whiteSpace: "nowrap" }}>{t("backup.copies")}</span>}
@@ -380,6 +382,7 @@ export function BackupCenter() {
             }
           >
             <Input
+              name="backupDir"
               readOnly
               placeholder={effectiveBackupDir}
               addonAfter={

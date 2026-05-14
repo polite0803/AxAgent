@@ -130,6 +130,7 @@ export function AboutPage() {
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.updateCheckInterval")}</span>
           <InputNumber
+            id="about-page-inputnumber-1"
             min={1}
             max={1440}
             value={updateCheckInterval}

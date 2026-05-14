@@ -83,6 +83,15 @@ fn to_local_group(
     }
 }
 
+// ── 获取已启用工具总数 ──
+
+#[tauri::command]
+pub async fn get_tool_count(state: State<'_, AppState>) -> Result<u32, String> {
+    let mut registry = state.local_tool_registry.lock().await;
+    registry.load_enabled_state(&state.sea_db).await;
+    Ok(registry.count_enabled_tools())
+}
+
 // ── 列出所有工具（含单工具启用状态） ──
 
 #[tauri::command]

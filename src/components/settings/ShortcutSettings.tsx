@@ -118,6 +118,7 @@ export function ShortcutSettings() {
         <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
           <span>{t("settings.enableGlobalShortcuts")}</span>
           <Switch
+            id="shortcut-settings-switch-170"
             checked={settings.global_shortcuts_enabled ?? false}
             onChange={(checked) => {
               void saveSettings({ global_shortcuts_enabled: checked });
@@ -128,6 +129,7 @@ export function ShortcutSettings() {
         <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
           <span>{t("settings.enableShortcutRegistrationLogs")}</span>
           <Switch
+            id="shortcut-settings-switch-171"
             checked={settings.shortcut_registration_logs_enabled ?? false}
             onChange={(checked) => {
               void saveSettings({ shortcut_registration_logs_enabled: checked });
@@ -138,6 +140,7 @@ export function ShortcutSettings() {
         <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
           <span>{t("settings.enableShortcutTriggerToast")}</span>
           <Switch
+            id="shortcut-settings-switch-172"
             checked={settings.shortcut_trigger_toast_enabled ?? false}
             onChange={(checked) => {
               void saveSettings({ shortcut_trigger_toast_enabled: checked });
@@ -255,6 +258,7 @@ export function ShortcutSettings() {
                       </Tooltip>
                     )}
                     <Input
+                      id="shortcut-settings-input-173"
                       readOnly
                       autoFocus={recordingAction === action}
                       value={displayValue}

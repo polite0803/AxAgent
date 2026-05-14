@@ -703,6 +703,11 @@ function ChatViewInner({ onScrollToReady }: {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [mermaidPreviewSvg, setMermaidPreviewSvg] = useState<string | null>(null);
   const [mermaidPreviewOpen, setMermaidPreviewOpen] = useState(false);
+  const [toolCount, setToolCount] = useState(0);
+
+  useEffect(() => {
+    invoke<number>("get_tool_count").then(setToolCount).catch(() => {});
+  }, []);
   const createConversation = useConversationStore((s) => s.createConversation);
   const providers = useProviderStore((s) => s.providers);
   const providersLoading = useProviderStore((s) => s.loading);
@@ -2765,7 +2770,7 @@ function ChatViewInner({ onScrollToReady }: {
                   sessionType={activeConversation?.session_type ?? "conversation"}
                   workflowTemplateId={activeConversation?.workflow_template_id}
                   workflowStatus={activeConversation?.workflow_status}
-                  onSelectWorkflow={(templateId) => {
+                  onSelectWorkflow={(templateId, workflowId) => {
                     if (templateId === "") {
                       void updateConversation(activeConversation.id, {
                         session_type: "conversation",
@@ -2774,7 +2779,10 @@ function ChatViewInner({ onScrollToReady }: {
                     } else {
                       void updateConversation(activeConversation.id, {
                         session_type: "workflow",
-                        workflow_template_id: templateId,
+                        workflow_template_id: workflowId || templateId,
+                        // 工作流与专家/角色互斥：选中工作流时清除专家和代理角色
+                        expert_role_id: null,
+                        agent_profile_id: null,
                       });
                     }
                     fetchConversation();
@@ -2803,7 +2811,9 @@ function ChatViewInner({ onScrollToReady }: {
                       updateConversation(activeConversation.id, {
                         agent_profile_id: profileId || null,
                         system_prompt: profile?.systemPrompt || undefined,
-                        expert_role_id: null,
+                        // 工作流与专家/角色互斥：选中代理角色时切换为对话模式
+                        session_type: "conversation",
+                        workflow_template_id: null,
                       });
                     }}
                   />
@@ -2883,7 +2893,7 @@ function ChatViewInner({ onScrollToReady }: {
           <ContextBar
             modelName={contextBarModel?.name}
             searchEnabled={activeConversation?.search_enabled ?? false}
-            toolCount={activeConversation?.enabled_mcp_server_ids?.length ?? 0}
+            toolCount={toolCount}
             knowledgeCount={activeConversation?.enabled_knowledge_base_ids?.length ?? 0}
             memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
             tokenUsed={activeMessages.length > 0
@@ -3116,8 +3126,10 @@ function ChatViewInner({ onScrollToReady }: {
 
           updateConversation(activeConversationId, {
             expert_role_id: roleId,
-            agent_profile_id: null,
             system_prompt: role.systemPrompt || undefined,
+            // 工作流与专家/角色互斥：选中专家时切换为对话模式
+            session_type: "conversation",
+            workflow_template_id: null,
           });
           expertStore.recordSwitch(activeConversationId, roleId);
 

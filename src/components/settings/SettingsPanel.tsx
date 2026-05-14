@@ -299,6 +299,7 @@ function GeneralTab() {
             <Gauge size={14} /> {t("settings.agent.maxIterations")}
           </span>
           <InputNumber
+            id="panel-inputnumber-166"
             min={1}
             max={100}
             value={maxIterations}
@@ -381,6 +382,7 @@ function FeaturesTab() {
                 </Text>
               </div>
               <Switch
+                id="panel-switch-167"
                 checked={features[item.key]}
                 onChange={() => toggleFeature(item.key)}
                 style={{ flexShrink: 0, marginLeft: 16 }}
@@ -610,7 +612,12 @@ function HooksTab() {
                   {hook.commands.length > 0 && (
                     <Badge count={hook.commands.length} size="small" style={{ marginRight: 4 }} />
                   )}
-                  <Switch checked={hook.enabled} onChange={() => toggleHook(hook.event)} size="small" />
+                  <Switch
+                    id="panel-switch-168"
+                    checked={hook.enabled}
+                    onChange={() => toggleHook(hook.event)}
+                    size="small"
+                  />
                 </Space>
               </div>
 

@@ -153,6 +153,7 @@ export function DashboardPluginsSettings() {
       width: 100,
       render: (enabled: boolean, record: DashboardPluginInfo) => (
         <Switch
+          id="dashboard-plugins-settings-switch-50"
           checked={enabled}
           onChange={(checked) => handleToggle(record.id, checked)}
         />

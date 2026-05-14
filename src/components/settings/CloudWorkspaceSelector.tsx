@@ -518,6 +518,7 @@ export default function CloudWorkspaceSelector() {
         <Form form={configForm} layout="vertical">
           <Form.Item label={t("cloudWorkspace.storageType")}>
             <Select
+              id="cloud-workspace-selector-select-42"
               value={storageType}
               onChange={setStorageType}
               options={[
@@ -548,7 +549,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.endpointRequired") },
                 ]}
               >
-                <Input placeholder="https://s3.amazonaws.com" />
+                <Input name="s3Endpoint" placeholder="https://s3.amazonaws.com" />
               </Form.Item>
               <Form.Item
                 name="s3AccessKey"
@@ -557,7 +558,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.accessKeyRequired") },
                 ]}
               >
-                <Input />
+                <Input name="s3AccessKey" />
               </Form.Item>
               <Form.Item
                 name="s3SecretKey"
@@ -566,10 +567,10 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.secretKeyRequired") },
                 ]}
               >
-                <Input.Password />
+                <Input.Password name="s3SecretKey" />
               </Form.Item>
               <Form.Item name="s3Region" label={t("cloudWorkspace.s3Region")}>
-                <Input placeholder="auto" />
+                <Input name="s3Region" placeholder="auto" />
               </Form.Item>
               <Form.Item
                 name="s3Bucket"
@@ -578,10 +579,10 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.bucketRequired") },
                 ]}
               >
-                <Input placeholder={t("cloudWorkspace.bucketPlaceholder")} />
+                <Input name="s3Bucket" placeholder={t("cloudWorkspace.bucketPlaceholder")} />
               </Form.Item>
               <Form.Item name="s3Root" label={t("cloudWorkspace.s3Root")}>
-                <Input placeholder="/" />
+                <Input name="s3Root" placeholder="/" />
               </Form.Item>
             </>
           )}
@@ -595,7 +596,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.webdavUrlRequired") },
                 ]}
               >
-                <Input placeholder="https://dav.example.com/remote.php/webdav" />
+                <Input name="webdavUrl" placeholder="https://dav.example.com/remote.php/webdav" />
               </Form.Item>
               <Form.Item
                 name="webdavUsername"
@@ -604,7 +605,7 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.usernameRequired") },
                 ]}
               >
-                <Input />
+                <Input name="webdavUsername" />
               </Form.Item>
               <Form.Item
                 name="webdavPassword"
@@ -613,13 +614,13 @@ export default function CloudWorkspaceSelector() {
                   { required: true, message: t("cloudWorkspace.passwordRequired") },
                 ]}
               >
-                <Input.Password />
+                <Input.Password name="webdavPassword" />
               </Form.Item>
               <Form.Item
                 name="webdavPath"
                 label={t("cloudWorkspace.webdavPath")}
               >
-                <Input placeholder="/" />
+                <Input name="webdavPath" placeholder="/" />
               </Form.Item>
             </>
           )}

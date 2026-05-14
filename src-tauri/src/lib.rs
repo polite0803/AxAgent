@@ -231,6 +231,7 @@ pub fn run() {
             commands::mcp::hot_reload_mcp_server,
             commands::mcp::discover_available_mcp_servers,
 
+            commands::local_tool::get_tool_count,
             commands::local_tool::list_local_tools,
             commands::local_tool::toggle_local_tool_group,
             commands::local_tool::toggle_single_tool,

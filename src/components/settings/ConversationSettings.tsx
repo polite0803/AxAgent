@@ -49,6 +49,7 @@ export function ConversationSettings() {
             </div>
           </div>
           <Switch
+            id="conversation-settings-switch-43"
             checked={settings.render_user_markdown ?? false}
             onChange={(checked) => saveSettings({ render_user_markdown: checked })}
           />
@@ -80,6 +81,7 @@ export function ConversationSettings() {
         <div className="flex items-center justify-between" style={rowStyle}>
           <span>{t("settings.chatMinimapEnabled")}</span>
           <Switch
+            id="conversation-settings-switch-44"
             checked={settings.chat_minimap_enabled ?? false}
             onChange={(checked) => saveSettings({ chat_minimap_enabled: checked })}
           />

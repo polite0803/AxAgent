@@ -134,6 +134,9 @@ pub async fn create_conversation(
         is_pinned: Set(0),
         enabled_skill_ids: Set("[]".to_string()),
         enabled_wiki_ids: Set("[]".to_string()),
+        mode: Set("agent".to_string()),
+        session_type: Set("conversation".to_string()),
+        memory_status: Set("idle".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
         ..Default::default()

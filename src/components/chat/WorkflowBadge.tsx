@@ -9,7 +9,7 @@ export interface WorkflowBadgeProps {
   sessionType: "conversation" | "workflow";
   workflowTemplateId: string | null | undefined;
   workflowStatus: string | null | undefined;
-  onSelectWorkflow: (templateId: string) => void;
+  onSelectWorkflow: (templateId: string, workflowId?: string) => void;
   onRemoveWorkflow: () => void;
   disabled?: boolean;
 }
@@ -30,9 +30,9 @@ export function WorkflowBadge({
   const isCompleted = workflowStatus === "completed";
   const isWorkflow = sessionType === "workflow" && workflowTemplateId;
 
-  const handleSelect = (template: WorkflowTemplate) => {
+  const handleSelect = (template: WorkflowTemplate, workflowId?: string) => {
     setSelectorOpen(false);
-    onSelectWorkflow(template.id);
+    onSelectWorkflow(template.id, workflowId);
   };
 
   const style = useMemo(() => {
@@ -87,7 +87,7 @@ export function WorkflowBadge({
         <WorkflowTemplateSelector
           open={selectorOpen}
           onClose={() => setSelectorOpen(false)}
-          onSelect={(template) => handleSelect(template)}
+          onSelect={(template, workflowId) => handleSelect(template, workflowId)}
         />
       </>
     );

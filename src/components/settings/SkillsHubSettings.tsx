@@ -161,6 +161,7 @@ export function SkillsHubSettings() {
       <Card className="mb-6">
         <div className="flex gap-3 flex-wrap">
           <Input
+            id="skills-hub-settings-input-174"
             placeholder={t("settings.skillsHub.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -169,6 +170,7 @@ export function SkillsHubSettings() {
             className="flex-1 min-w-50"
           />
           <Select
+            id="skills-hub-settings-select-175"
             value={category}
             onChange={setCategory}
             options={CATEGORIES}

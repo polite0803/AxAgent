@@ -28,17 +28,24 @@ function BashValidationSection() {
     <SettingsGroup title={t("advanced.bashSecurity", "Bash 命令安全验证")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.dangerousCmdDetect", "启用危险命令检测")}</span>
-        <Switch checked={dangerous} onChange={setDangerous} />
+        <Switch id="advanced-settings-switch-4" checked={dangerous} onChange={setDangerous} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.networkCmdDetect", "启用网络命令检测")}</span>
-        <Switch checked={network} onChange={setNetwork} />
+        <Switch id="advanced-settings-switch-5" checked={network} onChange={setNetwork} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.cmdTimeout", "命令超时（秒）")}</span>
-        <InputNumber min={5} max={600} value={timeout} onChange={(v) => v && setTimeout_(v)} style={{ width: 80 }} />
+        <InputNumber
+          id="advanced-settings-inputnumber-6"
+          min={5}
+          max={600}
+          value={timeout}
+          onChange={(v) => v && setTimeout_(v)}
+          style={{ width: 80 }}
+        />
       </div>
     </SettingsGroup>
   );
@@ -60,6 +67,7 @@ function PermissionEnforcerSection() {
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.defaultPermission", "默认权限模式")}</span>
         <Select
+          id="advanced-settings-select-7"
           value={permMode}
           options={[
             { value: "default", label: t("advanced.perm.default", "默认（每次询问）") },
@@ -73,17 +81,17 @@ function PermissionEnforcerSection() {
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.fileWriteConfirm", "文件写入需确认")}</span>
-        <Switch checked={writeConfirm} onChange={setWriteConfirm} />
+        <Switch id="advanced-settings-switch-8" checked={writeConfirm} onChange={setWriteConfirm} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.networkConfirm", "网络请求需确认")}</span>
-        <Switch checked={netConfirm} onChange={setNetConfirm} />
+        <Switch id="advanced-settings-switch-9" checked={netConfirm} onChange={setNetConfirm} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>{t("advanced.shellConfirm", "Shell 执行需确认")}</span>
-        <Switch checked={shellConfirm} onChange={setShellConfirm} />
+        <Switch id="advanced-settings-switch-10" checked={shellConfirm} onChange={setShellConfirm} />
       </div>
     </SettingsGroup>
   );
@@ -103,6 +111,7 @@ function ModeSelectorSection() {
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>默认模式</span>
         <Select
+          id="advanced-settings-select-11"
           value={agentMode}
           options={[
             { value: "general", label: "通用模式" },
@@ -118,6 +127,7 @@ function ModeSelectorSection() {
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>Token 预算上限</span>
         <InputNumber
+          id="advanced-settings-inputnumber-12"
           min={10000}
           max={500000}
           step={10000}
@@ -129,7 +139,7 @@ function ModeSelectorSection() {
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>启用 Token 预算检测</span>
-        <Switch checked={budgetEnabled} onChange={setBudgetEnabled} />
+        <Switch id="advanced-settings-switch-13" checked={budgetEnabled} onChange={setBudgetEnabled} />
       </div>
     </SettingsGroup>
   );
@@ -149,12 +159,13 @@ function RecoveryRecipesSection() {
     <SettingsGroup title="故障恢复策略">
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>自动重试</span>
-        <Switch checked={autoRetry} onChange={setAutoRetry} />
+        <Switch id="advanced-settings-switch-14" checked={autoRetry} onChange={setAutoRetry} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>最大重试次数</span>
         <InputNumber
+          id="advanced-settings-inputnumber-15"
           min={1}
           max={10}
           value={maxRetries}
@@ -165,12 +176,19 @@ function RecoveryRecipesSection() {
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>重试延迟（秒）</span>
-        <InputNumber min={1} max={60} value={delay} onChange={(v) => v && setDelay(v)} style={{ width: 80 }} />
+        <InputNumber
+          id="advanced-settings-inputnumber-16"
+          min={1}
+          max={60}
+          value={delay}
+          onChange={(v) => v && setDelay(v)}
+          style={{ width: 80 }}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>模型降级回退</span>
-        <Switch checked={fallback} onChange={setFallback} />
+        <Switch id="advanced-settings-switch-17" checked={fallback} onChange={setFallback} />
       </div>
     </SettingsGroup>
   );
@@ -192,6 +210,7 @@ function GreenContractSection() {
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>内存使用上限（MB）</span>
         <InputNumber
+          id="advanced-settings-inputnumber-18"
           min={256}
           max={32768}
           step={256}
@@ -203,12 +222,13 @@ function GreenContractSection() {
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>启用空转检测</span>
-        <Switch checked={idleDetect} onChange={setIdleDetect} />
+        <Switch id="advanced-settings-switch-19" checked={idleDetect} onChange={setIdleDetect} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>空闲超时（秒）</span>
         <InputNumber
+          id="advanced-settings-inputnumber-20"
           min={30}
           max={3600}
           value={idleTimeout}
@@ -231,6 +251,7 @@ function CompactionThresholdSection() {
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>自动压缩阈值（token）</span>
         <InputNumber
+          id="advanced-settings-inputnumber-21"
           min={10000}
           max={200000}
           step={5000}
@@ -243,6 +264,7 @@ function CompactionThresholdSection() {
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>警告阈值缓冲（token）</span>
         <InputNumber
+          id="advanced-settings-inputnumber-22"
           min={5000}
           max={100000}
           step={5000}
@@ -254,12 +276,19 @@ function CompactionThresholdSection() {
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>最大连续压缩失败</span>
-        <InputNumber min={1} max={10} value={maxFails} onChange={(v) => v && setMaxFails(v)} style={{ width: 80 }} />
+        <InputNumber
+          id="advanced-settings-inputnumber-23"
+          min={1}
+          max={10}
+          value={maxFails}
+          onChange={(v) => v && setMaxFails(v)}
+          style={{ width: 80 }}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>启用会话记忆压缩</span>
-        <Switch checked={memCompact} onChange={setMemCompact} />
+        <Switch id="advanced-settings-switch-24" checked={memCompact} onChange={setMemCompact} />
       </div>
     </SettingsGroup>
   );
@@ -275,17 +304,25 @@ function DreamConsolidationSection() {
     <SettingsGroup title="Dream 后台巩固">
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>启用 Dream 巩固</span>
-        <Switch checked={enabled} onChange={setEnabled} />
+        <Switch id="advanced-settings-switch-25" checked={enabled} onChange={setEnabled} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>最小间隔（小时）</span>
-        <InputNumber min={1} max={24} value={intervalH} onChange={(v) => v && setIntervalH(v)} style={{ width: 80 }} />
+        <InputNumber
+          id="advanced-settings-inputnumber-26"
+          min={1}
+          max={24}
+          value={intervalH}
+          onChange={(v) => v && setIntervalH(v)}
+          style={{ width: 80 }}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>最小新会话数</span>
         <InputNumber
+          id="advanced-settings-inputnumber-27"
           min={1}
           max={20}
           value={minSessions}
@@ -297,6 +334,7 @@ function DreamConsolidationSection() {
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>最大持续时间（秒）</span>
         <InputNumber
+          id="advanced-settings-inputnumber-28"
           min={30}
           max={600}
           value={maxDuration}
@@ -316,12 +354,13 @@ function LspDiagnosticsSection() {
     <SettingsGroup title="LSP 语言服务器">
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>启用 LSP 诊断</span>
-        <Switch checked={enabled} onChange={setEnabled} />
+        <Switch id="advanced-settings-switch-29" checked={enabled} onChange={setEnabled} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
         <span>诊断级别</span>
         <Select
+          id="advanced-settings-select-30"
           value={level}
           options={[
             { value: "error", label: "仅错误" },

@@ -75,6 +75,7 @@ function ToolItem({
       </div>
       <Tooltip title={groupEnabled ? (tool.enabled ? "点击禁用此工具" : "点击启用此工具") : "分类已禁用，无法单独控制"}>
         <Switch
+          id="local-tool-settings-switch-90"
           size="small"
           checked={tool.enabled && groupEnabled}
           disabled={!groupEnabled}
@@ -110,6 +111,7 @@ function GroupHeader({
       </div>
       <Tooltip title={group.enabled ? "禁用整个分类" : "启用整个分类"}>
         <Switch
+          id="local-tool-settings-switch-91"
           checked={group.enabled}
           onChange={() => onToggleGroup(group.groupId)}
           onClick={(_, e) => e.stopPropagation()}

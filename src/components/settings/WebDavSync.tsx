@@ -410,7 +410,7 @@ export default function WebDavSync() {
               },
             ]}
           >
-            <Input placeholder="https://dav.example.com/dav/" />
+            <Input name="host" placeholder="https://dav.example.com/dav/" />
           </Form.Item>
           <div className="flex gap-4">
             <Form.Item
@@ -419,7 +419,7 @@ export default function WebDavSync() {
               className="flex-1"
               rules={[{ required: true }]}
             >
-              <Input />
+              <Input name="username" />
             </Form.Item>
             <Form.Item
               name="password"
@@ -427,11 +427,11 @@ export default function WebDavSync() {
               className="flex-1"
               rules={[{ required: true }]}
             >
-              <Input.Password />
+              <Input.Password name="password" />
             </Form.Item>
           </div>
           <Form.Item name="path" label={t("backup.webdav.path")}>
-            <Input placeholder="/axagent/" />
+            <Input name="path" placeholder="/axagent/" />
           </Form.Item>
           <div className="flex items-center gap-4 mb-4">
             <Form.Item
@@ -511,6 +511,7 @@ export default function WebDavSync() {
               label={t("backup.webdav.maxBackups")}
             >
               <InputNumber
+                name="maxRemoteBackups"
                 min={1}
                 max={100}
                 style={{ width: 120 }}

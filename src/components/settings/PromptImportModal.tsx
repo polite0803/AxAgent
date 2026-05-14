@@ -178,12 +178,14 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
                     }
                   >
                     <Input
+                      name="url"
                       prefix={<GithubOutlined />}
                       placeholder="https://github.com/yaojingang/yao-open-prompts"
                     />
                   </Form.Item>
                   <Form.Item name="categoryFilter" label={t("promptTemplates.categoryFilter")}>
                     <Input
+                      name="categoryFilter"
                       placeholder={t("promptTemplates.categoryFilterPlaceholder")}
                       allowClear
                     />
