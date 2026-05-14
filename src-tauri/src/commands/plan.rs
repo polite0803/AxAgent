@@ -9,7 +9,8 @@
 
 use crate::app_state::AppState;
 use axagent_core::types::{
-    ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, ProviderProxyConfig,
+    ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,
+    ProviderProxyConfig,
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
@@ -133,6 +134,7 @@ pub enum PlanStatus {
     Approved,
     Executing,
     Completed,
+    Partial,
     Cancelled,
 }
 
@@ -718,7 +720,9 @@ pub async fn plan_generate(
         .map_err(|e| format!("Failed to get messages: {}", e))?;
 
     let user_message_id = messages
-        .first()
+        .iter()
+        .filter(|m| matches!(m.role, MessageRole::User))
+        .max_by_key(|m| m.created_at)
         .map(|m| m.id.clone())
         .unwrap_or_else(|| Uuid::new_v4().to_string());
 
@@ -1025,8 +1029,8 @@ pub async fn plan_get(
                 "approved" => PlanStatus::Approved,
                 "executing" => PlanStatus::Executing,
                 "completed" => PlanStatus::Completed,
+                "partial" => PlanStatus::Partial,
                 "cancelled" => PlanStatus::Cancelled,
-                // "partial" means some steps completed in plan_execute
                 _ => PlanStatus::Cancelled,
             };
             Ok(Some(Plan {
@@ -1077,8 +1081,8 @@ pub async fn plan_list(
                 "approved" => PlanStatus::Approved,
                 "executing" => PlanStatus::Executing,
                 "completed" => PlanStatus::Completed,
+                "partial" => PlanStatus::Partial,
                 "cancelled" => PlanStatus::Cancelled,
-                // "partial" means some steps completed in plan_execute
                 _ => PlanStatus::Cancelled,
             };
             Plan {
@@ -1149,6 +1153,8 @@ pub async fn plan_modify_step(
         "approved" => PlanStatus::Approved,
         "executing" => PlanStatus::Executing,
         "completed" => PlanStatus::Completed,
+        "partial" => PlanStatus::Partial,
+        "cancelled" => PlanStatus::Cancelled,
         _ => PlanStatus::Cancelled,
     };
 

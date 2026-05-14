@@ -1,6 +1,7 @@
+import { invoke } from "@/lib/invoke";
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Card, Dropdown, Empty, Input, message, Modal, Select, Spin, Tag } from "antd";
-import { Copy, Edit2, Eye, History, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
+import { Copy, Download, Edit2, Eye, History, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
@@ -65,6 +66,20 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   const [templateToDelete, setTemplateToDelete] = useState<WorkflowTemplateResponse | null>(null);
   const [versionHistoryVisible, setVersionHistoryVisible] = useState(false);
   const [templateForVersionHistory, setTemplateForVersionHistory] = useState<WorkflowTemplateResponse | null>(null);
+  const [importingPresets, setImportingPresets] = useState(false);
+
+  const handleImportPresetTemplates = async () => {
+    setImportingPresets(true);
+    try {
+      const count = await invoke<number>("seed_preset_templates");
+      message.success(t("workflow.templateList.presetsImported", { defaultValue: `已导入 ${count} 个预设模板` }));
+      await loadTemplates();
+    } catch (e) {
+      message.error(t("workflow.templateList.presetsImportFailed", { defaultValue: `导入失败: ${String(e)}` }));
+    } finally {
+      setImportingPresets(false);
+    }
+  };
 
   React.useEffect(() => {
     loadTemplates();
@@ -282,15 +297,28 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             ]}
           />
         </div>
-        <Button
-          type="primary"
-          icon={<Plus size={14} />}
-          onClick={onCreateNew}
-          style={{ width: "100%" }}
-          size="small"
-        >
-          {t("workflow.templateList.newTemplate")}
-        </Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button
+            type="primary"
+            icon={<Plus size={14} />}
+            onClick={onCreateNew}
+            style={{ flex: 1 }}
+            size="small"
+          >
+            {t("workflow.templateList.newTemplate")}
+          </Button>
+          <Button
+            icon={<Download size={14} />}
+            onClick={handleImportPresetTemplates}
+            loading={importingPresets}
+            size="small"
+            title={t("workflow.templateList.importPresetsTitle", {
+              defaultValue: "导入 12 个预设工作流模板（代码审查、Bug 修复、重构等）",
+            })}
+          >
+            {t("workflow.templateList.importPresets", { defaultValue: "导入预设" })}
+          </Button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>

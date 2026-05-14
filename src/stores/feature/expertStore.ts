@@ -6,6 +6,21 @@ import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
+const BUILTIN_IMPORTED_KEY = "axagent_builtin_experts_imported";
+
+// 默认仅载入通用助手，完整的 12 个开发专家预设不强制加载。
+// 用户可通过专家管理页"导入内置专家"按钮，一次性导入全部 12 个预设。
+const MINIMAL_BUILTIN = BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant");
+
+function loadBuiltinRoles(): AgentProfile[] {
+  try {
+    const imported = localStorage.getItem(BUILTIN_IMPORTED_KEY);
+    if (imported === "true") {
+      return BUILTIN_EXPERT_PRESETS;
+    }
+  } catch { /* ignore */ }
+  return MINIMAL_BUILTIN;
+}
 
 function loadCustomRoles(): AgentProfile[] {
   try {
@@ -129,10 +144,17 @@ interface ExpertState {
   removeCustomRole: (id: string) => void;
   exportCustomRoles: () => string;
   importCustomRoles: (json: string) => { count: number; errors: string[] };
+
+  /** 是否已导入全部内置专家 */
+  hasFullBuiltinPresets: () => boolean;
+  /** 导入全部 12 个内置专家预设 */
+  importBuiltinPresets: () => void;
+  /** 移除除通用助手外的内置专家 */
+  removeBuiltinPresets: () => void;
 }
 
 export const useExpertStore = create<ExpertState>((set, get) => ({
-  builtinRoles: BUILTIN_EXPERT_PRESETS,
+  builtinRoles: loadBuiltinRoles(),
   customRoles: loadCustomRoles(),
   agencyRoles: [],
   agencyLoaded: false,
@@ -320,5 +342,23 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     } catch (e) {
       return { count: 0, errors: [`JSON 解析失败: ${String(e)}`] };
     }
+  },
+
+  hasFullBuiltinPresets: () => {
+    try {
+      return localStorage.getItem(BUILTIN_IMPORTED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  },
+
+  importBuiltinPresets: () => {
+    localStorage.setItem(BUILTIN_IMPORTED_KEY, "true");
+    set({ builtinRoles: BUILTIN_EXPERT_PRESETS });
+  },
+
+  removeBuiltinPresets: () => {
+    localStorage.removeItem(BUILTIN_IMPORTED_KEY);
+    set({ builtinRoles: MINIMAL_BUILTIN });
   },
 }));

@@ -12,7 +12,6 @@ use tracing::warn;
 
 use crate::entity::providers;
 use crate::error::Result;
-use crate::preset_templates;
 use crate::repo::provider;
 use crate::types::*;
 
@@ -69,8 +68,8 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     // Seed built-in providers
     seed_builtin_providers(&conn).await?;
 
-    // Seed preset templates
-    preset_templates::seed_preset_templates(&conn).await?;
+    // 注意：预设模板不再在启动时自动播种。
+    // 工作流模板按需导入，通过前端工作流管理页面的"从预设导入"按钮触发 seed_preset_templates Tauri 命令。
 
     info!("Database initialized at {}", db_path);
     Ok(DbHandle { conn })

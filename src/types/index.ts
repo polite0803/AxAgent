@@ -1227,7 +1227,7 @@ export interface PlanStep {
   result?: string | null;
 }
 
-export type PlanStatus = "draft" | "reviewing" | "approved" | "executing" | "completed" | "cancelled";
+export type PlanStatus = "draft" | "reviewing" | "approved" | "executing" | "completed" | "partial" | "cancelled";
 
 export interface Plan {
   id: string;

@@ -273,11 +273,8 @@ function AppRoot() {
         console.warn(`[启动] get_settings 失败 (${Math.round(performance.now() - t0)}ms):`, e);
       }
 
-      try {
-        await invoke("seed_preset_templates");
-      } catch (e) {
-        console.warn(`[启动] seed_preset_templates 失败 (${Math.round(performance.now() - t0)}ms):`, e);
-      }
+      // 注意：预设工作流模板不再在启动时自动导入。
+      // 用户可通过工作流管理页面"从预设导入"按钮按需触发 seed_preset_templates 命令。
 
       if (!isTauri()) {
         return;

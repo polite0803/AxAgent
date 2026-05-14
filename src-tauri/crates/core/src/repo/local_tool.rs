@@ -4,17 +4,32 @@ use tracing::warn;
 use crate::error::Result;
 use crate::repo::settings;
 
-// ── Builtin group definitions (mirrors mcp_server::BUILTIN_DEFS) ───────
+// ── Builtin group definitions ───────────────────────────────────────────
+//
+// 工具系统有三层，注意区分：
+//
+//   第一层 — UnifiedToolRegistry (tools crate)
+//     ~138 个本地 Rust Tool trait 实现，按 ToolCategory 分 15 个 UI 分组。
+//     启动时全量注册，启用状态按组/按工具独立管理。
+//
+//   第二层 — BUILTIN_DEFS (mcp_server.rs)
+//     29 个内置 MCP 服务器（21 启用 + 8 禁用），每个包含若干 ToolDescriptor。
+//     其中 10 个已迁移为第一层的本地 Rust 实现。
+//
+//   第三层 — 用户自定义 MCP 服务器
+//     通过 settings.json (mcpServers) 动态添加，支持 Stdio/SSE/HTTP 传输。
+//
+//   本文件定义的 BUILTIN_GROUP_DEFS 是第二层中已迁移到第一层的 10 个子集。
+//   其余 19 个内置 MCP 服务器仍仅存在于 mcp_server::BUILTIN_DEFS 中。
 
 /// Builtin local tool group definition.
-/// Mirrors the data in `mcp_server::BUILTIN_DEFS` but uses group_id as the
-/// primary key for the new `local_tool:{group_id}:enabled` settings key.
 struct BuiltinGroupDef {
     id: &'static str,
     name: &'static str,
     default_enabled: bool,
 }
 
+/// 已迁移到本地 Rust 实现的内置 MCP 服务器子集（10 / 29）。
 const BUILTIN_GROUP_DEFS: &[BuiltinGroupDef] = &[
     BuiltinGroupDef {
         id: "builtin-fetch",

@@ -385,6 +385,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   clearAllMessages: async () => {
     const conversationId = get().activeConversationId;
     if (!conversationId) { return; }
+    // Guard: cancel any active stream before clearing messages.
+    // Otherwise the backend stream task would try to update a deleted
+    // placeholder message in DB, producing errors and orphaned chunks.
+    if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+      useStreamStore.getState().cancelCurrentStream(conversationId);
+    }
     try {
       await invoke("clear_conversation_messages", { conversationId });
       set({
@@ -1168,8 +1174,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }));
       // Sync messages from DB so temp- prefixed user messages get replaced
       // with real backend IDs, enabling regenerate after a send failure.
-      // Preserve the temp-error message so it isn't silently dropped by mergePreservedMessages.
-      const errorPreserveIds = [tempErrorId, currentStreamingMessageId].filter(
+      // Preserve the temp-error message AND the optimistic user message so they
+      // aren't silently dropped when invoke("send_message") failed entirely.
+      // (If the DB also has the real user message, mergePreservedMessages keeps both;
+      // a duplicate user bubble is much less harmful than losing the user's input.)
+      const errorPreserveIds = [optimisticUserMsg.id, tempErrorId, currentStreamingMessageId].filter(
         (value): value is string => typeof value === "string" && value.length > 0,
       );
       window.setTimeout(() => {
@@ -1307,6 +1316,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     // Agent 超时保护：10 分钟无响应则报错
     const AGENT_TIMEOUT_MS = 10 * 60 * 1000;
+    // Hoist promise reject so the timeout can reject the promise
+    let _agentReject: ((reason: Error) => void) | null = null;
     let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
       if (!isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) { return; }
       cleanup();
@@ -1325,6 +1336,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           return t;
         })(),
       }));
+      // Reject the event promise so the await doesn't hang forever
+      if (_agentReject) {
+        _agentReject(new Error("Agent 执行超时（10 分钟无响应），请重试"));
+      }
     }, AGENT_TIMEOUT_MS);
 
     // ── Agent stream buffering (same pattern as Q&A _pendingUiChunk) ──
@@ -1493,6 +1508,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     try {
       const eventPromise = new Promise<void>((resolve, reject) => {
+        _agentReject = reject;
         // Listen for the real assistant message ID from the backend
         // This replaces the temp ID so tool call events can be matched
         listen<{ conversationId: string; assistantMessageId: string }>("agent-message-id", (event) => {
@@ -1654,7 +1670,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
           // Sync messages from DB so temp- prefixed user messages get replaced
           // with real backend IDs, enabling regenerate after an agent error.
-          get().fetchMessages(conversationId);
+          // Preserve the optimistic user message — if agent_query failed before
+          // persisting it, fetchMessages would otherwise drop the user's input.
+          get().fetchMessages(conversationId, [optimisticUserMsg.id]);
           cleanup();
           reject(new Error(event.payload.message));
         }).then((fn) => {
@@ -1685,6 +1703,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               return t;
             })(),
           }));
+          if (_agentReject) {
+            _agentReject(new Error("Agent 执行超时，请重试"));
+          }
         }, AGENT_TIMEOUT_MS);
         set((s) => ({
           messages: s.messages.map((m) =>
@@ -1755,8 +1776,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       // Sync messages from DB so temp- prefixed user messages get replaced
       // with real backend IDs, enabling regenerate after an agent send failure.
+      // Preserve the optimistic user message to prevent it from being dropped
+      // when agent_query failed before persisting the user message.
       window.setTimeout(() => {
-        void get().fetchMessages(conversationId);
+        void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
       }, 120);
     }
   },
@@ -1861,7 +1884,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       // Refresh messages after a short delay to get real IDs
       window.setTimeout(() => {
-        void get().fetchMessages(conversationId);
+        void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
       }, 120);
     } catch (e) {
       useStreamStore.setState((s) => ({
@@ -1881,8 +1904,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             : m
         ),
       }));
+      // Preserve the optimistic user message — plan_generate doesn't persist it,
+      // so fetchMessages without preservation would drop the user's input entirely.
       window.setTimeout(() => {
-        void get().fetchMessages(conversationId);
+        void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
       }, 120);
     }
   },
@@ -2175,6 +2200,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         messages: s.messages.filter((m) => m.id !== messageId),
       }));
       return;
+    }
+    // If the message is currently streaming, cancel the stream first
+    const currentStreamingMessageId = getStreamingMessageId(
+      useStreamStore.getState().activeStreams,
+      conversationId,
+    );
+    if (currentStreamingMessageId === messageId) {
+      useStreamStore.getState().cancelCurrentStream(conversationId);
     }
     try {
       await invoke("delete_message", { id: messageId });
@@ -2489,12 +2522,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           ),
         }));
         if (_multiModelTotalRemaining <= 0) {
-          useStreamStore.setState({
-            streaming: false,
-            streamingMessageId: null,
-            streamingConversationId: null,
+          useStreamStore.setState((s) => ({
+            ...stopConversationStream(s.activeStreams, conversation_id),
+            streamingStartTimestamps: (() => {
+              const t = { ...s.streamingStartTimestamps };
+              delete t[conversation_id];
+              return t;
+            })(),
             thinkingActiveMessageIds: new Set<string>(),
-          });
+          }));
           if (_multiModelDoneResolve) {
             const r = _multiModelDoneResolve;
             setMultiModelDoneResolve(null);
@@ -2623,6 +2659,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               let updated = m.content;
               updated = replaceTag(updated, kbSearching, kbDone);
               updated = replaceTag(updated, memSearching, memDone);
+              updated = replaceTag(updated, wikiSearching, wikiDone);
               return { ...m, content: updated };
             }),
           }));

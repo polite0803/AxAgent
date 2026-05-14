@@ -2066,8 +2066,20 @@ function ChatViewInner({ onScrollToReady }: {
   ]);
 
   const aiRole = useCallback((bubbleData: BubbleItemType) => {
-    // bubbleData.key is parent_message_id for stable rendering
-    const msg = assistantByParentId.get(String(bubbleData.key)) ?? messageById.get(String(bubbleData.key));
+    // bubbleData.key is parent_message_id for stable rendering ("ai:xxx" format)
+    const msg = assistantByParentId.get(String(bubbleData.key))
+      ?? (() => {
+        // Fallback: extract parent_id from key "ai:xxx" and find active assistant message.
+        // messageById uses actual message IDs, not "ai:xxx" keys, so direct lookup fails.
+        const key = String(bubbleData.key);
+        if (key.startsWith("ai:")) {
+          const parentId = key.slice(3);
+          return messages.find((m) =>
+            m.parent_message_id === parentId && m.role === "assistant" && m.is_active !== false
+          ) ?? messageById.get(key);
+        }
+        return messageById.get(key);
+      })();
     const isStreaming = streaming && msg?.id === streamingMessageId;
     const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
       isStreaming,

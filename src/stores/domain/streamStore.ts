@@ -644,10 +644,22 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     _pendingUiChunk = null;
     _streamBuffer = null;
-    _pendingConversationRefresh.clear();
+    // Only clear the pending refresh for the conversation being cancelled,
+    // not all conversations (other conversations may have completed streams
+    // that need to be loaded when the user switches back to them).
+    if (activeConvId) {
+      _pendingConversationRefresh.delete(activeConvId);
+    }
 
-    // Clean up multi-model state on cancel
+    // Clean up multi-model state on cancel.
+    // Must resolve _multiModelDoneResolve BEFORE resetMultiModelState sets it to null,
+    // otherwise sendMultiModelMessage hangs forever at `await allDone`.
     if (_isMultiModelActive) {
+      if (_multiModelDoneResolve) {
+        const r = _multiModelDoneResolve;
+        setMultiModelDoneResolve(null);
+        r();
+      }
       resetMultiModelState();
       if (convRef) {
         convRef.setState({ pendingCompanionModels: [], multiModelParentId: null, multiModelDoneMessageIds: [] });

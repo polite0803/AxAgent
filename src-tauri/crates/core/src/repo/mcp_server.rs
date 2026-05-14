@@ -6,17 +6,14 @@ use crate::repo::settings;
 use crate::types::{CreateMcpServerInput, McpServer, ToolDescriptor};
 use crate::utils::gen_id;
 
-// ── Builtin server definitions (not stored in DB) ───────────────────────
+// ── Builtin MCP server definitions (not stored in DB, 19 remaining) ──────
+//
+// 以下 10 个原 MCP 内置服务器已迁移到本地 Rust 实现，不再重复注册：
+//   builtin-fetch, builtin-search-file, builtin-skills, builtin-session,
+//   builtin-search, builtin-filesystem, builtin-system, builtin-knowledge,
+//   builtin-storage, builtin-memory
+// 参见 local_tool::BUILTIN_GROUP_DEFS 和 UnifiedToolRegistry。
 
-const BUILTIN_FETCH_ID: &str = "builtin-fetch";
-const BUILTIN_SEARCH_FILE_ID: &str = "builtin-search-file";
-const BUILTIN_SKILLS_ID: &str = "builtin-skills";
-const BUILTIN_SESSION_ID: &str = "builtin-session";
-const BUILTIN_SEARCH_ID: &str = "builtin-search";
-const BUILTIN_FILESYSTEM_ID: &str = "builtin-filesystem";
-const BUILTIN_SYSTEM_ID: &str = "builtin-system";
-const BUILTIN_KNOWLEDGE_ID: &str = "builtin-knowledge";
-const BUILTIN_STORAGE_ID: &str = "builtin-storage";
 const BUILTIN_BRAVE_SEARCH_ID: &str = "builtin-brave-search";
 const BUILTIN_SEQUENTIAL_THINKING_ID: &str = "builtin-sequential-thinking";
 const BUILTIN_PYTHON_ID: &str = "builtin-python";
@@ -31,7 +28,6 @@ const BUILTIN_REMOTEFILE_ID: &str = "builtin-remotefile";
 const BUILTIN_AGENTCTRL_ID: &str = "builtin-agent-control";
 const BUILTIN_COMPUTER_ID: &str = "builtin-computer-control";
 const BUILTIN_BROWSER_ID: &str = "builtin-browser";
-const BUILTIN_MEMORY_ID: &str = "builtin-memory";
 const BUILTIN_IMAGEGEN_ID: &str = "builtin-image-gen";
 const BUILTIN_CHARTGEN_ID: &str = "builtin-chart-gen";
 const BUILTIN_CODEEDIT_ID: &str = "builtin-code-edit";
@@ -47,69 +43,9 @@ struct BuiltinDef {
 }
 
 const BUILTIN_DEFS: &[BuiltinDef] = &[
-    BuiltinDef {
-        id: BUILTIN_FETCH_ID,
-        name: "@axagent/fetch",
-        alias: "网页抓取",
-        description: "抓取网页内容并转换为文本或 Markdown",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SEARCH_FILE_ID,
-        name: "@axagent/search-file",
-        alias: "文件搜索",
-        description: "在项目目录中搜索文件和内容",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SKILLS_ID,
-        name: "@axagent/skills",
-        alias: "技能管理",
-        description: "列出、安装、卸载技能扩展",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SESSION_ID,
-        name: "@axagent/session",
-        alias: "会话管理",
-        description: "管理对话会话、分支和检查点",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SEARCH_ID,
-        name: "@axagent/search",
-        alias: "网页搜索",
-        description: "通过搜索引擎搜索实时网络信息",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_FILESYSTEM_ID,
-        name: "@axagent/filesystem",
-        alias: "文件系统",
-        description: "创建、删除、移动文件和目录",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_SYSTEM_ID,
-        name: "@axagent/system",
-        alias: "系统信息",
-        description: "获取系统信息和进程列表",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_KNOWLEDGE_ID,
-        name: "@axagent/knowledge",
-        alias: "知识库",
-        description: "搜索和管理知识库文档",
-        default_enabled: true,
-    },
-    BuiltinDef {
-        id: BUILTIN_STORAGE_ID,
-        name: "@axagent/storage",
-        alias: "云存储",
-        description: "上传、下载和管理云端文件",
-        default_enabled: true,
-    },
+    // 注意：fetch, search-file, skills, session, search, filesystem, system,
+    // knowledge, storage, memory 已迁移到本地 Rust 实现（local_tool.rs），
+    // 此处不再作为 MCP 服务器列出。
     BuiltinDef {
         id: BUILTIN_BRAVE_SEARCH_ID,
         name: "@axagent/brave-search",
@@ -209,13 +145,6 @@ const BUILTIN_DEFS: &[BuiltinDef] = &[
         default_enabled: true,
     },
     BuiltinDef {
-        id: BUILTIN_MEMORY_ID,
-        name: "@axagent/memory",
-        alias: "记忆刷新",
-        description: "将短期记忆持久化到长期存储",
-        default_enabled: true,
-    },
-    BuiltinDef {
         id: BUILTIN_IMAGEGEN_ID,
         name: "@axagent/image-gen",
         alias: "图片生成",
@@ -270,10 +199,8 @@ struct PresetDef {
 }
 
 const PRESET_DEFS: &[PresetDef] = &[
-    // NOTE: Filesystem, Terminal, and Memory are now handled by LocalToolRegistry
-    // as builtin tools (@axagent/filesystem, @axagent/system, @axagent/memory).
-    // Git and GitHub can be accessed via run_command (git/gh CLI).
-    // Only keep Browser (puppeteer) as it has no local equivalent.
+    // 内置 MCP 服务器中已有 10 个迁移到 UnifiedToolRegistry（本地 Rust 实现），
+    // Git/GitHub 可通过 run_command 间接使用。仅保留 Puppeteer 作为预设 MCP。
     PresetDef {
         id: "preset-puppeteer",
         name: "Browser",
@@ -699,228 +626,10 @@ pub async fn save_tool_descriptors(
 }
 
 fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
+    // 注意：fetch, search-file, skills, session, search, filesystem, system,
+    // knowledge, storage, memory 已迁移到 UnifiedToolRegistry，此处不再提供
+    // MCP 描述符。
     match server_name {
-        "@axagent/fetch" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-fetch-url"),
-                server_id: server_id.to_string(),
-                name: "fetch_url".into(),
-                description: Some("Fetch a URL and return its content".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"url":{"type":"string","description":"URL to fetch"},"max_length":{"type":"integer","description":"Maximum content length"}},"required":["url"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-fetch-markdown"),
-                server_id: server_id.to_string(),
-                name: "fetch_markdown".into(),
-                description: Some("Fetch a URL and convert the content to markdown".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"url":{"type":"string","description":"URL to fetch"}},"required":["url"]}"#.into()),
-            },
-        ],
-        "@axagent/search-file" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-read-file"),
-                server_id: server_id.to_string(),
-                name: "read_file".into(),
-                description: Some("Read the contents of a file".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File path to read"}},"required":["path"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-list-directory"),
-                server_id: server_id.to_string(),
-                name: "list_directory".into(),
-                description: Some("List files and directories in a given path".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"Directory path to list"}},"required":["path"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-search-files"),
-                server_id: server_id.to_string(),
-                name: "search_files".into(),
-                description: Some("Search for files matching a pattern".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"Base directory"},"pattern":{"type":"string","description":"Search pattern"}},"required":["path","pattern"]}"#.into()),
-            },
-        ],
-        "@axagent/skills" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-skill-manage"),
-                server_id: server_id.to_string(),
-                name: "skill_manage".into(),
-                description: Some("Manage AI skills: create, patch, edit, list, view, delete skills".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"action":{"type":"string","description":"Action: list, view, create, patch, edit, delete"},"name":{"type":"string","description":"Skill name"},"description":{"type":"string","description":"Skill description"},"content":{"type":"string","description":"Skill content (markdown)"},"skills_dir":{"type":"string","description":"Skills directory path"}},"required":["action"]}"#.into()),
-            },
-        ],
-        "@axagent/session" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-session-search"),
-                server_id: server_id.to_string(),
-                name: "session_search".into(),
-                description: Some("Search past conversations using full-text search".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"query":{"type":"string","description":"Search query"},"limit":{"type":"integer","description":"Maximum results (default: 10)"},"db_path":{"type":"string","description":"Database path"}},"required":["query"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-memory-flush"),
-                server_id: server_id.to_string(),
-                name: "memory_flush".into(),
-                description: Some("Persist an insight or memory for future sessions".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"insight":{"type":"string","description":"Insight content to persist"},"target":{"type":"string","description":"Target: skill, session, memory"},"category":{"type":"string","description":"Category: pattern, solution, preference, fact"}},"required":["insight","target","category"]}"#.into()),
-            },
-        ],
-        "@axagent/search" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-web-search"),
-                server_id: server_id.to_string(),
-                name: "web_search".into(),
-                description: Some("Search the web using Tavily, Zhipu, or Bocha search provider".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"query":{"type":"string","description":"Search query"},"provider_type":{"type":"string","description":"Provider: tavily, zhipu, bocha (default: zhipu)"},"max_results":{"type":"integer","description":"Maximum results (default: 5)"}},"required":["query"]}"#.into()),
-            },
-        ],
-        "@axagent/filesystem" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-write-file"),
-                server_id: server_id.to_string(),
-                name: "write_file".into(),
-                description: Some("Write content to a file (creates parent directories if needed)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File path to write"},"content":{"type":"string","description":"Content to write"}},"required":["path","content"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-edit-file"),
-                server_id: server_id.to_string(),
-                name: "edit_file".into(),
-                description: Some("Edit a file by replacing text (first occurrence only)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File path to edit"},"old_str":{"type":"string","description":"Text to find and replace"},"new_str":{"type":"string","description":"Replacement text"}},"required":["path","old_str","new_str"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-delete-file"),
-                server_id: server_id.to_string(),
-                name: "delete_file".into(),
-                description: Some("Delete a file or directory".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File or directory path to delete"}},"required":["path"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-create-directory"),
-                server_id: server_id.to_string(),
-                name: "create_directory".into(),
-                description: Some("Create a directory (creates parent directories recursively)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"Directory path to create"}},"required":["path"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-file-exists"),
-                server_id: server_id.to_string(),
-                name: "file_exists".into(),
-                description: Some("Check if a file or directory exists".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File or directory path to check"}},"required":["path"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-get-file-info"),
-                server_id: server_id.to_string(),
-                name: "get_file_info".into(),
-                description: Some("Get detailed information about a file or directory".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File or directory path"}},"required":["path"]}"#.into()),
-            },
-        ],
-        "@axagent/system" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-run-command"),
-                server_id: server_id.to_string(),
-                name: "run_command".into(),
-                description: Some("Execute a shell command (blocked dangerous commands for security)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"command":{"type":"string","description":"Shell command to execute"},"timeout_secs":{"type":"integer","description":"Timeout in seconds (default: 30)"}},"required":["command"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-get-system-info"),
-                server_id: server_id.to_string(),
-                name: "get_system_info".into(),
-                description: Some("Get system information (OS, architecture, home dir, uptime)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-list-processes"),
-                server_id: server_id.to_string(),
-                name: "list_processes".into(),
-                description: Some("List running processes".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"limit":{"type":"integer","description":"Maximum number of processes to show (default: 20)"}}}"#.into()),
-            },
-        ],
-        "@axagent/knowledge" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-list-knowledge-bases"),
-                server_id: server_id.to_string(),
-                name: "list_knowledge_bases".into(),
-                description: Some("List available knowledge bases".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-search-knowledge"),
-                server_id: server_id.to_string(),
-                name: "search_knowledge".into(),
-                description: Some("Search a knowledge base for relevant information".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"base_id":{"type":"string","description":"Knowledge base ID"},"query":{"type":"string","description":"Search query"},"top_k":{"type":"integer","description":"Number of results (default: 5)"}},"required":["query"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-create-knowledge-entity"),
-                server_id: server_id.to_string(),
-                name: "create_knowledge_entity".into(),
-                description: Some("Create a knowledge graph entity (service, component, module, etc.)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"knowledge_base_id":{"type":"string"},"name":{"type":"string"},"entity_type":{"type":"string"},"description":{"type":"string"},"source_path":{"type":"string"},"source_language":{"type":"string"},"properties":{"type":"object"},"lifecycle":{"type":"object"},"behaviors":{"type":"object"}},"required":["knowledge_base_id","name","entity_type"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-create-knowledge-flow"),
-                server_id: server_id.to_string(),
-                name: "create_knowledge_flow".into(),
-                description: Some("Create a knowledge graph flow (process, pipeline, workflow)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"knowledge_base_id":{"type":"string"},"name":{"type":"string"},"flow_type":{"type":"string"},"description":{"type":"string"},"source_path":{"type":"string"},"steps":{"type":"object"},"decision_points":{"type":"object"},"error_handling":{"type":"object"},"preconditions":{"type":"object"},"postconditions":{"type":"object"}},"required":["knowledge_base_id","name","flow_type"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-create-knowledge-interface"),
-                server_id: server_id.to_string(),
-                name: "create_knowledge_interface".into(),
-                description: Some("Create a knowledge graph interface (API, protocol, contract)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"knowledge_base_id":{"type":"string"},"name":{"type":"string"},"interface_type":{"type":"string"},"description":{"type":"string"},"source_path":{"type":"string"},"input_schema":{"type":"object"},"output_schema":{"type":"object"},"error_codes":{"type":"object"},"communication_pattern":{"type":"string"}},"required":["knowledge_base_id","name","interface_type"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-add-knowledge-document"),
-                server_id: server_id.to_string(),
-                name: "add_knowledge_document".into(),
-                description: Some("Add a document to a knowledge base for indexing".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"knowledge_base_id":{"type":"string"},"title":{"type":"string"},"content":{"type":"string"}},"required":["knowledge_base_id","title","content"]}"#.into()),
-            },
-        ],
-        "@axagent/storage" => vec![
-            ToolDescriptor {
-                id: format!("{server_id}-get-storage-info"),
-                server_id: server_id.to_string(),
-                name: "get_storage_info".into(),
-                description: Some("Get AxAgent storage information (config and documents directories)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-list-storage-files"),
-                server_id: server_id.to_string(),
-                name: "list_storage_files".into(),
-                description: Some("List files in AxAgent storage directory".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"Subdirectory path (images, files, backups, or empty for root)"},"limit":{"type":"integer","description":"Maximum files to show (default: 50)"}}}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-upload-storage-file"),
-                server_id: server_id.to_string(),
-                name: "upload_storage_file".into(),
-                description: Some("Upload a file to AxAgent storage (base64 encoded)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"filename":{"type":"string","description":"File name"},"content_base64":{"type":"string","description":"File content as base64"},"bucket":{"type":"string","description":"Storage bucket: images, files, or backups"}},"required":["filename","content_base64"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-download-storage-file"),
-                server_id: server_id.to_string(),
-                name: "download_storage_file".into(),
-                description: Some("Download a file from AxAgent storage (returns base64)".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File path relative to documents root"}},"required":["path"]}"#.into()),
-            },
-            ToolDescriptor {
-                id: format!("{server_id}-delete-storage-file"),
-                server_id: server_id.to_string(),
-                name: "delete_storage_file".into(),
-                description: Some("Delete a file from AxAgent storage".into()),
-                input_schema_json: Some(r#"{"type":"object","properties":{"path":{"type":"string","description":"File path relative to documents root"}},"required":["path"]}"#.into()),
-            },
-        ],
         "@axagent/brave-search" => vec![
             ToolDescriptor {
                 id: format!("{server_id}-brave-web-search"),
@@ -1144,9 +853,6 @@ fn builtin_tools(server_id: &str, server_name: &str) -> Vec<ToolDescriptor> {
             ToolDescriptor { id: format!("{server_id}-browser-get-content"), server_id: server_id.to_string(), name: "browser_get_content".into(), description: Some("Get full HTML content of the page".into()), input_schema_json: Some(r#"{"type":"object","properties":{}}"#.into()), },
             ToolDescriptor { id: format!("{server_id}-browser-select"), server_id: server_id.to_string(), name: "browser_select".into(), description: Some("Select a dropdown option".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"value":{"type":"string"}},"required":["selector","value"]}"#.into()), },
             ToolDescriptor { id: format!("{server_id}-browser-wait-for"), server_id: server_id.to_string(), name: "browser_wait_for".into(), description: Some("Wait for an element to appear".into()), input_schema_json: Some(r#"{"type":"object","properties":{"selector":{"type":"string"},"timeout":{"type":"integer"}},"required":["selector"]}"#.into()), },
-        ],
-        "@axagent/memory" => vec![
-            ToolDescriptor { id: format!("{server_id}-memory-flush"), server_id: server_id.to_string(), name: "memory_flush".into(), description: Some("Persist an insight to long-term memory".into()), input_schema_json: Some(r#"{"type":"object","properties":{"content":{"type":"string"},"target":{"type":"string","enum":["memory","user"]},"category":{"type":"string","enum":["insight","decision","error_solution","preference","pattern","workflow"]}},"required":["content"]}"#.into()), },
         ],
         "@axagent/image-gen" => vec![
             ToolDescriptor { id: format!("{server_id}-generate-image"), server_id: server_id.to_string(), name: "generate_image".into(), description: Some("Generate an image from a text prompt".into()), input_schema_json: Some(r#"{"type":"object","properties":{"prompt":{"type":"string"},"provider":{"type":"string","enum":["flux","dall-e"]},"width":{"type":"integer"},"height":{"type":"integer"},"steps":{"type":"integer"},"seed":{"type":"integer"},"api_key":{"type":"string"}},"required":["prompt"]}"#.into()), },

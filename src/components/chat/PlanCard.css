@@ -3,11 +3,7 @@
 }
 
 .plan-card:hover {
-<<<<<<< Updated upstream
   box-shadow: 0 1px 3px color-mix(in srgb, var(--ant-color-bg-mask, #000) 4%, transparent);
-=======
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
->>>>>>> Stashed changes
 }
 
 .plan-step-item {
