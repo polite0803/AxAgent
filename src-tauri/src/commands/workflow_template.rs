@@ -1461,7 +1461,7 @@ mod tests {
         assert_eq!(profile, "code-reviewer");
         assert_eq!(role, "reviewer");
         assert_eq!(expert, "code-reviewer");
-        assert!(prompt.contains("审查"));
+        assert!(prompt.contains("Review"));
     }
 
     #[test]
