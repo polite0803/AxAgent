@@ -106,6 +106,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       {isEditing
         ? (
           <Input
+            id="editor-header-input-73"
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
             onBlur={handleNameBlur}

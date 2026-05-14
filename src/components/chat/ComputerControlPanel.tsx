@@ -206,6 +206,7 @@ export function ComputerControlPanel() {
                 {t("computerControl.executeClick")}
               </Button>
               <Input
+                id="computer-control-panel-input-9"
                 placeholder={t("computerControl.typePlaceholder")}
                 style={{ width: 200 }}
                 onPressEnter={(e) => handleTypeText(e.currentTarget.value, clickCoords.x, clickCoords.y)}

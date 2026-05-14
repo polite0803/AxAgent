@@ -116,6 +116,7 @@ export function FilePermissionDialog({
             <Descriptions column={1} size="small">
               <Descriptions.Item label="请求原因">
                 <Input.TextArea
+                  id="file-permission-dialog-input-textarea-21"
                   value={customReason}
                   onChange={(e) => setCustomReason(e.target.value)}
                   placeholder="说明访问此文件的用途..."
@@ -148,6 +149,7 @@ export function FilePermissionDialog({
                 <Typography.Text strong>授权时长</Typography.Text>
                 <Space style={{ marginTop: 8 }}>
                   <Input
+                    id="file-permission-dialog-input-22"
                     type="number"
                     value={duration}
                     onChange={(e) => setDuration(Number(e.target.value))}

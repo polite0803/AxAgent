@@ -340,6 +340,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               {t("workflow.importExport.templateId")}
             </label>
             <Input
+              id="import-export-modal-input-126"
               placeholder={t("workflow.importExport.enterTemplateId")}
               value={exportId}
               onChange={(e) => setExportId(e.target.value)}
@@ -366,6 +367,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                 </label>
                 <div style={{ position: "relative" }}>
                   <Input.TextArea
+                    id="import-export-modal-input-textarea-127"
                     value={exportResult}
                     readOnly
                     rows={10}
@@ -420,6 +422,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               {t("workflow.importExport.pasteJsonData")}
             </label>
             <Input.TextArea
+              id="import-export-modal-input-textarea-128"
               placeholder={t("workflow.importExport.pasteJsonPlaceholder")}
               value={importData}
               onChange={(e) => setImportData(e.target.value)}

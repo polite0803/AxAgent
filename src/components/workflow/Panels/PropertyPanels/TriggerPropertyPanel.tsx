@@ -51,6 +51,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
             <div>
               <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.cronExpression")}</label>
               <Input
+                id="trigger-property-panel-input-113"
                 value={(triggerConfig.config as { cron?: string }).cron || ""}
                 onChange={(e) => handleConfigChange("cron", e.target.value)}
                 placeholder="* * * * *"
@@ -93,6 +94,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
             <div>
               <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.webhookPath")}</label>
               <Input
+                id="trigger-property-panel-input-114"
                 value={(triggerConfig.config as { path?: string }).path || ""}
                 onChange={(e) => handleConfigChange("path", e.target.value)}
                 placeholder="/webhook/my-trigger"
@@ -138,6 +140,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
             <div>
               <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.eventType")}</label>
               <Input
+                id="trigger-property-panel-input-115"
                 value={(triggerConfig.config as { event_type?: string }).event_type || ""}
                 onChange={(e) => handleConfigChange("event_type", e.target.value)}
                 placeholder="message.created"

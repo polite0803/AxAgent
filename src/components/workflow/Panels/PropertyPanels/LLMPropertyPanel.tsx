@@ -103,6 +103,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
           {t("workflow.props.prompt")}
         </label>
         <Input.TextArea
+          id="l-l-m-property-panel-input-textarea-96"
           value={config.prompt || ""}
           onChange={(e) => handleConfigChange("prompt", e.target.value)}
           rows={5}
@@ -125,6 +126,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
             {t("workflow.props.temperature")}
           </label>
           <InputNumber
+            id="l-l-m-property-panel-inputnumber-97"
             value={config.temperature ?? 0.7}
             onChange={(value) => handleConfigChange("temperature", value)}
             min={0}
@@ -142,6 +144,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
             {t("workflow.props.maxTokens")}
           </label>
           <InputNumber
+            id="l-l-m-property-panel-inputnumber-98"
             value={config.max_tokens ?? 2048}
             onChange={(value) => handleConfigChange("max_tokens", value)}
             min={100}
@@ -178,6 +181,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
                       {varName} ({String(varType)})
                     </label>
                     <Input
+                      id="l-l-m-property-panel-input-99"
                       placeholder={`${varName} (${String(varType)})`}
                       value={variableValues[varName] || ""}
                       onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}

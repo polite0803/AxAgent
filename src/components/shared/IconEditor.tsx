@@ -226,6 +226,7 @@ export function IconEditor({
       {showUrlInput && (
         <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
           <Input
+            id="icon-editor-input-52"
             placeholder={t("settings.memory.iconUrlPlaceholder")}
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}

@@ -478,6 +478,7 @@ pub fn run() {
             commands::plan::plan_generate,
             commands::plan::plan_execute,
             commands::plan::plan_cancel,
+            commands::plan::plan_activate,
             commands::plan::plan_get,
             commands::plan::plan_list,
             commands::plan::plan_modify_step,

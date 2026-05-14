@@ -75,7 +75,7 @@ export function CreateTeamModal({
           label="团队名称"
           rules={[{ required: true, message: "请输入团队名称" }]}
         >
-          <Input placeholder="例如：前端开发组、数据分析组" />
+          <Input name="teamName" placeholder="例如：前端开发组、数据分析组" />
         </Form.Item>
 
         <Form.Item label="队友列表">
@@ -94,7 +94,7 @@ export function CreateTeamModal({
                       rules={[{ required: true, message: "请输入队友名称" }]}
                       style={{ marginBottom: 0 }}
                     >
-                      <Input placeholder="队友名称" style={{ width: 200 }} />
+                      <Input id="create-team-modal-input-12" placeholder="队友名称" style={{ width: 200 }} />
                     </Form.Item>
 
                     <Form.Item

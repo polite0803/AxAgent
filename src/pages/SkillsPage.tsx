@@ -597,6 +597,7 @@ export function SkillsPage() {
       <div style={{ padding: "0 4px", flexShrink: 0 }}>
         <Space.Compact style={{ width: "100%", marginBottom: 8 }}>
           <Input
+            id="skills-page-input-132"
             placeholder={t("skills.installUrlPlaceholder")}
             value={installUrl}
             onChange={(e) => setInstallUrl(e.target.value)}

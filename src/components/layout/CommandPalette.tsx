@@ -301,6 +301,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     >
       <div onKeyDown={handleKeyDown}>
         <Input
+          id="command-palette-input-48"
           prefix={<Search size={16} color={CHAT_ICON_COLORS.Search} />}
           placeholder={t("commandPalette.placeholder")}
           value={query}

@@ -18,6 +18,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
           {t("workflow.props.title")}
         </label>
         <Input
+          id="base-property-panel-input-80"
           value={node.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           size="small"
@@ -29,6 +30,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
           {t("workflow.props.description")}
         </label>
         <Input.TextArea
+          id="base-property-panel-input-textarea-81"
           value={node.description || ""}
           onChange={(e) => onUpdate({ description: e.target.value })}
           rows={2}
@@ -61,6 +63,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
             <div>
               <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.maxRetries")}</label>
               <InputNumber
+                id="base-property-panel-inputnumber-82"
                 value={node.retry.max_retries}
                 onChange={(value) => onUpdate({ retry: { ...node.retry, max_retries: value || 3 } })}
                 min={1}
@@ -86,6 +89,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
             <div>
               <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.baseDelayMs")}</label>
               <InputNumber
+                id="base-property-panel-inputnumber-83"
                 value={node.retry.base_delay_ms}
                 onChange={(value) => onUpdate({ retry: { ...node.retry, base_delay_ms: value || 1000 } })}
                 min={100}
@@ -105,6 +109,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
           {t("workflow.props.timeoutSeconds")}
         </label>
         <InputNumber
+          id="base-property-panel-inputnumber-84"
           value={node.timeout}
           onChange={(value) => onUpdate({ timeout: value ?? undefined })}
           min={1}

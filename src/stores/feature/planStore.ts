@@ -106,7 +106,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
 
     try {
       const request: PlanExecuteRequest = { conversationId, planId };
-      await invoke("plan_execute", { request });
+      await invoke("plan_execute", { request }, 0);
       // Plan status will be updated via planStepUpdate / planExecutionComplete events
     } catch (e) {
       const errMsg = String(e);
@@ -181,7 +181,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
 
     try {
       const request: PlanExecuteRequest = { conversationId, planId, stepIds };
-      await invoke("plan_execute", { request });
+      await invoke("plan_execute", { request }, 0);
     } catch (e) {
       const errMsg = String(e);
       message.error(errMsg);
@@ -193,15 +193,17 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   },
 
   resumePlan: async (conversationId, planId) => {
+    set((s) => ({ loading: { ...s.loading, [conversationId]: true } }));
     try {
-      const plan: Plan = await invoke("plan_get", { request: { planId } });
-      if (plan) {
-        set((s) => ({
-          activePlans: { ...s.activePlans, [conversationId]: plan },
-        }));
-      }
+      const plan: Plan = await invoke("plan_activate", { request: { conversationId, planId } });
+      set((s) => ({
+        activePlans: { ...s.activePlans, [conversationId]: plan },
+        loading: { ...s.loading, [conversationId]: false },
+      }));
+      message.success("计划已恢复，可在上方查看和审批");
     } catch (e) {
       console.error("[planStore] resumePlan failed:", e);
+      set((s) => ({ loading: { ...s.loading, [conversationId]: false } }));
       message.error(`恢复计划失败: ${String(e)}`);
     }
   },

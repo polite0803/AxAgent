@@ -128,14 +128,14 @@ export function DatasetManager() {
             label={t("devtools.fineTune.datasetName")}
             rules={[{ required: true, message: "Please input dataset name" }]}
           >
-            <Input placeholder={t("devtools.fineTune.datasetNamePlaceholder")} />
+            <Input name="name" placeholder={t("devtools.fineTune.datasetNamePlaceholder")} />
           </Form.Item>
           <Form.Item
             name="description"
             label={t("devtools.fineTune.description")}
             rules={[{ required: true, message: "Please input description" }]}
           >
-            <Input.TextArea placeholder={t("devtools.fineTune.datasetDescPlaceholder")} rows={3} />
+            <Input.TextArea name="description" placeholder={t("devtools.fineTune.datasetDescPlaceholder")} rows={3} />
           </Form.Item>
           <Form.Item>
             <Space>
@@ -160,17 +160,17 @@ export function DatasetManager() {
             label={t("devtools.fineTune.input")}
             rules={[{ required: true, message: "Please input the sample input" }]}
           >
-            <Input.TextArea placeholder={t("devtools.fineTune.inputPlaceholder")} rows={3} />
+            <Input.TextArea name="input" placeholder={t("devtools.fineTune.inputPlaceholder")} rows={3} />
           </Form.Item>
           <Form.Item
             name="output"
             label={t("devtools.fineTune.output")}
             rules={[{ required: true, message: "Please input the sample output" }]}
           >
-            <Input.TextArea placeholder={t("devtools.fineTune.outputPlaceholder")} rows={3} />
+            <Input.TextArea name="output" placeholder={t("devtools.fineTune.outputPlaceholder")} rows={3} />
           </Form.Item>
           <Form.Item name="systemPrompt" label={t("devtools.fineTune.systemPromptOptional")}>
-            <Input.TextArea placeholder={t("devtools.fineTune.systemPromptPlaceholder")} rows={2} />
+            <Input.TextArea name="systemPrompt" placeholder={t("devtools.fineTune.systemPromptPlaceholder")} rows={2} />
           </Form.Item>
           <Form.Item>
             <Space>

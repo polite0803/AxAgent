@@ -175,7 +175,7 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
         {/* Name */}
         <div style={{ marginBottom: 16 }}>
           <div style={labelStyle}>{t("common.name")}</div>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input id="conversation-settings-modal-input-10" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         {/* System Prompt */}
@@ -195,6 +195,7 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
             </div>
           )}
           <Input.TextArea
+            id="conversation-settings-modal-input-textarea-11"
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             rows={3}

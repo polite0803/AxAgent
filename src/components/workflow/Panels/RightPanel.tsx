@@ -254,6 +254,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
             {t("workflow.rightPanel.label")}
           </label>
           <Input
+            id="right-panel-input-124"
             value={selectedEdge.label || ""}
             onChange={(e) => useWorkflowEditorStore.getState().updateEdge(selectedEdge.id, { label: e.target.value })}
             size="small"
@@ -297,6 +298,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
             {t("workflow.rightPanel.description")}
           </label>
           <Input.TextArea
+            id="right-panel-input-textarea-125"
             value={currentTemplate.description || ""}
             rows={3}
             size="small"

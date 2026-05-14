@@ -121,6 +121,7 @@ export const LeftPanel: React.FC = () => {
             children: (
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                 <Input
+                  id="left-panel-input-74"
                   prefix={<Search size={14} style={{ color: "#666" }} />}
                   placeholder={t("workflow.leftPanel.searchNodes")}
                   value={search}
@@ -188,6 +189,7 @@ export const LeftPanel: React.FC = () => {
             children: (
               <div style={{ padding: "8px" }}>
                 <Input
+                  id="left-panel-input-75"
                   prefix={<Search size={14} style={{ color: "#666" }} />}
                   placeholder={t("workflow.leftPanel.searchTemplates")}
                   value={templateSearch}

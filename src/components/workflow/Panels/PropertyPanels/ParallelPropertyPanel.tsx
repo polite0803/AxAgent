@@ -105,6 +105,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
           {t("workflow.props.timeoutSeconds")}
         </label>
         <Input
+          id="parallel-property-panel-input-105"
           type="number"
           value={config.timeout ?? ""}
           onChange={(e) =>
@@ -150,6 +151,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
                   <GripVertical size={12} color="#666" />
                   <Input
+                    id="parallel-property-panel-input-106"
                     value={branch.title}
                     onChange={(e) => handleUpdateBranch(index, { title: e.target.value })}
                     size="small"

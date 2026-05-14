@@ -130,6 +130,7 @@ export function BrowserAutomationPanel() {
         <Space direction="vertical" style={{ width: "100%" }}>
           <Space>
             <Input
+              id="browser-automation-panel-input-1"
               placeholder={t("browser.enterUrl")}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
@@ -170,6 +171,7 @@ export function BrowserAutomationPanel() {
         <Space direction="vertical" style={{ width: "100%" }}>
           <Space>
             <Input
+              id="browser-automation-panel-input-2"
               placeholder={t("browser.cssSelectorPlaceholder")}
               value={selector}
               onChange={(e) => setSelector(e.target.value)}

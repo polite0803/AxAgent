@@ -105,6 +105,7 @@ export function ImageGenPanel({
       </Space>
 
       <Input.TextArea
+        id="image-gen-panel-input-textarea-23"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="描述你想生成的图片..."
@@ -112,6 +113,7 @@ export function ImageGenPanel({
       />
 
       <Input
+        id="image-gen-panel-input-24"
         value={negativePrompt}
         onChange={(e) => setNegativePrompt(e.target.value)}
         placeholder="负面提示词（可选）"

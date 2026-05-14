@@ -923,6 +923,7 @@ export function QuickBarPage() {
           </span>
         )}
         <Input
+          id="quick-bar-page-input-131"
           ref={inputRef}
           placeholder={showCommands
             ? t("quickbar.selectCommand")

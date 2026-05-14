@@ -48,6 +48,14 @@ pub struct PlanCancelRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct PlanActivateRequest {
+    #[serde(rename = "conversationId")]
+    pub conversation_id: String,
+    #[serde(rename = "planId")]
+    pub plan_id: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct PlanGetRequest {
     #[serde(rename = "planId")]
     pub plan_id: String,
@@ -941,6 +949,60 @@ pub async fn plan_cancel(
     Ok(())
 }
 
+/// Activate a plan for review — sets is_active=1, deactivates others.
+#[tauri::command]
+pub async fn plan_activate(
+    state: tauri::State<'_, AppState>,
+    request: PlanActivateRequest,
+) -> Result<Plan, String> {
+    let db = &state.sea_db;
+
+    // Deactivate all other active plans for this conversation
+    let existing = axagent_core::entity::plans::Entity::find()
+        .filter(axagent_core::entity::plans::Column::ConversationId.eq(&request.conversation_id))
+        .filter(axagent_core::entity::plans::Column::IsActive.eq(1))
+        .all(db)
+        .await
+        .map_err(|e| format!("DB error: {}", e))?;
+    for row in &existing {
+        if row.id != request.plan_id {
+            let mut am: axagent_core::entity::plans::ActiveModel = row.clone().into();
+            am.is_active = Set(0);
+            am.updated_at = Set(chrono::Utc::now().timestamp_millis());
+            am.update(db).await.ok();
+        }
+    }
+
+    // Activate target plan
+    let row = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
+        .one(db)
+        .await
+        .map_err(|e| format!("DB error: {}", e))?
+        .ok_or_else(|| format!("Plan not found: {}", request.plan_id))?;
+
+    let mut am: axagent_core::entity::plans::ActiveModel = row.clone().into();
+    am.is_active = Set(1);
+    am.status = Set("reviewing".to_string());
+    am.updated_at = Set(chrono::Utc::now().timestamp_millis());
+    am.update(db)
+        .await
+        .map_err(|e| format!("DB error: {}", e))?;
+
+    let steps: Vec<PlanStep> = serde_json::from_str(&row.steps_json).unwrap_or_default();
+    Ok(Plan {
+        id: row.id.clone(),
+        conversation_id: row.conversation_id.clone(),
+        user_message_id: row.user_message_id.clone(),
+        title: row.title.clone(),
+        steps,
+        status: PlanStatus::Reviewing,
+        is_active: true,
+        created_under_strategy: row.created_under_strategy.clone(),
+        created_at: row.created_at,
+        updated_at: chrono::Utc::now().timestamp_millis(),
+    })
+}
+
 /// Get a plan by ID.
 #[tauri::command]
 pub async fn plan_get(
@@ -963,6 +1025,8 @@ pub async fn plan_get(
                 "approved" => PlanStatus::Approved,
                 "executing" => PlanStatus::Executing,
                 "completed" => PlanStatus::Completed,
+                "cancelled" => PlanStatus::Cancelled,
+                // "partial" means some steps completed in plan_execute
                 _ => PlanStatus::Cancelled,
             };
             Ok(Some(Plan {
@@ -1013,6 +1077,8 @@ pub async fn plan_list(
                 "approved" => PlanStatus::Approved,
                 "executing" => PlanStatus::Executing,
                 "completed" => PlanStatus::Completed,
+                "cancelled" => PlanStatus::Cancelled,
+                // "partial" means some steps completed in plan_execute
                 _ => PlanStatus::Cancelled,
             };
             Plan {

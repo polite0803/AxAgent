@@ -146,7 +146,7 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
               </Dragger>
             </Form.Item>
             <Form.Item name="path" label={t("wiki.ingest.path")} rules={[{ required: true }]}>
-              <Input prefix={<FolderOutlined />} placeholder={t("wiki.ingest.pathPlaceholder")} />
+              <Input name="path" prefix={<FolderOutlined />} placeholder={t("wiki.ingest.pathPlaceholder")} />
             </Form.Item>
           </>
         )}
@@ -160,7 +160,7 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
               { type: "url", message: t("wiki.ingest.urlInvalid") },
             ]}
           >
-            <Input prefix={<LinkOutlined />} placeholder="https://..." />
+            <Input name="url" prefix={<LinkOutlined />} placeholder="https://..." />
           </Form.Item>
         )}
 
@@ -170,12 +170,12 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
             label={t("wiki.ingest.folderPath")}
             rules={[{ required: true, message: t("wiki.ingest.folderPathRequired") }]}
           >
-            <Input prefix={<FolderOutlined />} placeholder={t("wiki.ingest.folderPathPlaceholder")} />
+            <Input name="path" prefix={<FolderOutlined />} placeholder={t("wiki.ingest.folderPathPlaceholder")} />
           </Form.Item>
         )}
 
         <Form.Item name="title" label={t("wiki.ingest.title")}>
-          <Input placeholder={t("wiki.ingest.titlePlaceholder")} />
+          <Input name="title" placeholder={t("wiki.ingest.titlePlaceholder")} />
         </Form.Item>
 
         {uploading && <Progress percent={progress} status="active" />}

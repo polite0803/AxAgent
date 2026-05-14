@@ -39,6 +39,7 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
         <div>
           <Text type="secondary">Host</Text>
           <Input
+            id="ssh-config-modal-input-65"
             value={host}
             onChange={(e) => setHost(e.target.value)}
             placeholder="192.168.1.100 or server.example.com"
@@ -47,6 +48,7 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
         <div>
           <Text type="secondary">Port</Text>
           <InputNumber
+            id="ssh-config-modal-inputnumber-66"
             value={port}
             onChange={(v) => setPort(v ?? 22)}
             min={1}
@@ -57,6 +59,7 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
         <div>
           <Text type="secondary">Username</Text>
           <Input
+            id="ssh-config-modal-input-67"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="root"
@@ -65,6 +68,7 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
         <div>
           <Text type="secondary">SSH Key Path (optional)</Text>
           <Input
+            id="ssh-config-modal-input-68"
             value={keyPath}
             onChange={(e) => setKeyPath(e.target.value)}
             placeholder="~/.ssh/id_rsa"

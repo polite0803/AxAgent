@@ -127,6 +127,7 @@ export function GatewayKeys() {
           {t("gateway.createKey")}
         </Button>
         <Input
+          id="gateway-keys-input-40"
           placeholder={t("gateway.searchKeys")}
           prefix={<Search size={14} style={{ opacity: 0.45 }} />}
           value={searchText}
@@ -191,6 +192,7 @@ export function GatewayKeys() {
                 showIcon
               />
               <Input.TextArea
+                id="gateway-keys-input-textarea-41"
                 value={createdKey}
                 readOnly
                 autoSize={{ minRows: 2 }}
@@ -200,6 +202,7 @@ export function GatewayKeys() {
           )
           : (
             <Input
+              id="gateway-keys-input-42"
               placeholder={t("gateway.keyName")}
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}

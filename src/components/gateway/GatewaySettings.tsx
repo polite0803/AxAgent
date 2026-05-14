@@ -174,6 +174,7 @@ export function GatewaySettings() {
         <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
           <span>{t("gateway.listenAddress")}</span>
           <Input
+            id="gateway-settings-input-43"
             value={listenAddressValue}
             onChange={(e) => setListenAddressValue(e.target.value)}
             onBlur={handleListenAddressCommit}
@@ -187,6 +188,7 @@ export function GatewaySettings() {
           <span>{t("gateway.port")}</span>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
             <InputNumber
+              id="gateway-settings-inputnumber-44"
               value={portValue}
               onChange={handlePortChange}
               min={1}
@@ -235,6 +237,7 @@ export function GatewaySettings() {
               <span>{t("gateway.sslPort")}</span>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                 <InputNumber
+                  id="gateway-settings-inputnumber-45"
                   value={sslPortValue}
                   onChange={handleSslPortChange}
                   min={1}
@@ -293,6 +296,7 @@ export function GatewaySettings() {
                   <div className="flex items-center gap-2">
                     <span style={{ width: 80, flexShrink: 0 }}>{t("gateway.sslCertFile")}</span>
                     <Input
+                      id="gateway-settings-input-46"
                       readOnly
                       value={settings.gateway_ssl_cert_path ?? ""}
                       placeholder={t("gateway.sslCertFilePlaceholder")}
@@ -311,6 +315,7 @@ export function GatewaySettings() {
                   <div className="flex items-center gap-2">
                     <span style={{ width: 80, flexShrink: 0 }}>{t("gateway.sslKeyFile")}</span>
                     <Input
+                      id="gateway-settings-input-47"
                       readOnly
                       value={settings.gateway_ssl_key_path ?? ""}
                       placeholder={t("gateway.sslKeyFilePlaceholder")}

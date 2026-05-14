@@ -66,6 +66,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
     <div className="flex h-full flex-col">
       <div className="p-3 flex items-center gap-2">
         <Input
+          id="gateway-link-list-input-50"
           prefix={<Search size={14} />}
           placeholder={t("link.searchGateways")}
           value={search}

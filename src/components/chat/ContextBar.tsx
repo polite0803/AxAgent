@@ -1,4 +1,5 @@
 import { formatTokenCount } from "@/components/gateway/tokenFormat";
+import { estimateMessageTokens } from "@/lib/tokenEstimator";
 import { Space, Tag, theme, Tooltip } from "antd";
 import { BookOpen, Bot, Brain, Lightbulb, Search, Wrench } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -192,8 +193,7 @@ export function ContextBar({
 export function estimateConversationTokens(messages: { role: string; content: string }[]): number {
   let total = 0;
   for (const msg of messages) {
-    total += msg.content.length;
+    total += estimateMessageTokens(msg.role, msg.content);
   }
-  // 粗略估算：每 3.5 个字符约 1 token
-  return Math.ceil(total / 3.5);
+  return total;
 }

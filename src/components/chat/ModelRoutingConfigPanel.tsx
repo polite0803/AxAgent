@@ -198,6 +198,7 @@ const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           {/* Add new rule */}
           <div className="flex items-center gap-2 mt-2">
             <Input
+              id="model-routing-config-panel-input-25"
               size="small"
               placeholder={t("chat.modelRoutingConfig.patternPlaceholder")}
               value={newRulePattern}

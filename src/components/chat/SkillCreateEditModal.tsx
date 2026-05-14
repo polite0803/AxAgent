@@ -47,23 +47,20 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({ open, onClos
           label={t("skill.name")}
           rules={[{ required: true, message: t("skill.nameRequired") }]}
         >
-          <Input placeholder={t("skill.namePlaceholder")} />
+          <Input name="name" placeholder={t("skill.namePlaceholder")} />
         </Form.Item>
         <Form.Item
           name="description"
           label={t("skill.description")}
         >
-          <Input placeholder={t("skill.descriptionPlaceholder")} />
+          <Input name="description" placeholder={t("skill.descriptionPlaceholder")} />
         </Form.Item>
         <Form.Item
           name="content"
           label={t("skill.content")}
           rules={[{ required: true, message: t("skill.contentRequired") }]}
         >
-          <Input.TextArea
-            rows={12}
-            placeholder={t("skill.contentPlaceholder")}
-          />
+          <Input.TextArea name="content" rows={12} placeholder={t("skill.contentPlaceholder")} />
         </Form.Item>
       </Form>
     </Modal>
@@ -126,6 +123,7 @@ export const SkillEditModal: React.FC<SkillEditModalProps> = ({
       width={640}
     >
       <Input.TextArea
+        id="skill-create-edit-modal-input-textarea-31"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={16}

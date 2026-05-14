@@ -374,6 +374,7 @@ export function SessionSearchPanel({
         cancelText={t("common.cancel")}
       >
         <Input
+          id="session-search-panel-input-51"
           placeholder={t("search.filterName")}
           value={filterName}
           onChange={(e) => setFilterName(e.target.value)}

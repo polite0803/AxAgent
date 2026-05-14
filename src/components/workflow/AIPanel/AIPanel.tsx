@@ -122,6 +122,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               {t("workflow.aiPanel.describeWorkflow")}
             </label>
             <Input.TextArea
+              id="a-i-panel-input-textarea-70"
               placeholder={t("workflow.aiPanel.generatePlaceholder")}
               value={generatePrompt}
               onChange={(e) => setGeneratePrompt(e.target.value)}
@@ -199,6 +200,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               {t("workflow.aiPanel.enterAgentPrompt")}
             </label>
             <Input.TextArea
+              id="a-i-panel-input-textarea-71"
               placeholder={t("workflow.aiPanel.optimizePlaceholder")}
               value={optimizePrompt}
               onChange={(e) => setOptimizePrompt(e.target.value)}
@@ -261,6 +263,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               {t("workflow.aiPanel.describeContext")}
             </label>
             <Input.TextArea
+              id="a-i-panel-input-textarea-72"
               placeholder={t("workflow.aiPanel.recommendPlaceholder")}
               value={recommendContext}
               onChange={(e) => setRecommendContext(e.target.value)}

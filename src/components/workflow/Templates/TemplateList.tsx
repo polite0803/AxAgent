@@ -251,6 +251,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <Input
+            id="template-list-input-129"
             placeholder={t("workflow.templateList.searchPlaceholder")}
             prefix={<Search size={14} color="#666" />}
             value={searchText}

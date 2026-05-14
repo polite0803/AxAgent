@@ -470,17 +470,17 @@ export function KnowledgePage() {
                 label={t("wiki.wiki.name")}
                 rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}
               >
-                <Input placeholder={t("wiki.llm.namePlaceholder")} />
+                <Input name="name" placeholder={t("wiki.llm.namePlaceholder")} />
               </Form.Item>
               <Form.Item
                 name="rootPath"
                 label={t("wiki.wiki.rootPath")}
                 rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}
               >
-                <Input placeholder={t("wiki.llm.pathPlaceholder")} />
+                <Input name="rootPath" placeholder={t("wiki.llm.pathPlaceholder")} />
               </Form.Item>
               <Form.Item name="description" label={t("wiki.wiki.description")}>
-                <Input.TextArea placeholder={t("wiki.llm.descriptionPlaceholder")} />
+                <Input.TextArea name="description" placeholder={t("wiki.llm.descriptionPlaceholder")} />
               </Form.Item>
               <Button type="primary" htmlType="submit" loading={llmWikiLoading} block>
                 {t("wiki.llm.create")}
@@ -548,7 +548,7 @@ export function KnowledgePage() {
           <div className="py-4">
             <div className="mb-4">
               <div className="text-sm font-medium mb-2">{t("knowledge.selectedFolder", "已选择文件夹")}</div>
-              <Input value={selectedFolderPath} disabled prefix={<FolderOutlined />} />
+              <Input id="knowledge-page-input-130" value={selectedFolderPath} disabled prefix={<FolderOutlined />} />
             </div>
 
             <div className="mb-4">

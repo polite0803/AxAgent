@@ -50,6 +50,7 @@ function ParamRow({
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isOn && (
             <InputNumber
+              id="model-param-sliders-inputnumber-35"
               style={{ width: inputWidth }}
               min={min}
               max={max}

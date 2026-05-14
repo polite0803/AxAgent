@@ -107,6 +107,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
           {Object.entries(config.input_mapping || {}).map(([key, value]) => (
             <div key={key} style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <Input
+                id="tool-property-panel-input-110"
                 value={key}
                 size="small"
                 disabled
@@ -114,6 +115,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
               />
               <span style={{ color: "#666", fontSize: 10 }}>←</span>
               <Input
+                id="tool-property-panel-input-111"
                 value={String(value)}
                 onChange={(e) =>
                   handleUpdateInputMapping(key, e.target.value)}
@@ -144,6 +146,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
           {t("workflow.props.outputVariable")}
         </label>
         <Input
+          id="tool-property-panel-input-112"
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"

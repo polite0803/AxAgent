@@ -304,7 +304,7 @@ export function WorkflowMarketplace() {
                 <Rate />
               </Form.Item>
               <Form.Item name="comment" label={t("common.comment")}>
-                <Input.TextArea rows={3} placeholder={t("review.commentPlaceholder")} />
+                <Input.TextArea name="comment" rows={3} placeholder={t("review.commentPlaceholder")} />
               </Form.Item>
               <Form.Item>
                 <Button type="primary" htmlType="submit" loading={submittingReview}>

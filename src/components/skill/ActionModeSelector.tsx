@@ -90,6 +90,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
         <>
           <Form.Item label={t("skillEditor.invokeCmd")} style={{ marginBottom: 8 }}>
             <Input
+              id="action-mode-selector-input-53"
               size="small"
               value={action.command || ""}
               onChange={(e) => onChange({ ...action, command: e.target.value })}
@@ -97,6 +98,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
           </Form.Item>
           <Form.Item label={t("skillEditor.invokeArgs")} style={{ marginBottom: 8 }}>
             <Input.TextArea
+              id="action-mode-selector-input-textarea-54"
               size="small"
               rows={2}
               value={JSON.stringify((action as { args?: Record<string, unknown> }).args || {}, null, 2)}
@@ -114,6 +116,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
       {currentType === "navigate" && (
         <Form.Item label={t("skillEditor.navigatePath")} style={{ marginBottom: 8 }}>
           <Input
+            id="action-mode-selector-input-55"
             size="small"
             value={action.path || "/"}
             onChange={(e) => onChange({ ...action, path: e.target.value })}
@@ -125,6 +128,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
         <>
           <Form.Item label={t("skillEditor.emitEvent")} style={{ marginBottom: 8 }}>
             <Input
+              id="action-mode-selector-input-56"
               size="small"
               value={action.event || ""}
               onChange={(e) => onChange({ ...action, event: e.target.value })}
@@ -132,6 +136,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
           </Form.Item>
           <Form.Item label={t("skillEditor.emitPayload")} style={{ marginBottom: 0 }}>
             <Input.TextArea
+              id="action-mode-selector-input-textarea-57"
               size="small"
               rows={2}
               value={JSON.stringify((action as { payload?: unknown }).payload || {}, null, 2)}
@@ -150,6 +155,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
         <>
           <Form.Item label={t("skillEditor.storeName")} style={{ marginBottom: 8 }}>
             <Input
+              id="action-mode-selector-input-58"
               size="small"
               value={action.storeName || ""}
               onChange={(e) => onChange({ ...action, storeName: e.target.value })}
@@ -169,6 +175,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
           </Form.Item>
           <Form.Item label={t("skillEditor.storePayload")} style={{ marginBottom: 0 }}>
             <Input.TextArea
+              id="action-mode-selector-input-textarea-59"
               size="small"
               rows={2}
               value={JSON.stringify((action as { payload?: unknown }).payload || {}, null, 2)}
@@ -218,6 +225,7 @@ function AgenticEditor({ action, onChange, t }: {
     <div>
       <Form.Item label={t("skillEditor.agenticPrompt")} style={{ marginBottom: 8 }}>
         <Input.TextArea
+          id="action-mode-selector-input-textarea-60"
           size="small"
           rows={2}
           value={action.prompt || ""}
@@ -227,6 +235,7 @@ function AgenticEditor({ action, onChange, t }: {
       </Form.Item>
       <Form.Item label={t("skillEditor.agenticSkill")} style={{ marginBottom: 8 }}>
         <Input
+          id="action-mode-selector-input-61"
           size="small"
           value={action.skillName || ""}
           onChange={(e) => onChange({ ...action, skillName: e.target.value })}

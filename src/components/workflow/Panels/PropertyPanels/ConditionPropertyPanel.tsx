@@ -125,6 +125,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
             >
               <div style={{ marginBottom: 8 }}>
                 <Input
+                  id="condition-property-panel-input-87"
                   value={condition.var_path}
                   onChange={(e) => handleUpdateCondition(index, { var_path: e.target.value })}
                   size="small"
@@ -149,6 +150,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
 
                 {condition.operator !== "isEmpty" && condition.operator !== "isNotEmpty" && (
                   <Input
+                    id="condition-property-panel-input-88"
                     value={String(condition.value || "")}
                     onChange={(e) => handleUpdateCondition(index, { value: e.target.value })}
                     size="small"

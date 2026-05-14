@@ -853,6 +853,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         mask: { enabled: true, blur: true },
         content: (
           <Input
+            id="chat-sidebar-input-4"
             defaultValue={title}
             onChange={(e) => {
               newTitle = e.target.value;
@@ -1604,6 +1605,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       {!showArchived && searchVisible && !multiSelectMode && (
         <div className="chat-sidebar-search" style={{ padding: "4px 12px 8px" }}>
           <Input
+            id="chat-sidebar-input-5"
             prefix={<Search size={14} />}
             placeholder={t("chat.searchPlaceholder")}
             allowClear

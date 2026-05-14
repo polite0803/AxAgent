@@ -100,6 +100,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
         </Space>
         <div data-testid="category-search" data-category={activeCategory} style={{ maxWidth: 300 }}>
           <Input
+            id="files-content-input-39"
             prefix={<Search size={14} />}
             placeholder={t("files.searchPlaceholder", { category: t(meta.labelKey) })}
             value={search}

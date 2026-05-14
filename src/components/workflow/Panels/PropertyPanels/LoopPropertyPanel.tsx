@@ -77,6 +77,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
               {t("workflow.props.arrayVar")}
             </label>
             <Input
+              id="loop-property-panel-input-100"
               value={config.items_var || ""}
               onChange={(e) => handleConfigChange("items_var", e.target.value)}
               size="small"
@@ -88,6 +89,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
               {t("workflow.props.iterateVar")}
             </label>
             <Input
+              id="loop-property-panel-input-101"
               value={config.iteratee_var || ""}
               onChange={(e) => handleConfigChange("iteratee_var", e.target.value)}
               size="small"
@@ -103,6 +105,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
             {t("workflow.props.continueCondition")}
           </label>
           <Input.TextArea
+            id="loop-property-panel-input-textarea-102"
             value={config.continue_condition || ""}
             onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
             rows={2}
@@ -118,6 +121,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
             {t("workflow.props.stopCondition")}
           </label>
           <Input.TextArea
+            id="loop-property-panel-input-textarea-103"
             value={config.continue_condition || ""}
             onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
             rows={2}
@@ -132,6 +136,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
           {t("workflow.props.maxIterations")}
         </label>
         <InputNumber
+          id="loop-property-panel-inputnumber-104"
           value={config.max_iterations ?? 100}
           onChange={(value) => handleConfigChange("max_iterations", value)}
           min={1}

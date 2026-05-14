@@ -121,7 +121,8 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
             : (
               allPlans.map((plan) => {
                 const config = statusConfig[plan.status] || statusConfig.completed;
-                const canResume = plan.status === "reviewing" || plan.status === "draft";
+                const isActive = activePlan?.id === plan.id;
+                const canResume = !isActive && (plan.status === "reviewing" || plan.status === "draft");
 
                 return (
                   <div

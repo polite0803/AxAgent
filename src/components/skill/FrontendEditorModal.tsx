@@ -121,6 +121,7 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
                   类型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。
                 </Text>
                 <Input.TextArea
+                  id="frontend-editor-modal-input-textarea-63"
                   value={jsonText}
                   onChange={(e) => handleJsonChange(e.target.value)}
                   rows={18}

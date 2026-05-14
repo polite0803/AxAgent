@@ -58,6 +58,7 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
 
         {/* Name input */}
         <Input
+          id="user-profile-modal-input-49"
           placeholder={t("userProfile.namePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}

@@ -241,6 +241,7 @@ export function WikiFilePanel({
         style={{ borderBottom: `1px solid ${token.colorBorderSecondary}10` }}
       >
         <Input
+          id="wiki-file-panel-input-69"
           prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
           placeholder={t("wiki.searchPlaceholder", "Search notes...")}
           value={searchQuery}

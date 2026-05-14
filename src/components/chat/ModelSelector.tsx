@@ -625,6 +625,7 @@ export function ModelSelector(
         {/* Search + Expand/Collapse */}
         <div className="flex items-center gap-2" style={{ padding: "8px 8px 4px" }}>
           <Input
+            id="model-selector-input-26"
             prefix={<Search size={14} style={{ color: token.colorTextSecondary }} />}
             placeholder={t("chat.searchModelOrProvider")}
             variant="borderless"

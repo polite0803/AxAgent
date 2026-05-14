@@ -29,6 +29,7 @@ export function DockerConfigModal({ open, onClose, onConnect }: DockerConfigModa
         <div>
           <Text type="secondary">Docker Socket Path</Text>
           <Input
+            id="docker-config-modal-input-64"
             value={socketPath}
             onChange={(e) => setSocketPath(e.target.value)}
             placeholder="unix:///var/run/docker.sock"

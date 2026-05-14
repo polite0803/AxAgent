@@ -102,6 +102,7 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
     <div className="w-80">
       <div className="px-3 pt-3">
         <Input
+          id="prompt-template-selector-input-27"
           placeholder={t("promptTemplates.searchPlaceholder")}
           prefix={<Search size={14} />}
           value={searchText}
@@ -170,6 +171,7 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
                         {varName} <span className="text-gray-300">({String(varType)})</span>
                       </label>
                       <Input
+                        id="prompt-template-selector-input-28"
                         size="small"
                         placeholder={`{${varName}}`}
                         value={variableValues[varName] || ""}

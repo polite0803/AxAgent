@@ -294,6 +294,7 @@ export function WikiGraphPage() {
         <div className="flex-1" />
 
         <Input
+          id="wiki-graph-page-input-133"
           size="small"
           prefix={<SearchOutlined />}
           placeholder={t("wiki.searchGraph", "Search graph...")}

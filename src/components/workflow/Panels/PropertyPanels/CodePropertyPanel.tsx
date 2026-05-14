@@ -87,6 +87,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
           </span>
         </label>
         <Input.TextArea
+          id="code-property-panel-input-textarea-85"
           value={config.code || ""}
           onChange={(e) => handleConfigChange("code", e.target.value)}
           rows={8}
@@ -105,6 +106,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
           {t("workflow.props.outputVariable")}
         </label>
         <Input
+          id="code-property-panel-input-86"
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"

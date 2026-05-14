@@ -272,6 +272,7 @@ export function WikiPage() {
                       className="flex-1"
                     />
                     <Input
+                      id="wiki-page-input-134"
                       placeholder={t("wiki.quickCapture", "Quick capture...")}
                       value={quickCapture}
                       onChange={(e) => setQuickCapture(e.target.value)}
@@ -387,6 +388,7 @@ export function WikiPage() {
           </p>
           <div className="flex items-center gap-2">
             <Input
+              id="wiki-page-input-135"
               value={importPath}
               onChange={(e) => setImportPath(e.target.value)}
               placeholder={t("wiki.vaultPath", "Vault path...")}

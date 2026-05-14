@@ -42,6 +42,7 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
           {t("workflow.props.inputVariable")}
         </label>
         <Input
+          id="document-parser-property-panel-input-93"
           value={config.input_var || ""}
           onChange={(e) => handleConfigChange("input_var", e.target.value)}
           size="small"
@@ -67,6 +68,7 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
           {t("workflow.props.outputVariable")}
         </label>
         <Input
+          id="document-parser-property-panel-input-94"
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"

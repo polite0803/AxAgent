@@ -77,7 +77,7 @@ export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps)
           label={t("link.gatewayName")}
           rules={[{ required: true, message: t("link.nameRequired") }]}
         >
-          <Input placeholder={t("link.namePlaceholder")} />
+          <Input name="name" placeholder={t("link.namePlaceholder")} />
         </Form.Item>
 
         <Form.Item
@@ -98,11 +98,11 @@ export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps)
           label={t("link.endpoint")}
           rules={[{ required: true, message: t("link.endpointRequired") }]}
         >
-          <Input placeholder="https://192.168.0.108:18789" />
+          <Input name="endpoint" placeholder="https://192.168.0.108:18789" />
         </Form.Item>
 
         <Form.Item name="api_key" label={t("link.apiKey")}>
-          <Input.Password placeholder={t("link.apiKeyPlaceholder")} />
+          <Input.Password name="api_key" placeholder={t("link.apiKeyPlaceholder")} />
         </Form.Item>
 
         <Form.Item name="auto_sync_models" label={t("link.autoSyncModels")} valuePropName="checked">

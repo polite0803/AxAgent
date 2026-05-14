@@ -1191,6 +1191,53 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       return;
     }
 
+    // Agent 模式仅在 Tauri 桌面端可用，浏览器模式不支持
+    if (!isTauri()) {
+      set((s) => ({
+        error: "Agent 模式需要 Tauri 桌面端环境，请在终端执行 npm run tauri dev 启动",
+        messages: [
+          ...s.messages,
+          {
+            id: `temp-user-${Date.now()}`,
+            conversation_id: conversationId,
+            role: "user",
+            content,
+            provider_id: null,
+            model_id: null,
+            token_count: null,
+            attachments: [],
+            thinking: null,
+            tool_calls_json: null,
+            tool_call_id: null,
+            created_at: Date.now(),
+            parent_message_id: null,
+            version_index: 0,
+            is_active: true,
+            status: "complete",
+          },
+          {
+            id: `temp-agent-error-${Date.now()}`,
+            conversation_id: conversationId,
+            role: "assistant",
+            content: "Agent 模式需要 Tauri 桌面端环境才能运行。请使用 `npm run tauri dev` 启动应用。",
+            provider_id: null,
+            model_id: null,
+            token_count: null,
+            attachments: [],
+            thinking: null,
+            tool_calls_json: null,
+            tool_call_id: null,
+            created_at: Date.now(),
+            parent_message_id: null,
+            version_index: 0,
+            is_active: true,
+            status: "error" as const,
+          },
+        ],
+      }));
+      return;
+    }
+
     const providerId = conversation.provider_id;
     const model_id = conversation.model_id;
 
@@ -1790,7 +1837,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Trigger plan generation on the backend - it emits plan-generated event via SSE
       await invoke("plan_generate", {
         request: { conversationId, content },
-      });
+      }, 0);
 
       // Plan generation is async - the plan-generated event will trigger PlanCard rendering
       // End the initial text stream so InputArea unblocks

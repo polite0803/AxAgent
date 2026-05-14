@@ -67,6 +67,7 @@ export function FrontendEditor({ skillName, currentManifest, onSaved }: Frontend
           类型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。
         </Typography.Paragraph>
         <Input.TextArea
+          id="frontend-editor-input-textarea-62"
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
           rows={20}

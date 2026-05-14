@@ -122,6 +122,7 @@ import { ModelTags } from "./ModelTags";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
 import { PermissionCard } from "./PermissionCard";
 import { PermissionModal } from "./PermissionModal";
+import { PlanCard } from "./PlanCard";
 import { QuickCommandBar } from "./QuickCommandBar";
 import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
@@ -480,6 +481,7 @@ function AssistantFooter({
         destroyOnHidden
       >
         <Input
+          id="chat-view-input-6"
           value={branchTitle}
           onChange={(e) => setBranchTitle(e.target.value)}
           placeholder={t("chat.branchTitlePlaceholder")}
@@ -2730,6 +2732,7 @@ function ChatViewInner({ onScrollToReady }: {
                 ? (
                   <div className="flex items-center gap-1">
                     <Input
+                      id="chat-view-input-7"
                       ref={titleInputRef}
                       value={titleDraft}
                       onChange={(e) => setTitleDraft(e.target.value)}
@@ -3084,6 +3087,11 @@ function ChatViewInner({ onScrollToReady }: {
         <AgentProgressBar conversationId={activeConversationId} />
       )}
 
+      {/* Plan Card — 计划审批与执行（agent 模式） */}
+      {activeConversation?.mode === "agent" && activeConversationId && (
+        <PlanCardWrapper conversationId={activeConversationId} />
+      )}
+
       {/* Quick Command Bar — 快捷操作（仅 agent 模式显示） */}
       {activeConversation?.mode === "agent" && <QuickCommandBar />}
 
@@ -3203,6 +3211,7 @@ function ChatViewInner({ onScrollToReady }: {
         width={640}
       >
         <Input.TextArea
+          id="chat-view-input-textarea-8"
           value={editingContent}
           onChange={(e) => setEditingContent(e.target.value)}
           autoSize={{ minRows: 3, maxRows: 12 }}
@@ -3258,5 +3267,17 @@ export function ChatView({ onScrollToReady }: {
     <ModuleErrorBoundary moduleName="ChatView" showDetails={import.meta.env.DEV}>
       <ChatViewInner onScrollToReady={onScrollToReady} />
     </ModuleErrorBoundary>
+  );
+}
+
+// ── PlanCard 包装组件 ──────────────────────────────────────────────────
+
+function PlanCardWrapper({ conversationId }: { conversationId: string }) {
+  const plan = usePlanStore((s) => s.activePlans[conversationId]);
+  if (!plan) { return null; }
+  return (
+    <div style={{ padding: "8px 16px" }}>
+      <PlanCard plan={plan} conversationId={conversationId} />
+    </div>
   );
 }

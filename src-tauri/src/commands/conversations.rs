@@ -511,6 +511,13 @@ async fn delete_conversation_with_attachments_using(
         super::file_cleanup::delete_attachment_reference(db, file_store, &file.id).await?;
     }
 
+    // 清理关联数据（无 FK 约束，需手动删除避免孤行）
+    let _ = axagent_core::repo::conversation::delete_summary(db, conversation_id).await;
+    let _ = axagent_core::entity::agent_sessions::Entity::delete_many()
+        .filter(axagent_core::entity::agent_sessions::Column::ConversationId.eq(conversation_id))
+        .exec(db)
+        .await;
+
     axagent_core::repo::conversation::delete_conversation(db, conversation_id)
         .await
         .map_err(|e| e.to_string())

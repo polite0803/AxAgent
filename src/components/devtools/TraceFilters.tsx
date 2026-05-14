@@ -25,6 +25,7 @@ export function TraceFilters() {
         <div>
           <label className="text-xs text-gray-500 mb-1 block">会话 ID</label>
           <Input
+            id="trace-filters-input-36"
             placeholder="过滤会话"
             value={localFilter.session_id || ""}
             onChange={(e) => setLocalFilter({ ...localFilter, session_id: e.target.value || undefined })}
@@ -58,6 +59,7 @@ export function TraceFilters() {
         <div>
           <label className="text-xs text-gray-500 mb-1 block">最小耗时 (ms)</label>
           <Input
+            id="trace-filters-input-37"
             type="number"
             placeholder="最小耗时"
             value={localFilter.min_duration_ms || ""}
@@ -73,6 +75,7 @@ export function TraceFilters() {
         <div>
           <label className="text-xs text-gray-500 mb-1 block">最大耗时 (ms)</label>
           <Input
+            id="trace-filters-input-38"
             type="number"
             placeholder="最大耗时"
             value={localFilter.max_duration_ms || ""}

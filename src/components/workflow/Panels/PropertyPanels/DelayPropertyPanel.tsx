@@ -31,6 +31,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
               {t("workflow.props.delaySeconds")}
             </label>
             <InputNumber
+              id="delay-property-panel-inputnumber-89"
               value={config.seconds ?? 5}
               onChange={(value) => handleConfigChange("seconds", value)}
               min={1}
@@ -53,6 +54,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
               {t("workflow.props.delayMinutes")}
             </label>
             <InputNumber
+              id="delay-property-panel-inputnumber-90"
               value={Math.floor((config.seconds || 5) / 60)}
               onChange={(value) => handleConfigChange("seconds", (value || 1) * 60)}
               min={1}
@@ -70,6 +72,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
               {t("workflow.props.delayHours")}
             </label>
             <InputNumber
+              id="delay-property-panel-inputnumber-91"
               value={Math.floor((config.seconds || 5) / 3600)}
               onChange={(value) => handleConfigChange("seconds", (value || 1) * 3600)}
               min={1}
@@ -87,6 +90,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
               {t("workflow.props.delayUntil")}
             </label>
             <Input
+              id="delay-property-panel-input-92"
               value={config.until || ""}
               onChange={(e) => handleConfigChange("until", e.target.value)}
               size="small"

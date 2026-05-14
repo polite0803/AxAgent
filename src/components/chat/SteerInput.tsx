@@ -22,6 +22,7 @@ export function SteerInput() {
   return (
     <div className="flex gap-2 items-center p-2 border-t border-amber-200 bg-amber-50">
       <Input
+        id="steer-input-input-32"
         size="small"
         placeholder={t("chat.steerPlaceholder", "Steer agent direction...")}
         value={instruction}

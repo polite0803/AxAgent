@@ -72,6 +72,7 @@ export function TopicGroupDivider({ conversationId, group }: TopicGroupDividerPr
           {editing
             ? (
               <Input
+                id="topic-group-divider-input-33"
                 size="small"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}

@@ -429,17 +429,17 @@ export function LlmWikiPage() {
               label={t("wiki.wiki.name")}
               rules={[{ required: true, message: t("wiki.llm.nameRequired") }]}
             >
-              <Input placeholder={t("wiki.llm.namePlaceholder")} />
+              <Input name="name" placeholder={t("wiki.llm.namePlaceholder")} />
             </Form.Item>
             <Form.Item
               name="rootPath"
               label={t("wiki.wiki.rootPath")}
               rules={[{ required: true, message: t("wiki.llm.pathRequired") }]}
             >
-              <Input placeholder={t("wiki.llm.pathPlaceholder")} />
+              <Input name="rootPath" placeholder={t("wiki.llm.pathPlaceholder")} />
             </Form.Item>
             <Form.Item name="description" label={t("wiki.wiki.description")}>
-              <Input.TextArea placeholder={t("wiki.llm.descriptionPlaceholder")} />
+              <Input.TextArea name="description" placeholder={t("wiki.llm.descriptionPlaceholder")} />
             </Form.Item>
             <Button type="primary" htmlType="submit" loading={loading} block>
               {t("wiki.llm.create")}

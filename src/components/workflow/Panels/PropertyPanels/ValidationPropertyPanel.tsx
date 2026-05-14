@@ -83,6 +83,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
               {assertion.type !== "exists" && (
                 <div style={{ display: "flex", gap: 4 }}>
                   <Input
+                    id="validation-property-panel-input-116"
                     value={assertion.expected || ""}
                     onChange={(e) => handleAssertionChange(index, "expected", e.target.value)}
                     size="small"
@@ -90,6 +91,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
                     style={{ flex: 1 }}
                   />
                   <Input
+                    id="validation-property-panel-input-117"
                     value={assertion.actual || ""}
                     onChange={(e) => handleAssertionChange(index, "actual", e.target.value)}
                     size="small"
@@ -100,6 +102,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
               )}
               {assertion.type === "custom" && (
                 <Input
+                  id="validation-property-panel-input-118"
                   value={assertion.expression || ""}
                   onChange={(e) => handleAssertionChange(index, "expression", e.target.value)}
                   size="small"
@@ -141,6 +144,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
             {t("workflow.props.maxRetries")}
           </label>
           <Input
+            id="validation-property-panel-input-119"
             type="number"
             value={config.max_retries ?? 0}
             onChange={(e) => handleConfigChange("max_retries", parseInt(e.target.value) || 0)}

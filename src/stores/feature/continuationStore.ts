@@ -51,6 +51,11 @@ export const useContinuationStore = create<ContinuationStore>((set) => ({
   },
 
   startContinue: async (conversationId, messageId, branch) => {
+    // 临时占位消息（temp- 前缀）不存在于数据库中，无法续写
+    if (messageId.startsWith("temp-")) {
+      console.warn("[continuationStore] 不能续写临时消息:", messageId);
+      return;
+    }
     set((s) => ({ continuing: { ...s.continuing, [messageId]: true } }));
 
     try {

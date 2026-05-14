@@ -51,6 +51,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
           {t("workflow.props.query")}
         </label>
         <Input.TextArea
+          id="vector-retrieve-property-panel-input-textarea-120"
           value={config.query || ""}
           onChange={(e) => handleConfigChange("query", e.target.value)}
           rows={2}
@@ -81,6 +82,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
             {t("workflow.props.topK")}
           </label>
           <InputNumber
+            id="vector-retrieve-property-panel-inputnumber-121"
             value={config.top_k ?? 5}
             onChange={(value) => handleConfigChange("top_k", value)}
             min={1}
@@ -94,6 +96,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
             {t("workflow.props.similarityThreshold")}
           </label>
           <InputNumber
+            id="vector-retrieve-property-panel-inputnumber-122"
             value={config.similarity_threshold !== undefined ? Math.round(config.similarity_threshold * 100) : 70}
             onChange={(value) => handleConfigChange("similarity_threshold", (value != null ? value : 70) / 100)}
             min={0}
@@ -111,6 +114,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
           {t("workflow.props.outputVariable")}
         </label>
         <Input
+          id="vector-retrieve-property-panel-input-123"
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"

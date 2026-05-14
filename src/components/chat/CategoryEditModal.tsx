@@ -153,6 +153,7 @@ export function CategoryEditModal({
         />
 
         <Input
+          id="category-edit-modal-input-3"
           placeholder={t("chat.categoryNamePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}

@@ -86,6 +86,7 @@ function SessionShareDialog({
                 </Text>
                 <div className="flex gap-2">
                   <Input
+                    id="session-share-dialog-input-29"
                     value={inviteCode}
                     readOnly
                     size="small"
@@ -164,6 +165,7 @@ function SessionShareDialog({
                   {t("chat.collaboration.sessionShare.enterInviteCode")}
                 </Text>
                 <Input
+                  id="session-share-dialog-input-30"
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value)}
                   placeholder={t("chat.collaboration.sessionShare.codePlaceholder")}

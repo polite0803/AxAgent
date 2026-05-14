@@ -141,6 +141,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           {t("workflow.props.systemPrompt")}
         </label>
         <Input.TextArea
+          id="agent-property-panel-input-textarea-76"
           value={config.system_prompt || ""}
           onChange={(e) => handleConfigChange("system_prompt", e.target.value)}
           rows={4}
@@ -168,6 +169,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
             {t("workflow.props.temperature")}
           </label>
           <InputNumber
+            id="agent-property-panel-inputnumber-77"
             value={config.temperature ?? 0.7}
             onChange={(value) => handleConfigChange("temperature", value)}
             min={0}
@@ -182,6 +184,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
             {t("workflow.props.maxTokens")}
           </label>
           <InputNumber
+            id="agent-property-panel-inputnumber-78"
             value={config.max_tokens ?? 2048}
             onChange={(value) => handleConfigChange("max_tokens", value)}
             min={100}
@@ -215,6 +218,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           {t("workflow.props.outputVariable")}
         </label>
         <Input
+          id="agent-property-panel-input-79"
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"

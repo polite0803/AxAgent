@@ -81,13 +81,18 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
 
         <Card size="small" title={t("link.rateLimiting")}>
           <Form.Item name="global_rpm" label={t("link.globalRpm")}>
-            <InputNumber min={1} style={{ width: "100%" }} placeholder={t("link.unlimited")} />
+            <InputNumber name="global_rpm" min={1} style={{ width: "100%" }} placeholder={t("link.unlimited")} />
           </Form.Item>
           <Form.Item name="per_model_rpm" label={t("link.perModelRpm")}>
-            <InputNumber min={1} style={{ width: "100%" }} placeholder={t("link.unlimited")} />
+            <InputNumber name="per_model_rpm" min={1} style={{ width: "100%" }} placeholder={t("link.unlimited")} />
           </Form.Item>
           <Form.Item name="token_limit_per_minute" label={t("link.tokenLimitPerMinute")}>
-            <InputNumber min={1} style={{ width: "100%" }} placeholder={t("link.unlimited")} />
+            <InputNumber
+              name="token_limit_per_minute"
+              min={1}
+              style={{ width: "100%" }}
+              placeholder={t("link.unlimited")}
+            />
           </Form.Item>
         </Card>
 

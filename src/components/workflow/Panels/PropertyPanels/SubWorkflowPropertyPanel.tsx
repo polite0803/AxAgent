@@ -113,6 +113,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
           {Object.entries(config.input_mapping || {}).map(([key, value]) => (
             <div key={key} style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <Input
+                id="sub-workflow-property-panel-input-107"
                 value={key}
                 size="small"
                 disabled
@@ -120,6 +121,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
               />
               <span style={{ color: "#666", fontSize: 10 }}>←</span>
               <Input
+                id="sub-workflow-property-panel-input-108"
                 value={String(value)}
                 onChange={(e) =>
                   handleUpdateInputMapping(key, e.target.value)}
@@ -150,6 +152,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
           {t("workflow.props.outputVariable")}
         </label>
         <Input
+          id="sub-workflow-property-panel-input-109"
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"

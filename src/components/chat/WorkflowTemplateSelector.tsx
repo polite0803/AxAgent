@@ -1008,6 +1008,7 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
       width={720}
     >
       <Input
+        id="workflow-template-selector-input-34"
         placeholder={t("chat.workflow.searchPlaceholder")}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
