@@ -74,12 +74,7 @@ impl ResourceLimits {
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
-    fn set_rlimit(
-        &self,
-        resource: libc::__rlimit_resource_t,
-        soft: u64,
-        hard: u64,
-    ) -> Result<(), String> {
+    fn set_rlimit(&self, resource: libc::c_int, soft: u64, hard: u64) -> Result<(), String> {
         let rlim = libc::rlimit {
             rlim_cur: soft.min(hard),
             rlim_max: hard,

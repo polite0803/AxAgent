@@ -425,7 +425,16 @@ fn map_key(key: &str) -> Key {
         "End" | "end" => Key::End,
         "PageUp" | "pageup" => Key::PageUp,
         "PageDown" | "pagedown" => Key::PageDown,
-        "Insert" | "insert" => Key::Insert,
+        "Insert" | "insert" => {
+            #[cfg(not(target_os = "macos"))]
+            {
+                Key::Insert
+            }
+            #[cfg(target_os = "macos")]
+            {
+                Key::Unicode('⎀')
+            }
+        },
         "CapsLock" | "capslock" => Key::CapsLock,
         s if s.starts_with('F') || s.starts_with('f') => {
             let n: u8 = s[1..].parse().unwrap_or(1);

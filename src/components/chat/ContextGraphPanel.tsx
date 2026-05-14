@@ -507,17 +507,20 @@ interface GraphCanvasProps {
   token: any;
 }
 
-function GraphCanvas({ nodes, edges, nodeTypes, onNodesChange, onEdgesChange, token }: GraphCanvasProps) {
+/// 放在 <ReactFlow> 内部，筛选变化时自动 fitView
+function FitViewOnNodeChange({ nodeCount }: { nodeCount: number }) {
   const { fitView } = useReactFlow();
-
-  const prevNodeCountRef = React.useRef(nodes.length);
+  const prevRef = React.useRef(nodeCount);
   React.useEffect(() => {
-    if (nodes.length !== prevNodeCountRef.current) {
-      prevNodeCountRef.current = nodes.length;
+    if (nodeCount !== prevRef.current) {
+      prevRef.current = nodeCount;
       setTimeout(() => fitView({ padding: 0.3 }), 50);
     }
-  }, [nodes.length, fitView]);
+  }, [nodeCount, fitView]);
+  return null;
+}
 
+function GraphCanvas({ nodes, edges, nodeTypes, onNodesChange, onEdgesChange, token }: GraphCanvasProps) {
   return (
     <ReactFlow
       nodes={nodes}
@@ -543,6 +546,7 @@ function GraphCanvas({ nodes, edges, nodeTypes, onNodesChange, onEdgesChange, to
           return style?.border || "#ddd";
         }}
       />
+      <FitViewOnNodeChange nodeCount={nodes.length} />
     </ReactFlow>
   );
 }
