@@ -1,19 +1,53 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+* text=auto eol=lf
 
 # Source files
-*.rs text
-*.ts text
-*.tsx text
-*.js text
-*.jsx text
-*.json text
-*.toml text
-*.yaml text
-*.yml text
-*.md text
-*.sh text
-*.sql text
+*.rs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.sql text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.less text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.xml text eol=lf
+*.lock text eol=lf
+*.map text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.mts text eol=lf
+*.cts text eol=lf
+*.conf text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+*.properties text eol=lf
+*.gradle text eol=lf
+*.kt text eol=lf
+*.java text eol=lf
+*.swift text eol=lf
+*.dart text eol=lf
+*.proto text eol=lf
+*.graphql text eol=lf
+*.gql text eol=lf
+*.env text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+*.editorconfig text eol=lf
+*.prettierrc text eol=lf
+*.eslintrc text eol=lf
+*.babelrc text eol=lf
+*.npmrc text eol=lf
+*.yarnrc text eol=lf
+*.nvmrc text eol=lf
+*.node-version text eol=lf
 
 # Binary files
 *.png binary
@@ -32,6 +66,17 @@
 *.xz binary
 *.db binary
 *.sqlite binary
+*.wasm binary
+*.so binary
+*.dylib binary
+*.dll binary
+*.exe binary
+*.msi binary
+*.dmg binary
+*.deb binary
+*.rpm binary
+*.apk binary
+*.aab binary
 
 # Windows specific files - keep CRLF
 *.bat text eol=crlf
