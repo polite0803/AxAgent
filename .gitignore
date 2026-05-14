@@ -72,4 +72,4 @@ debug/*
 Docs/
 
 # Worktrees
-.worktrees/
+.worktrees/test_backup_page*.py
