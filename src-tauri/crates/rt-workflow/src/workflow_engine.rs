@@ -720,6 +720,22 @@ impl std::fmt::Display for WorkflowError {
 
 impl std::error::Error for WorkflowError {}
 
+/// 对步骤输出执行 Schema 校验（如果步骤配置了 expected_output_schema）
+/// 返回 (通过校验, 错误消息列表)
+fn verify_step_output(output: &str, schema_json: &str) -> (bool, Vec<String>) {
+    let schema: serde_json::Value = match serde_json::from_str(schema_json) {
+        Ok(s) => s,
+        Err(e) => return (false, vec![format!("Schema JSON 解析失败: {}", e)]),
+    };
+
+    let value: serde_json::Value = match serde_json::from_str(output) {
+        Ok(v) => v,
+        Err(e) => return (false, vec![format!("输出不是有效 JSON: {}", e)]),
+    };
+
+    axagent_core::validate_against_schema(&value, &schema)
+}
+
 pub struct WorkflowRunner {
     engine: Arc<WorkflowEngine>,
     executor: StepExecutor,
@@ -944,6 +960,25 @@ impl WorkflowRunner {
                                     wf.steps.iter_mut().find(|s| s.id == outcome.step_id)
                                 {
                                     step.circuit_breaker.record_success();
+
+                                    // Schema 校验：验证步骤输出是否符合 expected_output_schema
+                                    if let Some(ref schema) = step.expected_output_schema {
+                                        let (valid, errors) = verify_step_output(&result, schema);
+                                        if !valid {
+                                            tracing::warn!(
+                                                step_id = %outcome.step_id,
+                                                workflow_id = %workflow_id,
+                                                errors = %errors.join("; "),
+                                                "步骤输出 Schema 校验未通过"
+                                            );
+                                        } else {
+                                            tracing::info!(
+                                                step_id = %outcome.step_id,
+                                                workflow_id = %workflow_id,
+                                                "步骤输出 Schema 校验通过"
+                                            );
+                                        }
+                                    }
                                 }
                             }
                         }

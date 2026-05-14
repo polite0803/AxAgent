@@ -51,6 +51,8 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
     setTemplateModalOpen(true);
   };
 
+  const incrementUsage = usePromptTemplateStore((s) => s.incrementUsage);
+
   const handleApplyTemplate = () => {
     if (!selectedTemplate) { return; }
 
@@ -70,6 +72,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
     setTemplateModalOpen(false);
     setSelectedTemplate(null);
     setVariableValues({});
+    incrementUsage(selectedTemplate.id);
     messageApi.success(t("promptTemplates.applied"));
   };
 

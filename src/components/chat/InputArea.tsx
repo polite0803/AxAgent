@@ -27,6 +27,8 @@ import {
 } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
+import type { PromptTemplate } from "@/types";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
 import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
@@ -1065,13 +1067,16 @@ export function InputArea() {
     navigate,
   ]);
 
+  const incrementUsage = usePromptTemplateStore((s) => s.incrementUsage);
+
   const handleTemplateSelect = useCallback(
-    (_template: { content: string }, filledContent: string) => {
+    (template: PromptTemplate, filledContent: string) => {
       setValue((prev) => (prev ? prev + "\n\n" + filledContent : filledContent));
       setTemplatePopoverOpen(false);
       textareaRef.current?.focus();
+      incrementUsage(template.id);
     },
-    [],
+    [incrementUsage],
   );
 
   const templatePopoverContent = useMemo(() => {

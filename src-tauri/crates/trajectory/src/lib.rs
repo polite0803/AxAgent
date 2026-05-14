@@ -189,7 +189,8 @@ pub mod prelude {
     };
     pub use crate::parallel_execution::{
         ExecutionResult, ExecutionStatus, ExecutionStrategy, ParallelExecution,
-        ParallelExecutionService, ParallelTask, TaskResultSummary, TaskStatus,
+        ParallelExecutionService, ParallelExecutionVerifier, ParallelTask, TaskResultSummary,
+        TaskStatus, VerificationCheck, VerificationConfig, VerificationResult,
     };
     pub use crate::pattern::{
         CrossSessionInsight, CrossSessionLearner, DetectedPattern, PatternConfig, PatternLearner,

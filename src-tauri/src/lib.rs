@@ -622,6 +622,8 @@ pub fn run() {
             commands::parallel_execution::get_execution_result,
             commands::parallel_execution::delete_parallel_execution,
             commands::parallel_execution::start_parallel_execution,
+            commands::parallel_execution::verify_parallel_execution,
+            commands::parallel_execution::check_parallel_timeouts,
             // Scheduled task commands (基于 CronJobStore)
             commands::scheduled_task::list_scheduled_tasks,
             commands::scheduled_task::get_scheduled_task,

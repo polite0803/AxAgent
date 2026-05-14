@@ -1,8 +1,8 @@
-import { invoke } from "@/lib/invoke";
+import { usePromptTemplateStore } from "@/stores";
 import type { PromptTemplate } from "@/types";
-import { Input, List, message, Modal, Tag } from "antd";
+import { Input, List, Modal, Spin, Tag } from "antd";
 import { Search } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface PromptTemplateSelectorProps {
@@ -11,9 +11,7 @@ interface PromptTemplateSelectorProps {
 
 export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps) {
   const { t } = useTranslation();
-  const [messageApi, contextHolder] = message.useMessage();
-  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { templates, loading, loadTemplates } = usePromptTemplateStore();
   const [searchText, setSearchText] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
@@ -21,19 +19,25 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
 
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [loadTemplates]);
 
-  const loadTemplates = async () => {
-    setLoading(true);
-    try {
-      const result = await invoke<PromptTemplate[]>("list_prompt_templates");
-      setTemplates(result.filter((t) => t.isActive));
-    } catch (e) {
-      messageApi.error(String(e));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const activeTemplates = useMemo(
+    () => templates.filter((t) => t.isActive),
+    [templates],
+  );
+
+  const filteredTemplates = useMemo(
+    () =>
+      activeTemplates.filter((t) => {
+        const q = searchText.toLowerCase();
+        return (
+          t.name.toLowerCase().includes(q)
+          || (t.description?.toLowerCase().includes(q) ?? false)
+          || (t.category?.toLowerCase().includes(q) ?? false)
+        );
+      }),
+    [activeTemplates, searchText],
+  );
 
   const handleSelect = useCallback((template: PromptTemplate) => {
     setSelectedTemplate(template);
@@ -45,14 +49,28 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
     if (!selectedTemplate) { return; }
 
     let content = selectedTemplate.content;
-    try {
-      const schema = selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {};
-      for (const [varName, _varType] of Object.entries(schema)) {
-        const value = variableValues[varName] || `{${varName}}`;
+
+    // 解析 schema 或从内容自动检测变量
+    let varNames: string[] = [];
+    if (selectedTemplate.variablesSchema) {
+      try {
+        const schema = JSON.parse(selectedTemplate.variablesSchema);
+        varNames = Object.keys(schema);
+      } catch {
+        varNames = [];
+      }
+    }
+    // 回退：从内容中自动检测 {varName}
+    if (varNames.length === 0) {
+      varNames = parseVariables(selectedTemplate.content);
+    }
+
+    // 如果用户填了变量值就用，否则保留占位符
+    for (const varName of varNames) {
+      const value = variableValues[varName];
+      if (value !== undefined && value !== "") {
         content = content.replace(new RegExp(`\\{${varName}\\}`, "g"), value);
       }
-    } catch {
-      content = selectedTemplate.content;
     }
 
     onSelect(selectedTemplate, content);
@@ -61,114 +79,123 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
     setVariableValues({});
   }, [selectedTemplate, variableValues, onSelect]);
 
-  const filteredTemplates = templates.filter(
-    (t) =>
-      t.name.toLowerCase().includes(searchText.toLowerCase())
-      || (t.description?.toLowerCase().includes(searchText.toLowerCase()) ?? false),
+  // 从内容中自动检测 {varName} 占位符
+  const parsedVariables = useMemo(
+    () => (selectedTemplate ? parseVariables(selectedTemplate.content) : []),
+    [selectedTemplate],
   );
 
-  const renderVariableInput = (varName: string, _varType: unknown) => {
-    const typeStr = String(_varType || "string");
-    if (typeStr === "string" || typeStr === "number") {
-      return (
-        <Input
-          key={varName}
-          placeholder={`${varName} (${typeStr})`}
-          value={variableValues[varName] || ""}
-          onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
-        />
-      );
+  // 决定显示哪些变量输入：schema 中定义的优先，回退到自动检测
+  const displayVariables = useMemo(() => {
+    if (!selectedTemplate) { return []; }
+    if (selectedTemplate.variablesSchema) {
+      try {
+        return Object.entries(JSON.parse(selectedTemplate.variablesSchema));
+      } catch {
+        return parsedVariables.map((v) => [v, "string"] as [string, string]);
+      }
     }
-    return null;
-  };
-
-  const parseVariables = (content: string): string[] => {
-    const matches = content.match(/\{([^}]+)\}/g) || [];
-    return matches.map((m) => m.slice(1, -1)).filter((v, i, arr) => arr.indexOf(v) === i);
-  };
+    return parsedVariables.map((v) => [v, "string"] as [string, string]);
+  }, [selectedTemplate, parsedVariables]);
 
   return (
-    <>
-      {contextHolder}
-      <div className="p-2">
+    <div className="w-80">
+      <div className="px-3 pt-3">
         <Input
           placeholder={t("promptTemplates.searchPlaceholder")}
           prefix={<Search size={14} />}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          className="mb-2"
           allowClear
-        />
-        <List
-          loading={loading}
-          dataSource={filteredTemplates.slice(0, 10)}
-          size="small"
-          renderItem={(template) => (
-            <List.Item
-              className="cursor-pointer hover:bg-gray-100 rounded px-2 py-1"
-              onClick={() => handleSelect(template)}
-            >
-              <List.Item.Meta
-                title={
-                  <span className="text-sm">
-                    {template.name}
-                    <Tag className="ml-2" color="blue" style={{ fontSize: 10 }}>
-                      v{template.version}
-                    </Tag>
-                  </span>
-                }
-                description={
-                  <span className="text-xs text-gray-500">
-                    {template.description || template.content.slice(0, 50) + "..."}
-                  </span>
-                }
-              />
-            </List.Item>
-          )}
-          locale={{ emptyText: t("promptTemplates.noTemplates") }}
         />
       </div>
 
+      <div className="max-h-60 overflow-y-auto px-1">
+        <Spin spinning={loading}>
+          <List
+            dataSource={filteredTemplates.slice(0, 10)}
+            size="small"
+            locale={{ emptyText: t("promptTemplates.noTemplates") }}
+            renderItem={(template) => (
+              <List.Item
+                className="cursor-pointer hover:bg-gray-50 rounded px-2 py-1.5 transition-colors"
+                onClick={() => handleSelect(template)}
+              >
+                <div className="flex flex-col w-full min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium truncate">{template.name}</span>
+                    <Tag className="shrink-0" color="blue" style={{ fontSize: 10, lineHeight: "16px" }}>
+                      v{template.version}
+                    </Tag>
+                    {template.category && (
+                      <Tag className="shrink-0" style={{ fontSize: 10, lineHeight: "16px" }}>
+                        {template.category}
+                      </Tag>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400 truncate mt-0.5">
+                    {template.description || template.content.slice(0, 60)}
+                  </span>
+                </div>
+              </List.Item>
+            )}
+          />
+        </Spin>
+      </div>
+
       <Modal
-        title={selectedTemplate?.name}
+        title={selectedTemplate?.name ?? t("promptTemplates.title")}
         open={modalOpen}
         onOk={handleFillVariables}
         onCancel={() => setModalOpen(false)}
         okText={t("common.confirm")}
         cancelText={t("common.cancel")}
+        width={640}
+        destroyOnClose
       >
         {selectedTemplate && (
           <div className="py-2">
-            {selectedTemplate.variablesSchema
-              ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-500">{t("promptTemplates.fillVariables")}</p>
-                  {Object.entries(JSON.parse(selectedTemplate.variablesSchema)).map(([varName, varType]) => (
+            {selectedTemplate.description && (
+              <p className="text-sm text-gray-400 mb-3">{selectedTemplate.description}</p>
+            )}
+
+            {/* 变量输入 */}
+            {displayVariables.length > 0 && (
+              <div className="mb-3">
+                <p className="text-sm text-gray-500 mb-2">{t("promptTemplates.fillVariables")}</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {displayVariables.map(([varName, varType]) => (
                     <div key={varName}>
-                      <label className="text-sm font-medium">{varName}</label>
-                      {renderVariableInput(varName, varType)}
+                      <label className="text-xs text-gray-400 mb-0.5 block">
+                        {varName} <span className="text-gray-300">({String(varType)})</span>
+                      </label>
+                      <Input
+                        size="small"
+                        placeholder={`{${varName}}`}
+                        value={variableValues[varName] || ""}
+                        onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
+                      />
                     </div>
                   ))}
                 </div>
-              )
-              : (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-500">{t("promptTemplates.preview")}</p>
-                  <div className="bg-gray-50 p-2 rounded text-sm whitespace-pre-wrap">
-                    {selectedTemplate.content}
-                  </div>
-                  {parseVariables(selectedTemplate.content).length > 0 && (
-                    <p className="text-xs text-orange-500">
-                      {t("promptTemplates.hasVariables", {
-                        variables: parseVariables(selectedTemplate.content).join(", "),
-                      })}
-                    </p>
-                  )}
-                </div>
-              )}
+              </div>
+            )}
+
+            {/* 内容预览 */}
+            <div>
+              <p className="text-sm text-gray-500 mb-1">{t("promptTemplates.preview")}</p>
+              <div className="bg-gray-50 border rounded p-2.5 text-sm whitespace-pre-wrap max-h-40 overflow-y-auto text-gray-600">
+                {selectedTemplate.content}
+              </div>
+            </div>
           </div>
         )}
       </Modal>
-    </>
+    </div>
   );
+}
+
+function parseVariables(content: string): string[] {
+  const matches = content.match(/\{([^}]+)\}/g) || [];
+  return matches.map((m) => m.slice(1, -1)).filter((v, i, arr) => arr.indexOf(v) === i);
 }

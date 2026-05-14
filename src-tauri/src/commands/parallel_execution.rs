@@ -1,5 +1,8 @@
 use crate::AppState;
-use axagent_trajectory::{ExecutionResult, ExecutionStrategy, ParallelTask};
+use axagent_trajectory::{
+    ExecutionResult, ExecutionStrategy, ParallelExecutionVerifier, ParallelTask,
+    VerificationConfig, VerificationResult,
+};
 use tauri::State;
 
 #[tauri::command]
@@ -112,4 +115,31 @@ pub async fn start_parallel_execution(
         .start_execution(&execution_id)
         .await
         .ok_or_else(|| "Execution not found".to_string())
+}
+
+/// 验证一次并行执行的结果
+#[tauri::command]
+pub async fn verify_parallel_execution(
+    state: State<'_, AppState>,
+    execution_id: String,
+    config: Option<VerificationConfig>,
+) -> Result<VerificationResult, String> {
+    let service = state.parallel_execution_service.read().await;
+    let execution = service
+        .get_execution(&execution_id)
+        .await
+        .ok_or_else(|| format!("执行 {} 不存在", execution_id))?;
+
+    let verifier = ParallelExecutionVerifier::new(config.unwrap_or_default());
+    Ok(verifier.verify(&execution))
+}
+
+/// 检查并应用超时（将超时任务标记为 Timeout）
+#[tauri::command]
+pub async fn check_parallel_timeouts(
+    state: State<'_, AppState>,
+    execution_id: String,
+) -> Result<Vec<String>, String> {
+    let service = state.parallel_execution_service.read().await;
+    Ok(service.check_and_apply_timeouts(&execution_id).await)
 }
