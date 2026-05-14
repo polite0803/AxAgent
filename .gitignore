@@ -63,8 +63,13 @@ research-*.tsv
 
 debug/*
 
-# OpenWolf
+# AI assistant configs
+.arts/
+.claude/
 .wolf/
+
+# Documentation (local)
+Docs/
 
 # Worktrees
 .worktrees/
