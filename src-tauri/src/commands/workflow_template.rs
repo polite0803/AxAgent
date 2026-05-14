@@ -998,22 +998,22 @@ async fn convert_n8n_to_axagent(
 
     let last_position = ax_nodes
         .iter()
-        .filter_map(|n| match n {
-            WorkflowNode::Trigger(t) => Some(t.base.position.clone()),
-            WorkflowNode::Agent(t) => Some(t.base.position.clone()),
-            WorkflowNode::Llm(t) => Some(t.base.position.clone()),
-            WorkflowNode::Condition(t) => Some(t.base.position.clone()),
-            WorkflowNode::Parallel(t) => Some(t.base.position.clone()),
-            WorkflowNode::Loop(t) => Some(t.base.position.clone()),
-            WorkflowNode::Merge(t) => Some(t.base.position.clone()),
-            WorkflowNode::Delay(t) => Some(t.base.position.clone()),
-            WorkflowNode::Validation(t) => Some(t.base.position.clone()),
-            WorkflowNode::Tool(t) => Some(t.base.position.clone()),
-            WorkflowNode::Code(t) => Some(t.base.position.clone()),
-            WorkflowNode::SubWorkflow(t) => Some(t.base.position.clone()),
-            WorkflowNode::DocumentParser(t) => Some(t.base.position.clone()),
-            WorkflowNode::VectorRetrieve(t) => Some(t.base.position.clone()),
-            WorkflowNode::End(t) => Some(t.base.position.clone()),
+        .map(|n| match n {
+            WorkflowNode::Trigger(t) => t.base.position.clone(),
+            WorkflowNode::Agent(t) => t.base.position.clone(),
+            WorkflowNode::Llm(t) => t.base.position.clone(),
+            WorkflowNode::Condition(t) => t.base.position.clone(),
+            WorkflowNode::Parallel(t) => t.base.position.clone(),
+            WorkflowNode::Loop(t) => t.base.position.clone(),
+            WorkflowNode::Merge(t) => t.base.position.clone(),
+            WorkflowNode::Delay(t) => t.base.position.clone(),
+            WorkflowNode::Validation(t) => t.base.position.clone(),
+            WorkflowNode::Tool(t) => t.base.position.clone(),
+            WorkflowNode::Code(t) => t.base.position.clone(),
+            WorkflowNode::SubWorkflow(t) => t.base.position.clone(),
+            WorkflowNode::DocumentParser(t) => t.base.position.clone(),
+            WorkflowNode::VectorRetrieve(t) => t.base.position.clone(),
+            WorkflowNode::End(t) => t.base.position.clone(),
         })
         .next_back()
         .unwrap_or(Position { x: 250.0, y: 0.0 });
