@@ -14,6 +14,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use axagent_npm::NpmRegistry;
+
 pub use hooks::{HookEvent, HookRunResult, HookRunner};
 
 const EXTERNAL_MARKETPLACE: &str = "external";
@@ -358,8 +360,16 @@ fn default_tool_permission_label() -> String {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PluginInstallSource {
-    LocalPath { path: PathBuf },
-    GitUrl { url: String },
+    LocalPath {
+        path: PathBuf,
+    },
+    GitUrl {
+        url: String,
+    },
+    NpmPackage {
+        name: String,
+        version: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -2225,7 +2235,26 @@ fn resolve_local_source(source: &str) -> Result<PathBuf, PluginError> {
     }
 }
 
+fn looks_like_npm_spec(source: &str) -> bool {
+    !source.starts_with("http://")
+        && !source.starts_with("https://")
+        && !source.starts_with("git@")
+        && !source.starts_with('/')
+        && !source.starts_with('.')
+        && !source.starts_with('\\')
+        && !source.contains("://")
+        && (source.starts_with('@') || source.contains('@'))
+}
+
 fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
+    // npm 包检测
+    if looks_like_npm_spec(source) {
+        let (name, version) = NpmRegistry::parse_package_spec(source);
+        return Ok(PluginInstallSource::NpmPackage {
+            name: name.to_string(),
+            version: version.map(|v| v.to_string()),
+        });
+    }
     if source.starts_with("http://")
         || source.starts_with("https://")
         || source.starts_with("git@")
@@ -2273,6 +2302,30 @@ fn materialize_source(
             }
             Ok(destination)
         },
+        PluginInstallSource::NpmPackage { name, version } => {
+            let name = name.clone();
+            let version = version.clone();
+            let dest = temp_root.join(format!("npm-{}", sanitize_plugin_id(&name)));
+            let result = std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+                rt.block_on(async {
+                    let registry = NpmRegistry::new();
+                    let info = registry
+                        .fetch_package_info(&name)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    let ver = NpmRegistry::resolve_version(&info, version.as_deref())
+                        .map_err(|e| e.to_string())?;
+                    registry
+                        .download_and_extract(&ver.dist, &dest)
+                        .await
+                        .map_err(|e| e.to_string())
+                })
+            })
+            .join()
+            .unwrap();
+            result.map_err(PluginError::CommandFailed)
+        },
     }
 }
 
@@ -2312,6 +2365,10 @@ fn describe_install_source(source: &PluginInstallSource) -> String {
     match source {
         PluginInstallSource::LocalPath { path } => path.display().to_string(),
         PluginInstallSource::GitUrl { url } => url.clone(),
+        PluginInstallSource::NpmPackage { name, version } => match version {
+            Some(version) => format!("{name}@{version}"),
+            None => name.clone(),
+        },
     }
 }
 

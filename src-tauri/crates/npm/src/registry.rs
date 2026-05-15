@@ -71,9 +71,9 @@ impl NpmRegistry {
         } else {
             version_str
         };
-        info.versions.get(semver).ok_or_else(|| {
-            NpmError::VersionNotFound(info.name.clone(), semver.to_string())
-        })
+        info.versions
+            .get(semver)
+            .ok_or_else(|| NpmError::VersionNotFound(info.name.clone(), semver.to_string()))
     }
 
     /// 下载 tarball 流式解压到 dest，返回插件根目录

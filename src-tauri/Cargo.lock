@@ -934,8 +934,11 @@ dependencies = [
 name = "axagent-plugins"
 version = "1.5.8"
 dependencies = [
+ "axagent-npm",
  "serde",
  "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
