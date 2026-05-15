@@ -67,7 +67,7 @@ export default function ToolSemanticCheck() {
     const loadTools = async () => {
       setToolsLoading(true);
       try {
-        const groups = await invoke<LocalToolGroupInfo[]>("list_local_tool_groups", {});
+        const groups = await invoke<LocalToolGroupInfo[]>("list_local_tools");
         const tools = groups.flatMap(g => g.tools);
         setAllTools(tools);
       } catch (e) {
@@ -155,6 +155,9 @@ export default function ToolSemanticCheck() {
             placeholder={t("settings.toolSemanticCheck.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onSearch={() => {
+              if (filteredTools.length > 0) setSelectedTool(filteredTools[0]);
+            }}
             allowClear
           />
         </div>
