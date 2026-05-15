@@ -4755,7 +4755,15 @@
     "attributes": "Attributes",
     "experience": "Experience",
     "recentMessages": "Recent Messages",
-    "togglePanel": "Click to expand/collapse (draggable)"
+    "togglePanel": "Click to expand/collapse (draggable)",
+    "mood": {
+      "happy": "Happy",
+      "proud": "Proud",
+      "curious": "Curious",
+      "snarky": "Snarky",
+      "concerned": "Concerned",
+      "excited": "Excited"
+    }
   },
   "agentPool": {
     "status": {
@@ -5067,5 +5075,39 @@
   },
   "research": {
     "mockFinding": "Mock Research Finding"
+  },
+  "citationManager": {
+    "totalCitations": "Total Citations:",
+    "usedInReport": "Used in Report:",
+    "avgCredibility": "Average Credibility:",
+    "addToReport": "Add to Report",
+    "title": "Citation Manager ({count})",
+    "addCitation": "Add Citation",
+    "empty": "No citations yet, add from search results",
+    "inReport": "Used in Report ({count})",
+    "notInReport": "Not Used in Report ({count})",
+    "sourceDistribution": "Source Type Distribution:",
+    "sourceType": {
+      "web": "Web",
+      "academic": "Academic",
+      "wikipedia": "Wikipedia",
+      "github": "GitHub",
+      "documentation": "Documentation",
+      "news": "News",
+      "blog": "Blog",
+      "forum": "Forum",
+      "unknown": "Unknown"
+    }
+  },
+  "credibility": {
+    "high": "High Credibility",
+    "medium": "Medium Credibility",
+    "low": "Low Credibility",
+    "score": "Credibility: {score}%",
+    "scoreLabel": "Credibility Score: {score}%",
+    "authority": "Authority",
+    "consistency": "Consistency",
+    "recency": "Recency",
+    "objectivity": "Objectivity"
   }
 }

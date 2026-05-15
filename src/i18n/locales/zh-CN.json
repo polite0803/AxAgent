@@ -4841,7 +4841,15 @@
     "attributes": "属性",
     "experience": "经验值",
     "recentMessages": "最近发言",
-    "togglePanel": "点击展开/折叠（可拖动）"
+    "togglePanel": "点击展开/折叠（可拖动）",
+    "mood": {
+      "happy": "开心",
+      "proud": "自豪",
+      "curious": "好奇",
+      "snarky": "毒舌",
+      "concerned": "关心",
+      "excited": "兴奋"
+    }
   },
   "agentPool": {
     "status": {
@@ -5318,7 +5326,35 @@
     "totalCitations": "总引用数:",
     "usedInReport": "报告中使用:",
     "avgCredibility": "平均可信度:",
-    "addToReport": "添加到报告"
+    "addToReport": "添加到报告",
+    "title": "引用管理 ({count})",
+    "addCitation": "添加引用",
+    "empty": "暂无引用，请从搜索结果中添加",
+    "inReport": "报告中使用的引用 ({count})",
+    "notInReport": "未使用的引用 ({count})",
+    "sourceDistribution": "来源类型分布:",
+    "sourceType": {
+      "web": "网页",
+      "academic": "学术",
+      "wikipedia": "维基百科",
+      "github": "GitHub",
+      "documentation": "文档",
+      "news": "新闻",
+      "blog": "博客",
+      "forum": "论坛",
+      "unknown": "未知"
+    }
+  },
+  "credibility": {
+    "high": "高可信度",
+    "medium": "中可信度",
+    "low": "低可信度",
+    "score": "可信度: {score}%",
+    "scoreLabel": "可信度评分: {score}%",
+    "authority": "权威性",
+    "consistency": "一致性",
+    "recency": "时效性",
+    "objectivity": "客观性"
   },
   "decomposition": {
     "cancel": "取消",

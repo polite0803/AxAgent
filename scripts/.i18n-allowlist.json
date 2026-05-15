@@ -1,8 +1,8 @@
 {
   "version": "1",
   "generated": "2026-05-15",
-  "total_entries": 189,
-  "total_files": 218,
+  "total_entries": 186,
+  "total_files": 215,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -71,12 +71,6 @@
       "phase": 3
     },
     {
-      "file": "src/components/chat/BuddyMessage.tsx",
-      "lines": "8,18,20,21,22,23,24,25",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/components/chat/BuddyWidget.tsx",
       "lines": "40,41,42,43,44,48,49,50,51,52,55,63,80,82,89,119,163,180,192,197,229,236,259,305,308,337,340,353,357,369,396,424,429",
       "reason": "硬编码中文字符串",
@@ -107,12 +101,6 @@
       "phase": 3
     },
     {
-      "file": "src/components/chat/CitationManager.tsx",
-      "lines": "30,31,32,34,35,36,37,38,59,63,71,121,180,222",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/components/chat/ContextBar.tsx",
       "lines": "15,17,131",
       "reason": "硬编码中文字符串",
@@ -127,12 +115,6 @@
     {
       "file": "src/components/chat/CreateTeamModal.tsx",
       "lines": "40",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/CredibilityBadge.tsx",
-      "lines": "32,46,47,48,53,62,110,116,122,128",
       "reason": "硬编码中文字符串",
       "phase": 3
     },

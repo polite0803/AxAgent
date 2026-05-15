@@ -2,6 +2,7 @@ import type { BuddyMessage as BuddyMessageType } from "@/stores/feature/buddySto
 import { Typography } from "antd";
 import { useMemo } from "react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -15,14 +16,14 @@ const moodColors: Record<BuddyMessageType["mood"], { bg: string; border: string 
   excited: { bg: "#fff0f6", border: "#ffadd2" },
 };
 
-// 心情 → 中文标签映射
-const moodLabels: Record<BuddyMessageType["mood"], string> = {
-  happy: "开心",
-  proud: "自豪",
-  curious: "好奇",
-  snarky: "毒舌",
-  concerned: "关心",
-  excited: "兴奋",
+// 心情 → i18n key 映射
+const moodLabelKeys: Record<BuddyMessageType["mood"], string> = {
+  happy: "buddy.mood.happy",
+  proud: "buddy.mood.proud",
+  curious: "buddy.mood.curious",
+  snarky: "buddy.mood.snarky",
+  concerned: "buddy.mood.concerned",
+  excited: "buddy.mood.excited",
 };
 
 interface BuddyMessageBubbleProps {
@@ -33,8 +34,9 @@ interface BuddyMessageBubbleProps {
 
 export const BuddyMessageBubble = React.memo(
   function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMessageBubbleProps) {
+    const { t } = useTranslation();
     const colors = useMemo(() => moodColors[message.mood], [message.mood]);
-    const moodLabel = moodLabels[message.mood];
+    const moodLabel = t(moodLabelKeys[message.mood]);
 
     return (
       <div
