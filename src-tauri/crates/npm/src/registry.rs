@@ -101,3 +101,53 @@ impl Default for NpmRegistry {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_scoped_package_latest() {
+        let (name, version) = NpmRegistry::parse_package_spec("@clawd/ths");
+        assert_eq!(name, "@clawd/ths");
+        assert_eq!(version, None);
+    }
+
+    #[test]
+    fn parse_scoped_package_with_version() {
+        let (name, version) = NpmRegistry::parse_package_spec("@clawd/stock@1.2.0");
+        assert_eq!(name, "@clawd/stock");
+        assert_eq!(version, Some("1.2.0"));
+    }
+
+    #[test]
+    fn parse_plain_package_latest() {
+        let (name, version) = NpmRegistry::parse_package_spec("my-plugin");
+        assert_eq!(name, "my-plugin");
+        assert_eq!(version, None);
+    }
+
+    #[test]
+    fn parse_plain_package_with_version() {
+        let (name, version) = NpmRegistry::parse_package_spec("my-plugin@2.0.0");
+        assert_eq!(name, "my-plugin");
+        assert_eq!(version, Some("2.0.0"));
+    }
+
+    #[test]
+    fn parse_scoped_package_with_semver_tag() {
+        let (name, version) = NpmRegistry::parse_package_spec("@scope/pkg@beta");
+        assert_eq!(name, "@scope/pkg");
+        assert_eq!(version, Some("beta"));
+    }
+
+    #[test]
+    fn package_path_scoped() {
+        assert_eq!(NpmRegistry::package_path("@clawd/ths"), "@clawd%2Fths");
+    }
+
+    #[test]
+    fn package_path_plain() {
+        assert_eq!(NpmRegistry::package_path("lodash"), "lodash");
+    }
+}
