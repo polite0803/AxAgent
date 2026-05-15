@@ -51,14 +51,19 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         ));
     }
 
-    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
-        tracing::error!("Failed to create init runtime in state: {}", e);
-        crate::android_utils::report_fatal_error(&format!(
-            "Init runtime creation failed in state: {}",
-            e
-        ));
-        std::process::exit(1);
-    });
+    let rt = tokio::runtime::Runtime::new()
+        .or_else(|e| {
+            tracing::warn!("Failed to create multi-threaded runtime for state init: {} — falling back to current-thread", e);
+            tokio::runtime::Builder::new_current_thread().enable_all().build()
+        })
+        .unwrap_or_else(|e| {
+            tracing::error!("Failed to create init runtime in state: {}", e);
+            crate::android_utils::report_fatal_error(&format!(
+                "Init runtime creation failed in state: {}",
+                e
+            ));
+            std::process::exit(1);
+        });
     let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(&sea_db));
     rt.block_on(axagent_core::path_vars::migrate_hardcoded_paths(&sea_db));
     rt.block_on(axagent_core::repo::local_tool::migrate_legacy_keys(&sea_db));

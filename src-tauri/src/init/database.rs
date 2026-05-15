@@ -15,8 +15,12 @@ pub async fn init_database() -> Result<DatabaseInitResult, String> {
     std::fs::create_dir_all(&app_dir)
         .map_err(|e| format!("failed to create AxAgent home dir: {}", e))?;
 
-    axagent_core::storage_paths::ensure_documents_dirs()
-        .map_err(|e| format!("failed to create documents storage dirs: {}", e))?;
+    axagent_core::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
+        tracing::warn!(
+            "Failed to create documents storage dirs (non-critical, will retry later): {}",
+            e
+        );
+    });
 
     let db_path = format!("sqlite:{}/axagent.db", app_dir.display());
 
@@ -93,7 +97,7 @@ fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32]
         }
         let key = axagent_core::crypto::generate_master_key();
         std::fs::write(key_path, key).map_err(|e| format!("failed to write master key: {}", e))?;
-        #[cfg(unix)]
+        #[cfg(all(unix, not(mobile)))]
         {
             let perms = std::fs::Permissions::from_mode(0o600);
             std::fs::set_permissions(key_path, perms)

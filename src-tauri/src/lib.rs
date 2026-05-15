@@ -887,10 +887,15 @@ pub fn run() {
             android_utils::mark_startup_phase("db_init_start");
 
             let db_result = match std::thread::spawn(|| {
-                let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
-                    android_utils::report_fatal_error(&format!("Failed to create db init runtime: {}", e));
-                    std::process::exit(1);
-                });
+                let rt = tokio::runtime::Runtime::new()
+                    .or_else(|e| {
+                        tracing::warn!("Failed to create multi-threaded runtime for DB init: {} — falling back to current-thread", e);
+                        tokio::runtime::Builder::new_current_thread().enable_all().build()
+                    })
+                    .unwrap_or_else(|e| {
+                        android_utils::report_fatal_error(&format!("Failed to create db init runtime: {}", e));
+                        std::process::exit(1);
+                    });
                 rt.block_on(init::init_database())
             }).join() {
                 Ok(Ok(result)) => result,
@@ -934,10 +939,15 @@ pub fn run() {
 
             let sea_db2 = sea_db.clone();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
-                    android_utils::report_fatal_error(&format!("Failed to create session reset runtime: {}", e));
-                    std::process::exit(1);
-                });
+                let rt = tokio::runtime::Runtime::new()
+                    .or_else(|e| {
+                        tracing::warn!("Failed to create multi-threaded runtime for session reset: {} — falling back to current-thread", e);
+                        tokio::runtime::Builder::new_current_thread().enable_all().build()
+                    })
+                    .unwrap_or_else(|e| {
+                        android_utils::report_fatal_error(&format!("Failed to create session reset runtime: {}", e));
+                        std::process::exit(1);
+                    });
                 rt.block_on(async {
                     let _ = axagent_core::repo::agent_session::reset_running_sessions(&sea_db2).await;
                 });
@@ -955,10 +965,15 @@ pub fn run() {
                         if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
                             let user_profile = state.user_profile.clone();
                             std::thread::spawn(move || {
-                                let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
-                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
-                                std::process::exit(1);
-                            });
+                                let rt = tokio::runtime::Runtime::new()
+                                    .or_else(|e| {
+                                        tracing::warn!("Failed to create multi-threaded runtime for user profile: {} — falling back to current-thread", e);
+                                        tokio::runtime::Builder::new_current_thread().enable_all().build()
+                                    })
+                                    .unwrap_or_else(|e| {
+                                        android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
+                                        std::process::exit(1);
+                                    });
                                 rt.block_on(async {
                                     let mut p = user_profile.write().await;
                                     *p = profile;
@@ -978,7 +993,12 @@ pub fn run() {
                     let pattern_count = persisted.len();
                     let pattern_learner = state.pattern_learner.clone();
                     std::thread::spawn(move || {
-                        let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                        let rt = tokio::runtime::Runtime::new()
+                            .or_else(|e| {
+                                tracing::warn!("Failed to create multi-threaded runtime for pattern learner: {} — falling back to current-thread", e);
+                                tokio::runtime::Builder::new_current_thread().enable_all().build()
+                            })
+                            .unwrap_or_else(|e| {
                                 android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
                                 std::process::exit(1);
                             });
@@ -1059,10 +1079,15 @@ pub fn run() {
                 tracing::info!("[mobile] Starting cloud sync engine...");
                 let engine = sync_engine.clone();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
-                                android_utils::report_fatal_error(&format!("Failed to create tokio runtime: {}", e));
-                                std::process::exit(1);
-                            });
+                    let rt = tokio::runtime::Runtime::new()
+                        .or_else(|e| {
+                            tracing::warn!("Failed to create multi-threaded runtime for cloud sync: {} — falling back to current-thread", e);
+                            tokio::runtime::Builder::new_current_thread().enable_all().build()
+                        })
+                        .unwrap_or_else(|e| {
+                            android_utils::report_fatal_error(&format!("Failed to create cloud sync runtime: {}", e));
+                            std::process::exit(1);
+                        });
                     rt.block_on(async {
                         match engine.full_sync().await {
                             Ok(result) => {
