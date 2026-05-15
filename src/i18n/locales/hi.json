@@ -737,7 +737,9 @@
         "mcp": "MCP",
         "search": "Search",
         "skill": "Skill"
-      }
+      },
+      "hideType": "Click to hide",
+      "showType": "Click to show"
     },
     "wiki": {
       "title": "Wiki Vault",
@@ -925,7 +927,10 @@
     "templateDescOpencode": "ओपन-सोर्स टर्मिनल AI कोडिंग सहायक, कई मॉडल बैकएंड का समर्थन करने वाला लचीला कोड टूल",
     "templateDescGemini": "Google Gemini CLI कोडिंग एजेंट, सीधे टर्मिनल में Gemini मॉडल का उपयोग करें",
     "templateDescCursor": "VS Code पर आधारित AI-नेटिव एडिटर, कोड पूर्णता और चैट के गहरे एकीकरण के साथ",
-    "connectedTools": "जुड़े हुए उपकरण"
+    "connectedTools": "जुड़े हुए उपकरण",
+    "tab": {
+      "monitor": "Monitor"
+    }
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -3245,7 +3250,29 @@
     "focusLocal": "Focus Local",
     "createLinkedNote": "Create Linked Note",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "Edges",
+    "export": "Export",
+    "exportHtml": "Export as HTML",
+    "exportMarkdown": "Export as Markdown",
+    "exportPdf": "Export as PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "Nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick Capture",
+    "refresh": "Refresh",
+    "startImport": "Start Import",
+    "vaultPath": "Vault Path"
   },
   "quickbar": {
     "title": "QuickBar",
@@ -4087,7 +4114,12 @@
     "taskId": "कार्य आईडी",
     "traceId": "ट्रेस आईडी",
     "error": "त्रुटि",
-    "scoreDetails": "स्कोर विवरण"
+    "scoreDetails": "स्कोर विवरण",
+    "configTitle": "Run Configuration",
+    "empty": "Select a benchmark and click run...",
+    "selectFirst": "Please select a benchmark first",
+    "selectTitle": "Benchmark Selection",
+    "title": "Benchmark Runner"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -4363,7 +4395,13 @@
     "installed": "Installed",
     "marketplace": "Skill Marketplace",
     "search": "Search skills...",
-    "uninstall": "Uninstall"
+    "uninstall": "Uninstall",
+    "addFrontend": "Add Frontend",
+    "editFrontend": "Edit Frontend",
+    "exportFailed": "Export Failed",
+    "exportPublishable": "Export Publishable",
+    "exported": "Skill Exported",
+    "hasUI": "Has UI Extension"
   },
   "task": {
     "title": "पृष्ठभूमि कार्य",
@@ -4837,7 +4875,12 @@
       "source": "By Source"
     },
     "sortDir": "Ascending",
-    "sortDirDesc": "Descending"
+    "sortDirDesc": "Descending",
+    "builtinAlreadyImported": "Built-in experts already imported",
+    "builtinImported": "12 built-in experts imported",
+    "builtinImportedLabel": "Imported",
+    "importBuiltin": "Import all built-in experts (code review, debugging, architecture design, etc.)",
+    "importBuiltinBtn": "Import Built-in"
   },
   "agentProfile": {
     "importSuccess": "Successfully imported {{count}} roles",
@@ -4994,5 +5037,35 @@
     "failed": "Failed"
   },
   "markdown": "Markdown",
-  "success": "Success"
+  "success": "Success",
+  "advancedSettings": {
+    "bashSecurity": "Bash Command Security Verification",
+    "defaultPermission": "Default Permission Mode",
+    "networkCmdDetect": "Enable Network Command Detection",
+    "networkConfirm": "Network Requests Require Confirmation",
+    "perm": {
+      "acceptEdits": "Accept Edits",
+      "default": "Default (Ask Every Time)",
+      "fullAccess": "Full Access"
+    },
+    "permissionStrategy": "Permission Execution Strategy",
+    "shellConfirm": "Shell Execution Requires Confirmation"
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "total": "Total"
+    },
+    "tab": {
+      "dataset": "Dataset",
+      "loraConfig": "LoRA Config",
+      "training": "Training"
+    },
+    "title": "Model Fine-Tuning"
+  },
+  "research": {
+    "mockFinding": "Mock Research Finding"
+  }
 }

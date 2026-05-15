@@ -737,7 +737,9 @@
         "mcp": "MCP",
         "search": "Search",
         "skill": "Skill"
-      }
+      },
+      "hideType": "Click to hide",
+      "showType": "Click to show"
     },
     "wiki": {
       "title": "Wiki Vault",
@@ -925,7 +927,10 @@
     "templateDescOpencode": "오픈소스 터미널 AI 코딩 어시스턴트. 여러 모델 백엔드를 지원하는 유연한 코드 도구",
     "templateDescGemini": "Google Gemini CLI 코딩 에이전트. 터미널에서 Gemini 모델을 직접 사용",
     "templateDescCursor": "VS Code 기반 AI 네이티브 에디터. 코드 완성과 채팅의 깊은 통합",
-    "connectedTools": "연결된 도구"
+    "connectedTools": "연결된 도구",
+    "tab": {
+      "monitor": "Monitor"
+    }
   },
   "settings": {
     "title": "설정",
@@ -3727,7 +3732,12 @@
     "taskId": "작업 ID",
     "traceId": "추적 ID",
     "error": "오류",
-    "scoreDetails": "점수 세부정보"
+    "scoreDetails": "점수 세부정보",
+    "configTitle": "Run Configuration",
+    "empty": "Select a benchmark and click run...",
+    "selectFirst": "Please select a benchmark first",
+    "selectTitle": "Benchmark Selection",
+    "title": "Benchmark Runner"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -4240,7 +4250,29 @@
     "focusLocal": "Focus Local",
     "createLinkedNote": "Create Linked Note",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "Edges",
+    "export": "Export",
+    "exportHtml": "Export as HTML",
+    "exportMarkdown": "Export as Markdown",
+    "exportPdf": "Export as PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "Nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick Capture",
+    "refresh": "Refresh",
+    "startImport": "Start Import",
+    "vaultPath": "Vault Path"
   },
   "notification": {
     "clear": "Clear",
@@ -4363,7 +4395,13 @@
     "installed": "Installed",
     "marketplace": "Skill Marketplace",
     "search": "Search skills...",
-    "uninstall": "Uninstall"
+    "uninstall": "Uninstall",
+    "addFrontend": "Add Frontend",
+    "editFrontend": "Edit Frontend",
+    "exportFailed": "Export Failed",
+    "exportPublishable": "Export Publishable",
+    "exported": "Skill Exported",
+    "hasUI": "Has UI Extension"
   },
   "task": {
     "title": "백그라운드 작업",
@@ -4837,7 +4875,12 @@
       "source": "By Source"
     },
     "sortDir": "Ascending",
-    "sortDirDesc": "Descending"
+    "sortDirDesc": "Descending",
+    "builtinAlreadyImported": "Built-in experts already imported",
+    "builtinImported": "12 built-in experts imported",
+    "builtinImportedLabel": "Imported",
+    "importBuiltin": "Import all built-in experts (code review, debugging, architecture design, etc.)",
+    "importBuiltinBtn": "Import Built-in"
   },
   "agentProfile": {
     "importSuccess": "Successfully imported {{count}} roles",
@@ -4994,5 +5037,35 @@
     "failed": "Failed"
   },
   "markdown": "Markdown",
-  "success": "Success"
+  "success": "Success",
+  "advancedSettings": {
+    "bashSecurity": "Bash Command Security Verification",
+    "defaultPermission": "Default Permission Mode",
+    "networkCmdDetect": "Enable Network Command Detection",
+    "networkConfirm": "Network Requests Require Confirmation",
+    "perm": {
+      "acceptEdits": "Accept Edits",
+      "default": "Default (Ask Every Time)",
+      "fullAccess": "Full Access"
+    },
+    "permissionStrategy": "Permission Execution Strategy",
+    "shellConfirm": "Shell Execution Requires Confirmation"
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "total": "Total"
+    },
+    "tab": {
+      "dataset": "Dataset",
+      "loraConfig": "LoRA Config",
+      "training": "Training"
+    },
+    "title": "Model Fine-Tuning"
+  },
+  "research": {
+    "mockFinding": "Mock Research Finding"
+  }
 }

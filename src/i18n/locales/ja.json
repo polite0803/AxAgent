@@ -737,7 +737,9 @@
         "mcp": "MCP",
         "search": "検索",
         "skill": "技能"
-      }
+      },
+      "hideType": "Click to hide",
+      "showType": "Click to show"
     },
     "wiki": {
       "title": "Wiki 知识库",
@@ -925,7 +927,10 @@
     "templateDescOpencode": "オープンソースのターミナルAIコーディングアシスタント。複数のモデルバックエンドをサポート",
     "templateDescGemini": "Google Gemini CLI 编程代理，直接在终端中使用 Gemini 模型",
     "templateDescCursor": "基于 VS Code 的 AI 原生编辑器，深度集成代码补全与对话",
-    "connectedTools": "接続済みツール"
+    "connectedTools": "接続済みツール",
+    "tab": {
+      "monitor": "Monitor"
+    }
   },
   "settings": {
     "title": "設定",
@@ -3727,7 +3732,12 @@
     "taskId": "タスクID",
     "traceId": "トレースID",
     "error": "エラー",
-    "scoreDetails": "スコア詳細"
+    "scoreDetails": "スコア詳細",
+    "configTitle": "Run Configuration",
+    "empty": "Select a benchmark and click run...",
+    "selectFirst": "Please select a benchmark first",
+    "selectTitle": "Benchmark Selection",
+    "title": "Benchmark Runner"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情"
@@ -4240,7 +4250,29 @@
     "focusLocal": "Focus Local",
     "createLinkedNote": "Create Linked Note",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "Edges",
+    "export": "Export",
+    "exportHtml": "Export as HTML",
+    "exportMarkdown": "Export as Markdown",
+    "exportPdf": "Export as PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "Nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick Capture",
+    "refresh": "Refresh",
+    "startImport": "Start Import",
+    "vaultPath": "Vault Path"
   },
   "notification": {
     "clear": "清除",
@@ -4363,7 +4395,13 @@
     "installed": "已安装",
     "marketplace": "技能市场",
     "search": "搜索技能...",
-    "uninstall": "アンインストール"
+    "uninstall": "アンインストール",
+    "addFrontend": "Add Frontend",
+    "editFrontend": "Edit Frontend",
+    "exportFailed": "Export Failed",
+    "exportPublishable": "Export Publishable",
+    "exported": "Skill Exported",
+    "hasUI": "Has UI Extension"
   },
   "task": {
     "title": "バックグラウンドタスク",
@@ -4837,7 +4875,12 @@
       "source": "按来源"
     },
     "sortDir": "升序",
-    "sortDirDesc": "降序"
+    "sortDirDesc": "降序",
+    "builtinAlreadyImported": "Built-in experts already imported",
+    "builtinImported": "12 built-in experts imported",
+    "builtinImportedLabel": "Imported",
+    "importBuiltin": "Import all built-in experts (code review, debugging, architecture design, etc.)",
+    "importBuiltinBtn": "Import Built-in"
   },
   "agentProfile": {
     "importSuccess": "成功导入 {{count}} 个角色",
@@ -4994,5 +5037,35 @@
     "failed": "Failed"
   },
   "markdown": "Markdown",
-  "success": "Success"
+  "success": "Success",
+  "advancedSettings": {
+    "bashSecurity": "Bash Command Security Verification",
+    "defaultPermission": "Default Permission Mode",
+    "networkCmdDetect": "Enable Network Command Detection",
+    "networkConfirm": "Network Requests Require Confirmation",
+    "perm": {
+      "acceptEdits": "Accept Edits",
+      "default": "Default (Ask Every Time)",
+      "fullAccess": "Full Access"
+    },
+    "permissionStrategy": "Permission Execution Strategy",
+    "shellConfirm": "Shell Execution Requires Confirmation"
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "total": "Total"
+    },
+    "tab": {
+      "dataset": "Dataset",
+      "loraConfig": "LoRA Config",
+      "training": "Training"
+    },
+    "title": "Model Fine-Tuning"
+  },
+  "research": {
+    "mockFinding": "Mock Research Finding"
+  }
 }

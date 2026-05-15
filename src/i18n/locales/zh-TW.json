@@ -737,7 +737,9 @@
         "mcp": "MCP",
         "search": "搜索",
         "skill": "技能"
-      }
+      },
+      "hideType": "Click to hide",
+      "showType": "Click to show"
     },
     "wiki": {
       "title": "Wiki 知識庫",
@@ -925,7 +927,10 @@
     "templateDescOpencode": "開源終端機 AI 程式設計助手，支援多模型後端的靈活程式碼工具",
     "templateDescGemini": "Google Gemini CLI 程式設計代理，直接在終端機中使用 Gemini 模型",
     "templateDescCursor": "基於 VS Code 的 AI 原生編輯器，深度整合程式碼補全與對話",
-    "connectedTools": "已接入工具"
+    "connectedTools": "已接入工具",
+    "tab": {
+      "monitor": "Monitor"
+    }
   },
   "settings": {
     "title": "設定",
@@ -3727,7 +3732,12 @@
     "taskId": "任務ID",
     "traceId": "追蹤ID",
     "error": "錯誤",
-    "scoreDetails": "分數詳情"
+    "scoreDetails": "分數詳情",
+    "configTitle": "Run Configuration",
+    "empty": "Select a benchmark and click run...",
+    "selectFirst": "Please select a benchmark first",
+    "selectTitle": "Benchmark Selection",
+    "title": "Benchmark Runner"
   },
   "traceExplorer": {
     "selectTrace": "選擇一個 trace 查看詳情"
@@ -4240,7 +4250,29 @@
     "focusLocal": "Focus Local",
     "createLinkedNote": "Create Linked Note",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "Edges",
+    "export": "Export",
+    "exportHtml": "Export as HTML",
+    "exportMarkdown": "Export as Markdown",
+    "exportPdf": "Export as PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "Nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick Capture",
+    "refresh": "Refresh",
+    "startImport": "Start Import",
+    "vaultPath": "Vault Path"
   },
   "notification": {
     "clear": "清除",
@@ -4363,7 +4395,13 @@
     "installed": "已安裝",
     "search": "搜索技能...",
     "install": "安裝",
-    "uninstall": "卸載"
+    "uninstall": "卸載",
+    "addFrontend": "Add Frontend",
+    "editFrontend": "Edit Frontend",
+    "exportFailed": "Export Failed",
+    "exportPublishable": "Export Publishable",
+    "exported": "Skill Exported",
+    "hasUI": "Has UI Extension"
   },
   "task": {
     "title": "背景任務",
@@ -4837,7 +4875,12 @@
       "source": "按來源"
     },
     "sortDir": "升序",
-    "sortDirDesc": "降序"
+    "sortDirDesc": "降序",
+    "builtinAlreadyImported": "Built-in experts already imported",
+    "builtinImported": "12 built-in experts imported",
+    "builtinImportedLabel": "Imported",
+    "importBuiltin": "Import all built-in experts (code review, debugging, architecture design, etc.)",
+    "importBuiltinBtn": "Import Built-in"
   },
   "agentProfile": {
     "importSuccess": "成功導入 {{count}} 個角色",
@@ -4994,5 +5037,35 @@
     "failed": "Failed"
   },
   "markdown": "Markdown",
-  "success": "Success"
+  "success": "Success",
+  "advancedSettings": {
+    "bashSecurity": "Bash Command Security Verification",
+    "defaultPermission": "Default Permission Mode",
+    "networkCmdDetect": "Enable Network Command Detection",
+    "networkConfirm": "Network Requests Require Confirmation",
+    "perm": {
+      "acceptEdits": "Accept Edits",
+      "default": "Default (Ask Every Time)",
+      "fullAccess": "Full Access"
+    },
+    "permissionStrategy": "Permission Execution Strategy",
+    "shellConfirm": "Shell Execution Requires Confirmation"
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "total": "Total"
+    },
+    "tab": {
+      "dataset": "Dataset",
+      "loraConfig": "LoRA Config",
+      "training": "Training"
+    },
+    "title": "Model Fine-Tuning"
+  },
+  "research": {
+    "mockFinding": "Mock Research Finding"
+  }
 }
