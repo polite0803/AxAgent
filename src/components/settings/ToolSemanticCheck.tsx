@@ -156,7 +156,7 @@ export default function ToolSemanticCheck() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onSearch={() => {
-              if (filteredTools.length > 0) setSelectedTool(filteredTools[0]);
+              if (filteredTools.length > 0) { setSelectedTool(filteredTools[0]); }
             }}
             allowClear
           />
