@@ -11,7 +11,7 @@ interface TriggerPropertyPanelProps {
 }
 
 export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const triggerNode = node as TriggerNode;
   const triggerConfig = triggerNode.config || { type: "manual" as TriggerType, config: {} };
 

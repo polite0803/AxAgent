@@ -18,7 +18,7 @@ interface TriggerNodeData {
 }
 
 const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const triggerType = data.triggerConfig?.type || "manual";
   const color = "#722ed1";
 

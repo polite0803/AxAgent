@@ -28,7 +28,7 @@ interface RightPanelProps {
 }
 
 export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode, selectedEdge }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const deleteNode = useWorkflowEditorStore((state) => state.deleteNode);
   const deleteEdge = useWorkflowEditorStore((state) => state.deleteEdge);
   const updateNode = useWorkflowEditorStore((state) => state.updateNode);

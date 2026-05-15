@@ -13,7 +13,7 @@ interface LoopPropertyPanelProps {
 }
 
 export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const loopNode = node as LoopNode;
   const config = loopNode.config || {
     loop_type: "forEach" as LoopType,

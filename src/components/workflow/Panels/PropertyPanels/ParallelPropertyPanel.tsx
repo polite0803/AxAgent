@@ -13,7 +13,7 @@ interface ParallelPropertyPanelProps {
 }
 
 export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const parallelNode = node as ParallelNode;
   const config = parallelNode.config || {
     branches: [],

@@ -2587,8 +2587,11 @@
       "claude": "Claude",
       "agents": "代理",
       "builtin": "内置",
-      "project": "项目",
-      "bundled": "捆绑"
+      "bundled": "捆绑",
+      "codebuddy": "CodeBuddy",
+      "trae": "Trae",
+      "workbuddy": "WorkBuddy",
+      "project": "项目"
     },
     "enabled": "已启用",
     "disabled": "已禁用",
@@ -5873,5 +5876,6 @@
       "hi": "हिन्दी",
       "ar": "العربية"
     }
-  }
+  },
+  "chat:workflow.templateList.presetsImported": "导入成功"
 }

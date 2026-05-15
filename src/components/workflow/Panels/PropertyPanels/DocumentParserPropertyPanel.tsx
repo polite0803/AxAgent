@@ -13,7 +13,7 @@ interface DocumentParserPropertyPanelProps {
 export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelProps> = (
   { node, onUpdate, onDelete },
 ) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const documentParserNode = node as DocumentParserNode;
   const config = documentParserNode.config || {
     input_var: "",

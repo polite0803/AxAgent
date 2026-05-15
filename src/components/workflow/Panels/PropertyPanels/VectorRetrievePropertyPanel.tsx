@@ -14,7 +14,7 @@ interface VectorRetrievePropertyPanelProps {
 export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelProps> = (
   { node, onUpdate, onDelete },
 ) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const vectorRetrieveNode = node as VectorRetrieveNode;
   const config = vectorRetrieveNode.config || {
     query: "",

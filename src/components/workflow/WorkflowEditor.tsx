@@ -81,7 +81,7 @@ interface WorkflowEditorProps {
 }
 
 export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onClose }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const {
     currentTemplate,

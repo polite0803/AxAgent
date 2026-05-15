@@ -21,7 +21,7 @@ interface ConditionNodeData {
 }
 
 const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const color = "#fa8c16";
   const conditions = data.conditions || [];
   const logicalOp = data.logicalOp || "and";

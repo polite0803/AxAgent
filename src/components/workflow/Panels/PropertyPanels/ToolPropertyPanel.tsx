@@ -12,7 +12,7 @@ interface ToolPropertyPanelProps {
 }
 
 export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const toolNode = node as ToolNode;
   const config = toolNode.config || {
     tool_name: "",

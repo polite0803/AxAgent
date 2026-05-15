@@ -2874,6 +2874,9 @@
       "agents": "Agents",
       "builtin": "Built-in",
       "bundled": "Bundled",
+      "codebuddy": "CodeBuddy",
+      "trae": "Trae",
+      "workbuddy": "WorkBuddy",
       "project": "Project"
     },
     "enabled": "Enabled",

@@ -22,7 +22,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const { loadTemplateVersions, loadTemplateByVersion } = useWorkflowEditorStore();
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (visible && template?.id) {

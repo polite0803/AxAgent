@@ -3409,7 +3409,11 @@
       "noTemplates": "暂无模板",
       "confirmDelete": "确认删除",
       "confirmDeleteMessage": "确认删除此模板？此操作不可撤销。",
-      "irreversible": "不可撤销"
+      "irreversible": "不可撤销",
+      "presetsImported": "{{count}} preset templates imported",
+      "presetsImportFailed": "Import failed: {{error}}",
+      "importPresetsTitle": "Import Preset Templates",
+      "importPresets": "Import Presets"
     },
     "undo": "元に戻す",
     "redo": "やり直し",

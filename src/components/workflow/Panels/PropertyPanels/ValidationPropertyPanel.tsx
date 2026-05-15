@@ -12,7 +12,7 @@ interface ValidationPropertyPanelProps {
 }
 
 export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const validationNode = node as ValidationNode;
   const config = validationNode.config || {
     assertions: [],

@@ -20,7 +20,7 @@ interface ParallelNodeData {
 }
 
 const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const color = "#fa8c16";
   const branches = data.branches || [];
   const waitForAll = data.waitForAll ?? true;

@@ -14,7 +14,7 @@ interface EndNodeData {
 }
 
 const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const color = "#ff4d4f";
 
   return (

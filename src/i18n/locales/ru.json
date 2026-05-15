@@ -3409,7 +3409,11 @@
       "noTemplates": "No templates",
       "confirmDelete": "Confirm Delete",
       "confirmDeleteMessage": "Are you sure you want to delete template \"{{name}}\"?",
-      "irreversible": "This action cannot be undone"
+      "irreversible": "This action cannot be undone",
+      "presetsImported": "{{count}} preset templates imported",
+      "presetsImportFailed": "Import failed: {{error}}",
+      "importPresetsTitle": "Import Preset Templates",
+      "importPresets": "Import Presets"
     },
     "undo": "Отменить",
     "redo": "Повторить",

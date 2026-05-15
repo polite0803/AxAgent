@@ -15,7 +15,7 @@ interface AgentPropertyPanelProps {
 }
 
 export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
     role: "developer" as AgentRole,

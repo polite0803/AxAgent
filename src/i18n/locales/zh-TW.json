@@ -3409,7 +3409,11 @@
       "noTemplates": "暫無範本",
       "confirmDelete": "確認刪除",
       "confirmDeleteMessage": "確認刪除此範本？此操作無法復原。",
-      "irreversible": "無法復原"
+      "irreversible": "無法復原",
+      "presetsImported": "{{count}} preset templates imported",
+      "presetsImportFailed": "Import failed: {{error}}",
+      "importPresetsTitle": "Import Preset Templates",
+      "importPresets": "Import Presets"
     },
     "undo": "復原",
     "redo": "重做",

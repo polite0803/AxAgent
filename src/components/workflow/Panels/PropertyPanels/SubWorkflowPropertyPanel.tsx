@@ -12,7 +12,7 @@ interface SubWorkflowPropertyPanelProps {
 }
 
 export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const subWorkflowNode = node as SubWorkflowNode;
   const config = subWorkflowNode.config || {
     sub_workflow_id: "",

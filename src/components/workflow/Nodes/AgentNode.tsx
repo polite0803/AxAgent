@@ -24,7 +24,7 @@ interface AgentNodeData {
 }
 
 const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const color = "#1890ff";
 
   const getBorderColor = () => {

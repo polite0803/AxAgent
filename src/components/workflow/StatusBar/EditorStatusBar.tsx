@@ -23,7 +23,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onFitView,
   onResetZoom,
 }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const { token } = theme.useToken();
 
   const getValidationIcon = () => {

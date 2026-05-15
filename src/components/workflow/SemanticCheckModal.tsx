@@ -17,7 +17,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
   matches,
   onApplyReplacement,
 }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const { clearSemanticCheckResult } = useWorkflowEditorStore();
   const [selectedActions, setSelectedActions] = useState<
     Record<string, { skillId: string; action: SkillReplacementAction }>

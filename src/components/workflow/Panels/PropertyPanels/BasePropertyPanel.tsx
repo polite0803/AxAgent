@@ -10,7 +10,7 @@ interface BasePropertyPanelProps {
 }
 
 export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUpdate }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>

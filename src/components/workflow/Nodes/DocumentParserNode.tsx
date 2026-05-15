@@ -17,7 +17,7 @@ interface DocumentParserNodeData {
 }
 
 const DocumentParserNodeComponent: React.FC<NodeProps<DocumentParserNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const color = "#eb2f96";
   const inputVar = data.inputVar || t("workflow.documentParserNode.notSet");
   const parserType = data.parserType || t("workflow.documentParserNode.notSelected");

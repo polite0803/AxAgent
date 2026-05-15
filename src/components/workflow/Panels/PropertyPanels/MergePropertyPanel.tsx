@@ -11,7 +11,7 @@ interface MergePropertyPanelProps {
 }
 
 export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const mergeNode = node as MergeNode;
   const config = mergeNode.config || {
     merge_type: "all",

@@ -24,7 +24,7 @@ export interface Assertion {
 }
 
 const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const color = "#722ed1";
   const assertions = data.assertions || [];
   const onFail = data.onFail || "stop";

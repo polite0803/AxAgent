@@ -7,23 +7,67 @@ import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
 import { VersionHistoryModal } from "./VersionHistoryModal";
 
-/** Maps preset template (kebab-case) IDs to their i18n key suffixes (camelCase). */
-const PRESET_I18N_KEY: Record<string, string> = {
-  "code-review": "codeReview",
-  "bug-fix": "bugFix",
-  "doc-gen": "docGen",
-  "test-gen": "testGen",
-  "refactor": "refactor",
-  "explore": "explore",
-  "performance": "performance",
-  "security": "security",
-  "migration": "migration",
-  "api-design": "apiDesign",
-  "debug-env": "debugEnv",
-  "feature": "feature",
-  "knowledge-extract": "knowledgeExtract",
-  "knowledge-to-code": "knowledgeToCode",
-};
+/** Maps preset template IDs to exact i18n translation keys. */
+const PRESET_I18N_KEYS = {
+  "code-review": {
+    name: "workflow.codeReview.name",
+    description: "workflow.codeReview.description",
+  },
+  "bug-fix": {
+    name: "workflow.bugFix.name",
+    description: "workflow.bugFix.description",
+  },
+  "doc-gen": {
+    name: "workflow.docGen.name",
+    description: "workflow.docGen.description",
+  },
+  "test-gen": {
+    name: "workflow.testGen.name",
+    description: "workflow.testGen.description",
+  },
+  "refactor": {
+    name: "workflow.refactor.name",
+    description: "workflow.refactor.description",
+  },
+  "explore": {
+    name: "workflow.explore.name",
+    description: "workflow.explore.description",
+  },
+  "performance": {
+    name: "workflow.performance.name",
+    description: "workflow.performance.description",
+  },
+  "security": {
+    name: "workflow.security.name",
+    description: "workflow.security.description",
+  },
+  "migration": {
+    name: "workflow.migration.name",
+    description: "workflow.migration.description",
+  },
+  "api-design": {
+    name: "workflow.apiDesign.name",
+    description: "workflow.apiDesign.description",
+  },
+  "debug-env": {
+    name: "workflow.debugEnv.name",
+    description: "workflow.debugEnv.description",
+  },
+  "feature": {
+    name: "workflow.feature.name",
+    description: "workflow.feature.description",
+  },
+  "knowledge-extract": {
+    name: "workflow.knowledgeExtract.name",
+    description: "workflow.knowledgeExtract.description",
+  },
+  "knowledge-to-code": {
+    name: "workflow.knowledgeToCode.name",
+    description: "workflow.knowledgeToCode.description",
+  },
+} as const;
+
+type PresetI18nKey = keyof typeof PRESET_I18N_KEYS;
 
 interface TemplateListProps {
   onSelectTemplate: (template: WorkflowTemplateResponse) => void;
@@ -57,7 +101,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   onCreateNew,
   onEditTemplate,
 }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation("translation");
   const { token } = theme.useToken();
   const { templates, isLoading, loadTemplates, deleteTemplate, duplicateTemplate } = useWorkflowEditorStore();
   const [searchText, setSearchText] = useState("");
@@ -192,9 +236,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 16 }}>{template.icon || "📋"}</span>
               <span style={{ fontWeight: 500, color: token.colorText, fontSize: 14 }}>
-                {template.is_preset && PRESET_I18N_KEY[template.id]
-                  ? t(`chat.workflow.${PRESET_I18N_KEY[template.id]}.name`, template.name)
-                  : template.name}
+                {(() => {
+                  const presetI18n = PRESET_I18N_KEYS[template.id as PresetI18nKey];
+                  return presetI18n
+                    ? t(presetI18n.name)
+                    : template.name;
+                })()}
               </span>
               {template.is_preset && (
                 <Tag color="gold" style={{ marginLeft: 4, fontSize: 10 }}>
@@ -217,9 +264,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 whiteSpace: "nowrap",
               }}
             >
-              {template.is_preset && PRESET_I18N_KEY[template.id]
-                ? t(`chat.workflow.${PRESET_I18N_KEY[template.id]}.description`, template.description || "")
-                : template.description || t("workflow.templateList.noDescription")}
+              {(() => {
+                const presetI18n = PRESET_I18N_KEYS[template.id as PresetI18nKey];
+                return presetI18n
+                  ? t(presetI18n.description)
+                  : template.description || t("workflow.templateList.noDescription");
+              })()}
             </div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {template.tags?.slice(0, 4).map((tag) => (

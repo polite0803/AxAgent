@@ -126,6 +126,15 @@ const SOURCE_LABELS: Record<string, string> = {
   project: "skills.source.project",
 };
 
+const getSourceLabel = (source: string | undefined, t: TFunction) => {
+  if (!source) { return ""; }
+
+  const labelOrKey = SOURCE_LABELS[source];
+  if (!labelOrKey) { return source; }
+
+  return labelOrKey.startsWith("skills.source.") ? t(labelOrKey) : labelOrKey;
+};
+
 const ALL_SOURCE_ICON = <Layers size={14} color={CHAT_ICON_COLORS.Layers} />;
 
 function SkillCard({
@@ -345,7 +354,7 @@ function MarketplaceCard({
 }
 
 export function SkillsPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation("translation");
   const { token } = theme.useToken();
   const [messageApi, contextHolder] = message.useMessage();
   const {
@@ -793,7 +802,7 @@ export function SkillsPage() {
                           <Tag style={{ margin: 0 }}>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                               {SOURCE_ICONS[groupSkills[0]?.source]}
-                              {t(`skills.source.${groupSkills[0]?.source}`)}
+                              {getSourceLabel(groupSkills[0]?.source, t)}
                             </span>
                           </Tag>
                           <Tag style={{ margin: 0 }}>{t("skills.groupSkillCount", { count: groupSkills.length })}</Tag>
@@ -1020,7 +1029,7 @@ export function SkillsPage() {
               <Tag>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                   {SOURCE_ICONS[selectedSkill.info.source]}
-                  {t(`skills.source.${selectedSkill.info.source}`)}
+                  {getSourceLabel(selectedSkill.info.source, t)}
                 </span>
               </Tag>
             </div>

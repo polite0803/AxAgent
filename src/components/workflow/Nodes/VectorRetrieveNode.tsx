@@ -19,7 +19,7 @@ interface VectorRetrieveNodeData {
 }
 
 const VectorRetrieveNodeComponent: React.FC<NodeProps<VectorRetrieveNodeData>> = ({ data, selected }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const color = "#eb2f96";
   const query = data.query || "";
   const knowledgeBaseId = data.knowledgeBaseId || t("workflow.vectorRetrieveNode.notSelected");

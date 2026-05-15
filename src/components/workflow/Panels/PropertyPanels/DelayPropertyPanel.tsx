@@ -11,7 +11,7 @@ interface DelayPropertyPanelProps {
 }
 
 export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const delayNode = node as DelayNode;
   const config = delayNode.config || {
     delay_type: "seconds",

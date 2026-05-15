@@ -12,7 +12,7 @@ interface ConditionPropertyPanelProps {
 }
 
 export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
-  const { t } = useTranslation("chat");
+  const { t } = useTranslation();
   const conditionNode = node as ConditionNode;
   const config = conditionNode.config || {
     conditions: [],
