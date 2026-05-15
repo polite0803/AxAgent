@@ -244,6 +244,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             <Button
               type="text"
               size="small"
+              data-testid="template-card-more-btn"
               icon={<MoreVertical size={14} />}
               onClick={(e) => e.stopPropagation()}
               style={{ color: token.colorTextTertiary }}
@@ -268,6 +269,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <Input
             id="template-list-input-129"
+            data-testid="template-list-search"
             placeholder={t("workflow.templateList.searchPlaceholder")}
             prefix={<Search size={14} color={token.colorTextTertiary} />}
             value={searchText}
