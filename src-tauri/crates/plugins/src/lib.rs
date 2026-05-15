@@ -475,6 +475,8 @@ pub struct BuiltinPlugin {
     hooks: PluginHooks,
     lifecycle: PluginLifecycle,
     tools: Vec<PluginTool>,
+    mcp_servers: Vec<PluginMcpServer>,
+    skills: Vec<PluginSkillEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -483,6 +485,8 @@ pub struct BundledPlugin {
     hooks: PluginHooks,
     lifecycle: PluginLifecycle,
     tools: Vec<PluginTool>,
+    mcp_servers: Vec<PluginMcpServer>,
+    skills: Vec<PluginSkillEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -491,6 +495,8 @@ pub struct ExternalPlugin {
     hooks: PluginHooks,
     lifecycle: PluginLifecycle,
     tools: Vec<PluginTool>,
+    mcp_servers: Vec<PluginMcpServer>,
+    skills: Vec<PluginSkillEntry>,
 }
 
 pub trait Plugin {
@@ -498,6 +504,8 @@ pub trait Plugin {
     fn hooks(&self) -> &PluginHooks;
     fn lifecycle(&self) -> &PluginLifecycle;
     fn tools(&self) -> &[PluginTool];
+    fn mcp_servers(&self) -> &[PluginMcpServer];
+    fn skills(&self) -> &[PluginSkillEntry];
     fn validate(&self) -> Result<(), PluginError>;
     fn initialize(&self) -> Result<(), PluginError>;
     fn shutdown(&self) -> Result<(), PluginError>;
@@ -525,6 +533,14 @@ impl Plugin for BuiltinPlugin {
 
     fn tools(&self) -> &[PluginTool] {
         &self.tools
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        &self.mcp_servers
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        &self.skills
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -555,6 +571,14 @@ impl Plugin for BundledPlugin {
 
     fn tools(&self) -> &[PluginTool] {
         &self.tools
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        &self.mcp_servers
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        &self.skills
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -592,6 +616,14 @@ impl Plugin for ExternalPlugin {
 
     fn tools(&self) -> &[PluginTool] {
         &self.tools
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        &self.mcp_servers
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        &self.skills
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -644,6 +676,22 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.tools(),
             Self::Bundled(plugin) => plugin.tools(),
             Self::External(plugin) => plugin.tools(),
+        }
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        match self {
+            Self::Builtin(plugin) => plugin.mcp_servers(),
+            Self::Bundled(plugin) => plugin.mcp_servers(),
+            Self::External(plugin) => plugin.mcp_servers(),
+        }
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        match self {
+            Self::Builtin(plugin) => plugin.skills(),
+            Self::Bundled(plugin) => plugin.skills(),
+            Self::External(plugin) => plugin.skills(),
         }
     }
 
@@ -724,6 +772,23 @@ impl RegisteredPlugin {
         PluginSummary {
             metadata: self.metadata().clone(),
             enabled: self.enabled,
+            tool_names: self
+                .tools()
+                .iter()
+                .map(|t| t.definition().name.clone())
+                .collect(),
+            mcp_server_names: self
+                .definition
+                .mcp_servers()
+                .iter()
+                .map(|m| m.name.clone())
+                .collect(),
+            skill_names: self
+                .definition
+                .skills()
+                .iter()
+                .map(|s| s.name.clone())
+                .collect(),
         }
     }
 }
@@ -732,6 +797,9 @@ impl RegisteredPlugin {
 pub struct PluginSummary {
     pub metadata: PluginMetadata,
     pub enabled: bool,
+    pub tool_names: Vec<String>,
+    pub mcp_server_names: Vec<String>,
+    pub skill_names: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -1681,6 +1749,8 @@ pub fn builtin_plugins() -> Vec<PluginDefinition> {
         hooks: PluginHooks::default(),
         lifecycle: PluginLifecycle::default(),
         tools: Vec::new(),
+        mcp_servers: Vec::new(),
+        skills: Vec::new(),
     })]
 }
 
@@ -1704,24 +1774,32 @@ fn load_plugin_definition(
     let hooks = resolve_hooks(root, &manifest.hooks);
     let lifecycle = resolve_lifecycle(root, &manifest.lifecycle);
     let tools = resolve_tools(root, &metadata.id, &metadata.name, &manifest.tools);
+    let mcp_servers = manifest.mcp_servers;
+    let skills = manifest.skills;
     Ok(match kind {
         PluginKind::Builtin => PluginDefinition::Builtin(BuiltinPlugin {
             metadata,
             hooks,
             lifecycle,
             tools,
+            mcp_servers,
+            skills,
         }),
         PluginKind::Bundled => PluginDefinition::Bundled(BundledPlugin {
             metadata,
             hooks,
             lifecycle,
             tools,
+            mcp_servers,
+            skills,
         }),
         PluginKind::External => PluginDefinition::External(ExternalPlugin {
             metadata,
             hooks,
             lifecycle,
             tools,
+            mcp_servers,
+            skills,
         }),
     })
 }
