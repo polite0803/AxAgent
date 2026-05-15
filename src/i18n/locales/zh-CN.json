@@ -738,7 +738,9 @@
         "mcp": "MCP",
         "search": "搜索",
         "skill": "技能"
-      }
+      },
+      "hideType": "点击隐藏",
+      "showType": "点击显示"
     },
     "wiki": {
       "title": "Wiki 知识库",
@@ -930,7 +932,10 @@
     "templateDescOpencode": "开源终端 AI 编程助手，支持多模型后端的灵活代码工具",
     "templateDescGemini": "Google Gemini CLI 编程代理，直接在终端中使用 Gemini 模型",
     "templateDescCursor": "基于 VS Code 的 AI 原生编辑器，深度集成代码补全与对话",
-    "connectedTools": "已接入工具"
+    "connectedTools": "已接入工具",
+    "tab": {
+      "monitor": "监控"
+    }
   },
   "settings": {
     "title": "设置",
@@ -3158,14 +3163,7 @@
     "searchPlaceholder": "搜索笔记...",
     "selectWiki": "选择 Wiki",
     "selectWikiPrompt": "请选择一个 Wiki",
-    "source": {
-      "chunks": "分段",
-      "deleteNotImplemented": "删除功能尚未实现",
-      "path": "路径",
-      "status": "状态",
-      "title": "来源",
-      "type": "类型"
-    },
+    "source": "源码",
     "sources": "来源",
     "sync": {
       "byWiki": "按 Wiki",
@@ -3200,12 +3198,7 @@
     },
     "titlePlaceholder": "笔记标题...",
     "userNote": "用户",
-    "wiki": {
-      "description": "描述",
-      "name": "名称",
-      "rootPath": "根路径",
-      "schemaVersion": "Schema 版本"
-    },
+    "wiki": "知识库",
     "manage": "管理",
     "viewingWiki": "正在查看 Wiki: {{id}}",
     "deleted": "已删除",
@@ -3265,7 +3258,29 @@
     "focusLocal": "聚焦本地",
     "createLinkedNote": "创建关联笔记",
     "delete": "删除",
-    "cancel": "取消"
+    "cancel": "取消",
+    "browse": "浏览",
+    "dailyNote": "今日笔记",
+    "edges": "关联边",
+    "export": "导出",
+    "exportHtml": "导出 HTML",
+    "exportMarkdown": "导出 Markdown",
+    "exportPdf": "导出 PDF",
+    "exportResult": "已导出：{{exported}}，失败：{{failed}}",
+    "exportedPdf": "已导出至 {{path}}",
+    "filteredByTag": "已筛选：{{tag}}",
+    "fromTemplate": "从模板创建",
+    "history": "历史记录",
+    "import": "导入",
+    "importObsidian": "导入 Obsidian 库",
+    "importObsidianDesc": "从已有 Obsidian 库导入 Markdown 文件",
+    "importResult": "已导入：{{imported}}，已跳过：{{skipped}}，失败：{{failed}}",
+    "nodes": "节点",
+    "preview": "预览",
+    "quickCapture": "快速捕获",
+    "refresh": "刷新",
+    "startImport": "开始导入",
+    "vaultPath": "库路径"
   },
   "quickbar": {
     "title": "快速操作",
@@ -4171,7 +4186,12 @@
     "taskDetails": "任务详情",
     "recommendations": "建议",
     "action": "操作",
-    "retry": "重试"
+    "retry": "重试",
+    "configTitle": "运行配置",
+    "empty": "选择基准测试并点击运行...",
+    "selectFirst": "请先选择一个基准测试",
+    "selectTitle": "基准测试选择",
+    "title": "基准测试运行器"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情"
@@ -4447,7 +4467,13 @@
     "installed": "已安装",
     "marketplace": "技能市场",
     "search": "搜索技能...",
-    "uninstall": "卸载"
+    "uninstall": "卸载",
+    "addFrontend": "添加前端扩展",
+    "editFrontend": "编辑前端扩展",
+    "exportFailed": "导出失败",
+    "exportPublishable": "导出为可发布格式",
+    "exported": "技能已导出",
+    "hasUI": "含 UI 扩展"
   },
   "task": {
     "title": "后台任务",
@@ -4937,7 +4963,12 @@
     "sortDir": "升序",
     "sortDirDesc": "降序",
     "capabilityDetail": "能力详情",
-    "detail": "详"
+    "detail": "详",
+    "builtinAlreadyImported": "内置专家已导入",
+    "builtinImported": "已导入 12 个内置专家",
+    "builtinImportedLabel": "已导入",
+    "importBuiltin": "导入全部内置专家（代码审查、调试、架构设计等）",
+    "importBuiltinBtn": "导入内置专家"
   },
   "agentProfile": {
     "importSuccess": "成功导入 {{count}} 个角色",
@@ -5157,7 +5188,18 @@
       "error": "仅错误",
       "warning": "错误+警告",
       "information": "全部"
-    }
+    },
+    "bashSecurity": "Bash 命令安全验证",
+    "defaultPermission": "默认权限模式",
+    "networkCmdDetect": "启用网络命令检测",
+    "networkConfirm": "网络请求需确认",
+    "perm": {
+      "acceptEdits": "接受编辑",
+      "default": "默认（每次询问）",
+      "fullAccess": "完全访问"
+    },
+    "permissionStrategy": "权限执行策略",
+    "shellConfirm": "Shell 执行需确认"
   },
   "filePermission": {
     "title": "文件访问授权",
@@ -5263,7 +5305,8 @@
     "continue": "继续",
     "error": "错误",
     "citations": "引用",
-    "copyReport": "复制报告"
+    "copyReport": "复制报告",
+    "mockFinding": ""
   },
   "reportViewer": {
     "noReport": "暂无生成报告",
@@ -5478,5 +5521,19 @@
   },
   "insight": {
     "placeholder": "例如：用户偏好深色模式..."
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "完成",
+      "failed": "失败",
+      "running": "运行中",
+      "total": "总任务"
+    },
+    "tab": {
+      "dataset": "数据集",
+      "loraConfig": "LoRA 配置",
+      "training": "训练任务"
+    },
+    "title": "模型微调"
   }
 }
