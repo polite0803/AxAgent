@@ -1,9 +1,6 @@
-use std::path::{Path, PathBuf};
-
 use tracing::info;
 
-use crate::tarball;
-use crate::types::{DistInfo, NpmError, PackageInfo, VersionInfo};
+use crate::types::{NpmError, PackageInfo, VersionInfo};
 
 const DEFAULT_REGISTRY: &str = "https://registry.npmjs.org";
 
