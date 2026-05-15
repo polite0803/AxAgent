@@ -232,7 +232,9 @@
         "mcp": "MCP",
         "search": "Search",
         "skill": "Skill"
-      }
+      },
+      "showType": "Click to show",
+      "hideType": "Click to hide"
     },
     "artifacts": {
       "empty": "No artifacts yet",

@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-15",
-  "total_entries": 255,
+  "total_entries": 249,
   "total_files": 218,
   "entries": [
     {
@@ -165,18 +165,6 @@
       "lines": "15,17,131",
       "reason": "硬编码中文字符串",
       "phase": 3
-    },
-    {
-      "file": "src/components/chat/ContextGraphPanel.tsx",
-      "lines": "167,182,189,200,212,221,226,227,238,268,346,349,382,420,422,424,426,430,431,450,451,490,510",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/chat/ContextGraphPanel.tsx",
-      "lines": "182,189,200,212,221,226,227,238,346,349,382,420,422,424,426,428,430,431,450,451,490",
-      "reason": "t() fallback 参数",
-      "phase": 2
     },
     {
       "file": "src/components/chat/ConversationSettingsModal.tsx",
@@ -587,18 +575,6 @@
       "phase": 2
     },
     {
-      "file": "src/components/settings/AgentGeneratorModal.tsx",
-      "lines": "10,12,13,14,15,16,17,18,20,22,62,73,89,94,96,123,136,141,155,163,168,177,178,184,188,192,196,200,204,206,223,226",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/AgentGeneratorModal.tsx",
-      "lines": "73,89,94,96,123,136,141,155,163,168,177,178,184,188,192,196,200,204,206,223,226",
-      "reason": "t() fallback 参数",
-      "phase": 2
-    },
-    {
       "file": "src/components/settings/AgentProfileManager.tsx",
       "lines": "103,107,116,263,423,431,527,528,529,530,531,532,533,534",
       "reason": "硬编码中文字符串",
@@ -925,18 +901,6 @@
     {
       "file": "src/components/wiki/VersionHistoryPanel.tsx",
       "lines": "121,150,167,187,201,203,211,259",
-      "reason": "t() fallback 参数",
-      "phase": 2
-    },
-    {
-      "file": "src/components/wiki/WikiDetailPanel.tsx",
-      "lines": "107,119,172,208,257,266,317,335,340",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/wiki/WikiDetailPanel.tsx",
-      "lines": "148,164,167,193,223,252,264,277,280,291,305,331,369,383,393,407,417,426,431,436,441",
       "reason": "t() fallback 参数",
       "phase": 2
     },

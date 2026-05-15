@@ -70,7 +70,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
       // Try to extract JSON from the response
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error(t("agentGenerator.parseJsonError", "无法从响应中解析 JSON"));
+        throw new Error(t("agentGenerator.parseJsonError"));
       }
 
       const config: GeneratedAgentConfig = JSON.parse(jsonMatch[0]);
@@ -86,14 +86,14 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
       ];
       for (const field of requiredFields) {
         if (!config[field]) {
-          throw new Error(t("agentGenerator.missingField", "缺少必填字段: {{field}}", { field }));
+          throw new Error(t("agentGenerator.missingField", { field }));
         }
       }
 
       setResult(config);
-      message.success(t("agentGenerator.success", "智能体配置生成成功"));
+      message.success(t("agentGenerator.success"));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("agentGenerator.failed", "生成失败");
+      const msg = err instanceof Error ? err.message : t("agentGenerator.failed");
       setError(msg);
       message.error(msg);
     } finally {
@@ -120,7 +120,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
       title={
         <div className="flex items-center gap-2">
           <Sparkles size={18} />
-          <span>{t("agentGenerator.title", "自然语言创建智能体")}</span>
+          <span>{t("agentGenerator.title")}</span>
         </div>
       }
       open={open}
@@ -133,12 +133,12 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
         ? (
           <div className="flex flex-col gap-4">
             <Text type="secondary">
-              {t("agentGenerator.desc", "用自然语言描述你需要的智能体...")}
+              {t("agentGenerator.desc")}
             </Text>
             <TextArea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={t("agentGenerator.placeholder", "例如：我需要一个专门审查 SQL 查询安全性的智能体...")}
+              placeholder={t("agentGenerator.placeholder")}
               rows={4}
               autoFocus
             />
@@ -152,7 +152,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
               />
             )}
             <div className="flex justify-end gap-2">
-              <Button onClick={handleClose}>{t("common.cancel", "取消")}</Button>
+              <Button onClick={handleClose}>{t("common.cancel")}</Button>
               <Button
                 type="primary"
                 icon={<Sparkles size={16} />}
@@ -160,12 +160,12 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
                 loading={generating}
                 disabled={!description.trim()}
               >
-                {t("agentGenerator.generate", "生成配置")}
+                {t("agentGenerator.generate")}
               </Button>
             </div>
             {generating && (
               <div className="flex justify-center py-4">
-                <Spin tip={t("agentGenerator.generating", "AI 正在生成智能体配置...")} />
+                <Spin tip={t("agentGenerator.generating")} />
               </div>
             )}
           </div>
@@ -174,36 +174,36 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
           <div className="flex flex-col gap-4">
             <Alert
               type="success"
-              message={t("agentGenerator.generatedTitle", "配置生成完成")}
-              description={t("agentGenerator.generatedDesc", "请检查并编辑后保存")}
+              message={t("agentGenerator.generatedTitle")}
+              description={t("agentGenerator.generatedDesc")}
               showIcon
             />
 
             <div className="flex flex-col gap-2 p-3 rounded bg-gray-50 dark:bg-gray-800">
               <div>
-                <Text strong>{t("agentGenerator.field.type", "类型")}：</Text>
+                <Text strong>{t("agentGenerator.field.type")}：</Text>
                 <Text code>{result.agent_type}</Text>
               </div>
               <div>
-                <Text strong>{t("agentGenerator.field.name", "名称")}：</Text>
+                <Text strong>{t("agentGenerator.field.name")}：</Text>
                 <Text>{result.display_name}</Text>
               </div>
               <div>
-                <Text strong>{t("agentGenerator.field.desc", "描述")}：</Text>
+                <Text strong>{t("agentGenerator.field.desc")}：</Text>
                 <Text type="secondary">{result.description}</Text>
               </div>
               <div>
-                <Text strong>{t("agentGenerator.field.permissions", "权限")}：</Text>
+                <Text strong>{t("agentGenerator.field.permissions")}：</Text>
                 {result.permissions.map((p) => <Text key={p} code style={{ marginRight: 4 }}>{p}</Text>)}
               </div>
               <div>
-                <Text strong>{t("agentGenerator.field.recommendedModel", "推荐模型")}：</Text>
+                <Text strong>{t("agentGenerator.field.recommendedModel")}：</Text>
                 <Text code>{result.preferred_model}</Text>
               </div>
               <div>
-                <Text strong>{t("agentGenerator.field.systemPrompt", "系统提示")}：</Text>
+                <Text strong>{t("agentGenerator.field.systemPrompt")}：</Text>
                 <Paragraph
-                  ellipsis={{ rows: 4, expandable: true, symbol: t("agentGenerator.expand", "展开") }}
+                  ellipsis={{ rows: 4, expandable: true, symbol: t("agentGenerator.expand") }}
                   type="secondary"
                   style={{ marginTop: 4 }}
                 >
@@ -220,10 +220,10 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
                   setError(null);
                 }}
               >
-                {t("agentGenerator.reedit", "重新编辑")}
+                {t("agentGenerator.reedit")}
               </Button>
               <Button type="primary" icon={<Check size={16} />} onClick={handleSave}>
-                {t("agentGenerator.save", "保存配置")}
+                {t("agentGenerator.save")}
               </Button>
             </div>
           </div>

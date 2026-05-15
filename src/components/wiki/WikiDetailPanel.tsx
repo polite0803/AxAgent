@@ -145,7 +145,7 @@ export function WikiDetailPanel({
   const handleDelete = async () => {
     if (!note) { return; }
     await deleteNote(note.id);
-    message.success(t("wiki.deleted", "Note deleted"));
+    message.success(t("wiki.deleted"));
     onNoteUpdated();
     onClose();
   };
@@ -161,10 +161,10 @@ export function WikiDetailPanel({
     setSyncing(true);
     try {
       await invoke("sync_note_to_knowledge_base", { noteId: note.id, knowledgeBaseId: selectedKbId });
-      message.success(t("wiki.sync.success", "Synced to knowledge base"));
+      message.success(t("wiki.sync.success"));
       setSyncModalOpen(false);
     } catch (e) {
-      message.error(t("wiki.sync.error", "Sync failed") + ": " + String(e));
+      message.error(t("wiki.sync.error") + ": " + String(e));
     }
     setSyncing(false);
   }, [note, selectedKbId, t]);
@@ -190,7 +190,7 @@ export function WikiDetailPanel({
   if (!noteId) {
     return (
       <div className="h-full flex items-center justify-center" style={{ backgroundColor: token.colorBgElevated }}>
-        <Empty description={t("wiki.selectNote", "Select a note to view details")} />
+        <Empty description={t("wiki.selectNote")} />
       </div>
     );
   }
@@ -220,7 +220,7 @@ export function WikiDetailPanel({
         <Text strong ellipsis className="flex-1 text-sm tracking-tight" title={noteTitle}>
           {noteTitle}
         </Text>
-        <Tooltip title={t("wiki.close", "Close")}>
+        <Tooltip title={t("wiki.close")}>
           <Button
             icon={<X size={14} />}
             size="small"
@@ -249,7 +249,7 @@ export function WikiDetailPanel({
             label: (
               <span className="flex items-center gap-1">
                 <PenLine size={12} />
-                {t("wiki.edit", "Edit")}
+                {t("wiki.edit")}
               </span>
             ),
             children: (
@@ -261,7 +261,7 @@ export function WikiDetailPanel({
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full text-lg font-semibold bg-transparent border-none outline-none tracking-tight placeholder:opacity-40"
                   style={{ color: token.colorText }}
-                  placeholder={t("wiki.titlePlaceholder", "Note title...")}
+                  placeholder={t("wiki.titlePlaceholder")}
                 />
                 {/* 工具栏 */}
                 <div className="flex items-center gap-2 shrink-0">
@@ -274,10 +274,10 @@ export function WikiDetailPanel({
                     disabled={!hasChanges}
                     className="shadow-sm"
                   >
-                    {t("wiki.save", "Save")}
+                    {t("wiki.save")}
                   </Button>
                   <Popconfirm
-                    title={t("wiki.confirmDelete", "Delete this note?")}
+                    title={t("wiki.confirmDelete")}
                     onConfirm={handleDelete}
                   >
                     <Button
@@ -288,7 +288,7 @@ export function WikiDetailPanel({
                       className="opacity-50 hover:opacity-100"
                     />
                   </Popconfirm>
-                  <Tooltip title={t("wiki.sync.toKnowledgeBase", "Sync to Knowledge Base")}>
+                  <Tooltip title={t("wiki.sync.toKnowledgeBase")}>
                     <Button
                       icon={<BookOpen size={14} />}
                       size="small"
@@ -302,7 +302,7 @@ export function WikiDetailPanel({
                       className="text-xs px-1.5 py-0.5 rounded-full animate-pulse"
                       style={{ backgroundColor: `${token.colorWarningBg}`, color: token.colorWarningText }}
                     >
-                      {t("wiki.unsaved", "Unsaved")}
+                      {t("wiki.unsaved")}
                     </span>
                   )}
                   {note?.author === "llm" && (
@@ -328,7 +328,7 @@ export function WikiDetailPanel({
                     onChange={(e) => setContent(e.target.value)}
                     className="w-full h-full p-4 resize-none outline-none bg-transparent text-sm leading-relaxed font-mono placeholder:opacity-30"
                     style={{ color: token.colorText }}
-                    placeholder={t("wiki.contentPlaceholder", "Start writing...\nUse [[link]] to connect notes")}
+                    placeholder={t("wiki.contentPlaceholder")}
                     spellCheck={false}
                   />
                 </div>
@@ -366,7 +366,7 @@ export function WikiDetailPanel({
             label: (
               <span className="flex items-center gap-1">
                 <ArrowLeftRight size={12} />
-                {t("wiki.backlinks", "Backlinks")}
+                {t("wiki.backlinks")}
                 {backlinks.length > 0 && (
                   <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>
                     {backlinks.length}
@@ -380,7 +380,7 @@ export function WikiDetailPanel({
                 loading={linksLoading}
                 currentNoteTitle={noteTitle}
                 onNavigate={onNavigateToNote}
-                emptyText={t("wiki.noBacklinks", "No backlinks")}
+                emptyText={t("wiki.noBacklinks")}
                 token={token}
               />
             ),
@@ -390,7 +390,7 @@ export function WikiDetailPanel({
             label: (
               <span className="flex items-center gap-1">
                 <ArrowLeftRight size={12} />
-                {t("wiki.outlinks", "Outgoing")}
+                {t("wiki.outlinks")}
                 {links.length > 0 && (
                   <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>
                     {links.length}
@@ -404,7 +404,7 @@ export function WikiDetailPanel({
                 loading={linksLoading}
                 graphData={graphData}
                 onNavigate={onNavigateToNote}
-                emptyText={t("wiki.noOutlinks", "No outgoing links")}
+                emptyText={t("wiki.noOutlinks")}
                 token={token}
               />
             ),
@@ -414,7 +414,7 @@ export function WikiDetailPanel({
             label: (
               <span className="flex items-center gap-1">
                 <GitGraph size={12} />
-                {t("wiki.localGraph", "Local Graph")}
+                {t("wiki.localGraph")}
               </span>
             ),
             children: <LocalGraphView data={localGraphData} token={token} onNodeClick={onNavigateToNote} />,
@@ -423,22 +423,22 @@ export function WikiDetailPanel({
       />
 
       <Modal
-        title={t("wiki.sync.toKnowledgeBaseTitle", "Sync to Knowledge Base")}
+        title={t("wiki.sync.toKnowledgeBaseTitle")}
         open={syncModalOpen}
         onOk={handleSyncToKb}
         onCancel={() => setSyncModalOpen(false)}
         okButtonProps={{ loading: syncing, disabled: !selectedKbId }}
-        okText={t("wiki.sync.toKnowledgeBase", "Sync to Knowledge Base")}
+        okText={t("wiki.sync.toKnowledgeBase")}
         width={420}
       >
         <div className="py-4">
           <div className="text-sm font-medium mb-2">
-            {t("wiki.sync.selectKnowledgeBase", "Select Knowledge Base")}
+            {t("wiki.sync.selectKnowledgeBase")}
           </div>
           <Select
             value={selectedKbId ?? undefined}
             onChange={setSelectedKbId}
-            placeholder={t("wiki.sync.selectKnowledgeBase", "Select Knowledge Base")}
+            placeholder={t("wiki.sync.selectKnowledgeBase")}
             style={{ width: "100%" }}
             options={knowledgeBases.map((kb: KnowledgeBase) => ({
               value: kb.id,
