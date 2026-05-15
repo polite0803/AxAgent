@@ -3,7 +3,7 @@ mod hooks;
 #[cfg(test)]
 pub mod test_isolation;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -135,6 +135,36 @@ pub struct PluginManifest {
     pub commands: Vec<PluginCommandManifest>,
     #[serde(default)]
     pub scenarios: Vec<String>,
+    pub mcp_servers: Vec<PluginMcpServer>,
+    pub skills: Vec<PluginSkillEntry>,
+    pub agents: Vec<PluginAgentDefInternal>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginMcpServer {
+    pub name: String,
+    pub command: String,
+    pub args: Vec<String>,
+    pub env: HashMap<String, String>,
+    pub cwd: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginSkillEntry {
+    pub name: String,
+    pub path: String,
+}
+
+/// 插件内部 Agent 定义（反序列化后转换为 agent_provider::PluginAgentDef）
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginAgentDefInternal {
+    pub agent_type: String,
+    pub description: String,
+    pub tools: Vec<String>,
+    pub disallowed_tools: Vec<String>,
+    pub model: Option<String>,
+    pub background: bool,
+    pub system_prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -228,6 +258,39 @@ pub struct PluginCommandManifest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RawPluginMcpServer {
+    pub name: String,
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+    pub cwd: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RawPluginSkillEntry {
+    pub name: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RawPluginAgentDef {
+    #[serde(rename = "agentType")]
+    pub agent_type: String,
+    pub description: String,
+    #[serde(default)]
+    pub tools: Vec<String>,
+    #[serde(rename = "disallowedTools", default)]
+    pub disallowed_tools: Vec<String>,
+    pub model: Option<String>,
+    #[serde(default)]
+    pub background: bool,
+    #[serde(rename = "systemPrompt")]
+    pub system_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct RawPluginManifest {
     pub name: String,
     pub version: String,
@@ -246,6 +309,12 @@ struct RawPluginManifest {
     pub commands: Vec<PluginCommandManifest>,
     #[serde(default)]
     pub scenarios: Vec<String>,
+    #[serde(default, alias = "mcpServers")]
+    pub mcp_servers: Vec<RawPluginMcpServer>,
+    #[serde(default)]
+    pub skills: Vec<RawPluginSkillEntry>,
+    #[serde(default)]
+    pub agents: Vec<RawPluginAgentDef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1700,6 +1769,9 @@ fn load_manifest_from_skill_md(
         tools: Vec::new(),
         commands: Vec::new(),
         scenarios: Vec::new(),
+        mcp_servers: Vec::new(),
+        skills: Vec::new(),
+        agents: Vec::new(),
     };
     Ok(manifest)
 }
@@ -1731,27 +1803,6 @@ fn detect_claude_code_manifest_contract_gaps(
     };
 
     let mut errors = Vec::new();
-
-    for (field, detail) in [
-        (
-            "skills",
-            "plugin manifest field `skills` uses the Claude Code plugin contract; `claw` does not load plugin-managed skills and instead discovers skills from local roots such as `.claw/skills`, `.omc/skills`, `.agents/skills`, `~/.omc/skills`, and `~/.claude/skills/omc-learned`.",
-        ),
-        (
-            "mcpServers",
-            "plugin manifest field `mcpServers` uses the Claude Code plugin contract; `claw` does not import MCP servers from plugin manifests.",
-        ),
-        (
-            "agents",
-            "plugin manifest field `agents` uses the Claude Code plugin contract; `claw` does not load plugin-managed agent markdown catalogs from plugin manifests.",
-        ),
-    ] {
-        if root.contains_key(field) {
-            errors.push(PluginManifestValidationError::UnsupportedManifestContract {
-                detail: detail.to_string(),
-            });
-        }
-    }
 
     if root
         .get("commands")
@@ -1836,6 +1887,38 @@ fn build_plugin_manifest(
         tools,
         commands,
         scenarios: raw.scenarios,
+        mcp_servers: raw
+            .mcp_servers
+            .into_iter()
+            .map(|r| PluginMcpServer {
+                name: r.name,
+                command: r.command,
+                args: r.args,
+                env: r.env,
+                cwd: r.cwd,
+            })
+            .collect(),
+        skills: raw
+            .skills
+            .into_iter()
+            .map(|r| PluginSkillEntry {
+                name: r.name,
+                path: r.path,
+            })
+            .collect(),
+        agents: raw
+            .agents
+            .into_iter()
+            .map(|r| PluginAgentDefInternal {
+                agent_type: r.agent_type,
+                description: r.description,
+                tools: r.tools,
+                disallowed_tools: r.disallowed_tools,
+                model: r.model,
+                background: r.background,
+                system_prompt: r.system_prompt,
+            })
+            .collect(),
     })
 }
 
