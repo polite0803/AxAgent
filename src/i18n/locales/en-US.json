@@ -5402,7 +5402,8 @@
     "continue": "Continue",
     "error": "Error",
     "citations": "Citations",
-    "copyReport": "Copy Report"
+    "copyReport": "Copy Report",
+    "mockFinding": "Mock Research Finding"
   },
   "reportViewer": {
     "noReport": "No report generated yet",
