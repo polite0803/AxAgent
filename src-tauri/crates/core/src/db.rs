@@ -1,7 +1,6 @@
 #[cfg(mobile)]
 use std::path::PathBuf;
 
-use axagent_migration::MigratorTrait;
 use sea_orm::{
     ColumnTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend,
     EntityTrait, QueryFilter, Statement,
@@ -47,23 +46,8 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA temp_store=MEMORY;"))
         .await?;
 
-    // Run SeaORM migrations
-    axagent_migration::Migrator::up(&conn, None).await?;
-
-    // 内联迁移：为已存在的 models 表添加价格列（每个 ALTER TABLE 单独执行，SQLite 限制）
-    for column in &["input_price_per_mtok", "output_price_per_mtok"] {
-        let sql = format!("ALTER TABLE models ADD COLUMN {} DOUBLE DEFAULT NULL", column);
-        if let Err(e) = conn
-            .execute_raw(Statement::from_string(DbBackend::Sqlite, &sql))
-            .await
-        {
-            // 列已存在时静默跳过，其它错误则警告
-            let err_str = e.to_string();
-            if !err_str.contains("duplicate column name") {
-                tracing::warn!("Failed to add column {} to models: {}", column, err_str);
-            }
-        }
-    }
+    // Run schema initialization
+    axagent_migration::run_initialization(&conn).await?;
 
     // Seed built-in providers
     seed_builtin_providers(&conn).await?;
@@ -408,18 +392,6 @@ pub async fn create_test_pool() -> Result<DbHandle> {
     let conn = Database::connect(opt).await?;
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
         .await?;
-    axagent_migration::Migrator::up(&conn, None).await?;
-    for column in &["input_price_per_mtok", "output_price_per_mtok"] {
-        let sql = format!("ALTER TABLE models ADD COLUMN {} DOUBLE DEFAULT NULL", column);
-        if let Err(e) = conn
-            .execute_raw(Statement::from_string(DbBackend::Sqlite, &sql))
-            .await
-        {
-            let err_str = e.to_string();
-            if !err_str.contains("duplicate column name") {
-                tracing::warn!("Failed to add column {} to models: {}", column, err_str);
-            }
-        }
-    }
+    axagent_migration::run_initialization(&conn).await?;
     Ok(DbHandle { conn })
 }

@@ -1385,11 +1385,10 @@ mod tests {
     }
 
     async fn setup_test_db() -> DatabaseConnection {
-        use axagent_migration::MigratorTrait;
         let db = sea_orm::Database::connect(sea_orm::ConnectOptions::new("sqlite::memory:"))
             .await
             .unwrap();
-        axagent_migration::Migrator::up(&db, None).await.unwrap();
+        axagent_migration::run_initialization(&db).await.unwrap();
         db
     }
 

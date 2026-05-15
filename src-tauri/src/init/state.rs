@@ -134,7 +134,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
 
     rt.block_on(platform_manager.set_message_callback(platform_bridge.clone()));
 
-    let sync_engine = create_sync_engine(&sea_db, &app_settings);
+    let sync_engine = create_sync_engine(&sea_db, &app_settings, rt.handle());
 
     AppState {
         sea_db: sea_db.clone(),
@@ -369,8 +369,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
 fn create_sync_engine(
     _sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_core::types::AppSettings,
+    rt_handle: &tokio::runtime::Handle,
 ) -> Option<Arc<SyncEngine>> {
-    let cloud_config = load_cloud_storage_config(_sea_db, _app_settings)?;
+    let cloud_config = load_cloud_storage_config(_sea_db, _app_settings, rt_handle)?;
     let backend = cloud_config.create_backend().ok()?;
     let device_id = hostname_or_uuid();
     let profile_name = cloud_config.profile_name.clone();
@@ -380,10 +381,10 @@ fn create_sync_engine(
 fn load_cloud_storage_config(
     sea_db: &sea_orm::DatabaseConnection,
     _app_settings: &axagent_core::types::AppSettings,
+    rt_handle: &tokio::runtime::Handle,
 ) -> Option<CloudStorageConfig> {
     use axagent_core::cloud_storage::{BackendType, S3Config, S3ProviderPreset, SyncMode};
-    let rt = tokio::runtime::Handle::current();
-    let settings = rt
+    let settings = rt_handle
         .block_on(axagent_core::repo::settings::get_settings(sea_db))
         .ok()?;
 
