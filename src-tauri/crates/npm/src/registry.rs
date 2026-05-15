@@ -1,6 +1,9 @@
+use std::path::{Path, PathBuf};
+
 use tracing::info;
 
-use crate::types::{NpmError, PackageInfo, VersionInfo};
+use crate::tarball;
+use crate::types::{DistInfo, NpmError, PackageInfo, VersionInfo};
 
 const DEFAULT_REGISTRY: &str = "https://registry.npmjs.org";
 
@@ -73,7 +76,24 @@ impl NpmRegistry {
         })
     }
 
-    // download_and_extract will be added in Task 3
+    /// 下载 tarball 流式解压到 dest，返回插件根目录
+    pub async fn download_and_extract(
+        &self,
+        dist: &DistInfo,
+        dest: &Path,
+    ) -> Result<PathBuf, NpmError> {
+        info!("npm: downloading tarball from {}", dist.tarball);
+        let response = self
+            .client
+            .get(&dist.tarball)
+            .send()
+            .await?
+            .error_for_status()?;
+        let bytes = response.bytes().await?;
+        tarball::extract_tarball(&bytes, dest)?;
+        let root = tarball::detect_package_root(dest)?;
+        Ok(root.unwrap_or_else(|| dest.to_path_buf()))
+    }
 }
 
 impl Default for NpmRegistry {
