@@ -11,7 +11,7 @@ vi.mock("@/lib/invoke", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => {
+    t: (key: string, options?: string | Record<string, unknown>) => {
       const translations: Record<string, string> = {
         "workflow.aiPanel.enterWorkflowDesc": "请输入工作流描述",
         "workflow.aiPanel.enterPromptToOptimize": "请输入要优化的 Prompt",
@@ -100,7 +100,10 @@ vi.mock("react-i18next", () => ({
         "workflow.importExport.viewAllErrors": "查看全部 {{count}} 个错误",
         "workflow.importExport.moreErrors": "还有 {{count}} 个错误",
       };
-      return translations[key] ?? fallback ?? key;
+      const fallbackStr = typeof options === "object" && options !== null
+        ? ((options as Record<string, unknown>).defaultValue as string)
+        : options as string | undefined;
+      return translations[key] ?? fallbackStr ?? key;
     },
   }),
 }));
