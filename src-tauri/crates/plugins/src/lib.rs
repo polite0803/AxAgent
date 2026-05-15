@@ -295,7 +295,7 @@ pub struct RawPluginAgentDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct RawPluginManifest {
+pub(crate) struct RawPluginManifest {
     pub name: String,
     pub version: String,
     pub description: String,
@@ -1912,7 +1912,7 @@ fn load_manifest_from_path(
     build_plugin_manifest(root, raw_manifest)
 }
 
-fn detect_claude_code_manifest_contract_gaps(
+pub(crate) fn detect_claude_code_manifest_contract_gaps(
     raw_manifest: &Value,
 ) -> Vec<PluginManifestValidationError> {
     let Some(root) = raw_manifest.as_object() else {
@@ -2446,7 +2446,7 @@ fn looks_like_npm_spec(source: &str) -> bool {
         && (source.starts_with('@') || source.contains('@'))
 }
 
-fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
+pub(crate) fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
     // npm 包检测
     if looks_like_npm_spec(source) {
         let (name, version) = NpmRegistry::parse_package_spec(source);
@@ -3965,5 +3965,102 @@ mod tests {
 
         // Cleanup
         let _ = fs::remove_dir_all(base_dir);
+    }
+
+    #[test]
+    fn parse_install_source_recognizes_npm_scoped() {
+        let result = parse_install_source("@clawd/ths").expect("should parse");
+        assert!(matches!(
+            result,
+            PluginInstallSource::NpmPackage { ref name, ref version }
+            if name == "@clawd/ths" && version.is_none()
+        ));
+    }
+
+    #[test]
+    fn parse_install_source_recognizes_npm_with_version() {
+        let result = parse_install_source("@clawd/stock@1.2.0").expect("should parse");
+        assert!(matches!(
+            result,
+            PluginInstallSource::NpmPackage { ref name, ref version }
+            if name == "@clawd/stock" && version == &Some("1.2.0".to_string())
+        ));
+    }
+
+    #[test]
+    fn parse_install_source_recognizes_git_url() {
+        let result =
+            parse_install_source("https://github.com/user/repo.git").expect("should parse");
+        assert!(matches!(result, PluginInstallSource::GitUrl { .. }));
+    }
+
+    #[test]
+    fn manifest_parses_mcp_servers() {
+        let json = r#"{
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "mcpServers": [
+                {
+                    "name": "test-mcp",
+                    "command": "python",
+                    "args": ["-m", "test"],
+                    "env": {}
+                }
+            ]
+        }"#;
+        let raw: RawPluginManifest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(raw.mcp_servers.len(), 1);
+        assert_eq!(raw.mcp_servers[0].name, "test-mcp");
+    }
+
+    #[test]
+    fn manifest_parses_skills() {
+        let json = r#"{
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "skills": [
+                {"name": "analyzer", "path": "skills/analyzer/SKILL.md"}
+            ]
+        }"#;
+        let raw: RawPluginManifest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(raw.skills.len(), 1);
+        assert_eq!(raw.skills[0].name, "analyzer");
+    }
+
+    #[test]
+    fn manifest_parses_agents() {
+        let json = r#"{
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "agents": [
+                {
+                    "agentType": "stock-bot",
+                    "description": "Stock analysis agent",
+                    "tools": ["get_price"],
+                    "disallowedTools": [],
+                    "background": false
+                }
+            ]
+        }"#;
+        let raw: RawPluginManifest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(raw.agents.len(), 1);
+        assert_eq!(raw.agents[0].agent_type, "stock-bot");
+    }
+
+    #[test]
+    fn manifest_accepts_mcp_servers_without_error() {
+        let json = serde_json::json!({
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "mcpServers": [{"name": "mcp", "command": "echo", "args": [], "env": {}}],
+            "skills": [{"name": "skill", "path": "s.md"}],
+            "agents": [{"agentType": "bot", "description": "bot", "tools": [], "disallowedTools": [], "background": false}]
+        });
+        let errors = detect_claude_code_manifest_contract_gaps(&json);
+        assert!(errors.is_empty(), "mcpServers/skills/agents should not be rejected");
     }
 }
