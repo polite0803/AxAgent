@@ -4591,6 +4591,7 @@
     "tutorialAgentDesc": "에이전트 모드로 전환하여 AI가 복잡한 작업을 자율적으로 분석, 계획 및 실행하게 하세요",
     "tutorialKnowledgeTitle": "지식 베이스",
     "tutorialKnowledgeDesc": "문서를 업로드하여 지식 베이스를 구축하세요. AI가 문서를 기반으로 문맥을 인식한 답변을 제공합니다",
+    "moreModels": "+{{count}} more",
     "targetNotFound": "대상 요소를 찾을 수 없습니다. 먼저 채팅 페이지로 이동하세요",
     "goToSettings": "설정으로 이동하여 API 키 추가"
   },

@@ -4696,6 +4696,7 @@
     "tutorialAgentDesc": "Switch to Agent mode to let AI autonomously analyze, plan, and execute complex tasks",
     "tutorialKnowledgeTitle": "Knowledge Base",
     "tutorialKnowledgeDesc": "Upload documents to build a knowledge base, AI will provide context-aware answers based on your documents",
+    "moreModels": "+{{count}} more",
     "targetNotFound": "Target element not found, please navigate to the chat page first",
     "goToSettings": "Go to Settings to add API Key"
   },
@@ -5421,6 +5422,7 @@
     "clickToEnable": "Click to enable this tool",
     "groupDisabled": "Category disabled, cannot control individually",
     "enabled": "enabled",
+    "enabledCount": "{{enabledCount}}/{{totalCount}} enabled",
     "disableGroup": "Disable entire category",
     "enableGroup": "Enable entire category"
   },

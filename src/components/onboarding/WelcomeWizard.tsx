@@ -174,7 +174,7 @@ export function WelcomeWizard() {
                 {ollamaModels.slice(0, 5).map((m) => <Tag key={m.name} style={{ marginBottom: 4 }}>{m.name}</Tag>)}
                 {ollamaModels.length > 5 && (
                   <Text type="secondary" style={{ fontSize: 11 }}>
-                    +{ollamaModels.length - 5} 个
+                    {t("onboarding.moreModels", { count: ollamaModels.length - 5 })}
                   </Text>
                 )}
               </div>

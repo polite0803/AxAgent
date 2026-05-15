@@ -4591,6 +4591,7 @@
     "tutorialAgentDesc": "Wechseln Sie in den Agent-Modus, um AI komplexe Aufgaben autonom analysieren, planen und ausführen zu lassen",
     "tutorialKnowledgeTitle": "Wissensdatenbank",
     "tutorialKnowledgeDesc": "Laden Sie Dokumente hoch, um eine Wissensdatenbank aufzubauen. AI liefert kontextbezogene Antworten basierend auf Ihren Dokumenten",
+    "moreModels": "+{{count}} more",
     "targetNotFound": "Zielelement nicht gefunden, bitte zuerst zur Chat-Seite navigieren",
     "goToSettings": "Zu den Einstellungen gehen, um API-Key hinzuzufügen"
   },

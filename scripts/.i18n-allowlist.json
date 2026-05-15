@@ -1,8 +1,8 @@
 {
   "version": "1",
   "generated": "2026-05-15",
-  "total_entries": 186,
-  "total_files": 215,
+  "total_entries": 184,
+  "total_files": 213,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -479,12 +479,6 @@
       "phase": 3
     },
     {
-      "file": "src/components/settings/ToolManager.tsx",
-      "lines": "78,108,114",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/components/settings/WebDavSync.tsx",
       "lines": "413",
       "reason": "硬编码英文占位符",
@@ -499,12 +493,6 @@
     {
       "file": "src/components/settings/WorkflowSettings.tsx",
       "lines": "87,97",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/shared/BaseModal.tsx",
-      "lines": "7,9,11,17,19,20,21,28,29,41",
       "reason": "硬编码中文字符串",
       "phase": 3
     },

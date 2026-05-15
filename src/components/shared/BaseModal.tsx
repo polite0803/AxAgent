@@ -1,5 +1,6 @@
 import { Modal, type ModalProps, Typography } from "antd";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -25,10 +26,11 @@ export function BaseModal({
   error = null,
   onOk,
   children,
-  okText = "确定",
-  cancelText = "取消",
+  okText,
+  cancelText,
   ...rest
 }: BaseModalProps) {
+  const { t } = useTranslation();
   return (
     <Modal
       {...rest}
@@ -42,8 +44,8 @@ export function BaseModal({
           }
         }
       }}
-      okText={okText}
-      cancelText={cancelText}
+      okText={okText ?? t("common.confirm")}
+      cancelText={cancelText ?? t("common.cancel")}
     >
       {children}
       {error && (

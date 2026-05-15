@@ -4591,6 +4591,7 @@
     "tutorialAgentDesc": "Passez en mode Agent pour laisser l'IA analyser, planifier et exécuter autonomement des tâches complexes",
     "tutorialKnowledgeTitle": "Base de connaissances",
     "tutorialKnowledgeDesc": "Téléchargez des documents pour construire une base de connaissances. L'IA fournira des réponses contextuelles basées sur vos documents",
+    "moreModels": "+{{count}} more",
     "targetNotFound": "Élément cible introuvable, veuillez d'abord accéder à la page de chat",
     "goToSettings": "Aller aux paramètres pour ajouter une clé API"
   },

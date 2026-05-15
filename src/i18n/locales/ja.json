@@ -4591,6 +4591,7 @@
     "tutorialAgentDesc": "エージェントモードに切り替えて、AIに複雑なタスクを自律的に分析・計画・実行させましょう",
     "tutorialKnowledgeTitle": "ナレッジベース",
     "tutorialKnowledgeDesc": "ドキュメントをアップロードしてナレッジベースを構築。AIがドキュメントに基づいて文脈を考慮した回答を提供します",
+    "moreModels": "+{{count}} more",
     "targetNotFound": "対象要素が見つかりません。先にチャットページに移動してください",
     "goToSettings": "設定に移動してAPIキーを追加"
   },

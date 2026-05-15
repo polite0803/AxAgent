@@ -4591,6 +4591,7 @@
     "tutorialAgentDesc": "切換到 Agent 模式讓 AI 自主分析、規劃和執行複雜任務",
     "tutorialKnowledgeTitle": "知識庫",
     "tutorialKnowledgeDesc": "上傳文件建構知識庫，AI 將基於你的文件提供上下文感知回答",
+    "moreModels": "+{{count}} more",
     "targetNotFound": "目標元素未找到，請先進入聊天頁面",
     "goToSettings": "前往設定新增 API Key"
   },

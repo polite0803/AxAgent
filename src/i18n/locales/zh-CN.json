@@ -4669,6 +4669,7 @@
     "tutorialAgentDesc": "切换到 Agent 模式让 AI 自主分析、规划和执行复杂任务",
     "tutorialKnowledgeTitle": "知识库",
     "tutorialKnowledgeDesc": "上传文档构建知识库，AI 将基于你的文档提供上下文感知回答",
+    "moreModels": "+{{count}} 个",
     "targetNotFound": "目标元素未找到，请先进入聊天页面",
     "goToSettings": "前往设置添加 API Key"
   },
@@ -5409,6 +5410,7 @@
     "clickToEnable": "点击启用此工具",
     "groupDisabled": "分类已禁用，无法单独控制",
     "enabled": "已启用",
+    "enabledCount": "{{enabledCount}}/{{totalCount}} 已启用",
     "disableGroup": "禁用整个分类",
     "enableGroup": "启用整个分类"
   },
