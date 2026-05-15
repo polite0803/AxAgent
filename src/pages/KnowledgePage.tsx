@@ -132,28 +132,28 @@ export function KnowledgePage() {
       setSelectedFolderPath(selected as string);
       setIsImportModalOpen(true);
     } catch (e) {
-      messageApi.error(t("common.error", "操作失败") + ": " + String(e));
+      messageApi.error(t("common.error") + ": " + String(e));
     }
   };
 
   const handleImport = async () => {
     if (!selectedFolderPath) {
-      messageApi.warning(t("knowledge.selectFolderFirst", "请先选择文件夹"));
+      messageApi.warning(t("knowledge.selectFolderFirst"));
       return;
     }
 
     if (!importToRAG && !importToWiki) {
-      messageApi.warning(t("knowledge.selectDestination", "请选择导入目标"));
+      messageApi.warning(t("knowledge.selectDestination"));
       return;
     }
 
     if (importToRAG && !selectedBaseId) {
-      messageApi.warning(t("knowledge.selectKnowledgeBaseFirst", "请先选择一个知识库"));
+      messageApi.warning(t("knowledge.selectKnowledgeBaseFirst"));
       return;
     }
 
     if (importToWiki && !selectedWikiId) {
-      messageApi.warning(t("wiki.llm.selectWikiFirst", "请先选择一个Wiki"));
+      messageApi.warning(t("wiki.llm.selectWikiFirst"));
       return;
     }
 
@@ -187,12 +187,12 @@ export function KnowledgePage() {
       }
 
       if (ragSuccess || wikiSuccess) {
-        messageApi.success(t("knowledge.importSuccess", "导入成功"));
+        messageApi.success(t("knowledge.importSuccess"));
         setIsImportModalOpen(false);
         setSelectedFolderPath("");
       }
     } catch (e) {
-      messageApi.error(t("common.error", "导入失败") + ": " + String(e));
+      messageApi.error(t("common.error") + ": " + String(e));
     } finally {
       setIsImporting(false);
     }
@@ -412,7 +412,7 @@ export function KnowledgePage() {
         <div className="p-4 border-b" style={{ borderColor: token.colorBorderSecondary }}>
           <Space className="w-full" direction="vertical" size="small">
             <Input.Search
-              placeholder={t("wiki.searchPlaceholder", "Search notes...")}
+              placeholder={t("wiki.searchPlaceholder")}
               value={notesSearchQuery}
               onChange={(e) => setNotesSearchQuery(e.target.value)}
               allowClear
@@ -421,7 +421,7 @@ export function KnowledgePage() {
           </Space>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes", "No notes yet")} /> : (
+          {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes")} /> : (
             <List
               dataSource={displayNotes}
               renderItem={(note) => (
@@ -433,8 +433,7 @@ export function KnowledgePage() {
                     title={note.title}
                     description={
                       <span className="text-xs" style={{ color: token.colorTextSecondary }}>
-                        {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} •{" "}
-                        {note.filePath}
+                        {note.author === "llm" ? t("wiki.llmNote") : t("wiki.userNote")} • {note.filePath}
                       </span>
                     }
                   />
@@ -523,7 +522,7 @@ export function KnowledgePage() {
           onChange={setActiveTab}
           items={[
             { key: "overview", label: t("wiki.common.overview"), children: renderOverview() },
-            { key: "notes", label: t("wiki.notes", "Notes"), children: renderNotesPanel() },
+            { key: "notes", label: t("wiki.notes"), children: renderNotesPanel() },
             { key: "sources", label: t("wiki.llm.sources"), children: renderSourcePanel() },
           ]}
         />
@@ -539,7 +538,7 @@ export function KnowledgePage() {
         </Modal>
 
         <Modal
-          title={t("knowledge.importTitle", "导入文档")}
+          title={t("knowledge.importTitle")}
           open={isImportModalOpen}
           onCancel={() => setIsImportModalOpen(false)}
           footer={null}
@@ -547,18 +546,18 @@ export function KnowledgePage() {
         >
           <div className="py-4">
             <div className="mb-4">
-              <div className="text-sm font-medium mb-2">{t("knowledge.selectedFolder", "已选择文件夹")}</div>
+              <div className="text-sm font-medium mb-2">{t("knowledge.selectedFolder")}</div>
               <Input id="knowledge-page-input-130" value={selectedFolderPath} disabled prefix={<FolderOutlined />} />
             </div>
 
             <div className="mb-4">
-              <div className="text-sm font-medium mb-2">{t("knowledge.importDestination", "导入到")}</div>
+              <div className="text-sm font-medium mb-2">{t("knowledge.importDestination")}</div>
               <Checkbox
                 checked={importToRAG}
                 onChange={(e) => setImportToRAG(e.target.checked)}
                 className="block mb-2"
               >
-                {t("knowledge.ragSystem", "RAG 知识库")}
+                {t("knowledge.ragSystem")}
                 {selectedBaseId && (
                   <span className="text-xs text-gray-500 ml-2">
                     ({bases.find((b) => b.id === selectedBaseId)?.name || selectedBaseId})
@@ -570,7 +569,7 @@ export function KnowledgePage() {
                 onChange={(e) => setImportToWiki(e.target.checked)}
                 className="block"
               >
-                {t("knowledge.wikiSystem", "Wiki 系统")}
+                {t("knowledge.wikiSystem")}
                 {selectedWikiId && (
                   <span className="text-xs text-gray-500 ml-2">
                     ({wikis.find((w) => w.id === selectedWikiId)?.name || selectedWikiId})
@@ -581,10 +580,10 @@ export function KnowledgePage() {
 
             <div className="flex justify-end gap-2">
               <Button onClick={() => setIsImportModalOpen(false)}>
-                {t("common.cancel", "取消")}
+                {t("common.cancel")}
               </Button>
               <Button type="primary" loading={isImporting} onClick={handleImport}>
-                {t("knowledge.import", "导入")}
+                {t("knowledge.import")}
               </Button>
             </div>
           </div>
@@ -604,10 +603,10 @@ export function KnowledgePage() {
       >
         <div className="p-4 border-b" style={{ borderColor: token.colorBorder }}>
           <Title level={5} style={{ margin: 0 }}>
-            {t("knowledge.commonPanel", "公共面板")}
+            {t("knowledge.commonPanel")}
           </Title>
           <p className="text-xs mt-1" style={{ color: token.colorTextSecondary }}>
-            {t("knowledge.commonPanelDesc", "知识库和Wiki的共同操作")}
+            {t("knowledge.commonPanelDesc")}
           </p>
         </div>
 
@@ -623,13 +622,13 @@ export function KnowledgePage() {
               label: (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                   <FolderPlus size={14} />
-                  {t("knowledge.loadFiles", "加载文件")}
+                  {t("knowledge.loadFiles")}
                 </span>
               ),
               children: (
                 <div className="p-3 flex-1 overflow-y-auto">
                   <p className="text-xs mb-3" style={{ color: token.colorTextSecondary }}>
-                    {t("knowledge.loadFilesDesc", "从文件夹加载文档到知识库或Wiki")}
+                    {t("knowledge.loadFilesDesc")}
                   </p>
                   <Button
                     icon={<FolderPlus size={14} />}
@@ -637,14 +636,14 @@ export function KnowledgePage() {
                     block
                     style={{ marginBottom: 12 }}
                   >
-                    {t("knowledge.selectFolder", "选择文件夹")}
+                    {t("knowledge.selectFolder")}
                   </Button>
                   <Button
                     icon={<UploadOutlined size={14} />}
                     onClick={() => setRightPanelTab("rag")}
                     block
                   >
-                    {t("knowledge.loadToRAG", "加载到RAG")}
+                    {t("knowledge.loadToRAG")}
                   </Button>
                 </div>
               ),
@@ -654,16 +653,16 @@ export function KnowledgePage() {
               label: (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                   <Database size={14} />
-                  {t("knowledge.sources", "数据源")}
+                  {t("knowledge.sources")}
                 </span>
               ),
               children: (
                 <div className="p-3 flex-1 overflow-y-auto">
                   <p className="text-xs mb-3" style={{ color: token.colorTextSecondary }}>
-                    {t("knowledge.sourcesDesc", "管理所有已加载的数据源")}
+                    {t("knowledge.sourcesDesc")}
                   </p>
                   <div className="mb-3">
-                    <div className="text-xs font-medium mb-2">{t("knowledge.recentSources", "最近使用")}</div>
+                    <div className="text-xs font-medium mb-2">{t("knowledge.recentSources")}</div>
                     <List
                       size="small"
                       dataSource={sources.slice(0, 5)}
@@ -695,7 +694,7 @@ export function KnowledgePage() {
                     onClick={handleSelectFolder}
                     block
                   >
-                    {t("knowledge.addSource", "添加数据源")}
+                    {t("knowledge.addSource")}
                   </Button>
                 </div>
               ),
@@ -716,7 +715,7 @@ export function KnowledgePage() {
               label: (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                   <Database size={14} />
-                  {t("knowledge.ragTab", "知识库 RAG")}
+                  {t("knowledge.ragTab")}
                 </span>
               ),
               children: (
@@ -730,7 +729,7 @@ export function KnowledgePage() {
                           className="mb-2"
                           style={{ margin: 16 }}
                         >
-                          {t("wiki.backToNotes", "Back to Notes")}
+                          {t("wiki.backToNotes")}
                         </Button>
                         <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
                       </div>
@@ -746,7 +745,7 @@ export function KnowledgePage() {
               label: (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                   <Library size={14} />
-                  {t("knowledge.wikiTab", "Wiki")}
+                  {t("knowledge.wikiTab")}
                 </span>
               ),
               children: (
@@ -760,7 +759,7 @@ export function KnowledgePage() {
                           className="mb-2"
                           style={{ margin: 16 }}
                         >
-                          {t("wiki.backToNotes", "Back to Notes")}
+                          {t("wiki.backToNotes")}
                         </Button>
                         <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
                       </div>

@@ -199,7 +199,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                   {t("chat.agentPanel.quality")}: {(trajectory.quality.overall * 100).toFixed(0)}%
                 </span>
                 <span>
-                  {t("chat.timeline.completed", "耗时")}: {(trajectory.duration_ms / 1000).toFixed(1)}s
+                  {t("chat.timeline.completed")}: {(trajectory.duration_ms / 1000).toFixed(1)}s
                 </span>
                 <span>
                   {t("chat.agentPanel.steps")}: {trajectory.steps.length}
@@ -345,7 +345,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
             type="button"
             className="trajectory-replay__btn"
             onClick={handleGoToStart}
-            title={t("chat.agentPanel.goToStart", "回到开始")}
+            title={t("chat.agentPanel.goToStart")}
             style={{
               border: "none",
               background: "none",
@@ -362,7 +362,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
             type="button"
             className="trajectory-replay__btn"
             onClick={handlePrevStep}
-            title={t("chat.agentPanel.prevStep", "上一步")}
+            title={t("chat.agentPanel.prevStep")}
             style={{
               border: "none",
               background: "none",
@@ -400,7 +400,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
             type="button"
             className="trajectory-replay__btn"
             onClick={handleNextStep}
-            title={t("chat.agentPanel.nextStep", "下一步")}
+            title={t("chat.agentPanel.nextStep")}
             style={{
               border: "none",
               background: "none",
@@ -417,7 +417,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
             type="button"
             className="trajectory-replay__btn"
             onClick={handleGoToEnd}
-            title={t("chat.agentPanel.goToEnd", "跳到结尾")}
+            title={t("chat.agentPanel.goToEnd")}
             style={{
               border: "none",
               background: "none",

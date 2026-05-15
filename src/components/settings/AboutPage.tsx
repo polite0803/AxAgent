@@ -154,14 +154,14 @@ export function AboutPage() {
           </>
         )}
       </SettingsGroup>
-      <SettingsGroup title={t("help.onboardingReplay", "Replay Tutorial")}>
+      <SettingsGroup title={t("help.onboardingReplay")}>
         <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t("help.onboardingReplayDesc", "Restart the interactive tutorial to re-learn the interface")}</span>
+          <span>{t("help.onboardingReplayDesc")}</span>
           <Button
             icon={<GraduationCap size={16} />}
             onClick={handleReplayTutorial}
           >
-            {t("help.onboardingReplay", "Replay Tutorial")}
+            {t("help.onboardingReplay")}
           </Button>
         </div>
       </SettingsGroup>

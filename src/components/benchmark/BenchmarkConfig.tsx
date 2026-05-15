@@ -10,7 +10,7 @@ export function BenchmarkConfig() {
     <div className="grid grid-cols-2 gap-4">
       <div>
         <label className="block text-sm text-gray-600 mb-2">
-          最大并发数: {config.max_concurrency}
+          {t("benchmark.maxConcurrency", { value: config.max_concurrency })}
         </label>
         <Slider
           min={1}
@@ -23,7 +23,7 @@ export function BenchmarkConfig() {
 
       <div>
         <label className="block text-sm text-gray-600 mb-2">
-          超时时间: {config.timeout_ms / 1000}s
+          {t("benchmark.timeoutLabel", { seconds: config.timeout_ms / 1000 })}
         </label>
         <Slider
           min={5000}
@@ -44,17 +44,17 @@ export function BenchmarkConfig() {
           onChange={(value) => setConfig({ max_difficulty: value })}
           allowClear
           options={[
-            { value: "easy", label: "简单" },
-            { value: "medium", label: "中等" },
-            { value: "hard", label: "困难" },
-            { value: "expert", label: "专家" },
+            { value: "easy", label: t("benchmark.difficultyEasy") },
+            { value: "medium", label: t("benchmark.difficultyMedium") },
+            { value: "hard", label: t("benchmark.difficultyHard") },
+            { value: "expert", label: t("benchmark.difficultyExpert") },
           ]}
         />
       </div>
 
       <div>
         <label className="block text-sm text-gray-600 mb-2">
-          包含追踪记录
+          {t("benchmark.includeTraces")}
         </label>
         <Switch
           checked={config.include_traces}

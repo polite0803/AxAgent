@@ -65,7 +65,7 @@ export function SkillStatsPanel() {
   if (error) {
     return (
       <Typography.Text type="secondary">
-        {t("skill.stats.error", "加载统计失败")}
+        {t("skill.stats.error")}
       </Typography.Text>
     );
   }
@@ -73,7 +73,7 @@ export function SkillStatsPanel() {
   if (loading) {
     return (
       <Typography.Text type="secondary">
-        {t("skill.stats.loading", "加载中...")}
+        {t("skill.stats.loading")}
       </Typography.Text>
     );
   }
@@ -81,7 +81,7 @@ export function SkillStatsPanel() {
   if (stats.length === 0) {
     return (
       <Typography.Text type="secondary">
-        {t("skill.stats.empty", "暂无使用数据")}
+        {t("skill.stats.empty")}
       </Typography.Text>
     );
   }
@@ -98,14 +98,14 @@ export function SkillStatsPanel() {
   return (
     <div>
       <Typography.Title level={5} style={{ marginBottom: 16 }}>
-        {t("skill.stats.title", "技能执行仪表盘")}
+        {t("skill.stats.title")}
       </Typography.Title>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("skill.stats.totalUsages", "总使用次数")}
+              title={t("skill.stats.totalUsages")}
               value={totalUsages}
               prefix={<Zap size={16} />}
             />
@@ -114,7 +114,7 @@ export function SkillStatsPanel() {
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("skill.stats.avgSuccess", "平均成功率")}
+              title={t("skill.stats.avgSuccess")}
               value={avgSuccess}
               precision={1}
               suffix="%"
@@ -125,7 +125,7 @@ export function SkillStatsPanel() {
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("skill.stats.avgTime", "平均耗时")}
+              title={t("skill.stats.avgTime")}
               value={avgTime}
               precision={0}
               suffix="ms"
@@ -136,7 +136,7 @@ export function SkillStatsPanel() {
         <Col span={6}>
           <Card size="small">
             <Statistic
-              title={t("skill.stats.totalSkills", "活跃技能")}
+              title={t("skill.stats.totalSkills")}
               value={stats.length}
               prefix={<TrendingUp size={16} />}
             />
@@ -145,7 +145,7 @@ export function SkillStatsPanel() {
       </Row>
 
       <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
-        {t("skill.stats.perSkill", "分技能统计")}
+        {t("skill.stats.perSkill")}
       </Typography.Text>
 
       {stats.map((s) => (
@@ -156,12 +156,12 @@ export function SkillStatsPanel() {
               <Typography.Text type="secondary" style={{ display: "block", fontSize: 12 }}>
                 {s.totalUsages > 0
                   ? t("skill.stats.usedCount", { count: s.totalUsages })
-                  : t("skill.stats.neverUsed", "未使用")}
+                  : t("skill.stats.neverUsed")}
               </Typography.Text>
             </Col>
             <Col span={6}>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {t("skill.stats.successRate", "成功率")}
+                {t("skill.stats.successRate")}
               </Typography.Text>
               <Progress
                 percent={s.successRate}
@@ -172,7 +172,7 @@ export function SkillStatsPanel() {
             </Col>
             <Col span={6}>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {t("skill.stats.quality", "质量分")}
+                {t("skill.stats.quality")}
               </Typography.Text>
               <Progress
                 percent={s.qualityScore}

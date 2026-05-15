@@ -19,25 +19,6 @@ export const ToolCategory = {
 
 export type ToolCategory = (typeof ToolCategory)[keyof typeof ToolCategory];
 
-/** 工具类别中文标签映射 */
-export const ToolCategoryLabels: Record<ToolCategory, string> = {
-  [ToolCategory.FileRead]: "文件读取",
-  [ToolCategory.FileWrite]: "文件写入",
-  [ToolCategory.Shell]: "Shell 命令",
-  [ToolCategory.Network]: "网络请求",
-  [ToolCategory.System]: "系统工具",
-  [ToolCategory.Agent]: "Agent 工具",
-  [ToolCategory.Vcs]: "版本控制",
-  [ToolCategory.Automation]: "自动化",
-  [ToolCategory.Communication]: "通信",
-  [ToolCategory.AiMedia]: "AI 媒体",
-  [ToolCategory.Integration]: "外部集成",
-  [ToolCategory.Storage]: "存储管理",
-  [ToolCategory.Knowledge]: "知识库",
-  [ToolCategory.Browser]: "浏览器",
-  [ToolCategory.Desktop]: "桌面控制",
-};
-
 /** 工具完整信息（与后端 DTO 对齐） */
 export type LocalToolInfo = {
   /** 工具主名称 */
@@ -81,12 +62,3 @@ export const PermissionMode = {
 } as const;
 
 export type PermissionMode = (typeof PermissionMode)[keyof typeof PermissionMode];
-
-/** 权限模式中文标签 */
-export const PermissionModeLabels: Record<PermissionMode, string> = {
-  [PermissionMode.ReadOnly]: "只读",
-  [PermissionMode.Allow]: "允许",
-  [PermissionMode.WorkspaceWrite]: "工作区写入",
-  [PermissionMode.DangerFullAccess]: "完全访问",
-  [PermissionMode.Prompt]: "每次确认",
-};

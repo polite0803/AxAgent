@@ -446,8 +446,8 @@ function ThinkNode(
             }}
           >
             {showRawMarkdown
-              ? t("chatMarkdown.toggleRaw", "收起原始内容")
-              : t("chatMarkdown.viewThinking", "查看原始思考")}
+              ? t("chatMarkdown.toggleRaw")
+              : t("chatMarkdown.viewThinking")}
           </div>
         )}
       </div>
@@ -915,7 +915,7 @@ function ToolCallNode(
           {tc.input && Object.keys(tc.input).length > 0 && (
             <details style={{ margin: 0 }}>
               <summary style={{ fontSize: 12, color: token.colorTextSecondary, cursor: "pointer", userSelect: "none" }}>
-                {t("chatMarkdown.inputParams", "输入参数")}
+                {t("chatMarkdown.inputParams")}
               </summary>
               <pre
                 style={{
@@ -938,7 +938,7 @@ function ToolCallNode(
           {tc.output && (
             <details style={{ margin: 0 }}>
               <summary style={{ fontSize: 12, color: token.colorTextSecondary, cursor: "pointer", userSelect: "none" }}>
-                {t("chatMarkdown.outputResult", "执行结果")}
+                {t("chatMarkdown.outputResult")}
               </summary>
               <pre
                 style={{

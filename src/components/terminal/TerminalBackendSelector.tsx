@@ -1,17 +1,12 @@
 import { Button, Dropdown, Tag } from "antd";
 import type { MenuProps } from "antd";
 import { Container, Monitor, Plus, Terminal } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const backendIcons: Record<string, React.ReactNode> = {
   local: <Monitor size={14} />,
   docker: <Container size={14} />,
   ssh: <Terminal size={14} />,
-};
-
-const backendLabels: Record<string, string> = {
-  local: "Local",
-  docker: "Docker",
-  ssh: "SSH",
 };
 
 interface TerminalBackendSelectorProps {
@@ -27,14 +22,15 @@ export function TerminalBackendSelector({
   onSelect,
   onConfigure,
 }: TerminalBackendSelectorProps) {
+  const { t } = useTranslation();
   const items: MenuProps["items"] = backends.map((b) => ({
     key: b.type,
     icon: backendIcons[b.type],
     label: (
       <div className="flex items-center justify-between gap-4" style={{ minWidth: 180 }}>
-        <span>{backendLabels[b.type] ?? b.type}</span>
+        <span>{t(`terminal.${b.type}`)}</span>
         <Tag color={b.connected ? "green" : "default"} style={{ margin: 0 }}>
-          {b.connected ? `${b.sessions} sessions` : "Offline"}
+          {b.connected ? t("terminal.sessions", { count: b.sessions }) : t("terminal.offline")}
         </Tag>
       </div>
     ),
@@ -45,14 +41,14 @@ export function TerminalBackendSelector({
   items.push({
     key: "configure",
     icon: <Plus size={14} />,
-    label: "Configure Backends...",
+    label: t("terminal.configureBackends"),
     onClick: () => onConfigure(current),
   });
 
   return (
     <Dropdown menu={{ items }} trigger={["click"]}>
       <Button size="small" icon={backendIcons[current]}>
-        {backendLabels[current] ?? current}
+        {t(`terminal.${current}`)}
       </Button>
     </Dropdown>
   );

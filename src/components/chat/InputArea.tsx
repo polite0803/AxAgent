@@ -30,7 +30,6 @@ import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
-import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Radio, Select, Tag, theme, Tooltip } from "antd";
@@ -465,8 +464,7 @@ export function InputArea() {
     const text = pendingPromptText;
     useConversationStore.getState().setPendingPromptText(null);
     setValue(text);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pendingPromptText]);
 
   // Search dropdown menu items
   const searchMenuItems = useMemo(() => {
@@ -702,7 +700,7 @@ export function InputArea() {
       }
       items.push({
         key: `category-${category}`,
-        label: EXPERT_CATEGORY_LABELS[category as keyof typeof EXPERT_CATEGORY_LABELS] || category,
+        label: t("expertCategory." + category) || category,
         disabled: true,
       });
       for (const role of categoryRoles) {
@@ -1324,7 +1322,7 @@ export function InputArea() {
             } catch (rollbackErr) {
               console.error("[ModeSwitch] Failed to rollback mode:", rollbackErr);
             }
-            messageApi.error(t("chat.agentInitFailed", "Failed to initialize agent session"));
+            messageApi.error(t("chat.agentInitFailed"));
           }
         }
       } else {
@@ -2382,14 +2380,14 @@ export function InputArea() {
                     {
                       key: "direct",
                       icon: <Play size={14} />,
-                      label: t("plan.strategyDirect", "Direct Execute"),
+                      label: t("plan.strategyDirect"),
                     },
                     {
                       key: "plan",
                       icon: <ClipboardList size={14} />,
                       label: (
                         <>
-                          {t("plan.strategyPlan", "Plan First")}{" "}
+                          {t("plan.strategyPlan")}{" "}
                           <Tag
                             color="purple"
                             style={{ fontSize: 10, lineHeight: "16px", padding: "0 3px", marginLeft: 2 }}
@@ -2408,8 +2406,8 @@ export function InputArea() {
               >
                 <Tooltip
                   title={workStrategy === "plan"
-                    ? t("plan.strategyPlan", "Plan First")
-                    : t("plan.strategyDirect", "Direct Execute")}
+                    ? t("plan.strategyPlan")
+                    : t("plan.strategyDirect")}
                 >
                   <Button
                     type="text"

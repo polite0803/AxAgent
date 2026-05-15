@@ -72,7 +72,7 @@ export function TagAggregationPanel({ notes, onTagClick, activeTag }: TagAggrega
   return (
     <div className="px-3 py-2 border-b" style={{ borderColor: token.colorBorderSecondary }}>
       <div className="text-xs font-medium mb-1.5" style={{ color: token.colorTextSecondary }}>
-        {t("wiki.tags", "Tags")}
+        {t("wiki.tags")}
       </div>
       <div className="flex flex-wrap gap-1">
         {tagData.map(([tag, count]) => (

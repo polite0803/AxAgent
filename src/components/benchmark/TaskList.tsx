@@ -1,5 +1,5 @@
 import type { BenchmarkTask, TaskResult } from "@/types";
-import { formatDuration, formatScore, getDifficultyLabel } from "@/types";
+import { formatDuration, formatScore, getDifficultyKey } from "@/types";
 import { Button, Table, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import { TaskResultCard } from "./TaskResult";
@@ -32,7 +32,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       key: "difficulty",
       width: 80,
       render: (difficulty: BenchmarkTask["difficulty"]) => (
-        <Tag color={getDifficultyColor(difficulty)}>{getDifficultyLabel(difficulty)}</Tag>
+        <Tag color={getDifficultyColor(difficulty)}>{t(getDifficultyKey(difficulty))}</Tag>
       ),
     },
     {

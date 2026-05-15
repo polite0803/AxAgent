@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import type { SkillPermissions } from "@/types";
 
 // ── 权限校验（加载时强制执行的白名单） ──────────────────────────────
@@ -72,7 +73,7 @@ export function validateSkillPermissions(
   const violations: string[] = [];
 
   if (!permissions) {
-    violations.push(`${UNAUTHORIZED_PREFIX}Skill 未声明 permissions 字段，拒绝加载`);
+    violations.push(`${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.undeclaredPermissions")}`);
     return { valid: false, violations };
   }
 
@@ -80,26 +81,26 @@ export function validateSkillPermissions(
 
   for (const cmd of requiredCommands) {
     if (!isWildcardMatch(cmd, perms.commands)) {
-      violations.push(`${UNAUTHORIZED_PREFIX}命令 "${cmd}" 不在白名单中`);
+      violations.push(`${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.commandNotInWhitelist", { cmd })}`);
     }
   }
 
   // 最小权限原则提示（非阻塞警告）
   if (perms.storeWrite.length > 0 && perms.storeRead.length === 0) {
-    violations.push("WARN: 声明了 storeWrite 但未声明 storeRead");
+    violations.push(i18n.t("skillPermissions.writeWithoutRead"));
   }
 
   const writeStores = new Set(perms.storeWrite.map((p) => parseStorePerm(p).storeName));
   const readStores = new Set(perms.storeRead.map((p) => parseStorePerm(p).storeName));
   for (const ws of writeStores) {
     if (!readStores.has(ws)) {
-      violations.push(`WARN: 声明了 storeWrite:${ws} 但未声明 storeRead:${ws}`);
+      violations.push(i18n.t("skillPermissions.writeWithoutReadDetail", { ws }));
     }
   }
 
   // 校验 network 权限：若声明了 network 但沙箱已删除 fetch/XHR，给出提示
   if (perms.network.length > 0) {
-    violations.push("WARN: network 权限已声明，但沙箱环境默认禁用 fetch/XHR");
+    violations.push(i18n.t("skillPermissions.networkDisabled"));
   }
 
   // 校验 tools 权限：必须至少声明一个工具才能加载

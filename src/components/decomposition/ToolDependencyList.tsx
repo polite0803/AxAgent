@@ -1,6 +1,7 @@
 import { CheckCircleOutlined, ThunderboltOutlined, ToolOutlined, WarningOutlined } from "@ant-design/icons";
 import { Table, Tag } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { ToolDependency } from "../../types";
 
 interface ToolDependencyListProps {
@@ -9,29 +10,39 @@ interface ToolDependencyListProps {
   actionLoading?: string | null;
 }
 
-const STATUS_CONFIG: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
-  satisfied: { color: "success", label: "已满足", icon: <CheckCircleOutlined /> },
-  auto_installable: { color: "processing", label: "可自动安装", icon: <ToolOutlined /> },
-  manual_installable: { color: "warning", label: "需手动安装", icon: <WarningOutlined /> },
-  needs_generation: { color: "error", label: "需生成", icon: <ThunderboltOutlined /> },
-};
-
 export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
   dependencies,
   onAction,
   actionLoading,
 }) => {
+  const { t } = useTranslation();
+
+  const STATUS_CONFIG: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
+    satisfied: { color: "success", label: t("decomposition.statusSatisfied"), icon: <CheckCircleOutlined /> },
+    auto_installable: { color: "processing", label: t("decomposition.statusAutoInstallable"), icon: <ToolOutlined /> },
+    manual_installable: {
+      color: "warning",
+      label: t("decomposition.statusManualInstallable"),
+      icon: <WarningOutlined />,
+    },
+    needs_generation: {
+      color: "error",
+      label: t("decomposition.statusNeedsGeneration"),
+      icon: <ThunderboltOutlined />,
+    },
+  };
+
   const columns = [
-    { title: "工具名称", dataIndex: "name", key: "name" },
+    { title: t("decomposition.toolName"), dataIndex: "name", key: "name" },
     {
-      title: "类型",
+      title: t("decomposition.colType"),
       dataIndex: "tool_type",
       key: "tool_type",
       width: 80,
       render: (t: string) => <Tag>{t}</Tag>,
     },
     {
-      title: "状态",
+      title: t("decomposition.colStatus"),
       dataIndex: "status",
       key: "status",
       width: 120,
@@ -41,14 +52,14 @@ export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
       },
     },
     {
-      title: "安装说明",
+      title: t("decomposition.colInstallInstructions"),
       dataIndex: "install_instructions",
       key: "install_instructions",
       ellipsis: true,
       render: (text: string) => text || "-",
     },
     {
-      title: "操作",
+      title: t("decomposition.colAction"),
       key: "action",
       width: 100,
       render: (_: unknown, record: ToolDependency) => {
@@ -57,7 +68,7 @@ export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
         if (!onAction) { return null; }
         return (
           <a onClick={() => onAction(record)} style={{ fontSize: 12 }}>
-            {actionLoading === record.name ? "处理中..." : "处理"}
+            {actionLoading === record.name ? t("decomposition.processingLabel") : t("decomposition.processLabel")}
           </a>
         );
       },

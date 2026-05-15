@@ -163,7 +163,7 @@ export function CategoryEditModal({
         />
 
         <TextArea
-          placeholder={t("chat.categorySystemPromptPlaceholder", "System Prompt（分类下的对话将继承此提示词）")}
+          placeholder={t("chat.categorySystemPromptPlaceholder")}
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
           autoSize={{ minRows: 5, maxRows: 10 }}

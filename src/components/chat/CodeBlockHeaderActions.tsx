@@ -99,7 +99,7 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
       </Tooltip>
 
       {/* Font Decrease */}
-      <Tooltip title={t("common.decrease", { defaultValue: "Decrease" })} mouseEnterDelay={0.4}>
+      <Tooltip title={t("common.decrease")} mouseEnterDelay={0.4}>
         <button
           type="button"
           className="code-action-btn"
@@ -114,7 +114,7 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
       </Tooltip>
 
       {/* Font Reset */}
-      <Tooltip title={t("common.reset", { defaultValue: "Reset" })} mouseEnterDelay={0.4}>
+      <Tooltip title={t("common.reset")} mouseEnterDelay={0.4}>
         <button
           type="button"
           className="code-action-btn"
@@ -129,7 +129,7 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
       </Tooltip>
 
       {/* Font Increase */}
-      <Tooltip title={t("common.increase", { defaultValue: "Increase" })} mouseEnterDelay={0.4}>
+      <Tooltip title={t("common.increase")} mouseEnterDelay={0.4}>
         <button
           type="button"
           className="code-action-btn"
@@ -179,7 +179,7 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
         trigger={["click"]}
         placement="bottomRight"
       >
-        <Tooltip title={t("settings.codeTheme", { defaultValue: "Code Theme" })} mouseEnterDelay={0.4}>
+        <Tooltip title={t("settings.codeTheme")} mouseEnterDelay={0.4}>
           <button
             type="button"
             className="code-action-btn"

@@ -24,7 +24,7 @@ export function SteerInput() {
       <Input
         id="steer-input-input-32"
         size="small"
-        placeholder={t("chat.steerPlaceholder", "Steer agent direction...")}
+        placeholder={t("chat.steerPlaceholder")}
         value={instruction}
         onChange={(e) => setInstruction(e.target.value)}
         onPressEnter={(e) => {
@@ -43,7 +43,7 @@ export function SteerInput() {
         onClick={handleSteer}
         style={{ backgroundColor: "#d97706", borderColor: "#d97706" }}
       >
-        {t("chat.steer", "Steer")}
+        {t("chat.steer")}
       </Button>
     </div>
   );

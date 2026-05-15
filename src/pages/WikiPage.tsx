@@ -170,7 +170,7 @@ export function WikiPage() {
     setImporting(false);
     if (stats) {
       message.success(
-        t("wiki.importResult", "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}", {
+        t("wiki.importResult", {
           imported: stats.imported,
           skipped: stats.skipped,
           failed: stats.failed,
@@ -192,7 +192,7 @@ export function WikiPage() {
         const stats = await exportMarkdown(selectedVaultId, filePath);
         if (stats) {
           message.success(
-            t("wiki.exportResult", "Exported: {{exported}}, Failed: {{failed}}", {
+            t("wiki.exportResult", {
               exported: stats.exported,
               failed: stats.failed,
             }),
@@ -214,7 +214,7 @@ export function WikiPage() {
         const stats = await exportHtml(selectedVaultId, filePath);
         if (stats) {
           message.success(
-            t("wiki.exportResult", "Exported: {{exported}}, Failed: {{failed}}", {
+            t("wiki.exportResult", {
               exported: stats.exported,
               failed: stats.failed,
             }),
@@ -229,12 +229,12 @@ export function WikiPage() {
   const exportMenuItems: MenuProps["items"] = [
     {
       key: "markdown",
-      label: t("wiki.exportMarkdown", "Markdown"),
+      label: t("wiki.exportMarkdown"),
       onClick: handleExportMarkdown,
     },
     {
       key: "html",
-      label: t("wiki.exportHtml", "HTML"),
+      label: t("wiki.exportHtml"),
       onClick: handleExportHtml,
     },
   ];
@@ -264,7 +264,7 @@ export function WikiPage() {
                 <Space className="w-full" direction="vertical" size="small">
                   <div className="flex items-center gap-2">
                     <Input.Search
-                      placeholder={t("wiki.searchPlaceholder", "Search notes...")}
+                      placeholder={t("wiki.searchPlaceholder")}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       loading={isSearching}
@@ -273,7 +273,7 @@ export function WikiPage() {
                     />
                     <Input
                       id="wiki-page-input-134"
-                      placeholder={t("wiki.quickCapture", "Quick capture...")}
+                      placeholder={t("wiki.quickCapture")}
                       value={quickCapture}
                       onChange={(e) => setQuickCapture(e.target.value)}
                       onPressEnter={handleQuickCapture}
@@ -285,18 +285,18 @@ export function WikiPage() {
                       icon={<CalendarOutlined />}
                       onClick={handleDailyNote}
                     >
-                      {t("wiki.dailyNote", "Today")}
+                      {t("wiki.dailyNote")}
                     </Button>
                     <Button
                       size="small"
                       icon={<ImportOutlined />}
                       onClick={() => setImportModalOpen(true)}
                     >
-                      {t("wiki.import", "Import")}
+                      {t("wiki.import")}
                     </Button>
                     <Dropdown menu={{ items: exportMenuItems }}>
                       <Button size="small" icon={<DownloadOutlined />}>
-                        {t("wiki.export", "Export")}
+                        {t("wiki.export")}
                       </Button>
                     </Dropdown>
                     {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
@@ -305,7 +305,7 @@ export function WikiPage() {
                         icon={<BookOpen size={14} />}
                         onClick={() => navigate(`/llm-wiki?wikiId=${wikiIdFromUrl}`)}
                       >
-                        {t("wiki.manage", "Manage")}
+                        {t("wiki.manage")}
                       </Button>
                     )}
                   </div>
@@ -319,12 +319,12 @@ export function WikiPage() {
                           if (first) { handleCreateFromTemplate(first.id); }
                         }}
                       >
-                        {t("wiki.fromTemplate", "From Template")}
+                        {t("wiki.fromTemplate")}
                       </Button>
                     )}
                     {activeTag && (
                       <span className="text-xs" style={{ color: token.colorPrimary }}>
-                        {t("wiki.filteredByTag", "Filtered: {{tag}}", { tag: activeTag })}
+                        {t("wiki.filteredByTag", { tag: activeTag })}
                         <Button type="link" size="small" onClick={() => setActiveTag(null)}>
                           ✕
                         </Button>
@@ -333,7 +333,7 @@ export function WikiPage() {
                   </div>
                   {wikiIdFromUrl && wikiIdFromUrl !== DEFAULT_VAULT_ID && (
                     <div className="text-xs" style={{ color: token.colorTextSecondary }}>
-                      {t("wiki.viewingWiki", "Viewing Wiki: {{id}}", { id: wikiIdFromUrl })}
+                      {t("wiki.viewingWiki", { id: wikiIdFromUrl })}
                     </div>
                   )}
                 </Space>
@@ -344,7 +344,7 @@ export function WikiPage() {
                 activeTag={activeTag}
               />
               <div className="flex-1 overflow-y-auto p-4">
-                {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes", "No notes yet")} /> : (
+                {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes")} /> : (
                   <List
                     dataSource={displayNotes}
                     renderItem={(note) => (
@@ -357,8 +357,7 @@ export function WikiPage() {
                           title={note.title}
                           description={
                             <span className="text-xs" style={{ color: token.colorTextSecondary }}>
-                              {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} •{" "}
-                              {note.filePath}
+                              {note.author === "llm" ? t("wiki.llmNote") : t("wiki.userNote")} • {note.filePath}
                             </span>
                           }
                         />
@@ -372,33 +371,33 @@ export function WikiPage() {
         )
         : <WikiEditorPage noteId={selectedNoteId} onBack={handleBack} />}
       <Modal
-        title={t("wiki.importObsidian", "Import Obsidian Vault")}
+        title={t("wiki.importObsidian")}
         open={importModalOpen}
         onOk={handleImport}
         onCancel={() => {
           setImportModalOpen(false);
           setImportPath("");
         }}
-        okText={t("wiki.startImport", "Import")}
+        okText={t("wiki.startImport")}
         okButtonProps={{ loading: importing, disabled: !importPath.trim() }}
       >
         <div className="flex flex-col gap-3">
           <p className="text-sm" style={{ color: token.colorTextSecondary }}>
-            {t("wiki.importObsidianDesc", "Select an Obsidian vault directory to import all .md files as Wiki notes.")}
+            {t("wiki.importObsidianDesc")}
           </p>
           <div className="flex items-center gap-2">
             <Input
               id="wiki-page-input-135"
               value={importPath}
               onChange={(e) => setImportPath(e.target.value)}
-              placeholder={t("wiki.vaultPath", "Vault path...")}
+              placeholder={t("wiki.vaultPath")}
               className="flex-1"
             />
             <Button
               icon={<FolderOpen size={14} />}
               onClick={handleBrowseVaultPath}
             >
-              {t("wiki.browse", "Browse")}
+              {t("wiki.browse")}
             </Button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
 import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/lib/messageUtils";
@@ -1203,7 +1204,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     // Agent 模式仅在 Tauri 桌面端可用，浏览器模式不支持
     if (!isTauri()) {
       set((s) => ({
-        error: "Agent 模式需要 Tauri 桌面端环境，请在终端执行 npm run tauri dev 启动",
+        error: i18n.t("agentMode.requiresTauri"),
         messages: [
           ...s.messages,
           {
@@ -1228,7 +1229,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             id: `temp-agent-error-${Date.now()}`,
             conversation_id: conversationId,
             role: "assistant",
-            content: "Agent 模式需要 Tauri 桌面端环境才能运行。请使用 `npm run tauri dev` 启动应用。",
+            content: i18n.t("agentMode.requiresTauriDetail"),
             provider_id: null,
             model_id: null,
             token_count: null,
@@ -1283,7 +1284,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       id: currentMsgId,
       conversation_id: conversationId,
       role: "assistant",
-      content: "🔄 正在思考...",
+      content: i18n.t("agentMode.thinking"),
       provider_id: providerId,
       model_id: model_id,
       token_count: null,
@@ -1324,7 +1325,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set((s) => ({
         messages: s.messages.map((m) =>
           m.id === currentMsgId
-            ? { ...m, content: "Agent 执行超时（10 分钟无响应），请重试", status: "error" as const }
+            ? { ...m, content: i18n.t("agentMode.timeout"), status: "error" as const }
             : m
         ),
       }));
@@ -1338,7 +1339,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }));
       // Reject the event promise so the await doesn't hang forever
       if (_agentReject) {
-        _agentReject(new Error("Agent 执行超时（10 分钟无响应），请重试"));
+        _agentReject(new Error(i18n.t("agentMode.timeout")));
       }
     }, AGENT_TIMEOUT_MS);
 
@@ -1691,7 +1692,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           set((s) => ({
             messages: s.messages.map((m) =>
               m.id === currentMsgId
-                ? { ...m, content: "Agent 执行超时，请重试", status: "error" as const }
+                ? { ...m, content: i18n.t("agentMode.timeoutShort"), status: "error" as const }
                 : m
             ),
           }));
@@ -1704,7 +1705,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             })(),
           }));
           if (_agentReject) {
-            _agentReject(new Error("Agent 执行超时，请重试"));
+            _agentReject(new Error(i18n.t("agentMode.timeoutShort")));
           }
         }, AGENT_TIMEOUT_MS);
         set((s) => ({
@@ -1833,7 +1834,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       id: currentMsgId,
       conversation_id: conversationId,
       role: "assistant",
-      content: "Generating plan...",
+      content: i18n.t("agentMode.generatingPlan"),
       provider_id: providerId,
       model_id: model_id,
       token_count: null,
@@ -1877,7 +1878,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set((s) => ({
         messages: s.messages.map((m) =>
           m.id === currentMsgId
-            ? { ...m, content: "Plan generated. Review the steps below.", status: "complete" as const }
+            ? { ...m, content: i18n.t("agentMode.planGenerated"), status: "complete" as const }
             : m
         ),
       }));

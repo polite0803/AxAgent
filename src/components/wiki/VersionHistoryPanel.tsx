@@ -118,7 +118,7 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
     const updated = await restoreVersion(noteId, versionId);
     setRestoring(false);
     if (updated) {
-      message.success(t("wiki.versionRestored", "Version restored"));
+      message.success(t("wiki.versionRestored"));
       onRestore?.();
       loadVersionList();
     }
@@ -147,7 +147,7 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
       title={
         <span>
           <HistoryOutlined style={{ marginRight: 8 }} />
-          {t("wiki.versionHistory", "Version History")}
+          {t("wiki.versionHistory")}
         </span>
       }
       open={open}
@@ -164,7 +164,7 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
         : versions.length === 0
         ? (
           <div className="py-12">
-            <Empty description={t("wiki.noVersions", "No version history")} />
+            <Empty description={t("wiki.noVersions")} />
           </div>
         )
         : (
@@ -184,7 +184,7 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
                   }}
                   onClick={() => handleSelectVersion(version)}
                   actions={[
-                    <Tooltip key="diff" title={t("wiki.compareDiff", "Compare diff")}>
+                    <Tooltip key="diff" title={t("wiki.compareDiff")}>
                       <Button
                         size="small"
                         type={diffVersion?.id === version.id ? "primary" : "text"}
@@ -198,9 +198,9 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
                     </Tooltip>,
                     <Popconfirm
                       key="restore"
-                      title={t("wiki.confirmRestore", "Restore this version?")}
+                      title={t("wiki.confirmRestore")}
                       onConfirm={() => handleRestore(version.id)}
-                      okText={t("wiki.restore", "Restore")}
+                      okText={t("wiki.restore")}
                     >
                       <Button
                         size="small"
@@ -208,7 +208,7 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
                         loading={restoring}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {t("wiki.restore", "Restore")}
+                        {t("wiki.restore")}
                       </Button>
                     </Popconfirm>,
                   ]}
@@ -256,8 +256,7 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
             {diffVersion && selectedVersion && (
               <div className="border-t p-3" style={{ borderColor: token.colorBorderSecondary }}>
                 <Text className="text-xs mb-2 block" type="secondary">
-                  {t("wiki.diffLabel", "Diff")}: {shortHash(diffVersion.contentHash)} →{" "}
-                  {shortHash(selectedVersion.contentHash)}
+                  {t("wiki.diffLabel")}: {shortHash(diffVersion.contentHash)} → {shortHash(selectedVersion.contentHash)}
                 </Text>
                 <DiffView oldContent={diffVersion.content} newContent={selectedVersion.content} />
               </div>

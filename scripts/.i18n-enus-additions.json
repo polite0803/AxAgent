@@ -1,0 +1,91 @@
+{
+  "advancedSettings": {
+    "bashSecurity": "Bash Command Security Verification",
+    "defaultPermission": "Default Permission Mode",
+    "networkCmdDetect": "Enable Network Command Detection",
+    "networkConfirm": "Network Requests Require Confirmation",
+    "perm": {
+      "acceptEdits": "Accept Edits",
+      "default": "Default (Ask Every Time)",
+      "fullAccess": "Full Access"
+    },
+    "permissionStrategy": "Permission Execution Strategy",
+    "shellConfirm": "Shell Execution Requires Confirmation"
+  },
+  "benchmark": {
+    "configTitle": "Run Configuration",
+    "empty": "Select a benchmark and click run...",
+    "selectFirst": "Please select a benchmark first",
+    "selectTitle": "Benchmark Selection",
+    "title": "Benchmark Runner"
+  },
+  "chat": {
+    "contextGraph": {
+      "hideType": "Click to hide",
+      "showType": "Click to show"
+    }
+  },
+  "expertSelector": {
+    "builtinAlreadyImported": "Built-in experts already imported",
+    "builtinImported": "12 built-in experts imported",
+    "builtinImportedLabel": "Imported",
+    "importBuiltin": "Import all built-in experts (code review, debugging, architecture design, etc.)",
+    "importBuiltinBtn": "Import Built-in"
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "total": "Total"
+    },
+    "tab": {
+      "dataset": "Dataset",
+      "loraConfig": "LoRA Config",
+      "training": "Training"
+    },
+    "title": "Model Fine-Tuning"
+  },
+  "gateway": {
+    "tab": {
+      "monitor": "Monitor"
+    }
+  },
+  "skill": {
+    "addFrontend": "Add Frontend",
+    "editFrontend": "Edit Frontend",
+    "exportFailed": "Export Failed",
+    "exportPublishable": "Export Publishable",
+    "exported": "Skill Exported",
+    "hasUI": "Has UI Extension"
+  },
+  "wiki": {
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "Edges",
+    "export": "Export",
+    "exportHtml": "Export as HTML",
+    "exportMarkdown": "Export as Markdown",
+    "exportPdf": "Export as PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Import markdown files from an existing Obsidian vault",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "Nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick Capture",
+    "refresh": "Refresh",
+    "source": "Source",
+    "startImport": "Start Import",
+    "vaultPath": "Vault Path",
+    "wiki": "Wiki"
+  },
+  "research": {
+    "mockFinding": "Mock Research Finding"
+  }
+}

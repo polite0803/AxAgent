@@ -146,6 +146,7 @@ impl EvaluationRunner {
         }
     }
 
+    // i18n-exempt: Example strings for benchmark evaluation — testing data, not UI
     async fn simulate_agent_response(&self, task: &BenchmarkTask) -> String {
         tokio::task::yield_now().await;
         match task.id.as_str() {

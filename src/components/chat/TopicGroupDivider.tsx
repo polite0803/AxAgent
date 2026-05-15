@@ -29,9 +29,9 @@ export function TopicGroupDivider({ conversationId, group }: TopicGroupDividerPr
 
   const menuItems = {
     items: [
-      { key: "rename", label: t("topicGroup.rename", "重命名"), icon: <Edit3 size={12} /> },
-      { key: "merge", label: t("topicGroup.mergeUp", "合并到上一组"), icon: <GitBranch size={12} /> },
-      { key: "delete", label: t("topicGroup.delete", "删除分组"), icon: <Trash2 size={12} />, danger: true },
+      { key: "rename", label: t("topicGroup.rename"), icon: <Edit3 size={12} /> },
+      { key: "merge", label: t("topicGroup.mergeUp"), icon: <GitBranch size={12} /> },
+      { key: "delete", label: t("topicGroup.delete"), icon: <Trash2 size={12} />, danger: true },
     ],
     onClick: ({ key }: { key: string }) => {
       switch (key) {
@@ -100,7 +100,7 @@ export function TopicGroupDivider({ conversationId, group }: TopicGroupDividerPr
           </span>
           {group.collapsed && (
             <span style={{ fontSize: 10, color: token.colorTextQuaternary }}>
-              {t("topicGroup.collapsed", "已折叠")}
+              {t("topicGroup.collapsed")}
             </span>
           )}
           {editing && (

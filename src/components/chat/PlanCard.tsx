@@ -161,18 +161,18 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ClipboardList size={18} color="#722ed1" />
           <span style={{ fontWeight: 600, fontSize: 14, color: token.colorText }}>
-            {plan.title || t("plan.defaultTitle", "Execution Plan")}
+            {plan.title || t("plan.defaultTitle")}
           </span>
           <Tag
             color={isReviewing ? "purple" : isExecuting ? "blue" : isCompleted ? "green" : "default"}
             style={{ fontSize: 11, lineHeight: "18px" }}
           >
             {isReviewing
-              ? t("plan.status.reviewing", "Reviewing")
+              ? t("plan.status.reviewing")
               : isExecuting
-              ? t("plan.status.executing", "Executing")
+              ? t("plan.status.executing")
               : isCompleted
-              ? t("plan.status.completed", "Completed")
+              ? t("plan.status.completed")
               : plan.status}
           </Tag>
         </div>
@@ -186,9 +186,9 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                 onClick={handleApproveAll}
                 loading={loading}
               >
-                {t("plan.approveAll", "Approve & Execute")}
+                {t("plan.approveAll")}
               </Button>
-              <Tooltip title={t("plan.reject", "Reject Plan")}>
+              <Tooltip title={t("plan.reject")}>
                 <Button
                   size="small"
                   danger
@@ -205,7 +205,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
               icon={<AlertTriangle size={14} />}
               onClick={handleCancel}
             >
-              {t("plan.cancel", "Cancel")}
+              {t("plan.cancel")}
             </Button>
           )}
           {isHistorical && isReviewing && (
@@ -214,7 +214,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
               icon={<RotateCcw size={14} />}
               onClick={handleResume}
             >
-              {t("plan.resume", "Resume")}
+              {t("plan.resume")}
             </Button>
           )}
         </div>
@@ -361,7 +361,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
               {/* Step-level approve/reject (reviewing mode) */}
               {isReviewing && !isHistorical && step.status === "pending" && (
                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                  <Tooltip title={t("plan.approveStep", "Approve")}>
+                  <Tooltip title={t("plan.approveStep")}>
                     <Button
                       type="text"
                       size="small"
@@ -372,7 +372,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                       }}
                     />
                   </Tooltip>
-                  <Tooltip title={t("plan.rejectStep", "Reject")}>
+                  <Tooltip title={t("plan.rejectStep")}>
                     <Button
                       type="text"
                       size="small"
@@ -415,8 +415,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
           }}
         >
           <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
-            {localSteps.filter((s) => s.status === "approved").length} / {localSteps.length}{" "}
-            {t("plan.stepsApproved", "steps approved")}
+            {localSteps.filter((s) => s.status === "approved").length} / {localSteps.length} {t("plan.stepsApproved")}
           </span>
           <Button
             type="primary"
@@ -425,7 +424,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
             onClick={() => approvePlan(conversationId, plan.id)}
             loading={loading}
           >
-            {t("plan.executeApproved", "Execute Approved Steps")}
+            {t("plan.executeApproved")}
           </Button>
         </div>
       )}

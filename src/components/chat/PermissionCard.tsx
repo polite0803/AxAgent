@@ -206,7 +206,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
               </div>
               <div>
                 <Text strong style={{ fontSize: 14, display: "block" }}>
-                  {t("common.permissionRequired", "Permission Required")}
+                  {t("common.permissionRequired")}
                 </Text>
                 <Space size={4} style={{ marginTop: 2 }}>
                   <Tag style={{ margin: 0 }}>{toolName}</Tag>
@@ -226,7 +226,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
               <div style={{ display: "flex", alignItems: "center", gap: 4, color: token.colorTextSecondary }}>
                 <Clock size={12} />
                 <Text type="secondary" style={{ fontSize: 11 }}>
-                  {t("common.waitingForApproval", "Waiting for approval")}
+                  {t("common.waitingForApproval")}
                 </Text>
               </div>
             )}
@@ -251,7 +251,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
           {affectedPaths.length > 0 && (
             <div>
               <Text type="secondary" style={{ fontSize: 11 }}>
-                {t("common.affectedPaths", "Affected paths")}:
+                {t("common.affectedPaths")}:
               </Text>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
                 {affectedPaths.map((p, i) => (
@@ -269,7 +269,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
           >
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {t("common.viewDetails", "View details")} ({t("common.toolInput", "Tool Input")})
+              {t("common.viewDetails")} ({t("common.toolInput")})
             </Text>
           </div>
           {expanded && (
@@ -302,7 +302,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                   onClick={() => handleApprove("allow_once")}
                   style={{ borderRadius: 6 }}
                 >
-                  {t("common.allowOnce", "Allow Once")}
+                  {t("common.allowOnce")}
                 </Button>
                 <Button
                   size="small"
@@ -311,7 +311,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                   onClick={() => handleApprove("allow_always")}
                   style={{ borderRadius: 6 }}
                 >
-                  {t("common.allowAlways", "Always Allow")}
+                  {t("common.allowAlways")}
                 </Button>
                 <Button
                   size="small"
@@ -321,7 +321,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                   onClick={() => handleApprove("deny")}
                   style={{ borderRadius: 6 }}
                 >
-                  {t("common.deny", "Deny")}
+                  {t("common.deny")}
                 </Button>
                 <Tooltip
                   title={t(
@@ -337,21 +337,21 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
             ? (
               <Space>
                 <ShieldCheck size={16} style={{ color: token.colorSuccess }} />
-                <Text type="success" style={{ fontSize: 13 }}>{t("common.approved", "Approved")}</Text>
+                <Text type="success" style={{ fontSize: 13 }}>{t("common.approved")}</Text>
               </Space>
             )
             : status === "denied"
             ? (
               <Space>
                 <ShieldX size={16} style={{ color: token.colorError }} />
-                <Text type="danger" style={{ fontSize: 13 }}>{t("common.denied", "Denied")}</Text>
+                <Text type="danger" style={{ fontSize: 13 }}>{t("common.denied")}</Text>
               </Space>
             )
             : (
               <Space>
                 <AlertTriangle size={16} style={{ color: token.colorWarning }} />
                 <Text type="warning" style={{ fontSize: 13 }}>
-                  {t("common.expired", "Expired (Agent disconnected)")}
+                  {t("common.expired")}
                 </Text>
               </Space>
             )}
@@ -362,14 +362,14 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
         title={
           <Space>
             <AlertTriangle size={18} style={{ color: token.colorError }} />
-            <span>{t("common.confirmExecute", "Confirm Execute")}</span>
+            <span>{t("common.confirmExecute")}</span>
           </Space>
         }
         open={showDangerConfirm}
         onOk={() => handleApprove("allow_once")}
         onCancel={() => setShowDangerConfirm(false)}
-        okText={t("common.allowOnce", "Allow Once")}
-        cancelText={t("common.cancel", "Cancel")}
+        okText={t("common.allowOnce")}
+        cancelText={t("common.cancel")}
         okButtonProps={{ danger: true }}
       >
         <Space direction="vertical" size={12}>
@@ -390,7 +390,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
             ))}
           </ul>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("common.executionWarning", "This action cannot be undone. Are you sure you want to proceed?")}
+            {t("common.executionWarning")}
           </Text>
         </Space>
       </Modal>

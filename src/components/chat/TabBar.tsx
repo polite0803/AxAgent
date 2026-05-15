@@ -313,7 +313,7 @@ export function TabBar({ onNewConversation }: TabBarProps) {
       )}
 
       {/* Help button */}
-      <Tooltip title={t("help.title", "帮助中心")}>
+      <Tooltip title={t("help.title")}>
         <button
           type="button"
           onClick={toggleHelp}

@@ -42,7 +42,7 @@ export function WorkflowSuggestionCard({
         />
         <div style={{ flex: 1 }}>
           <Text strong style={{ fontSize: 13 }}>
-            {t("chat.workflow.suggestionHint", "提示")}
+            {t("chat.workflow.suggestionHint")}
           </Text>
           <br />
           <Text type="secondary" style={{ fontSize: 13 }}>
@@ -52,7 +52,7 @@ export function WorkflowSuggestionCard({
           </Text>
           <br />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("chat.workflow.suggestionReason", "使用工作流可以获得更结构化的多步骤执行")}
+            {t("chat.workflow.suggestionReason")}
           </Text>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             <Button
@@ -61,14 +61,14 @@ export function WorkflowSuggestionCard({
               icon={<ArrowRight size={14} />}
               onClick={() => onSwitch(match.templateId)}
             >
-              {t("chat.workflow.switchToWorkflow", "切换到此工作流")}
+              {t("chat.workflow.switchToWorkflow")}
             </Button>
             <Button
               size="small"
               icon={<X size={14} />}
               onClick={onDismiss}
             >
-              {t("chat.workflow.dismiss", "忽略")}
+              {t("chat.workflow.dismiss")}
             </Button>
           </div>
         </div>

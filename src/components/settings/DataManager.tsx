@@ -34,7 +34,7 @@ export function DataManager() {
         });
         if (filePath) {
           await writeTextFile(filePath, jsonStr);
-          message.success(t("settings.exportSuccess") || "导出成功");
+          message.success(t("settings.exportSuccess"));
         }
       } else {
         const blob = new Blob([jsonStr], { type: "application/json" });
@@ -44,11 +44,11 @@ export function DataManager() {
         a.download = `axagent-export-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        message.success(t("settings.exportSuccess") || "导出成功");
+        message.success(t("settings.exportSuccess"));
       }
     } catch (e) {
       console.error("Export failed:", e);
-      message.error(t("error.unknown") || "导出失败");
+      message.error(t("error.unknown"));
     }
   };
 
@@ -85,7 +85,7 @@ export function DataManager() {
 
       const data = JSON.parse(jsonStr);
       if (!data.version) {
-        message.error(t("error.invalidFormat") || "无效的导入文件格式");
+        message.error(t("error.invalidFormat"));
         return;
       }
 
@@ -93,10 +93,10 @@ export function DataManager() {
         await useSettingsStore.getState().saveSettings(data.settings);
       }
 
-      message.success(t("settings.importSuccess") || "导入成功，部分数据需要重启生效");
+      message.success(t("settings.importSuccess"));
     } catch (e) {
       console.error("Import failed:", e);
-      message.error(t("error.unknown") || "导入失败");
+      message.error(t("error.unknown"));
     }
   };
 
@@ -106,10 +106,10 @@ export function DataManager() {
       for (const conv of conversations) {
         await useConversationStore.getState().deleteConversation(conv.id);
       }
-      message.success(t("settings.clearSuccess") || "数据已清除");
+      message.success(t("settings.clearSuccess"));
     } catch (e) {
       console.error("Clear failed:", e);
-      message.error(t("error.unknown") || "清除失败");
+      message.error(t("error.unknown"));
     }
   };
 

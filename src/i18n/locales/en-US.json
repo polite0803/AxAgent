@@ -232,7 +232,9 @@
         "mcp": "MCP",
         "search": "Search",
         "skill": "Skill"
-      }
+      },
+      "showType": "Click to show",
+      "hideType": "Click to hide"
     },
     "artifacts": {
       "empty": "No artifacts yet",
@@ -649,7 +651,8 @@
       "rawData": "Raw Data",
       "series": "Series",
       "summary": "Summary",
-      "value": "Value"
+      "value": "Value",
+      "renderError": "Chart generation failed: {{error}}"
     },
     "collaboration": {
       "copied": "Copied",
@@ -823,7 +826,12 @@
     "spans": "Spans",
     "errors": "Errors",
     "active": "Active",
-    "noTraces": "No traces"
+    "noTraces": "No traces",
+    "role": {
+      "user": "User",
+      "system": "System",
+      "assistant": "Assistant"
+    }
   },
   "gateway": {
     "title": "Gateway",
@@ -956,7 +964,10 @@
     "templateDescOpencode": "Open-source terminal AI coding assistant, flexible code tool supporting multiple model backends",
     "templateDescGemini": "Google Gemini CLI coding agent, use Gemini models directly in the terminal",
     "templateDescCursor": "AI-native editor based on VS Code, with deep integration of code completion and chat",
-    "connectedTools": "Connected Tools"
+    "connectedTools": "Connected Tools",
+    "tab": {
+      "monitor": "Monitor"
+    }
   },
   "gatewayMonitor": {
     "refresh": "Refresh",
@@ -1109,6 +1120,7 @@
       "applyStopped": "Stopped: {{platforms}}",
       "applyErrors": "Errors: {{errors}}",
       "applyFailed": "Failed to apply config",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "Status",
       "statusDisabled": "Disabled",
       "statusConnected": "Connected",
@@ -3810,7 +3822,14 @@
     "timeline": "Timeline",
     "costAnalysis": "Cost Analysis",
     "durationAnalysis": "Duration Analysis",
-    "spanDetail": "Span Detail"
+    "spanDetail": "Span Detail",
+    "traceCount": "{{count}} traces",
+    "noTraces": "No traces",
+    "callChain": "Call Chain ({{count}} spans)",
+    "errorOnly": "Errors Only",
+    "successOnly": "Success Only",
+    "apply": "Apply",
+    "timelineView": "Timeline View ({{count}} spans)"
   },
   "browser": {
     "control": "Browser Control",
@@ -3880,7 +3899,19 @@
     "taskDetails": "Task Details",
     "recommendations": "Recommendations",
     "action": "Action",
-    "retry": "Retry"
+    "retry": "Retry",
+    "configTitle": "Benchmark Config",
+    "empty": "Select a benchmark to view results...",
+    "selectFirst": "Please select a benchmark first",
+    "selectTitle": "Benchmark Selection",
+    "title": "Benchmark Runner",
+    "maxConcurrency": "Max Concurrency: {{value}}",
+    "timeoutLabel": "Timeout: {{seconds}}s",
+    "difficultyEasy": "Easy",
+    "difficultyMedium": "Medium",
+    "difficultyHard": "Hard",
+    "difficultyExpert": "Expert",
+    "includeTraces": "Include Traces"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -4035,6 +4066,11 @@
     "writeReview": "Write Review",
     "yourReview": "Your Review"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
   "terminal": {
     "online": "Online",
     "offline": "Offline",
@@ -4042,7 +4078,12 @@
     "analyzeOutput": "Analyze Output",
     "clear": "Clear",
     "killProcess": "Kill Process",
-    "closeSession": "Close Session"
+    "closeSession": "Close Session",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
   },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
@@ -4160,12 +4201,7 @@
     "hidePanel": "Hide Panel",
     "showPanel": "Show Panel",
     "selected": "Selected",
-    "wiki": {
-      "description": "Description",
-      "name": "Name",
-      "rootPath": "Root Path",
-      "schemaVersion": "Schema Version"
-    },
+    "wiki": "Wiki",
     "tips": {
       "doubleClick": "Double-click node to edit",
       "dragPanel": "Drag panels to resize",
@@ -4329,12 +4365,12 @@
     "selectWiki": "Select Wiki",
     "selectWikiPrompt": "Please select a Wiki",
     "source": {
-      "chunks": "Chunks",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "Path",
+      "title": "Title",
+      "type": "Type",
       "status": "Status",
-      "title": "Source",
-      "type": "Type"
+      "chunks": "Chunks",
+      "path": "Path",
+      "deleteNotImplemented": "Delete not implemented yet"
     },
     "sources": "Sources",
     "sync": {
@@ -4400,7 +4436,30 @@
     "focusLocal": "Focus Local",
     "createLinkedNote": "Create Linked Note",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "Edges",
+    "export": "Export",
+    "exportHtml": "HTML",
+    "exportMarkdown": "Markdown",
+    "exportPdf": "Export PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Select an Obsidian vault directory to import all .md files as Wiki notes.",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "Nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick capture...",
+    "refresh": "Refresh",
+    "startImport": "Import",
+    "vaultPath": "Vault path...",
+    "sourceLabel": "Source"
   },
   "notification": {
     "clear": "Clear",
@@ -4523,7 +4582,22 @@
       "neverUsed": "Never used",
       "successRate": "Success Rate",
       "quality": "Quality Score"
-    }
+    },
+    "addFrontend": "Add Frontend Extension",
+    "editFrontend": "Edit Frontend Extension",
+    "exportFailed": "Export Failed",
+    "exportPublishable": "Export as Publishable Format",
+    "exported": "Skill Exported",
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
   },
   "tool": {
     "common": {
@@ -4595,7 +4669,11 @@
     "editManifest": "Edit Manifest",
     "editManifestTitle": "Edit Skill Manifest — {{name}}",
     "editManifestDesc": "Edit",
-    "supportedCapabilities": "Supported capability types"
+    "supportedCapabilities": "Supported capability types",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
   },
   "computerControl": {
     "capture": "Screenshot",
@@ -4619,6 +4697,18 @@
     "clickSuccess": "Clicked at ({{x}}, {{y}})",
     "keyPressed": "Key {{key}} pressed",
     "scrolled": "Scrolled {{direction}}"
+  },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
   },
   "onboarding": {
     "welcome": "Welcome to AxAgent",
@@ -4662,6 +4752,7 @@
     "tutorialAgentDesc": "Switch to Agent mode to let AI autonomously analyze, plan, and execute complex tasks",
     "tutorialKnowledgeTitle": "Knowledge Base",
     "tutorialKnowledgeDesc": "Upload documents to build a knowledge base, AI will provide context-aware answers based on your documents",
+    "moreModels": "+{{count}} more",
     "targetNotFound": "Target element not found, please navigate to the chat page first",
     "goToSettings": "Go to Settings to add API Key"
   },
@@ -4740,13 +4831,29 @@
       "wisdom": "Wisdom",
       "snark": "Snark"
     },
+    "species": {
+      "duck": "Duck",
+      "cat": "Cat",
+      "owl": "Owl",
+      "fox": "Fox",
+      "dragon": "Dragon",
+      "unicorn": "Unicorn"
+    },
     "showBuddy": "Show Buddy",
     "summonBuddy": "Summon Buddy (draggable)",
     "hideBuddy": "Hide Buddy",
     "attributes": "Attributes",
     "experience": "Experience",
     "recentMessages": "Recent Messages",
-    "togglePanel": "Click to expand/collapse (draggable)"
+    "togglePanel": "Click to expand/collapse (draggable)",
+    "mood": {
+      "happy": "Happy",
+      "proud": "Proud",
+      "curious": "Curious",
+      "snarky": "Snarky",
+      "concerned": "Concerned",
+      "excited": "Excited"
+    }
   },
   "agentPool": {
     "status": {
@@ -4793,7 +4900,10 @@
     "delete": "Delete group",
     "collapsed": "Collapsed",
     "splitHere": "Split here",
-    "splitGroup": "Split group"
+    "splitGroup": "Split group",
+    "linkedReply": "Linked reply",
+    "untitled": "Untitled topic",
+    "splitTopic": "Split topic"
   },
   "cloudWorkspace": {
     "title": "Cloud Workspace",
@@ -4953,6 +5063,11 @@
       "name": "By Name",
       "source": "By Source"
     },
+    "builtinImported": "Successfully imported 12 built-in experts",
+    "importBuiltin": "Import all built-in experts (code review, debugging, architecture design, etc.)",
+    "importBuiltinBtn": "Import Built-in Experts",
+    "builtinAlreadyImported": "Built-in experts already imported",
+    "builtinImportedLabel": "Imported",
     "sortDir": "Ascending",
     "sortDirDesc": "Descending",
     "capabilityDetail": "Capability Details",
@@ -5006,6 +5121,12 @@
     "lastActive": "Last Active"
   },
   "sourceManager": {
+    "createSource": "Create Source",
+    "typeLabel": "Type",
+    "sourceName": "Name",
+    "description": "Description",
+    "rootPath": "Root Path",
+    "embeddingModel": "Embedding Model",
     "type": {
       "knowledge": "Knowledge",
       "memory": "Memory",
@@ -5156,7 +5277,18 @@
       "error": "Errors Only",
       "warning": "Errors + Warnings",
       "information": "All"
-    }
+    },
+    "bashSecurity": "Bash Security Confirmation",
+    "defaultPermission": "Default Permission Mode",
+    "networkCmdDetect": "Network Command Detection",
+    "networkConfirm": "Network Confirm",
+    "perm": {
+      "acceptEdits": "Accept Edits",
+      "default": "Default (Ask each time)",
+      "fullAccess": "Full Access"
+    },
+    "permissionStrategy": "Permission Strategy",
+    "shellConfirm": "Shell Confirm"
   },
   "filePermission": {
     "title": "File Access Authorization",
@@ -5202,7 +5334,15 @@
     "configureApiKey": "Please configure API Key",
     "generateImage": "Generate Image",
     "model": "Model",
-    "elapsed": "Elapsed"
+    "elapsed": "Elapsed",
+    "providerFlux": "Flux (Replicate)",
+    "providerDalle": "DALL-E 3 (OpenAI)",
+    "replicateApiToken": "Replicate API Token",
+    "replicateApiTokenPlaceholder": "r8_...",
+    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiApiKeyPlaceholder": "sk-...",
+    "openaiBaseUrl": "OpenAI Base URL",
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
   },
   "diffViewer": {
     "newFile": "New",
@@ -5274,7 +5414,35 @@
     "totalCitations": "Total Citations:",
     "usedInReport": "Used in Report:",
     "avgCredibility": "Average Credibility:",
-    "addToReport": "Add to Report"
+    "addToReport": "Add to Report",
+    "title": "Citation Manager ({count})",
+    "addCitation": "Add Citation",
+    "empty": "No citations yet, add from search results",
+    "inReport": "Used in Report ({count})",
+    "notInReport": "Not Used in Report ({count})",
+    "sourceDistribution": "Source Type Distribution:",
+    "sourceType": {
+      "web": "Web",
+      "academic": "Academic",
+      "wikipedia": "Wikipedia",
+      "github": "GitHub",
+      "documentation": "Documentation",
+      "news": "News",
+      "blog": "Blog",
+      "forum": "Forum",
+      "unknown": "Unknown"
+    }
+  },
+  "credibility": {
+    "high": "High Credibility",
+    "medium": "Medium Credibility",
+    "low": "Low Credibility",
+    "score": "Credibility: {score}%",
+    "scoreLabel": "Credibility Score: {score}%",
+    "authority": "Authority",
+    "consistency": "Consistency",
+    "recency": "Recency",
+    "objectivity": "Objectivity"
   },
   "decomposition": {
     "cancel": "Cancel",
@@ -5300,7 +5468,24 @@
     "originalName": "Original Name",
     "implementation": "Implementation",
     "description": "Description",
-    "promptTemplateDesc": "Developer Agent will analyze tool requirements and generate a Prompt template as the implementation. The template contains {{input}} placeholders that are replaced with actual input at runtime before calling the LLM."
+    "promptTemplateDesc": "Developer Agent will analyze tool requirements and generate a Prompt template as the implementation. The template contains {{input}} placeholders that are replaced with actual input at runtime before calling the LLM.",
+    "colType": "Type",
+    "colStatus": "Status",
+    "colInstallInstructions": "Install Instructions",
+    "colAction": "Action",
+    "statusSatisfied": "Satisfied",
+    "statusAutoInstallable": "Auto Installable",
+    "statusManualInstallable": "Manual Install",
+    "statusNeedsGeneration": "Needs Generation",
+    "processingLabel": "Processing...",
+    "processLabel": "Process",
+    "autoInstallDesc": "This tool can be installed automatically. Click the button below to start.",
+    "autoInstallBtn": "Auto Install",
+    "manualInstallDesc": "This tool requires manual installation. Follow the instructions below:",
+    "manualInstallDoneBtn": "Mark as Installed",
+    "generateDesc": "This tool cannot be obtained through installation. Developer Agent will generate a Prompt template.",
+    "generateBtn": "Generate Tool",
+    "readyLabel": "{{name}} Ready"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -5329,6 +5514,7 @@
     "clickToEnable": "Click to enable this tool",
     "groupDisabled": "Category disabled, cannot control individually",
     "enabled": "enabled",
+    "enabledCount": "{{enabledCount}}/{{totalCount}} enabled",
     "disableGroup": "Disable entire category",
     "enableGroup": "Enable entire category"
   },
@@ -5477,5 +5663,227 @@
   },
   "insight": {
     "placeholder": "e.g. User prefers dark mode..."
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "total": "Total"
+    },
+    "tab": {
+      "dataset": "Dataset",
+      "loraConfig": "LoRA Config",
+      "training": "Training"
+    },
+    "title": "Model Fine-Tuning"
+  },
+  "agentMode": {
+    "requiresTauri": "Agent mode requires Tauri desktop environment. Please run `npm run tauri dev` in terminal.",
+    "requiresTauriDetail": "Agent mode requires the Tauri desktop environment. Please run `npm run tauri dev` to start the application.",
+    "thinking": "🔄 Thinking...",
+    "timeout": "Agent execution timed out (10 minutes no response), please retry",
+    "timeoutShort": "Agent execution timed out, please retry",
+    "generatingPlan": "Generating plan...",
+    "planGenerated": "Plan generated. Review the steps below."
+  },
+  "agentStore": {
+    "executionComplete": "Agent execution completed · {{turns}} turn(s){{cost}}",
+    "executionFailed": "Agent execution failed: {{errMsg}}",
+    "executionCancelled": "Agent cancelled: {{reason}}",
+    "userInterrupt": "User interrupted",
+    "unknownError": "Unknown error"
+  },
+  "expertStore": {
+    "loadFailed": "Failed to load external expert: {{error}}",
+    "clearFailed": "Failed to clear external experts: {{error}}",
+    "deleteFailed": "Failed to delete external expert: {{error}}",
+    "updateFailed": "Failed to update external expert: {{error}}",
+    "extractFailed": "Failed to extract expert structure: {{error}}",
+    "jsonFormatError": "JSON format error: expected an array",
+    "skippedInvalidRole": "Skipped invalid role: {{role}}",
+    "jsonParseError": "JSON parse failed: {{error}}"
+  },
+  "difficulty": {
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "expert": "Expert"
+  },
+  "evalCategory": {
+    "reasoning": "Reasoning",
+    "codeGeneration": "Code Generation",
+    "toolUsage": "Tool Usage",
+    "research": "Research",
+    "conversation": "Conversation",
+    "errorRecovery": "Error Recovery"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "General Assistant",
+      "description": "A versatile AI assistant without specific domain bias"
+    },
+    "codeReviewer": {
+      "name": "Code Reviewer",
+      "description": "Focused on code quality review, security vulnerability detection, and performance optimization"
+    },
+    "seniorDeveloper": {
+      "name": "Senior Developer",
+      "description": "Proficient in multiple programming languages and frameworks, skilled in architecture design"
+    },
+    "securityAuditor": {
+      "name": "Security Auditor",
+      "description": "Focused on application security auditing, penetration testing, and compliance checks"
+    },
+    "dataAnalyst": {
+      "name": "Data Analyst",
+      "description": "Specialized in data cleaning, statistical analysis, visualization, and insight discovery"
+    },
+    "sqlExpert": {
+      "name": "SQL Expert",
+      "description": "Focused on complex SQL query optimization, database design, and performance tuning"
+    },
+    "devopsEngineer": {
+      "name": "DevOps Engineer",
+      "description": "Focused on CI/CD, containerization, infrastructure as code, and operations automation"
+    },
+    "techWriter": {
+      "name": "Tech Writer",
+      "description": "Specialized in technical documentation, API docs, user manuals, and technical blog writing"
+    },
+    "productManager": {
+      "name": "Product Manager",
+      "description": "Focused on requirements analysis, product planning, user stories, and roadmap management"
+    },
+    "architect": {
+      "name": "System Architect",
+      "description": "Focused on system architecture design, technology selection, and architecture review"
+    },
+    "debugExpert": {
+      "name": "Debug Expert",
+      "description": "Focused on difficult bug localization, performance bottleneck analysis, and root cause investigation"
+    },
+    "translator": {
+      "name": "Translation Expert",
+      "description": "Specialized in multilingual translation, localization, and internationalization support"
+    }
+  },
+  "expertCategory": {
+    "general": "General",
+    "development": "Development",
+    "security": "Security",
+    "data": "Data",
+    "devops": "DevOps",
+    "design": "Design",
+    "writing": "Writing",
+    "business": "Business"
+  },
+  "planStore": {
+    "rejectFailed": "Failed to reject plan: {{error}}",
+    "modifyStepFailed": "Failed to modify step: {{error}}",
+    "planRestored": "Plan restored. Review the steps above.",
+    "resumeFailed": "Failed to resume plan: {{error}}",
+    "cancelFailed": "Failed to cancel plan: {{error}}",
+    "loadHistoryFailed": "Failed to load plan history: {{error}}"
+  },
+  "skillExtension": {
+    "duplicateCapability": "[SkillExtension] Duplicate {{type}} ID \"{{id}}\" (namespace: {{ns}}), capability for skill \"{{skillName}}\" has been skipped",
+    "toolbarPositionConflict": "[SkillExtension] Toolbar position \"{{position}}\" conflict: skill \"{{skillName}}\" and existing skill(s) [{{existingSkills}}] registered buttons at the same position",
+    "pageRouteConflict": "[SkillExtension] Page route \"{{routeId}}\" conflict: skill \"{{skillName}}\" and existing skill(s) [{{existingSkills}}] registered pages at the same route",
+    "permissionFailed": "[SkillExtension] Skill \"{{skillName}}\" permission check failed, skipping unauthorized capabilities:",
+    "unknownCapabilityType": "[SkillExtension] Unknown capability type: \"{{type}}\"",
+    "fetchFailed": "[SkillExtension] Failed to fetch skills"
+  },
+  "executionStore": {
+    "workerCreated": "Worker created"
+  },
+  "actionRouter": {
+    "unknownType": "Unknown action type: \"{{type}}\", valid types: {{validTypes}}",
+    "missingField": "Action {{type}} missing required field \"{{field}}\"",
+    "fieldTypeMismatch": "Action {{type}} field \"{{field}}\" expected {{expected}}, got {{actual}}",
+    "nonStandardType": "[ActionRouter] Registering non-standard action type: \"{{type}}\", suggest using \"custom:\" prefix",
+    "chainDepthExceeded": "Action chain exceeded max recursion depth {{depth}}",
+    "unregisteredAction": "Unregistered action type: {{type}}",
+    "agenticMissingPrompt": "Agentic action missing prompt field",
+    "noLlmAvailable": "No available LLM provider/model",
+    "typeMismatch": "Type mismatch",
+    "invokeMissingCommand": "invoke action missing command",
+    "unknownStoreOp": "Unknown store operation: {{operation}}",
+    "storeReadPermissionDenied": "Permission denied: cannot read store {{storeName}}{{field}}",
+    "storeWritePermissionDenied": "Permission denied: cannot write store {{storeName}}{{field}}",
+    "storeNotRegistered": "Store {{storeName}} not registered",
+    "functionNotRegistered": "Function {{name}} not registered",
+    "handlerNotFound": "Handler {{name}} not found",
+    "handlerNotDeclarative": "Handler {{name}} not declarative"
+  },
+  "export": {
+    "exportTime": "Export time",
+    "messageCount": "messages",
+    "exportedBy": "Exported by AxAgent"
+  },
+  "skillPermissions": {
+    "undeclaredPermissions": "Skill did not declare permissions field, rejected",
+    "commandNotInWhitelist": "Command \"{{cmd}}\" not in whitelist",
+    "writeWithoutRead": "WARN: storeWrite declared but storeRead not declared",
+    "writeWithoutReadDetail": "WARN: storeWrite:{{ws}} declared but storeRead:{{ws}} not declared",
+    "networkDisabled": "WARN: network permissions declared, but sandbox disables fetch/XHR by default"
+  },
+  "toolCategory": {
+    "fileRead": "File Read",
+    "fileWrite": "File Write",
+    "shellCommand": "Shell Command",
+    "networkRequest": "Network Request",
+    "systemTool": "System Tool",
+    "agentTool": "Agent Tool",
+    "versionControl": "Version Control",
+    "automation": "Automation",
+    "communication": "Communication",
+    "aiMedia": "AI Media",
+    "externalIntegration": "External Integration",
+    "storageManagement": "Storage Management",
+    "knowledgeBase": "Knowledge Base",
+    "browser": "Browser",
+    "desktopControl": "Desktop Control"
+  },
+  "permissionMode": {
+    "readOnly": "Read Only",
+    "allow": "Allow",
+    "workspaceWrite": "Workspace Write",
+    "fullAccess": "Full Access",
+    "alwaysAsk": "Always Ask"
+  },
+  "memoryLabels": {
+    "tier": {
+      "shortTerm": "Short-term memory",
+      "working": "Working memory",
+      "longTerm": "Long-term memory",
+      "core": "Core memory"
+    },
+    "nature": {
+      "episodic": "Episodic memory",
+      "semantic": "Semantic memory"
+    },
+    "importance": {
+      "critical": "Critical",
+      "important": "Important",
+      "normal": "Normal",
+      "minor": "Minor",
+      "low": "Low"
+    }
+  },
+  "constants": {
+    "language": {
+      "zhCN": "Simplified Chinese",
+      "zhTW": "Traditional Chinese",
+      "enUS": "English",
+      "ja": "Japanese",
+      "ko": "Korean",
+      "fr": "French",
+      "de": "German",
+      "es": "Spanish",
+      "ru": "Russian",
+      "hi": "Hindi",
+      "ar": "Arabic"
+    }
   }
 }

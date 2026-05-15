@@ -36,6 +36,7 @@ impl DatasetRegistry {
         registry
     }
 
+    // i18n-exempt: Built-in dataset names/descriptions — testing/evaluation data, not UI
     fn register_builtin_datasets(&mut self) {
         self.datasets.insert(
             "builtin".to_string(),

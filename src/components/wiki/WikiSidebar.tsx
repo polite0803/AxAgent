@@ -23,7 +23,7 @@ export function WikiSidebar({
   return (
     <div className="w-64 h-full flex flex-col" style={{ backgroundColor: "var(--color-bg-container)" }}>
       <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: "var(--border-color)" }}>
-        <span className="font-medium">{t("wiki.notes", "Notes")}</span>
+        <span className="font-medium">{t("wiki.notes")}</span>
         {onCreateNote && <Button icon={<PlusOutlined />} size="small" onClick={onCreateNote} />}
       </div>
       <div className="flex-1 overflow-y-auto">

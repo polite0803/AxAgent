@@ -179,14 +179,14 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
     // Conversation node (center)
     const convName = conversationTitle || conversationId?.slice(0, 8)
-      || t("chat.contextGraph.conversation", "当前对话");
+      || t("chat.contextGraph.conversation");
     nodes.push({ id: "conversation", type: "conversation", label: convName, detail: conversationId?.slice(0, 16) });
 
     // Model node
     if (modelName) {
       const modelLabel = providerName ? `${providerName} / ${modelName}` : modelName;
       nodes.push({ id: "model", type: "model", label: modelLabel });
-      edges.push({ source: "conversation", target: "model", label: t("chat.contextGraph.edges.uses", "使用") });
+      edges.push({ source: "conversation", target: "model", label: t("chat.contextGraph.edges.uses") });
     }
 
     // Knowledge bases
@@ -197,7 +197,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       edges.push({
         source: "conversation",
         target: `kb:${kbId}`,
-        label: t("chat.contextGraph.edges.retrieves", "检索"),
+        label: t("chat.contextGraph.edges.retrieves"),
       });
     }
 
@@ -209,7 +209,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       edges.push({
         source: "conversation",
         target: `mem:${nsId}`,
-        label: t("chat.contextGraph.edges.readWrite", "读写"),
+        label: t("chat.contextGraph.edges.readWrite"),
       });
     }
 
@@ -218,13 +218,13 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const srv = mcpServers.find((s: any) => s.id === srvId);
       const label = srv?.name || srvId.slice(0, 12);
       nodes.push({ id: `mcp:${srvId}`, type: "mcp", label });
-      edges.push({ source: "conversation", target: `mcp:${srvId}`, label: t("chat.contextGraph.edges.calls", "调用") });
+      edges.push({ source: "conversation", target: `mcp:${srvId}`, label: t("chat.contextGraph.edges.calls") });
     }
 
     // Search
     if (searchEnabled) {
-      nodes.push({ id: "search", type: "search", label: t("chat.contextGraph.legend.search", "联网搜索") });
-      edges.push({ source: "conversation", target: "search", label: t("chat.contextGraph.edges.searches", "搜索") });
+      nodes.push({ id: "search", type: "search", label: t("chat.contextGraph.legend.search") });
+      edges.push({ source: "conversation", target: "search", label: t("chat.contextGraph.edges.searches") });
     }
 
     // Skills
@@ -235,7 +235,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       edges.push({
         source: "conversation",
         target: `skill:${skillId}`,
-        label: t("chat.contextGraph.edges.enables", "启用"),
+        label: t("chat.contextGraph.edges.enables"),
       });
     }
 
@@ -343,10 +343,10 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Link2 size={14} style={{ color: token.colorPrimary }} />
           <Typography.Text strong style={{ fontSize: 13 }}>
-            {t("chat.contextGraph.title", "上下文图谱")}
+            {t("chat.contextGraph.title")}
           </Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {t("chat.contextGraph.sourceCount", "{{count}} 个上下文源", { count: totalSources })}
+            {t("chat.contextGraph.sourceCount", { count: totalSources })}
           </Typography.Text>
           {/* Inline source pills when collapsed — compact one-line overview */}
           {collapsed && totalSources > 0 && (
@@ -379,7 +379,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                 }
                 if (searchEnabled) {
                   pills.push({
-                    label: t("chat.contextGraph.legend.search", "搜索"),
+                    label: t("chat.contextGraph.legend.search"),
                     color: nodeTypeStyles.search.border,
                   });
                 }
@@ -417,18 +417,18 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
               {Object.entries(nodeTypeStyles).map(([type, style]) => {
                 const isHidden = hiddenTypes.has(type);
                 const label = type === "conversation"
-                  ? t("chat.contextGraph.legend.conversation", "对话")
+                  ? t("chat.contextGraph.legend.conversation")
                   : type === "model"
-                  ? t("chat.contextGraph.legend.model", "模型")
+                  ? t("chat.contextGraph.legend.model")
                   : type === "knowledge"
-                  ? t("chat.contextGraph.legend.knowledge", "知识")
+                  ? t("chat.contextGraph.legend.knowledge")
                   : type === "memory"
-                  ? t("chat.contextGraph.legend.memory", "记忆")
+                  ? t("chat.contextGraph.legend.memory")
                   : type === "mcp"
-                  ? t("chat.contextGraph.legend.mcp", "MCP")
+                  ? t("chat.contextGraph.legend.mcp")
                   : type === "search"
-                  ? t("chat.contextGraph.legend.search", "搜索")
-                  : t("chat.contextGraph.legend.skill", "技能");
+                  ? t("chat.contextGraph.legend.search")
+                  : t("chat.contextGraph.legend.skill");
                 return (
                   <span
                     key={type}
@@ -447,8 +447,8 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                       userSelect: "none",
                     }}
                     title={isHidden
-                      ? t("chat.contextGraph.showType", "点击显示")
-                      : t("chat.contextGraph.hideType", "点击隐藏")}
+                      ? t("chat.contextGraph.showType")
+                      : t("chat.contextGraph.hideType")}
                   >
                     {style.icon} {label}
                   </span>
@@ -487,7 +487,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                   fontSize: 13,
                 }}
               >
-                {t("chat.contextGraph.empty", "未启用上下文源")}
+                {t("chat.contextGraph.empty")}
               </div>
             )}
         </div>

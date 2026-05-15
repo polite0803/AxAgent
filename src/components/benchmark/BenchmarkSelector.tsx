@@ -1,6 +1,6 @@
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
 import type { Benchmark } from "@/types";
-import { getCategoryLabel } from "@/types";
+import { getCategoryKey } from "@/types";
 import { Select, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +18,7 @@ export function BenchmarkSelector() {
 
   const options: BenchmarkOption[] = benchmarks.map((b) => ({
     value: b.id,
-    label: `${b.name} (${getCategoryLabel(b.category)})`,
+    label: `${b.name} (${t(getCategoryKey(b.category))})`,
     benchmark: b,
   }));
 

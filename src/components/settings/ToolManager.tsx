@@ -75,7 +75,11 @@ function ToolItem({
           {tool.description}
         </Paragraph>
       </div>
-      <Tooltip title={groupEnabled ? (tool.enabled ? "禁用此工具" : "启用此工具") : "分类已禁用，无法单独控制"}>
+      <Tooltip
+        title={groupEnabled
+          ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable"))
+          : t("toolManager.groupDisabled")}
+      >
         <Switch
           id="tool-manager-switch-177"
           size="small"
@@ -95,6 +99,7 @@ function GroupHeader({
   group: LocalToolGroupInfo;
   onToggleGroup: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const icon = GROUP_ICONS[group.groupId] ?? <Wrench size={16} />;
   const enabledCount = group.tools.filter((t) => t.enabled).length;
   const totalCount = group.tools.length;
@@ -105,13 +110,13 @@ function GroupHeader({
       <div className="flex-1 min-w-0">
         <Text strong>{group.groupName}</Text>
         <Text type="secondary" className="text-xs ml-2">
-          {enabledCount}/{totalCount} 已启用
+          {t("toolManager.enabledCount", { enabledCount, totalCount })}
         </Text>
         <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug">
           {group.description}
         </Paragraph>
       </div>
-      <Tooltip title={group.enabled ? "禁用整个分类" : "启用整个分类"}>
+      <Tooltip title={group.enabled ? t("toolManager.disableGroup") : t("toolManager.enableGroup")}>
         <Switch
           id="tool-manager-switch-178"
           checked={group.enabled}

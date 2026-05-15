@@ -25,19 +25,19 @@ function BashValidationSection() {
   const [timeout, setTimeout_] = useExtSetting("bash_timeout_secs", 120);
 
   return (
-    <SettingsGroup title={t("advancedSettings.bashSecurity", "Bash 命令安全验证")}>
+    <SettingsGroup title={t("advancedSettings.bashSecurity")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advanced.dangerousCmdDetect", "启用危险命令检测")}</span>
+        <span>{t("advanced.dangerousCmdDetect")}</span>
         <Switch id="advanced-settings-switch-4" checked={dangerous} onChange={setDangerous} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advancedSettings.networkCmdDetect", "启用网络命令检测")}</span>
+        <span>{t("advancedSettings.networkCmdDetect")}</span>
         <Switch id="advanced-settings-switch-5" checked={network} onChange={setNetwork} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advanced.cmdTimeout", "命令超时（秒）")}</span>
+        <span>{t("advanced.cmdTimeout")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-6"
           min={5}
@@ -63,16 +63,16 @@ function PermissionEnforcerSection() {
   const [shellConfirm, setShellConfirm] = useExtSetting("permission_shell_confirm", true);
 
   return (
-    <SettingsGroup title={t("advancedSettings.permissionStrategy", "权限执行策略")}>
+    <SettingsGroup title={t("advancedSettings.permissionStrategy")}>
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advancedSettings.defaultPermission", "默认权限模式")}</span>
+        <span>{t("advancedSettings.defaultPermission")}</span>
         <Select
           id="advanced-settings-select-7"
           value={permMode}
           options={[
-            { value: "default", label: t("advancedSettings.perm.default", "默认（每次询问）") },
-            { value: "accept_edits", label: t("advancedSettings.perm.acceptEdits", "接受编辑") },
-            { value: "full_access", label: t("advancedSettings.perm.fullAccess", "完全访问") },
+            { value: "default", label: t("advancedSettings.perm.default") },
+            { value: "accept_edits", label: t("advancedSettings.perm.acceptEdits") },
+            { value: "full_access", label: t("advancedSettings.perm.fullAccess") },
           ]}
           onChange={setPermMode}
           style={{ width: 150 }}
@@ -80,17 +80,17 @@ function PermissionEnforcerSection() {
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advanced.fileWriteConfirm", "文件写入需确认")}</span>
+        <span>{t("advanced.fileWriteConfirm")}</span>
         <Switch id="advanced-settings-switch-8" checked={writeConfirm} onChange={setWriteConfirm} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advancedSettings.networkConfirm", "网络请求需确认")}</span>
+        <span>{t("advancedSettings.networkConfirm")}</span>
         <Switch id="advanced-settings-switch-9" checked={netConfirm} onChange={setNetConfirm} />
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-        <span>{t("advancedSettings.shellConfirm", "Shell 执行需确认")}</span>
+        <span>{t("advancedSettings.shellConfirm")}</span>
         <Switch id="advanced-settings-switch-10" checked={shellConfirm} onChange={setShellConfirm} />
       </div>
     </SettingsGroup>

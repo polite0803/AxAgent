@@ -1,6 +1,6 @@
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import type { BenchmarkReport } from "@/types";
-import { formatDuration, formatScore, getDifficultyLabel } from "@/types";
+import type { BenchmarkReport, Difficulty } from "@/types";
+import { formatDuration, formatScore, getDifficultyKey } from "@/types";
 import { Button, Card, Col, Row, Statistic, Table, Tabs, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 
@@ -14,7 +14,12 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
 
   const columns = [
     { title: t("benchmark.task"), dataIndex: "task_name", key: "task_name" },
-    { title: t("benchmark.difficulty"), dataIndex: "difficulty", key: "difficulty", render: getDifficultyLabel },
+    {
+      title: t("benchmark.difficulty"),
+      dataIndex: "difficulty",
+      key: "difficulty",
+      render: (d: Difficulty) => t(getDifficultyKey(d)),
+    },
     {
       title: t("benchmark.status"),
       dataIndex: "success",

@@ -129,7 +129,7 @@ export function GatewayConfigPanel() {
       try {
         await saveConfig(pendingRef.current);
       } catch (e) {
-        message.error(`保存配置失败: ${String(e)}`);
+        message.error(t("settings.platform.saveConfigFailed", { error: String(e) }));
       }
       pendingRef.current = {};
     }, 300);

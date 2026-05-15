@@ -575,7 +575,8 @@
       "rawData": "原始数据",
       "series": "系列",
       "summary": "摘要",
-      "value": "值"
+      "value": "值",
+      "renderError": "图表生成失败: {{error}}"
     },
     "collaboration": {
       "copied": "已复制",
@@ -738,7 +739,9 @@
         "mcp": "MCP",
         "search": "搜索",
         "skill": "技能"
-      }
+      },
+      "hideType": "点击隐藏",
+      "showType": "点击显示"
     },
     "wiki": {
       "title": "Wiki 知识库",
@@ -797,7 +800,12 @@
     "spans": "跨度",
     "errors": "错误",
     "active": "活跃",
-    "noTraces": "无追踪"
+    "noTraces": "无追踪",
+    "role": {
+      "user": "用户",
+      "system": "系统",
+      "assistant": "助手"
+    }
   },
   "gateway": {
     "title": "网关",
@@ -930,7 +938,10 @@
     "templateDescOpencode": "开源终端 AI 编程助手，支持多模型后端的灵活代码工具",
     "templateDescGemini": "Google Gemini CLI 编程代理，直接在终端中使用 Gemini 模型",
     "templateDescCursor": "基于 VS Code 的 AI 原生编辑器，深度集成代码补全与对话",
-    "connectedTools": "已接入工具"
+    "connectedTools": "已接入工具",
+    "tab": {
+      "monitor": "监控"
+    }
   },
   "settings": {
     "title": "设置",
@@ -2167,6 +2178,7 @@
       "applyStopped": "已停止: {{platforms}}",
       "applyErrors": "错误: {{errors}}",
       "applyFailed": "应用配置失败",
+      "saveConfigFailed": "保存配置失败: {{error}}",
       "status": "状态",
       "statusDisabled": "已禁用",
       "statusConnected": "已连接",
@@ -2900,6 +2912,11 @@
     "docStyle": "文档风格",
     "title": "风格设置"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
   "terminal": {
     "online": "在线",
     "offline": "离线",
@@ -2907,7 +2924,12 @@
     "analyzeOutput": "分析输出",
     "clear": "清空",
     "killProcess": "终止进程",
-    "closeSession": "关闭会话"
+    "closeSession": "关闭会话",
+    "local": "本地",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} 个会话",
+    "configureBackends": "配置后端..."
   },
   "search": {
     "resultPrefix": "以下是联网搜索结果，回答问题前请参考：\n\n",
@@ -3158,14 +3180,7 @@
     "searchPlaceholder": "搜索笔记...",
     "selectWiki": "选择 Wiki",
     "selectWikiPrompt": "请选择一个 Wiki",
-    "source": {
-      "chunks": "分段",
-      "deleteNotImplemented": "删除功能尚未实现",
-      "path": "路径",
-      "status": "状态",
-      "title": "来源",
-      "type": "类型"
-    },
+    "source": "源码",
     "sources": "来源",
     "sync": {
       "byWiki": "按 Wiki",
@@ -3200,12 +3215,7 @@
     },
     "titlePlaceholder": "笔记标题...",
     "userNote": "用户",
-    "wiki": {
-      "description": "描述",
-      "name": "名称",
-      "rootPath": "根路径",
-      "schemaVersion": "Schema 版本"
-    },
+    "wiki": "知识库",
     "manage": "管理",
     "viewingWiki": "正在查看 Wiki: {{id}}",
     "deleted": "已删除",
@@ -3265,7 +3275,29 @@
     "focusLocal": "聚焦本地",
     "createLinkedNote": "创建关联笔记",
     "delete": "删除",
-    "cancel": "取消"
+    "cancel": "取消",
+    "browse": "浏览",
+    "dailyNote": "今日笔记",
+    "edges": "关联边",
+    "export": "导出",
+    "exportHtml": "导出 HTML",
+    "exportMarkdown": "导出 Markdown",
+    "exportPdf": "导出 PDF",
+    "exportResult": "已导出：{{exported}}，失败：{{failed}}",
+    "exportedPdf": "已导出至 {{path}}",
+    "filteredByTag": "已筛选：{{tag}}",
+    "fromTemplate": "从模板创建",
+    "history": "历史记录",
+    "import": "导入",
+    "importObsidian": "导入 Obsidian 库",
+    "importObsidianDesc": "从已有 Obsidian 库导入 Markdown 文件",
+    "importResult": "已导入：{{imported}}，已跳过：{{skipped}}，失败：{{failed}}",
+    "nodes": "节点",
+    "preview": "预览",
+    "quickCapture": "快速捕获",
+    "refresh": "刷新",
+    "startImport": "开始导入",
+    "vaultPath": "库路径"
   },
   "quickbar": {
     "title": "快速操作",
@@ -4101,7 +4133,14 @@
     "timeline": "时间线",
     "costAnalysis": "成本分析",
     "durationAnalysis": "耗时分析",
-    "spanDetail": "Span 详情"
+    "spanDetail": "Span 详情",
+    "traceCount": "{{count}} 个追踪记录",
+    "noTraces": "暂无追踪记录",
+    "callChain": "调用链 ({{count}} spans)",
+    "errorOnly": "仅错误",
+    "successOnly": "仅成功",
+    "apply": "应用",
+    "timelineView": "时间线视图 ({{count}} spans)"
   },
   "browser": {
     "control": "浏览器控制",
@@ -4171,7 +4210,19 @@
     "taskDetails": "任务详情",
     "recommendations": "建议",
     "action": "操作",
-    "retry": "重试"
+    "retry": "重试",
+    "configTitle": "运行配置",
+    "empty": "选择基准测试并点击运行...",
+    "selectFirst": "请先选择一个基准测试",
+    "selectTitle": "基准测试选择",
+    "title": "基准测试运行器",
+    "maxConcurrency": "最大并发数: {{value}}",
+    "timeoutLabel": "超时时间: {{seconds}}s",
+    "difficultyEasy": "简单",
+    "difficultyMedium": "中等",
+    "difficultyHard": "困难",
+    "difficultyExpert": "专家",
+    "includeTraces": "包含追踪记录"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情"
@@ -4447,7 +4498,22 @@
     "installed": "已安装",
     "marketplace": "技能市场",
     "search": "搜索技能...",
-    "uninstall": "卸载"
+    "uninstall": "卸载",
+    "addFrontend": "添加前端扩展",
+    "editFrontend": "编辑前端扩展",
+    "exportFailed": "导出失败",
+    "exportPublishable": "导出为可发布格式",
+    "exported": "技能已导出",
+    "hasUI": "含 UI 扩展",
+    "timeoutError": "沙箱加载超时，请重试",
+    "entryFileEmpty": "入口文件 \"{{entry}}\" 为空或不存在",
+    "iframeNotReady": "iframe ref 未就绪",
+    "storeNotFound": "Store \"{{name}}\" 未找到",
+    "storeNotWritable": "Store \"{{name}}\" 不可写",
+    "loadError": "加载 Skill 失败",
+    "analyzeFrontend": "AI 分析生成",
+    "analyzeSuccess": "智能分析完成",
+    "analyzeError": "智能分析失败: {{error}}"
   },
   "task": {
     "title": "后台任务",
@@ -4505,7 +4571,11 @@
     "editManifest": "编辑清单",
     "editManifestTitle": "编辑 Skill 清单 — {{name}}",
     "editManifestDesc": "编辑",
-    "supportedCapabilities": "支持的 capability 类型"
+    "supportedCapabilities": "支持的 capability 类型",
+    "saveError": "保存失败: {{error}}",
+    "jsonTab": "JSON 编辑",
+    "previewTab": "预览",
+    "manifestHint": "编辑 skill-manifest.json。capability 类型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。"
   },
   "knowledge": {
     "commonPanel": "公共面板",
@@ -4601,6 +4671,18 @@
     "keyPressed": "按键 {{key}} 已按下",
     "scrolled": "滚动 {{direction}}"
   },
+  "commandSuggest": {
+    "searchWeb": "搜索网络",
+    "compressContext": "压缩会话上下文",
+    "clearHistory": "清除会话历史",
+    "listTools": "列出可用工具",
+    "showHelp": "显示帮助和可用命令",
+    "mcpTool": "MCP 工具",
+    "referenceFile": "引用文件或路径",
+    "commands": "命令",
+    "mentions": "提及",
+    "filterHint": "输入筛选，↑↓ 选择，Enter 确认"
+  },
   "onboarding": {
     "welcome": "欢迎使用 AxAgent",
     "welcomeDesc": "智能 AI 桌面客户端，支持多模型、Agent 自主执行、知识库检索",
@@ -4643,6 +4725,7 @@
     "tutorialAgentDesc": "切换到 Agent 模式让 AI 自主分析、规划和执行复杂任务",
     "tutorialKnowledgeTitle": "知识库",
     "tutorialKnowledgeDesc": "上传文档构建知识库，AI 将基于你的文档提供上下文感知回答",
+    "moreModels": "+{{count}} 个",
     "targetNotFound": "目标元素未找到，请先进入聊天页面",
     "goToSettings": "前往设置添加 API Key"
   },
@@ -4714,7 +4797,10 @@
     "delete": "删除分组",
     "collapsed": "已折叠",
     "splitHere": "从此处拆分",
-    "splitGroup": "拆分分组"
+    "splitGroup": "拆分分组",
+    "linkedReply": "关联回复",
+    "untitled": "未命名主题",
+    "splitTopic": "拆分主题"
   },
   "cloudWorkspace": {
     "title": "云工作区",
@@ -4809,13 +4895,29 @@
       "wisdom": "智慧",
       "snark": "毒舌"
     },
+    "species": {
+      "duck": "鸭子",
+      "cat": "猫咪",
+      "owl": "猫头鹰",
+      "fox": "狐狸",
+      "dragon": "小龙",
+      "unicorn": "独角兽"
+    },
     "showBuddy": "显示伙伴",
     "summonBuddy": "召唤伙伴（可拖动）",
     "hideBuddy": "隐藏伙伴",
     "attributes": "属性",
     "experience": "经验值",
     "recentMessages": "最近发言",
-    "togglePanel": "点击展开/折叠（可拖动）"
+    "togglePanel": "点击展开/折叠（可拖动）",
+    "mood": {
+      "happy": "开心",
+      "proud": "自豪",
+      "curious": "好奇",
+      "snarky": "毒舌",
+      "concerned": "关心",
+      "excited": "兴奋"
+    }
   },
   "agentPool": {
     "status": {
@@ -4937,7 +5039,12 @@
     "sortDir": "升序",
     "sortDirDesc": "降序",
     "capabilityDetail": "能力详情",
-    "detail": "详"
+    "detail": "详",
+    "builtinAlreadyImported": "内置专家已导入",
+    "builtinImported": "已导入 12 个内置专家",
+    "builtinImportedLabel": "已导入",
+    "importBuiltin": "导入全部内置专家（代码审查、调试、架构设计等）",
+    "importBuiltinBtn": "导入内置专家"
   },
   "agentProfile": {
     "importSuccess": "成功导入 {{count}} 个角色",
@@ -5157,7 +5264,18 @@
       "error": "仅错误",
       "warning": "错误+警告",
       "information": "全部"
-    }
+    },
+    "bashSecurity": "Bash 命令安全验证",
+    "defaultPermission": "默认权限模式",
+    "networkCmdDetect": "启用网络命令检测",
+    "networkConfirm": "网络请求需确认",
+    "perm": {
+      "acceptEdits": "接受编辑",
+      "default": "默认（每次询问）",
+      "fullAccess": "完全访问"
+    },
+    "permissionStrategy": "权限执行策略",
+    "shellConfirm": "Shell 执行需确认"
   },
   "filePermission": {
     "title": "文件访问授权",
@@ -5203,7 +5321,15 @@
     "configureApiKey": "请配置 API Key",
     "generateImage": "生成图片",
     "model": "模型",
-    "elapsed": "耗时"
+    "elapsed": "耗时",
+    "providerFlux": "Flux (Replicate)",
+    "providerDalle": "DALL-E 3 (OpenAI)",
+    "replicateApiToken": "Replicate API Token",
+    "replicateApiTokenPlaceholder": "r8_...",
+    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiApiKeyPlaceholder": "sk-...",
+    "openaiBaseUrl": "OpenAI Base URL",
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
   },
   "diffViewer": {
     "newFile": "新建",
@@ -5263,7 +5389,8 @@
     "continue": "继续",
     "error": "错误",
     "citations": "引用",
-    "copyReport": "复制报告"
+    "copyReport": "复制报告",
+    "mockFinding": ""
   },
   "reportViewer": {
     "noReport": "暂无生成报告",
@@ -5275,7 +5402,35 @@
     "totalCitations": "总引用数:",
     "usedInReport": "报告中使用:",
     "avgCredibility": "平均可信度:",
-    "addToReport": "添加到报告"
+    "addToReport": "添加到报告",
+    "title": "引用管理 ({count})",
+    "addCitation": "添加引用",
+    "empty": "暂无引用，请从搜索结果中添加",
+    "inReport": "报告中使用的引用 ({count})",
+    "notInReport": "未使用的引用 ({count})",
+    "sourceDistribution": "来源类型分布:",
+    "sourceType": {
+      "web": "网页",
+      "academic": "学术",
+      "wikipedia": "维基百科",
+      "github": "GitHub",
+      "documentation": "文档",
+      "news": "新闻",
+      "blog": "博客",
+      "forum": "论坛",
+      "unknown": "未知"
+    }
+  },
+  "credibility": {
+    "high": "高可信度",
+    "medium": "中可信度",
+    "low": "低可信度",
+    "score": "可信度: {score}%",
+    "scoreLabel": "可信度评分: {score}%",
+    "authority": "权威性",
+    "consistency": "一致性",
+    "recency": "时效性",
+    "objectivity": "客观性"
   },
   "decomposition": {
     "cancel": "取消",
@@ -5301,7 +5456,24 @@
     "originalName": "原始名称",
     "implementation": "实现方式",
     "description": "说明",
-    "promptTemplateDesc": "将通过 Developer Agent 分析工具需求，生成 Prompt 模板作为工具实现。模板中包含 {{input}} 占位符，运行时替换为实际输入后调用 LLM 执行。"
+    "promptTemplateDesc": "将通过 Developer Agent 分析工具需求，生成 Prompt 模板作为工具实现。模板中包含 {{input}} 占位符，运行时替换为实际输入后调用 LLM 执行。",
+    "colType": "类型",
+    "colStatus": "状态",
+    "colInstallInstructions": "安装说明",
+    "colAction": "操作",
+    "statusSatisfied": "已满足",
+    "statusAutoInstallable": "可自动安装",
+    "statusManualInstallable": "需手动安装",
+    "statusNeedsGeneration": "需生成",
+    "processingLabel": "处理中...",
+    "processLabel": "处理",
+    "autoInstallDesc": "此工具可自动安装，点击下方按钮开始安装。",
+    "autoInstallBtn": "自动安装",
+    "manualInstallDesc": "此工具需要手动安装，请按照以下说明操作：",
+    "manualInstallDoneBtn": "已完成安装",
+    "generateDesc": "此工具无法通过安装获取，将使用 Developer Agent 自动生成 Prompt 模板实现。",
+    "generateBtn": "生成工具",
+    "readyLabel": "{{name}} 已就绪"
   },
   "settingsPage": {
     "refreshPage": "刷新页面"
@@ -5330,6 +5502,7 @@
     "clickToEnable": "点击启用此工具",
     "groupDisabled": "分类已禁用，无法单独控制",
     "enabled": "已启用",
+    "enabledCount": "{{enabledCount}}/{{totalCount}} 已启用",
     "disableGroup": "禁用整个分类",
     "enableGroup": "启用整个分类"
   },
@@ -5478,5 +5651,227 @@
   },
   "insight": {
     "placeholder": "例如：用户偏好深色模式..."
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "完成",
+      "failed": "失败",
+      "running": "运行中",
+      "total": "总任务"
+    },
+    "tab": {
+      "dataset": "数据集",
+      "loraConfig": "LoRA 配置",
+      "training": "训练任务"
+    },
+    "title": "模型微调"
+  },
+  "agentMode": {
+    "requiresTauri": "Agent 模式需要 Tauri 桌面端环境，请在终端执行 npm run tauri dev 启动",
+    "requiresTauriDetail": "Agent 模式需要 Tauri 桌面端环境才能运行。请使用 `npm run tauri dev` 启动应用。",
+    "thinking": "🔄 正在思考...",
+    "timeout": "Agent 执行超时（10 分钟无响应），请重试",
+    "timeoutShort": "Agent 执行超时，请重试",
+    "generatingPlan": "Generating plan...",
+    "planGenerated": "Plan generated. Review the steps below."
+  },
+  "agentStore": {
+    "executionComplete": "Agent 执行完成 · {{turns}} 轮{{cost}}",
+    "executionFailed": "Agent 执行失败: {{errMsg}}",
+    "executionCancelled": "Agent 已取消: {{reason}}",
+    "userInterrupt": "用户中断",
+    "unknownError": "未知错误"
+  },
+  "expertStore": {
+    "loadFailed": "加载外部专家失败: {{error}}",
+    "clearFailed": "清除外部专家失败: {{error}}",
+    "deleteFailed": "删除外部专家失败: {{error}}",
+    "updateFailed": "更新外部专家失败: {{error}}",
+    "extractFailed": "提取专家结构失败: {{error}}",
+    "jsonFormatError": "JSON 格式错误：期望一个数组",
+    "skippedInvalidRole": "跳过无效角色: {{role}}",
+    "jsonParseError": "JSON 解析失败: {{error}}"
+  },
+  "difficulty": {
+    "easy": "简单",
+    "medium": "中等",
+    "hard": "困难",
+    "expert": "专家"
+  },
+  "evalCategory": {
+    "reasoning": "推理",
+    "codeGeneration": "代码生成",
+    "toolUsage": "工具使用",
+    "research": "研究",
+    "conversation": "对话",
+    "errorRecovery": "错误恢复"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "通用助手",
+      "description": "全能的 AI 助手，无特定领域偏向"
+    },
+    "codeReviewer": {
+      "name": "代码审查专家",
+      "description": "专注代码质量审查、安全漏洞检测、性能优化建议"
+    },
+    "seniorDeveloper": {
+      "name": "高级开发工程师",
+      "description": "精通多种编程语言和框架，擅长架构设计与复杂功能实现"
+    },
+    "securityAuditor": {
+      "name": "安全审计专家",
+      "description": "专注应用安全审计、渗透测试和合规检查"
+    },
+    "dataAnalyst": {
+      "name": "数据分析师",
+      "description": "专注数据清洗、统计分析、可视化和洞察挖掘"
+    },
+    "sqlExpert": {
+      "name": "SQL 专家",
+      "description": "专注复杂 SQL 查询优化、数据库设计和性能调优"
+    },
+    "devopsEngineer": {
+      "name": "DevOps 工程师",
+      "description": "专注 CI/CD、容器化、基础设施即代码和运维自动化"
+    },
+    "techWriter": {
+      "name": "技术文档专家",
+      "description": "专注技术文档、API 文档、用户手册和技术博客写作"
+    },
+    "productManager": {
+      "name": "产品经理",
+      "description": "专注需求分析、产品规划、用户故事和路线图管理"
+    },
+    "architect": {
+      "name": "系统架构师",
+      "description": "专注系统架构设计、技术选型和架构评审"
+    },
+    "debugExpert": {
+      "name": "调试专家",
+      "description": "专注疑难 bug 定位、性能瓶颈分析和根因排查"
+    },
+    "translator": {
+      "name": "翻译专家",
+      "description": "专注多语言翻译、本地化和国际化支持"
+    }
+  },
+  "expertCategory": {
+    "general": "通用",
+    "development": "开发",
+    "security": "安全",
+    "data": "数据",
+    "devops": "运维",
+    "design": "设计",
+    "writing": "写作",
+    "business": "商业"
+  },
+  "planStore": {
+    "rejectFailed": "拒绝计划失败: {{error}}",
+    "modifyStepFailed": "修改步骤失败: {{error}}",
+    "planRestored": "计划已恢复，可在上方查看和审批",
+    "resumeFailed": "恢复计划失败: {{error}}",
+    "cancelFailed": "取消计划失败: {{error}}",
+    "loadHistoryFailed": "加载计划历史失败: {{error}}"
+  },
+  "skillExtension": {
+    "duplicateCapability": "[SkillExtension] 重复的 {{type}} ID \"{{id}}\"（命名空间: {{ns}}），技能 \"{{skillName}}\" 的 capability 已被跳过",
+    "toolbarPositionConflict": "[SkillExtension] Toolbar position \"{{position}}\" 冲突：技能 \"{{skillName}}\" 与已有技能 [{{existingSkills}}] 注册了相同 position 的按钮",
+    "pageRouteConflict": "[SkillExtension] Page route \"{{routeId}}\" 冲突：技能 \"{{skillName}}\" 与已有技能 [{{existingSkills}}] 注册了相同 route 的页面",
+    "permissionFailed": "[SkillExtension] Skill \"{{skillName}}\" 权限校验未通过，跳过未授权能力:",
+    "unknownCapabilityType": "[SkillExtension] 未知的 capability 类型: \"{{type}}\"",
+    "fetchFailed": "[SkillExtension] 获取 skill 扩展失败"
+  },
+  "executionStore": {
+    "workerCreated": "Worker created"
+  },
+  "actionRouter": {
+    "unknownType": "未知的 action 类型: {{type}}，有效类型: {{validTypes}}",
+    "missingField": "Action {{type}} 缺少必需字段 {{field}}",
+    "fieldTypeMismatch": "Action {{type}} 字段 {{field}} 应为 {{expected}}，实际为 {{actual}}",
+    "nonStandardType": "[ActionRouter] 注册非标准 action 类型: {{type}}，建议使用 custom: 前缀",
+    "chainDepthExceeded": "Action 链超过最大递归深度 {{depth}}",
+    "unregisteredAction": "未注册的 action 类型: {{type}}",
+    "agenticMissingPrompt": "Agentic action 缺少 prompt 字段",
+    "noLlmAvailable": "没有可用的 LLM 提供商/模型",
+    "typeMismatch": "类型不匹配",
+    "invokeMissingCommand": "invoke action 缺少 command",
+    "unknownStoreOp": "未知的 store 操作: {{operation}}",
+    "storeReadPermissionDenied": "权限不足: 无法读取 store {{storeName}}{{field}}",
+    "storeWritePermissionDenied": "权限不足: 无法写入 store {{storeName}}{{field}}",
+    "storeNotRegistered": "Store {{storeName}} 未注册",
+    "functionNotRegistered": "函数 {{name}} 未注册",
+    "handlerNotFound": "Handler {{name}} 未找到",
+    "handlerNotDeclarative": "Handler {{name}} 非声明式"
+  },
+  "export": {
+    "exportTime": "导出时间",
+    "messageCount": "条消息",
+    "exportedBy": "由 AxAgent 导出"
+  },
+  "skillPermissions": {
+    "undeclaredPermissions": "Skill 未声明 permissions 字段，拒绝加载",
+    "commandNotInWhitelist": "命令 \"{{cmd}}\" 不在白名单中",
+    "writeWithoutRead": "WARN: 声明了 storeWrite 但未声明 storeRead",
+    "writeWithoutReadDetail": "WARN: 声明了 storeWrite:{{ws}} 但未声明 storeRead:{{ws}}",
+    "networkDisabled": "WARN: network 权限已声明，但沙箱环境默认禁用 fetch/XHR"
+  },
+  "toolCategory": {
+    "fileRead": "文件读取",
+    "fileWrite": "文件写入",
+    "shellCommand": "Shell 命令",
+    "networkRequest": "网络请求",
+    "systemTool": "系统工具",
+    "agentTool": "Agent 工具",
+    "versionControl": "版本控制",
+    "automation": "自动化",
+    "communication": "通信",
+    "aiMedia": "AI 媒体",
+    "externalIntegration": "外部集成",
+    "storageManagement": "存储管理",
+    "knowledgeBase": "知识库",
+    "browser": "浏览器",
+    "desktopControl": "桌面控制"
+  },
+  "permissionMode": {
+    "readOnly": "只读",
+    "allow": "允许",
+    "workspaceWrite": "工作区写入",
+    "fullAccess": "完全访问",
+    "alwaysAsk": "每次确认"
+  },
+  "memoryLabels": {
+    "tier": {
+      "shortTerm": "短期记忆",
+      "working": "工作记忆",
+      "longTerm": "长期记忆",
+      "core": "核心记忆"
+    },
+    "nature": {
+      "episodic": "情景记忆",
+      "semantic": "语义记忆"
+    },
+    "importance": {
+      "critical": "关键",
+      "important": "重要",
+      "normal": "一般",
+      "minor": "次要",
+      "low": "低"
+    }
+  },
+  "constants": {
+    "language": {
+      "zhCN": "简体中文",
+      "zhTW": "繁體中文",
+      "enUS": "English",
+      "ja": "日本語",
+      "ko": "한국어",
+      "fr": "Français",
+      "de": "Deutsch",
+      "es": "Español",
+      "ru": "Русский",
+      "hi": "हिन्दी",
+      "ar": "العربية"
+    }
   }
 }

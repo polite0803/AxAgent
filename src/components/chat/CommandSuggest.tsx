@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { useMcpStore } from "@/stores";
 import { BookOpen, FileText, FolderOpen, Globe, Terminal, Wrench } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -15,35 +16,35 @@ const SLASH_COMMANDS: Suggestion[] = [
   {
     type: "command",
     label: "/search",
-    description: "Search the web",
+    description: i18n.t("commandSuggest.searchWeb"),
     replacement: "/search ",
     icon: <Globe size={14} />,
   },
   {
     type: "command",
     label: "/compact",
-    description: "Compress conversation context",
+    description: i18n.t("commandSuggest.compressContext"),
     replacement: "/compact",
     icon: <FileText size={14} />,
   },
   {
     type: "command",
     label: "/clear",
-    description: "Clear conversation history",
+    description: i18n.t("commandSuggest.clearHistory"),
     replacement: "/clear",
     icon: <Terminal size={14} />,
   },
   {
     type: "command",
     label: "/tools",
-    description: "List available tools",
+    description: i18n.t("commandSuggest.listTools"),
     replacement: "/tools",
     icon: <Wrench size={14} />,
   },
   {
     type: "command",
     label: "/help",
-    description: "Show help and available commands",
+    description: i18n.t("commandSuggest.showHelp"),
     replacement: "/help",
     icon: <BookOpen size={14} />,
   },
@@ -135,7 +136,7 @@ const CommandSuggest: React.FC<CommandSuggestProps> = ({
         .map((tool: any) => ({
           type: "tool" as const,
           label: tool.name,
-          description: tool.description || "MCP Tool",
+          description: tool.description || i18n.t("commandSuggest.mcpTool"),
           replacement: `@${tool.name} `,
           icon: <Wrench size={14} />,
         }));
@@ -145,7 +146,7 @@ const CommandSuggest: React.FC<CommandSuggestProps> = ({
         toolSuggestions.push({
           type: "file",
           label: searchQuery,
-          description: "Reference file or path",
+          description: i18n.t("commandSuggest.referenceFile"),
           replacement: `@${searchQuery} `,
           icon: <FolderOpen size={14} />,
         });
@@ -195,7 +196,8 @@ const CommandSuggest: React.FC<CommandSuggestProps> = ({
   return (
     <div className="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
       <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-        {triggerType === "/" ? "Commands" : "Mentions"} — type to filter, ↑↓ to select, Enter to confirm
+        {triggerType === "/" ? i18n.t("commandSuggest.commands") : i18n.t("commandSuggest.mentions")} —{" "}
+        {i18n.t("commandSuggest.filterHint")}
       </div>
       {suggestions.map((suggestion, index) => (
         <button

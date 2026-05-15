@@ -459,7 +459,7 @@ export function TitleBar() {
               {t("app.title")}
             </span>
             {evolutionStatus && evolutionStatus.llm_provider_connected && (
-              <Tooltip title={t("titlebar.evolutionActive", "Self-Evolution Active")}>
+              <Tooltip title={t("titlebar.evolutionActive")}>
                 <span
                   style={{
                     display: "inline-flex",

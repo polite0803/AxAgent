@@ -58,7 +58,7 @@ const NudgeCard: React.FC<{
             <button
               onClick={() => onExecute(nudge.id)}
               className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400"
-              title={t("nudge.execute", "Execute")}
+              title={t("nudge.execute")}
             >
               <Check size={14} />
             </button>
@@ -66,14 +66,14 @@ const NudgeCard: React.FC<{
           <button
             onClick={() => onSnooze(nudge.id, Date.now() + 30 * 60 * 1000)}
             className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 dark:text-blue-400"
-            title={t("nudge.snooze30", "Snooze 30min")}
+            title={t("nudge.snooze30")}
           >
             <Clock size={14} />
           </button>
           <button
             onClick={() => onDismiss(nudge.id)}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
-            title={t("nudge.dismiss", "Dismiss")}
+            title={t("nudge.dismiss")}
           >
             <X size={14} />
           </button>
@@ -159,7 +159,7 @@ const NudgePanel: React.FC = () => {
         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       >
         <Bell size={14} className={totalItems > 0 ? "text-orange-500" : ""} />
-        <span>{t("nudge.learningSuggestions", "Learning Suggestions")}</span>
+        <span>{t("nudge.learningSuggestions")}</span>
         {totalItems > 0 && (
           <span className="ml-auto bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
             {totalItems}
@@ -194,7 +194,7 @@ const NudgePanel: React.FC = () => {
           {/* Stats summary */}
           {stats && stats.totalNudges > 0 && (
             <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 text-right">
-              {t("nudge.acceptanceRate", "Acceptance")}:{" "}
+              {t("nudge.acceptanceRate")}:{" "}
               {(stats.acceptanceRate * 100).toFixed(0)}% ({stats.addedToMemoryCount}/{stats.presentedCount})
             </div>
           )}

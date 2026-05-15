@@ -54,7 +54,7 @@ export function WorkflowEndMarker({
               color: token.colorSuccess,
             }}
           >
-            {t("chat.workflow.completedTitle", "工作流执行完成")}
+            {t("chat.workflow.completedTitle")}
           </Title>
           <Text type="secondary" style={{ fontSize: 13 }}>
             {t("chat.workflow.completedDesc", {
@@ -65,7 +65,7 @@ export function WorkflowEndMarker({
           </Text>
           <br />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("chat.workflow.duration", "耗时")}: {durationStr}
+            {t("chat.workflow.duration")}: {durationStr}
           </Text>
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
             {onViewDetails && (
@@ -74,7 +74,7 @@ export function WorkflowEndMarker({
                 icon={<ListChecks size={14} />}
                 onClick={onViewDetails}
               >
-                {t("chat.workflow.viewDetails", "查看步骤详情")}
+                {t("chat.workflow.viewDetails")}
               </Button>
             )}
             {onArchive && (
@@ -84,7 +84,7 @@ export function WorkflowEndMarker({
                 icon={<Archive size={14} />}
                 onClick={onArchive}
               >
-                {t("chat.workflow.archiveSession", "归档此会话")}
+                {t("chat.workflow.archiveSession")}
               </Button>
             )}
           </div>

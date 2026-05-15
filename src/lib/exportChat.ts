@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { stripAxAgentTags } from "@/lib/chatMarkdown";
 import { isTauri } from "@/lib/invoke";
 import { formatExportAsync } from "@/lib/workers";
@@ -129,7 +130,11 @@ export function buildHtmlTranscript(messages: Message[], title: string, options?
   const now = new Date().toISOString().replace("T", " ").substring(0, 19);
 
   const messageHtml = messages.map((m) => {
-    const roleLabel = m.role === "user" ? "用户" : m.role === "system" ? "系统" : "助手";
+    const roleLabel = m.role === "user"
+      ? i18n.t("chat.role.user")
+      : m.role === "system"
+      ? i18n.t("chat.role.system")
+      : i18n.t("chat.role.assistant");
     const alignClass = m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant";
     const escapedContent = getExportMessageContent(m, options)
       .replace(/&/g, "&amp;")
@@ -248,10 +253,10 @@ export function buildHtmlTranscript(messages: Message[], title: string, options?
 <body>
 <div class="export-header">
   <h1>${escapedTitle}</h1>
-  <div class="meta">导出时间: ${now} · ${messages.length} 条消息</div>
+  <div class="meta">${i18n.t("export.exportTime")}: ${now} · ${messages.length} ${i18n.t("export.messageCount")}</div>
 </div>
 ${messageHtml}
-<div class="export-footer">由 AxAgent 导出</div>
+<div class="export-footer">${i18n.t("export.exportedBy")}</div>
 </body>
 </html>`;
 }

@@ -1,5 +1,6 @@
 import { StarFilled, StarOutlined } from "@ant-design/icons";
 import { Progress, Space, Tag, Tooltip, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -16,6 +17,7 @@ export function CredibilityBadge({
   showStars = false,
   size = "default",
 }: CredibilityBadgeProps) {
+  const { t } = useTranslation();
   const normalizedScore = Math.max(0, Math.min(1, score));
 
   if (showStars) {
@@ -29,7 +31,7 @@ export function CredibilityBadge({
       );
     }
     return (
-      <Tooltip title={`可信度: ${Math.round(normalizedScore * 100)}%`}>
+      <Tooltip title={t("credibility.score", { score: Math.round(normalizedScore * 100) })}>
         <Space size="small">{stars}</Space>
       </Tooltip>
     );
@@ -42,15 +44,15 @@ export function CredibilityBadge({
   };
 
   const level = normalizedScore >= 0.7 ? "high" : normalizedScore >= 0.4 ? "medium" : "low";
-  const labelMap = {
-    high: "高可信度",
-    medium: "中可信度",
-    low: "低可信度",
+  const labelMap: Record<string, string> = {
+    high: t("credibility.high"),
+    medium: t("credibility.medium"),
+    low: t("credibility.low"),
   };
 
   if (showLabel) {
     return (
-      <Tooltip title={`可信度评分: ${Math.round(normalizedScore * 100)}%`}>
+      <Tooltip title={t("credibility.scoreLabel", { score: Math.round(normalizedScore * 100) })}>
         <Tag color={colorMap[level]} className={size === "small" ? "text-xs" : ""}>
           {labelMap[level]}
         </Tag>
@@ -59,7 +61,7 @@ export function CredibilityBadge({
   }
 
   return (
-    <Tooltip title={`可信度: ${Math.round(normalizedScore * 100)}%`}>
+    <Tooltip title={t("credibility.score", { score: Math.round(normalizedScore * 100) })}>
       <Tag color={colorMap[level]} className={size === "small" ? "text-xs" : ""}>
         {Math.round(normalizedScore * 100)}%
       </Tag>
@@ -101,31 +103,32 @@ interface CredibilityIndicatorProps {
 }
 
 export function CredibilityIndicator({ factors }: CredibilityIndicatorProps) {
+  const { t } = useTranslation();
   const { authority, consistency, recency, objectivity } = factors;
 
   return (
     <Space direction="vertical" size="small" style={{ width: "100%" }}>
       <div className="flex items-center justify-between">
         <Text type="secondary" className="text-sm">
-          权威性
+          {t("credibility.authority")}
         </Text>
         <CredibilityBar score={authority} showValue={false} />
       </div>
       <div className="flex items-center justify-between">
         <Text type="secondary" className="text-sm">
-          一致性
+          {t("credibility.consistency")}
         </Text>
         <CredibilityBar score={consistency} showValue={false} />
       </div>
       <div className="flex items-center justify-between">
         <Text type="secondary" className="text-sm">
-          时效性
+          {t("credibility.recency")}
         </Text>
         <CredibilityBar score={recency} showValue={false} />
       </div>
       <div className="flex items-center justify-between">
         <Text type="secondary" className="text-sm">
-          客观性
+          {t("credibility.objectivity")}
         </Text>
         <CredibilityBar score={objectivity} showValue={false} />
       </div>

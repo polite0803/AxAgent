@@ -99,27 +99,27 @@ export function QualityScore({
     const errorCount = issues.filter(i => i.severity === "Error").length;
     if (errorCount > 0) {
       factors.push({
-        name: t("wiki.quality.errors", "Errors"),
+        name: t("wiki.quality.errors"),
         impact: -errorCount * 0.3,
-        description: t("wiki.quality.errorsDesc", "{{count}} structural errors found", { count: errorCount }),
+        description: t("wiki.quality.errorsDesc", { count: errorCount }),
       });
     }
 
     const warningCount = issues.filter(i => i.severity === "Warning").length;
     if (warningCount > 0) {
       factors.push({
-        name: t("wiki.quality.warnings", "Warnings"),
+        name: t("wiki.quality.warnings"),
         impact: -warningCount * 0.1,
-        description: t("wiki.quality.warningsDesc", "{{count}} potential issues found", { count: warningCount }),
+        description: t("wiki.quality.warningsDesc", { count: warningCount }),
       });
     }
 
     const infoCount = issues.filter(i => i.severity === "Info").length;
     if (infoCount > 0) {
       factors.push({
-        name: t("wiki.quality.suggestions", "Suggestions"),
+        name: t("wiki.quality.suggestions"),
         impact: -infoCount * 0.02,
-        description: t("wiki.quality.suggestionsDesc", "{{count}} improvement suggestions", { count: infoCount }),
+        description: t("wiki.quality.suggestionsDesc", { count: infoCount }),
       });
     }
 
@@ -139,10 +139,10 @@ export function QualityScore({
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 0.8) { return t("wiki.quality.excellent", "Excellent"); }
-    if (score >= 0.6) { return t("wiki.quality.good", "Good"); }
-    if (score >= 0.4) { return t("wiki.quality.fair", "Fair"); }
-    return t("wiki.quality.poor", "Poor");
+    if (score >= 0.8) { return t("wiki.quality.excellent"); }
+    if (score >= 0.6) { return t("wiki.quality.good"); }
+    if (score >= 0.4) { return t("wiki.quality.fair"); }
+    return t("wiki.quality.poor");
   };
 
   const getIssueSeverityColor = (severity: string): "success" | "error" | "processing" | "default" | "warning" => {
@@ -171,7 +171,7 @@ export function QualityScore({
   if (!details) {
     return (
       <Card size="small">
-        <Empty description={t("wiki.quality.noData", "No quality data available")} />
+        <Empty description={t("wiki.quality.noData")} />
       </Card>
     );
   }
@@ -183,12 +183,12 @@ export function QualityScore({
       size="small"
       title={
         <Space>
-          <span>{t("wiki.quality.title", "Quality Score")}</span>
+          <span>{t("wiki.quality.title")}</span>
           {refreshing && <Spin size="small" />}
         </Space>
       }
       extra={
-        <Tooltip title={t("wiki.quality.refresh", "Refresh")}>
+        <Tooltip title={t("wiki.quality.refresh")}>
           <Button
             type="text"
             size="small"
@@ -213,7 +213,7 @@ export function QualityScore({
           </Space>
           <div className="mt-1">
             <Text type="secondary" className="text-xs">
-              {details.issues.length} {t("wiki.quality.issues", "issues")}
+              {details.issues.length} {t("wiki.quality.issues")}
             </Text>
           </div>
         </div>
@@ -222,7 +222,7 @@ export function QualityScore({
       {details.factors.length > 0 && (
         <div className="mb-4">
           <Text type="secondary" className="text-xs uppercase">
-            {t("wiki.quality.factors", "Contributing Factors")}
+            {t("wiki.quality.factors")}
           </Text>
           <div className="mt-1">
             {details.factors.map((factor, index) => (
@@ -240,7 +240,7 @@ export function QualityScore({
       {details.issues.length > 0 && (
         <div>
           <Text type="secondary" className="text-xs uppercase">
-            {t("wiki.quality.issueList", "Issues")}
+            {t("wiki.quality.issueList")}
           </Text>
           <List
             size="small"
@@ -258,7 +258,7 @@ export function QualityScore({
           />
           {details.issues.length > 10 && (
             <Text type="secondary" className="text-xs">
-              +{details.issues.length - 10} {t("wiki.quality.more", "more")}
+              +{details.issues.length - 10} {t("wiki.quality.more")}
             </Text>
           )}
         </div>

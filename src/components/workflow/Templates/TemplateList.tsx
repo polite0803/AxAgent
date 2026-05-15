@@ -72,11 +72,11 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   const handleImportPresetTemplates = async () => {
     setImportingPresets(true);
     try {
-      const count = await invoke<number>("seed_preset_templates");
-      message.success(t("workflow.templateList.presetsImported", { defaultValue: `已导入 ${count} 个预设模板` }));
+      await invoke<number>("seed_preset_templates");
+      message.success(t("workflow.templateList.presetsImported"));
       await loadTemplates();
     } catch (e) {
-      message.error(t("workflow.templateList.presetsImportFailed", { defaultValue: `导入失败: ${String(e)}` }));
+      message.error(t("workflow.templateList.presetsImportFailed"));
     } finally {
       setImportingPresets(false);
     }
@@ -315,11 +315,9 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             onClick={handleImportPresetTemplates}
             loading={importingPresets}
             size="small"
-            title={t("workflow.templateList.importPresetsTitle", {
-              defaultValue: "导入 12 个预设工作流模板（代码审查、Bug 修复、重构等）",
-            })}
+            title={t("workflow.templateList.importPresetsTitle")}
           >
-            {t("workflow.templateList.importPresets", { defaultValue: "导入预设" })}
+            {t("workflow.templateList.importPresets")}
           </Button>
         </div>
       </div>

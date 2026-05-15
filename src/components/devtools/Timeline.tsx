@@ -1,6 +1,7 @@
 import type { Span, SpanType } from "@/types";
 import { Tag, Tooltip } from "antd";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 
 interface TimelineProps {
   spans: Span[];
@@ -34,6 +35,7 @@ function formatDuration(ms?: number): string {
 }
 
 export function Timeline({ spans }: TimelineProps) {
+  const { t } = useTranslation();
   const sortedSpans = [...spans].sort(
     (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
   );
@@ -60,7 +62,7 @@ export function Timeline({ spans }: TimelineProps) {
   return (
     <div className="p-4">
       <div className="text-sm font-medium text-gray-600 mb-4">
-        时间线视图 ({spans.length} spans)
+        {t("devtools.timelineView", { count: spans.length })}
       </div>
       <div className="relative">
         <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-300" />

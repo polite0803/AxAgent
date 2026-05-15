@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { create } from "zustand";
 
 // ── 类型定义 ──────────────────────────────────────────────
@@ -69,42 +70,42 @@ interface SpeciesTemplate {
 const SPECIES: SpeciesTemplate[] = [
   {
     speciesId: "duck",
-    name: "鸭子",
+    name: i18n.t("buddy.species.duck"),
     emoji: "🦆",
     rarity: "common",
     attributes: { debugging: 4, patience: 3, chaos: 2, wisdom: 3, snark: 2 },
   },
   {
     speciesId: "cat",
-    name: "猫咪",
+    name: i18n.t("buddy.species.cat"),
     emoji: "🐱",
     rarity: "common",
     attributes: { debugging: 3, patience: 2, chaos: 4, wisdom: 3, snark: 4 },
   },
   {
     speciesId: "owl",
-    name: "猫头鹰",
+    name: i18n.t("buddy.species.owl"),
     emoji: "🦉",
     rarity: "uncommon",
     attributes: { debugging: 3, patience: 4, chaos: 1, wisdom: 5, snark: 2 },
   },
   {
     speciesId: "fox",
-    name: "狐狸",
+    name: i18n.t("buddy.species.fox"),
     emoji: "🦊",
     rarity: "uncommon",
     attributes: { debugging: 4, patience: 2, chaos: 3, wisdom: 4, snark: 3 },
   },
   {
     speciesId: "dragon",
-    name: "小龙",
+    name: i18n.t("buddy.species.dragon"),
     emoji: "🐉",
     rarity: "rare",
     attributes: { debugging: 5, patience: 3, chaos: 4, wisdom: 4, snark: 3 },
   },
   {
     speciesId: "unicorn",
-    name: "独角兽",
+    name: i18n.t("buddy.species.unicorn"),
     emoji: "🦄",
     rarity: "epic",
     attributes: { debugging: 4, patience: 4, chaos: 3, wisdom: 5, snark: 2 },

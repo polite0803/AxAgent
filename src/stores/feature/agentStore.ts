@@ -1,4 +1,5 @@
 import { pushNotification } from "@/components/layout/NotificationBell";
+import i18n from "@/i18n";
 import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import { useConversationStore, useStreamStore } from "@/stores";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
@@ -583,8 +584,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     // Agent 完成通知
     const turns = event.numTurns ?? 0;
     const cost = event.costUsd != null ? ` (${event.costUsd < 0.01 ? "<$0.01" : `$${event.costUsd.toFixed(2)}`})` : "";
-    message.success(`Agent 执行完成 · ${turns} 轮${cost}`);
-    pushNotification("success", `Agent 执行完成 · ${turns} 轮${cost}`);
+    const doneText = i18n.t("agentStore.executionComplete", { turns, cost });
+    message.success(doneText);
+    pushNotification("success", doneText);
   },
 
   handleError: (event) => {
@@ -646,14 +648,16 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       }));
     }
     // Agent 错误通知
-    const errMsg = event.message?.slice(0, 100) || "未知错误";
-    message.error(`Agent 执行失败: ${errMsg}`);
-    pushNotification("error", `Agent 执行失败: ${errMsg}`);
+    const errMsg = event.message?.slice(0, 100) || i18n.t("agentStore.unknownError");
+    const errorText = i18n.t("agentStore.executionFailed", { errMsg });
+    message.error(errorText);
+    pushNotification("error", errorText);
   },
 
   handleCancelled: (event) => {
     console.info("[agentStore] Agent cancelled:", event.reason);
-    message.warning(`Agent 已取消: ${event.reason || "用户中断"}`);
+    const reason = event.reason || i18n.t("agentStore.userInterrupt");
+    message.warning(i18n.t("agentStore.executionCancelled", { reason }));
     // Clear status and expire unresolved permissions for the conversation
     if (event.conversationId) {
       get().clearStatus(event.conversationId);

@@ -428,10 +428,10 @@ function KnowledgeBaseDetail({
     setSyncingToWiki(true);
     try {
       await invoke("sync_knowledge_document_to_wiki", { documentId: syncWikiDocId, vaultId: selectedVaultId });
-      messageApi.success(t("wiki.sync.wikiSuccess", "Synced to Wiki"));
+      messageApi.success(t("wiki.sync.wikiSuccess"));
       setSyncWikiModalOpen(false);
     } catch (e) {
-      messageApi.error(t("wiki.sync.wikiError", "Sync to Wiki failed") + ": " + String(e));
+      messageApi.error(t("wiki.sync.wikiError") + ": " + String(e));
     }
     setSyncingToWiki(false);
   }, [syncWikiDocId, selectedVaultId, messageApi, t]);
@@ -620,7 +620,7 @@ function KnowledgeBaseDetail({
       width: 150,
       render: (_: unknown, record: KnowledgeDocument) => (
         <div className="flex items-center gap-1">
-          <Tooltip title={t("wiki.sync.toWiki", "Sync to Wiki")}>
+          <Tooltip title={t("wiki.sync.toWiki")}>
             <Button
               size="small"
               type="text"
@@ -1481,7 +1481,7 @@ function KnowledgeBaseDetail({
             <>
               <div className="flex items-center justify-between mb-3">
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {t("settings.knowledge.totalChunks", "共 {{count}} 个分段", { count: chunks.length })}
+                  {t("settings.knowledge.totalChunks", { count: chunks.length })}
                 </Typography.Text>
                 <Button
                   size="small"
@@ -1611,12 +1611,12 @@ function KnowledgeBaseDetail({
       </Modal>
 
       <Modal
-        title={t("wiki.sync.toWikiTitle", "Sync to Wiki")}
+        title={t("wiki.sync.toWikiTitle")}
         open={syncWikiModalOpen}
         onOk={handleSyncToWiki}
         onCancel={() => setSyncWikiModalOpen(false)}
         okButtonProps={{ loading: syncingToWiki, disabled: !selectedVaultId }}
-        okText={t("wiki.sync.toWiki", "Sync to Wiki")}
+        okText={t("wiki.sync.toWiki")}
         width={420}
       >
         <div className="py-4">
@@ -1624,13 +1624,13 @@ function KnowledgeBaseDetail({
             <strong>{syncWikiDocTitle}</strong>
           </div>
           <div className="text-sm font-medium mb-2">
-            {t("wiki.sync.selectWiki", "Select Wiki")}
+            {t("wiki.sync.selectWiki")}
           </div>
           <Select
             id="knowledge-settings-select-89"
             value={selectedVaultId ?? undefined}
             onChange={setSelectedVaultId}
-            placeholder={t("wiki.sync.selectWiki", "Select Wiki")}
+            placeholder={t("wiki.sync.selectWiki")}
             style={{ width: "100%" }}
             options={wikiList.map((w) => ({
               value: w.id,

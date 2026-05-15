@@ -1,6 +1,7 @@
 import { CheckOutlined, DownloadOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { Alert, Button, Space, Typography } from "antd";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDecompositionStore } from "../../stores/feature/decompositionStore";
 import type { ToolDependency } from "../../types";
 
@@ -12,6 +13,7 @@ interface ToolInstallPanelProps {
 }
 
 export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, onComplete }) => {
+  const { t } = useTranslation();
   const { generateMissingTool } = useDecompositionStore();
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -46,7 +48,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
   };
 
   if (installed) {
-    return <Alert type="success" message={`${dependency.name} 已就绪`} showIcon />;
+    return <Alert type="success" message={t("decomposition.readyLabel", { name: dependency.name })} showIcon />;
   }
 
   return (
@@ -56,7 +58,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
       {isAutoInstallable && (
         <Space direction="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
-            此工具可自动安装，点击下方按钮开始安装。
+            {t("decomposition.autoInstallDesc")}
           </Paragraph>
           <Button
             type="primary"
@@ -65,7 +67,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
             onClick={handleAutoInstall}
             size="small"
           >
-            自动安装
+            {t("decomposition.autoInstallBtn")}
           </Button>
         </Space>
       )}
@@ -73,7 +75,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
       {isManualInstallable && (
         <Space direction="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
-            此工具需要手动安装，请按照以下说明操作：
+            {t("decomposition.manualInstallDesc")}
           </Paragraph>
           {dependency.install_instructions && (
             <div
@@ -97,7 +99,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
             }}
             size="small"
           >
-            已完成安装
+            {t("decomposition.manualInstallDoneBtn")}
           </Button>
         </Space>
       )}
@@ -105,7 +107,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
       {needsGeneration && (
         <Space direction="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
-            此工具无法通过安装获取，将使用 Developer Agent 自动生成 Prompt 模板实现。
+            {t("decomposition.generateDesc")}
           </Paragraph>
           <Button
             type="primary"
@@ -114,7 +116,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
             onClick={handleGenerate}
             size="small"
           >
-            生成工具
+            {t("decomposition.generateBtn")}
           </Button>
         </Space>
       )}

@@ -1,3 +1,4 @@
+// i18n-exempt: Mock data for browser preview mode. Not user-facing UI.
 /**
  * Browser-mode mock backend using localStorage.
  * Activated when the app runs outside Tauri (e.g. `pnpm dev` in browser).

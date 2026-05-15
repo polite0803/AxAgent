@@ -25,17 +25,17 @@ interface CitationManagerProps {
   selectedCitationId?: string | null;
 }
 
-function getSourceTypeName(sourceType: string): string {
+function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
   const nameMap: Record<string, string> = {
-    web: "网页",
-    academic: "学术",
-    wikipedia: "维基百科",
-    github: "GitHub",
-    documentation: "文档",
-    news: "新闻",
-    blog: "博客",
-    forum: "论坛",
-    unknown: "未知",
+    web: t("citationManager.sourceType.web"),
+    academic: t("citationManager.sourceType.academic"),
+    wikipedia: t("citationManager.sourceType.wikipedia"),
+    github: t("citationManager.sourceType.github"),
+    documentation: t("citationManager.sourceType.documentation"),
+    news: t("citationManager.sourceType.news"),
+    blog: t("citationManager.sourceType.blog"),
+    forum: t("citationManager.sourceType.forum"),
+    unknown: t("citationManager.sourceType.unknown"),
   };
   return nameMap[sourceType.toLowerCase()] || sourceType;
 }
@@ -56,11 +56,11 @@ export function CitationManager({
     <div className="citation-manager">
       <div className="flex items-center justify-between mb-3">
         <Title level={5} className="mb-0">
-          引用管理 ({citations.length})
+          {t("citationManager.title", { count: citations.length })}
         </Title>
         {onAddNew && (
           <Button type="primary" size="small" icon={<PlusOutlined />} onClick={onAddNew}>
-            添加引用
+            {t("citationManager.addCitation")}
           </Button>
         )}
       </div>
@@ -68,7 +68,7 @@ export function CitationManager({
       {citationsInReport.length > 0 && (
         <div className="mb-4">
           <Text type="secondary" className="text-sm">
-            报告中使用的引用 ({citationsInReport.length})
+            {t("citationManager.inReport", { count: citationsInReport.length })}
           </Text>
           <List
             size="small"
@@ -104,7 +104,7 @@ export function CitationManager({
                   title={<Text ellipsis>{item.sourceTitle}</Text>}
                   description={
                     <Space size="small">
-                      <Tag>{getSourceTypeName(item.sourceType)}</Tag>
+                      <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
                       <CredibilityBadge score={item.credibility} />
                     </Space>
                   }
@@ -118,7 +118,7 @@ export function CitationManager({
       {citationsNotInReport.length > 0 && (
         <div>
           <Text type="secondary" className="text-sm">
-            未使用的引用 ({citationsNotInReport.length})
+            {t("citationManager.notInReport", { count: citationsNotInReport.length })}
           </Text>
           <List
             size="small"
@@ -164,7 +164,7 @@ export function CitationManager({
                   title={<Text ellipsis>{item.sourceTitle}</Text>}
                   description={
                     <Space size="small">
-                      <Tag>{getSourceTypeName(item.sourceType)}</Tag>
+                      <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
                       <CredibilityBadge score={item.credibility} />
                     </Space>
                   }
@@ -177,7 +177,7 @@ export function CitationManager({
 
       {citations.length === 0 && (
         <div className="text-center text-gray-400 py-8">
-          暂无引用，请从搜索结果中添加
+          {t("citationManager.empty")}
         </div>
       )}
     </div>
@@ -219,12 +219,12 @@ export function CitationStats({ citations }: CitationStatsProps) {
         </div>
         <div>
           <Text type="secondary" className="block mb-1">
-            来源类型分布:
+            {t("citationManager.sourceDistribution")}
           </Text>
           <Space size="small" wrap>
             {Object.entries(stats.byType).map(([type, count]) => (
               <Tag key={type}>
-                {getSourceTypeName(type)}: {count}
+                {getSourceTypeName(type, t)}: {count}
               </Tag>
             ))}
           </Space>

@@ -62,6 +62,7 @@ impl WorkerDefinition {
     }
 
     /// 验证工作者定义是否合法。
+    // i18n-note: Validation error messages. Future: accept language parameter or convert to error codes.
     pub fn validate(&self) -> Result<(), String> {
         if self.agent_type.is_empty() {
             return Err("agent_type 不能为空".to_string());

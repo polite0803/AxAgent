@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { ProviderIcon } from "@lobehub/icons";
 import Tavily from "@lobehub/icons/es/Tavily";
@@ -18,7 +19,7 @@ export function SearchProviderTypeIcon({ type, size = 20 }: { type: string; size
 }
 
 export const PROVIDER_TYPE_LABELS: Record<string, string> = {
-  tavily: "Tavily",
-  zhipu: "智谱",
-  bocha: "博查",
+  tavily: i18n.t("searchProvider.tavily"),
+  zhipu: i18n.t("searchProvider.zhipu"),
+  bocha: i18n.t("searchProvider.bocha"),
 };

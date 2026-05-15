@@ -83,23 +83,23 @@ function getTypeLabel(type: string): string {
 function StatusBadge({ status }: { status: AgentPoolItem["status"] }) {
   const { t } = useTranslation();
   const config: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-    pending: { icon: <Clock size={13} />, color: "#8c8c8c", label: t("agentPool.status.pending", "等待") },
+    pending: { icon: <Clock size={13} />, color: "#8c8c8c", label: t("agentPool.status.pending") },
     running: {
       icon: <LoadingOutlined spin style={{ fontSize: 13 }} />,
       color: "#1890ff",
-      label: t("agentPool.status.running", "运行"),
+      label: t("agentPool.status.running"),
     },
     completed: {
       icon: <CheckCircleOutlined style={{ fontSize: 13 }} />,
       color: "#52c41a",
-      label: t("agentPool.status.completed", "完成"),
+      label: t("agentPool.status.completed"),
     },
     failed: {
       icon: <CloseCircleOutlined style={{ fontSize: 13 }} />,
       color: "#ff4d4f",
-      label: t("agentPool.status.failed", "失败"),
+      label: t("agentPool.status.failed"),
     },
-    cancelled: { icon: <SkipForward size={13} />, color: "#faad14", label: t("agentPool.status.cancelled", "取消") },
+    cancelled: { icon: <SkipForward size={13} />, color: "#faad14", label: t("agentPool.status.cancelled") },
   };
   const c = config[status] || config.pending;
   return (
@@ -130,7 +130,7 @@ function WorkerMessageLog({ messages }: { messages?: WorkerMessage[] }) {
         }}
       >
         {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        {t("agentPool.messageLog", "消息日志 ({count})", { count: messages.length })}
+        {t("agentPool.messageLog", { count: messages.length })}
       </button>
       {expanded && (
         <div className="worker-msg-log__list">
@@ -239,7 +239,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
         )}
         {item.attempts !== undefined && item.maxRetries !== undefined && (
           <span className="pool-item__attempts">
-            {t("agentPool.attempts", "尝试 {attempts}/{maxRetries}", {
+            {t("agentPool.attempts", {
               attempts: item.attempts,
               maxRetries: item.maxRetries,
             })}
@@ -253,7 +253,7 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
       {/* 子会话跳转 */}
       {item.type === "sub_agent" && isCompleted && item.childConversationId && (
         <div className="pool-item__action">
-          {t("agentPool.viewSubSession", "查看子会话")} <RightOutlined />
+          {t("agentPool.viewSubSession")} <RightOutlined />
         </div>
       )}
     </div>
@@ -283,17 +283,17 @@ function PoolSummaryBar({ summary }: { summary: AgentPoolSummary }) {
         <div className="pool-summary__counts">
           {summary.running > 0 && (
             <span className="pool-summary__count pool-summary__count--running">
-              {summary.running} {t("agentPool.running", "运行")}
+              {summary.running} {t("agentPool.running")}
             </span>
           )}
           {summary.pending > 0 && (
             <span className="pool-summary__count pool-summary__count--pending">
-              {summary.pending} {t("agentPool.pending", "等待")}
+              {summary.pending} {t("agentPool.pending")}
             </span>
           )}
           {summary.failed > 0 && (
             <span className="pool-summary__count pool-summary__count--failed">
-              {summary.failed} {t("agentPool.failed", "失败")}
+              {summary.failed} {t("agentPool.failed")}
             </span>
           )}
         </div>

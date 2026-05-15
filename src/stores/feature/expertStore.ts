@@ -1,22 +1,37 @@
 import { BUILTIN_EXPERT_PRESETS } from "@/data/expertPresets";
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
-import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
 const BUILTIN_IMPORTED_KEY = "axagent_builtin_experts_imported";
 
+/** 将内置预设中的 nameKey/descKey 解析为 name/description */
+function resolvePreset(
+  preset: (typeof BUILTIN_EXPERT_PRESETS)[number],
+): AgentProfile {
+  return {
+    ...preset,
+    name: preset.nameKey ? i18n.t(preset.nameKey) : preset.name,
+    description: preset.descKey
+      ? (i18n.t(preset.descKey) || preset.description)
+      : (preset.description ?? null),
+    nameKey: preset.nameKey,
+    descKey: preset.descKey,
+  } as AgentProfile;
+}
+
 // 默认仅载入通用助手，完整的 12 个开发专家预设不强制加载。
 // 用户可通过专家管理页"导入内置专家"按钮，一次性导入全部 12 个预设。
-const MINIMAL_BUILTIN = BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant");
+const MINIMAL_BUILTIN = BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant").map(resolvePreset);
 
 function loadBuiltinRoles(): AgentProfile[] {
   try {
     const imported = localStorage.getItem(BUILTIN_IMPORTED_KEY);
     if (imported === "true") {
-      return BUILTIN_EXPERT_PRESETS;
+      return BUILTIN_EXPERT_PRESETS.map(resolvePreset);
     }
   } catch { /* ignore */ }
   return MINIMAL_BUILTIN;
@@ -192,10 +207,10 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   },
 
   getCategoryLabel: (roleId: string | null) => {
-    if (!roleId) { return "通用"; }
+    if (!roleId) { return i18n.t("expertCategory.general"); }
     const role = get().getRoleById(roleId);
-    if (!role) { return "通用"; }
-    return EXPERT_CATEGORY_LABELS[role.category] || role.category;
+    if (!role) { return i18n.t("expertCategory.general"); }
+    return i18n.t("expertCategory." + role.category) || role.category;
   },
 
   recordSwitch: (conversationId, roleId) => {
@@ -235,7 +250,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       set({ agencyRoles: roles, agencyLoaded: true });
     } catch (e) {
       console.error("[expertStore] loadAgencyRoles failed:", e);
-      message.error(`加载外部专家失败: ${String(e)}`);
+      message.error(i18n.t("expertStore.loadFailed", { error: String(e) }));
       set({ agencyLoaded: true });
     }
   },
@@ -246,7 +261,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       set({ agencyRoles: [], agencyLoaded: false });
     } catch (e) {
       console.error("[expertStore] clearAgencyExperts failed:", e);
-      message.error(`清除外部专家失败: ${String(e)}`);
+      message.error(i18n.t("expertStore.clearFailed", { error: String(e) }));
     }
   },
 
@@ -257,7 +272,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       set({ agencyRoles: roles });
     } catch (e) {
       console.error("[expertStore] deleteAgencyExpert failed:", e);
-      message.error(`删除外部专家失败: ${String(e)}`);
+      message.error(i18n.t("expertStore.deleteFailed", { error: String(e) }));
     }
   },
 
@@ -267,7 +282,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       await get().loadAgencyRoles();
     } catch (e) {
       console.error("[expertStore] updateAgencyExpert failed:", e);
-      message.error(`更新外部专家失败: ${String(e)}`);
+      message.error(i18n.t("expertStore.updateFailed", { error: String(e) }));
     }
   },
 
@@ -283,7 +298,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       return agencyRowToRole(row);
     } catch (e) {
       console.error("[expertStore] extractStructure failed:", e);
-      message.error(`提取专家结构失败: ${String(e)}`);
+      message.error(i18n.t("expertStore.extractFailed", { error: String(e) }));
       return null;
     }
   },
@@ -318,7 +333,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     try {
       const parsed = JSON.parse(json);
       if (!Array.isArray(parsed)) {
-        return { count: 0, errors: ["JSON 格式错误：期望一个数组"] };
+        return { count: 0, errors: [i18n.t("expertStore.jsonFormatError")] };
       }
       const validRoles: AgentProfile[] = [];
       for (const item of parsed) {
@@ -328,7 +343,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
         if (hasId && hasName && hasCategory) {
           validRoles.push(item as AgentProfile);
         } else {
-          errors.push(`跳过无效角色: ${JSON.stringify(item).slice(0, 50)}`);
+          errors.push(i18n.t("expertStore.skippedInvalidRole", { role: JSON.stringify(item).slice(0, 50) }));
         }
       }
       if (validRoles.length > 0) {
@@ -340,7 +355,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       }
       return { count: validRoles.length, errors };
     } catch (e) {
-      return { count: 0, errors: [`JSON 解析失败: ${String(e)}`] };
+      return { count: 0, errors: [i18n.t("expertStore.jsonParseError", { error: String(e) })] };
     }
   },
 
@@ -354,7 +369,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
 
   importBuiltinPresets: () => {
     localStorage.setItem(BUILTIN_IMPORTED_KEY, "true");
-    set({ builtinRoles: BUILTIN_EXPERT_PRESETS });
+    set({ builtinRoles: BUILTIN_EXPERT_PRESETS.map(resolvePreset) });
   },
 
   removeBuiltinPresets: () => {

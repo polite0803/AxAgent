@@ -20,7 +20,7 @@ interface AgentHierarchyTreeProps {
 function toTreeNode(
   item: AgentPoolItem,
   allItems: AgentPoolItem[],
-  t: (key: string, fallback: string) => string,
+  t: (key: string, ...args: any[]) => string,
 ): DataNode {
   const isFork = (item as { isFork?: boolean }).isFork;
   const children = allItems
@@ -46,11 +46,11 @@ function toTreeNode(
           style={{ fontSize: 10, lineHeight: "16px", margin: 0 }}
         >
           {item.status === "running"
-            ? t("agentHierarchy.running", "运行中")
+            ? t("agentHierarchy.running")
             : item.status === "completed"
-            ? t("agentHierarchy.completed", "完成")
+            ? t("agentHierarchy.completed")
             : item.status === "failed"
-            ? t("agentHierarchy.failed", "失败")
+            ? t("agentHierarchy.failed")
             : item.status}
         </Tag>
         {item.agentType && item.agentType !== "general-purpose" && (
@@ -71,9 +71,9 @@ export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) 
   const treeData = useMemo(() => {
     const roots = pool.filter((item) => !item.dependsOn || item.dependsOn.length === 0);
     if (roots.length === 0 && pool.length > 0) {
-      return pool.slice(0, 2).map((item) => toTreeNode(item, pool, t));
+      return pool.slice(0, 2).map((item) => toTreeNode(item, pool, t as any));
     }
-    return roots.map((item) => toTreeNode(item, pool, t));
+    return roots.map((item) => toTreeNode(item, pool, t as any));
   }, [pool, t]);
 
   if (treeData.length === 0) { return null; }
@@ -82,9 +82,9 @@ export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) 
     <div style={{ padding: "8px 12px", borderBottom: "1px solid #f0f0f0", background: "#fafafa" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
         <BranchesOutlined style={{ fontSize: 13, color: "#722ed1" }} />
-        <Text style={{ fontSize: 12, fontWeight: 600 }}>{t("agentHierarchy.title", "Agent 层级")}</Text>
+        <Text style={{ fontSize: 12, fontWeight: 600 }}>{t("agentHierarchy.title")}</Text>
         <Text type="secondary" style={{ fontSize: 11 }}>
-          {t("agentHierarchy.count", "({count} 个)", { count: pool.length })}
+          {t("agentHierarchy.count", { count: pool.length })}
         </Text>
       </div>
       {treeData.length > 0 && (

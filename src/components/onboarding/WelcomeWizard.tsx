@@ -67,51 +67,45 @@ export function WelcomeWizard() {
     {
       key: "ollama",
       icon: Cpu,
-      title: t("onboarding.presetOllama", "Ollama 本地"),
-      desc: t("onboarding.presetOllamaDesc", "使用本地模型，数据不出设备"),
+      title: t("onboarding.presetOllama"),
+      desc: t("onboarding.presetOllamaDesc"),
       color: "#52c41a",
     },
     {
       key: "openai",
       icon: Globe,
-      title: t("onboarding.presetOpenAI", "OpenAI 云"),
-      desc: t(
-        "onboarding.presetOpenAIDesc",
-        "使用云端 GPT-4o 系列模型",
-      ),
+      title: t("onboarding.presetOpenAI"),
+      desc: t("onboarding.presetOpenAIDesc"),
       color: "#1890ff",
     },
     {
       key: "minimal",
       icon: Download,
-      title: t("onboarding.presetMinimal", "最小配置"),
-      desc: t(
-        "onboarding.presetMinimalDesc",
-        "仅配置基础设置，稍后自行添加",
-      ),
+      title: t("onboarding.presetMinimal"),
+      desc: t("onboarding.presetMinimalDesc"),
       color: "#fa8c16",
     },
   ];
 
   const steps = [
     {
-      title: t("onboarding.stepWelcome", "欢迎"),
+      title: t("onboarding.stepWelcome"),
       icon: <Sparkles size={18} />,
     },
     {
-      title: t("onboarding.stepDetect", "检测"),
+      title: t("onboarding.stepDetect"),
       icon: <Search size={18} />,
     },
     {
-      title: t("onboarding.stepPreset", "预设"),
+      title: t("onboarding.stepPreset"),
       icon: <Zap size={18} />,
     },
     {
-      title: t("onboarding.stepOverview", "概览"),
+      title: t("onboarding.stepOverview"),
       icon: <Bot size={18} />,
     },
     {
-      title: t("onboarding.stepReady", "就绪"),
+      title: t("onboarding.stepReady"),
       icon: <CheckCircle2 size={18} />,
     },
   ];
@@ -142,16 +136,13 @@ export function WelcomeWizard() {
             <Sparkles size={48} style={{ color: token.colorPrimary }} />
           </div>
           <Title level={3} style={{ textAlign: "center", marginTop: 16 }}>
-            {t("onboarding.welcome", "欢迎使用 AxAgent")}
+            {t("onboarding.welcome")}
           </Title>
           <Paragraph
             type="secondary"
             style={{ textAlign: "center", maxWidth: 400, margin: "8px auto 24px" }}
           >
-            {t(
-              "onboarding.welcomeDesc",
-              "智能 AI 桌面客户端，支持多模型、Agent 自主执行、知识库检索",
-            )}
+            {t("onboarding.welcomeDesc")}
           </Paragraph>
         </div>
       )}
@@ -161,7 +152,7 @@ export function WelcomeWizard() {
         <div className="wizard-step">
           <Title level={4}>
             <Search size={18} style={{ marginRight: 6 }} />
-            {t("onboarding.stepDetect", "检测环境")}
+            {t("onboarding.stepDetect")}
           </Title>
 
           <Card size="small" style={{ marginBottom: 8 }}>
@@ -172,10 +163,10 @@ export function WelcomeWizard() {
               />
               <Text>
                 {ollamaAvailable
-                  ? t("onboarding.ollamaDetected", "已检测到 {{count}} 个模型", {
+                  ? t("onboarding.ollamaDetected", {
                     count: ollamaModels.length,
                   })
-                  : t("onboarding.ollamaNotFound", "未检测到 Ollama")}
+                  : t("onboarding.ollamaNotFound")}
               </Text>
             </div>
             {ollamaModels.length > 0 && (
@@ -183,7 +174,7 @@ export function WelcomeWizard() {
                 {ollamaModels.slice(0, 5).map((m) => <Tag key={m.name} style={{ marginBottom: 4 }}>{m.name}</Tag>)}
                 {ollamaModels.length > 5 && (
                   <Text type="secondary" style={{ fontSize: 11 }}>
-                    +{ollamaModels.length - 5} 个
+                    {t("onboarding.moreModels", { count: ollamaModels.length - 5 })}
                   </Text>
                 )}
               </div>
@@ -203,7 +194,7 @@ export function WelcomeWizard() {
                   ? t("onboarding.keysDetected", {
                     count: detectedKeys.length,
                   })
-                  : t("onboarding.noKeysDetected", "未检测到 API Key")}
+                  : t("onboarding.noKeysDetected")}
               </Text>
             </div>
             {detectedKeys.map((k, i) => (
@@ -222,7 +213,7 @@ export function WelcomeWizard() {
         <div className="wizard-step">
           <Title level={4}>
             <Zap size={18} style={{ marginRight: 6 }} />
-            {t("onboarding.stepPreset", "快速预设")}
+            {t("onboarding.stepPreset")}
           </Title>
 
           <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
@@ -274,7 +265,7 @@ export function WelcomeWizard() {
                   navigate("/settings");
                 }}
               >
-                {t("onboarding.goToSettings", "前往设置添加 API Key")}
+                {t("onboarding.goToSettings")}
               </Button>
             </div>
           )}
@@ -286,34 +277,25 @@ export function WelcomeWizard() {
         <div className="wizard-step">
           <Title level={4}>
             <Bot size={18} style={{ marginRight: 6 }} />
-            {t("onboarding.stepOverview", "功能概览")}
+            {t("onboarding.stepOverview")}
           </Title>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             {[
               {
                 icon: MessageSquare,
-                title: t("onboarding.featureChat", "智能对话"),
-                desc: t(
-                  "onboarding.featureChatDesc",
-                  "多模型并行，流式输出，Markdown 渲染",
-                ),
+                title: t("onboarding.featureChat"),
+                desc: t("onboarding.featureChatDesc"),
               },
               {
                 icon: Bot,
-                title: t("onboarding.featureAgent", "Agent 执行"),
-                desc: t(
-                  "onboarding.featureAgentDesc",
-                  "自主规划、工具调用、多 Agent 协作",
-                ),
+                title: t("onboarding.featureAgent"),
+                desc: t("onboarding.featureAgentDesc"),
               },
               {
                 icon: Search,
-                title: t("onboarding.featureKnowledge", "知识库"),
-                desc: t(
-                  "onboarding.featureKnowledgeDesc",
-                  "RAG 检索增强，文档上传即问",
-                ),
+                title: t("onboarding.featureKnowledge"),
+                desc: t("onboarding.featureKnowledgeDesc"),
               },
             ].map((f) => (
               <Card
@@ -343,18 +325,12 @@ export function WelcomeWizard() {
         <div className="wizard-step" style={{ textAlign: "center" }}>
           <CheckCircle2 size={56} style={{ color: "#52c41a", marginBottom: 16 }} />
           <Title level={3}>
-            {t("onboarding.ready", "准备就绪！")}
+            {t("onboarding.ready")}
           </Title>
           <Paragraph type="secondary">
             {selectedPreset
-              ? t(
-                "onboarding.readyDesc",
-                "配置已完成，开始你的 AI 之旅吧",
-              )
-              : t(
-                "onboarding.readyNoPreset",
-                "你可以稍后在设置中配置更多模型供应商",
-              )}
+              ? t("onboarding.readyDesc")
+              : t("onboarding.readyNoPreset")}
           </Paragraph>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 8 }}>
             <Button
@@ -363,7 +339,7 @@ export function WelcomeWizard() {
               icon={<ArrowRight size={16} />}
               onClick={completeWizard}
             >
-              {t("onboarding.startUsing", "开始使用")}
+              {t("onboarding.startUsing")}
             </Button>
             <Button
               size="large"
@@ -372,7 +348,7 @@ export function WelcomeWizard() {
                 startTutorial();
               }}
             >
-              {t("onboarding.tutorialStart", "开始教程")}
+              {t("onboarding.tutorialStart")}
             </Button>
           </div>
         </div>
@@ -387,12 +363,12 @@ export function WelcomeWizard() {
         }}
       >
         <Button onClick={dismissWizard}>
-          {t("onboarding.skip", "跳过")}
+          {t("onboarding.skip")}
         </Button>
         <div style={{ display: "flex", gap: 8 }}>
           {currentStep > 0 && (
             <Button onClick={() => setStep(currentStep - 1)}>
-              {t("onboarding.previous", "上一步")}
+              {t("onboarding.previous")}
             </Button>
           )}
           {currentStep < 4 && (
@@ -400,7 +376,7 @@ export function WelcomeWizard() {
               type="primary"
               onClick={() => setStep(currentStep + 1)}
             >
-              {t("onboarding.next", "下一步")}
+              {t("onboarding.next")}
             </Button>
           )}
         </div>

@@ -107,7 +107,7 @@ export function TraceList() {
         />
       </Space>
       <div className="text-xs text-gray-500 mb-2">
-        {traces.length} 个追踪记录
+        {t("devtools.traceCount", { count: traces.length })}
       </div>
       <List
         dataSource={traces}
@@ -118,7 +118,7 @@ export function TraceList() {
             onClick={() => handleSelect(trace)}
           />
         )}
-        locale={{ emptyText: "暂无追踪记录" }}
+        locale={{ emptyText: t("devtools.noTraces") }}
       />
     </div>
   );

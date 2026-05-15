@@ -243,7 +243,7 @@ export function WikiFilePanel({
         <Input
           id="wiki-file-panel-input-69"
           prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
-          placeholder={t("wiki.searchPlaceholder", "Search notes...")}
+          placeholder={t("wiki.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           allowClear
@@ -267,7 +267,7 @@ export function WikiFilePanel({
           : notes.length === 0
           ? (
             <Empty
-              description={t("wiki.emptyNotes", "No notes")}
+              description={t("wiki.emptyNotes")}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )
@@ -293,13 +293,13 @@ export function WikiFilePanel({
         <div className="flex items-center gap-1.5 mb-2.5">
           <Hash size={10} style={{ color: token.colorTextQuaternary }} />
           <Text type="secondary" className="text-[11px] font-medium tracking-wide uppercase">
-            {t("wiki.tags", "Tags")}
+            {t("wiki.tags")}
           </Text>
         </div>
         {allTags.length === 0
           ? (
             <Text type="secondary" className="text-[11px]">
-              {t("wiki.noTags", "No tags")}
+              {t("wiki.noTags")}
             </Text>
           )
           : (

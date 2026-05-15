@@ -99,15 +99,15 @@ export function TraceFilters() {
             onChange={(value) => setLocalFilter({ ...localFilter, has_errors: value })}
             allowClear
             options={[
-              { value: true, label: "仅错误" },
-              { value: false, label: "仅成功" },
+              { value: true, label: t("devtools.errorOnly") },
+              { value: false, label: t("devtools.successOnly") },
             ]}
           />
         </div>
 
         <Space className="w-full">
           <Button type="primary" onClick={handleApply} className="flex-1">
-            应用
+            {t("devtools.apply")}
           </Button>
           <Button onClick={handleReset}>{t("common.reset")}</Button>
         </Space>

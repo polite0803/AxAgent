@@ -2,6 +2,7 @@
  * 统一智能体执行状态 Store
  * 整合：agentStore 执行态 + trajectoryStore + ExecutionPhase 状态机
  */
+import i18n from "@/i18n";
 import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import type {
   AgentCancelledEvent,
@@ -593,7 +594,12 @@ export function setupExecutionEventListeners(): () => void {
   unlisteners.push(
     listen<typeof workerPayload>(
       "worker-created",
-      (e) => store.handleWorkerEvent({ ...e.payload, messageType: "progress", content: "Worker created" }),
+      (e) =>
+        store.handleWorkerEvent({
+          ...e.payload,
+          messageType: "progress",
+          content: i18n.t("executionStore.workerCreated"),
+        }),
     ),
   );
   unlisteners.push(listen<typeof workerPayload>("worker-progress", (e) => store.handleWorkerEvent(e.payload)));

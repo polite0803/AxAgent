@@ -174,9 +174,7 @@ function SkillCard({
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
-            {hasManifest && (
-              <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI", { defaultValue: "含 UI 扩展" })}</Tag>
-            )}
+            {hasManifest && <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI")}</Tag>}
           </div>
           <Paragraph
             type="secondary"
@@ -206,8 +204,8 @@ function SkillCard({
             icon={<LayoutPanelTop size={14} color={CHAT_ICON_COLORS.Trash2} />}
             onClick={() => onEditFrontend(skill.name)}
             title={hasManifest
-              ? t("skill.editFrontend", { defaultValue: "编辑前端扩展" })
-              : t("skill.addFrontend", { defaultValue: "添加前端扩展" })}
+              ? t("skill.editFrontend")
+              : t("skill.addFrontend")}
           />
           {onExport && (
             <Button
@@ -215,7 +213,7 @@ function SkillCard({
               size="small"
               icon={<Upload size={14} />}
               onClick={() => onExport(skill.name)}
-              title={t("skill.exportPublishable", { defaultValue: "导出为可发布格式" })}
+              title={t("skill.exportPublishable")}
             />
           )}
           {skill.source !== "builtin" && (
@@ -480,9 +478,9 @@ export function SkillsPage() {
       a.download = `${result.skill_name}-v${result.version}-export.json`;
       a.click();
       URL.revokeObjectURL(url);
-      messageApi.success(t("skill.exported", { defaultValue: "技能已导出" }));
+      messageApi.success(t("skill.exported"));
     } catch (e) {
-      messageApi.error(t("skill.exportFailed", { defaultValue: "导出失败" }));
+      messageApi.error(t("skill.exportFailed"));
     }
   }, [messageApi]);
 
@@ -521,7 +519,7 @@ export function SkillsPage() {
     setDecomposePreviewOpen(false);
     setDecomposeRequest(null);
     loadSkills();
-    messageApi.success(t("skills.decomposeSuccess", { defaultValue: "Atomic skills extracted successfully" }));
+    messageApi.success(t("skills.decomposeSuccess"));
   }, [loadSkills, messageApi, t]);
 
   const handleUninstall = useCallback(async (name: string) => {
@@ -630,12 +628,12 @@ export function SkillsPage() {
           <Button
             onClick={() => setCreateModalOpen(true)}
           >
-            {t("skill.create", { defaultValue: "Create Skill" })}
+            {t("skill.create")}
           </Button>
           <Button
             icon={<Lightbulb size={14} color={CHAT_ICON_COLORS.Lightbulb} />}
             onClick={() => setProposalPanelOpen(true)}
-            title={t("skill.proposal.title", { defaultValue: "Skill Proposals" })}
+            title={t("skill.proposal.title")}
           />
         </Space.Compact>
         <Tabs
