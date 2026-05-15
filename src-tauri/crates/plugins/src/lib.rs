@@ -1,5 +1,7 @@
 pub mod agent_provider;
 mod hooks;
+pub mod mcp_launcher;
+pub mod skill_installer;
 #[cfg(test)]
 pub mod test_isolation;
 
@@ -17,6 +19,8 @@ use serde_json::{Map, Value};
 use axagent_npm::NpmRegistry;
 
 pub use hooks::{HookEvent, HookRunResult, HookRunner};
+pub use mcp_launcher::{McpLaunchError, McpLauncher};
+pub use skill_installer::SkillInstaller;
 
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
@@ -947,9 +951,11 @@ impl PluginManagerConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct PluginManager {
     config: PluginManagerConfig,
+    mcp_launcher: McpLauncher,
+    skill_installer: SkillInstaller,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1113,7 +1119,12 @@ impl From<serde_json::Error> for PluginError {
 impl PluginManager {
     #[must_use]
     pub fn new(config: PluginManagerConfig) -> Self {
-        Self { config }
+        let skill_installer = SkillInstaller::new(config.config_home.join("skills"));
+        Self {
+            config,
+            mcp_launcher: McpLauncher::new(),
+            skill_installer,
+        }
     }
 
     #[must_use]
@@ -1243,10 +1254,30 @@ impl PluginManager {
         self.config
             .enabled_plugins
             .insert(plugin_id.to_string(), true);
+        // 启动 MCP 服务
+        let registry = self.load_registry()?;
+        if let Some(record) = registry.plugins.get(plugin_id) {
+            let manifest = load_plugin_from_directory(&record.install_path)?;
+            if !manifest.mcp_servers.is_empty() {
+                self.mcp_launcher
+                    .start_plugin_mcps(plugin_id, &manifest.mcp_servers, &record.install_path)
+                    .map_err(|e| PluginError::CommandFailed(e.to_string()))?;
+            }
+            // 安装 skills
+            if !manifest.skills.is_empty() {
+                self.skill_installer
+                    .install_plugin_skills(plugin_id, &manifest.skills, &record.install_path)
+                    .map_err(|e| PluginError::CommandFailed(e.to_string()))?;
+            }
+        }
         Ok(())
     }
 
     pub fn disable(&mut self, plugin_id: &str) -> Result<(), PluginError> {
+        // 先停 MCP
+        self.mcp_launcher.stop_plugin_mcps(plugin_id);
+        // 移除 skills
+        self.skill_installer.remove_plugin_skills(plugin_id).ok();
         self.ensure_known_plugin(plugin_id)?;
         self.write_enabled_state(plugin_id, Some(false))?;
         self.config
@@ -1266,6 +1297,7 @@ impl PluginManager {
                 "plugin `{plugin_id}` is bundled and managed automatically; disable it instead"
             )));
         }
+        self.skill_installer.remove_plugin_skills(plugin_id).ok();
         if record.install_path.exists() {
             fs::remove_dir_all(&record.install_path)?;
         }
