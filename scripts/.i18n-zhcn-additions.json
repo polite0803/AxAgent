@@ -1,0 +1,91 @@
+{
+  "advancedSettings": {
+    "bashSecurity": "Bash 命令安全验证",
+    "defaultPermission": "默认权限模式",
+    "networkCmdDetect": "启用网络命令检测",
+    "networkConfirm": "网络请求需确认",
+    "perm": {
+      "acceptEdits": "接受编辑",
+      "default": "默认（每次询问）",
+      "fullAccess": "完全访问"
+    },
+    "permissionStrategy": "权限执行策略",
+    "shellConfirm": "Shell 执行需确认"
+  },
+  "benchmark": {
+    "configTitle": "运行配置",
+    "empty": "选择基准测试并点击运行...",
+    "selectFirst": "请先选择一个基准测试",
+    "selectTitle": "基准测试选择",
+    "title": "基准测试运行器"
+  },
+  "chat": {
+    "contextGraph": {
+      "hideType": "点击隐藏",
+      "showType": "点击显示"
+    }
+  },
+  "expertSelector": {
+    "builtinAlreadyImported": "内置专家已导入",
+    "builtinImported": "已导入 12 个内置专家",
+    "builtinImportedLabel": "已导入",
+    "importBuiltin": "导入全部内置专家（代码审查、调试、架构设计等）",
+    "importBuiltinBtn": "导入内置专家"
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "完成",
+      "failed": "失败",
+      "running": "运行中",
+      "total": "总任务"
+    },
+    "tab": {
+      "dataset": "数据集",
+      "loraConfig": "LoRA 配置",
+      "training": "训练任务"
+    },
+    "title": "模型微调"
+  },
+  "gateway": {
+    "tab": {
+      "monitor": "监控"
+    }
+  },
+  "skill": {
+    "addFrontend": "添加前端扩展",
+    "editFrontend": "编辑前端扩展",
+    "exportFailed": "导出失败",
+    "exportPublishable": "导出为可发布格式",
+    "exported": "技能已导出",
+    "hasUI": "含 UI 扩展"
+  },
+  "wiki": {
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "edges",
+    "export": "Export",
+    "exportHtml": "HTML",
+    "exportMarkdown": "Markdown",
+    "exportPdf": "Export PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Select an Obsidian vault directory to import all .md files as Wiki notes.",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick capture...",
+    "refresh": "Refresh",
+    "source": "Source",
+    "startImport": "Import",
+    "vaultPath": "Vault path...",
+    "wiki": "Wiki"
+  },
+  "research": {
+    "mockFinding": ""
+  }
+}
