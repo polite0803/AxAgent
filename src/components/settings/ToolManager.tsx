@@ -75,7 +75,11 @@ function ToolItem({
           {tool.description}
         </Paragraph>
       </div>
-      <Tooltip title={groupEnabled ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable")) : t("toolManager.groupDisabled")}>
+      <Tooltip
+        title={groupEnabled
+          ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable"))
+          : t("toolManager.groupDisabled")}
+      >
         <Switch
           id="tool-manager-switch-177"
           size="small"

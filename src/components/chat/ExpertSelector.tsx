@@ -1,5 +1,5 @@
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { EXPERT_CATEGORY_LABELS } from "@/types";
+import { EXPERT_CATEGORY_KEYS } from "@/types";
 import type { AgentProfile, ExpertCategory } from "@/types";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { App, Button, Card, Input, Modal, Popconfirm, Popover, Select, Space, Tag, Typography } from "antd";
@@ -87,7 +87,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
     if (sortBy === "name") {
       sorted.sort((a, b) => dir * a.name.localeCompare(b.name, "zh"));
     } else if (sortBy === "category") {
-      const order = Object.keys(EXPERT_CATEGORY_LABELS);
+      const order = EXPERT_CATEGORY_KEYS;
       sorted.sort((a, b) =>
         dir
         * (order.indexOf(a.category) - order.indexOf(b.category) || a.name.localeCompare(b.name, "zh"))
@@ -463,7 +463,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                   display: "block",
                 }}
               >
-                {EXPERT_CATEGORY_LABELS[category as ExpertCategory]}
+                {t("expertCategory." + category)}
               </Text>
               <div
                 style={{
@@ -667,7 +667,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                 onChange={(v) => setEditCategory(v)}
                 size="small"
                 style={{ width: "100%" }}
-                options={Object.entries(EXPERT_CATEGORY_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                options={EXPERT_CATEGORY_KEYS.map((k) => ({ value: k, label: t("expertCategory." + k) }))}
               />
             </div>
             <div>
@@ -780,7 +780,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               onChange={(v) => setNewRole((r) => ({ ...r, category: v }))}
               size="small"
               style={{ width: "100%" }}
-              options={Object.entries(EXPERT_CATEGORY_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+              options={EXPERT_CATEGORY_KEYS.map((k) => ({ value: k, label: t("expertCategory." + k) }))}
             />
           </div>
           <div>

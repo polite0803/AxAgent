@@ -1,5 +1,5 @@
 import type { TaskResult as TaskResultType } from "@/types";
-import { formatDuration, formatScore, getDifficultyLabel } from "@/types";
+import { formatDuration, formatScore, getDifficultyKey } from "@/types";
 import { Badge, Card, Descriptions, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 
@@ -20,7 +20,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
             <Badge color={result.success ? "green" : "red"}>
               {result.success ? t("benchmark.passed") : t("benchmark.failed")}
             </Badge>
-            <Badge color="blue">{getDifficultyLabel(result.difficulty)}</Badge>
+            <Badge color="blue">{t(getDifficultyKey(result.difficulty))}</Badge>
           </div>
         </div>
         <div className="text-right">
@@ -31,9 +31,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
 
       <Descriptions size="small" className="mb-4">
         <Descriptions.Item label={t("benchmark.taskId")}>{result.task_id}</Descriptions.Item>
-        {result.trace_id && (
-          <Descriptions.Item label={t("benchmark.traceId")}>{result.trace_id}</Descriptions.Item>
-        )}
+        {result.trace_id && <Descriptions.Item label={t("benchmark.traceId")}>{result.trace_id}</Descriptions.Item>}
       </Descriptions>
 
       {result.error && (

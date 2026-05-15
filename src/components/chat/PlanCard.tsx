@@ -415,8 +415,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
           }}
         >
           <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
-            {localSteps.filter((s) => s.status === "approved").length} / {localSteps.length}{" "}
-            {t("plan.stepsApproved")}
+            {localSteps.filter((s) => s.status === "approved").length} / {localSteps.length} {t("plan.stepsApproved")}
           </span>
           <Button
             type="primary"

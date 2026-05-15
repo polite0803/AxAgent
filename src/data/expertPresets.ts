@@ -1,9 +1,9 @@
-import type { AgentProfile } from "@/types";
-
-export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
+export const BUILTIN_EXPERT_PRESETS = [
   {
     id: "general-assistant",
+    nameKey: "expertPreset.generalAssistant.name",
     name: "通用助手",
+    descKey: "expertPreset.generalAssistant.description",
     description: "全能的 AI 助手，无特定领域偏向",
     category: "general",
     icon: "🤖",
@@ -18,7 +18,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "code-reviewer",
+    nameKey: "expertPreset.codeReviewer.name",
     name: "代码审查专家",
+    descKey: "expertPreset.codeReviewer.description",
     description: "专注代码质量审查、安全漏洞检测、性能优化建议",
     category: "development",
     icon: "🔍",
@@ -35,7 +37,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "senior-developer",
+    nameKey: "expertPreset.seniorDeveloper.name",
     name: "高级开发工程师",
+    descKey: "expertPreset.seniorDeveloper.description",
     description: "精通多种编程语言和框架，擅长架构设计与复杂功能实现",
     category: "development",
     icon: "⚡",
@@ -52,7 +56,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "security-auditor",
+    nameKey: "expertPreset.securityAuditor.name",
     name: "安全审计专家",
+    descKey: "expertPreset.securityAuditor.description",
     description: "专注应用安全审计、渗透测试和合规检查",
     category: "security",
     icon: "🛡️",
@@ -69,7 +75,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "data-analyst",
+    nameKey: "expertPreset.dataAnalyst.name",
     name: "数据分析师",
+    descKey: "expertPreset.dataAnalyst.description",
     description: "专注数据清洗、统计分析、可视化和洞察挖掘",
     category: "data",
     icon: "📊",
@@ -86,7 +94,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "sql-expert",
+    nameKey: "expertPreset.sqlExpert.name",
     name: "SQL 专家",
+    descKey: "expertPreset.sqlExpert.description",
     description: "专注复杂 SQL 查询优化、数据库设计和性能调优",
     category: "data",
     icon: "🗄️",
@@ -103,7 +113,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "devops-engineer",
+    nameKey: "expertPreset.devopsEngineer.name",
     name: "DevOps 工程师",
+    descKey: "expertPreset.devopsEngineer.description",
     description: "专注 CI/CD、容器化、基础设施即代码和运维自动化",
     category: "devops",
     icon: "🚀",
@@ -120,7 +132,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "tech-writer",
+    nameKey: "expertPreset.techWriter.name",
     name: "技术文档专家",
+    descKey: "expertPreset.techWriter.description",
     description: "专注技术文档、API 文档、用户手册和技术博客写作",
     category: "writing",
     icon: "📝",
@@ -137,7 +151,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "product-manager",
+    nameKey: "expertPreset.productManager.name",
     name: "产品经理",
+    descKey: "expertPreset.productManager.description",
     description: "专注需求分析、产品规划、用户故事和路线图管理",
     category: "business",
     icon: "🎯",
@@ -153,7 +169,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "architect",
+    nameKey: "expertPreset.architect.name",
     name: "系统架构师",
+    descKey: "expertPreset.architect.description",
     description: "专注系统架构设计、技术选型和架构评审",
     category: "development",
     icon: "🏗️",
@@ -170,7 +188,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "debug-expert",
+    nameKey: "expertPreset.debugExpert.name",
     name: "调试专家",
+    descKey: "expertPreset.debugExpert.description",
     description: "专注疑难 bug 定位、性能瓶颈分析和根因排查",
     category: "development",
     icon: "🐛",
@@ -187,7 +207,9 @@ export const BUILTIN_EXPERT_PRESETS: AgentProfile[] = [
   },
   {
     id: "translator",
+    nameKey: "expertPreset.translator.name",
     name: "翻译专家",
+    descKey: "expertPreset.translator.description",
     description: "专注多语言翻译、本地化和国际化支持",
     category: "writing",
     icon: "🌐",

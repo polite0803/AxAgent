@@ -174,9 +174,7 @@ function SkillCard({
               </span>
             </Tag>
             {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
-            {hasManifest && (
-              <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI")}</Tag>
-            )}
+            {hasManifest && <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI")}</Tag>}
           </div>
           <Paragraph
             type="secondary"

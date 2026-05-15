@@ -170,32 +170,32 @@ export function formatDuration(ms: number): string {
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
-export function getDifficultyLabel(difficulty: Difficulty): string {
+export function getDifficultyKey(difficulty: Difficulty): string {
   switch (difficulty) {
     case "easy":
-      return "简单";
+      return "difficulty.easy";
     case "medium":
-      return "中等";
+      return "difficulty.medium";
     case "hard":
-      return "困难";
+      return "difficulty.hard";
     case "expert":
-      return "专家";
+      return "difficulty.expert";
   }
 }
 
-export function getCategoryLabel(category: BenchmarkCategory): string {
+export function getCategoryKey(category: BenchmarkCategory): string {
   switch (category) {
     case "reasoning":
-      return "推理";
+      return "evalCategory.reasoning";
     case "code_generation":
-      return "代码生成";
+      return "evalCategory.codeGeneration";
     case "tool_usage":
-      return "工具使用";
+      return "evalCategory.toolUsage";
     case "research":
-      return "研究";
+      return "evalCategory.research";
     case "conversation":
-      return "对话";
+      return "evalCategory.conversation";
     case "error_recovery":
-      return "错误恢复";
+      return "evalCategory.errorRecovery";
   }
 }

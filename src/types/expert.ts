@@ -8,16 +8,18 @@ export type ExpertCategory =
   | "writing"
   | "business";
 
-export const EXPERT_CATEGORY_LABELS: Record<ExpertCategory, string> = {
-  general: "通用",
-  development: "开发",
-  security: "安全",
-  data: "数据",
-  devops: "运维",
-  design: "设计",
-  writing: "写作",
-  business: "商业",
-};
+export const EXPERT_CATEGORY_KEYS = [
+  "general",
+  "development",
+  "security",
+  "data",
+  "devops",
+  "design",
+  "writing",
+  "business",
+] as const;
+
+export type ExpertCategoryKey = (typeof EXPERT_CATEGORY_KEYS)[number];
 
 /** @deprecated 使用 AgentProfile (types/agentProfile.ts) 替代。字段映射：displayName→name, 其余字段基本一致 */
 export interface ExpertRole {

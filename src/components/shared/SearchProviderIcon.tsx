@@ -1,8 +1,8 @@
+import i18n from "@/i18n";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { ProviderIcon } from "@lobehub/icons";
 import Tavily from "@lobehub/icons/es/Tavily";
 import { Search as SearchIcon } from "lucide-react";
-import i18n from "@/i18n";
 
 /** Renders the correct icon for a given SearchProviderType */
 export function SearchProviderTypeIcon({ type, size = 20 }: { type: string; size?: number }) {

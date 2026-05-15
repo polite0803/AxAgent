@@ -5248,7 +5248,14 @@
     "jsonParseError": "JSON parse failed: {{error}}"
   },
   "expertCategory": {
-    "general": "General"
+    "general": "通用",
+    "development": "開發",
+    "security": "安全",
+    "data": "資料",
+    "devops": "維運",
+    "design": "設計",
+    "writing": "寫作",
+    "business": "商業"
   },
   "planStore": {
     "rejectFailed": "Failed to reject plan: {{error}}",
@@ -5332,6 +5339,94 @@
       "ru": "Русский",
       "hi": "हिन्दी",
       "ar": "العربية"
+    }
+  },
+  "toolCategory": {
+    "fileRead": "檔案讀取",
+    "fileWrite": "檔案寫入",
+    "shellCommand": "Shell 指令",
+    "networkRequest": "網路請求",
+    "systemTool": "系統工具",
+    "agentTool": "Agent 工具",
+    "versionControl": "版本控制",
+    "automation": "自動化",
+    "communication": "通訊",
+    "aiMedia": "AI 媒體",
+    "externalIntegration": "外部整合",
+    "storageManagement": "儲存管理",
+    "knowledgeBase": "知識庫",
+    "browser": "瀏覽器",
+    "desktopControl": "桌面控制"
+  },
+  "permissionMode": {
+    "readOnly": "唯讀",
+    "allow": "允許",
+    "workspaceWrite": "工作區寫入",
+    "fullAccess": "完整存取",
+    "alwaysAsk": "每次確認"
+  },
+  "difficulty": {
+    "easy": "簡單",
+    "medium": "中等",
+    "hard": "困難",
+    "expert": "專家"
+  },
+  "evalCategory": {
+    "reasoning": "推理",
+    "codeGeneration": "程式碼生成",
+    "toolUsage": "工具使用",
+    "research": "研究",
+    "conversation": "對話",
+    "errorRecovery": "錯誤復原"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "通用助手",
+      "description": "全能的 AI 助手，無特定領域偏向"
+    },
+    "codeReviewer": {
+      "name": "程式碼審查專家",
+      "description": "專注程式碼品質審查、安全漏洞偵測、效能最佳化建議"
+    },
+    "seniorDeveloper": {
+      "name": "高級開發工程師",
+      "description": "精通多種程式語言和框架，擅長架構設計與複雜功能實現"
+    },
+    "securityAuditor": {
+      "name": "安全稽核專家",
+      "description": "專注應用安全稽核、滲透測試和合規檢查"
+    },
+    "dataAnalyst": {
+      "name": "資料分析師",
+      "description": "專注資料清洗、統計分析、視覺化和洞察挖掘"
+    },
+    "sqlExpert": {
+      "name": "SQL 專家",
+      "description": "專注複雜 SQL 查詢最佳化、資料庫設計和效能調優"
+    },
+    "devopsEngineer": {
+      "name": "DevOps 工程師",
+      "description": "專注 CI/CD、容器化、基礎設施即程式碼和維運自動化"
+    },
+    "techWriter": {
+      "name": "技術文件專家",
+      "description": "專注技術文件、API 文件、使用者手冊和技術部落格寫作"
+    },
+    "productManager": {
+      "name": "產品經理",
+      "description": "專注需求分析、產品規劃、使用者故事和路線圖管理"
+    },
+    "architect": {
+      "name": "系統架構師",
+      "description": "專注系統架構設計、技術選型和架構審查"
+    },
+    "debugExpert": {
+      "name": "偵錯專家",
+      "description": "專注疑難 bug 定位、效能瓶頸分析和根本原因排查"
+    },
+    "translator": {
+      "name": "翻譯專家",
+      "description": "專注多語言翻譯、本地化和國際化支援"
     }
   }
 }

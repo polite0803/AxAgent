@@ -196,7 +196,8 @@ const CommandSuggest: React.FC<CommandSuggestProps> = ({
   return (
     <div className="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
       <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-        {triggerType === "/" ? i18n.t("commandSuggest.commands") : i18n.t("commandSuggest.mentions")} — {i18n.t("commandSuggest.filterHint")}
+        {triggerType === "/" ? i18n.t("commandSuggest.commands") : i18n.t("commandSuggest.mentions")} —{" "}
+        {i18n.t("commandSuggest.filterHint")}
       </div>
       {suggestions.map((suggestion, index) => (
         <button

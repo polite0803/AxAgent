@@ -594,7 +594,12 @@ export function setupExecutionEventListeners(): () => void {
   unlisteners.push(
     listen<typeof workerPayload>(
       "worker-created",
-      (e) => store.handleWorkerEvent({ ...e.payload, messageType: "progress", content: i18n.t("executionStore.workerCreated") }),
+      (e) =>
+        store.handleWorkerEvent({
+          ...e.payload,
+          messageType: "progress",
+          content: i18n.t("executionStore.workerCreated"),
+        }),
     ),
   );
   unlisteners.push(listen<typeof workerPayload>("worker-progress", (e) => store.handleWorkerEvent(e.payload)));

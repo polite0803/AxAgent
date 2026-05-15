@@ -7,7 +7,11 @@ import type { ExpertCategory } from "./expert";
 export interface AgentProfile {
   id: string;
   name: string;
+  /** i18n 键（用于内置预设），如 "expertPreset.generalAssistant.name" */
+  nameKey?: string;
   description: string | null;
+  /** i18n 键（用于内置预设），如 "expertPreset.generalAssistant.description" */
+  descKey?: string;
   category: ExpertCategory;
   icon: string;
   systemPrompt: string;

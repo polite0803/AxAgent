@@ -1,23 +1,37 @@
-import i18n from "@/i18n";
 import { BUILTIN_EXPERT_PRESETS } from "@/data/expertPresets";
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
-import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
 const BUILTIN_IMPORTED_KEY = "axagent_builtin_experts_imported";
 
+/** 将内置预设中的 nameKey/descKey 解析为 name/description */
+function resolvePreset(
+  preset: (typeof BUILTIN_EXPERT_PRESETS)[number],
+): AgentProfile {
+  return {
+    ...preset,
+    name: preset.nameKey ? i18n.t(preset.nameKey) : preset.name,
+    description: preset.descKey
+      ? (i18n.t(preset.descKey) || preset.description)
+      : (preset.description ?? null),
+    nameKey: preset.nameKey,
+    descKey: preset.descKey,
+  } as AgentProfile;
+}
+
 // 默认仅载入通用助手，完整的 12 个开发专家预设不强制加载。
 // 用户可通过专家管理页"导入内置专家"按钮，一次性导入全部 12 个预设。
-const MINIMAL_BUILTIN = BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant");
+const MINIMAL_BUILTIN = BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant").map(resolvePreset);
 
 function loadBuiltinRoles(): AgentProfile[] {
   try {
     const imported = localStorage.getItem(BUILTIN_IMPORTED_KEY);
     if (imported === "true") {
-      return BUILTIN_EXPERT_PRESETS;
+      return BUILTIN_EXPERT_PRESETS.map(resolvePreset);
     }
   } catch { /* ignore */ }
   return MINIMAL_BUILTIN;
@@ -196,7 +210,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     if (!roleId) { return i18n.t("expertCategory.general"); }
     const role = get().getRoleById(roleId);
     if (!role) { return i18n.t("expertCategory.general"); }
-    return EXPERT_CATEGORY_LABELS[role.category] || role.category;
+    return i18n.t("expertCategory." + role.category) || role.category;
   },
 
   recordSwitch: (conversationId, roleId) => {
@@ -355,7 +369,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
 
   importBuiltinPresets: () => {
     localStorage.setItem(BUILTIN_IMPORTED_KEY, "true");
-    set({ builtinRoles: BUILTIN_EXPERT_PRESETS });
+    set({ builtinRoles: BUILTIN_EXPERT_PRESETS.map(resolvePreset) });
   },
 
   removeBuiltinPresets: () => {

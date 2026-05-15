@@ -20,8 +20,16 @@ export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
   const STATUS_CONFIG: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
     satisfied: { color: "success", label: t("decomposition.statusSatisfied"), icon: <CheckCircleOutlined /> },
     auto_installable: { color: "processing", label: t("decomposition.statusAutoInstallable"), icon: <ToolOutlined /> },
-    manual_installable: { color: "warning", label: t("decomposition.statusManualInstallable"), icon: <WarningOutlined /> },
-    needs_generation: { color: "error", label: t("decomposition.statusNeedsGeneration"), icon: <ThunderboltOutlined /> },
+    manual_installable: {
+      color: "warning",
+      label: t("decomposition.statusManualInstallable"),
+      icon: <WarningOutlined />,
+    },
+    needs_generation: {
+      color: "error",
+      label: t("decomposition.statusNeedsGeneration"),
+      icon: <ThunderboltOutlined />,
+    },
   };
 
   const columns = [

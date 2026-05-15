@@ -5692,8 +5692,79 @@
     "skippedInvalidRole": "跳过无效角色: {{role}}",
     "jsonParseError": "JSON 解析失败: {{error}}"
   },
+  "difficulty": {
+    "easy": "简单",
+    "medium": "中等",
+    "hard": "困难",
+    "expert": "专家"
+  },
+  "evalCategory": {
+    "reasoning": "推理",
+    "codeGeneration": "代码生成",
+    "toolUsage": "工具使用",
+    "research": "研究",
+    "conversation": "对话",
+    "errorRecovery": "错误恢复"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "通用助手",
+      "description": "全能的 AI 助手，无特定领域偏向"
+    },
+    "codeReviewer": {
+      "name": "代码审查专家",
+      "description": "专注代码质量审查、安全漏洞检测、性能优化建议"
+    },
+    "seniorDeveloper": {
+      "name": "高级开发工程师",
+      "description": "精通多种编程语言和框架，擅长架构设计与复杂功能实现"
+    },
+    "securityAuditor": {
+      "name": "安全审计专家",
+      "description": "专注应用安全审计、渗透测试和合规检查"
+    },
+    "dataAnalyst": {
+      "name": "数据分析师",
+      "description": "专注数据清洗、统计分析、可视化和洞察挖掘"
+    },
+    "sqlExpert": {
+      "name": "SQL 专家",
+      "description": "专注复杂 SQL 查询优化、数据库设计和性能调优"
+    },
+    "devopsEngineer": {
+      "name": "DevOps 工程师",
+      "description": "专注 CI/CD、容器化、基础设施即代码和运维自动化"
+    },
+    "techWriter": {
+      "name": "技术文档专家",
+      "description": "专注技术文档、API 文档、用户手册和技术博客写作"
+    },
+    "productManager": {
+      "name": "产品经理",
+      "description": "专注需求分析、产品规划、用户故事和路线图管理"
+    },
+    "architect": {
+      "name": "系统架构师",
+      "description": "专注系统架构设计、技术选型和架构评审"
+    },
+    "debugExpert": {
+      "name": "调试专家",
+      "description": "专注疑难 bug 定位、性能瓶颈分析和根因排查"
+    },
+    "translator": {
+      "name": "翻译专家",
+      "description": "专注多语言翻译、本地化和国际化支持"
+    }
+  },
   "expertCategory": {
-    "general": "通用"
+    "general": "通用",
+    "development": "开发",
+    "security": "安全",
+    "data": "数据",
+    "devops": "运维",
+    "design": "设计",
+    "writing": "写作",
+    "business": "商业"
   },
   "planStore": {
     "rejectFailed": "拒绝计划失败: {{error}}",
@@ -5744,6 +5815,30 @@
     "writeWithoutRead": "WARN: 声明了 storeWrite 但未声明 storeRead",
     "writeWithoutReadDetail": "WARN: 声明了 storeWrite:{{ws}} 但未声明 storeRead:{{ws}}",
     "networkDisabled": "WARN: network 权限已声明，但沙箱环境默认禁用 fetch/XHR"
+  },
+  "toolCategory": {
+    "fileRead": "文件读取",
+    "fileWrite": "文件写入",
+    "shellCommand": "Shell 命令",
+    "networkRequest": "网络请求",
+    "systemTool": "系统工具",
+    "agentTool": "Agent 工具",
+    "versionControl": "版本控制",
+    "automation": "自动化",
+    "communication": "通信",
+    "aiMedia": "AI 媒体",
+    "externalIntegration": "外部集成",
+    "storageManagement": "存储管理",
+    "knowledgeBase": "知识库",
+    "browser": "浏览器",
+    "desktopControl": "桌面控制"
+  },
+  "permissionMode": {
+    "readOnly": "只读",
+    "allow": "允许",
+    "workspaceWrite": "工作区写入",
+    "fullAccess": "完全访问",
+    "alwaysAsk": "每次确认"
   },
   "memoryLabels": {
     "tier": {

@@ -433,8 +433,7 @@ export function KnowledgePage() {
                     title={note.title}
                     description={
                       <span className="text-xs" style={{ color: token.colorTextSecondary }}>
-                        {note.author === "llm" ? t("wiki.llmNote") : t("wiki.userNote")} •{" "}
-                        {note.filePath}
+                        {note.author === "llm" ? t("wiki.llmNote") : t("wiki.userNote")} • {note.filePath}
                       </span>
                     }
                   />

@@ -256,8 +256,7 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
             {diffVersion && selectedVersion && (
               <div className="border-t p-3" style={{ borderColor: token.colorBorderSecondary }}>
                 <Text className="text-xs mb-2 block" type="secondary">
-                  {t("wiki.diffLabel")}: {shortHash(diffVersion.contentHash)} →{" "}
-                  {shortHash(selectedVersion.contentHash)}
+                  {t("wiki.diffLabel")}: {shortHash(diffVersion.contentHash)} → {shortHash(selectedVersion.contentHash)}
                 </Text>
                 <DiffView oldContent={diffVersion.content} newContent={selectedVersion.content} />
               </div>

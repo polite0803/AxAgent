@@ -392,8 +392,7 @@ export function LlmWikiPage() {
                     title={note.title}
                     description={
                       <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                        {note.author === "llm" ? t("wiki.llmNote") : t("wiki.userNote")} •{" "}
-                        {note.filePath}
+                        {note.author === "llm" ? t("wiki.llmNote") : t("wiki.userNote")} • {note.filePath}
                       </span>
                     }
                   />

@@ -30,7 +30,6 @@ import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
-import { EXPERT_CATEGORY_LABELS } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Radio, Select, Tag, theme, Tooltip } from "antd";
@@ -701,7 +700,7 @@ export function InputArea() {
       }
       items.push({
         key: `category-${category}`,
-        label: EXPERT_CATEGORY_LABELS[category as keyof typeof EXPERT_CATEGORY_LABELS] || category,
+        label: t("expertCategory." + category) || category,
         disabled: true,
       });
       for (const role of categoryRoles) {

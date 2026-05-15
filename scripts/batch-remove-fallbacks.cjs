@@ -1,23 +1,23 @@
-const fs = require('fs');
-const path = require('path');
-const enUS = JSON.parse(fs.readFileSync('src/i18n/locales/en-US.json', 'utf8'));
+const fs = require("fs");
+const path = require("path");
+const enUS = JSON.parse(fs.readFileSync("src/i18n/locales/en-US.json", "utf8"));
 
 function keyExists(obj, p) {
-  const parts = p.split('.');
+  const parts = p.split(".");
   let cur = obj;
   for (const part of parts) {
-    if (cur && typeof cur === 'object' && part in cur) {
+    if (cur && typeof cur === "object" && part in cur) {
       cur = cur[part];
     } else {
       return false;
     }
   }
-  return typeof cur === 'string';
+  return typeof cur === "string";
 }
 
 // Extract key from a match - handles dynamic keys with ${...}
 function isDynamicKey(key) {
-  return key.includes('${');
+  return key.includes("${");
 }
 
 // Find all files with t() calls that have fallbacks
@@ -28,9 +28,9 @@ function findFiles(dir) {
     for (const e of entries) {
       const full = path.join(d, e.name);
       if (e.isDirectory()) {
-        if (!['node_modules', 'locales', '__tests__'].includes(e.name)) walk(full);
-      } else if (e.name.endsWith('.ts') || e.name.endsWith('.tsx')) {
-        const content = fs.readFileSync(full, 'utf8');
+        if (!["node_modules", "locales", "__tests__"].includes(e.name)) { walk(full); }
+      } else if (e.name.endsWith(".ts") || e.name.endsWith(".tsx")) {
+        const content = fs.readFileSync(full, "utf8");
         // Check for t() with a second argument (string or defaultValue object)
         if (/defaultValue:\s*['"`]/.test(content) || /\bt\(\s*['"`][^'"`]+['"`]\s*,\s*['"`]/.test(content)) {
           results.push(full);
@@ -42,15 +42,15 @@ function findFiles(dir) {
   return results;
 }
 
-console.log('Finding files with t() fallbacks...');
-const files = findFiles('src');
+console.log("Finding files with t() fallbacks...");
+const files = findFiles("src");
 console.log(`Found ${files.length} files`);
 
 // First verify ALL keys exist (skip dynamic keys)
-console.log('\nVerifying keys...');
+console.log("\nVerifying keys...");
 let missingCount = 0;
 for (const file of files) {
-  const content = fs.readFileSync(file, 'utf8');
+  const content = fs.readFileSync(file, "utf8");
 
   // Extract keys ONLY from calls that have fallbacks
   // Pattern A: t("key", "string")
@@ -58,7 +58,7 @@ for (const file of files) {
   let m;
   while ((m = reA.exec(content)) !== null) {
     const key = m[2];
-    if (isDynamicKey(key)) continue;
+    if (isDynamicKey(key)) { continue; }
     if (!keyExists(enUS, key)) {
       console.log(`  MISSING: ${key} in ${file}`);
       missingCount++;
@@ -69,7 +69,7 @@ for (const file of files) {
   const reB = /\bt\(\s*(['"`])([^'"`]+)\1\s*,\s*\{\s*defaultValue:/g;
   while ((m = reB.exec(content)) !== null) {
     const key = m[2];
-    if (isDynamicKey(key)) continue;
+    if (isDynamicKey(key)) { continue; }
     if (!keyExists(enUS, key)) {
       console.log(`  MISSING: ${key} in ${file}`);
       missingCount++;
@@ -79,18 +79,18 @@ for (const file of files) {
 
 if (missingCount > 0) {
   console.log(`\n${missingCount} missing keys found. STOPPING.`);
-  console.log('Add these keys to en-US.json first, then re-run.');
+  console.log("Add these keys to en-US.json first, then re-run.");
   process.exit(1);
 }
-console.log('All keys exist ✓');
+console.log("All keys exist ✓");
 
 // ============ REMOVE FALLBACKS ============
-console.log('\nRemoving fallbacks...');
+console.log("\nRemoving fallbacks...");
 let totalRemoved = 0;
 const stats = {};
 
 for (const file of files) {
-  let content = fs.readFileSync(file, 'utf8');
+  let content = fs.readFileSync(file, "utf8");
   const original = content;
   let fileCount = 0;
 
@@ -103,10 +103,10 @@ for (const file of files) {
     /\bt\(\s*(['"`])([^'"`]+?)\1\s*,\s*(['"`])([^'"`]*?)\3\s*\)/g,
     (match, q, key) => {
       // Skip dynamic keys (they have template expressions)
-      if (isDynamicKey(key)) return match;
+      if (isDynamicKey(key)) { return match; }
       fileCount++;
       return `t(${q}${key}${q})`;
-    }
+    },
   );
 
   // ----------------------------------------
@@ -116,10 +116,10 @@ for (const file of files) {
   content = content.replace(
     /\bt\(\s*(['"`])([^'"`]+?)\1\s*,\s*(['"`])([^'"`]*?)\3\s*,\s*(\{)/g,
     (match, q, key) => {
-      if (isDynamicKey(key)) return match;
+      if (isDynamicKey(key)) { return match; }
       fileCount++;
       return `t(${q}${key}${q}, {`;
-    }
+    },
   );
 
   // ----------------------------------------
@@ -128,10 +128,10 @@ for (const file of files) {
   content = content.replace(
     /\bt\(\s*(['"`])([^'"`]+?)\1\s*,\s*\{\s*defaultValue:\s*(['"`])([^'"`]*?)\3\s*\}\)/g,
     (match, q, key) => {
-      if (isDynamicKey(key)) return match;
+      if (isDynamicKey(key)) { return match; }
       fileCount++;
       return `t(${q}${key}${q})`;
-    }
+    },
   );
 
   // ----------------------------------------
@@ -141,10 +141,10 @@ for (const file of files) {
   content = content.replace(
     /\bt\(\s*(['"`])([^'"`]+?)\1\s*,\s*\{\s*defaultValue:\s*(['"`])([^'"`]*?)\3\s*,\s*/g,
     (match, q, key) => {
-      if (isDynamicKey(key)) return match;
+      if (isDynamicKey(key)) { return match; }
       fileCount++;
       return `t(${q}${key}${q}, { `;
-    }
+    },
   );
 
   // ----------------------------------------
@@ -157,13 +157,13 @@ for (const file of files) {
     (match, _q, _val, after) => {
       fileCount++;
       // If after comma, keep the comma; if after closing brace, remove it
-      return after === ',' ? ',' : '';
-    }
+      return after === "," ? "," : "";
+    },
   );
 
   if (content !== original) {
-    fs.writeFileSync(file, content, 'utf8');
-    const relPath = file.replace(/\\/g, '/').replace(/^.*?\/src\//, 'src/');
+    fs.writeFileSync(file, content, "utf8");
+    const relPath = file.replace(/\\/g, "/").replace(/^.*?\/src\//, "src/");
     stats[relPath] = (stats[relPath] || 0) + fileCount;
     totalRemoved += fileCount;
     // Log small changes for verification
@@ -177,8 +177,8 @@ console.log(`\nRemoved ${totalRemoved} fallbacks from ${Object.keys(stats).lengt
 
 // Write stats report
 const report = { totalRemoved, filesProcessed: Object.keys(stats).length, perFile: stats };
-fs.writeFileSync('scripts/.batch4-report.json', JSON.stringify(report, null, 2));
-console.log('\nPer-file breakdown:');
+fs.writeFileSync("scripts/.batch4-report.json", JSON.stringify(report, null, 2));
+console.log("\nPer-file breakdown:");
 Object.entries(stats)
   .sort((a, b) => b[1] - a[1])
   .forEach(([f, c]) => console.log(`  ${c.toString().padStart(3)}  ${f}`));

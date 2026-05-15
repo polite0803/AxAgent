@@ -159,8 +159,7 @@ export function AgentProfileManager() {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  const catLabel = (cat: string) =>
-    t(`chat.workflow.agentProfile${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
+  const catLabel = (cat: string) => t(`chat.workflow.agentProfile${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
 
   const openCreate = () => {
     setEditingProfile(null);

@@ -31,9 +31,7 @@ export default function FineTunePage() {
     },
     {
       key: "jobs",
-      label: `${t("fineTune.tab.training")}${
-        stats ? ` (${stats.completed_jobs}/${stats.total_jobs})` : ""
-      }`,
+      label: `${t("fineTune.tab.training")}${stats ? ` (${stats.completed_jobs}/${stats.total_jobs})` : ""}`,
       children: <TrainingJobList />,
     },
     {
