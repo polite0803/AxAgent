@@ -48,11 +48,15 @@ export interface MemoryUsageStats {
   tier_counts: Record<string, number>;
 }
 
+/**
+ * 记忆层级标签映射（i18n key）。
+ * 调用方需用 t() 包装后显示。
+ */
 export const TIER_LABELS: Record<MemoryTier, string> = {
-  short_term: "短期记忆",
-  working: "工作记忆",
-  long_term: "长期记忆",
-  core: "核心记忆",
+  short_term: "memoryLabels.tier.shortTerm",
+  working: "memoryLabels.tier.working",
+  long_term: "memoryLabels.tier.longTerm",
+  core: "memoryLabels.tier.core",
 };
 
 export const TIER_COLORS: Record<MemoryTier, string> = {
@@ -62,11 +66,19 @@ export const TIER_COLORS: Record<MemoryTier, string> = {
   core: "#f59e0b",
 };
 
+/**
+ * 记忆性质标签映射（i18n key）。
+ * 调用方需用 t() 包装后显示。
+ */
 export const NATURE_LABELS: Record<MemoryNature, string> = {
-  episodic: "情景记忆",
-  semantic: "语义记忆",
+  episodic: "memoryLabels.nature.episodic",
+  semantic: "memoryLabels.nature.semantic",
 };
 
+/**
+ * 获取记忆层级显示文本的 i18n key。
+ * 调用方需用 t() 包装后显示，例如：{t(getTierLabel(tier))}
+ */
 export function getTierLabel(tier: MemoryTier): string {
   return TIER_LABELS[tier] ?? tier;
 }
@@ -75,16 +87,24 @@ export function getTierColor(tier: MemoryTier): string {
   return TIER_COLORS[tier] ?? "#6b7280";
 }
 
+/**
+ * 获取记忆性质显示文本的 i18n key。
+ * 调用方需用 t() 包装后显示，例如：{t(getNatureLabel(nature))}
+ */
 export function getNatureLabel(nature: MemoryNature): string {
   return NATURE_LABELS[nature] ?? nature;
 }
 
+/**
+ * 返回重要性对应的 i18n key。
+ * 调用方需用 t() 包装后显示。
+ */
 export function formatImportance(importance: number): string {
-  if (importance >= 0.9) { return "关键"; }
-  if (importance >= 0.7) { return "重要"; }
-  if (importance >= 0.5) { return "一般"; }
-  if (importance >= 0.3) { return "次要"; }
-  return "低";
+  if (importance >= 0.9) { return "memoryLabels.importance.critical"; }
+  if (importance >= 0.7) { return "memoryLabels.importance.important"; }
+  if (importance >= 0.5) { return "memoryLabels.importance.normal"; }
+  if (importance >= 0.3) { return "memoryLabels.importance.minor"; }
+  return "memoryLabels.importance.low";
 }
 
 export function isExpired(entry: MemoryEntry): boolean {

@@ -268,6 +268,7 @@ export function detectShortcutConflicts(bindings: Partial<Record<ShortcutAction,
   return conflicts;
 }
 
+// i18n-exempt: Application names for shortcut conflict detection.
 /**
  * Known external app shortcuts that commonly conflict with AxAgent.
  * Each entry maps a canonical accelerator (lowercase) to a list of

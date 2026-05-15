@@ -795,7 +795,12 @@
     "spans": "Spans",
     "errors": "Errors",
     "active": "Active",
-    "noTraces": "No traces"
+    "noTraces": "No traces",
+    "role": {
+      "user": "用户",
+      "system": "系统",
+      "assistant": "助手"
+    }
   },
   "gateway": {
     "title": "閘道",
@@ -5263,5 +5268,70 @@
   },
   "executionStore": {
     "workerCreated": "Worker created"
+  },
+  "actionRouter": {
+    "unknownType": "未知的 action 类型: {{type}}，有效类型: {{validTypes}}",
+    "missingField": "Action {{type}} 缺少必需字段 {{field}}",
+    "fieldTypeMismatch": "Action {{type}} 字段 {{field}} 应为 {{expected}}，实际为 {{actual}}",
+    "nonStandardType": "[ActionRouter] 注册非标准 action 类型: {{type}}，建议使用 custom: 前缀",
+    "chainDepthExceeded": "Action 链超过最大递归深度 {{depth}}",
+    "unregisteredAction": "未注册的 action 类型: {{type}}",
+    "agenticMissingPrompt": "Agentic action 缺少 prompt 字段",
+    "noLlmAvailable": "没有可用的 LLM 提供商/模型",
+    "typeMismatch": "类型不匹配",
+    "invokeMissingCommand": "invoke action 缺少 command",
+    "unknownStoreOp": "未知的 store 操作: {{operation}}",
+    "storeReadPermissionDenied": "权限不足: 无法读取 store {{storeName}}{{field}}",
+    "storeWritePermissionDenied": "权限不足: 无法写入 store {{storeName}}{{field}}",
+    "storeNotRegistered": "Store {{storeName}} 未注册",
+    "functionNotRegistered": "函数 {{name}} 未注册",
+    "handlerNotFound": "Handler {{name}} 未找到",
+    "handlerNotDeclarative": "Handler {{name}} 非声明式"
+  },
+  "export": {
+    "exportTime": "导出时间",
+    "messageCount": "条消息",
+    "exportedBy": "由 AxAgent 导出"
+  },
+  "skillPermissions": {
+    "undeclaredPermissions": "Skill 未声明 permissions 字段，拒绝加载",
+    "commandNotInWhitelist": "命令 \"{{cmd}}\" 不在白名单中",
+    "writeWithoutRead": "WARN: 声明了 storeWrite 但未声明 storeRead",
+    "writeWithoutReadDetail": "WARN: 声明了 storeWrite:{{ws}} 但未声明 storeRead:{{ws}}",
+    "networkDisabled": "WARN: network 权限已声明，但沙箱环境默认禁用 fetch/XHR"
+  },
+  "memoryLabels": {
+    "tier": {
+      "shortTerm": "短期记忆",
+      "working": "工作记忆",
+      "longTerm": "长期记忆",
+      "core": "核心记忆"
+    },
+    "nature": {
+      "episodic": "情景记忆",
+      "semantic": "语义记忆"
+    },
+    "importance": {
+      "critical": "关键",
+      "important": "重要",
+      "normal": "一般",
+      "minor": "次要",
+      "low": "低"
+    }
+  },
+  "constants": {
+    "language": {
+      "zhCN": "简体中文",
+      "zhTW": "繁體中文",
+      "enUS": "English",
+      "ja": "日本語",
+      "ko": "한국어",
+      "fr": "Français",
+      "de": "Deutsch",
+      "es": "Español",
+      "ru": "Русский",
+      "hi": "हिन्दी",
+      "ar": "العربية"
+    }
   }
 }

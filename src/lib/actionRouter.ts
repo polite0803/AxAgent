@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { isStoreReadCovered, isStoreWriteCovered } from "@/lib/skillPermissions";
 import type { AgenticAction, DeclarativeActionType, SkillCommandAction, SkillPermissions } from "@/types";
@@ -60,27 +61,42 @@ const ACTION_SCHEMAS: Record<string, ActionSchemaRule> = {
 
 function validateAction(action: DeclarativeActionType): string | null {
   if (!VALID_ACTION_TYPES.has(action.type)) {
-    return `未知的 action 类型: "${action.type}"，有效类型: ${[...VALID_ACTION_TYPES].join(", ")}`;
+    return i18n.t("actionRouter.unknownType", { type: action.type, validTypes: [...VALID_ACTION_TYPES].join(", ") });
   }
   const schema = ACTION_SCHEMAS[action.type];
   if (!schema) { return null; }
   for (const field of schema.requiredFields) {
     const value = (action as Record<string, unknown>)[field];
     if (value === undefined || value === null || value === "") {
-      return `Action "${action.type}" 缺少必需字段 "${field}"`;
+      return i18n.t("actionRouter.missingField", { type: action.type, field });
     }
   }
   for (const [field, expectedType] of Object.entries(schema.fieldTypes)) {
     const value = (action as Record<string, unknown>)[field];
     if (value === undefined || value === null) { continue; }
     if (expectedType === "string" && typeof value !== "string") {
-      return `Action "${action.type}" 字段 "${field}" 应为 string，实际为 ${typeof value}`;
+      return i18n.t("actionRouter.fieldTypeMismatch", {
+        type: action.type,
+        field,
+        expected: "string",
+        actual: typeof value,
+      });
     }
     if (expectedType === "object" && typeof value !== "object") {
-      return `Action "${action.type}" 字段 "${field}" 应为 object，实际为 ${typeof value}`;
+      return i18n.t("actionRouter.fieldTypeMismatch", {
+        type: action.type,
+        field,
+        expected: "object",
+        actual: typeof value,
+      });
     }
     if (expectedType === "array" && !Array.isArray(value)) {
-      return `Action "${action.type}" 字段 "${field}" 应为 array，实际为 ${typeof value}`;
+      return i18n.t("actionRouter.fieldTypeMismatch", {
+        type: action.type,
+        field,
+        expected: "array",
+        actual: typeof value,
+      });
     }
   }
   return null;
@@ -95,7 +111,7 @@ export class ActionRouter {
 
   registerDeclarativeExecutor(type: string, executor: DeclarativeExecutor): void {
     if (!VALID_ACTION_TYPES.has(type) && !type.startsWith("custom:")) {
-      console.warn(`[ActionRouter] 注册非标准 action 类型: "${type}"，建议使用 "custom:" 前缀`);
+      console.warn(i18n.t("actionRouter.nonStandardType", { type }));
     }
     this.declarativeExecutors.set(type, executor);
   }
@@ -113,7 +129,7 @@ export class ActionRouter {
 
   async executeChain(actions: SkillCommandAction[], context: ActionContext, depth = 0): Promise<ActionResult> {
     if (depth > MAX_CHAIN_DEPTH) {
-      return { success: false, error: `Action 链超过最大递归深度 ${MAX_CHAIN_DEPTH}` };
+      return { success: false, error: i18n.t("actionRouter.chainDepthExceeded", { depth: MAX_CHAIN_DEPTH }) };
     }
     let lastResult: ActionResult = { success: true };
     for (const action of actions) {
@@ -133,14 +149,14 @@ export class ActionRouter {
     }
     const executor = this.declarativeExecutors.get(action.type);
     if (!executor) {
-      return { success: false, error: `未注册的 action 类型: ${action.type}` };
+      return { success: false, error: i18n.t("actionRouter.unregisteredAction", { type: action.type }) };
     }
     return executor(action, ctx);
   }
 
   private async executeAgentic(action: AgenticAction, ctx: ActionContext): Promise<ActionResult> {
     if (!action.prompt || action.prompt.trim().length === 0) {
-      return { success: false, error: "Agentic action 缺少 prompt 字段" };
+      return { success: false, error: i18n.t("actionRouter.agenticMissingPrompt") };
     }
     const { useConversationStore, useProviderStore } = await import("@/stores");
     const convStore = useConversationStore.getState();
@@ -151,7 +167,7 @@ export class ActionRouter {
     const model = provider?.models.find((m) => m.enabled);
 
     if (!provider || !model) {
-      return { success: false, error: "没有可用的 LLM 提供商/模型" };
+      return { success: false, error: i18n.t("actionRouter.noLlmAvailable") };
     }
 
     const title = `${ctx.skillName || "Skill"}: ${action.prompt.slice(0, 50)}`;
@@ -167,29 +183,29 @@ export class ActionRouter {
 
   private registerBuiltinExecutors(): void {
     this.declarativeExecutors.set("invoke", async (action) => {
-      if (action.type !== "invoke") { return { success: false, error: "类型不匹配" }; }
-      if (!action.command) { return { success: false, error: "invoke action 缺少 command" }; }
+      if (action.type !== "invoke") { return { success: false, error: i18n.t("actionRouter.typeMismatch") }; }
+      if (!action.command) { return { success: false, error: i18n.t("actionRouter.invokeMissingCommand") }; }
       const result = await invoke(action.command, action.args || {});
       return { success: true, data: result };
     });
 
     this.declarativeExecutors.set("navigate", async (action) => {
-      if (action.type !== "navigate") { return { success: false, error: "类型不匹配" }; }
+      if (action.type !== "navigate") { return { success: false, error: i18n.t("actionRouter.typeMismatch") }; }
       window.location.hash = action.path;
       return { success: true };
     });
 
     this.declarativeExecutors.set("emit", async (action) => {
-      if (action.type !== "emit") { return { success: false, error: "类型不匹配" }; }
+      if (action.type !== "emit") { return { success: false, error: i18n.t("actionRouter.typeMismatch") }; }
       window.dispatchEvent(new CustomEvent(action.event, { detail: action.payload }));
       return { success: true };
     });
 
     this.declarativeExecutors.set("store", async (action, ctx) => {
-      if (action.type !== "store") { return { success: false, error: "类型不匹配" }; }
+      if (action.type !== "store") { return { success: false, error: i18n.t("actionRouter.typeMismatch") }; }
       const operation = action.operation;
       if (operation !== "get" && operation !== "set" && operation !== "update") {
-        return { success: false, error: `未知的 store 操作: ${operation}` };
+        return { success: false, error: i18n.t("actionRouter.unknownStoreOp", { operation }) };
       }
       if (ctx.permissions) {
         const isRead = operation === "get";
@@ -198,51 +214,62 @@ export class ActionRouter {
             && "selector" in (action.payload as Record<string, unknown>)
           ? String((action.payload as Record<string, unknown>).selector)
           : undefined;
+        const fieldSuffix = selector ? ` "${selector}"` : "";
         if (isRead && !isStoreReadCovered(action.storeName, selector, ctx.permissions.storeRead ?? [])) {
           return {
             success: false,
-            error: `权限不足: 无法读取 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}`,
+            error: i18n.t("actionRouter.storeReadPermissionDenied", {
+              storeName: action.storeName,
+              field: fieldSuffix,
+            }),
           };
         }
         if (isWrite && !isStoreWriteCovered(action.storeName, selector, ctx.permissions.storeWrite ?? [])) {
           return {
             success: false,
-            error: `权限不足: 无法写入 store "${action.storeName}"${selector ? ` 字段 "${selector}"` : ""}`,
+            error: i18n.t("actionRouter.storeWritePermissionDenied", {
+              storeName: action.storeName,
+              field: fieldSuffix,
+            }),
           };
         }
       }
       const { getStoreRegistry } = await import("./storeRegistry");
       const store = getStoreRegistry().get(action.storeName);
-      if (!store) { return { success: false, error: `Store ${action.storeName} 未注册` }; }
+      if (!store) {
+        return { success: false, error: i18n.t("actionRouter.storeNotRegistered", { storeName: action.storeName }) };
+      }
       const result = store[operation](action.payload);
       return { success: true, data: result };
     });
 
     this.declarativeExecutors.set("function", async (action) => {
-      if (action.type !== "function") { return { success: false, error: "类型不匹配" }; }
+      if (action.type !== "function") { return { success: false, error: i18n.t("actionRouter.typeMismatch") }; }
       const { getCustomFunction } = await import("./skillActionExecutor");
       const fn = getCustomFunction(action.name);
-      if (!fn) { return { success: false, error: `函数 ${action.name} 未注册` }; }
+      if (!fn) {
+        return { success: false, error: i18n.t("actionRouter.functionNotRegistered", { name: action.name }) };
+      }
       await fn({ args: action.args }, "");
       return { success: true };
     });
 
     this.declarativeExecutors.set("handler", async (action, ctx) => {
-      if (action.type !== "handler") { return { success: false, error: "类型不匹配" }; }
+      if (action.type !== "handler") { return { success: false, error: i18n.t("actionRouter.typeMismatch") }; }
       const { useSkillExtensionStore } = await import("@/stores");
       const handler = useSkillExtensionStore.getState().getHandler(action.name);
-      if (!handler) { return { success: false, error: `Handler ${action.name} 未找到` }; }
+      if (!handler) { return { success: false, error: i18n.t("actionRouter.handlerNotFound", { name: action.name }) }; }
       if (handler.mode === "declarative" && handler.actions) {
         return this.executeChain(handler.actions, ctx);
       }
-      return { success: false, error: `Handler ${action.name} 非声明式` };
+      return { success: false, error: i18n.t("actionRouter.handlerNotDeclarative", { name: action.name }) };
     });
 
     this.declarativeExecutors.set("chain", async (action, ctx) => {
-      if (action.type !== "chain") { return { success: false, error: "类型不匹配" }; }
+      if (action.type !== "chain") { return { success: false, error: i18n.t("actionRouter.typeMismatch") }; }
       const depth = (ctx._chainDepth || 0) + 1;
       if (depth > MAX_CHAIN_DEPTH) {
-        return { success: false, error: `Action 链超过最大递归深度 ${MAX_CHAIN_DEPTH}` };
+        return { success: false, error: i18n.t("actionRouter.chainDepthExceeded", { depth: MAX_CHAIN_DEPTH }) };
       }
       return this.executeChain(
         action.actions.map((a) => ({ mode: "declarative" as const, action: a })),

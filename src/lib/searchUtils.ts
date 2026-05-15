@@ -1,3 +1,4 @@
+// i18n-exempt: LLM prompt templates used for search result formatting. Not user-facing UI.
 import type { SearchResultItem } from "@/types";
 
 const SEARCH_MARKER_START = "<!-- search:";

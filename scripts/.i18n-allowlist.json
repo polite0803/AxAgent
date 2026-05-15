@@ -1,8 +1,8 @@
 {
   "version": "1",
   "generated": "2026-05-15",
-  "total_entries": 168,
-  "total_files": 206,
+  "total_entries": 164,
+  "total_files": 202,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -653,12 +653,6 @@
       "phase": 3
     },
     {
-      "file": "src/lib/actionRouter.ts",
-      "lines": "63,70,77,80,83,98,116,136,143,154,170,171,177,183,189,192,204,210,216,222,225,231,234,238,242,245",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/lib/asyncState.ts",
       "lines": "2,4",
       "reason": "硬编码中文字符串",
@@ -667,25 +661,19 @@
     {
       "file": "src/lib/browserMock.ts",
       "lines": "119,121,123,125,1140,1141,1146,1155,1164,1175,1176,1181,1190,1199,1210,1211,1216,1745,1756,1766,1776",
-      "reason": "硬编码中文字符串",
+      "reason": "i18n-exempt: Mock data for browser preview mode",
       "phase": 3
     },
     {
       "file": "src/lib/chartGenerator.ts",
       "lines": "39,40,41,58,59,60,61,62",
-      "reason": "硬编码中文字符串",
+      "reason": "i18n-exempt: NLP intent detection patterns",
       "phase": 3
     },
     {
       "file": "src/lib/constants.ts",
       "lines": "2,3,5",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/exportChat.ts",
-      "lines": "126,132,138,143,145,251,254",
-      "reason": "硬编码中文字符串",
+      "reason": "硬编码中文字符串（已添加 labelKey 供 i18n 迁移用）",
       "phase": 3
     },
     {
@@ -695,21 +683,15 @@
       "phase": 3
     },
     {
-      "file": "src/lib/memoryUtils.ts",
-      "lines": "52,53,54,55,66,67,83,84,85,86,87",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/lib/searchUtils.ts",
       "lines": "25,29",
-      "reason": "硬编码中文字符串",
+      "reason": "i18n-exempt: LLM prompt templates for search result formatting",
       "phase": 3
     },
     {
       "file": "src/lib/shortcuts.ts",
       "lines": "282,286,290",
-      "reason": "硬编码中文字符串",
+      "reason": "i18n-exempt: Application names for shortcut conflict detection",
       "phase": 3
     },
     {
@@ -733,12 +715,6 @@
     {
       "file": "src/lib/skillLifecycle.ts",
       "lines": "35,84",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/lib/skillPermissions.ts",
-      "lines": "3,5,7,9,13,54,56,57,58,59,61,62,63,65,75,83,87,89,96,100,102,105,106,115,116,117,129,130,145,149",
       "reason": "硬编码中文字符串",
       "phase": 3
     },

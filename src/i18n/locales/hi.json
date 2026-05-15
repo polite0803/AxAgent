@@ -795,7 +795,12 @@
     "spans": "Spans",
     "errors": "Errors",
     "active": "Active",
-    "noTraces": "No traces"
+    "noTraces": "No traces",
+    "role": {
+      "user": "User",
+      "system": "System",
+      "assistant": "Assistant"
+    }
   },
   "gateway": {
     "title": "गेटवे",
@@ -5263,5 +5268,70 @@
   },
   "executionStore": {
     "workerCreated": "Worker created"
+  },
+  "actionRouter": {
+    "unknownType": "Unknown action type: \"{{type}}\", valid types: {{validTypes}}",
+    "missingField": "Action {{type}} missing required field \"{{field}}\"",
+    "fieldTypeMismatch": "Action {{type}} field \"{{field}}\" expected {{expected}}, got {{actual}}",
+    "nonStandardType": "[ActionRouter] Registering non-standard action type: \"{{type}}\", suggest using \"custom:\" prefix",
+    "chainDepthExceeded": "Action chain exceeded max recursion depth {{depth}}",
+    "unregisteredAction": "Unregistered action type: {{type}}",
+    "agenticMissingPrompt": "Agentic action missing prompt field",
+    "noLlmAvailable": "No available LLM provider/model",
+    "typeMismatch": "Type mismatch",
+    "invokeMissingCommand": "invoke action missing command",
+    "unknownStoreOp": "Unknown store operation: {{operation}}",
+    "storeReadPermissionDenied": "Permission denied: cannot read store {{storeName}}{{field}}",
+    "storeWritePermissionDenied": "Permission denied: cannot write store {{storeName}}{{field}}",
+    "storeNotRegistered": "Store {{storeName}} not registered",
+    "functionNotRegistered": "Function {{name}} not registered",
+    "handlerNotFound": "Handler {{name}} not found",
+    "handlerNotDeclarative": "Handler {{name}} not declarative"
+  },
+  "export": {
+    "exportTime": "Export time",
+    "messageCount": "messages",
+    "exportedBy": "Exported by AxAgent"
+  },
+  "skillPermissions": {
+    "undeclaredPermissions": "Skill did not declare permissions field, rejected",
+    "commandNotInWhitelist": "Command \"{{cmd}}\" not in whitelist",
+    "writeWithoutRead": "WARN: storeWrite declared but storeRead not declared",
+    "writeWithoutReadDetail": "WARN: storeWrite:{{ws}} declared but storeRead:{{ws}} not declared",
+    "networkDisabled": "WARN: network permissions declared, but sandbox disables fetch/XHR by default"
+  },
+  "memoryLabels": {
+    "tier": {
+      "shortTerm": "Short-term memory",
+      "working": "Working memory",
+      "longTerm": "Long-term memory",
+      "core": "Core memory"
+    },
+    "nature": {
+      "episodic": "Episodic memory",
+      "semantic": "Semantic memory"
+    },
+    "importance": {
+      "critical": "Critical",
+      "important": "Important",
+      "normal": "Normal",
+      "minor": "Minor",
+      "low": "Low"
+    }
+  },
+  "constants": {
+    "language": {
+      "zhCN": "Simplified Chinese",
+      "zhTW": "Traditional Chinese",
+      "enUS": "English",
+      "ja": "Japanese",
+      "ko": "Korean",
+      "fr": "French",
+      "de": "German",
+      "es": "Spanish",
+      "ru": "Russian",
+      "hi": "Hindi",
+      "ar": "Arabic"
+    }
   }
 }
