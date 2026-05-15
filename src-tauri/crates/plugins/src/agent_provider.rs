@@ -3,6 +3,8 @@
 use std::collections::HashMap;
 use std::sync::RwLock;
 
+use crate::PluginAgentDefInternal;
+
 /// Agent 定义（简化的，避免循环依赖）
 #[derive(Debug, Clone)]
 pub struct PluginAgentDef {
@@ -59,4 +61,35 @@ static GLOBAL_PLUGIN_AGENTS: std::sync::LazyLock<PluginAgentRegistry> =
 /// 获取全局 Plugin Agent 注册表
 pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
     &GLOBAL_PLUGIN_AGENTS
+}
+
+/// 从插件清单注册 agents
+pub fn register_plugin_agents(plugin_id: &str, agents: &[PluginAgentDefInternal]) {
+    let registry = global_plugin_agents();
+    for agent in agents {
+        registry.register(PluginAgentDef {
+            agent_type: format!("{}/{}", plugin_id, agent.agent_type),
+            description: agent.description.clone(),
+            tools: agent.tools.clone(),
+            disallowed_tools: agent.disallowed_tools.clone(),
+            model: agent.model.clone(),
+            background: agent.background,
+            system_prompt: agent.system_prompt.clone(),
+        });
+    }
+}
+
+/// 从插件注销所有 agents
+pub fn unregister_plugin_agents(plugin_id: &str) {
+    let registry = global_plugin_agents();
+    let prefix = format!("{}/", plugin_id);
+    let to_remove: Vec<String> = registry
+        .all()
+        .into_iter()
+        .filter(|a| a.agent_type.starts_with(&prefix))
+        .map(|a| a.agent_type)
+        .collect();
+    for agent_type in to_remove {
+        registry.unregister(&agent_type);
+    }
 }
