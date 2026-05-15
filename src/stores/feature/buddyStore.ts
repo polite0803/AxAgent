@@ -67,60 +67,62 @@ interface SpeciesTemplate {
   attributes: BuddyAttributes;
 }
 
-const SPECIES: SpeciesTemplate[] = [
+const SPECIES_TEMPLATES: Omit<SpeciesTemplate, "name">[] = [
   {
     speciesId: "duck",
-    name: i18n.t("buddy.species.duck"),
     emoji: "🦆",
     rarity: "common",
     attributes: { debugging: 4, patience: 3, chaos: 2, wisdom: 3, snark: 2 },
   },
   {
     speciesId: "cat",
-    name: i18n.t("buddy.species.cat"),
     emoji: "🐱",
     rarity: "common",
     attributes: { debugging: 3, patience: 2, chaos: 4, wisdom: 3, snark: 4 },
   },
   {
     speciesId: "owl",
-    name: i18n.t("buddy.species.owl"),
     emoji: "🦉",
     rarity: "uncommon",
     attributes: { debugging: 3, patience: 4, chaos: 1, wisdom: 5, snark: 2 },
   },
   {
     speciesId: "fox",
-    name: i18n.t("buddy.species.fox"),
     emoji: "🦊",
     rarity: "uncommon",
     attributes: { debugging: 4, patience: 2, chaos: 3, wisdom: 4, snark: 3 },
   },
   {
     speciesId: "dragon",
-    name: i18n.t("buddy.species.dragon"),
     emoji: "🐉",
     rarity: "rare",
     attributes: { debugging: 5, patience: 3, chaos: 4, wisdom: 4, snark: 3 },
   },
   {
     speciesId: "unicorn",
-    name: i18n.t("buddy.species.unicorn"),
     emoji: "🦄",
     rarity: "epic",
     attributes: { debugging: 4, patience: 4, chaos: 3, wisdom: 5, snark: 2 },
   },
 ];
 
+function getSpecies(): SpeciesTemplate[] {
+  return SPECIES_TEMPLATES.map((s) => ({
+    ...s,
+    name: i18n.t(`buddy.species.${s.speciesId}`),
+  }));
+}
+
 // ── 工具函数 ──────────────────────────────────────────────
 
 /** 根据物种 ID 查找模板，找不到则随机选一个 */
 function resolveSpecies(speciesId?: string): SpeciesTemplate {
+  const species = getSpecies();
   if (speciesId) {
-    const found = SPECIES.find((s) => s.speciesId === speciesId);
+    const found = species.find((s) => s.speciesId === speciesId);
     if (found) { return found; }
   }
-  return SPECIES[Math.floor(Math.random() * SPECIES.length)];
+  return species[Math.floor(Math.random() * species.length)];
 }
 
 /** 根据等级计算升级所需经验 */

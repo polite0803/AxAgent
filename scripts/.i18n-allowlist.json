@@ -684,7 +684,7 @@
     },
     {
       "file": "src/stores/feature/buddyStore.ts",
-      "lines": "17,18,19,20,21,117,126,131",
+      "lines": "17,18,19,20,21,118,128,133",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -696,7 +696,7 @@
     },
     {
       "file": "src/stores/feature/expertStore.ts",
-      "lines": "11,163,165,167",
+      "lines": "11,166,168,170",
       "reason": "硬编码中文字符串",
       "phase": 3
     },

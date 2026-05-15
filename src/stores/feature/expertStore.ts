@@ -25,7 +25,10 @@ function resolvePreset(
 
 // 默认仅载入通用助手，完整的 12 个开发专家预设不强制加载。
 // 用户可通过专家管理页"导入内置专家"按钮，一次性导入全部 12 个预设。
-const MINIMAL_BUILTIN = BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant").map(resolvePreset);
+// resolvePreset 调用 i18n.t()，必须在运行时延迟调用，不能在模块顶层执行。
+function getMinimalBuiltin(): AgentProfile[] {
+  return BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant").map(resolvePreset);
+}
 
 function loadBuiltinRoles(): AgentProfile[] {
   try {
@@ -34,7 +37,7 @@ function loadBuiltinRoles(): AgentProfile[] {
       return BUILTIN_EXPERT_PRESETS.map(resolvePreset);
     }
   } catch { /* ignore */ }
-  return MINIMAL_BUILTIN;
+  return getMinimalBuiltin();
 }
 
 function loadCustomRoles(): AgentProfile[] {
@@ -374,6 +377,6 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
 
   removeBuiltinPresets: () => {
     localStorage.removeItem(BUILTIN_IMPORTED_KEY);
-    set({ builtinRoles: MINIMAL_BUILTIN });
+    set({ builtinRoles: getMinimalBuiltin() });
   },
 }));
