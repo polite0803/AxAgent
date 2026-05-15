@@ -1380,3 +1380,34 @@ export interface ImportFromUrlInput {
 export type ExportPromptFormat = "json" | "yaml" | "markdown";
 
 export * from "./wiki";
+
+// === Plugin System ===
+export interface PluginSummaryDto {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  kind: "builtin" | "bundled" | "external";
+  enabled: boolean;
+  tools: string[];
+  mcp_servers: string[];
+  skills: string[];
+}
+
+export interface PluginManifestDto {
+  name: string;
+  version: string;
+  description: string;
+  permissions: string[];
+  default_enabled: boolean;
+  hooks: Record<string, string[]>;
+  tools: { name: string; description: string }[];
+  mcp_servers: { name: string; command: string }[];
+  skills: { name: string; path: string }[];
+}
+
+export interface InstallOutcomeDto {
+  plugin_id: string;
+  version: string;
+  install_path: string;
+}

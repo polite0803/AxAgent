@@ -631,6 +631,7 @@
         "disable": "Disable",
         "enable": "Enable",
         "install": "Install",
+        "installPlaceholder": "Instalar: @scope/name o URL Git o ruta local",
         "loading": "Loading...",
         "refresh": "Refresh",
         "title": "Plugin Marketplace"

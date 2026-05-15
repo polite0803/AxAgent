@@ -631,6 +631,7 @@
         "disable": "Disable",
         "enable": "Enable",
         "install": "Install",
+        "installPlaceholder": "설치: @scope/name 또는 Git URL 또는 로컬 경로",
         "loading": "Loading...",
         "refresh": "Refresh",
         "title": "Plugin Marketplace"
