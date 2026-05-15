@@ -21,7 +21,7 @@ test.describe("Workflow Editor E2E Tests", () => {
   });
 
   test("should load workflow page", async ({ page }) => {
-    const searchInput = page.locator('input[placeholder="搜索模板..."]');
+    const searchInput = page.locator('input[placeholder="搜索模板名称..."]');
     await expect(searchInput).toBeVisible({ timeout: 10000 });
   });
 
@@ -39,7 +39,7 @@ test.describe("Workflow Editor E2E Tests", () => {
   });
 
   test("should filter templates by search", async ({ page }) => {
-    const searchInput = page.locator('input[placeholder="搜索模板..."]');
+    const searchInput = page.locator('input[placeholder="搜索模板名称..."]');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
     await searchInput.fill("code");
     await expect(searchInput).toHaveValue("code");
