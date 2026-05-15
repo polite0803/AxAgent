@@ -182,7 +182,8 @@ pub enum OutputMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentNodeConfig {
-    pub role: AgentRole,
+    #[serde(default)]
+    pub role: Option<AgentRole>,
     pub system_prompt: String,
     pub context_sources: Vec<String>,
     pub output_var: String,
@@ -192,6 +193,7 @@ pub struct AgentNodeConfig {
     pub tools: Vec<String>,
     pub output_mode: OutputMode,
     pub agent_profile_id: Option<String>,
+    #[serde(default)]
     pub agent_role_override: Option<String>,
 }
 
@@ -809,7 +811,7 @@ impl WorkflowMigrator {
                     Some(WorkflowNode::Agent(AgentNode {
                         base: tool_node.base.clone(),
                         config: AgentNodeConfig {
-                            role: AgentRole::Executor,
+                            role: Some(AgentRole::Executor),
                             system_prompt: String::new(),
                             context_sources: Vec::new(),
                             output_var: tool_node.config.output_var.clone(),
@@ -835,7 +837,7 @@ impl WorkflowMigrator {
                     Some(WorkflowNode::Agent(AgentNode {
                         base: code_node.base.clone(),
                         config: AgentNodeConfig {
-                            role: AgentRole::Executor,
+                            role: Some(AgentRole::Executor),
                             system_prompt: String::new(),
                             context_sources: Vec::new(),
                             output_var: code_node.config.output_var.clone(),

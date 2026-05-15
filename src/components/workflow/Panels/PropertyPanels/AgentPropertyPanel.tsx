@@ -1,11 +1,13 @@
 import { ExpertSelector } from "@/components/chat/ExpertSelector";
 import { ModelSelect } from "@/components/shared/ModelSelect";
-import { useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
+import { invoke } from "@/lib/invoke";
+import { useAgentProfileStore, useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { Button, Divider, Input, InputNumber, Select, Tag } from "antd";
+import type { CreateAgentProfileInput } from "@/types";
+import { Button, Divider, Input, InputNumber, message, Select, Tag } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AgentNode, AgentRole, OutputMode, WorkflowNode } from "../../types";
+import type { AgentNode, OutputMode, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface AgentPropertyPanelProps {
@@ -14,11 +16,15 @@ interface AgentPropertyPanelProps {
   onDelete: () => void;
 }
 
+interface AgentRoleRow {
+  id: string;
+  name: string;
+}
+
 export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
-    role: "developer" as AgentRole,
     system_prompt: "",
     context_sources: [],
     output_var: "",
@@ -27,12 +33,29 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
   };
 
   const [expertSelectorOpen, setExpertSelectorOpen] = useState(false);
+  const [globalRoles, setGlobalRoles] = useState<AgentRoleRow[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [creatingProfile, setCreatingProfile] = useState(false);
+
   const getExpert = useExpertStore((s) => s.getRoleById);
   const selectedExpert = config.agentProfileId ? getExpert(config.agentProfileId) : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
   const { providers, fetchProviders } = useProviderStore();
+
+  // 加载全局角色列表
+  useEffect(() => {
+    invoke<AgentRoleRow[]>("list_agent_roles")
+      .then((roles) => {
+        setGlobalRoles(roles);
+        // 从已选 profile 中恢复角色选择
+        if (selectedExpert?.agentRole) {
+          setSelectedRoleId(selectedExpert.agentRole);
+        }
+      })
+      .catch((e) => console.error("[AgentPropertyPanel] Failed to load agent roles:", e));
+  }, []);
 
   useEffect(() => {
     if (toolGroups.length === 0) {
@@ -76,42 +99,113 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     onUpdate({ config: { ...config, [key]: value } });
   };
 
+  // 角色+专家组合 → 创建或选择 AgentProfile
+  const handleRoleExpertCombine = async (roleId: string, expertId: string) => {
+    setCreatingProfile(true);
+    try {
+      const expert = getExpert(expertId);
+      if (!expert) {
+        message.error(t("workflow.props.expertNotFound"));
+        return;
+      }
+      // 查找是否已有匹配的 profile
+      const existingProfiles = useAgentProfileStore.getState().getAllProfiles();
+      const matched = existingProfiles.find(
+        (p) => p.agentRole === roleId && p.expertId === expertId,
+      );
+      if (matched) {
+        handleConfigChange("agentProfileId", matched.id);
+        message.success(t("workflow.props.profileMatched"));
+        return;
+      }
+
+      // 创建新 AgentProfile：不合并专家提示词，执行时按优先级自动选取
+      const input: CreateAgentProfileInput = {
+        name: `${expert.name} (${roleId})`,
+        description: expert.description ?? undefined,
+        category: expert.category,
+        icon: expert.icon,
+        systemPrompt: "",
+        agentRole: roleId,
+        source: "custom",
+        tags: expert.tags,
+        expertId,
+        suggestedProviderId: expert.suggestedProviderId,
+        suggestedModelId: expert.suggestedModelId,
+        suggestedTemperature: expert.suggestedTemperature,
+        suggestedMaxTokens: expert.suggestedMaxTokens,
+        searchEnabled: expert.searchEnabled,
+        recommendPermissionMode: expert.recommendPermissionMode,
+        recommendedTools: expert.recommendedTools,
+        recommendedWorkflows: expert.recommendedWorkflows,
+      };
+      const profile = await useAgentProfileStore.getState().createCustomProfile(input);
+      handleConfigChange("agentProfileId", profile.id);
+      message.success(t("workflow.props.profileCreated"));
+    } catch (e) {
+      message.error(t("workflow.props.profileCreateFailed", { error: String(e) }));
+    } finally {
+      setCreatingProfile(false);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* 角色选择（全局 agent_roles） */}
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
           {t("workflow.props.agentRole")}
         </label>
         <Select
-          value={config.role}
-          onChange={(value) => handleConfigChange("role", value)}
+          value={selectedRoleId}
+          onChange={(roleId) => {
+            setSelectedRoleId(roleId);
+            // 如果已经选了专家，自动组合
+            if (roleId && config.agentProfileId) {
+              handleRoleExpertCombine(roleId, config.agentProfileId);
+            }
+          }}
           size="small"
           style={{ width: "100%" }}
-          options={[
-            { value: "researcher", label: t("workflow.props.roleResearcher") },
-            { value: "planner", label: t("workflow.props.rolePlanner") },
-            { value: "developer", label: t("workflow.props.roleDeveloper") },
-            { value: "reviewer", label: t("workflow.props.roleReviewer") },
-            { value: "synthesizer", label: t("workflow.props.roleSynthesizer") },
-            { value: "executor", label: t("workflow.props.roleExecutor") },
-          ]}
+          allowClear
+          placeholder={t("workflow.props.selectRole")}
+          options={globalRoles.map((r) => ({ value: r.id, label: r.name }))}
         />
       </div>
 
+      {/* 专家/AgentProfile 选择 */}
       <div>
         <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
           {t("workflow.props.expertRole")}
         </label>
         {selectedExpert
           ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <Tag
                 closable
-                onClose={() => handleConfigChange("agentProfileId", undefined)}
+                onClose={() => {
+                  handleConfigChange("agentProfileId", undefined);
+                  setSelectedRoleId(null);
+                }}
                 style={{ margin: 0, fontSize: 12, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}
               >
                 {selectedExpert.icon} {selectedExpert.name}
               </Tag>
+              {selectedExpert.agentRole && (
+                <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>
+                  {t("workflow.props.roleTag", { role: selectedExpert.agentRole })}
+                </Tag>
+              )}
+              {!selectedExpert.agentRole && selectedRoleId && (
+                <Button
+                  size="small"
+                  type="link"
+                  loading={creatingProfile}
+                  onClick={() => handleRoleExpertCombine(selectedRoleId, config.agentProfileId!)}
+                >
+                  {t("workflow.props.bindRole")}
+                </Button>
+              )}
             </div>
           )
           : (
@@ -129,9 +223,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       <ExpertSelector
         open={expertSelectorOpen}
         selectedRoleId={config.agentProfileId ?? null}
-        onSelect={(roleId) => {
-          handleConfigChange("agentProfileId", roleId);
+        onSelect={(profileId) => {
+          handleConfigChange("agentProfileId", profileId);
           setExpertSelectorOpen(false);
+          // 从选中的 profile 中恢复角色选择
+          const profile = getExpert(profileId);
+          if (profile?.agentRole) {
+            setSelectedRoleId(profile.agentRole);
+          }
         }}
         onClose={() => setExpertSelectorOpen(false)}
       />

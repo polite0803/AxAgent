@@ -477,7 +477,7 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
     WorkflowNode::Agent(AgentNode {
         base,
         config: AgentNodeConfig {
-            role: agent_role,
+            role: Some(agent_role),
             system_prompt: format!("You are a {} agent. Your goal: {}", step.role, step.goal),
             context_sources: vec![],
             output_var: format!("{}_result", step.id),

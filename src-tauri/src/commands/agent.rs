@@ -619,40 +619,30 @@ pub async fn agent_query(
         }
     }
 
-    // Assemble system prompt: Role → Expert → ProfileOverride (later = higher priority)
-    let mut prompt_parts: Vec<String> = Vec::new();
-    if let Some(ref rp) = role_system_prompt {
-        prompt_parts.push(rp.clone());
-    }
-    if let Some(ref ep) = expert_system_prompt {
-        prompt_parts.push(ep.clone());
-    }
-    if let Some(ref pp) = profile_override_prompt {
-        prompt_parts.push(pp.clone());
-    }
+    // 选一条最优提示词（不是三层拼接），节约 token
+    // 优先级：ProfileOverride > Expert > Role
+    let effective_system_prompt: Option<String> = [
+        profile_override_prompt.as_deref(),
+        expert_system_prompt.as_deref(),
+        role_system_prompt.as_deref(),
+    ]
+    .into_iter()
+    .find_map(|p| p.filter(|s| !s.is_empty()))
+    .map(|s| s.to_string());
 
-    let effective_system_prompt = if prompt_parts.is_empty() {
-        // Legacy/explicit fallbacks
-        if let Some(ref expert_id) = request.expert_role_id {
-            if let Ok(Some(expert)) =
-                axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
-                    .one(&app_state.sea_db)
-                    .await
-                    .map_err(|e| e.to_string())
-            {
-                if !expert.system_prompt.is_empty() {
-                    Some(expert.system_prompt)
-                } else {
-                    request.system_prompt.clone()
-                }
-            } else {
-                request.system_prompt.clone()
-            }
-        } else {
-            request.system_prompt.clone()
+    // 三层都为空时降级到 deprecated 路径或请求中携带的 system_prompt
+    let effective_system_prompt = if let Some(p) = effective_system_prompt {
+        Some(p)
+    } else if let Some(ref expert_id) = request.expert_role_id {
+        match axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+            .one(&app_state.sea_db)
+            .await
+        {
+            Ok(Some(expert)) if !expert.system_prompt.is_empty() => Some(expert.system_prompt),
+            _ => request.system_prompt.clone(),
         }
     } else {
-        Some(prompt_parts.join("\n\n"))
+        request.system_prompt.clone()
     };
 
     // Pre-generate a placeholder assistant message ID for streaming events.

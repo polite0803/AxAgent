@@ -3317,7 +3317,16 @@
       "defaultCodeJsComment": "// 輸入數據: input.yourVar",
       "defaultCodePythonComment": "# 輸入數據: input.yourVar",
       "codeInputParams": "輸入參數",
-      "codeReturnHint": "返回數據將作為節點輸出傳遞"
+      "codeReturnHint": "返回數據將作為節點輸出傳遞",
+      "roleCoordinator": "",
+      "roleBrowser": "",
+      "selectRole": "",
+      "roleTag": "",
+      "bindRole": "",
+      "expertNotFound": "",
+      "profileMatched": "",
+      "profileCreated": "",
+      "profileCreateFailed": ""
     },
     "debug": {
       "totalDuration": "總耗時",
@@ -3480,7 +3489,10 @@
       "roleDeveloper": "開發者",
       "roleReviewer": "審查者",
       "roleSynthesizer": "綜合者",
-      "roleExecutor": "執行者"
+      "roleExecutor": "執行者",
+      "agent": "",
+      "roleCoordinator": "",
+      "roleBrowser": ""
     },
     "conditionNode": {
       "title": "條件判斷",
@@ -5432,5 +5444,15 @@
       "name": "翻譯專家",
       "description": "專注多語言翻譯、本地化和國際化支援"
     }
+  },
+  "agentRole": {
+    "coordinator": "",
+    "researcher": "",
+    "planner": "",
+    "developer": "",
+    "reviewer": "",
+    "browser": "",
+    "synthesizer": "",
+    "executor": ""
   }
 }

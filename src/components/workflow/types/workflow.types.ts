@@ -71,20 +71,15 @@ export interface EventTriggerConfig {
   filter?: unknown;
 }
 
-export type AgentRole =
-  | "researcher"
-  | "planner"
-  | "developer"
-  | "reviewer"
-  | "synthesizer"
-  | "executor"
-  | "coordinator"
-  | "browser";
-
 export type OutputMode = "json" | "text" | "artifact";
 
 export interface AgentNodeConfig {
-  role: AgentRole;
+  /** 全局 AgentProfile ID，角色和专家信息统一由此获取 */
+  agentProfileId?: string;
+  /** @deprecated 旧字段，仅用于向后兼容。新代码通过 agentProfileId → AgentProfile 获取角色 */
+  role?: string;
+  /** @deprecated 旧字段，仅用于向后兼容。通过 AgentProfile 中的 agentRole 即可 */
+  agentRoleOverride?: string;
   system_prompt: string;
   context_sources: string[];
   output_var: string;
@@ -93,10 +88,6 @@ export interface AgentNodeConfig {
   max_tokens?: number;
   tools: string[];
   output_mode: OutputMode;
-  /** Agent profile ID from agent_profiles table (unified ExpertRole + AgentRole) */
-  agentProfileId?: string;
-  /** Override the agent_role from the profile. None = use profile default. */
-  agentRoleOverride?: AgentRole;
 }
 
 export interface AgentNode extends WorkflowNodeBase {

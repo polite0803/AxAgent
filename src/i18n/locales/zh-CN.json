@@ -3724,7 +3724,16 @@
       "defaultCodeJsComment": "// 输入数据: input.yourVar",
       "defaultCodePythonComment": "# 输入数据: input.yourVar",
       "codeInputParams": "输入参数",
-      "codeReturnHint": "返回数据将作为节点输出传递"
+      "codeReturnHint": "返回数据将作为节点输出传递",
+      "roleCoordinator": "协调者",
+      "roleBrowser": "浏览器",
+      "selectRole": "选择角色",
+      "roleTag": "角色: {{role}}",
+      "bindRole": "绑定角色",
+      "expertNotFound": "专家未找到",
+      "profileMatched": "已匹配到已有配置",
+      "profileCreated": "配置已创建",
+      "profileCreateFailed": "配置创建失败: {{error}}"
     },
     "debug": {
       "totalDuration": "总耗时",
@@ -3892,7 +3901,10 @@
       "roleDeveloper": "开发者",
       "roleReviewer": "审查者",
       "roleSynthesizer": "综合者",
-      "roleExecutor": "执行者"
+      "roleExecutor": "执行者",
+      "agent": "Agent",
+      "roleCoordinator": "协调者",
+      "roleBrowser": "浏览器"
     },
     "conditionNode": {
       "title": "条件判断",
@@ -5877,5 +5889,15 @@
       "ar": "العربية"
     }
   },
-  "chat:workflow.templateList.presetsImported": "导入成功"
+  "chat:workflow.templateList.presetsImported": "导入成功",
+  "agentRole": {
+    "coordinator": "协调者",
+    "researcher": "研究员",
+    "planner": "规划者",
+    "developer": "开发者",
+    "reviewer": "审查者",
+    "browser": "浏览器",
+    "synthesizer": "综合者",
+    "executor": "执行者"
+  }
 }

@@ -3509,7 +3509,16 @@
       "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
       "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
       "codeInputParams": "Input params: input",
-      "codeReturnHint": "Return value will be stored in output_var"
+      "codeReturnHint": "Return value will be stored in output_var",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser",
+      "selectRole": "Select Role",
+      "roleTag": "Role: {{role}}",
+      "bindRole": "Bind Role",
+      "expertNotFound": "Expert not found",
+      "profileMatched": "Matched existing profile",
+      "profileCreated": "Profile created",
+      "profileCreateFailed": "Failed to create profile: {{error}}"
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -3581,7 +3590,10 @@
       "roleDeveloper": "Developer",
       "roleReviewer": "Reviewer",
       "roleSynthesizer": "Synthesizer",
-      "roleExecutor": "Executor"
+      "roleExecutor": "Executor",
+      "agent": "Agent",
+      "roleCoordinator": "Coordinator",
+      "roleBrowser": "Browser"
     },
     "conditionNode": {
       "title": "Condition",
@@ -5889,5 +5901,15 @@
       "hi": "Hindi",
       "ar": "Arabic"
     }
+  },
+  "agentRole": {
+    "coordinator": "Coordinator",
+    "researcher": "Researcher",
+    "planner": "Planner",
+    "developer": "Developer",
+    "reviewer": "Reviewer",
+    "browser": "Browser",
+    "synthesizer": "Synthesizer",
+    "executor": "Executor"
   }
 }

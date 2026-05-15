@@ -1,3 +1,4 @@
+import { AGENT_ROLE_META } from "@/types";
 import { Badge, Tag } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,15 +12,19 @@ interface AgentNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
+  /** AgentProfile ID（统一标识） */
+  agentProfileId?: string;
+  /** 从 AgentProfile 解析的角色名 */
   agentRole?: string;
+  /** 从 AgentProfile 解析的图标 */
+  agentRoleIcon?: string;
+  /** 从 AgentProfile 解析的显示名称 */
+  agentRoleDisplayName?: string;
   systemPrompt?: string;
   tools?: string[];
   contextSources?: string[];
   outputMode?: string;
   model?: string;
-  expertRoleId?: string;
-  expertIcon?: string;
-  expertName?: string;
   validationState?: "error" | "warning";
 }
 
@@ -36,37 +41,6 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
 
   const borderColor = getBorderColor();
 
-  const getRoleIcon = (role: string): string => {
-    switch (role) {
-      case "researcher":
-        return "🔍";
-      case "planner":
-        return "📋";
-      case "developer":
-        return "💻";
-      case "reviewer":
-        return "👀";
-      case "synthesizer":
-        return "🔬";
-      case "executor":
-        return "⚙️";
-      default:
-        return "🤖";
-    }
-  };
-
-  const getRoleLabel = (role: string): string => {
-    const labels: Record<string, string> = {
-      researcher: t("workflow.agentNode.roleResearcher"),
-      planner: t("workflow.agentNode.rolePlanner"),
-      developer: t("workflow.agentNode.roleDeveloper"),
-      reviewer: t("workflow.agentNode.roleReviewer"),
-      synthesizer: t("workflow.agentNode.roleSynthesizer"),
-      executor: t("workflow.agentNode.roleExecutor"),
-    };
-    return labels[role] || role;
-  };
-
   const getOutputModeIcon = (mode: string): string => {
     switch (mode) {
       case "json":
@@ -80,9 +54,18 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
     }
   };
 
-  const agentRole = data.agentRole || "developer";
   const tools = data.tools || [];
   const contextSources = data.contextSources || [];
+
+  // 从 AgentProfile 获取图标，降级到 AGENT_ROLE_META，最后用默认图标
+  const displayIcon = data.agentRoleIcon
+    || (data.agentRole ? AGENT_ROLE_META[data.agentRole]?.icon : null)
+    || "🤖";
+
+  // 从 AgentProfile 获取名称，降级到 agentRole 的 i18n 标签
+  const displayName = data.agentRoleDisplayName
+    || (data.agentRole ? t(AGENT_ROLE_META[data.agentRole]?.labelKey ?? "", data.agentRole) : null)
+    || t("workflow.agentNode.agent");
 
   return (
     <div
@@ -113,9 +96,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
             background: `${color}15`,
           }}
         >
-          <span style={{ fontSize: 14 }}>
-            {data.expertRoleId ? (data.expertIcon || "\uD83E\uDD16") : getRoleIcon(agentRole)}
-          </span>
+          <span style={{ fontSize: 14 }}>{displayIcon}</span>
           <span
             style={{
               fontSize: 11,
@@ -123,9 +104,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
               fontWeight: 600,
             }}
           >
-            {data.expertRoleId
-              ? (data.expertName || t("workflow.agentNode.expert"))
-              : `Agent · ${getRoleLabel(agentRole)}`}
+            {displayName}
           </span>
           {data.model && (
             <Tag

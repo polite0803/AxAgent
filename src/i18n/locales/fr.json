@@ -3709,7 +3709,16 @@
       "defaultCodeJsComment": "// Input: input\n// Return value will be stored in output_var",
       "defaultCodePythonComment": "# Input: input\n# Return value will be stored in output_var",
       "codeInputParams": "Input params: input",
-      "codeReturnHint": "Return value will be stored in output_var"
+      "codeReturnHint": "Return value will be stored in output_var",
+      "roleCoordinator": "",
+      "roleBrowser": "",
+      "selectRole": "",
+      "roleTag": "",
+      "bindRole": "",
+      "expertNotFound": "",
+      "profileMatched": "",
+      "profileCreated": "",
+      "profileCreateFailed": ""
     },
     "debug": {
       "totalDuration": "Total Duration",
@@ -3872,7 +3881,10 @@
       "roleDeveloper": "Developer",
       "roleReviewer": "Reviewer",
       "roleSynthesizer": "Synthesizer",
-      "roleExecutor": "Executor"
+      "roleExecutor": "Executor",
+      "agent": "",
+      "roleCoordinator": "",
+      "roleBrowser": ""
     },
     "conditionNode": {
       "title": "Condition",
@@ -5432,5 +5444,15 @@
       "name": "Translation Expert",
       "description": "Specialized in multilingual translation, localization, and internationalization support"
     }
+  },
+  "agentRole": {
+    "coordinator": "",
+    "researcher": "",
+    "planner": "",
+    "developer": "",
+    "reviewer": "",
+    "browser": "",
+    "synthesizer": "",
+    "executor": ""
   }
 }

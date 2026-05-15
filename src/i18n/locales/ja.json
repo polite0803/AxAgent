@@ -3317,7 +3317,16 @@
       "defaultCodeJsComment": "// 输入数据: input.yourVar",
       "defaultCodePythonComment": "# 输入数据: input.yourVar",
       "codeInputParams": "输入参数",
-      "codeReturnHint": "返回数据将作为节点输出传递"
+      "codeReturnHint": "返回数据将作为节点输出传递",
+      "roleCoordinator": "",
+      "roleBrowser": "",
+      "selectRole": "",
+      "roleTag": "",
+      "bindRole": "",
+      "expertNotFound": "",
+      "profileMatched": "",
+      "profileCreated": "",
+      "profileCreateFailed": ""
     },
     "debug": {
       "totalDuration": "总耗时",
@@ -3480,7 +3489,10 @@
       "roleDeveloper": "开发者",
       "roleReviewer": "审查者",
       "roleSynthesizer": "综合者",
-      "roleExecutor": "执行者"
+      "roleExecutor": "执行者",
+      "agent": "",
+      "roleCoordinator": "",
+      "roleBrowser": ""
     },
     "conditionNode": {
       "title": "条件分岐",
@@ -5432,5 +5444,15 @@
       "name": "Translation Expert",
       "description": "Specialized in multilingual translation, localization, and internationalization support"
     }
+  },
+  "agentRole": {
+    "coordinator": "",
+    "researcher": "",
+    "planner": "",
+    "developer": "",
+    "reviewer": "",
+    "browser": "",
+    "synthesizer": "",
+    "executor": ""
   }
 }

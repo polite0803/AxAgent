@@ -219,18 +219,28 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
             ...(validationState ? { validationState } : {}),
             ...(node.type === "agent" && (node as AgentNodeType).config
               ? {
-                agentRole: (node as AgentNodeType).config.role,
+                agentProfileId: (node as AgentNodeType).config.agentProfileId,
                 systemPrompt: (node as AgentNodeType).config.system_prompt,
                 tools: (node as AgentNodeType).config.tools,
                 contextSources: (node as AgentNodeType).config.context_sources,
                 outputMode: (node as AgentNodeType).config.output_mode,
                 model: (node as AgentNodeType).config.model,
-                expertRoleId: (node as AgentNodeType).config.agentProfileId,
                 ...(function() {
-                  const roleId = (node as AgentNodeType).config.agentProfileId;
-                  if (roleId) {
-                    const role = useExpertStore.getState().getRoleById(roleId);
-                    return { expertIcon: role?.icon, expertName: role?.name };
+                  const profileId = (node as AgentNodeType).config.agentProfileId;
+                  if (profileId) {
+                    const profile = useExpertStore.getState().getRoleById(profileId);
+                    if (profile) {
+                      return {
+                        agentRole: profile.agentRole || undefined,
+                        agentRoleIcon: profile.icon,
+                        agentRoleDisplayName: profile.name,
+                      };
+                    }
+                  }
+                  // 向后兼容：旧数据只有 role 字段
+                  const legacyRole = (node as AgentNodeType).config.role;
+                  if (legacyRole) {
+                    return { agentRole: legacyRole };
                   }
                   return {};
                 })(),
@@ -767,7 +777,6 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
       return { type: "manual", config: {} };
     case "agent":
       return {
-        role: "developer",
         system_prompt: "",
         tools: [],
         context_sources: [],
@@ -830,7 +839,6 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
         ...baseNode,
         type: "agent",
         config: {
-          role: "developer",
           system_prompt: "",
           context_sources: [],
           output_var: "",
@@ -885,7 +893,6 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
         ...baseNode,
         type: "agent",
         config: {
-          role: "developer",
           system_prompt: "",
           context_sources: [],
           output_var: "",

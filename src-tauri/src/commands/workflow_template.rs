@@ -980,7 +980,7 @@ async fn convert_n8n_to_axagent(
         let agent_node = WorkflowNode::Agent(AgentNode {
             base,
             config: AgentNodeConfig {
-                role: AgentRole::try_from_str(agent_role).unwrap_or(AgentRole::Executor),
+                role: Some(AgentRole::try_from_str(agent_role).unwrap_or(AgentRole::Executor)),
                 system_prompt: String::new(),
                 context_sources: Vec::new(),
                 output_var: format!("{}_output", node_id),
