@@ -9,6 +9,7 @@ use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
+use axagent_plugins::{PluginManager, PluginManagerConfig};
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let DatabaseInitResult {
@@ -140,6 +141,12 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     rt.block_on(platform_manager.set_message_callback(platform_bridge.clone()));
 
     let sync_engine = create_sync_engine(&sea_db, &app_settings, rt.handle());
+
+    let home = dirs::home_dir().unwrap_or_default();
+    let config_home = home.join(".claw");
+    let mut plugin_config = PluginManagerConfig::new(config_home.clone());
+    plugin_config.external_dirs = axagent_core::skill_dirs::all_skills_dirs();
+    let plugin_manager = std::sync::Mutex::new(PluginManager::new(plugin_config));
 
     AppState {
         sea_db: sea_db.clone(),
@@ -368,6 +375,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         )),
         sandbox_executor: Arc::new(axagent_trajectory::SkillSandboxExecutor::with_default_policy()),
         sync_engine,
+        plugin_manager,
     }
 }
 
