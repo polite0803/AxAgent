@@ -10,23 +10,23 @@ interface AgentProgressBarProps {
   conversationId: string;
 }
 
-function getToolDisplayName(toolName: string, t: (key: string, fallback: string) => string): string {
+function getToolDisplayName(toolName: string, t: (key: string, ...args: any[]) => string): string {
   const lower = toolName.toLowerCase();
   const map: Record<string, string> = {
     read: "FileRead",
     write: "FileWrite",
     edit: "FileEdit",
     bash: "Bash",
-    file_read: t("progressBar.tool.fileRead", "读取文件"),
-    file_write: t("progressBar.tool.fileWrite", "写入文件"),
-    file_edit: t("progressBar.tool.fileEdit", "编辑文件"),
-    search: t("progressBar.tool.search", "搜索"),
-    grep: t("progressBar.tool.grep", "文本搜索"),
-    glob: t("progressBar.tool.glob", "文件查找"),
-    web_fetch: t("progressBar.tool.webFetch", "网页抓取"),
-    web_search: t("progressBar.tool.webSearch", "网络搜索"),
-    task: t("progressBar.tool.task", "子任务"),
-    mcp: t("progressBar.tool.mcp", "MCP 工具"),
+    file_read: t("progressBar.tool.fileRead"),
+    file_write: t("progressBar.tool.fileWrite"),
+    file_edit: t("progressBar.tool.fileEdit"),
+    search: t("progressBar.tool.search"),
+    grep: t("progressBar.tool.grep"),
+    glob: t("progressBar.tool.glob"),
+    web_fetch: t("progressBar.tool.webFetch"),
+    web_search: t("progressBar.tool.webSearch"),
+    task: t("progressBar.tool.task"),
+    mcp: t("progressBar.tool.mcp"),
   };
   for (const [key, display] of Object.entries(map)) {
     if (lower.includes(key)) {
@@ -52,7 +52,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   const isExecuting = useExecutionStore((s) => s.isActive(conversationId));
 
   const displayName = useMemo(() => {
-    return currentToolCall ? getToolDisplayName(currentToolCall.toolName, t) : null;
+    return currentToolCall ? getToolDisplayName(currentToolCall.toolName, t as any) : null;
   }, [currentToolCall?.toolName, currentToolCall?.toolUseId, t]);
 
   // 用于动画过渡：当工具切换时短暂闪烁
@@ -109,7 +109,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
           }}
         >
           <Wrench size={10} style={{ marginRight: 4, verticalAlign: "middle" }} />
-          {t("progressBar.executing", "正在执行: {name}", { name: displayName })}
+          {t("progressBar.executing", { name: displayName })}
         </Tag>
       )}
 

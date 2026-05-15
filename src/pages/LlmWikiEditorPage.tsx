@@ -67,7 +67,7 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
   };
 
   const getQualityLabel = (score?: number) => {
-    if (!score) { return t("wiki.llm.noScore", "No Score"); }
+    if (!score) { return t("wiki.llm.noScore"); }
     return `${Math.round(score * 100)}%`;
   };
 
@@ -82,7 +82,7 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
   if (!wikiPage) {
     return (
       <div className="h-full flex items-center justify-center" style={{ backgroundColor: token.colorBgElevated }}>
-        <span>{t("wiki.pageNotFound", "Page not found")}</span>
+        <span>{t("wiki.pageNotFound")}</span>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
         <Button icon={<LeftOutlined />} onClick={onBack} type="text" />
         <Title level={4} className="m-0 flex-1">{wikiPage.title}</Title>
         <Space>
-          <Tooltip title={t("wiki.llm.viewInGraph", "View in Graph")}>
+          <Tooltip title={t("wiki.llm.viewInGraph")}>
             <Button icon={<EyeOutlined />} onClick={handleViewInGraph} type="text" />
           </Tooltip>
           <Button
@@ -102,7 +102,7 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
             onClick={handleRecompile}
             loading={compiling}
           >
-            {t("wiki.llm.recompile", "Recompile")}
+            {t("wiki.llm.recompile")}
           </Button>
         </Space>
       </div>
@@ -110,20 +110,20 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
       <div className="flex-1 overflow-auto p-4">
         <Card className="mb-4">
           <Descriptions size="small" column={4}>
-            <Descriptions.Item label={t("wiki.pageType", "Page Type")}>
+            <Descriptions.Item label={t("wiki.pageType")}>
               <Tag color="blue">{wikiPage.pageType}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label={t("wiki.qualityScore", "Quality Score")}>
+            <Descriptions.Item label={t("wiki.qualityScore")}>
               <Tag color={getQualityColor(wikiPage.qualityScore)}>
                 {getQualityLabel(wikiPage.qualityScore)}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label={t("wiki.lastCompiled", "Last Compiled")}>
+            <Descriptions.Item label={t("wiki.lastCompiled")}>
               {wikiPage.lastCompiledAt
                 ? new Date(wikiPage.lastCompiledAt * 1000).toLocaleString()
                 : "-"}
             </Descriptions.Item>
-            <Descriptions.Item label={t("wiki.lastLinted", "Last Linted")}>
+            <Descriptions.Item label={t("wiki.lastLinted")}>
               {wikiPage.lastLintedAt
                 ? new Date(wikiPage.lastLintedAt * 1000).toLocaleString()
                 : "-"}
@@ -136,7 +136,7 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
             <Space>
               <WarningOutlined style={{ color: token.colorWarning }} />
               <Text type="warning">
-                {t("wiki.llm.lowQualityWarning", "This page has low quality score. Consider editing or recompiling.")}
+                {t("wiki.llm.lowQualityWarning")}
               </Text>
             </Space>
           </Card>
@@ -145,10 +145,10 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
         {compiledContent && (
           <Card
             className="mb-4"
-            title={t("wiki.llm.newCompiledContent", "New Compiled Content")}
+            title={t("wiki.llm.newCompiledContent")}
             extra={
               <Tag icon={<CheckCircleOutlined />} color="success">
-                {t("wiki.llm.readyToSave", "Ready to Save")}
+                {t("wiki.llm.readyToSave")}
               </Tag>
             }
           >
@@ -158,14 +158,14 @@ export function LlmWikiEditorPage({ wikiId, pageId, onBack }: LlmWikiEditorPageP
           </Card>
         )}
 
-        <Card title={t("wiki.sources", "Sources")}>
+        <Card title={t("wiki.sources")}>
           {wikiPage.sourceIds && wikiPage.sourceIds.length > 0
             ? (
               <ul className="list-disc pl-5">
                 {wikiPage.sourceIds.map((sourceId) => <li key={sourceId}>{sourceId}</li>)}
               </ul>
             )
-            : <Text type="secondary">{t("wiki.noSources", "No sources linked")}</Text>}
+            : <Text type="secondary">{t("wiki.noSources")}</Text>}
         </Card>
       </div>
     </div>

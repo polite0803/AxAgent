@@ -183,7 +183,7 @@ export function InteractiveTutorial() {
     return (
       <div className="tutorial-start-bar">
         <Button type="link" size="small" onClick={handleStartTutorial}>
-          {t("onboarding.tutorialStart", "开始教程")}
+          {t("onboarding.tutorialStart")}
         </Button>
       </div>
     );
@@ -248,7 +248,7 @@ export function InteractiveTutorial() {
             <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 4 }}>
               {step
                 ? (!spotlight
-                  ? t("onboarding.targetNotFound", "目标元素未找到。请先打开一个对话。")
+                  ? t("onboarding.targetNotFound")
                   : t(step.descKey))
                 : ""}
             </div>
@@ -270,15 +270,15 @@ export function InteractiveTutorial() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Button size="small" type="link" onClick={skipTutorial} icon={<SkipForward size={12} />}>
-            {t("onboarding.tutorialSkip", "跳过")}
+            {t("onboarding.tutorialSkip")}
           </Button>
           <div style={{ fontSize: 11, color: token.colorTextQuaternary }}>
             {tutorialStep + 1} / {steps.length}
           </div>
           <Button size="small" type="primary" onClick={handleNext} icon={<ArrowRight size={12} />}>
             {isLast
-              ? t("onboarding.done", "完成")
-              : t("onboarding.next", "下一步")}
+              ? t("onboarding.done")
+              : t("onboarding.next")}
           </Button>
         </div>
       </div>

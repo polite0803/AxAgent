@@ -81,36 +81,36 @@ export function IngestPage() {
 
   const columns = [
     {
-      title: t("wiki.source.title", "Title"),
+      title: t("wiki.source.title"),
       dataIndex: "title",
       key: "title",
     },
     {
-      title: t("wiki.source.type", "Type"),
+      title: t("wiki.source.type"),
       dataIndex: "sourceType",
       key: "sourceType",
       render: (type: string) => <Tag icon={getSourceTypeIcon(type)}>{type.toUpperCase()}</Tag>,
     },
     {
-      title: t("wiki.source.status", "Status"),
+      title: t("wiki.source.status"),
       dataIndex: "status",
       key: "status",
       render: (status: string) => <Tag color={getStatusColor(status)}>{status.toUpperCase()}</Tag>,
     },
     {
-      title: t("wiki.source.chunks", "Chunks"),
+      title: t("wiki.source.chunks"),
       dataIndex: "chunkCount",
       key: "chunkCount",
       render: (count: number) => count || 0,
     },
     {
-      title: t("wiki.source.path", "Path"),
+      title: t("wiki.source.path"),
       dataIndex: "sourcePath",
       key: "sourcePath",
       ellipsis: true,
     },
     {
-      title: t("common.actions", "Actions"),
+      title: t("common.actions"),
       key: "actions",
       render: (_: unknown, _record: WikiSource) => (
         <Space>
@@ -119,7 +119,7 @@ export function IngestPage() {
             danger
             icon={<DeleteOutlined />}
             onClick={() => {
-              message.info(t("wiki.source.deleteNotImplemented", "Delete not implemented yet"));
+              message.info(t("wiki.source.deleteNotImplemented"));
             }}
           />
         </Space>
@@ -147,7 +147,7 @@ export function IngestPage() {
       <div className="flex items-center gap-4 p-4 border-b">
         <Button icon={<LeftOutlined />} onClick={handleBack} type="text" />
         <Title level={3} className="m-0 flex-1">
-          {t("wiki.ingest.title", "Ingest Sources")}
+          {t("wiki.ingest.title")}
         </Title>
         <Select
           value={displayWikiId}
@@ -156,7 +156,7 @@ export function IngestPage() {
             selectWiki(value);
           }}
           style={{ width: 200 }}
-          placeholder={t("wiki.selectWiki", "Select Wiki")}
+          placeholder={t("wiki.selectWiki")}
         >
           {wikis.map((wiki) => (
             <Select.Option key={wiki.id} value={wiki.id}>
@@ -178,7 +178,7 @@ export function IngestPage() {
                 label: (
                   <span>
                     <UploadOutlined />
-                    {t("wiki.ingest.upload", "Upload")}
+                    {t("wiki.ingest.upload")}
                   </span>
                 ),
                 children: (
@@ -192,7 +192,7 @@ export function IngestPage() {
                 label: (
                   <span>
                     <HistoryOutlined />
-                    {t("wiki.ingest.history", "History")}
+                    {t("wiki.ingest.history")}
                   </span>
                 ),
                 children: (
@@ -210,7 +210,7 @@ export function IngestPage() {
         )
         : (
           <div className="flex-1 flex items-center justify-center">
-            <Text type="secondary">{t("wiki.selectWikiPrompt", "Please select a wiki first")}</Text>
+            <Text type="secondary">{t("wiki.selectWikiPrompt")}</Text>
           </div>
         )}
     </div>

@@ -61,10 +61,10 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) { return t("plan.justNow", "just now"); }
-    if (diffMin < 60) { return t("plan.minutesAgo", "{{n}}m ago").replace("{{n}}", String(diffMin)); }
+    if (diffMin < 1) { return t("plan.justNow"); }
+    if (diffMin < 60) { return t("plan.minutesAgo").replace("{{n}}", String(diffMin)); }
     const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) { return t("plan.hoursAgo", "{{n}}h ago").replace("{{n}}", String(diffHr)); }
+    if (diffHr < 24) { return t("plan.hoursAgo").replace("{{n}}", String(diffHr)); }
     return d.toLocaleDateString();
   };
 
@@ -74,7 +74,7 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
 
   return (
     <>
-      <Tooltip title={t("plan.historyTitle", "Plan History")}>
+      <Tooltip title={t("plan.historyTitle")}>
         <Button
           type="text"
           size="small"
@@ -91,7 +91,7 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
         title={
           <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <History size={16} />
-            {t("plan.historyTitle", "Plan History")}
+            {t("plan.historyTitle")}
           </span>
         }
         placement="right"
@@ -112,9 +112,9 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                 }}
               >
                 <ClipboardList size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
-                <div>{t("plan.noPlans", "No plans yet")}</div>
+                <div>{t("plan.noPlans")}</div>
                 <div style={{ fontSize: 12, marginTop: 4, color: token.colorTextQuaternary }}>
-                  {t("plan.noPlansHint", "Switch to Plan First strategy to create one")}
+                  {t("plan.noPlansHint")}
                 </div>
               </div>
             )
@@ -164,7 +164,7 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                           {t(config.labelKey)}
                         </Tag>
                         {canResume && (
-                          <Tooltip title={t("plan.resume", "Resume")}>
+                          <Tooltip title={t("plan.resume")}>
                             <Button
                               type="text"
                               size="small"
@@ -177,7 +177,7 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                     </div>
 
                     <div style={{ fontSize: 11, color: token.colorTextQuaternary, marginBottom: 4 }}>
-                      {plan.steps.length} {t("plan.stepsApproved", "steps")} · {formatTime(plan.created_at)}
+                      {plan.steps.length} {t("plan.stepsApproved")} · {formatTime(plan.created_at)}
                     </div>
 
                     {plan.steps.length > 0 && (

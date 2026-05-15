@@ -174,7 +174,7 @@ export function WikiGraphPage() {
     const now = Date.now();
     const note = await createNote({
       vaultId: wikiIdFromUrl,
-      title: `${t("wiki.newNoteDefault", "New Note")} ${new Date(now).toLocaleString("zh-CN")}`,
+      title: `${t("wiki.newNoteDefault")} ${new Date(now).toLocaleString("zh-CN")}`,
       filePath: `/new-note-${now}.md`,
       content: "",
       author: "user",
@@ -191,14 +191,14 @@ export function WikiGraphPage() {
     async (sourceNodeId: string) => {
       const sourceNode = graphData?.nodes.find((n) => n.id === sourceNodeId);
       const title = sourceNode
-        ? `${t("wiki.linkedPrefix", "Related")}: ${sourceNode.title}`
-        : t("wiki.linkedNoteTitle", "New Linked Note");
+        ? `${t("wiki.linkedPrefix")}: ${sourceNode.title}`
+        : t("wiki.linkedNoteTitle");
       const now = Date.now();
       const note = await createNote({
         vaultId: wikiIdFromUrl,
         title,
         filePath: `/linked-note-${now}.md`,
-        content: sourceNode ? `${t("wiki.linkedRef", "Related")}: [[${sourceNode.title}]]` : "",
+        content: sourceNode ? `${t("wiki.linkedRef")}: [[${sourceNode.title}]]` : "",
         author: "user",
       });
       if (note) {
@@ -215,7 +215,7 @@ export function WikiGraphPage() {
     async (nodeId: string) => {
       try {
         await deleteNote(nodeId);
-        message.success(t("wiki.deleted", "Note deleted"));
+        message.success(t("wiki.deleted"));
         if (selectedNodeId === nodeId) {
           setSelectedNodeId(null);
           setDetailPanelOpen(false);
@@ -279,7 +279,7 @@ export function WikiGraphPage() {
       >
         <NodeIndexOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
         <Title level={5} style={{ margin: 0 }}>
-          {t("wiki.graph.title", "Knowledge Graph")}
+          {t("wiki.graph.title")}
         </Title>
 
         <Select
@@ -288,7 +288,7 @@ export function WikiGraphPage() {
           onChange={(val) => navigate(`/wiki/${val}`)}
           style={{ minWidth: 160, marginLeft: 8 }}
           options={wikis.map((w) => ({ label: w.name, value: w.id }))}
-          placeholder={t("wiki.selectWiki", "Select Wiki")}
+          placeholder={t("wiki.selectWiki")}
         />
 
         <div className="flex-1" />
@@ -297,7 +297,7 @@ export function WikiGraphPage() {
           id="wiki-graph-page-input-133"
           size="small"
           prefix={<SearchOutlined />}
-          placeholder={t("wiki.searchGraph", "Search graph...")}
+          placeholder={t("wiki.searchGraph")}
           value={globalSearch}
           onChange={(e) => handleGlobalSearch(e.target.value)}
           allowClear
@@ -306,14 +306,14 @@ export function WikiGraphPage() {
 
         <Space size={4}>
           <Tag style={{ margin: 0 }}>
-            {stats.nodes} {t("wiki.nodes", "nodes")}
+            {stats.nodes} {t("wiki.nodes")}
           </Tag>
           <Tag style={{ margin: 0 }}>
-            {stats.edges} {t("wiki.edges", "edges")}
+            {stats.edges} {t("wiki.edges")}
           </Tag>
         </Space>
 
-        <Tooltip title={leftPanelVisible ? t("wiki.hidePanel", "Hide Panel") : t("wiki.showPanel", "Show Panel")}>
+        <Tooltip title={leftPanelVisible ? t("wiki.hidePanel") : t("wiki.showPanel")}>
           <Button
             size="small"
             type="text"
@@ -329,15 +329,15 @@ export function WikiGraphPage() {
             icon={<Eye size={14} />}
             onClick={() => setDetailPanelOpen(true)}
           >
-            {t("wiki.showDetail", "Details")}
+            {t("wiki.showDetail")}
           </Button>
         )}
 
-        <Tooltip title={t("wiki.newNote", "New Note")}>
+        <Tooltip title={t("wiki.newNote")}>
           <Button size="small" icon={<FileAddOutlined />} onClick={handleCreateNote} />
         </Tooltip>
 
-        <Tooltip title={t("wiki.refresh", "Refresh")}>
+        <Tooltip title={t("wiki.refresh")}>
           <Button size="small" icon={<ReloadOutlined />} onClick={handleReload} loading={graphLoading} />
         </Tooltip>
       </div>
@@ -390,15 +390,15 @@ export function WikiGraphPage() {
           {graphLoading
             ? (
               <div className="h-full flex items-center justify-center">
-                <Spin size="large" tip={t("wiki.graph.loading", "Loading graph...")} />
+                <Spin size="large" tip={t("wiki.graph.loading")} />
               </div>
             )
             : !graphData || graphData.nodes.length === 0
             ? (
               <div className="h-full flex items-center justify-center">
-                <Empty description={t("wiki.graph.empty", "No graph data")}>
+                <Empty description={t("wiki.graph.empty")}>
                   <Button type="primary" onClick={handleCreateNote}>
-                    {t("wiki.createFirstNote", "Create First Note")}
+                    {t("wiki.createFirstNote")}
                   </Button>
                 </Empty>
               </div>
@@ -473,11 +473,11 @@ export function WikiGraphPage() {
         }}
       >
         <Text type="secondary">
-          {t("wiki.wiki", "Wiki")}: {wikiIdFromUrl}
+          {t("wiki.wiki")}: {wikiIdFromUrl}
         </Text>
         {selectedNodeId && (
           <Text type="secondary">
-            {t("wiki.selected", "Selected")}: {selectedNode?.title || selectedNodeId}
+            {t("wiki.selected")}: {selectedNode?.title || selectedNodeId}
             {selectedNode && ` (→${selectedNode.linkCount} / ←${selectedNode.backlinkCount})`}
           </Text>
         )}

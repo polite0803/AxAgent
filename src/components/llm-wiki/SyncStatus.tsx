@@ -78,7 +78,7 @@ export function SyncStatus({
     setProcessing(true);
     try {
       await invoke("wiki_sync_process_pending", { wikiId });
-      message.success(t("wiki.sync.processStarted", "Sync process started"));
+      message.success(t("wiki.sync.processStarted"));
       await loadSyncStatus();
     } catch (e) {
       message.error(String(e));
@@ -104,15 +104,15 @@ export function SyncStatus({
   const getEventTypeLabel = (eventType: string) => {
     switch (eventType) {
       case "note_created":
-        return t("wiki.sync.noteCreated", "Note Created");
+        return t("wiki.sync.noteCreated");
       case "note_updated":
-        return t("wiki.sync.noteUpdated", "Note Updated");
+        return t("wiki.sync.noteUpdated");
       case "note_deleted":
-        return t("wiki.sync.noteDeleted", "Note Deleted");
+        return t("wiki.sync.noteDeleted");
       case "link_created":
-        return t("wiki.sync.linkCreated", "Link Created");
+        return t("wiki.sync.linkCreated");
       case "link_deleted":
-        return t("wiki.sync.linkDeleted", "Link Deleted");
+        return t("wiki.sync.linkDeleted");
       default:
         return eventType;
     }
@@ -139,11 +139,11 @@ export function SyncStatus({
         title={
           <Space>
             <SyncOutlined spin={refreshing} />
-            <span>{t("wiki.sync.title", "Sync Status")}</span>
+            <span>{t("wiki.sync.title")}</span>
           </Space>
         }
         extra={
-          <Tooltip title={t("wiki.sync.refresh", "Refresh")}>
+          <Tooltip title={t("wiki.sync.refresh")}>
             <Button
               type="text"
               size="small"
@@ -156,21 +156,21 @@ export function SyncStatus({
         <Row gutter={16}>
           <Col span={8}>
             <Statistic
-              title={t("wiki.sync.pending", "Pending")}
+              title={t("wiki.sync.pending")}
               value={pendingCount}
               prefix={<PauseCircleOutlined />}
             />
           </Col>
           <Col span={8}>
             <Statistic
-              title={t("wiki.sync.processing", "Processing")}
+              title={t("wiki.sync.processing")}
               value={processingCount}
               prefix={<SyncOutlined spin />}
             />
           </Col>
           <Col span={8}>
             <Statistic
-              title={t("wiki.sync.failed", "Failed")}
+              title={t("wiki.sync.failed")}
               value={failedCount}
               valueStyle={{ color: failedCount > 0 ? "#ff4d4f" : undefined }}
               prefix={failedCount > 0 ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
@@ -187,17 +187,17 @@ export function SyncStatus({
               onClick={handleProcessQueue}
               block
             >
-              {t("wiki.sync.processNow", "Process Queue ({{count}} items)", { count: pendingCount })}
+              {t("wiki.sync.processNow", { count: pendingCount })}
             </Button>
           </div>
         )}
       </Card>
 
       {capacityInfo && (
-        <Card size="small" title={t("wiki.sync.capacity", "Vector Store Capacity")}>
+        <Card size="small" title={t("wiki.sync.capacity")}>
           <div className="mb-3">
             <div className="flex justify-between mb-1">
-              <Text>{t("wiki.sync.usage", "Usage")}</Text>
+              <Text>{t("wiki.sync.usage")}</Text>
               <Text>{capacityInfo.totalChunks} / {capacityInfo.maxChunks}</Text>
             </div>
             <Progress
@@ -214,7 +214,7 @@ export function SyncStatus({
           {Object.keys(capacityInfo.wikiChunkCounts).length > 0 && (
             <div>
               <Text type="secondary" className="text-xs uppercase">
-                {t("wiki.sync.byWiki", "By Wiki")}
+                {t("wiki.sync.byWiki")}
               </Text>
               <div className="mt-2">
                 {Object.entries(capacityInfo.wikiChunkCounts).map(([id, count]) => (
@@ -229,11 +229,11 @@ export function SyncStatus({
         </Card>
       )}
 
-      <Card size="small" title={t("wiki.sync.queue", "Sync Queue")}>
+      <Card size="small" title={t("wiki.sync.queue")}>
         {queueItems.length === 0
           ? (
             <Empty
-              description={t("wiki.sync.emptyQueue", "Queue is empty")}
+              description={t("wiki.sync.emptyQueue")}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )
@@ -250,7 +250,7 @@ export function SyncStatus({
                     </Space>
                     <Space>
                       {item.retryCount > 0 && (
-                        <Tooltip title={t("wiki.sync.retryCount", "{{count}} retries", { count: item.retryCount })}>
+                        <Tooltip title={t("wiki.sync.retryCount", { count: item.retryCount })}>
                           <Tag color="warning">{item.retryCount}</Tag>
                         </Tooltip>
                       )}
@@ -265,7 +265,7 @@ export function SyncStatus({
           )}
         {queueItems.length > 20 && (
           <Text type="secondary" className="text-xs">
-            +{queueItems.length - 20} {t("wiki.sync.more", "more items")}
+            +{queueItems.length - 20} {t("wiki.sync.more")}
           </Text>
         )}
       </Card>

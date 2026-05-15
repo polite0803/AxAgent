@@ -100,11 +100,11 @@ export function AgentProfileManager() {
         { path: selected },
       );
       if (res.imported > 0) {
-        message.success(t("agentProfile.importSuccess", "成功导入 {{count}} 个角色", { count: res.imported }));
+        message.success(t("agentProfile.importSuccess", { count: res.imported }));
       }
       if (res.skipped > 0 || res.errors.length > 0) {
         message.warning(
-          t("agentProfile.importSkipped", "跳过 {{count}} 个，{{errors}} 个错误: {{detail}}", {
+          t("agentProfile.importSkipped", {
             count: res.skipped,
             errors: res.errors.length,
             detail: res.errors.slice(0, 3).join("; "),
@@ -113,7 +113,7 @@ export function AgentProfileManager() {
       }
       await loadRoles();
     } catch (e) {
-      message.error(t("agentProfile.importFailed", "导入角色失败: {{error}}", { error: String(e) }));
+      message.error(t("agentProfile.importFailed", { error: String(e) }));
     } finally {
       setImportingRoles(false);
     }
@@ -260,7 +260,7 @@ export function AgentProfileManager() {
             onClick={handleImportRoles}
             loading={importingRoles}
           >
-            {t("agentProfile.import", "导入角色")}
+            {t("agentProfile.import")}
           </Button>
         </Space>
       </div>
@@ -420,7 +420,7 @@ export function AgentProfileManager() {
             />
           </div>
           <div>
-            <Text type="secondary" style={{ fontSize: 11 }}>{t("agentProfile.expertLabel", "Expert (领域知识)")}</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>{t("agentProfile.expertLabel")}</Text>
             <Select
               id="agent-profile-manager-select-35"
               size="small"
@@ -428,7 +428,7 @@ export function AgentProfileManager() {
               value={form.expertId ?? ""}
               onChange={(v) => setForm({ ...form, expertId: v || undefined })}
               options={[
-                { value: "", label: t("agentProfile.none", "无") },
+                { value: "", label: t("agentProfile.none") },
                 ...expertOptions,
               ]}
               allowClear

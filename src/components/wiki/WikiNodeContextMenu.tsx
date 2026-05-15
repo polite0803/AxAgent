@@ -100,7 +100,7 @@ export function WikiNodeContextMenu({
           onClick={() => handleClick(() => onEdit(nodeId))}
         >
           <PenLine size={14} />
-          <span>{t("wiki.edit", "Edit Note")}</span>
+          <span>{t("wiki.edit")}</span>
         </div>
 
         <div
@@ -110,7 +110,7 @@ export function WikiNodeContextMenu({
           onClick={() => handleClick(() => onViewBacklinks(nodeId))}
         >
           <GitGraph size={14} />
-          <span>{t("wiki.viewBacklinks", "View Backlinks")}</span>
+          <span>{t("wiki.viewBacklinks")}</span>
         </div>
 
         <div
@@ -120,7 +120,7 @@ export function WikiNodeContextMenu({
           onClick={() => handleClick(() => onFocusLocal(nodeId))}
         >
           <Focus size={14} />
-          <span>{t("wiki.focusLocal", "Focus Local Graph")}</span>
+          <span>{t("wiki.focusLocal")}</span>
         </div>
 
         <div
@@ -130,16 +130,16 @@ export function WikiNodeContextMenu({
           onClick={() => handleClick(() => onCreateLinked(nodeId))}
         >
           <Link2 size={14} />
-          <span>{t("wiki.createLinkedNote", "Create Linked Note")}</span>
+          <span>{t("wiki.createLinkedNote")}</span>
         </div>
 
         <Divider style={{ margin: "2px 0" }} />
 
         <Popconfirm
-          title={t("wiki.confirmDelete", "Delete this note?")}
+          title={t("wiki.confirmDelete")}
           onConfirm={() => handleClick(() => onDelete(nodeId))}
-          okText={t("wiki.delete", "Delete")}
-          cancelText={t("wiki.cancel", "Cancel")}
+          okText={t("wiki.delete")}
+          cancelText={t("wiki.cancel")}
         >
           <div
             style={{ ...menuItemStyle, color: token.colorError }}
@@ -147,7 +147,7 @@ export function WikiNodeContextMenu({
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
             <DeleteOutlined />
-            <span>{t("wiki.delete", "Delete")}</span>
+            <span>{t("wiki.delete")}</span>
           </div>
         </Popconfirm>
       </div>

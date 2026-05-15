@@ -891,7 +891,7 @@ function GraphViewInner({
               border: `1px solid ${token.colorBorderSecondary}40`,
             }}
           >
-            <Tooltip title={t("wiki.graph.zoomIn", "Zoom In")}>
+            <Tooltip title={t("wiki.graph.zoomIn")}>
               <button
                 onClick={handleZoomIn}
                 style={{
@@ -915,7 +915,7 @@ function GraphViewInner({
                 <ZoomIn size={16} />
               </button>
             </Tooltip>
-            <Tooltip title={t("wiki.graph.zoomOut", "Zoom Out")}>
+            <Tooltip title={t("wiki.graph.zoomOut")}>
               <button
                 onClick={handleZoomOut}
                 style={{
@@ -939,7 +939,7 @@ function GraphViewInner({
                 <ZoomOut size={16} />
               </button>
             </Tooltip>
-            <Tooltip title={t("wiki.graph.fitView", "Fit View")}>
+            <Tooltip title={t("wiki.graph.fitView")}>
               <button
                 onClick={handleFitAll}
                 style={{
@@ -964,7 +964,7 @@ function GraphViewInner({
               </button>
             </Tooltip>
             {selectedNodeId && (
-              <Tooltip title={t("wiki.graph.focusSelected", "Focus Selected")}>
+              <Tooltip title={t("wiki.graph.focusSelected")}>
                 <button
                   onClick={handleFocusSelected}
                   style={{

@@ -1918,13 +1918,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               {/* Group Name */}
               <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
                 <span className="text-sm shrink-0" style={{ color: token.colorText }}>
-                  {t("settings.modelGroup", "分组名称")}
+                  {t("settings.modelGroup")}
                 </span>
                 <Input
                   id="provider-detail-input-127"
                   value={editGroupName}
                   onChange={(e) => setEditGroupName(e.target.value)}
-                  placeholder={t("settings.modelGroupPlaceholder", "输入分组名称")}
+                  placeholder={t("settings.modelGroupPlaceholder")}
                   size="small"
                   style={{ width: 200 }}
                 />

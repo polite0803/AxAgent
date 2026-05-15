@@ -103,8 +103,8 @@ function McpServerList({
               flexShrink: 0,
             }}
             title={(s as { enabled?: boolean }).enabled !== false
-              ? t("mcp.enabled", "已启用")
-              : t("mcp.disabled", "已禁用")}
+              ? t("mcp.enabled")
+              : t("mcp.disabled")}
           />
         </div>
         <Switch

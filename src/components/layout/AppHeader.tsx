@@ -59,7 +59,7 @@ export function AppHeader() {
       >
         {labelKey ? t(labelKey) : t("nav.app")}
       </span>
-      <Tooltip title={t("help.title", "帮助中心")}>
+      <Tooltip title={t("help.title")}>
         <button
           type="button"
           onClick={toggleHelp}

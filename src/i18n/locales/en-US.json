@@ -958,7 +958,10 @@
     "templateDescOpencode": "Open-source terminal AI coding assistant, flexible code tool supporting multiple model backends",
     "templateDescGemini": "Google Gemini CLI coding agent, use Gemini models directly in the terminal",
     "templateDescCursor": "AI-native editor based on VS Code, with deep integration of code completion and chat",
-    "connectedTools": "Connected Tools"
+    "connectedTools": "Connected Tools",
+    "tab": {
+      "monitor": "Monitor"
+    }
   },
   "gatewayMonitor": {
     "refresh": "Refresh",
@@ -3882,7 +3885,12 @@
     "taskDetails": "Task Details",
     "recommendations": "Recommendations",
     "action": "Action",
-    "retry": "Retry"
+    "retry": "Retry",
+    "configTitle": "Benchmark Config",
+    "empty": "Select a benchmark to view results...",
+    "selectFirst": "Please select a benchmark first",
+    "selectTitle": "Benchmark Selection",
+    "title": "Benchmark Runner"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -4162,12 +4170,7 @@
     "hidePanel": "Hide Panel",
     "showPanel": "Show Panel",
     "selected": "Selected",
-    "wiki": {
-      "description": "Description",
-      "name": "Name",
-      "rootPath": "Root Path",
-      "schemaVersion": "Schema Version"
-    },
+    "wiki": "Wiki",
     "tips": {
       "doubleClick": "Double-click node to edit",
       "dragPanel": "Drag panels to resize",
@@ -4331,12 +4334,12 @@
     "selectWiki": "Select Wiki",
     "selectWikiPrompt": "Please select a Wiki",
     "source": {
-      "chunks": "Chunks",
-      "deleteNotImplemented": "Delete not implemented",
-      "path": "Path",
+      "title": "Title",
+      "type": "Type",
       "status": "Status",
-      "title": "Source",
-      "type": "Type"
+      "chunks": "Chunks",
+      "path": "Path",
+      "deleteNotImplemented": "Delete not implemented yet"
     },
     "sources": "Sources",
     "sync": {
@@ -4402,7 +4405,30 @@
     "focusLocal": "Focus Local",
     "createLinkedNote": "Create Linked Note",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "browse": "Browse",
+    "dailyNote": "Today",
+    "edges": "Edges",
+    "export": "Export",
+    "exportHtml": "HTML",
+    "exportMarkdown": "Markdown",
+    "exportPdf": "Export PDF",
+    "exportResult": "Exported: {{exported}}, Failed: {{failed}}",
+    "exportedPdf": "Exported to {{path}}",
+    "filteredByTag": "Filtered: {{tag}}",
+    "fromTemplate": "From Template",
+    "history": "History",
+    "import": "Import",
+    "importObsidian": "Import Obsidian Vault",
+    "importObsidianDesc": "Select an Obsidian vault directory to import all .md files as Wiki notes.",
+    "importResult": "Imported: {{imported}}, Skipped: {{skipped}}, Failed: {{failed}}",
+    "nodes": "Nodes",
+    "preview": "Preview",
+    "quickCapture": "Quick capture...",
+    "refresh": "Refresh",
+    "startImport": "Import",
+    "vaultPath": "Vault path...",
+    "sourceLabel": "Source"
   },
   "notification": {
     "clear": "Clear",
@@ -4525,7 +4551,13 @@
       "neverUsed": "Never used",
       "successRate": "Success Rate",
       "quality": "Quality Score"
-    }
+    },
+    "addFrontend": "Add Frontend Extension",
+    "editFrontend": "Edit Frontend Extension",
+    "exportFailed": "Export Failed",
+    "exportPublishable": "Export as Publishable Format",
+    "exported": "Skill Exported",
+    "hasUI": "Has UI Extension"
   },
   "tool": {
     "common": {
@@ -5013,6 +5045,12 @@
     "lastActive": "Last Active"
   },
   "sourceManager": {
+    "createSource": "Create Source",
+    "typeLabel": "Type",
+    "sourceName": "Name",
+    "description": "Description",
+    "rootPath": "Root Path",
+    "embeddingModel": "Embedding Model",
     "type": {
       "knowledge": "Knowledge",
       "memory": "Memory",
@@ -5163,7 +5201,18 @@
       "error": "Errors Only",
       "warning": "Errors + Warnings",
       "information": "All"
-    }
+    },
+    "bashSecurity": "Bash Security Confirmation",
+    "defaultPermission": "Default Permission Mode",
+    "networkCmdDetect": "Network Command Detection",
+    "networkConfirm": "Network Confirm",
+    "perm": {
+      "acceptEdits": "Accept Edits",
+      "default": "Default (Ask each time)",
+      "fullAccess": "Full Access"
+    },
+    "permissionStrategy": "Permission Strategy",
+    "shellConfirm": "Shell Confirm"
   },
   "filePermission": {
     "title": "File Access Authorization",
@@ -5484,5 +5533,19 @@
   },
   "insight": {
     "placeholder": "e.g. User prefers dark mode..."
+  },
+  "fineTune": {
+    "stats": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "total": "Total"
+    },
+    "tab": {
+      "dataset": "Dataset",
+      "loraConfig": "LoRA Config",
+      "training": "Training"
+    },
+    "title": "Model Fine-Tuning"
   }
 }

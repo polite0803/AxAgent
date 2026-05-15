@@ -101,7 +101,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
           </div>
           <div style={{ flex: 1 }}>
             <Text strong style={{ fontSize: 13, display: "block", marginBottom: 4 }}>
-              {t("agent.questionFromAgent", "Question from Agent")}
+              {t("agent.questionFromAgent")}
             </Text>
             <Text style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>
               {questionLines.map((line, i) => (
@@ -125,8 +125,8 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
           >
             <Text type="secondary" style={{ fontSize: 11, display: "block", marginBottom: 8 }}>
               {isSingleChoice
-                ? t("agent.selectOneOption", "Select one option:")
-                : t("agent.selectOptions", "Select applicable options:")}
+                ? t("agent.selectOneOption")
+                : t("agent.selectOptions")}
             </Text>
             {isSingleChoice
               ? (
@@ -186,8 +186,8 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value.slice(0, MAX_CHARS))}
                 placeholder={hasOptions
-                  ? t("agent.supplementPlaceholder", "Add additional context (optional)...")
-                  : t("agent.typeAnswerPlaceholder", "Type your answer...")}
+                  ? t("agent.supplementPlaceholder")
+                  : t("agent.typeAnswerPlaceholder")}
                 autoSize={{ minRows: 2, maxRows: 5 }}
                 disabled={submitting || submitted}
                 onKeyDown={handleKeyDown}
@@ -214,7 +214,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
               <Space size={6} style={{ color: token.colorSuccess }}>
                 <CheckCircle2 size={16} />
                 <Text style={{ color: token.colorSuccess, fontSize: 13 }}>
-                  {t("agent.answerSubmitted", "Answer submitted")}
+                  {t("agent.answerSubmitted")}
                 </Text>
               </Space>
             )
@@ -222,9 +222,9 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
               <>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {hasOptions && isSingleChoice && !selectedOption
-                    ? t("agent.pleaseSelectOption", "Please select an option")
+                    ? t("agent.pleaseSelectOption")
                     : hasOptions && !isSingleChoice && !answer.trim()
-                    ? t("agent.pleaseEnterAnswer", "Please enter an answer")
+                    ? t("agent.pleaseEnterAnswer")
                     : ""}
                 </Text>
                 <Button
@@ -236,7 +236,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
                   icon={<Send size={14} />}
                   style={{ borderRadius: 6 }}
                 >
-                  {t("agent.submitAnswer", "Submit")}
+                  {t("agent.submitAnswer")}
                 </Button>
               </>
             )}
@@ -246,7 +246,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: token.colorPrimary }}>
             <Loader2 size={14} className="spin" />
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {t("agent.submitting", "Submitting...")}
+              {t("agent.submitting")}
             </Text>
           </div>
         )}

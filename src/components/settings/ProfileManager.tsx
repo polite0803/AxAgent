@@ -45,14 +45,14 @@ export function ProfileManager() {
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <Text strong>{t("settings.profileManager", "Profile Manager")}</Text>
+        <Text strong>{t("settings.profileManager")}</Text>
         <Button
           size="small"
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => setModalOpen(true)}
         >
-          {t("settings.newProfile", "New")}
+          {t("settings.newProfile")}
         </Button>
       </div>
 
@@ -75,7 +75,7 @@ export function ProfileManager() {
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(p.profile.name)}
             >
-              {t("common.delete", "Delete")}
+              {t("common.delete")}
             </Button>
           )}
         </div>
@@ -85,18 +85,18 @@ export function ProfileManager() {
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={handleCreate}
-        title={t("settings.createProfile", "Create Profile")}
+        title={t("settings.createProfile")}
       >
         <div className="space-y-3 py-2">
           <Input
             id="profile-manager-input-108"
-            placeholder={t("settings.profileName", "Name (alphanumeric, hyphens, underscores)")}
+            placeholder={t("settings.profileName")}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
           <Input
             id="profile-manager-input-109"
-            placeholder={t("settings.profileDisplayName", "Display Name")}
+            placeholder={t("settings.profileDisplayName")}
             value={newDisplayName}
             onChange={(e) => setNewDisplayName(e.target.value)}
           />

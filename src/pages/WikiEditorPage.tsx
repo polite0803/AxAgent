@@ -145,7 +145,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         setNote(updated);
         lastSavedRef.current = content;
         setHasChanges(false);
-        message.success(t("wiki.saved", "Saved"));
+        message.success(t("wiki.saved"));
       }
     } catch (e) {
       message.error(String(e));
@@ -156,10 +156,10 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const handleBackWithConfirm = () => {
     if (hasChanges && content !== lastSavedRef.current) {
       Modal.confirm({
-        title: t("wiki.unsavedTitle", "Unsaved Changes"),
-        content: t("wiki.unsavedContent", "You have unsaved changes. Discard them?"),
-        okText: t("wiki.discard", "Discard"),
-        cancelText: t("wiki.keepEditing", "Keep Editing"),
+        title: t("wiki.unsavedTitle"),
+        content: t("wiki.unsavedContent"),
+        okText: t("wiki.discard"),
+        cancelText: t("wiki.keepEditing"),
         onOk: onBack,
       });
     } else {
@@ -191,7 +191,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   if (!note) {
     return (
       <div className="h-full flex items-center justify-center" style={{ backgroundColor: token.colorBgElevated }}>
-        <span>{t("wiki.noteNotFound", "Note not found")}</span>
+        <span>{t("wiki.noteNotFound")}</span>
       </div>
     );
   }
@@ -210,7 +210,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
           onChange={(e) => handleTitleChange(e.target.value)}
           className="flex-1 text-lg font-medium bg-transparent border-none outline-none"
           style={{ color: token.colorText }}
-          placeholder={t("wiki.titlePlaceholder", "Note title...")}
+          placeholder={t("wiki.titlePlaceholder")}
         />
         <Button
           icon={<SaveOutlined />}
@@ -219,13 +219,13 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
           loading={saving}
           disabled={!hasChanges}
         >
-          {t("wiki.save", "Save")}
+          {t("wiki.save")}
         </Button>
         <Popconfirm
-          title={t("wiki.confirmDelete", "Delete this note?")}
+          title={t("wiki.confirmDelete")}
           onConfirm={async () => {
             await deleteNote(note.id);
-            message.success(t("wiki.deleted", "Note deleted"));
+            message.success(t("wiki.deleted"));
             onBack();
           }}
         >
@@ -240,7 +240,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
               <Select
                 showSearch
                 value={wikilinkSelectValue}
-                placeholder={t("wiki.insertLink", "Insert Link")}
+                placeholder={t("wiki.insertLink")}
                 style={{ width: 200 }}
                 filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
                 options={noteOptions}
@@ -251,14 +251,14 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                 icon={<EyeOutlined />}
                 onClick={() => setPreviewMode(!previewMode)}
               >
-                {previewMode ? t("wiki.source", "Source") : t("wiki.preview", "Preview")}
+                {previewMode ? t("wiki.source") : t("wiki.preview")}
               </Button>
               <Button
                 size="small"
                 icon={<HistoryOutlined />}
                 onClick={() => setVersionHistoryOpen(true)}
               >
-                {t("wiki.history", "History")}
+                {t("wiki.history")}
               </Button>
               <Button
                 size="small"
@@ -272,7 +272,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                     if (filePath) {
                       const result = await exportNotePdf(noteId, filePath);
                       if (result) {
-                        message.success(t("wiki.exportedPdf", "Exported to {{path}}", { path: result }));
+                        message.success(t("wiki.exportedPdf", { path: result }));
                       }
                     }
                   } catch {
@@ -280,18 +280,18 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                   }
                 }}
               >
-                {t("wiki.exportPdf", "Export PDF")}
+                {t("wiki.exportPdf")}
               </Button>
               <Button
                 size="small"
                 type="text"
                 icon={backlinkPanelOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
                 onClick={() => setBacklinkPanelOpen(!backlinkPanelOpen)}
-                title={t("wiki.backlinks", "Backlinks")}
+                title={t("wiki.backlinks")}
               />
               {note.author === "llm" && (
                 <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: token.colorPrimaryBg }}>
-                  {t("wiki.llmNote", "LLM Note")}
+                  {t("wiki.llmNote")}
                 </span>
               )}
             </div>

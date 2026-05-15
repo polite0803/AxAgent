@@ -37,19 +37,19 @@ export function BuddyWidget() {
   const setPosition = useBuddyStore((s) => s.setPosition);
 
   const rarityLabels = useMemo(() => ({
-    common: t("buddy.rarity.common", "普通"),
-    uncommon: t("buddy.rarity.uncommon", "罕见"),
-    rare: t("buddy.rarity.rare", "稀有"),
-    epic: t("buddy.rarity.epic", "史诗"),
-    legendary: t("buddy.rarity.legendary", "传说"),
+    common: t("buddy.rarity.common"),
+    uncommon: t("buddy.rarity.uncommon"),
+    rare: t("buddy.rarity.rare"),
+    epic: t("buddy.rarity.epic"),
+    legendary: t("buddy.rarity.legendary"),
   }), [t]);
 
   const attrLabels = useMemo<Record<keyof BuddyAttributes, string>>(() => ({
-    debugging: t("buddy.attr.debugging", "调试"),
-    patience: t("buddy.attr.patience", "耐心"),
-    chaos: t("buddy.attr.chaos", "混乱"),
-    wisdom: t("buddy.attr.wisdom", "智慧"),
-    snark: t("buddy.attr.snark", "毒舌"),
+    debugging: t("buddy.attr.debugging"),
+    patience: t("buddy.attr.patience"),
+    chaos: t("buddy.attr.chaos"),
+    wisdom: t("buddy.attr.wisdom"),
+    snark: t("buddy.attr.snark"),
   }), [t]);
 
   // 拖动状态（按钮拖动）
@@ -177,7 +177,7 @@ export function BuddyWidget() {
           size="small"
           icon={<EyeOutlined />}
           onClick={() => setVisible(true)}
-          title={t("buddy.showBuddy", "显示伙伴")}
+          title={t("buddy.showBuddy")}
           style={{
             width: 32,
             height: 32,
@@ -226,14 +226,14 @@ export function BuddyWidget() {
             height: 52,
             boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
           }}
-          title={t("buddy.summonBuddy", "召唤伙伴（可拖动）")}
+          title={t("buddy.summonBuddy")}
         />
         <Button
           type="text"
           size="small"
           icon={<EyeInvisibleOutlined />}
           onClick={() => setVisible(false)}
-          title={t("buddy.hideBuddy", "隐藏伙伴")}
+          title={t("buddy.hideBuddy")}
           style={{ opacity: 0.3 }}
         />
       </div>
@@ -305,7 +305,7 @@ export function BuddyWidget() {
           {/* 属性条 */}
           <div style={{ marginBottom: 12 }}>
             <Text type="secondary" style={{ fontSize: 12, marginBottom: 6, display: "block" }}>
-              {t("buddy.attributes", "属性")}
+              {t("buddy.attributes")}
             </Text>
             {attrKeys.map((key) => (
               <div
@@ -337,7 +337,7 @@ export function BuddyWidget() {
           {/* 经验条 */}
           <div style={{ marginBottom: 12 }}>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {t("buddy.experience", "经验值")}
+              {t("buddy.experience")}
             </Text>
             <Progress
               percent={Math.round(
@@ -354,7 +354,7 @@ export function BuddyWidget() {
           {lastMessage && (
             <div>
               <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: "block" }}>
-                {t("buddy.recentMessages", "最近发言")}
+                {t("buddy.recentMessages")}
               </Text>
               <BuddyMessageBubble
                 message={lastMessage}
@@ -393,7 +393,7 @@ export function BuddyWidget() {
             boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
             position: "relative",
           }}
-          title={t("buddy.togglePanel", "点击展开/折叠（可拖动）")}
+          title={t("buddy.togglePanel")}
         >
           <span
             style={{
@@ -421,7 +421,7 @@ export function BuddyWidget() {
           size="small"
           icon={<EyeInvisibleOutlined />}
           onClick={() => setVisible(false)}
-          title={t("buddy.hideBuddy", "隐藏伙伴")}
+          title={t("buddy.hideBuddy")}
           style={{ opacity: 0.3 }}
         />
       </div>

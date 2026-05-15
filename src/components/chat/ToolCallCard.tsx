@@ -199,7 +199,7 @@ export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: Tool
       {chainItems.length > 0 && (
         <>
           <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
-            {t("chat.inspector.toolCalls", "工具调用")}
+            {t("chat.inspector.toolCalls")}
           </Typography.Text>
           <ThoughtChain
             items={chainItems}

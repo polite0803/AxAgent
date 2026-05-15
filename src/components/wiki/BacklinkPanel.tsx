@@ -84,11 +84,11 @@ export function BacklinkPanel({ noteId, onNavigateToNote }: BacklinkPanelProps) 
           style={{ color: token.colorTextSecondary }}
         >
           <ArrowLeftRight size={12} />
-          {t("wiki.backlinks", "Backlinks")}
+          {t("wiki.backlinks")}
         </div>
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("wiki.noBacklinks", "No backlinks")}
+          description={t("wiki.noBacklinks")}
           className="my-2"
         />
       </div>
@@ -105,7 +105,7 @@ export function BacklinkPanel({ noteId, onNavigateToNote }: BacklinkPanelProps) 
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
         <ArrowLeftRight size={12} />
         <span className="text-xs font-medium">
-          {t("wiki.backlinks", "Backlinks")}
+          {t("wiki.backlinks")}
         </span>
         <span
           className="text-[10px] px-1.5 py-0.5 rounded-full"

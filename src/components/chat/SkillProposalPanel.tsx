@@ -128,7 +128,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({ open, on
       message.success(t("skill.proposal.created") + " " + proposal.suggested_name);
       setLocalProposals((prev) => prev.filter((p) => p.suggested_name !== proposal.suggested_name));
     } catch (e) {
-      message.error(t("skill.proposal.error", "Failed to create skill"));
+      message.error(t("skill.proposal.error"));
     }
   };
 

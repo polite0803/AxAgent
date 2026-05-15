@@ -82,7 +82,7 @@ export function WorkflowBadge({
           }}
         >
           <Workflow size={12} style={{ marginRight: 4 }} />
-          {t("chat.workflow.selectHint", "选择工作流")}
+          {t("chat.workflow.selectHint")}
         </Button>
         <WorkflowTemplateSelector
           open={selectorOpen}
@@ -119,7 +119,7 @@ export function WorkflowBadge({
         ? <CheckCircle size={12} />
         : <Workflow size={12} />}
     >
-      {workflowTemplateId || t("chat.workflow.unnamed", "工作流")}
+      {workflowTemplateId || t("chat.workflow.unnamed")}
     </Tag>
   );
 }

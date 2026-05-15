@@ -41,9 +41,9 @@ export function ProfileSelector() {
   };
 
   return (
-    <SettingsGroup title={t("settings.profiles", "Profiles")}>
+    <SettingsGroup title={t("settings.profiles")}>
       <div className="flex items-center justify-between py-1">
-        <span>{t("settings.activeProfile", "Active Profile")}</span>
+        <span>{t("settings.activeProfile")}</span>
         <select
           value={active}
           onChange={(e) => handleSwitch(e.target.value)}

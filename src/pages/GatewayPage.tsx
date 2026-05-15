@@ -64,7 +64,7 @@ export function GatewayPage() {
     },
     {
       key: "monitor",
-      label: t("gateway.tab.monitor", "监控"),
+      label: t("gateway.tab.monitor"),
       icon: <Activity size={16} color={CHAT_ICON_COLORS.Settings} />,
       children: <GatewayMonitor />,
     },

@@ -79,7 +79,7 @@ export function SkillDependencyCheck() {
         type="success"
         showIcon
         icon={<CheckCircle size={14} />}
-        message={t("skill.deps.allSatisfied", "所有技能依赖已满足")}
+        message={t("skill.deps.allSatisfied")}
         style={{ marginBottom: 16 }}
       />
     );
@@ -89,10 +89,10 @@ export function SkillDependencyCheck() {
     <div style={{ marginBottom: 16 }}>
       <Space style={{ marginBottom: 12 }}>
         <Typography.Text strong>
-          {t("skill.deps.title", "依赖检查")}
+          {t("skill.deps.title")}
         </Typography.Text>
         <Button size="small" icon={<RefreshCw size={12} />} loading={loading} onClick={analyzeDependencies}>
-          {t("skill.deps.refresh", "刷新")}
+          {t("skill.deps.refresh")}
         </Button>
       </Space>
 
@@ -132,8 +132,8 @@ export function SkillDependencyCheck() {
                     <Badge
                       status={dep.installed ? "success" : "error"}
                       text={dep.installed
-                        ? t("skill.deps.installed", "已安装")
-                        : t("skill.deps.missing", "缺失")}
+                        ? t("skill.deps.installed")
+                        : t("skill.deps.missing")}
                     />
                   </Space>
                 </List.Item>

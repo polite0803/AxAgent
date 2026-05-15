@@ -226,7 +226,7 @@ export const ExecutionTimeline = React.memo(
     if (events.length === 0) {
       return (
         <div style={{ textAlign: "center", padding: 24, color: token.colorTextQuaternary, fontSize: 13 }}>
-          {t("chat.timeline.empty", "暂无执行记录")}
+          {t("chat.timeline.empty")}
         </div>
       );
     }
@@ -279,12 +279,12 @@ export const ExecutionTimeline = React.memo(
                 {typeIcons[evt.type]}
                 <span style={{ marginLeft: 4 }}>
                   {evt.type === "plan"
-                    ? t("chat.timeline.plan", "计划")
+                    ? t("chat.timeline.plan")
                     : evt.type === "tool_call"
-                    ? t("chat.timeline.tool", "工具")
+                    ? t("chat.timeline.tool")
                     : evt.type === "agent_pool"
-                    ? t("chat.timeline.agent", "智能体")
-                    : t("chat.timeline.status", "状态")}
+                    ? t("chat.timeline.agent")
+                    : t("chat.timeline.status")}
                 </span>
               </Tag>
               {/* Tool-specific icon */}
@@ -307,14 +307,14 @@ export const ExecutionTimeline = React.memo(
                 style={{ margin: 0, fontSize: 10, padding: "0 4px", lineHeight: "18px" }}
               >
                 {evt.status === "completed"
-                  ? t("chat.timeline.completed", "完成")
+                  ? t("chat.timeline.completed")
                   : evt.status === "failed"
-                  ? t("chat.timeline.failed", "失败")
+                  ? t("chat.timeline.failed")
                   : evt.status === "running"
-                  ? t("chat.timeline.running", "运行中")
+                  ? t("chat.timeline.running")
                   : evt.status === "cancelled"
-                  ? t("chat.timeline.cancelled", "已取消")
-                  : t("chat.timeline.pending", "等待中")}
+                  ? t("chat.timeline.cancelled")
+                  : t("chat.timeline.pending")}
               </Tag>
             </div>
 
@@ -376,7 +376,7 @@ export const ExecutionTimeline = React.memo(
     const total = events.length;
 
     return (
-      <div style={{ padding: "0 4px" }} role="region" aria-label={t("chat.timeline.title", "执行时间线")}>
+      <div style={{ padding: "0 4px" }} role="region" aria-label={t("chat.timeline.title")}>
         {/* Summary bar */}
         <div
           style={{
@@ -394,7 +394,7 @@ export const ExecutionTimeline = React.memo(
         >
           <GitBranch size={14} style={{ color: token.colorPrimary }} />
           <span style={{ fontWeight: 500 }}>
-            {t("chat.timeline.title", "执行时间线")}
+            {t("chat.timeline.title")}
           </span>
           <span style={{ color: token.colorTextSecondary }}>
             {total} 个事件

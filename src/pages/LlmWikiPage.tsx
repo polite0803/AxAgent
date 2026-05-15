@@ -370,7 +370,7 @@ export function LlmWikiPage() {
         <div className="p-4 border-b" style={{ borderColor: "var(--color-border-secondary)" }}>
           <Space className="w-full" direction="vertical" size="small">
             <Input.Search
-              placeholder={t("wiki.searchPlaceholder", "Search notes...")}
+              placeholder={t("wiki.searchPlaceholder")}
               value={notesSearchQuery}
               onChange={(e) => setNotesSearchQuery(e.target.value)}
               loading={isNotesSearching}
@@ -380,7 +380,7 @@ export function LlmWikiPage() {
           </Space>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes", "No notes yet")} /> : (
+          {displayNotes.length === 0 ? <Empty description={t("wiki.emptyNotes")} /> : (
             <List
               dataSource={displayNotes}
               renderItem={(note) => (
@@ -392,7 +392,7 @@ export function LlmWikiPage() {
                     title={note.title}
                     description={
                       <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                        {note.author === "llm" ? t("wiki.llmNote", "LLM") : t("wiki.userNote", "User")} •{" "}
+                        {note.author === "llm" ? t("wiki.llmNote") : t("wiki.userNote")} •{" "}
                         {note.filePath}
                       </span>
                     }
@@ -481,7 +481,7 @@ export function LlmWikiPage() {
         ? (
           <div>
             <Button icon={<ArrowLeft />} onClick={handleBackFromNote} className="mb-2">
-              {t("wiki.backToNotes", "Back to Notes")}
+              {t("wiki.backToNotes")}
             </Button>
             <WikiEditorPage noteId={selectedNoteId} onBack={handleBackFromNote} />
           </div>
@@ -492,7 +492,7 @@ export function LlmWikiPage() {
             onChange={setActiveTab}
             items={[
               { key: "overview", label: t("wiki.common.overview"), children: renderOverview() },
-              { key: "notes", label: t("wiki.notes", "Notes"), children: renderNotesPanel() },
+              { key: "notes", label: t("wiki.notes"), children: renderNotesPanel() },
               { key: "sources", label: t("wiki.llm.sources"), children: renderSourcePanel() },
               { key: "ingest", label: t("wiki.llm.ingestSource"), children: renderIngestPanel() },
               { key: "lint", label: t("wiki.llm.lintReport"), children: renderLintPanel() },

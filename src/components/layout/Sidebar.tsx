@@ -293,7 +293,7 @@ export function Sidebar() {
       <div className="flex-1" />
 
       {/* Help button */}
-      <Tooltip title={t("help.title", "帮助中心")} placement="right">
+      <Tooltip title={t("help.title")} placement="right">
         <button
           type="button"
           className="ax-sidebar-user"
