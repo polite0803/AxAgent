@@ -4826,6 +4826,14 @@
       "wisdom": "Wisdom",
       "snark": "Snark"
     },
+    "species": {
+      "duck": "Duck",
+      "cat": "Cat",
+      "owl": "Owl",
+      "fox": "Fox",
+      "dragon": "Dragon",
+      "unicorn": "Unicorn"
+    },
     "showBuddy": "Show Buddy",
     "summonBuddy": "Summon Buddy (draggable)",
     "hideBuddy": "Hide Buddy",
@@ -4887,7 +4895,10 @@
     "delete": "Delete group",
     "collapsed": "Collapsed",
     "splitHere": "Split here",
-    "splitGroup": "Split group"
+    "splitGroup": "Split group",
+    "linkedReply": "Linked reply",
+    "untitled": "Untitled topic",
+    "splitTopic": "Split topic"
   },
   "cloudWorkspace": {
     "title": "Cloud Workspace",
@@ -5661,5 +5672,53 @@
       "training": "Training"
     },
     "title": "Model Fine-Tuning"
+  },
+  "agentMode": {
+    "requiresTauri": "Agent mode requires Tauri desktop environment. Please run `npm run tauri dev` in terminal.",
+    "requiresTauriDetail": "Agent mode requires the Tauri desktop environment. Please run `npm run tauri dev` to start the application.",
+    "thinking": "🔄 Thinking...",
+    "timeout": "Agent execution timed out (10 minutes no response), please retry",
+    "timeoutShort": "Agent execution timed out, please retry",
+    "generatingPlan": "Generating plan...",
+    "planGenerated": "Plan generated. Review the steps below."
+  },
+  "agentStore": {
+    "executionComplete": "Agent execution completed · {{turns}} turn(s){{cost}}",
+    "executionFailed": "Agent execution failed: {{errMsg}}",
+    "executionCancelled": "Agent cancelled: {{reason}}",
+    "userInterrupt": "User interrupted",
+    "unknownError": "Unknown error"
+  },
+  "expertStore": {
+    "loadFailed": "Failed to load external expert: {{error}}",
+    "clearFailed": "Failed to clear external experts: {{error}}",
+    "deleteFailed": "Failed to delete external expert: {{error}}",
+    "updateFailed": "Failed to update external expert: {{error}}",
+    "extractFailed": "Failed to extract expert structure: {{error}}",
+    "jsonFormatError": "JSON format error: expected an array",
+    "skippedInvalidRole": "Skipped invalid role: {{role}}",
+    "jsonParseError": "JSON parse failed: {{error}}"
+  },
+  "expertCategory": {
+    "general": "General"
+  },
+  "planStore": {
+    "rejectFailed": "Failed to reject plan: {{error}}",
+    "modifyStepFailed": "Failed to modify step: {{error}}",
+    "planRestored": "Plan restored. Review the steps above.",
+    "resumeFailed": "Failed to resume plan: {{error}}",
+    "cancelFailed": "Failed to cancel plan: {{error}}",
+    "loadHistoryFailed": "Failed to load plan history: {{error}}"
+  },
+  "skillExtension": {
+    "duplicateCapability": "[SkillExtension] Duplicate {{type}} ID \"{{id}}\" (namespace: {{ns}}), capability for skill \"{{skillName}}\" has been skipped",
+    "toolbarPositionConflict": "[SkillExtension] Toolbar position \"{{position}}\" conflict: skill \"{{skillName}}\" and existing skill(s) [{{existingSkills}}] registered buttons at the same position",
+    "pageRouteConflict": "[SkillExtension] Page route \"{{routeId}}\" conflict: skill \"{{skillName}}\" and existing skill(s) [{{existingSkills}}] registered pages at the same route",
+    "permissionFailed": "[SkillExtension] Skill \"{{skillName}}\" permission check failed, skipping unauthorized capabilities:",
+    "unknownCapabilityType": "[SkillExtension] Unknown capability type: \"{{type}}\"",
+    "fetchFailed": "[SkillExtension] Failed to fetch skills"
+  },
+  "executionStore": {
+    "workerCreated": "Worker created"
   }
 }

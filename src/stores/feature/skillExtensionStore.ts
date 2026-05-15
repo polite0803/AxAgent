@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
 import type {
@@ -163,7 +164,7 @@ function mergeExtensions(skills: Skill[]) {
     const ids = seenIds.get(type)!;
     if (ids.has(namespacedId)) {
       console.warn(
-        `[SkillExtension] 重复的 ${type} ID "${id}"（命名空间: ${namespacedId}），技能 "${skillName}" 的 capability 已被跳过`,
+        i18n.t("skillExtension.duplicateCapability", { type, id, ns: namespacedId, skillName }),
       );
       return true;
     }
@@ -179,7 +180,7 @@ function mergeExtensions(skills: Skill[]) {
     if (skillsAtPosition.size > 0 && !skillsAtPosition.has(skillName)) {
       const existingSkills = [...skillsAtPosition].join(", ");
       console.warn(
-        `[SkillExtension] Toolbar position "${position}" 冲突：技能 "${skillName}" 与已有技能 [${existingSkills}] 注册了相同 position 的按钮`,
+        i18n.t("skillExtension.toolbarPositionConflict", { position, skillName, existingSkills }),
       );
     }
     skillsAtPosition.add(skillName);
@@ -193,7 +194,7 @@ function mergeExtensions(skills: Skill[]) {
     if (skillsAtRoute.size > 0 && !skillsAtRoute.has(skillName)) {
       const existingSkills = [...skillsAtRoute].join(", ");
       console.warn(
-        `[SkillExtension] Page route "${routeId}" 冲突：技能 "${skillName}" 与已有技能 [${existingSkills}] 注册了相同 route 的页面`,
+        i18n.t("skillExtension.pageRouteConflict", { routeId, skillName, existingSkills }),
       );
     }
     skillsAtRoute.add(skillName);
@@ -208,7 +209,7 @@ function mergeExtensions(skills: Skill[]) {
     const permResult = validateSkillPermissions(perms, required);
     if (!permResult.valid) {
       console.warn(
-        `[SkillExtension] Skill "${skill.name}" 权限校验未通过，跳过未授权能力:`,
+        i18n.t("skillExtension.permissionFailed", { skillName: skill.name }),
         permResult.violations,
       );
       continue;
@@ -365,7 +366,7 @@ function mergeCapability(
       });
       break;
     default:
-      console.warn(`[SkillExtension] 未知的 capability 类型: "${(cap as any).type}"`);
+      console.warn(i18n.t("skillExtension.unknownCapabilityType", { type: (cap as any).type }));
   }
 }
 
@@ -389,7 +390,7 @@ export const useSkillExtensionStore = create<SkillExtensionState>((set, get) => 
       const merged = mergeExtensions(skills);
       set({ skills, ...merged, loading: false });
     } catch (e) {
-      console.error("获取 skill 扩展失败:", e);
+      console.error(i18n.t("skillExtension.fetchFailed"), e);
       set({ loading: false });
     }
   },

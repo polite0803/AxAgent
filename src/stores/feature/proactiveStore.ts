@@ -36,7 +36,8 @@ interface IntentPrediction {
 }
 
 /** Lightweight local intent prediction from user typing patterns.
- *  Used to trigger prefetching before the user hits send. */
+ *  Used to trigger prefetching before the user hits send.
+ *  i18n: Chinese keywords are NLP intent keywords, not for translation */
 function predictIntentFromInput(text: string): IntentPrediction[] {
   if (!text || text.length < 3) { return []; }
   const lower = text.toLowerCase();

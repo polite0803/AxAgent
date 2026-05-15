@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import type {
   Plan,
@@ -167,7 +168,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       });
     } catch (e) {
       console.error("[planStore] rejectPlan failed:", e);
-      message.error(`拒绝计划失败: ${String(e)}`);
+      message.error(i18n.t("planStore.rejectFailed", { error: String(e) }));
     }
   },
 
@@ -200,7 +201,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }
     } catch (e) {
       console.error("[planStore] modifyStep failed:", e);
-      message.error(`修改步骤失败: ${String(e)}`);
+      message.error(i18n.t("planStore.modifyStepFailed", { error: String(e) }));
     }
   },
 
@@ -230,11 +231,11 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         activePlans: { ...s.activePlans, [conversationId]: plan },
         loading: { ...s.loading, [conversationId]: false },
       }));
-      message.success("计划已恢复，可在上方查看和审批");
+      message.success(i18n.t("planStore.planRestored"));
     } catch (e) {
       console.error("[planStore] resumePlan failed:", e);
       set((s) => ({ loading: { ...s.loading, [conversationId]: false } }));
-      message.error(`恢复计划失败: ${String(e)}`);
+      message.error(i18n.t("planStore.resumeFailed", { error: String(e) }));
     }
   },
 
@@ -254,7 +255,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       });
     } catch (e) {
       console.error("[planStore] cancelPlan failed:", e);
-      message.error(`取消计划失败: ${String(e)}`);
+      message.error(i18n.t("planStore.cancelFailed", { error: String(e) }));
     }
   },
 
@@ -268,7 +269,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }));
     } catch (e) {
       console.error("[planStore] loadPlanHistory failed:", e);
-      message.error(`加载计划历史失败: ${String(e)}`);
+      message.error(i18n.t("planStore.loadHistoryFailed", { error: String(e) }));
     }
   },
 

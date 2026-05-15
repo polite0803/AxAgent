@@ -4792,7 +4792,10 @@
     "delete": "删除分组",
     "collapsed": "已折叠",
     "splitHere": "从此处拆分",
-    "splitGroup": "拆分分组"
+    "splitGroup": "拆分分组",
+    "linkedReply": "关联回复",
+    "untitled": "未命名主题",
+    "splitTopic": "拆分主题"
   },
   "cloudWorkspace": {
     "title": "云工作区",
@@ -4886,6 +4889,14 @@
       "chaos": "混乱",
       "wisdom": "智慧",
       "snark": "毒舌"
+    },
+    "species": {
+      "duck": "鸭子",
+      "cat": "猫咪",
+      "owl": "猫头鹰",
+      "fox": "狐狸",
+      "dragon": "小龙",
+      "unicorn": "独角兽"
     },
     "showBuddy": "显示伙伴",
     "summonBuddy": "召唤伙伴（可拖动）",
@@ -5649,5 +5660,53 @@
       "training": "训练任务"
     },
     "title": "模型微调"
+  },
+  "agentMode": {
+    "requiresTauri": "Agent 模式需要 Tauri 桌面端环境，请在终端执行 npm run tauri dev 启动",
+    "requiresTauriDetail": "Agent 模式需要 Tauri 桌面端环境才能运行。请使用 `npm run tauri dev` 启动应用。",
+    "thinking": "🔄 正在思考...",
+    "timeout": "Agent 执行超时（10 分钟无响应），请重试",
+    "timeoutShort": "Agent 执行超时，请重试",
+    "generatingPlan": "Generating plan...",
+    "planGenerated": "Plan generated. Review the steps below."
+  },
+  "agentStore": {
+    "executionComplete": "Agent 执行完成 · {{turns}} 轮{{cost}}",
+    "executionFailed": "Agent 执行失败: {{errMsg}}",
+    "executionCancelled": "Agent 已取消: {{reason}}",
+    "userInterrupt": "用户中断",
+    "unknownError": "未知错误"
+  },
+  "expertStore": {
+    "loadFailed": "加载外部专家失败: {{error}}",
+    "clearFailed": "清除外部专家失败: {{error}}",
+    "deleteFailed": "删除外部专家失败: {{error}}",
+    "updateFailed": "更新外部专家失败: {{error}}",
+    "extractFailed": "提取专家结构失败: {{error}}",
+    "jsonFormatError": "JSON 格式错误：期望一个数组",
+    "skippedInvalidRole": "跳过无效角色: {{role}}",
+    "jsonParseError": "JSON 解析失败: {{error}}"
+  },
+  "expertCategory": {
+    "general": "通用"
+  },
+  "planStore": {
+    "rejectFailed": "拒绝计划失败: {{error}}",
+    "modifyStepFailed": "修改步骤失败: {{error}}",
+    "planRestored": "计划已恢复，可在上方查看和审批",
+    "resumeFailed": "恢复计划失败: {{error}}",
+    "cancelFailed": "取消计划失败: {{error}}",
+    "loadHistoryFailed": "加载计划历史失败: {{error}}"
+  },
+  "skillExtension": {
+    "duplicateCapability": "[SkillExtension] 重复的 {{type}} ID \"{{id}}\"（命名空间: {{ns}}），技能 \"{{skillName}}\" 的 capability 已被跳过",
+    "toolbarPositionConflict": "[SkillExtension] Toolbar position \"{{position}}\" 冲突：技能 \"{{skillName}}\" 与已有技能 [{{existingSkills}}] 注册了相同 position 的按钮",
+    "pageRouteConflict": "[SkillExtension] Page route \"{{routeId}}\" 冲突：技能 \"{{skillName}}\" 与已有技能 [{{existingSkills}}] 注册了相同 route 的页面",
+    "permissionFailed": "[SkillExtension] Skill \"{{skillName}}\" 权限校验未通过，跳过未授权能力:",
+    "unknownCapabilityType": "[SkillExtension] 未知的 capability 类型: \"{{type}}\"",
+    "fetchFailed": "[SkillExtension] 获取 skill 扩展失败"
+  },
+  "executionStore": {
+    "workerCreated": "Worker created"
   }
 }
