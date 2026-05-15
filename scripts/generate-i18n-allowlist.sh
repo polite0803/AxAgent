@@ -39,11 +39,23 @@ function isExcluded(filePath) {
   return filePath.replace(/\\\\/g, '/').startsWith(EXCLUDE_DIR.replace(/\\\\/g, '/'));
 }
 
+// Check if a line should be excluded (matches CI check-hardcoded-i18n.sh filtering)
+function isExcludedLine(line) {
+  // Skip single-line comments: // ...
+  if (/^\s*\/\//.test(line)) return true;
+  // Skip block comment continuation lines: * ...
+  if (/^\s*\*/.test(line)) return true;
+  // Skip console.log/warn/error/debug/info/trace
+  if (/console\.(log|warn|error|debug|info|trace)/.test(line)) return true;
+  return false;
+}
+
 // Parse file lines and return matching line numbers
 function findMatches(content, regex) {
   const lines = content.split('\n');
   const matching = [];
   for (let i = 0; i < lines.length; i++) {
+    if (isExcludedLine(lines[i])) continue;
     if (regex.test(lines[i])) {
       matching.push(i + 1); // 1-indexed line numbers
     }

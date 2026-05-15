@@ -126,25 +126,27 @@ else
   echo "  PASS: No violations"
 fi
 
-# Rule 3: t() fallback patterns (WARNING only)
+# Rule 3: t() fallback patterns (ERROR — all must be eliminated)
 echo ""
-echo "--- Rule 3: t() fallback patterns (WARNING) ---"
+echo "--- Rule 3: t() fallback patterns (ERROR) ---"
 > "$TEMP_DIR/r3.txt"
 for f in $CHANGED_FILES; do
   [ -f "$f" ] || continue
   grep -nP "t\(\s*['\"][^'\"]+['\"]\s*,\s*['\"][^'\"]+['\"]" "$f" 2>/dev/null | while IFS=: read -r lnum content; do
     if ! is_allowed "$f" "$lnum"; then
-      echo "  WARNING: $f:$lnum: $content" >> "$TEMP_DIR/r3.txt"
+      echo "  ERROR: $f:$lnum: $content" >> "$TEMP_DIR/r3.txt"
     fi
   done || true
 done
 
 if [ -s "$TEMP_DIR/r3.txt" ]; then
   count=$(wc -l < "$TEMP_DIR/r3.txt")
-  echo "  WARNING: $count t() fallback(s) found (not blocking):"
+  echo "  FAIL: $count t() fallback(s) found (blocking):"
   cat "$TEMP_DIR/r3.txt"
+  VIOLATIONS=$((VIOLATIONS + count))
+  EXIT_CODE=1
 else
-  echo "  No t() fallbacks found"
+  echo "  PASS: No t() fallbacks found"
 fi
 
 echo ""

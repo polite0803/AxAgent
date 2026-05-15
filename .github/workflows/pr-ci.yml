@@ -68,7 +68,7 @@ jobs:
         run: npm run build
 
       - name: Check i18n hardcoded strings
-        run: bash scripts/check-hardcoded-i18n.sh --diff-only
+        run: bash scripts/check-hardcoded-i18n.sh --strict
 
   rust-check:
     name: Rust Check
