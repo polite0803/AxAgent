@@ -269,6 +269,7 @@ fn extract_query_terms(query: &str) -> Vec<String> {
 }
 
 /// Check if a word is a common stop word (English + Chinese).
+// i18n-exempt: NLP data - Chinese/English stop word list used for relevance scoring
 fn is_stop_word(word: &str) -> bool {
     matches!(
         word,
@@ -467,6 +468,7 @@ pub struct SummarizationRequest {
 }
 
 /// Build the LLM prompt for generating a conversation summary.
+// i18n-exempt: LLM prompt templates for conversation summary/compression — model interaction data, not UI
 pub fn build_summary_prompt(request: &SummarizationRequest) -> Vec<ChatMessage> {
     let mut messages = Vec::new();
 

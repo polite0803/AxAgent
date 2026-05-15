@@ -500,6 +500,7 @@ fn is_n8n_format(json: &serde_json::Value) -> bool {
 }
 
 /// n8n 节点类型 → (agent_profile_id, agent_role, expert_id, expert_system_prompt)
+// i18n-exempt: Expert role descriptions are LLM system prompts — model interaction data, not UI
 fn infer_agent_from_n8n(
     node_type: &str,
     node_name: &str,

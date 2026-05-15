@@ -146,6 +146,7 @@ impl ReportGenerator {
             .collect()
     }
 
+    // i18n-exempt: Generated benchmark report content (recommendations, markdown templates) — internal/report data, not UI
     fn generate_recommendations(
         &self,
         summary: &ReportSummary,
@@ -190,6 +191,7 @@ impl ReportGenerator {
         recommendations
     }
 
+    // i18n-exempt: Markdown report template — generated report output, not UI
     pub fn to_markdown(&self, report: &BenchmarkReport) -> String {
         let mut md = String::new();
 

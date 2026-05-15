@@ -254,6 +254,7 @@ pub fn format_score(score: f32) -> String {
     format!("{:.2}%", score * 100.0)
 }
 
+// i18n-note: Difficulty labels used in benchmark reports. Future: accept language parameter.
 pub fn get_difficulty_label(difficulty: Difficulty) -> &'static str {
     match difficulty {
         Difficulty::Easy => "简单",

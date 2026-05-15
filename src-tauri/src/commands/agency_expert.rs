@@ -289,6 +289,7 @@ pub async fn import_agency_experts(
     let path = Path::new(&request.path);
 
     if !path.exists() || !path.is_dir() {
+        // i18n-note: Error message returned to frontend. Future: convert to error codes for frontend i18n.
         return Err(format!("路径不存在或不是目录: {}", request.path));
     }
 
@@ -298,6 +299,7 @@ pub async fn import_agency_experts(
     let mut tools_matched: u32 = 0;
     let mut errors: Vec<String> = Vec::new();
 
+    // i18n-note: Error messages in this command returned to frontend. Future: convert to error codes for frontend i18n.
     let entries = fs::read_dir(path).map_err(|e| format!("读取目录失败: {}", e))?;
 
     for entry in entries {

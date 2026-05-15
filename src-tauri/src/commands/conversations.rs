@@ -836,6 +836,7 @@ async fn consume_stream(
                     && full_content.is_empty()
                     && final_tool_calls.as_ref().is_none_or(|tc| tc.is_empty())
                 {
+                    // i18n-note: Error message returned to frontend. Future: convert to error codes for frontend i18n.
                     let err_msg = "Provider returned empty response. This may indicate the model could not generate content for the given input, the request was filtered by content policy, or the connection was interrupted before any data was received. Try rephrasing your message or try again.".to_string();
                     let _ = app.emit(
                         "chat-stream-error",
@@ -1031,6 +1032,7 @@ async fn execute_tool_call(
     let (server, _td) = match server_and_tool {
         Ok(Some(pair)) => pair,
         _ => {
+            // i18n-note: Error message returned to frontend. Future: convert to error codes for frontend i18n.
             return (
                 format!(
                     "Error: Tool '{}' not found on any enabled MCP server",
@@ -1164,6 +1166,7 @@ async fn execute_tool_call(
     }
 }
 
+// i18n-exempt: LLM system prompt for title generation — model interaction data, not UI
 const DEFAULT_TITLE_PROMPT: &str = "You are a title generator. Based on the conversation below, generate a concise and descriptive title (maximum 30 characters). Reply with the title only, no quotes or extra text.";
 
 /// 将多条 (role, content) 消息格式化为 "User: ... Assistant: ..." 交替文本。
@@ -2306,6 +2309,7 @@ pub async fn send_message(
     // Inject current date + search hint
     {
         let now = chrono::Local::now();
+        // i18n-exempt: LLM context injection (current date + web search hint) — model interaction data, not UI
         let date_msg = format!(
             "Current date: {}. IMPORTANT: You have access to a `web_search` function that can retrieve real-time information from the internet. You MUST use it whenever the user asks about current events, recent news, today's topics, latest updates, or any information that may have changed since your training cutoff. Do NOT claim you cannot access real-time data — call web_search instead.",
             now.format("%Y-%m-%d")
