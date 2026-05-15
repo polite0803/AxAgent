@@ -1,18 +1,12 @@
 {
   "version": "1",
   "generated": "2026-05-15",
-  "total_entries": 184,
-  "total_files": 213,
+  "total_entries": 177,
+  "total_files": 206,
   "entries": [
     {
       "file": "src/App.tsx",
       "lines": "70,144,148,152,273,276,277,290,304",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/benchmark/BenchmarkConfig.tsx",
-      "lines": "13,26,47,48,49,50,57",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -241,42 +235,6 @@
     {
       "file": "src/components/chat/WorkflowTemplateSelector.tsx",
       "lines": "396,468,474,481,485,487,493,500,503,505,510,515,520,525,591,616,871,873,875,876,877,878,880,882,883,884,885,887,889,890,892,893,895,896,898,900,901,944,1032,1079",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/decomposition/ToolDependencyList.tsx",
-      "lines": "13,14,15,16,25,27,34,44,51,60",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/decomposition/ToolInstallPanel.tsx",
-      "lines": "49,59,68,76,100,108,117",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/SpanTree.tsx",
-      "lines": "112",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/Timeline.tsx",
-      "lines": "63",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/TraceFilters.tsx",
-      "lines": "102,103,110",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/devtools/TraceList.tsx",
-      "lines": "110,121",
       "reason": "硬编码中文字符串",
       "phase": 3
     },

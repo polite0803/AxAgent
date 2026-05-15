@@ -2,6 +2,7 @@ import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { SpanTreeNode, SpanType } from "@/types";
 import { Tag, Tooltip, Typography } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -104,12 +105,13 @@ function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
 }
 
 export function SpanTree({ spans }: SpanTreeProps) {
+  const { t } = useTranslation();
   const { selectedSpan, selectSpan } = useTracerStore();
 
   return (
     <div className="py-2">
       <div className="text-sm font-medium text-gray-600 mb-2 px-2">
-        调用链 ({spans.length} spans)
+        {t("devtools.callChain", { count: spans.length })}
       </div>
       {spans.map((span) => (
         <SpanNode
