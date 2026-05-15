@@ -574,8 +574,9 @@
       "rawData": "Raw Data",
       "series": "Series",
       "summary": "Summary",
-      "value": "Value"
-    },
+      "value": "Value",
+      "renderError": "Chart generation failed: {{error}}"
+        },
     "collaboration": {
       "copied": "Copied",
       "copyCode": "Copy code",
@@ -966,6 +967,7 @@
       "applyStopped": "중지됨: {{platforms}}",
       "applyErrors": "오류: {{errors}}",
       "applyFailed": "설정 적용 실패",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "상태",
       "statusDisabled": "비활성화",
       "statusConnected": "연결됨",
@@ -3906,10 +3908,21 @@
     "writeReview": "Write Review",
     "yourReview": "Your Review"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
+
   "terminal": {
     "online": "Online",
-    "offline": "Offline"
-  },
+    "offline": "Offline",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
+    },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
     "caseSensitive": "Case sensitive",
@@ -4415,8 +4428,17 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export Publishable",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
-  },
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
+    },
   "task": {
     "title": "백그라운드 작업",
     "empty": "백그라운드 작업 없음",
@@ -4467,8 +4489,12 @@
     "agenticOptions": "추가 옵션",
     "includeConv": "대화 포함",
     "includeFiles": "파일 포함",
-    "includeSelection": "선택 영역 포함"
-  },
+    "includeSelection": "선택 영역 포함",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    },
   "knowledge": {
     "commonPanel": "공통 패널",
     "commonPanelDesc": "지식 베이스와 Wiki의 공통 작업",
@@ -4563,6 +4589,19 @@
     "keyPressed": "키 {{key}} 눌림",
     "scrolled": "{{direction}} 스크롤됨"
   },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+  },
+
   "onboarding": {
     "welcome": "AxAgent에 오신 것을 환영합니다",
     "welcomeDesc": "멀티 모델, 에이전트 자율 실행, 지식 베이스 검색을 지원하는 스마트 AI 데스크톱 클라이언트",

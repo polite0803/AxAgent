@@ -574,8 +574,9 @@
       "rawData": "Raw Data",
       "series": "Series",
       "summary": "Summary",
-      "value": "Value"
-    },
+      "value": "Value",
+      "renderError": "Chart generation failed: {{error}}"
+        },
     "collaboration": {
       "copied": "Copied",
       "copyCode": "Copy code",
@@ -2161,6 +2162,7 @@
       "applyStopped": "रोका गया: {{platforms}}",
       "applyErrors": "त्रुटियाँ: {{errors}}",
       "applyFailed": "कॉन्फ़िगरेशन लागू करने में विफल",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "स्थिति",
       "statusDisabled": "अक्षम",
       "statusConnected": "कनेक्टेड",
@@ -2892,10 +2894,21 @@
     "docStyle": "Document Style",
     "title": "Style Settings"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
+
   "terminal": {
     "online": "Online",
-    "offline": "Offline"
-  },
+    "offline": "Offline",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
+    },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
     "caseSensitive": "Case sensitive",
@@ -4415,8 +4428,17 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export Publishable",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
-  },
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
+    },
   "task": {
     "title": "पृष्ठभूमि कार्य",
     "empty": "कोई पृष्ठभूमि कार्य नहीं",
@@ -4467,8 +4489,12 @@
     "agenticOptions": "अतिरिक्त विकल्प",
     "includeConv": "बातचीत शामिल करें",
     "includeFiles": "फ़ाइलें शामिल करें",
-    "includeSelection": "चयन शामिल करें"
-  },
+    "includeSelection": "चयन शामिल करें",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    },
   "knowledge": {
     "commonPanel": "सामान्य पैनल",
     "commonPanelDesc": "नॉलेज बेस और Wiki के लिए सामान्य संचालन",
@@ -4563,6 +4589,19 @@
     "keyPressed": "कुंजी {{key}} दबाई गई",
     "scrolled": "{{direction}} स्क्रॉल किया"
   },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+  },
+
   "onboarding": {
     "welcome": "AxAgent में आपका स्वागत है",
     "welcomeDesc": "स्मार्ट AI डेस्कटॉप क्लाइंट, बहु-मॉडल समर्थन, स्वायत्त एजेंट निष्पादन और ज्ञानकोष खोज के साथ",

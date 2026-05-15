@@ -574,8 +574,9 @@
       "rawData": "原始数据",
       "series": "系列",
       "summary": "摘要",
-      "value": "值"
-    },
+      "value": "值",
+      "renderError": "Chart generation failed: {{error}}"
+        },
     "collaboration": {
       "copied": "已复制",
       "copyCode": "复制代码",
@@ -966,6 +967,7 @@
       "applyStopped": "已停止: {{platforms}}",
       "applyErrors": "错误: {{errors}}",
       "applyFailed": "設定の適用に失敗しました",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "ステータス",
       "statusDisabled": "無効",
       "statusConnected": "接続済み",
@@ -3906,10 +3908,21 @@
     "writeReview": "撰写评价",
     "yourReview": "我的评价"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
+
   "terminal": {
     "online": "オンライン",
-    "offline": "オフライン"
-  },
+    "offline": "オフライン",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
+    },
   "search": {
     "resultPrefix": "以下是联网搜索结果，回答问题前请参考：\n\n",
     "caseSensitive": "区分大小写",
@@ -4415,8 +4428,17 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export Publishable",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
-  },
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
+    },
   "task": {
     "title": "バックグラウンドタスク",
     "empty": "タスクがありません",
@@ -4467,8 +4489,12 @@
     "agenticOptions": "追加オプション",
     "includeConv": "会話を含む",
     "includeFiles": "ファイルを含む",
-    "includeSelection": "選択範囲を含む"
-  },
+    "includeSelection": "選択範囲を含む",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    },
   "knowledge": {
     "commonPanel": "共通パネル",
     "commonPanelDesc": "知识库和Wiki的共同操作",
@@ -4563,6 +4589,19 @@
     "keyPressed": "キー {{key}} が押されました",
     "scrolled": "滚动 {{direction}}"
   },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+  },
+
   "onboarding": {
     "welcome": "欢迎使用 AxAgent",
     "welcomeDesc": "マルチモデル対応、エージェント自律実行、ナレッジベース検索を備えたスマートAIデスクトップクライアント",

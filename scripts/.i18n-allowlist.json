@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-15",
-  "total_entries": 177,
+  "total_entries": 169,
   "total_files": 206,
   "entries": [
     {
@@ -329,12 +329,6 @@
       "phase": 3
     },
     {
-      "file": "src/components/settings/AgentProfileManager.tsx",
-      "lines": "103,107,116,263,423,431,527,528,529,530,531,532,533,534",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/components/settings/CloudWorkspaceSelector.tsx",
       "lines": "735,758,790",
       "reason": "硬编码英文占位符",
@@ -347,20 +341,8 @@
       "phase": 3
     },
     {
-      "file": "src/components/settings/DataManager.tsx",
-      "lines": "37,47,51,88,96,99,109,112",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/components/settings/DefaultModelSettings.tsx",
       "lines": "14,17",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/GatewayConfigPanel.tsx",
-      "lines": "132",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -368,12 +350,6 @@
       "file": "src/components/settings/HookExecutionLog.tsx",
       "lines": "9,12,15,17,19,21,23,25,29,40,45,52,60,73,79,97,108,120,139,153,161,166,171,192,199,205,214,223,229,234,235",
       "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/settings/ImageGenSettings.tsx",
-      "lines": "84,88,92",
-      "reason": "硬编码英文占位符",
       "phase": 3
     },
     {
@@ -455,24 +431,6 @@
       "phase": 3
     },
     {
-      "file": "src/components/shared/ChartRenderer.tsx",
-      "lines": "60",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/shared/SearchProviderIcon.tsx",
-      "lines": "22,23",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/FrontendEditorModal.tsx",
-      "lines": "55,57,78,82,89,104,117,121,123,134,142",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
       "file": "src/components/skill/SkillChatCommands.tsx",
       "lines": "15",
       "reason": "硬编码中文字符串",
@@ -505,12 +463,6 @@
     {
       "file": "src/components/skill/SkillPanels.tsx",
       "lines": "7",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/components/skill/SkillSandboxContainer.tsx",
-      "lines": "2,4,6,7,8,9,22,101,122,143,146,157,182,185,188,192,215,219,228,235",
       "reason": "硬编码中文字符串",
       "phase": 3
     },

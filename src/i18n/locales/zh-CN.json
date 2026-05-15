@@ -575,7 +575,8 @@
       "rawData": "原始数据",
       "series": "系列",
       "summary": "摘要",
-      "value": "值"
+      "value": "值",
+      "renderError": "图表生成失败: {{error}}"
     },
     "collaboration": {
       "copied": "已复制",
@@ -2172,6 +2173,7 @@
       "applyStopped": "已停止: {{platforms}}",
       "applyErrors": "错误: {{errors}}",
       "applyFailed": "应用配置失败",
+      "saveConfigFailed": "保存配置失败: {{error}}",
       "status": "状态",
       "statusDisabled": "已禁用",
       "statusConnected": "已连接",
@@ -2905,6 +2907,11 @@
     "docStyle": "文档风格",
     "title": "风格设置"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
   "terminal": {
     "online": "在线",
     "offline": "离线",
@@ -2912,7 +2919,12 @@
     "analyzeOutput": "分析输出",
     "clear": "清空",
     "killProcess": "终止进程",
-    "closeSession": "关闭会话"
+    "closeSession": "关闭会话",
+    "local": "本地",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} 个会话",
+    "configureBackends": "配置后端..."
   },
   "search": {
     "resultPrefix": "以下是联网搜索结果，回答问题前请参考：\n\n",
@@ -4487,7 +4499,16 @@
     "exportFailed": "导出失败",
     "exportPublishable": "导出为可发布格式",
     "exported": "技能已导出",
-    "hasUI": "含 UI 扩展"
+    "hasUI": "含 UI 扩展",
+    "timeoutError": "沙箱加载超时，请重试",
+    "entryFileEmpty": "入口文件 \"{{entry}}\" 为空或不存在",
+    "iframeNotReady": "iframe ref 未就绪",
+    "storeNotFound": "Store \"{{name}}\" 未找到",
+    "storeNotWritable": "Store \"{{name}}\" 不可写",
+    "loadError": "加载 Skill 失败",
+    "analyzeFrontend": "AI 分析生成",
+    "analyzeSuccess": "智能分析完成",
+    "analyzeError": "智能分析失败: {{error}}"
   },
   "task": {
     "title": "后台任务",
@@ -4545,7 +4566,11 @@
     "editManifest": "编辑清单",
     "editManifestTitle": "编辑 Skill 清单 — {{name}}",
     "editManifestDesc": "编辑",
-    "supportedCapabilities": "支持的 capability 类型"
+    "supportedCapabilities": "支持的 capability 类型",
+    "saveError": "保存失败: {{error}}",
+    "jsonTab": "JSON 编辑",
+    "previewTab": "预览",
+    "manifestHint": "编辑 skill-manifest.json。capability 类型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。"
   },
   "knowledge": {
     "commonPanel": "公共面板",
@@ -4640,6 +4665,18 @@
     "clickSuccess": "点击 ({{x}}, {{y}})",
     "keyPressed": "按键 {{key}} 已按下",
     "scrolled": "滚动 {{direction}}"
+  },
+  "commandSuggest": {
+    "searchWeb": "搜索网络",
+    "compressContext": "压缩会话上下文",
+    "clearHistory": "清除会话历史",
+    "listTools": "列出可用工具",
+    "showHelp": "显示帮助和可用命令",
+    "mcpTool": "MCP 工具",
+    "referenceFile": "引用文件或路径",
+    "commands": "命令",
+    "mentions": "提及",
+    "filterHint": "输入筛选，↑↓ 选择，Enter 确认"
   },
   "onboarding": {
     "welcome": "欢迎使用 AxAgent",
@@ -5268,7 +5305,15 @@
     "configureApiKey": "请配置 API Key",
     "generateImage": "生成图片",
     "model": "模型",
-    "elapsed": "耗时"
+    "elapsed": "耗时",
+    "providerFlux": "Flux (Replicate)",
+    "providerDalle": "DALL-E 3 (OpenAI)",
+    "replicateApiToken": "Replicate API Token",
+    "replicateApiTokenPlaceholder": "r8_...",
+    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiApiKeyPlaceholder": "sk-...",
+    "openaiBaseUrl": "OpenAI Base URL",
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
   },
   "diffViewer": {
     "newFile": "新建",

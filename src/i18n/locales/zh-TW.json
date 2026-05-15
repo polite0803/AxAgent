@@ -574,8 +574,9 @@
       "rawData": "原始數據",
       "series": "系列",
       "summary": "摘要",
-      "value": "值"
-    },
+      "value": "值",
+      "renderError": "Chart generation failed: {{error}}"
+        },
     "collaboration": {
       "copied": "已複製",
       "copyCode": "複製代碼",
@@ -966,6 +967,7 @@
       "applyStopped": "已停止: {{platforms}}",
       "applyErrors": "錯誤: {{errors}}",
       "applyFailed": "套用配置失敗",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "狀態",
       "statusDisabled": "已停用",
       "statusConnected": "已連線",
@@ -3906,10 +3908,21 @@
     "writeReview": "撰寫評價",
     "yourReview": "我的評價"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
+
   "terminal": {
     "online": "在線",
-    "offline": "離線"
-  },
+    "offline": "離線",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
+    },
   "search": {
     "resultPrefix": "以下是聯網搜索結果，回答問題前請參考：\n\n",
     "caseSensitive": "區分大小寫",
@@ -4415,8 +4428,17 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export Publishable",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
-  },
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
+    },
   "task": {
     "title": "背景任務",
     "empty": "暫無背景任務",
@@ -4467,8 +4489,12 @@
     "agenticOptions": "附加選項",
     "includeConv": "包含對話",
     "includeFiles": "包含檔案",
-    "includeSelection": "包含選取區"
-  },
+    "includeSelection": "包含選取區",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    },
   "knowledge": {
     "commonPanel": "公共面板",
     "commonPanelDesc": "知識庫和Wiki的共同操作",
@@ -4563,6 +4589,19 @@
     "keyPressed": "已按下 {{key}} 鍵",
     "scrolled": "已捲動 {{direction}}"
   },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+  },
+
   "onboarding": {
     "welcome": "歡迎使用 AxAgent",
     "welcomeDesc": "智慧 AI 桌面用戶端，支援多模型、Agent 自主執行、知識庫檢索",

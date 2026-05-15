@@ -160,7 +160,7 @@ export function AgentProfileManager() {
   }, [filtered]);
 
   const catLabel = (cat: string) =>
-    t(`chat.workflow.agentProfile${cat.charAt(0).toUpperCase() + cat.slice(1)}`, CATEGORY_LABELS[cat] ?? cat);
+    t(`chat.workflow.agentProfile${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
 
   const openCreate = () => {
     setEditingProfile(null);
@@ -522,17 +522,6 @@ export function AgentProfileManager() {
     </div>
   );
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-  general: "通用",
-  development: "开发",
-  security: "安全",
-  data: "数据",
-  devops: "运维",
-  design: "设计",
-  writing: "写作",
-  business: "商业",
-};
 
 const CATEGORY_NAMES: Record<string, string> = {
   general: "chat.workflow.agentProfileGeneral",

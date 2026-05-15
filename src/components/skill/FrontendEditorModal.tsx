@@ -52,9 +52,9 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
     try {
       const result = await invoke<SkillManifest>("skill_analyze_frontend", { name: skillName });
       setJsonText(formatJson(result));
-      message.success("智能分析完成");
+      message.success(t("skill.analyzeSuccess"));
     } catch (e) {
-      message.error(`智能分析失败: ${String(e)}`);
+      message.error(t("skill.analyzeError", { error: String(e) }));
     } finally {
       setAnalyzing(false);
     }
@@ -75,18 +75,18 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
       setSaving(true);
       const finalData = JSON.parse(jsonText);
       await invoke("skill_set_manifest", { name: skillName, manifest: finalData });
-      message.success("清单配置已保存");
+      message.success(t("skillEditor.manifestSaved"));
       onClose();
       onSaved();
     } catch (e) {
-      message.error(`保存失败: ${String(e)}`);
+      message.error(t("skillEditor.saveError", { error: String(e) }));
       setSaving(false);
     }
   }, [jsonText, skillName, onClose, onSaved]);
 
   return (
     <Modal
-      title={`编辑 Skill 清单 — ${skillName}`}
+      title={t("skillEditor.editManifestTitle", { name: skillName })}
       open={open}
       onCancel={onClose}
       onOk={handleSave}
@@ -101,7 +101,7 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
             loading={analyzing}
             onClick={handleAnalyze}
           >
-            AI 分析生成
+            {t("skill.analyzeFrontend")}
           </Button>
           <CancelBtn />
           <OkBtn />
@@ -114,13 +114,11 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
         items={[
           {
             key: "json",
-            label: "JSON 编辑",
+            label: t("skillEditor.jsonTab"),
             children: (
               <div>
                 <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: "block" }}>
-                  编辑{" "}
-                  <code>skill-manifest.json</code>。capability
-                  类型：page、panel、toolbar、chatCommand、statusBar、navigation、settings。
+                  {t("skillEditor.manifestHint")}
                 </Text>
                 <Input.TextArea
                   id="frontend-editor-modal-input-textarea-63"
@@ -131,7 +129,7 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
                 />
                 {jsonError && (
                   <Text type="danger" style={{ fontSize: 12 }}>
-                    JSON 错误: {jsonError}
+                    {t("skillEditor.jsonFormatError", { error: jsonError })}
                   </Text>
                 )}
               </div>
@@ -139,7 +137,7 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
           },
           {
             key: "preview",
-            label: "预览",
+            label: t("skillEditor.previewTab"),
             children: (
               <pre
                 style={{

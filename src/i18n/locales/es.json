@@ -574,8 +574,9 @@
       "rawData": "Raw Data",
       "series": "Series",
       "summary": "Summary",
-      "value": "Value"
-    },
+      "value": "Value",
+      "renderError": "Chart generation failed: {{error}}"
+        },
     "collaboration": {
       "copied": "Copied",
       "copyCode": "Copy code",
@@ -2163,6 +2164,7 @@
       "applyStopped": "Detenido: {{platforms}}",
       "applyErrors": "Errores: {{errors}}",
       "applyFailed": "Error al aplicar configuración",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "Estado",
       "statusDisabled": "Desactivado",
       "statusConnected": "Conectado",
@@ -2892,10 +2894,21 @@
     "docStyle": "Document Style",
     "title": "Style Settings"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
+
   "terminal": {
     "online": "Online",
-    "offline": "Offline"
-  },
+    "offline": "Offline",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
+    },
   "search": {
     "resultPrefix": "A continuación se muestran los resultados de la búsqueda web relacionados con la pregunta, consúltelos al responder:\n\n",
     "caseSensitive": "Case sensitive",
@@ -4415,8 +4428,17 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export Publishable",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
-  },
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
+    },
   "task": {
     "title": "Tareas en segundo plano",
     "empty": "Sin tareas en segundo plano",
@@ -4467,8 +4489,12 @@
     "agenticOptions": "Opciones adicionales",
     "includeConv": "Incluir conversación",
     "includeFiles": "Incluir archivos",
-    "includeSelection": "Incluir selección"
-  },
+    "includeSelection": "Incluir selección",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    },
   "knowledge": {
     "commonPanel": "Panel Común",
     "commonPanelDesc": "Operaciones comunes de base de conocimiento y Wiki",
@@ -4563,6 +4589,19 @@
     "keyPressed": "Tecla {{key}} presionada",
     "scrolled": "Desplazado {{direction}}"
   },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+  },
+
   "onboarding": {
     "welcome": "Bienvenido a AxAgent",
     "welcomeDesc": "Cliente de escritorio IA inteligente con soporte multimodelo, ejecución autónoma de agentes y búsqueda en base de conocimientos",

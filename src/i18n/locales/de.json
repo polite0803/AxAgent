@@ -574,8 +574,9 @@
       "rawData": "Raw Data",
       "series": "Series",
       "summary": "Summary",
-      "value": "Value"
-    },
+      "value": "Value",
+      "renderError": "Chart generation failed: {{error}}"
+        },
     "collaboration": {
       "copied": "Copied",
       "copyCode": "Copy code",
@@ -2161,6 +2162,7 @@
       "applyStopped": "Gestoppt: {{platforms}}",
       "applyErrors": "Fehler: {{errors}}",
       "applyFailed": "Konfiguration konnte nicht angewendet werden",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "Status",
       "statusDisabled": "Deaktiviert",
       "statusConnected": "Verbunden",
@@ -2892,10 +2894,21 @@
     "docStyle": "Document Style",
     "title": "Style Settings"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
+
   "terminal": {
     "online": "Online",
-    "offline": "Offline"
-  },
+    "offline": "Offline",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
+    },
   "search": {
     "resultPrefix": "Unten sind Web-Suchergebnisse zur Frage aufgeführt, bitte beachten Sie diese bei der Antwort:\n\n",
     "caseSensitive": "Case sensitive",
@@ -4415,8 +4428,17 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export Publishable",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
-  },
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
+    },
   "task": {
     "title": "Hintergrundaufgaben",
     "empty": "Keine Hintergrundaufgaben",
@@ -4467,8 +4489,12 @@
     "agenticOptions": "Zusätzliche Optionen",
     "includeConv": "Konversation einbeziehen",
     "includeFiles": "Dateien einbeziehen",
-    "includeSelection": "Auswahl einbeziehen"
-  },
+    "includeSelection": "Auswahl einbeziehen",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    },
   "knowledge": {
     "commonPanel": "Gemeinsames Panel",
     "commonPanelDesc": "Gemeinsame Operationen für Wissensdatenbank und Wiki",
@@ -4563,6 +4589,19 @@
     "keyPressed": "Taste {{key}} gedrückt",
     "scrolled": "{{direction}} gescrollt"
   },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+  },
+
   "onboarding": {
     "welcome": "Willkommen bei AxAgent",
     "welcomeDesc": "Intelligenter AI-Desktop-Client mit Multi-Modell-Unterstützung, autonomer Agent-Ausführung und Wissensdatenbank-Suche",

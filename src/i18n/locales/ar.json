@@ -574,8 +574,9 @@
       "rawData": "Raw Data",
       "series": "Series",
       "summary": "Summary",
-      "value": "Value"
-    },
+      "value": "Value",
+      "renderError": "Chart generation failed: {{error}}"
+        },
     "collaboration": {
       "copied": "Copied",
       "copyCode": "Copy code",
@@ -2161,6 +2162,7 @@
       "applyStopped": "تم الإيقاف: {{platforms}}",
       "applyErrors": "أخطاء: {{errors}}",
       "applyFailed": "فشل تطبيق التكوين",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "الحالة",
       "statusDisabled": "معطل",
       "statusConnected": "متصل",
@@ -2892,10 +2894,21 @@
     "docStyle": "Document Style",
     "title": "Style Settings"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
+
   "terminal": {
     "online": "متصل",
-    "offline": "غير متصل"
-  },
+    "offline": "غير متصل",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
+    },
   "search": {
     "resultPrefix": "فيما يلي نتائج البحث على الإنترنت المتعلقة بالسؤال، يرجى الرجوع إليها عند الإجابة:\n\n",
     "caseSensitive": "Case sensitive",
@@ -4415,8 +4428,17 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export Publishable",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
-  },
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
+    },
   "task": {
     "title": "مهام الخلفية",
     "empty": "لا توجد مهام خلفية",
@@ -4467,8 +4489,12 @@
     "agenticOptions": "خيارات إضافية",
     "includeConv": "تضمين المحادثة",
     "includeFiles": "تضمين الملفات",
-    "includeSelection": "تضمين التحديد"
-  },
+    "includeSelection": "تضمين التحديد",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    },
   "knowledge": {
     "commonPanel": "اللوحة المشتركة",
     "commonPanelDesc": "العمليات المشتركة لقاعدة المعرفة والويكي",
@@ -4563,6 +4589,19 @@
     "keyPressed": "تم الضغط على مفتاح {{key}}",
     "scrolled": "تم التمرير {{direction}}"
   },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
+  },
+
   "onboarding": {
     "welcome": "مرحبًا بك في AxAgent",
     "welcomeDesc": "عميل سطح مكتب ذكي مدعوم بالذكاء الاصطناعي، يدعم تعدد النماذج والتنفيذ المستقل للوكلاء والبحث في قاعدة المعرفة",

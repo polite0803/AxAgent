@@ -651,7 +651,8 @@
       "rawData": "Raw Data",
       "series": "Series",
       "summary": "Summary",
-      "value": "Value"
+      "value": "Value",
+      "renderError": "Chart generation failed: {{error}}"
     },
     "collaboration": {
       "copied": "Copied",
@@ -1114,6 +1115,7 @@
       "applyStopped": "Stopped: {{platforms}}",
       "applyErrors": "Errors: {{errors}}",
       "applyFailed": "Failed to apply config",
+      "saveConfigFailed": "Failed to save config: {{error}}",
       "status": "Status",
       "statusDisabled": "Disabled",
       "statusConnected": "Connected",
@@ -4059,6 +4061,11 @@
     "writeReview": "Write Review",
     "yourReview": "Your Review"
   },
+  "searchProvider": {
+    "tavily": "Tavily",
+    "zhipu": "智谱",
+    "bocha": "博查"
+  },
   "terminal": {
     "online": "Online",
     "offline": "Offline",
@@ -4066,7 +4073,12 @@
     "analyzeOutput": "Analyze Output",
     "clear": "Clear",
     "killProcess": "Kill Process",
-    "closeSession": "Close Session"
+    "closeSession": "Close Session",
+    "local": "Local",
+    "docker": "Docker",
+    "ssh": "SSH",
+    "sessions": "{{count}} sessions",
+    "configureBackends": "Configure Backends..."
   },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
@@ -4571,7 +4583,16 @@
     "exportFailed": "Export Failed",
     "exportPublishable": "Export as Publishable Format",
     "exported": "Skill Exported",
-    "hasUI": "Has UI Extension"
+    "hasUI": "Has UI Extension",
+    "timeoutError": "Sandbox load timed out, please retry",
+    "entryFileEmpty": "Entry file \"{{entry}}\" is empty or does not exist",
+    "iframeNotReady": "iframe ref not ready",
+    "storeNotFound": "Store \"{{name}}\" not found",
+    "storeNotWritable": "Store \"{{name}}\" not writable",
+    "loadError": "Failed to load skill",
+    "analyzeFrontend": "AI Generate",
+    "analyzeSuccess": "AI analysis complete",
+    "analyzeError": "AI analysis failed: {{error}}"
   },
   "tool": {
     "common": {
@@ -4643,7 +4664,11 @@
     "editManifest": "Edit Manifest",
     "editManifestTitle": "Edit Skill Manifest — {{name}}",
     "editManifestDesc": "Edit",
-    "supportedCapabilities": "Supported capability types"
+    "supportedCapabilities": "Supported capability types",
+    "saveError": "Save failed: {{error}}",
+    "jsonTab": "JSON Editor",
+    "previewTab": "Preview",
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
   },
   "computerControl": {
     "capture": "Screenshot",
@@ -4667,6 +4692,18 @@
     "clickSuccess": "Clicked at ({{x}}, {{y}})",
     "keyPressed": "Key {{key}} pressed",
     "scrolled": "Scrolled {{direction}}"
+  },
+  "commandSuggest": {
+    "searchWeb": "Search the web",
+    "compressContext": "Compress conversation context",
+    "clearHistory": "Clear conversation history",
+    "listTools": "List available tools",
+    "showHelp": "Show help and available commands",
+    "mcpTool": "MCP Tool",
+    "referenceFile": "Reference file or path",
+    "commands": "Commands",
+    "mentions": "Mentions",
+    "filterHint": "type to filter, ↑↓ to select, Enter to confirm"
   },
   "onboarding": {
     "welcome": "Welcome to AxAgent",
@@ -5281,7 +5318,15 @@
     "configureApiKey": "Please configure API Key",
     "generateImage": "Generate Image",
     "model": "Model",
-    "elapsed": "Elapsed"
+    "elapsed": "Elapsed",
+    "providerFlux": "Flux (Replicate)",
+    "providerDalle": "DALL-E 3 (OpenAI)",
+    "replicateApiToken": "Replicate API Token",
+    "replicateApiTokenPlaceholder": "r8_...",
+    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiApiKeyPlaceholder": "sk-...",
+    "openaiBaseUrl": "OpenAI Base URL",
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
   },
   "diffViewer": {
     "newFile": "New",

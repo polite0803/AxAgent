@@ -2,6 +2,7 @@ import { ChartPreview } from "@/components/chat/ArtifactPreview/ChartPreview";
 import { type ChartGenRequest, generateChart } from "@/lib/chartGenerator";
 import { Spin } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ChartRendererProps {
   option?: Record<string, unknown>;
@@ -18,6 +19,7 @@ export function ChartRenderer({
   height,
   theme = "light",
 }: ChartRendererProps) {
+  const { t } = useTranslation();
   const [option, setOption] = useState<Record<string, unknown> | null>(directOption || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export function ChartRenderer({
   if (error) {
     return (
       <div style={{ color: "#ff4d4f", padding: 16 }}>
-        图表生成失败: {error}
+        {t("chat.workflow.chart.renderError", { error })}
       </div>
     );
   }

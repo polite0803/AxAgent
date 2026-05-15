@@ -98,7 +98,7 @@ export function SkillSandboxContainer({
       await initStoreRegistry();
       const registry = getStoreRegistry();
       const accessor = registry.get(storeName);
-      if (!accessor) { throw new Error(`Store "${storeName}" 未找到`); }
+      if (!accessor) { throw new Error(i18n.t("skill.storeNotFound", { name: storeName })); }
       const state = accessor.get() as Record<string, unknown>;
       if (selector) {
         const parts = selector.split(".");
@@ -119,7 +119,7 @@ export function SkillSandboxContainer({
       await initStoreRegistry();
       const registry = getStoreRegistry();
       const accessor = registry.get(storeName);
-      if (!accessor) { throw new Error(`Store "${storeName}" 不可写`); }
+      if (!accessor) { throw new Error(i18n.t("skill.storeNotWritable", { name: storeName })); }
       if (selector && typeof value === "object" && value !== null) {
         const partial: Record<string, unknown> = {};
         const parts = selector.split(".");
@@ -143,7 +143,7 @@ export function SkillSandboxContainer({
     // 加载超时保护
     if (loadTimerRef.current) { clearTimeout(loadTimerRef.current); }
     loadTimerRef.current = setTimeout(() => {
-      setError("沙箱加载超时，请重试");
+      setError(i18n.t("skill.timeoutError"));
       setLoading(false);
     }, SANDBOX_LOAD_TIMEOUT_MS);
 
@@ -154,7 +154,7 @@ export function SkillSandboxContainer({
       });
 
       if (!htmlContent || htmlContent.trim().length === 0) {
-        throw new Error(`入口文件 "${entry}" 为空或不存在`);
+        throw new Error(i18n.t("skill.entryFileEmpty", { entry }));
       }
 
       if (bridgeRef.current) { bridgeRef.current.destroy(); }
@@ -182,7 +182,7 @@ export function SkillSandboxContainer({
       // 先建立 message 监听器（防止 skill:ready 竞态），再设置 srcdoc
       const iframe = iframeRef.current;
       if (!iframe) {
-        throw new Error("iframe ref 未就绪");
+        throw new Error(i18n.t("skill.iframeNotReady"));
       }
 
       // 注册 message 监听器
