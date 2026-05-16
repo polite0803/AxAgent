@@ -1,4 +1,5 @@
 use anyhow::Result;
+#[cfg(not(target_os = "android"))]
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use serde::{Deserialize, Serialize};
 
@@ -71,6 +72,7 @@ impl UIAutomation {
         }
     }
 
+    #[cfg(not(target_os = "android"))]
     pub async fn click(x: f64, y: f64, button: MouseButton) -> Result<()> {
         let btn = match button {
             MouseButton::Left => Button::Left,
@@ -88,6 +90,12 @@ impl UIAutomation {
         Ok(())
     }
 
+    #[cfg(target_os = "android")]
+    pub async fn click(_x: f64, _y: f64, _button: MouseButton) -> Result<()> {
+        anyhow::bail!("UI automation is not supported on Android")
+    }
+
+    #[cfg(not(target_os = "android"))]
     pub async fn type_text(text: &str, x: Option<f64>, y: Option<f64>) -> Result<()> {
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
@@ -106,12 +114,17 @@ impl UIAutomation {
         Ok(())
     }
 
+    #[cfg(target_os = "android")]
+    pub async fn type_text(_text: &str, _x: Option<f64>, _y: Option<f64>) -> Result<()> {
+        anyhow::bail!("UI automation is not supported on Android")
+    }
+
+    #[cfg(not(target_os = "android"))]
     pub async fn press_key(key: &str, modifiers: Vec<KeyModifier>) -> Result<()> {
         let key_enum = map_key(key);
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
 
-        // 按下所有修饰键
         for m in &modifiers {
             let mk = modifier_key(*m);
             enigo
@@ -119,12 +132,10 @@ impl UIAutomation {
                 .map_err(|e| anyhow::anyhow!("按下修饰键失败: {e}"))?;
         }
 
-        // 点击目标键
         enigo
             .key(key_enum, Direction::Click)
             .map_err(|e| anyhow::anyhow!("按键失败: {e}"))?;
 
-        // 释放所有修饰键（逆序）
         for m in modifiers.iter().rev() {
             let mk = modifier_key(*m);
             enigo
@@ -135,19 +146,30 @@ impl UIAutomation {
         Ok(())
     }
 
+    #[cfg(target_os = "android")]
+    pub async fn press_key(_key: &str, _modifiers: Vec<KeyModifier>) -> Result<()> {
+        anyhow::bail!("UI automation is not supported on Android")
+    }
+
+    #[cfg(not(target_os = "android"))]
     pub async fn scroll(x: f64, y: f64, delta: i32) -> Result<()> {
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
         enigo
             .move_mouse(x as i32, y as i32, Coordinate::Abs)
             .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
-        // delta 正值 = 向上滚动, enigo 正值 = 向下, 取反
         enigo
             .scroll(-delta, Axis::Vertical)
             .map_err(|e| anyhow::anyhow!("滚动失败: {e}"))?;
         Ok(())
     }
 
+    #[cfg(target_os = "android")]
+    pub async fn scroll(_x: f64, _y: f64, _delta: i32) -> Result<()> {
+        anyhow::bail!("UI automation is not supported on Android")
+    }
+
+    #[cfg(not(target_os = "android"))]
     pub async fn move_mouse(x: f64, y: f64) -> Result<()> {
         let mut enigo = Enigo::new(&Settings::default())
             .map_err(|e| anyhow::anyhow!("Enigo 初始化失败: {e}"))?;
@@ -155,6 +177,11 @@ impl UIAutomation {
             .move_mouse(x as i32, y as i32, Coordinate::Abs)
             .map_err(|e| anyhow::anyhow!("鼠标移动失败: {e}"))?;
         Ok(())
+    }
+
+    #[cfg(target_os = "android")]
+    pub async fn move_mouse(_x: f64, _y: f64) -> Result<()> {
+        anyhow::bail!("UI automation is not supported on Android")
     }
 
     // ── Windows 专属: UI 元素枚举 ──
@@ -408,7 +435,7 @@ return output
     }
 }
 
-/// 将按键名称映射到 enigo::Key
+#[cfg(not(target_os = "android"))]
 fn map_key(key: &str) -> Key {
     match key {
         "Enter" | "enter" | "Return" => Key::Return,
@@ -473,7 +500,7 @@ fn map_key(key: &str) -> Key {
     }
 }
 
-/// 将 KeyModifier 映射到 enigo::Key
+#[cfg(not(target_os = "android"))]
 fn modifier_key(m: KeyModifier) -> Key {
     match m {
         KeyModifier::Alt => Key::Alt,

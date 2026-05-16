@@ -1,8 +1,9 @@
 use crate::error::{AxAgentError, Result};
+#[cfg(not(target_os = "android"))]
+use rmcp::transport::TokioChildProcess;
 use rmcp::{
     model::{CallToolRequestParams, CallToolResult, Tool},
     transport::streamable_http_client::StreamableHttpClientWorker,
-    transport::TokioChildProcess,
     RoleClient, ServiceExt,
 };
 
@@ -53,12 +54,13 @@ pub struct DiscoveredTool {
 ///
 /// On macOS/Linux GUI apps inherit a minimal PATH (`/usr/bin:/bin:…`).
 /// This function runs the user's login shell once and caches the full PATH.
+#[cfg(not(target_os = "android"))]
 fn get_shell_path() -> &'static str {
     static SHELL_PATH: OnceLock<String> = OnceLock::new();
     SHELL_PATH.get_or_init(|| resolve_login_shell_path().unwrap_or_default())
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn resolve_login_shell_path() -> Option<String> {
     let current_path = std::env::var("PATH").ok();
     let mut best_path: Option<String> = None;
@@ -75,7 +77,7 @@ fn resolve_login_shell_path() -> Option<String> {
     best_path.or(current_path)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn shell_candidates() -> Vec<String> {
     let mut candidates = Vec::new();
     let mut seen = HashSet::new();
@@ -100,7 +102,7 @@ fn shell_candidates() -> Vec<String> {
     candidates
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn read_path_from_shell(shell: &str) -> Option<String> {
     const START: &str = "__AxAgent_PATH_START__";
     const END: &str = "__AxAgent_PATH_END__";
@@ -120,7 +122,7 @@ fn read_path_from_shell(shell: &str) -> Option<String> {
     extract_marked_path(&output.stdout, START, END)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn extract_marked_path(output: &[u8], start: &str, end: &str) -> Option<String> {
     let stdout = String::from_utf8(output.to_vec()).ok()?;
     let start_idx = stdout.find(start)? + start.len();
@@ -134,7 +136,7 @@ fn extract_marked_path(output: &[u8], start: &str, end: &str) -> Option<String> 
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn merge_paths(primary: &str, fallback: Option<&str>) -> String {
     let mut merged = Vec::new();
     let mut seen = HashSet::new();
@@ -155,14 +157,14 @@ fn merge_paths(primary: &str, fallback: Option<&str>) -> String {
     merged.join(":")
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn path_score(path: &str) -> usize {
     path.split(':')
         .filter(|segment| !segment.is_empty())
         .count()
 }
 
-#[cfg(not(unix))]
+#[cfg(all(not(unix), not(target_os = "android")))]
 fn resolve_login_shell_path() -> Option<String> {
     // On Windows, packaged Tauri apps may not inherit the full PATH
     // from the user's shell (especially paths added by Node version
@@ -198,7 +200,7 @@ fn resolve_login_shell_path() -> Option<String> {
     Some(deduped.join(";"))
 }
 
-#[cfg(not(unix))]
+#[cfg(all(not(unix), not(target_os = "android")))]
 fn read_registry_path(key: &str) -> Option<String> {
     use std::process::Command;
     let output = Command::new("reg")
@@ -234,6 +236,7 @@ fn read_registry_path(key: &str) -> Option<String> {
 
 /// Inject login-shell PATH into the command unless the user already
 /// provides an explicit PATH in their custom environment variables.
+#[cfg(not(target_os = "android"))]
 fn configure_stdio_env(cmd: &mut tokio::process::Command, env: &HashMap<String, String>) {
     let shell_path = get_shell_path();
     if !shell_path.is_empty() && !env.contains_key("PATH") {
@@ -249,7 +252,7 @@ fn configure_stdio_env(cmd: &mut tokio::process::Command, env: &HashMap<String, 
 /// for `.cmd`/`.bat` extensions — only `cmd.exe /C` does. This helper
 /// wraps the command through `cmd.exe /C` on Windows so that `.cmd` scripts
 /// (npx, npm, etc.) can be found and executed correctly.
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(target_os = "android")))]
 fn build_stdio_command(
     command: &str,
     args: &[String],
@@ -263,7 +266,7 @@ fn build_stdio_command(
     cmd
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "android")))]
 fn build_stdio_command(
     command: &str,
     args: &[String],
@@ -316,6 +319,7 @@ fn extract_call_result(result: &CallToolResult) -> (String, bool) {
 // ---------------------------------------------------------------------------
 
 /// Key for identifying a stdio MCP server configuration.
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StdioServerKey {
     pub command: String,
@@ -324,6 +328,7 @@ pub struct StdioServerKey {
     pub server_id: Option<String>,
 }
 
+#[cfg(not(target_os = "android"))]
 impl StdioServerKey {
     pub fn new(command: &str, args: &[String], env: &HashMap<String, String>) -> Self {
         Self {
@@ -342,6 +347,7 @@ impl StdioServerKey {
 }
 
 /// A cached MCP stdio client connection with its last-use timestamp.
+#[cfg(not(target_os = "android"))]
 struct PooledConnection {
     peer: McpPeer,
     cancel_token: rmcp::service::RunningServiceCancellationToken,
@@ -358,11 +364,13 @@ struct PooledConnection {
 /// This eliminates the overhead of process spawn + MCP handshake
 /// for repeated calls to the same server, which is the common
 /// pattern in Agent mode (multiple tool calls per turn).
+#[cfg(not(target_os = "android"))]
 pub struct McpConnectionPool {
     connections: Mutex<HashMap<StdioServerKey, PooledConnection>>,
     idle_timeout: std::time::Duration,
 }
 
+#[cfg(not(target_os = "android"))]
 impl McpConnectionPool {
     /// Create a new connection pool with the given idle timeout.
     pub fn new(idle_timeout: std::time::Duration) -> Self {
@@ -468,6 +476,7 @@ impl McpConnectionPool {
 
 /// Spawn a new stdio MCP client (child process + handshake).
 /// Returns the peer for making calls and a cancellation token for shutdown.
+#[cfg(not(target_os = "android"))]
 async fn spawn_stdio_client(
     command: &str,
     args: &[String],
