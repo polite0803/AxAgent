@@ -1,22 +1,5 @@
-import {
-  Badge,
-  Button,
-  Card,
-  Descriptions,
-  Input,
-  Modal,
-  Space,
-  Tag,
-  Typography,
-  message,
-} from "antd";
-import {
-  CheckCircle,
-  Code2,
-  Loader2,
-  PackageSearch,
-  XCircle,
-} from "lucide-react";
+import { Badge, Button, Card, Descriptions, Input, message, Modal, Space, Tag, Typography } from "antd";
+import { CheckCircle, Code2, Loader2, PackageSearch, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -81,7 +64,7 @@ function PluginMarketplace() {
 
   const handleSearchInstall = async () => {
     const source = installInput.trim();
-    if (!source) return;
+    if (!source) { return; }
     setSearchLoading(true);
     try {
       const { invoke } = await import("@/lib/invoke");
@@ -99,7 +82,7 @@ function PluginMarketplace() {
   };
 
   const handleConfirmInstall = async () => {
-    if (!confirmSource) return;
+    if (!confirmSource) { return; }
     setInstalling(confirmSource);
     setConfirmManifest(null);
     try {
@@ -191,9 +174,7 @@ function PluginMarketplace() {
                     <Tag color="purple" className="text-xs">
                       {plugin.version}
                     </Tag>
-                    {plugin.enabled && (
-                      <CheckCircle size={12} className="text-green-500" />
-                    )}
+                    {plugin.enabled && <CheckCircle size={12} className="text-green-500" />}
                   </div>
                   <Text type="secondary" className="text-xs block mt-1">
                     {plugin.description}
@@ -274,8 +255,8 @@ function PluginMarketplace() {
             <Descriptions.Item label="MCP 服务">
               {confirmManifest.mcp_servers.length > 0
                 ? confirmManifest.mcp_servers
-                    .map((s) => `${s.name} (${s.command})`)
-                    .join(", ")
+                  .map((s) => `${s.name} (${s.command})`)
+                  .join(", ")
                 : "无"}
             </Descriptions.Item>
             <Descriptions.Item label="技能">
