@@ -3,7 +3,7 @@ import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri } from "@/lib/invoke";
 import { useOnboardingStore, useSettingsStore } from "@/stores";
 import { Button, Divider, InputNumber, Typography } from "antd";
-import { GitFork, Globe, GraduationCap, RefreshCw, Terminal } from "lucide-react";
+import { GraduationCap, RefreshCw, Terminal } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -92,30 +92,6 @@ export function AboutPage() {
         </div>
       </SettingsGroup>
       <SettingsGroup title={t("settings.groupLinks")}>
-        <div style={rowStyle} className="flex items-center justify-between">
-          <span>{t("settings.website")}</span>
-          <Button
-            icon={<Globe size={16} />}
-            href="https://app.axagent.top"
-            target="_blank"
-            type="link"
-          >
-            {t("settings.website")}
-          </Button>
-        </div>
-        <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-center justify-between">
-          <span>GitHub</span>
-          <Button
-            icon={<GitFork size={16} />}
-            href="https://github.com/polite0803/AxAgent"
-            target="_blank"
-            type="link"
-          >
-            {t("settings.github")}
-          </Button>
-        </div>
-        <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.checkUpdate")}</span>
           <Button
