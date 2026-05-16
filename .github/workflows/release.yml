@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to release (e.g., v1.5.9)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -21,9 +27,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Resolve tag name for both tag push and manual dispatch ──
+  resolve-tag:
+    name: Resolve Tag Name
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.out.value }}
+    steps:
+      - id: out
+        run: |
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          echo "value=$TAG" >> "$GITHUB_OUTPUT"
+          echo "::notice::Resolved tag: $TAG"
+
   # ── Validate tag matches package.json version ──────────
   check-version:
     name: Check Version
+    needs: [resolve-tag]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +52,7 @@ jobs:
 
       - name: Validate tag vs package.json
         run: |
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${{ needs.resolve-tag.outputs.tag }}"
           PKG_VERSION="v$(jq -r .version package.json)"
           if [[ "$TAG" != "$PKG_VERSION" ]]; then
             echo "❌ Tag $TAG does not match package.json $PKG_VERSION"
@@ -43,7 +63,7 @@ jobs:
   # ── Generate release notes via git-cliff ─────────────
   draft-release-notes:
     name: Generate Release Notes
-    needs: [check-version]
+    needs: [resolve-tag, check-version]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -68,17 +88,17 @@ jobs:
       - name: Create draft release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: 'AxAgent ${{ github.ref_name }}'
+          tag_name: ${{ needs.resolve-tag.outputs.tag }}
+          name: 'AxAgent ${{ needs.resolve-tag.outputs.tag }}'
           body: ${{ steps.cliff.outputs.content }}
           draft: true
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          prerelease: ${{ contains(needs.resolve-tag.outputs.tag, '-rc') }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
   # ── Build for macOS / Windows / Linux x86_64 ───────────
   release:
     name: Build (${{ matrix.target }})
-    needs: [check-version, draft-release-notes]
+    needs: [resolve-tag, check-version, draft-release-notes]
     strategy:
       fail-fast: false
       matrix:
@@ -166,11 +186,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           APPLE_SIGNING_IDENTITY: ${{ matrix.os == 'macos-latest' && '-' || '' }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'AxAgent ${{ github.ref_name }}'
-          releaseBody: ${{ needs.draft-release-notes.outputs.body }}
-          releaseDraft: true
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          # NOTE: Do NOT set tagName/releaseDraft here — tauri-action manages
+          # releases via softprops/action-gh-release internally, and running
+          # 6+ parallel builds all creating/updating the same draft release
+          # causes duplicate-draft race conditions that lose artifacts.
+          # The draft is created once by the `draft-release-notes` job, and
+          # artifacts are uploaded by explicit softprops/action-gh-release steps below.
           tauriScript: npm run tauri
           args: --target ${{ matrix.target }}
           includeUpdaterJson: true
@@ -181,7 +202,7 @@ jobs:
         run: |
           $exe = "src-tauri/target/${{ matrix.target }}/release/AxAgent.exe"
           $arch = if ("${{ matrix.target }}" -match "aarch64") { "arm64" } else { "x64" }
-          $zipName = "AxAgent_${{ github.ref_name }}_windows-${arch}-portable.zip"
+          $zipName = "AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-${arch}-portable.zip"
           Compress-Archive -Path $exe -DestinationPath $zipName
           
           $msiPath = "src-tauri/target/${{ matrix.target }}/release/bundle/msi"
@@ -189,7 +210,7 @@ jobs:
             cd $msiPath
             $msiFiles = Get-ChildItem -Filter "*.msi"
             foreach ($msi in $msiFiles) {
-              $newMsiName = "AxAgent_${{ github.ref_name }}_windows-${arch}.msi"
+              $newMsiName = "AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-${arch}.msi"
               Rename-Item -Path $msi.Name -NewName $newMsiName
               Move-Item -Path $newMsiName -Destination "../../../$newMsiName"
             }
@@ -201,7 +222,7 @@ jobs:
           if [ -d "src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb" ]; then
             cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb
             for deb in *.deb; do
-              new_name="AxAgent_${{ github.ref_name }}_linux-x64.deb"
+              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.deb"
               mv "$deb" "$new_name"
               mv "$new_name" "../../../$new_name"
             done
@@ -210,7 +231,7 @@ jobs:
           if [ -d "src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm" ]; then
             cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm
             for rpm in *.rpm; do
-              new_name="AxAgent_${{ github.ref_name }}_linux-x64.rpm"
+              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.rpm"
               mv "$rpm" "$new_name"
               mv "$new_name" "../../../$new_name"
             done
@@ -220,12 +241,12 @@ jobs:
         if: contains(matrix.target, 'windows')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ needs.resolve-tag.outputs.tag }}
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            AxAgent_${{ github.ref_name }}_windows-*-portable.zip
-            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ github.ref_name }}_windows-*.msi
+            AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-*-portable.zip
+            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-*.msi
 
       - name: Package macOS artifacts
         if: contains(matrix.target, 'apple-darwin')
@@ -233,9 +254,9 @@ jobs:
           cd src-tauri/target/${{ matrix.target }}/release/bundle/dmg
           for dmg in *.dmg; do
             if [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
-              new_name="AxAgent_${{ github.ref_name }}_macos-arm64.dmg"
+              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-arm64.dmg"
             else
-              new_name="AxAgent_${{ github.ref_name }}_macos-x64.dmg"
+              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-x64.dmg"
             fi
             mv "$dmg" "$new_name"
             mv "$new_name" "../../../$new_name"
@@ -245,27 +266,27 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ needs.resolve-tag.outputs.tag }}
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-x64.deb
-            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-x64.rpm
+            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.deb
+            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.rpm
 
       - name: Upload macOS artifacts
         if: contains(matrix.target, 'apple-darwin')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ needs.resolve-tag.outputs.tag }}
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ github.ref_name }}_macos-*.dmg
+            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-*.dmg
 
   # ── Build for Linux ARM64 (cross-compile) ──────────────
   release-linux-arm:
     name: Build (aarch64-unknown-linux-gnu)
-    needs: [check-version, draft-release-notes]
+    needs: [resolve-tag, check-version, draft-release-notes]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -340,7 +361,7 @@ jobs:
           if [ -d "src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb" ]; then
             cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb
             for deb in *.deb; do
-              new_name="AxAgent_${{ github.ref_name }}_linux-arm64.deb"
+              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb"
               mv "$deb" "$new_name"
               mv "$new_name" "../../../$new_name"
             done
@@ -349,7 +370,7 @@ jobs:
           if [ -d "src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm" ]; then
             cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm
             for rpm in *.rpm; do
-              new_name="AxAgent_${{ github.ref_name }}_linux-arm64.rpm"
+              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm"
               mv "$rpm" "$new_name"
               mv "$new_name" "../../../$new_name"
             done
@@ -358,19 +379,19 @@ jobs:
       - name: Upload Linux ARM64 artifacts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: 'AxAgent ${{ github.ref_name }}'
+          tag_name: ${{ needs.resolve-tag.outputs.tag }}
+          name: 'AxAgent ${{ needs.resolve-tag.outputs.tag }}'
           draft: true
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          prerelease: ${{ contains(needs.resolve-tag.outputs.tag, '-rc') }}
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-arm64.deb
-            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ github.ref_name }}_linux-arm64.rpm
+            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb
+            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm
 
   # ── Build for Android ──────────────────────────────────
   build-android:
     name: Build Android (${{ matrix.abi }})
-    needs: [draft-release-notes]
+    needs: [resolve-tag, draft-release-notes]
     strategy:
       fail-fast: false
       matrix:
@@ -414,10 +435,10 @@ jobs:
         with:
           ndk-version: ${{ env.NDK_VERSION }}
 
-      - name: Setup JDK 17
+      - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Android SDK
@@ -491,11 +512,11 @@ jobs:
           
           if [ -n "$APK" ]; then
             ABI="${{ matrix.abi }}"
-            NEW_NAME="AxAgent_${{ github.ref_name }}_android-${ABI}.apk"
+            NEW_NAME="AxAgent_${{ needs.resolve-tag.outputs.tag }}_android-${ABI}.apk"
             cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
             echo "Uploading APK: $NEW_NAME from $APK"
             cd "$GITHUB_WORKSPACE"
-            gh release upload "${{ github.ref_name }}" "$NEW_NAME" --clobber
+            gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$NEW_NAME" --clobber
           else
             echo "APK not found in gen/android/outputs/apk"
             ls -la src-tauri/gen/android/app/build/outputs/apk/ 2>/dev/null || true
@@ -507,11 +528,11 @@ jobs:
           if [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
             AAB=$(find src-tauri/gen/android/app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null | head -1)
             if [ -n "$AAB" ]; then
-              AAB_NAME="AxAgent_${{ github.ref_name }}_android-play-store.aab"
+              AAB_NAME="AxAgent_${{ needs.resolve-tag.outputs.tag }}_android-play-store.aab"
               cp "$AAB" "$GITHUB_WORKSPACE/$AAB_NAME"
               echo "Uploading AAB: $AAB_NAME"
               cd "$GITHUB_WORKSPACE"
-              gh release upload "${{ github.ref_name }}" "$AAB_NAME" --clobber
+              gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$AAB_NAME" --clobber
             else
               echo "AAB not found, uploading APK only"
             fi
@@ -522,7 +543,7 @@ jobs:
   # ── Publish draft release as latest ────────────────────
   publish-release:
     name: Publish Release
-    needs: [release, release-linux-arm, build-android]
+    needs: [resolve-tag, release, release-linux-arm, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -530,9 +551,9 @@ jobs:
       - name: Publish draft release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ needs.resolve-tag.outputs.tag }}
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          prerelease: ${{ contains(needs.resolve-tag.outputs.tag, '-rc') }}
           make_latest: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
