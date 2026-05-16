@@ -32,7 +32,7 @@ jobs:
     name: Resolve Tag Name
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.out.value }}
+      tag: ${{ steps.out.outputs.value }}
     steps:
       - id: out
         run: |
