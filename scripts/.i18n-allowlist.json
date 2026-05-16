@@ -42,7 +42,7 @@
     },
     {
       "file": "src/components/chat/AgentProgressBar.tsx",
-      "lines": "97,100,116,128",
+      "lines": "97,100,112,115,116,128,131,145",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -624,7 +624,7 @@
     },
     {
       "file": "src/pages/SettingsPage.tsx",
-      "lines": "73",
+      "lines": "73,75",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -690,7 +690,7 @@
     },
     {
       "file": "src/stores/feature/executionStore.ts",
-      "lines": "169",
+      "lines": "169,184",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -750,7 +750,7 @@
     },
     {
       "file": "src/types/index.ts",
-      "lines": "148,542,823,831,833,835,839,860",
+      "lines": "148,542,823,824,831,832,833,834,835,836,839,840,860,861",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
