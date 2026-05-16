@@ -634,7 +634,20 @@
         "installPlaceholder": "Installer: @scope/name ou URL Git ou chemin local",
         "loading": "Loading...",
         "refresh": "Refresh",
-        "title": "Plugin Marketplace"
+        "title": "Plugin Marketplace",
+        "validateFailed": "Échec de la validation : {{error}}",
+        "installSuccess": "{{id}} v{{version}} installé",
+        "installFailed": "Échec de l'installation : {{error}}",
+        "installTitle": "Installer {{name}}",
+        "confirmInstall": "Confirmer l'installation",
+        "cancel": "Annuler",
+        "version": "Version",
+        "description": "Description",
+        "permissions": "Permissions",
+        "none": "Aucun",
+        "mcpServers": "Serveurs MCP",
+        "skills": "Compétences",
+        "tools": "Outils"
       }
     },
     "steer": "Steer",

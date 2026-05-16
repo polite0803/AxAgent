@@ -732,7 +732,7 @@
     },
     {
       "file": "src/types/agentProfile.ts",
-      "lines": "10,13,18,73",
+      "lines": "10,13,18,73,85,91",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -770,6 +770,24 @@
       "file": "src/types/permission.ts",
       "lines": "1",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/AgentPropertyPanel.tsx",
+      "lines": "154,176",
+      "reason": "硬编码中文注释",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/types/workflow.types.ts",
+      "lines": "77,79,81",
+      "reason": "硬编码中文注释",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Nodes/AgentNode.tsx",
+      "lines": "15,17,19,21",
+      "reason": "硬编码中文注释",
       "phase": 3
     }
   ]

@@ -634,7 +634,20 @@
         "installPlaceholder": "تثبيت: @scope/name أو Git URL أو مسار محلي",
         "loading": "Loading...",
         "refresh": "Refresh",
-        "title": "Plugin Marketplace"
+        "title": "Plugin Marketplace",
+        "validateFailed": "فشل التحقق: {{error}}",
+        "installSuccess": "تم تثبيت {{id}} v{{version}}",
+        "installFailed": "فشل التثبيت: {{error}}",
+        "installTitle": "تثبيت {{name}}",
+        "confirmInstall": "تأكيد التثبيت",
+        "cancel": "إلغاء",
+        "version": "الإصدار",
+        "description": "الوصف",
+        "permissions": "الصلاحيات",
+        "none": "لا يوجد",
+        "mcpServers": "خوادم MCP",
+        "skills": "المهارات",
+        "tools": "الأدوات"
       }
     },
     "steer": "Steer",

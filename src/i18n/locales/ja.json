@@ -634,7 +634,20 @@
         "installPlaceholder": "インストール: @scope/name または GitURL またはローカルパス",
         "loading": "加载中...",
         "refresh": "更新",
-        "title": "插件市场"
+        "title": "插件市场",
+        "validateFailed": "検証に失敗しました: {{error}}",
+        "installSuccess": "{{id}} v{{version}} をインストールしました",
+        "installFailed": "インストールに失敗しました: {{error}}",
+        "installTitle": "{{name}} をインストール",
+        "confirmInstall": "インストール確認",
+        "cancel": "キャンセル",
+        "version": "バージョン",
+        "description": "説明",
+        "permissions": "権限",
+        "none": "なし",
+        "mcpServers": "MCPサーバー",
+        "skills": "スキル",
+        "tools": "ツール"
       }
     },
     "steer": "引导",

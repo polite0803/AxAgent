@@ -4229,6 +4229,11 @@ mod tests {
                 axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
             ),
             sync_engine: None,
+            plugin_manager: std::sync::Mutex::new(
+                axagent_plugins::PluginManager::new(
+                    axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
+                ),
+            ),
         };
 
         let attachments = vec![AttachmentInput {

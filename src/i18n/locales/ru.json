@@ -634,7 +634,20 @@
         "installPlaceholder": "Установка: @scope/name или Git URL или локальный путь",
         "loading": "Loading...",
         "refresh": "Refresh",
-        "title": "Plugin Marketplace"
+        "title": "Plugin Marketplace",
+        "validateFailed": "Ошибка проверки: {{error}}",
+        "installSuccess": "{{id}} v{{version}} установлен",
+        "installFailed": "Ошибка установки: {{error}}",
+        "installTitle": "Установить {{name}}",
+        "confirmInstall": "Подтвердить установку",
+        "cancel": "Отмена",
+        "version": "Версия",
+        "description": "Описание",
+        "permissions": "Разрешения",
+        "none": "Нет",
+        "mcpServers": "MCP-серверы",
+        "skills": "Навыки",
+        "tools": "Инструменты"
       }
     },
     "steer": "Steer",

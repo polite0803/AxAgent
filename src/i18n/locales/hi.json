@@ -634,7 +634,20 @@
         "installPlaceholder": "इंस्टॉल करें: @scope/name या Git URL या स्थानीय पथ",
         "loading": "Loading...",
         "refresh": "Refresh",
-        "title": "Plugin Marketplace"
+        "title": "Plugin Marketplace",
+        "validateFailed": "सत्यापन विफल: {{error}}",
+        "installSuccess": "{{id}} v{{version}} स्थापित",
+        "installFailed": "स्थापना विफल: {{error}}",
+        "installTitle": "{{name}} स्थापित करें",
+        "confirmInstall": "स्थापना की पुष्टि करें",
+        "cancel": "रद्द करें",
+        "version": "संस्करण",
+        "description": "विवरण",
+        "permissions": "अनुमतियाँ",
+        "none": "कोई नहीं",
+        "mcpServers": "MCP सर्वर",
+        "skills": "कौशल",
+        "tools": "उपकरण"
       }
     },
     "steer": "Steer",

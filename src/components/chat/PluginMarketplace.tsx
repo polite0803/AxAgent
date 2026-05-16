@@ -75,7 +75,7 @@ function PluginMarketplace() {
       setConfirmSource(source);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(`验证失败: ${errMsg}`);
+      message.error(t("chat.plugins.marketplace.validateFailed", { error: errMsg }));
     } finally {
       setSearchLoading(false);
     }
@@ -91,14 +91,14 @@ function PluginMarketplace() {
         source: confirmSource,
       });
       message.success(
-        `已安装 ${result.plugin_id} v${result.version}`,
+        t("chat.plugins.marketplace.installSuccess", { id: result.plugin_id, version: result.version }),
       );
       setInstallInput("");
       setConfirmSource("");
       await fetchPlugins();
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(`安装失败: ${errMsg}`);
+      message.error(t("chat.plugins.marketplace.installFailed", { error: errMsg }));
     } finally {
       setInstalling(null);
     }
@@ -231,43 +231,43 @@ function PluginMarketplace() {
       </Card>
 
       <Modal
-        title={`安装 ${confirmManifest?.name ?? ""}`}
+        title={t("chat.plugins.marketplace.installTitle", { name: confirmManifest?.name ?? "" })}
         open={!!confirmManifest}
         onOk={handleConfirmInstall}
         onCancel={() => setConfirmManifest(null)}
-        okText="确认安装"
-        cancelText="取消"
+        okText={t("chat.plugins.marketplace.confirmInstall")}
+        cancelText={t("chat.plugins.marketplace.cancel")}
         width={560}
       >
         {confirmManifest && (
           <Descriptions column={1} size="small" bordered>
-            <Descriptions.Item label="版本">
+            <Descriptions.Item label={t("chat.plugins.marketplace.version")}>
               {confirmManifest.version}
             </Descriptions.Item>
-            <Descriptions.Item label="描述">
+            <Descriptions.Item label={t("chat.plugins.marketplace.description")}>
               {confirmManifest.description}
             </Descriptions.Item>
-            <Descriptions.Item label="权限">
+            <Descriptions.Item label={t("chat.plugins.marketplace.permissions")}>
               {confirmManifest.permissions.length > 0
                 ? confirmManifest.permissions.join(", ")
-                : "无"}
+                : t("chat.plugins.marketplace.none")}
             </Descriptions.Item>
-            <Descriptions.Item label="MCP 服务">
+            <Descriptions.Item label={t("chat.plugins.marketplace.mcpServers")}>
               {confirmManifest.mcp_servers.length > 0
                 ? confirmManifest.mcp_servers
                   .map((s) => `${s.name} (${s.command})`)
                   .join(", ")
-                : "无"}
+                : t("chat.plugins.marketplace.none")}
             </Descriptions.Item>
-            <Descriptions.Item label="技能">
+            <Descriptions.Item label={t("chat.plugins.marketplace.skills")}>
               {confirmManifest.skills.length > 0
                 ? confirmManifest.skills.map((s) => s.name).join(", ")
-                : "无"}
+                : t("chat.plugins.marketplace.none")}
             </Descriptions.Item>
-            <Descriptions.Item label="工具">
+            <Descriptions.Item label={t("chat.plugins.marketplace.tools")}>
               {confirmManifest.tools.length > 0
-                ? confirmManifest.tools.map((t) => t.name).join(", ")
-                : "无"}
+                ? confirmManifest.tools.map((tool) => tool.name).join(", ")
+                : t("chat.plugins.marketplace.none")}
             </Descriptions.Item>
           </Descriptions>
         )}

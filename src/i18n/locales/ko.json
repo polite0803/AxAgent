@@ -634,7 +634,20 @@
         "installPlaceholder": "설치: @scope/name 또는 Git URL 또는 로컬 경로",
         "loading": "Loading...",
         "refresh": "Refresh",
-        "title": "Plugin Marketplace"
+        "title": "Plugin Marketplace",
+        "validateFailed": "검증 실패: {{error}}",
+        "installSuccess": "{{id}} v{{version}} 설치됨",
+        "installFailed": "설치 실패: {{error}}",
+        "installTitle": "{{name}} 설치",
+        "confirmInstall": "설치 확인",
+        "cancel": "취소",
+        "version": "버전",
+        "description": "설명",
+        "permissions": "권한",
+        "none": "없음",
+        "mcpServers": "MCP 서버",
+        "skills": "스킬",
+        "tools": "도구"
       }
     },
     "steer": "Steer",

@@ -635,7 +635,20 @@
         "installPlaceholder": "安装: @scope/name 或 Git URL 或本地路径",
         "loading": "加载中...",
         "refresh": "刷新",
-        "title": "插件市场"
+        "title": "插件市场",
+        "validateFailed": "验证失败: {{error}}",
+        "installSuccess": "已安装 {{id}} v{{version}}",
+        "installFailed": "安装失败: {{error}}",
+        "installTitle": "安装 {{name}}",
+        "confirmInstall": "确认安装",
+        "cancel": "取消",
+        "version": "版本",
+        "description": "描述",
+        "permissions": "权限",
+        "none": "无",
+        "mcpServers": "MCP 服务",
+        "skills": "技能",
+        "tools": "工具"
       }
     },
     "steer": "引导",
