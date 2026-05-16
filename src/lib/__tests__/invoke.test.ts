@@ -25,14 +25,14 @@ import { DEFAULT_INVOKE_TIMEOUT_MS, getInvokeMetrics, invoke, isTauri, listen } 
 
 // ─── 辅助函数 ──────────────────────────────────────────────────────
 
-/** 在 window 上设置 __TAURI_INTERNALS__ 来模拟 Tauri 环境 */
+/** 设置 window.isTauri 来模拟 Tauri 环境（与 isTauri() 实现一致） */
 function enableTauriMode() {
-  (window as any).__TAURI_INTERNALS__ = {};
+  (window as any).isTauri = true;
 }
 
-/** 清除 window 上的 __TAURI_INTERNALS__ 来模拟浏览器环境 */
+/** 清除 window.isTauri 来模拟浏览器环境 */
 function disableTauriMode() {
-  delete (window as any).__TAURI_INTERNALS__;
+  delete (window as any).isTauri;
 }
 
 // ─── 测试套件 ──────────────────────────────────────────────────────
