@@ -13,6 +13,7 @@ use crate::{
 
 const DEFAULT_BASE_URL: &str = "https://api.anthropic.com/v1";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
+const BETA_CACHE_HEADER: &str = "prompt-caching-2024-07-31";
 
 pub struct AnthropicAdapter {
     client: reqwest::Client,
@@ -58,7 +59,7 @@ struct AnthropicRequest {
     messages: Vec<AnthropicMessage>,
     max_tokens: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    system: Option<String>,
+    system: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -111,9 +112,14 @@ struct AnthropicContentBlock {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct AnthropicUsage {
     input_tokens: u32,
     output_tokens: u32,
+    #[serde(default)]
+    cache_creation_input_tokens: Option<u32>,
+    #[serde(default)]
+    cache_read_input_tokens: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -127,25 +133,14 @@ struct AnthropicModelInfo {
     display_name: Option<String>,
 }
 
-/// Separate system messages from conversation messages and convert to Anthropic format.
-fn extract_text_content(content: &ChatContent) -> String {
-    match content {
-        ChatContent::Text(text) => text.clone(),
-        ChatContent::Multipart(parts) => parts
-            .iter()
-            .filter_map(|part| part.text.as_ref())
-            .cloned()
-            .collect::<Vec<String>>()
-            .join(" "),
-    }
-}
-
 /// 将内部消息格式转换为 Anthropic API 格式。
 ///
 /// System 消息从 messages 数组中提取，合并后通过 Anthropic 原生的 `system` 参数发送，
 /// 实现协议级隔离，避免 system prompt 被用户注入内容污染。
 /// 只有 user/assistant/tool 角色保留在 `messages` 数组中。
-fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicMessage>) {
+fn convert_messages(
+    messages: &[ChatMessage],
+) -> (Option<serde_json::Value>, Vec<AnthropicMessage>) {
     // 收集所有 system 消息并合并，而非仅保留最后一条
     let system_texts: Vec<&str> = messages
         .iter()
@@ -159,7 +154,18 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicM
     let system = if system_texts.is_empty() {
         None
     } else {
-        Some(system_texts.join("\n\n"))
+        // Use cache-aware format: system as array of content blocks with cache_control
+        // for prompt caching. Minimum 1024 tokens needed for cache eligibility.
+        let system_text = system_texts.join("\n\n");
+        if system_text.len() >= 1024 {
+            Some(serde_json::json!([{
+                "type": "text",
+                "text": system_text,
+                "cache_control": { "type": "ephemeral" }
+            }]))
+        } else {
+            Some(serde_json::json!(system_text))
+        }
     };
 
     let mut result = Vec::new();
@@ -177,13 +183,13 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicM
                     content: serde_json::json!([{
                         "type": "tool_result",
                         "tool_use_id": msg.tool_call_id.as_deref().unwrap_or(""),
-                        "content": extract_text_content(&msg.content)
+                        "content": crate::extract_text_content(&msg.content)
                     }]),
                 });
             },
             "assistant" if msg.tool_calls.is_some() => {
                 let mut blocks: Vec<serde_json::Value> = Vec::new();
-                let text = extract_text_content(&msg.content);
+                let text = crate::extract_text_content(&msg.content);
                 if !text.is_empty() {
                     blocks.push(serde_json::json!({ "type": "text", "text": text }));
                 }
@@ -245,6 +251,26 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<String>, Vec<AnthropicM
                     content,
                 });
             },
+        }
+    }
+
+    // Add cache breakpoint to the final user/tool message to establish a
+    // second cache point (Anthropic requires 2+ breakpoints for caching).
+    if let Some(last) = result.last_mut() {
+        if last.role == "user" {
+            let mut content: Vec<serde_json::Value> = match last.content.clone() {
+                serde_json::Value::Array(arr) => arr,
+                other => vec![other],
+            };
+            if let Some(last_block) = content.last_mut() {
+                if let Some(obj) = last_block.as_object_mut() {
+                    obj.insert(
+                        "cache_control".to_string(),
+                        serde_json::json!({"type": "ephemeral"}),
+                    );
+                }
+            }
+            last.content = serde_json::Value::Array(content);
         }
     }
 
@@ -360,6 +386,7 @@ impl ProviderAdapter for AnthropicAdapter {
                 .post(&url)
                 .header("x-api-key", &ctx.api_key)
                 .header("anthropic-version", ANTHROPIC_VERSION)
+                .header("anthropic-beta", BETA_CACHE_HEADER)
                 .header("content-type", "application/json")
                 .json(&body),
             ctx,
@@ -439,6 +466,7 @@ impl ProviderAdapter for AnthropicAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         let client = self.get_client(ctx).unwrap_or_else(|e| {
             tracing::warn!("Failed to build proxy-aware HTTP client, falling back to default: {e}");
@@ -481,7 +509,7 @@ impl ProviderAdapter for AnthropicAdapter {
             thinking,
         };
 
-        let (tx, rx) = futures::channel::mpsc::unbounded();
+        let (mut tx, rx) = futures::channel::mpsc::channel(256);
 
         tokio::spawn(async move {
             let resp = match crate::apply_stream_headers_to_request(
@@ -489,6 +517,7 @@ impl ProviderAdapter for AnthropicAdapter {
                     .post(&url)
                     .header("x-api-key", &api_key)
                     .header("anthropic-version", ANTHROPIC_VERSION)
+                    .header("anthropic-beta", BETA_CACHE_HEADER)
                     .header("content-type", "application/json")
                     .json(&body),
                 &custom_headers,
@@ -500,15 +529,16 @@ impl ProviderAdapter for AnthropicAdapter {
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_http_status("Anthropic", s, &t),
-                    )));
+                    let _ = tx.try_send(Err(AxAgentError::Provider(super::diagnose_http_status(
+                        "Anthropic",
+                        s,
+                        &t,
+                    ))));
                     return;
                 },
                 Err(e) => {
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_reqwest_error(&e),
-                    )));
+                    let _ =
+                        tx.try_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
                     return;
                 },
             };
@@ -527,6 +557,13 @@ impl ProviderAdapter for AnthropicAdapter {
             let mut accumulated_completion_tokens: u32 = 0;
 
             while let Some(chunk) = byte_stream.next().await {
+                if let Some(ref token) = cancel_token {
+                    if token.load(std::sync::atomic::Ordering::Relaxed) {
+                        let _ = tx
+                            .try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
+                        return;
+                    }
+                }
                 match chunk {
                     Ok(bytes) => {
                         buf.push_str(&String::from_utf8_lossy(&bytes));
@@ -636,7 +673,7 @@ impl ProviderAdapter for AnthropicAdapter {
                                             },
                                             _ => continue,
                                         };
-                                        let _ = tx.unbounded_send(Ok(chunk));
+                                        let _ = tx.try_send(Ok(chunk));
                                     }
                                 },
                                 "content_block_stop" => {
@@ -652,7 +689,7 @@ impl ProviderAdapter for AnthropicAdapter {
                                             .unwrap_or(0)
                                             as u32;
                                         accumulated_completion_tokens = out;
-                                        let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                                        let _ = tx.try_send(Ok(ChatStreamChunk {
                                             content: None,
                                             thinking: None,
                                             done: false,
@@ -697,7 +734,7 @@ impl ProviderAdapter for AnthropicAdapter {
                                     } else {
                                         None
                                     };
-                                    let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                                    let _ = tx.try_send(Ok(ChatStreamChunk {
                                         content: None,
                                         thinking: None,
                                         done: true,
@@ -712,7 +749,7 @@ impl ProviderAdapter for AnthropicAdapter {
                         }
                     },
                     Err(e) => {
-                        let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
+                        let _ = tx.try_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
@@ -720,7 +757,7 @@ impl ProviderAdapter for AnthropicAdapter {
                 }
             }
 
-            let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+            let _ = tx.try_send(Ok(ChatStreamChunk {
                 content: None,
                 thinking: None,
                 done: true,
@@ -769,13 +806,18 @@ impl ProviderAdapter for AnthropicAdapter {
                     ModelType::Voice => vec![ModelCapability::RealtimeVoice],
                 };
                 let id_lower = m.id.to_lowercase();
-                if id_lower.contains("claude") && !id_lower.contains("haiku") {
+                // All Claude 3+ models support vision
+                if id_lower.contains("claude")
+                    && (id_lower.contains("3") || id_lower.contains("4") || id_lower.contains("-5"))
+                {
                     caps.push(ModelCapability::Vision);
                 }
+                // Extended thinking: Opus, Sonnet 4, Claude 3.7+
                 if id_lower.contains("opus")
-                    || id_lower.contains("sonnet-4")
+                    || id_lower.contains("sonnet")
                     || id_lower.contains("3-7")
                     || id_lower.contains("3.7")
+                    || id_lower.contains("-5")
                 {
                     caps.push(ModelCapability::Reasoning);
                 }

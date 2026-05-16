@@ -35,7 +35,7 @@ interface InstallOutcome {
   install_path: string;
 }
 
-function PluginMarketplace() {
+export function PluginMarketplace() {
   const { t } = useTranslation();
   const [plugins, setPlugins] = useState<PluginSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -129,7 +129,7 @@ function PluginMarketplace() {
 
   return (
     <>
-      <Card size="small" className="plugin-marketplace">
+      <Card size="small">
         <div className="flex items-center justify-between mb-3">
           <Space>
             <PackageSearch size={16} className="text-purple-500" />
@@ -275,5 +275,3 @@ function PluginMarketplace() {
     </>
   );
 }
-
-export default PluginMarketplace;

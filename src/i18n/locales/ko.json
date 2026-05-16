@@ -1024,6 +1024,9 @@
       "exportSkill": "내보내기",
       "importSkill": "가져오기"
     },
+    "plugins": {
+      "title": "플러그인"
+    },
     "dashboardPlugins": {
       "title": "대시보드 플러그인",
       "description": "설명",
@@ -2520,7 +2523,8 @@
     "toggleSidebar": "사이드바 전환",
     "toggleInspector": "인스펙터 전환",
     "searchConversations": "대화 검색",
-    "goToSkills": "스킬로 이동"
+    "goToSkills": "스킬로 이동",
+    "goToPlugins": "플러그인으로 이동"
   },
   "appLaunch": {
     "title": "실행 설정",

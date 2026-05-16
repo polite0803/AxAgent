@@ -1936,6 +1936,9 @@
       "exportSkill": "匯出",
       "importSkill": "匯入"
     },
+    "plugins": {
+      "title": "插件"
+    },
     "dashboardPlugins": {
       "title": "儀表盤插件",
       "description": "使用插件擴展您的儀表盤",
@@ -2520,7 +2523,8 @@
     "toggleSidebar": "切換側邊欄",
     "toggleInspector": "切換檢查器",
     "searchConversations": "搜尋對話",
-    "goToSkills": "前往技能"
+    "goToSkills": "前往技能",
+    "goToPlugins": "前往插件"
   },
   "appLaunch": {
     "title": "啟動設定",

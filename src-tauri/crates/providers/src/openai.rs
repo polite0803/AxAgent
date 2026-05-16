@@ -376,92 +376,8 @@ struct OpenAIEmbedData {
     embedding: Vec<f32>,
 }
 
-fn extract_text_content(content: &ChatContent) -> String {
-    match content {
-        ChatContent::Text(text) => text.clone(),
-        ChatContent::Multipart(parts) => parts
-            .iter()
-            .filter_map(|part| part.text.as_ref())
-            .cloned()
-            .collect::<Vec<String>>()
-            .join(" "),
-    }
-}
-
-/// Extract thinking content from text that contains `<think>...</think>` blocks.
-/// Returns (visible_text, reasoning_content).
-/// If no <think> blocks are present, reasoning_content is None.
-pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
-    const THINK_OPEN: &str = "<think";
-    const THINK_CLOSE: &str = "</think>";
-
-    let mut result = String::with_capacity(text.len());
-    let mut reasoning_parts: Vec<String> = Vec::new();
-    let mut remaining = text;
-
-    loop {
-        let Some(start) = remaining.find(THINK_OPEN) else {
-            result.push_str(remaining);
-            break;
-        };
-        // Push text before the think block
-        result.push_str(&remaining[..start]);
-        let after_open = &remaining[start..];
-        // Find the end of the opening tag
-        let tag_end = if let Some(close_bracket) = after_open.find('>') {
-            // Check for `</think>` self-closing (empty thinking)
-            if after_open.starts_with("<think") {
-                // Find where </think> starts
-                if let Some(think_close_pos) = after_open.find(THINK_CLOSE) {
-                    // Extract reasoning between > and </think>
-                    let content_start = close_bracket + 1;
-                    let reasoning = after_open[content_start..think_close_pos]
-                        .trim()
-                        .to_string();
-                    if !reasoning.is_empty() {
-                        reasoning_parts.push(reasoning);
-                    }
-                    remaining = &after_open[think_close_pos + THINK_CLOSE.len()..];
-                    continue;
-                }
-            }
-            close_bracket + 1
-        } else {
-            // Malformed tag — treat rest as normal text
-            result.push_str(remaining);
-            break;
-        };
-        // Find closing tag
-        let search_from = tag_end;
-        if let Some(end) = after_open[search_from..].find(THINK_CLOSE) {
-            let reasoning = after_open[search_from..search_from + end]
-                .trim()
-                .to_string();
-            if !reasoning.is_empty() {
-                reasoning_parts.push(reasoning);
-            }
-            remaining = &after_open[search_from + end + THINK_CLOSE.len()..];
-        } else {
-            // No closing tag found — malformed, keep as-is
-            result.push_str(&after_open[search_from..]);
-            break;
-        }
-    }
-
-    let reasoning = if reasoning_parts.is_empty() {
-        None
-    } else {
-        Some(reasoning_parts.join("\n\n"))
-    };
-
-    // Clean up visible text
-    let visible = result.trim().to_string();
-    if visible.is_empty() {
-        (result, reasoning)
-    } else {
-        (visible, reasoning)
-    }
-}
+// Re-export shared utilities for backward compatibility
+pub use crate::extract_reasoning_from_text;
 
 fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
     messages
@@ -470,14 +386,19 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
             match msg.role.as_str() {
                 "tool" => OpenAIMessage {
                     role: "tool".to_string(),
-                    content: Some(serde_json::Value::String(extract_text_content(&msg.content))),
+                    content: Some(serde_json::Value::String(crate::extract_text_content(&msg.content))),
                     tool_calls: None,
                     tool_call_id: msg.tool_call_id.clone(),
                     reasoning_content: None,
                 },
                 "assistant" => {
-                    let content_text = extract_text_content(&msg.content);
-                    let (visible_text, reasoning) = extract_reasoning_from_text(&content_text);
+                    let content_text = crate::extract_text_content(&msg.content);
+                    let (visible_text, reasoning_from_text) = crate::extract_reasoning_from_text(&content_text);
+                    // Priority: msg.thinking (dedicated field from API reasoning_content)
+                    // > <think> tag parsing from visible text
+                    // This ensures providers that return reasoning_content as a separate API field
+                    // (e.g., SiliconFlow/DeepSeek thinking mode) have it passed back correctly.
+                    let reasoning = msg.thinking.clone().or(reasoning_from_text);
                     let content = if visible_text.is_empty() {
                         None
                     } else {
@@ -493,7 +414,7 @@ fn convert_messages(messages: &[ChatMessage]) -> Vec<OpenAIMessage> {
                                             serde_json::Value::String(part.r#type.clone()),
                                         );
                                         if let Some(text) = &part.text {
-                                            let (v, _) = extract_reasoning_from_text(text);
+                                            let (v, _) = crate::extract_reasoning_from_text(text);
                                             value.insert("text".to_string(), serde_json::Value::String(v));
                                         }
                                         if let Some(image_url) = &part.image_url {
@@ -769,6 +690,7 @@ impl ProviderAdapter for OpenAIAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         let client = self.get_client(ctx).unwrap_or_else(|e| {
             tracing::warn!("Failed to build proxy-aware HTTP client, falling back to default: {e}");
@@ -779,7 +701,7 @@ impl ProviderAdapter for OpenAIAdapter {
         let url = Self::chat_url(ctx);
         let body = build_request(&request, &request.messages, true);
 
-        let (tx, rx) = futures::channel::mpsc::unbounded();
+        let (mut tx, rx) = futures::channel::mpsc::channel(256);
 
         tokio::spawn(async move {
             let resp = match crate::apply_stream_headers_to_request(
@@ -796,15 +718,14 @@ impl ProviderAdapter for OpenAIAdapter {
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_http_status("OpenAI", s, &t),
-                    )));
+                    let _ = tx.try_send(Err(AxAgentError::Provider(super::diagnose_http_status(
+                        "OpenAI", s, &t,
+                    ))));
                     return;
                 },
                 Err(e) => {
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_reqwest_error(&e),
-                    )));
+                    let _ =
+                        tx.try_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
                     return;
                 },
             };
@@ -834,7 +755,7 @@ impl ProviderAdapter for OpenAIAdapter {
                                 .collect(),
                         )
                     };
-                    let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                    let _ = tx.try_send(Ok(ChatStreamChunk {
                         content: None,
                         thinking: None,
                         done: true,
@@ -930,7 +851,7 @@ impl ProviderAdapter for OpenAIAdapter {
                         });
 
                     if content.is_some() || thinking.is_some() || usage.is_some() {
-                        let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                        let _ = tx.try_send(Ok(ChatStreamChunk {
                             content,
                             thinking,
                             done: false,
@@ -943,7 +864,7 @@ impl ProviderAdapter for OpenAIAdapter {
                 }
 
                 if let Some(u) = parsed.usage {
-                    let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                    let _ = tx.try_send(Ok(ChatStreamChunk {
                         content: None,
                         thinking: None,
                         done: false,
@@ -958,13 +879,20 @@ impl ProviderAdapter for OpenAIAdapter {
                 }
 
                 if let Some(chunk) = extract_gemini_compat_chunk(data) {
-                    let _ = tx.unbounded_send(Ok(chunk));
+                    let _ = tx.try_send(Ok(chunk));
                 }
 
                 false
             };
 
             while let Some(chunk) = byte_stream.next().await {
+                if let Some(ref token) = cancel_token {
+                    if token.load(std::sync::atomic::Ordering::Relaxed) {
+                        let _ = tx
+                            .try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
+                        return;
+                    }
+                }
                 match chunk {
                     Ok(bytes) => {
                         buf.push_str(&String::from_utf8_lossy(&bytes));
@@ -996,7 +924,7 @@ impl ProviderAdapter for OpenAIAdapter {
                         }
                     },
                     Err(e) => {
-                        let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
+                        let _ = tx.try_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
@@ -1019,7 +947,7 @@ impl ProviderAdapter for OpenAIAdapter {
             }
 
             // Stream ended without explicit [DONE]
-            let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+            let _ = tx.try_send(Ok(ChatStreamChunk {
                 content: None,
                 thinking: None,
                 done: true,

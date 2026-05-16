@@ -996,6 +996,9 @@
       "exportSkill": "导出",
       "importSkill": "导入"
     },
+    "plugins": {
+      "title": "插件"
+    },
     "dashboardPlugins": {
       "title": "仪表盘插件",
       "description": "使用插件扩展您的仪表盘",
@@ -2503,7 +2506,8 @@
     "toggleSidebar": "切换侧边栏",
     "toggleInspector": "切换检查器",
     "searchConversations": "搜索对话",
-    "goToSkills": "前往技能"
+    "goToSkills": "前往技能",
+    "goToPlugins": "前往插件"
   },
   "appLaunch": {
     "title": "启动配置",

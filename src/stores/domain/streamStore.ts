@@ -687,14 +687,18 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     // Mark the message as partial
     const streamMsgId = getStreamingMessageId(state.activeStreams, activeConvId);
-    const { activeStreams, streamingStartTimestamps } = get();
+    const { activeStreams, streamingStartTimestamps, thinkingActiveMessageIds } = get();
     const { [activeConvId]: _msgId, ...restStreams } = activeStreams;
     const { [activeConvId]: _ts, ...restTimestamps } = streamingStartTimestamps;
+    // Only remove thinking indicators for the cancelled conversation's messages,
+    // leaving other conversations' thinking state intact.
+    const updatedThinking = new Set(thinkingActiveMessageIds);
+    if (_msgId) { updatedThinking.delete(_msgId); }
     set({
       activeStreams: restStreams,
       ...deriveLegacyStreamFields(restStreams),
       streamingStartTimestamps: restTimestamps,
-      thinkingActiveMessageIds: new Set<string>(),
+      thinkingActiveMessageIds: updatedThinking,
     });
 
     if (streamMsgId && convRef) {

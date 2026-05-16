@@ -2391,6 +2391,65 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
 
+    // ── Plugins (OpenClaw) ─────────────────────────────────────────────
+    case "plugin_list": {
+      const plugins = getStore<Array<Record<string, unknown>>>("plugins", []);
+      return plugins as T;
+    }
+    case "plugin_validate_source": {
+      const source = (args?.source as string) || "";
+      return {
+        name: source.split("/").pop() || source,
+        version: "0.0.0",
+        description: `Plugin from ${source}`,
+        permissions: [],
+        default_enabled: true,
+        hooks: {},
+        tools: [],
+        mcp_servers: [],
+        skills: [],
+      } as T;
+    }
+    case "plugin_install": {
+      const plugins = getStore<Array<Record<string, unknown>>>("plugins", []);
+      const source = (args?.source as string) || "";
+      const id = `plugin-${plugins.length + 1}`;
+      plugins.push({
+        id,
+        name: source.split("/").pop() || source,
+        version: "0.0.0",
+        description: `Plugin from ${source}`,
+        kind: "openclaw",
+        enabled: true,
+        tool_names: [],
+        mcp_server_names: [],
+        skill_names: [],
+      });
+      setStore("plugins", plugins);
+      return { plugin_id: id, version: "0.0.0", install_path: `/mock/plugins/${id}` } as T;
+    }
+    case "plugin_enable":
+    case "plugin_disable": {
+      const allPlugins = getStore<Array<Record<string, unknown>>>("plugins", []);
+      const pluginId = (args?.pluginId as string) || "";
+      const idx = allPlugins.findIndex((p) => p.id === pluginId);
+      if (idx !== -1) {
+        allPlugins[idx] = { ...allPlugins[idx], enabled: cmd === "plugin_enable" };
+        setStore("plugins", allPlugins);
+      }
+      return undefined as T;
+    }
+    case "plugin_uninstall": {
+      let allPlugins = getStore<Array<Record<string, unknown>>>("plugins", []);
+      const pluginId = (args?.pluginId as string) || "";
+      allPlugins = allPlugins.filter((p) => p.id !== pluginId);
+      setStore("plugins", allPlugins);
+      return undefined as T;
+    }
+    case "plugin_update": {
+      return { plugin_id: (args?.pluginId as string) || "", version: "0.0.0", install_path: "" } as T;
+    }
+
     default:
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       return undefined as T;

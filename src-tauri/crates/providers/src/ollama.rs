@@ -105,8 +105,9 @@ impl ProviderAdapter for OllamaAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
-        self.inner.chat_stream(ctx, request)
+        self.inner.chat_stream(ctx, request, cancel_token)
     }
 
     /// List models using Ollama's native `/api/tags` endpoint.

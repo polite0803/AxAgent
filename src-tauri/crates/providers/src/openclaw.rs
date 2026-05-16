@@ -93,12 +93,20 @@ impl OpenClawAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
         mode: OpenClawApiMode,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         match mode {
-            OpenClawApiMode::ChatCompletions => self.chat_completions.chat_stream(ctx, request),
-            OpenClawApiMode::CodexResponses => self.codex_responses.chat_stream(ctx, request),
-            OpenClawApiMode::AnthropicMessages => self.anthropic.chat_stream(ctx, request),
+            OpenClawApiMode::ChatCompletions => {
+                self.chat_completions
+                    .chat_stream(ctx, request, cancel_token)
+            },
+            OpenClawApiMode::CodexResponses => {
+                self.codex_responses.chat_stream(ctx, request, cancel_token)
+            },
+            OpenClawApiMode::AnthropicMessages => {
+                self.anthropic.chat_stream(ctx, request, cancel_token)
+            },
         }
     }
 
@@ -214,9 +222,10 @@ impl ProviderAdapter for OpenClawAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         let mode = Self::resolve_api_mode(ctx);
-        self.chat_stream_with_mode(ctx, request, mode)
+        self.chat_stream_with_mode(ctx, request, cancel_token, mode)
     }
 
     async fn list_models(&self, ctx: &ProviderRequestContext) -> Result<Vec<Model>> {

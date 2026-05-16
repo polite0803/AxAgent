@@ -575,8 +575,12 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     set((s) => {
       const isExecuting = { ...s.isExecuting };
       delete isExecuting[event.conversationId];
+      // Guard: only clear currentToolCall if it belongs to this conversation.
+      // If another conversation's tool call replaced ours, leave it alone.
+      const shouldClear = !s.currentToolCall
+        || s.currentToolCall.conversationId === event.conversationId;
       return {
-        currentToolCall: null,
+        currentToolCall: shouldClear ? null : s.currentToolCall,
         isExecuting,
         executingConversationIds: s.executingConversationIds.filter((id) => id !== event.conversationId),
       };

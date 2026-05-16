@@ -116,6 +116,86 @@ pub fn diagnose_http_status(
     }
 }
 
+/// Extract visible text content from a ChatContent enum.
+/// For Text: returns the string directly. For Multipart: joins text parts with spaces.
+pub fn extract_text_content(content: &ChatContent) -> String {
+    match content {
+        ChatContent::Text(text) => text.clone(),
+        ChatContent::Multipart(parts) => parts
+            .iter()
+            .filter_map(|part| part.text.as_ref())
+            .cloned()
+            .collect::<Vec<String>>()
+            .join(" "),
+    }
+}
+
+/// Extract thinking content from text that contains `<think>...</think>` blocks.
+/// Returns (visible_text, reasoning_content).
+/// If no <think> blocks are present, reasoning_content is None.
+pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
+    const THINK_OPEN: &str = "<think";
+    const THINK_CLOSE: &str = "</think>";
+
+    let mut result = String::with_capacity(text.len());
+    let mut reasoning_parts: Vec<String> = Vec::new();
+    let mut remaining = text;
+
+    loop {
+        let Some(start) = remaining.find(THINK_OPEN) else {
+            result.push_str(remaining);
+            break;
+        };
+        result.push_str(&remaining[..start]);
+        let after_open = &remaining[start..];
+        let tag_end = if let Some(close_bracket) = after_open.find('>') {
+            if after_open.starts_with("<think") {
+                if let Some(think_close_pos) = after_open.find(THINK_CLOSE) {
+                    let content_start = close_bracket + 1;
+                    let reasoning = after_open[content_start..think_close_pos]
+                        .trim()
+                        .to_string();
+                    if !reasoning.is_empty() {
+                        reasoning_parts.push(reasoning);
+                    }
+                    remaining = &after_open[think_close_pos + THINK_CLOSE.len()..];
+                    continue;
+                }
+            }
+            close_bracket + 1
+        } else {
+            result.push_str(remaining);
+            break;
+        };
+        let search_from = tag_end;
+        if let Some(end) = after_open[search_from..].find(THINK_CLOSE) {
+            let reasoning = after_open[search_from..search_from + end]
+                .trim()
+                .to_string();
+            if !reasoning.is_empty() {
+                reasoning_parts.push(reasoning);
+            }
+            remaining = &after_open[search_from + end + THINK_CLOSE.len()..];
+        } else {
+            result.push_str(&after_open[search_from..]);
+            break;
+        }
+    }
+
+    let reasoning = if reasoning_parts.is_empty() {
+        None
+    } else {
+        Some(reasoning_parts.join("\n\n"))
+    };
+
+    let visible = result.trim().to_string();
+    if visible.is_empty() {
+        (result, reasoning)
+    } else {
+        (visible, reasoning)
+    }
+}
+
 #[async_trait]
 pub trait ProviderAdapter: Send + Sync {
     async fn chat(
@@ -128,6 +208,7 @@ pub trait ProviderAdapter: Send + Sync {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>>;
 
     async fn list_models(&self, ctx: &ProviderRequestContext) -> Result<Vec<Model>>;

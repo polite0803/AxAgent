@@ -29,6 +29,7 @@ import { useAgentStore } from "../feature/agentStore";
 import { useCategoryStore } from "../feature/categoryStore";
 import { useExecutionStore } from "../feature/executionStore";
 import { usePlanStore } from "../feature/planStore";
+import { useTrajectoryStore } from "../feature/trajectoryStore";
 import { useMultiModelStore } from "./multiModelStore";
 import {
   categoryTemplateUpdateFromCategory,
@@ -394,6 +395,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
     try {
       await invoke("clear_conversation_messages", { conversationId });
+      // Stale guard: don't wipe messages if user switched conversations
+      if (get().activeConversationId !== conversationId) { return; }
       set({
         messages: [],
         hasOlderMessages: false,
@@ -468,8 +471,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     if (!id) {
       if (prevId === null) { return; }
       if (prevId) {
+        if (isConvStreaming(useStreamStore.getState().activeStreams, prevId)) {
+          useStreamStore.getState().cancelCurrentStream(prevId);
+        }
         useAgentStore.getState().clearConversation(prevId);
         useExecutionStore.getState().clearConversation(prevId);
+        usePlanStore.getState().clearActivePlan(prevId);
+        useTrajectoryStore.getState().clearConversation(prevId);
       }
       set({
         activeConversationId: null,
@@ -488,8 +496,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const requestSeq = _activeMessageLoadSeq;
 
     if (prevId && prevId !== id) {
+      // Cancel any active stream for the conversation being left
+      if (isConvStreaming(useStreamStore.getState().activeStreams, prevId)) {
+        useStreamStore.getState().cancelCurrentStream(prevId);
+      }
       useAgentStore.getState().clearConversation(prevId);
       useExecutionStore.getState().clearConversation(prevId);
+      usePlanStore.getState().clearActivePlan(prevId);
+      useTrajectoryStore.getState().clearConversation(prevId);
     }
 
     // Check if this conversation had a stream complete while we were away
@@ -641,11 +655,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         useAgentStore.getState().clearConversation(prevId);
         useExecutionStore.getState().clearConversation(prevId);
         usePlanStore.getState().clearActivePlan(prevId);
+        useTrajectoryStore.getState().clearConversation(prevId);
       }
       set((s) => ({
         conversations: [conversation, ...s.conversations],
         activeConversationId: conversation.id,
         messages: [],
+        loading: true,
+        loadingOlder: false,
+        hasOlderMessages: false,
+        totalActiveCount: 0,
+        oldestLoadedMessageId: null,
         error: null,
       }));
       // Sync preference state from the created conversation
@@ -697,6 +717,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       useAgentStore.getState().clearConversation(id);
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
+      useTrajectoryStore.getState().clearConversation(id);
       // dreamStore is global, no per-conversation cleanup needed
       // Clean up stream buffer and pending refresh if they reference this conversation
       if (_streamBuffer?.conversationId === id) {
@@ -736,15 +757,23 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         useAgentStore.getState().clearConversation(branchPrevId);
         useExecutionStore.getState().clearConversation(branchPrevId);
         usePlanStore.getState().clearActivePlan(branchPrevId);
+        useTrajectoryStore.getState().clearConversation(branchPrevId);
       }
       set((s) => ({
         conversations: [newConv, ...s.conversations],
         activeConversationId: newConv.id,
         messages: [],
+        loading: true,
+        loadingOlder: false,
+        hasOlderMessages: false,
+        totalActiveCount: 0,
+        oldestLoadedMessageId: null,
         error: null,
       }));
       // Load the branched messages
       const msgs = await invoke<Message[]>("list_messages", { conversationId: newConv.id });
+      // Stale guard: if user switched away, discard messages to prevent cross-conversation pollution
+      if (get().activeConversationId !== newConv.id) { return newConv; }
       set({ messages: msgs });
       return newConv;
     } catch (e) {
@@ -792,6 +821,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       useAgentStore.getState().clearConversation(id);
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
+      useTrajectoryStore.getState().clearConversation(id);
       if (updated.is_archived) {
         // When archiving the active conversation, suppress sidebar auto-select
         if (get().activeConversationId === id) {
@@ -863,6 +893,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       useAgentStore.getState().clearConversation(id);
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
+      useTrajectoryStore.getState().clearConversation(id);
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
@@ -898,6 +929,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       useAgentStore.getState().clearConversation(id);
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
+      useTrajectoryStore.getState().clearConversation(id);
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
@@ -1047,6 +1079,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
         enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
       });
+
+      // Stale guard: if user switched conversations while send was in-flight,
+      // discard the response to prevent cross-conversation message pollution.
+      if (get().activeConversationId !== conversationId) { return; }
 
       // Replace optimistic user msg with real one, update placeholder parent
       set((s) => ({
@@ -1746,6 +1782,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const errMsg = String(e);
       console.error("[sendAgentMessage] error:", errMsg);
 
+      // Stale guard: user switched conversations while agent was running
+      if (get().activeConversationId !== conversationId) { return; }
+
       // Only set error state if the message doesn't already have an error state
       // (agent-error event listener may have already set it with the backend message)
       const currentMsgs = useConversationStore.getState().messages;
@@ -1775,6 +1814,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           ),
         }));
       }
+      // Clean up agent/execution state for this conversation since the send failed.
+      // The conversation itself is not being deleted — just the execution attempt failed.
+      useAgentStore.getState().clearStatus(conversationId);
+      useExecutionStore.getState().clearConversation(conversationId);
+
       // Sync messages from DB so temp- prefixed user messages get replaced
       // with real backend IDs, enabling regenerate after an agent send failure.
       // Preserve the optimistic user message to prevent it from being dropped
@@ -2212,6 +2256,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
     try {
       await invoke("delete_message", { id: messageId });
+      // Stale guard: don't filter messages if user switched conversations
+      if (get().activeConversationId !== conversationId) { return; }
       set((s) => ({
         messages: s.messages.filter((m) => m.id !== messageId),
       }));
@@ -2848,6 +2894,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
     try {
       await invoke("delete_message_group", { conversationId: conversationId, userMessageId: userMessageId });
+      // Stale guard: don't filter messages if user switched conversations
+      if (get().activeConversationId !== conversationId) { return; }
       set((s) => ({
         messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
       }));

@@ -152,6 +152,21 @@ const initialState = {
   loadingTrajectoryDetail: {} as Record<string, boolean>,
 };
 
+/**
+ * 判断是否应清除 currentToolCall。
+ * 满足以下任一条件时清除：
+ * 1. currentToolCall 属于当前完成事件的会话（直接匹配）
+ * 2. currentToolCall 所属会话的状态已是终端态（跨对话残留检测）
+ */
+function shouldClearToolCall(s: ExecutionStore, doneConversationId: string): boolean {
+  if (!s.currentToolCall) { return false; }
+  // 直接匹配：属于同一会话
+  if (s.currentToolCall.conversationId === doneConversationId) { return true; }
+  // 跨对话残留：currentToolCall 所属会话已非活跃态
+  const ownerPhase = s.phases[s.currentToolCall.conversationId] || "idle";
+  return !ACTIVE_PHASES.has(ownerPhase);
+}
+
 export const useExecutionStore = create<ExecutionStore>()(
   devtools(
     (set, get) => ({
@@ -439,7 +454,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         get().transition(event.conversationId, "completed");
         set(
           (s) => ({
-            currentToolCall: s.currentToolCall?.conversationId === event.conversationId ? null : s.currentToolCall,
+            currentToolCall: shouldClearToolCall(s, event.conversationId) ? null : s.currentToolCall,
             agentStatus: { ...s.agentStatus, [event.conversationId]: "" },
           }),
           false,
@@ -451,7 +466,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         get().transition(event.conversationId, "failed");
         set(
           (s) => ({
-            currentToolCall: s.currentToolCall?.conversationId === event.conversationId ? null : s.currentToolCall,
+            currentToolCall: shouldClearToolCall(s, event.conversationId) ? null : s.currentToolCall,
             agentStatus: { ...s.agentStatus, [event.conversationId]: event.message || "Unknown error" },
           }),
           false,

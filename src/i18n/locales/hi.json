@@ -1899,6 +1899,9 @@
       "exportSkill": "निर्यात करें",
       "importSkill": "आयात करें"
     },
+    "plugins": {
+      "title": "प्लगइन्स"
+    },
     "dashboardPlugins": {
       "title": "डैशबोर्ड प्लगइन",
       "description": "प्लगइन के साथ अपना डैशबोर्ड विस्तारित करें",
@@ -2491,7 +2494,8 @@
     "toggleSidebar": "साइडबार टॉगल करें",
     "toggleInspector": "निरीक्षक टॉगल करें",
     "searchConversations": "बातचीत खोजें",
-    "goToSkills": "कौशल पर जाएं"
+    "goToSkills": "कौशल पर जाएं",
+    "goToPlugins": "प्लगइन पर जाएं"
   },
   "appLaunch": {
     "title": "लॉन्च कॉन्फ़िगरेशन",

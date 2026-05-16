@@ -2847,7 +2847,7 @@ async fn handle_stream(
     start_time: Instant,
 ) -> axum::response::Response {
     let model_str = model_id.to_string();
-    let mut stream = adapter.chat_stream(ctx, request);
+    let mut stream = adapter.chat_stream(ctx, request, None);
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(32);
     let db = state.db.clone();

@@ -171,6 +171,32 @@ impl AxAgentApiClient {
 }
 
 impl AxAgentApiClient {
+    /// Extract thinking content from text that may contain `<think data-axagent="1">...</think>` tags.
+    /// The runtime's `build_assistant_message` wraps thinking in `<think data-axagent="1">` tags.
+    /// Returns (cleaned_text, extracted_thinking).
+    fn extract_thinking_from_text(text: &str) -> (String, Option<String>) {
+        const THINK_START_TAG: &str = "<think data-axagent=\"1\">";
+        const THINK_END_TAG: &str = "</think>";
+
+        if let Some(start) = text.find(THINK_START_TAG) {
+            let after_start = &text[start + THINK_START_TAG.len()..];
+            if let Some(end) = after_start.find(THINK_END_TAG) {
+                let thinking = after_start[..end].trim().to_string();
+                let thinking = if thinking.is_empty() {
+                    None
+                } else {
+                    Some(thinking)
+                };
+                // Everything before <think> tag + everything after </think> tag
+                let before = &text[..start];
+                let after = &after_start[end + THINK_END_TAG.len()..];
+                let cleaned = format!("{}{}", before, after).trim().to_string();
+                return (cleaned, thinking);
+            }
+        }
+        (text.to_string(), None)
+    }
+
     /// Convert Runtime's ConversationMessage to one or more AxAgent ChatMessages.
     ///
     /// A single Runtime `ConversationMessage` may contain both text and
@@ -240,20 +266,22 @@ impl AxAgentApiClient {
                         })
                         .collect();
 
+                    // Extract thinking from <think data-axagent="1"> tags embedded by
+                    // the runtime's build_assistant_message, so it flows through
+                    // ChatMessage.thinking → OpenAIMessage.reasoning_content.
+                    let (clean_text, extracted_thinking) =
+                        Self::extract_thinking_from_text(&text_parts);
+
                     result.push(ChatMessage {
                         role: "assistant".to_string(),
-                        content: if text_parts.is_empty() && !tool_calls.is_empty() {
-                            ChatContent::Text(String::new())
-                        } else {
-                            ChatContent::Text(text_parts)
-                        },
+                        content: ChatContent::Text(clean_text),
                         tool_calls: if tool_calls.is_empty() {
                             None
                         } else {
                             Some(tool_calls)
                         },
                         tool_call_id: None,
-                        thinking: None,
+                        thinking: extracted_thinking,
                     });
                 },
                 _ => {
@@ -372,7 +400,7 @@ impl ApiClient for AxAgentApiClient {
         };
 
         // Call AxAgent's provider stream
-        let mut stream = self.adapter.chat_stream(&self.ctx, chat_request);
+        let mut stream = self.adapter.chat_stream(&self.ctx, chat_request, None);
         let mut events = Vec::new();
         let on_event = self.on_event.clone();
 

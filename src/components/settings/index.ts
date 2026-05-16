@@ -26,6 +26,7 @@ export { ShortcutSettings } from "./ShortcutSettings";
 export { ToolManager } from "./ToolManager";
 export { WebhookSettings } from "./WebhookSettings";
 
+export { PluginMarketplace } from "../chat/PluginMarketplace";
 export { BackupCenter } from "./BackupCenter";
 export { PromptTemplatesSettings } from "./PromptTemplatesSettings";
 export { SchedulerSettings } from "./SchedulerSettings";

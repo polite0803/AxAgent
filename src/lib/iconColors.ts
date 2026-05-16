@@ -37,6 +37,9 @@ export const SETTINGS_ICON_COLORS: Record<string, string> = {
   Send: "#3b82f6", // blue-500  — Message Channels
   FileText: "#3b82f6", // blue-500  — Prompt Templates
   Network: "#06b6d4", // cyan-500  — ACP
+  Puzzle: "#a855f7", // purple-500 — Plugins
+  ShoppingBag: "#f59e0b", // amber-500 — Skills Hub
+  LayoutDashboard: "#8b5cf6", // violet-500 — Dashboard Plugins
 };
 
 // ── Title bar icons ─────────────────────────────────────────────────
@@ -179,6 +182,7 @@ export const CHAT_ICON_COLORS: Record<string, string> = {
   Bug: "#ef4444",
   ClipboardPaste: "#64748b",
   BoxSelect: "#64748b",
+  Puzzle: "#a855f7", // purple-500
   Code2: "#6366f1",
   PanelLeftClose: "#64748b",
   Network: "#06b6d4",

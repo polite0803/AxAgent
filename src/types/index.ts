@@ -696,6 +696,7 @@ export type SettingsSection =
   | "acp"
   | "evolution"
   | "cloudWorkspace"
+  | "plugins"
   | string;
 
 // === Generated Tool ===

@@ -1899,6 +1899,9 @@
       "exportSkill": "Exportar",
       "importSkill": "Importar"
     },
+    "plugins": {
+      "title": "Plugins"
+    },
     "dashboardPlugins": {
       "title": "Complementos del panel",
       "description": "Amplíe su panel con complementos",
@@ -2520,7 +2523,8 @@
     "toggleSidebar": "Alternar barra lateral",
     "toggleInspector": "Alternar inspector",
     "searchConversations": "Buscar conversaciones",
-    "goToSkills": "Ir a Habilidades"
+    "goToSkills": "Ir a Habilidades",
+    "goToPlugins": "Ir a Plugins"
   },
   "appLaunch": {
     "title": "Configuración de lanzamiento",

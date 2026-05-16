@@ -57,6 +57,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   userProfile: <User size={16} color={SETTINGS_ICON_COLORS.User} />,
   acp: <Network size={16} color={SETTINGS_ICON_COLORS.Globe} />,
   skillsHub: <ShoppingBag size={16} color={SETTINGS_ICON_COLORS.ShoppingBag} />,
+  plugins: <Puzzle size={16} color={SETTINGS_ICON_COLORS.Puzzle} />,
   dashboardPlugins: <LayoutDashboard size={16} color={SETTINGS_ICON_COLORS.LayoutDashboard} />,
   webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
   messageChannels: <Send size={16} color={SETTINGS_ICON_COLORS.Send} />,
@@ -71,7 +72,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
 const TAB_GROUPS: Record<string, SettingsSection[]> = {
   model: ["providers", "defaultModel", "conversationSettings", "promptTemplates", "searchProviders"],
   appearance: ["general", "display", "shortcuts"],
-  extensions: ["tools", "skillsHub", "dashboardPlugins", "workflow", "appConfig", "userProfile"],
+  extensions: ["tools", "skillsHub", "plugins", "dashboardPlugins", "workflow", "appConfig", "userProfile"],
   network: ["proxy", "messageChannels", "webhooks", "acp"],
   data: ["data", "storage", "cloudWorkspace", "backup", "scheduler"],
   system: ["advanced", "evolution", "about"],

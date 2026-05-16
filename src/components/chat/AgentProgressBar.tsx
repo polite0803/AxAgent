@@ -52,30 +52,45 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   const isExecuting = useExecutionStore((s) => s.isActive(conversationId));
 
   const displayName = useMemo(() => {
-    return currentToolCall ? getToolDisplayName(currentToolCall.toolName, t as any) : null;
-  }, [currentToolCall?.toolName, currentToolCall?.toolUseId, t]);
+    return currentToolCall?.conversationId === conversationId
+      ? getToolDisplayName(currentToolCall.toolName, t as any)
+      : null;
+  }, [currentToolCall?.toolName, currentToolCall?.toolUseId, currentToolCall?.conversationId, conversationId, t]);
 
   // 用于动画过渡：当工具切换时短暂闪烁
   const [lastToolName, setLastToolName] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
 
   useEffect(() => {
-    if (currentToolCall?.toolName && currentToolCall.toolName !== lastToolName) {
+    if (
+      currentToolCall?.conversationId === conversationId
+      && currentToolCall?.toolName
+      && currentToolCall.toolName !== lastToolName
+    ) {
       setTransitioning(true);
       const t = setTimeout(() => setTransitioning(false), 300);
       setLastToolName(currentToolCall.toolName);
       return () => clearTimeout(t);
     }
-  }, [currentToolCall?.toolName, currentToolCall?.toolUseId, lastToolName]);
+  }, [
+    currentToolCall?.toolName,
+    currentToolCall?.toolUseId,
+    currentToolCall?.conversationId,
+    conversationId,
+    lastToolName,
+  ]);
 
-  const active = isExecuting || currentToolCall != null;
+  // 仅依赖状态机判断当前对话是否活跃，不依赖全局 currentToolCall
+  const active = isExecuting;
+  // 工具名称只在本对话的 currentToolCall 有效时显示
+  const ownToolActive = isExecuting && currentToolCall?.conversationId === conversationId;
 
   if (!active) {
     return null;
   }
 
-  const elapsed = currentToolCall
-    ? Math.round((Date.now() - currentToolCall.startedAt) / 1000)
+  const elapsed = ownToolActive
+    ? Math.round((Date.now() - currentToolCall!.startedAt) / 1000)
     : 0;
 
   return (
@@ -97,8 +112,8 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
       {/* 左侧指示器 */}
       <Spin size="small" />
 
-      {/* 工具名称 */}
-      {displayName && (
+      {/* 工具名称 — 仅当 currentToolCall 属于本对话时显示 */}
+      {ownToolActive && displayName && (
         <Tag
           color="processing"
           style={{
@@ -113,20 +128,22 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
         </Tag>
       )}
 
-      {/* 进度条 */}
-      <div style={{ flex: 1, maxWidth: 200 }}>
-        <Progress
-          percent={Math.min(elapsed * 10, 90)}
-          showInfo={false}
-          size="small"
-          strokeColor={token.colorPrimary}
-          trailColor={token.colorFillSecondary}
-          style={{ margin: 0 }}
-        />
-      </div>
+      {/* 进度条 — 仅当有本对话的工具调用时显示 */}
+      {ownToolActive && (
+        <div style={{ flex: 1, maxWidth: 200 }}>
+          <Progress
+            percent={Math.min(elapsed * 10, 90)}
+            showInfo={false}
+            size="small"
+            strokeColor={token.colorPrimary}
+            trailColor={token.colorFillSecondary}
+            style={{ margin: 0 }}
+          />
+        </div>
+      )}
 
-      {/* 耗时 */}
-      {elapsed > 0 && (
+      {/* 耗时 — 仅当有本对话的工具调用时显示 */}
+      {ownToolActive && elapsed > 0 && (
         <Text
           type="secondary"
           style={{

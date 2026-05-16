@@ -989,6 +989,9 @@
       "exportSkill": "Exporter",
       "importSkill": "Importer"
     },
+    "plugins": {
+      "title": "Plugins"
+    },
     "dashboardPlugins": {
       "title": "Plugins de tableau de bord",
       "description": "Description",
@@ -2520,7 +2523,8 @@
     "toggleSidebar": "Basculer la barre latérale",
     "toggleInspector": "Basculer l'inspecteur",
     "searchConversations": "Rechercher des conversations",
-    "goToSkills": "Aller aux compétences"
+    "goToSkills": "Aller aux compétences",
+    "goToPlugins": "Aller aux plugins"
   },
   "appLaunch": {
     "title": "Configuration de lancement",

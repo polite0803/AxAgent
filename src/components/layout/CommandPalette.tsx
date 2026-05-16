@@ -3,7 +3,7 @@ import { executeActionChain } from "@/lib/skillActionExecutor";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import { Input, List, Modal, Tag, theme, Typography } from "antd";
-import { MessageSquare, Network, PanelLeftClose, Plus, Search, Settings, Sparkles } from "lucide-react";
+import { MessageSquare, Network, PanelLeftClose, Plus, Puzzle, Search, Settings, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -129,6 +129,17 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         action: () => {
           navigate("/settings");
           useUIStore.getState().setSettingsSection("skillsHub");
+          onClose();
+        },
+      },
+      {
+        id: "go-plugins",
+        label: t("commandPalette.goToPlugins"),
+        icon: <Puzzle size={16} color={CHAT_ICON_COLORS.Puzzle} />,
+        category: nav,
+        action: () => {
+          navigate("/settings");
+          useUIStore.getState().setSettingsSection("plugins");
           onClose();
         },
       },

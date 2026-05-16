@@ -1810,7 +1810,7 @@ fn spawn_stream_task(
                 store: None,
             };
 
-            let mut stream = adapter.chat_stream(&ctx, request);
+            let mut stream = adapter.chat_stream(&ctx, request, None);
             let suppress_thinking = thinking_budget == Some(0);
             let (content, usage, tool_calls, stream_error, iter_tps, iter_ttft) = consume_stream(
                 &app,

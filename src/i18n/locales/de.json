@@ -1899,6 +1899,9 @@
       "exportSkill": "Exportieren",
       "importSkill": "Importieren"
     },
+    "plugins": {
+      "title": "Plugins"
+    },
     "dashboardPlugins": {
       "title": "Dashboard-Plugins",
       "description": "Erweitern Sie Ihr Dashboard mit Plugins",
@@ -2520,7 +2523,8 @@
     "toggleSidebar": "Seitenleiste umschalten",
     "toggleInspector": "Inspektor umschalten",
     "searchConversations": "Gespräche suchen",
-    "goToSkills": "Zu Fähigkeiten"
+    "goToSkills": "Zu Fähigkeiten",
+    "goToPlugins": "Zu Plugins"
   },
   "appLaunch": {
     "title": "Startkonfiguration",

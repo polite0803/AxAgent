@@ -94,12 +94,16 @@ impl HermesAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
         mode: ApiMode,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         match mode {
-            ApiMode::ChatCompletions => self.chat_completions.chat_stream(ctx, request),
-            ApiMode::CodexResponses => self.codex_responses.chat_stream(ctx, request),
-            ApiMode::AnthropicMessages => self.anthropic.chat_stream(ctx, request),
+            ApiMode::ChatCompletions => {
+                self.chat_completions
+                    .chat_stream(ctx, request, cancel_token)
+            },
+            ApiMode::CodexResponses => self.codex_responses.chat_stream(ctx, request, cancel_token),
+            ApiMode::AnthropicMessages => self.anthropic.chat_stream(ctx, request, cancel_token),
         }
     }
 
@@ -215,9 +219,10 @@ impl ProviderAdapter for HermesAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         let mode = Self::resolve_api_mode(ctx);
-        self.chat_stream_with_mode(ctx, request, mode)
+        self.chat_stream_with_mode(ctx, request, cancel_token, mode)
     }
 
     async fn list_models(&self, ctx: &ProviderRequestContext) -> Result<Vec<Model>> {

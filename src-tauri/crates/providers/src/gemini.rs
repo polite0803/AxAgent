@@ -187,18 +187,6 @@ fn convert_tools_to_gemini(tools: &Option<Vec<ChatTool>>) -> Option<Vec<GeminiTo
     })
 }
 
-fn extract_text_content(content: &ChatContent) -> String {
-    match content {
-        ChatContent::Text(text) => text.clone(),
-        ChatContent::Multipart(parts) => parts
-            .iter()
-            .filter_map(|part| part.text.as_ref())
-            .cloned()
-            .collect::<Vec<String>>()
-            .join(" "),
-    }
-}
-
 fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<GeminiContent>) {
     let mut system_instruction = None;
     let mut contents = Vec::new();
@@ -262,10 +250,10 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                     .as_deref()
                     .and_then(|id| tool_id_to_name.get(id).map(|s| s.as_str()))
                     .unwrap_or("unknown");
-                let result_value: serde_json::Value = serde_json::from_str(&extract_text_content(
-                    &msg.content,
-                ))
-                .unwrap_or(serde_json::json!({ "result": extract_text_content(&msg.content) }));
+                let result_value: serde_json::Value =
+                    serde_json::from_str(&crate::extract_text_content(&msg.content)).unwrap_or(
+                        serde_json::json!({ "result": crate::extract_text_content(&msg.content) }),
+                    );
                 contents.push(GeminiContent {
                     role: Some("user".to_string()),
                     parts: vec![GeminiPart {
@@ -282,8 +270,8 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
             },
             "assistant" if msg.tool_calls.is_some() => {
                 let mut parts = Vec::new();
-                let text = extract_text_content(&msg.content);
-                let (visible_text, reasoning) = crate::openai::extract_reasoning_from_text(&text);
+                let text = crate::extract_text_content(&msg.content);
+                let (visible_text, reasoning) = crate::extract_reasoning_from_text(&text);
                 if let Some(ref r) = reasoning {
                     parts.push(GeminiPart {
                         text: Some(r.clone()),
@@ -327,7 +315,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                 let mut parts = Vec::new();
                 match &msg.content {
                     ChatContent::Text(text) => {
-                        let (visible, reasoning) = crate::openai::extract_reasoning_from_text(text);
+                        let (visible, reasoning) = crate::extract_reasoning_from_text(text);
                         if let Some(ref r) = reasoning {
                             parts.push(GeminiPart {
                                 text: Some(r.clone()),
@@ -350,8 +338,7 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                     ChatContent::Multipart(multipart) => {
                         for p in multipart {
                             if let Some(text) = &p.text {
-                                let (visible, reasoning) =
-                                    crate::openai::extract_reasoning_from_text(text);
+                                let (visible, reasoning) = crate::extract_reasoning_from_text(text);
                                 if let Some(ref r) = reasoning {
                                     parts.push(GeminiPart {
                                         text: Some(r.clone()),
@@ -481,12 +468,11 @@ mod tests {
 }
 
 fn simple_id() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    format!("gemini-{ts:x}")
+    format!("gemini-{}", uuid::Uuid::new_v4())
+}
+
+fn tool_call_id() -> String {
+    format!("gemini-fc-{}", uuid::Uuid::new_v4())
 }
 
 #[async_trait]
@@ -546,13 +532,7 @@ impl ProviderAdapter for GeminiAdapter {
                 }
                 if let Some(ref fc) = part.function_call {
                     tool_calls.push(axagent_core::types::ToolCall {
-                        id: format!(
-                            "gemini_{}",
-                            std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .map(|d| d.as_nanos())
-                                .unwrap_or(0)
-                        ),
+                        id: tool_call_id(),
                         call_type: "function".to_string(),
                         function: axagent_core::types::ToolCallFunction {
                             name: fc.name.clone(),
@@ -585,6 +565,7 @@ impl ProviderAdapter for GeminiAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         let client = self.get_client(ctx).unwrap_or_else(|e| {
             tracing::warn!("Failed to build proxy-aware HTTP client, falling back to default: {e}");
@@ -606,7 +587,7 @@ impl ProviderAdapter for GeminiAdapter {
             tools: convert_tools_to_gemini(&request.tools),
         };
 
-        let (tx, rx) = futures::channel::mpsc::unbounded();
+        let (mut tx, rx) = futures::channel::mpsc::channel(256);
 
         tokio::spawn(async move {
             let resp = match crate::apply_stream_headers_to_request(
@@ -620,15 +601,14 @@ impl ProviderAdapter for GeminiAdapter {
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_http_status("Gemini", s, &t),
-                    )));
+                    let _ = tx.try_send(Err(AxAgentError::Provider(super::diagnose_http_status(
+                        "Gemini", s, &t,
+                    ))));
                     return;
                 },
                 Err(e) => {
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_reqwest_error(&e),
-                    )));
+                    let _ =
+                        tx.try_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
                     return;
                 },
             };
@@ -637,6 +617,13 @@ impl ProviderAdapter for GeminiAdapter {
             let mut buf = String::new();
 
             while let Some(chunk) = byte_stream.next().await {
+                if let Some(ref token) = cancel_token {
+                    if token.load(std::sync::atomic::Ordering::Relaxed) {
+                        let _ = tx
+                            .try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
+                        return;
+                    }
+                }
                 match chunk {
                     Ok(bytes) => {
                         buf.push_str(&String::from_utf8_lossy(&bytes));
@@ -682,15 +669,7 @@ impl ProviderAdapter for GeminiAdapter {
                                             if let Some(ref fc) = part.function_call {
                                                 tool_calls_vec.push(
                                                     axagent_core::types::ToolCall {
-                                                        id: format!(
-                                                            "gemini_{}",
-                                                            std::time::SystemTime::now()
-                                                                .duration_since(
-                                                                    std::time::UNIX_EPOCH
-                                                                )
-                                                                .map(|d| d.as_nanos())
-                                                                .unwrap_or(0)
-                                                        ),
+                                                        id: tool_call_id(),
                                                         call_type: "function".to_string(),
                                                         function:
                                                             axagent_core::types::ToolCallFunction {
@@ -718,7 +697,7 @@ impl ProviderAdapter for GeminiAdapter {
                                         total_tokens: u.total_token_count.unwrap_or(0),
                                     });
 
-                                    let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                                    let _ = tx.try_send(Ok(ChatStreamChunk {
                                         content,
                                         thinking: thinking_chunk,
                                         done: false,
@@ -738,7 +717,7 @@ impl ProviderAdapter for GeminiAdapter {
                         }
                     },
                     Err(e) => {
-                        let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
+                        let _ = tx.try_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
@@ -746,7 +725,7 @@ impl ProviderAdapter for GeminiAdapter {
                 }
             }
 
-            let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+            let _ = tx.try_send(Ok(ChatStreamChunk {
                 content: None,
                 thinking: None,
                 done: true,

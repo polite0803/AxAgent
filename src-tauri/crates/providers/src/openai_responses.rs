@@ -65,6 +65,10 @@ struct ResponsesRequest {
     tools: Option<Vec<ResponsesTool>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     reasoning: Option<ResponsesReasoning>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    previous_response_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    store: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -196,18 +200,6 @@ struct EmbedDataItem {
 
 // --- Helper functions ---
 
-fn extract_text_content(content: &ChatContent) -> String {
-    match content {
-        ChatContent::Text(text) => text.clone(),
-        ChatContent::Multipart(parts) => parts
-            .iter()
-            .filter_map(|part| part.text.as_ref())
-            .cloned()
-            .collect::<Vec<String>>()
-            .join(" "),
-    }
-}
-
 fn convert_content_to_value(content: &ChatContent) -> serde_json::Value {
     match content {
         ChatContent::Text(text) => serde_json::Value::String(text.clone()),
@@ -284,7 +276,7 @@ fn build_responses_input(
     for msg in messages {
         match msg.role.as_str() {
             "system" => {
-                let text = extract_text_content(&msg.content);
+                let text = crate::extract_text_content(&msg.content);
                 if !text.is_empty() {
                     match &mut instructions {
                         Some(existing) => {
@@ -304,7 +296,7 @@ fn build_responses_input(
             "assistant" => {
                 if let Some(ref tool_calls) = msg.tool_calls {
                     // Emit text part if present, stripping :::mcp blocks
-                    let raw_text = extract_text_content(&msg.content);
+                    let raw_text = crate::extract_text_content(&msg.content);
                     let text = strip_mcp_blocks(&raw_text);
                     let text = text.trim();
                     if !text.is_empty() {
@@ -350,7 +342,7 @@ fn build_responses_input(
                     }
                 } else {
                     // No tool calls — strip :::mcp blocks from content
-                    let raw_text = extract_text_content(&msg.content);
+                    let raw_text = crate::extract_text_content(&msg.content);
                     let text = strip_mcp_blocks(&raw_text);
                     let mut item = serde_json::Map::new();
                     item.insert(
@@ -373,7 +365,7 @@ fn build_responses_input(
                 );
                 item.insert(
                     "output".to_string(),
-                    serde_json::Value::String(extract_text_content(&msg.content)),
+                    serde_json::Value::String(crate::extract_text_content(&msg.content)),
                 );
                 input_items.push(serde_json::Value::Object(item));
             },
@@ -440,6 +432,8 @@ fn build_request(request: &ChatRequest, stream: bool) -> ResponsesRequest {
         stream,
         tools,
         reasoning,
+        previous_response_id: request.previous_response_id.clone(),
+        store: request.store,
     }
 }
 
@@ -569,6 +563,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
         &self,
         ctx: &ProviderRequestContext,
         request: ChatRequest,
+        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
         let client = self.get_client(ctx).unwrap_or_else(|e| {
             tracing::warn!("Failed to build proxy-aware HTTP client, falling back to default: {e}");
@@ -579,7 +574,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
         let url = Self::chat_url(ctx);
         let body = build_request(&request, true);
 
-        let (tx, rx) = futures::channel::mpsc::unbounded();
+        let (mut tx, rx) = futures::channel::mpsc::channel(256);
 
         tokio::spawn(async move {
             let resp = match crate::apply_stream_headers_to_request(
@@ -596,15 +591,16 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_http_status("OpenAI Responses", s, &t),
-                    )));
+                    let _ = tx.try_send(Err(AxAgentError::Provider(super::diagnose_http_status(
+                        "OpenAI Responses",
+                        s,
+                        &t,
+                    ))));
                     return;
                 },
                 Err(e) => {
-                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(
-                        super::diagnose_reqwest_error(&e),
-                    )));
+                    let _ =
+                        tx.try_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
                     return;
                 },
             };
@@ -622,6 +618,13 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                 std::collections::HashMap::new();
 
             while let Some(chunk) = byte_stream.next().await {
+                if let Some(ref token) = cancel_token {
+                    if token.load(std::sync::atomic::Ordering::Relaxed) {
+                        let _ = tx
+                            .try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
+                        return;
+                    }
+                }
                 match chunk {
                     Ok(bytes) => {
                         buf.push_str(&String::from_utf8_lossy(&bytes));
@@ -665,7 +668,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             .collect(),
                                     )
                                 };
-                                let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                                let _ = tx.try_send(Ok(ChatStreamChunk {
                                     content: None,
                                     thinking: None,
                                     done: true,
@@ -684,7 +687,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                         let delta_text =
                                             evt.part.and_then(|p| p.delta).or(evt.delta);
                                         if delta_text.is_some() {
-                                            let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                                            let _ = tx.try_send(Ok(ChatStreamChunk {
                                                 content: delta_text,
                                                 thinking: None,
                                                 done: false,
@@ -701,7 +704,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                         serde_json::from_str::<StreamReasoningDeltaEvent>(data)
                                     {
                                         if evt.delta.is_some() {
-                                            let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                                            let _ = tx.try_send(Ok(ChatStreamChunk {
                                                 content: None,
                                                 thinking: evt.delta,
                                                 done: false,
@@ -860,7 +863,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                         None
                                     };
 
-                                    let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+                                    let _ = tx.try_send(Ok(ChatStreamChunk {
                                         content: None,
                                         thinking: None,
                                         done: true,
@@ -893,7 +896,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                         current_event_type,
                                         err_msg
                                     );
-                                    let _ = tx.unbounded_send(Err(AxAgentError::Provider(err_msg)));
+                                    let _ = tx.try_send(Err(AxAgentError::Provider(err_msg)));
                                     return;
                                 },
                                 // Known event types we intentionally skip
@@ -906,8 +909,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                 | "response.reasoning.done"
                                 | "response.reasoning_summary_text.done"
                                 | "response.reasoning_summary_part.added"
-                                | "response.reasoning_summary_part.done"
-                                | "response.function_call_arguments.delta.done" => {},
+                                | "response.reasoning_summary_part.done" => {},
                                 _ => {
                                     if !current_event_type.is_empty() {
                                         tracing::debug!(
@@ -920,7 +922,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                         }
                     },
                     Err(e) => {
-                        let _ = tx.unbounded_send(Err(AxAgentError::Provider(format!(
+                        let _ = tx.try_send(Err(AxAgentError::Provider(format!(
                             "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                         ))));
                         return;
@@ -946,7 +948,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                         .collect(),
                 )
             };
-            let _ = tx.unbounded_send(Ok(ChatStreamChunk {
+            let _ = tx.try_send(Ok(ChatStreamChunk {
                 content: None,
                 thinking: None,
                 done: true,
@@ -1235,6 +1237,7 @@ mod tests {
             instructions: None,
             previous_response_id: None,
             store: None,
+            response_format: None,
         };
         let built = build_request(&request, false);
         assert_eq!(built.max_output_tokens, Some(100));

@@ -1024,6 +1024,9 @@
       "exportSkill": "エクスポート",
       "importSkill": "インポート"
     },
+    "plugins": {
+      "title": "プラグイン"
+    },
     "dashboardPlugins": {
       "title": "ダッシュボードプラグイン",
       "description": "説明",
@@ -2520,7 +2523,8 @@
     "toggleSidebar": "サイドバーを切り替え",
     "toggleInspector": "インスペクターを切り替え",
     "searchConversations": "会話を検索",
-    "goToSkills": "スキルへ移動"
+    "goToSkills": "スキルへ移動",
+    "goToPlugins": "プラグインへ移動"
   },
   "appLaunch": {
     "title": "起動設定",

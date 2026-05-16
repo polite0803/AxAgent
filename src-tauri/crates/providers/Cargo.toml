@@ -15,4 +15,5 @@ async-trait = "0.1"
 tracing = { workspace = true }
 tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
 thiserror = { workspace = true }
+uuid = { workspace = true }
 anyhow = "1"
