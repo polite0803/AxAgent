@@ -304,7 +304,7 @@ function AppRoot() {
           }
         } catch (e) {
           const errorStr = String(e);
-          if (errorStr.includes("os error 2") || errorStr.includes("系统找不到指定的文件")) {
+          if (errorStr.includes("os error 2")) {
             console.debug("Autostart skipped: executable path not found (may occur in portable mode)");
           } else {
             console.warn("Failed to set autostart:", e);

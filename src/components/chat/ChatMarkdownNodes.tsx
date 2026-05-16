@@ -405,7 +405,7 @@ function ThinkNode(
       onExpand={setExpanded}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {/* 结构化思考：分阶段展示 */}
+        {/* Structured thinking: phase-by-phase display */}
         {hasStructuredPhases && (
           <StructuredThinking
             thinking={thinkingContent}
@@ -413,7 +413,7 @@ function ThinkNode(
             totalMs={totalMs}
           />
         )}
-        {/* 原始 Markdown 渲染（可切换） */}
+        {/* Raw markdown render (toggle) */}
         {(!hasStructuredPhases || showRawMarkdown) && (
           <NodeRenderer
             key={`think:${rendererKey}:${isStreaming ? "s" : "f"}`}
@@ -433,7 +433,7 @@ function ThinkNode(
             {...CHAT_RENDER_BATCH_PROPS}
           />
         )}
-        {/* 切换按钮：在结构化视图和原始 Markdown 之间切换 */}
+        {/* Toggle: structured view vs raw markdown */}
         {hasStructuredPhases && !isStreaming && (
           <div
             onClick={() => setShowRawMarkdown(!showRawMarkdown)}
