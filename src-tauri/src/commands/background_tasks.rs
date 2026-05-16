@@ -139,9 +139,7 @@ pub async fn spawn_background_task(
     if task_type == "bash" {
         if let Some(cmd) = command {
             // 安全校验：拒绝包含 shell 元字符的命令，防止命令注入
-            if let Err(e) = validate_command(&cmd) {
-                return Err(e);
-            }
+            validate_command(&cmd)?;
             let db1 = db.clone();
             let db2 = db.clone();
             let db3 = db.clone();

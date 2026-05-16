@@ -894,6 +894,7 @@ dependencies = [
  "axum 0.8.9",
  "axum-server",
  "futures",
+ "http",
  "prometheus",
  "reqwest 0.13.2",
  "sea-orm",
