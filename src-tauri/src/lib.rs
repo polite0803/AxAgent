@@ -51,6 +51,19 @@ pub fn run() {
             // 只是 tracing 事件不会被转发到 logcat。
             log::error!("Failed to init LogTracer: {} — tracing->log bridge unavailable", e);
         }
+
+        // ── 最早阶段的崩溃诊断标记 ──
+        // 此标记在 `android_utils::mark_startup_phase` 可用之前写入，
+        // 直接写入外部可访问路径（用户可通过文件管理器读取）。
+        tracing::info!("=== AxAgent Android START ===");
+        let _ = std::fs::write(
+            "/storage/emulated/0/Download/axagent-crash.log",
+            "[BOOT] run() entered\n",
+        );
+        let _ = std::fs::write(
+            "/storage/emulated/0/Android/data/top.axagent.desktop/files/axagent-crash.log",
+            "[BOOT] run() entered\n",
+        );
     }
     #[cfg(not(target_os = "android"))]
     {
@@ -87,7 +100,10 @@ pub fn run() {
     }));
 
     #[cfg(target_os = "android")]
-    tracing::info!("AxAgent starting on Android (tracing -> log -> logcat)");
+    {
+        tracing::info!("AxAgent starting on Android (tracing -> log -> logcat)");
+        android_utils::mark_startup_phase("run_start");
+    }
 
     // ── TLS crypto provider ──
     if rustls::crypto::aws_lc_rs::default_provider()
@@ -109,8 +125,12 @@ pub fn run() {
         }
     }
 
+    #[cfg(target_os = "android")]
+    crate::android_utils::mark_startup_phase("register_plugins_start");
     let builder = tauri::Builder::default();
     let builder = init::register_plugins(builder);
+    #[cfg(target_os = "android")]
+    crate::android_utils::mark_startup_phase("register_plugins_done");
 
     let build_result = builder
         .invoke_handler(tauri::generate_handler![
@@ -1184,6 +1204,9 @@ pub fn run() {
         })
         .build(tauri::generate_context!());
 
+    #[cfg(target_os = "android")]
+    crate::android_utils::mark_startup_phase("build_done");
+
     let app = match build_result {
         Ok(app) => app,
         Err(e) => {
@@ -1212,6 +1235,9 @@ pub fn run() {
             std::process::exit(1);
         },
     };
+
+    #[cfg(target_os = "android")]
+    crate::android_utils::mark_startup_phase("run_loop_start");
 
     app.run(|_app, _event| {
         #[cfg(target_os = "macos")]
