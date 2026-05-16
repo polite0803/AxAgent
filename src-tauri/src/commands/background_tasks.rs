@@ -165,7 +165,9 @@ pub async fn spawn_background_task(
                     {
                         Ok(c) => c,
                         Err(e) => {
-                            if let Err(e2) = append_output(&db2, &tid2, &format!("启动失败: {}", e)).await {
+                            if let Err(e2) =
+                                append_output(&db2, &tid2, &format!("启动失败: {}", e)).await
+                            {
                                 warn!("追加输出失败: {}", e2);
                             }
                             if let Err(e2) = update_status(&db2, &tid2, "failed", Some(-1)).await {
