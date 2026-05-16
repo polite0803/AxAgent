@@ -190,15 +190,15 @@ jobs:
         id: rename-apk
         run: |
           TAG="${GITHUB_REF_NAME:-dev}"
-          cd src-tauri/target
-          
-          # Find the APK file
+          cd src-tauri/gen/android/app/build/outputs/apk
+
+          # Find the APK file (Tauri 2 outputs to gen/android/ not target/)
           APK=$(find . -name "*.apk" -type f | head -1)
           if [ -n "$APK" ]; then
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxAgent_${TAG}_android-${ABI}.apk"
             cp "$APK" "../$NEW_NAME"
-            echo "apk-path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
+            echo "apk-path=src-tauri/gen/android/app/build/outputs/apk/$NEW_NAME" >> $GITHUB_OUTPUT
           fi
 
       - name: Rename AAB for artifact
@@ -206,14 +206,14 @@ jobs:
         if: matrix.abi == 'arm64-v8a'
         run: |
           TAG="${GITHUB_REF_NAME:-dev}"
-          cd src-tauri/target
-          
+          cd src-tauri/gen/android/app/build/outputs/bundle
+
           # Find the AAB file
           AAB=$(find . -name "*.aab" -type f | head -1)
           if [ -n "$AAB" ]; then
             NEW_NAME="AxAgent_${TAG}_android-play-store.aab"
             cp "$AAB" "../$NEW_NAME"
-            echo "aab-path=src-tauri/$NEW_NAME" >> $GITHUB_OUTPUT
+            echo "aab-path=src-tauri/gen/android/app/build/outputs/bundle/$NEW_NAME" >> $GITHUB_OUTPUT
           fi
 
       - name: Upload APK as artifact
