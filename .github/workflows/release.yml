@@ -468,13 +468,8 @@ jobs:
             > src-tauri/gen/android/keystore.properties
           python3 scripts/patch-android-signing.py src-tauri/gen/android/app/build.gradle.kts
 
-          # 添加 ProGuard 规则，防止 R8 minification 剥离 Tauri JNI 桥接类
-          cat > src-tauri/gen/android/app/proguard-rules.pro << 'PROGUARD'
-          -keep class com.tauri.** { *; }
-          -keep class org.tauri.** { *; }
-          -dontwarn com.tauri.**
-          -dontwarn org.tauri.**
-          PROGUARD
+          # 添加 ProGuard 规则，防止 R8 混淆/剥离 JNI 桥接类导致闪退
+          cp src-tauri/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro
 
       - name: Build Android APK
         run: |
