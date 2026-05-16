@@ -140,7 +140,7 @@ function recordInvocation(cmd: string, durationMs: number, success: boolean, err
   _invokeCounts.set(cmd, stats);
 }
 
-/** 清空 invoke 历史记录和统计计数器 */
+// 清空 invoke 历史记录和统计计数器
 export function clearInvokeHistory() {
   _invokeHistory.length = 0;
   _invokeCounts.clear();
@@ -277,7 +277,7 @@ function recordDiag(
         }
       }
     }
-  } catch { /* 诊断自身出错，静默忽略 */ }
+  } catch { /* diagnostic: ignore self-check errors */ }
 }
 
 /**
@@ -286,11 +286,11 @@ function recordDiag(
  */
 export async function checkIpcHealth(): Promise<{ ok: boolean; detail: string; isTauri: boolean }> {
   if (!isTauri()) {
-    return { ok: false, detail: "非 Tauri 环境，__TAURI_INTERNALS__ 未注入", isTauri: false };
+    return { ok: false, detail: "Not a Tauri environment, __TAURI_INTERNALS__ not injected", isTauri: false };
   }
   try {
     await invoke<unknown>("get_settings", undefined, 5000);
-    return { ok: true, detail: "IPC 通道正常", isTauri: true };
+    return { ok: true, detail: "IPC channel OK", isTauri: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, detail: msg.slice(0, 200), isTauri: true };

@@ -5472,5 +5472,8 @@
     "browser": "",
     "synthesizer": "",
     "executor": ""
+  },
+  "stream": {
+    "timeout": "⚠️ Stream-Timeout (5 Minuten keine Aktualisierung), automatisch gestoppt"
   }
 }

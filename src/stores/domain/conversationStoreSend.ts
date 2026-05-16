@@ -383,7 +383,7 @@ export function createSendMethods(
             await get().updateConversation(conversationId, {
               provider_id: originalProviderId,
               model_id: originalModelId,
-            }).catch(logIpcError("恢复原始模型配置"));
+            }).catch(logIpcError("restore_original_model"));
           }
         }
 

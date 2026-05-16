@@ -5472,5 +5472,8 @@
     "browser": "",
     "synthesizer": "",
     "executor": ""
+  },
+  "stream": {
+    "timeout": "⚠️ 스트림 시간 초과 (5분간 업데이트 없음), 자동 중지됨"
   }
 }

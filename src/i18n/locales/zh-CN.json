@@ -5917,5 +5917,8 @@
     "browser": "浏览器",
     "synthesizer": "综合者",
     "executor": "执行者"
+  },
+  "stream": {
+    "timeout": "⚠️ 流式响应超时（5分钟无更新），已自动中断"
   }
 }

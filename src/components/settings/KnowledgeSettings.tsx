@@ -383,7 +383,7 @@ function KnowledgeBaseDetail({
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
-    invoke<any[]>("list_local_models").then(setModelList).catch(logIpcError("获取本地模型列表"));
+    invoke<any[]>("list_local_models").then(setModelList).catch(logIpcError("list_local_models"));
   }, []);
 
   const handleDownloadModel = async (filename: string) => {

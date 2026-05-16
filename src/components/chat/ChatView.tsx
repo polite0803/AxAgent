@@ -709,7 +709,7 @@ function ChatViewInner({ onScrollToReady }: {
   const [toolCount, setToolCount] = useState(0);
 
   useEffect(() => {
-    invoke<number>("get_tool_count").then(setToolCount).catch(logIpcError("获取工具数量"));
+    invoke<number>("get_tool_count").then(setToolCount).catch(logIpcError("get_tool_count"));
   }, []);
   const createConversation = useConversationStore((s) => s.createConversation);
   const providers = useProviderStore((s) => s.providers);
@@ -732,7 +732,7 @@ function ChatViewInner({ onScrollToReady }: {
   useEffect(() => {
     if (codeBlockThemes.length > 0) {
       registerHighlight({ themes: codeBlockThemes as import("@shikijs/types").ThemeInput[] }).catch(
-        logIpcError("预加载代码高亮主题"),
+        logIpcError("preload_highlight_themes"),
       );
     }
   }, [codeBlockThemes, codeBlockDarkTheme, codeBlockLightTheme, isDarkMode]);
@@ -2894,7 +2894,7 @@ function ChatViewInner({ onScrollToReady }: {
         setActiveConversation={setActiveConversation}
       />
 
-      {/* ContextBar：显示当前上下文状态 + Token 用量 */}
+      {/* Context bar: current context + token usage */}
       {(() => {
         const contextBarModel = activeConversation
           ? (() => {
@@ -2975,7 +2975,7 @@ function ChatViewInner({ onScrollToReady }: {
           )
           : (
             <>
-              {/* 上下文图谱 — 可视化当前对话的上下文关系 */}
+              {/* Context graph: visualize context relationships */}
               {activeConversationId && (() => {
                 const ctxProvider = providers.find((p) => p.id === activeConversation?.provider_id);
                 const ctxModel = ctxProvider?.models.find((m) => m.model_id === activeConversation?.model_id);
@@ -2995,7 +2995,7 @@ function ChatViewInner({ onScrollToReady }: {
                   </div>
                 );
               })()}
-              {/* 虚拟滚动：当有更早消息未渲染时，显示加载提示 */}
+              {/* Virtual scroll: show load hint for older messages */}
               {hiddenEarlierCount > 0 && hiddenEarlierCount === allBubbleItems.length && (
                 <div style={{ textAlign: "center", padding: "8px 0" }}>
                   <Button
@@ -3079,7 +3079,7 @@ function ChatViewInner({ onScrollToReady }: {
           )}
       </div>
 
-      {/* Agent status bar — 通用状态文本 + 执行进度指示器 */}
+      {/* Agent status bar */}
       {currentAgentStatus && (
         <div
           data-testid="agent-status"
@@ -3095,19 +3095,19 @@ function ChatViewInner({ onScrollToReady }: {
           <Spin size="small" /> {currentAgentStatus}
         </div>
       )}
-      {/* Proactive 建议栏 */}
+      {/* Proactive suggestion bar */}
       <ProactiveSuggestionBar />
 
       {activeConversation?.mode === "agent" && activeConversationId && (
         <AgentProgressBar conversationId={activeConversationId} />
       )}
 
-      {/* Plan Card — 计划审批与执行（agent 模式） */}
+      {/* Plan card: approval & execution (agent mode) */}
       {activeConversation?.mode === "agent" && activeConversationId && (
         <PlanCardWrapper conversationId={activeConversationId} />
       )}
 
-      {/* Quick Command Bar — 快捷操作（仅 agent 模式显示） */}
+      {/* Quick command bar: shortcuts (agent mode only) */}
       {activeConversation?.mode === "agent" && <QuickCommandBar />}
 
       {/* Input Area */}
@@ -3134,9 +3134,9 @@ function ChatViewInner({ onScrollToReady }: {
         <InputArea />
       </div>
 
-      {/* Permission Modal — 全局权限审批弹窗 */}
+      {/* Permission modal: global approval dialog */}
       <PermissionModal />
-      {/* Expert Selector — 专家角色选择弹窗 */}
+      {/* Expert selector: role selection dialog */}
       <ExpertSelector
         open={expertOpen}
         onClose={() => setExpertOpen(false)}

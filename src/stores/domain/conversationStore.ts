@@ -345,7 +345,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // 优先精确匹配，其次同 provider 子串匹配，最后跨 provider 子串匹配
       let bestProviderId: string | null = null;
       let bestModelId: string | null = null;
-      let bestScore = 0; // 3=精确+同provider, 2=精确+跨provider, 1=子串+同provider, 0=子串+跨provider
+      // 评分: 3=精确+同provider, 2=精确+跨provider, 1=子串+同provider, 0=子串+跨provider
+      let bestScore = 0;
 
       for (const p of providers) {
         for (const m of p.models) {
@@ -1192,14 +1193,15 @@ export function resetSidebarAutoSelectSuppression() {
   }
 }
 
-/** 设置 sidebar 自动选择抑制，带超时保护防止永久抑制 */
+// 设置 sidebar 自动选择抑制，带超时保护防止永久抑制
 export function setSidebarAutoSelectSuppression() {
   setSidebarAutoSelectSuppression();
   if (_sideBarSuppressTimer) { clearTimeout(_sideBarSuppressTimer); }
   _sideBarSuppressTimer = setTimeout(() => {
     _suppressSidebarAutoSelect = false;
     _sideBarSuppressTimer = null;
-  }, 5000); // 5s 安全超时，防止 ChatSidebar 未挂载导致永久抑制
+    // 5s 安全超时，防止 ChatSidebar 未挂载导致永久抑制
+  }, 5000);
 }
 
 // Auto-rebuild message index on every messages replacement to keep O(1) streaming fast.

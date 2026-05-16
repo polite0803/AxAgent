@@ -5472,5 +5472,8 @@
     "browser": "",
     "synthesizer": "",
     "executor": ""
+  },
+  "stream": {
+    "timeout": "⚠️ Tiempo de espera agotado (5 min sin actualización), detenido automáticamente"
   }
 }

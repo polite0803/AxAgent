@@ -13,18 +13,16 @@ export let _listenerGen = 0;
 
 // ─── 卡住的流看门狗 ───
 
-/** 流超过此时间（毫秒）无更新则视为卡住，自动取消 */
+// 流超过此毫秒数无更新则视为卡住，自动取消
 const STUCK_STREAM_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
 /** 看门狗检查间隔 */
-const WATCHDOG_INTERVAL_MS = 30 * 1000; // 30 秒
+// 看门狗检查间隔: 30 秒
+const WATCHDOG_INTERVAL_MS = 30 * 1000;
 
 let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
 
-/**
- * 启动卡住的流看门狗。
- * 定期检查 streamingStartTimestamps，如果某个流超过 STUCK_STREAM_TIMEOUT_MS
- * 仍未结束，自动取消该流并标记消息为错误状态。
- */
+// 启动流看门狗：定期检查 streamingStartTimestamps，
+// 超过 STUCK_STREAM_TIMEOUT_MS 未结束则自动取消并标记错误。
 export function startStreamWatchdog() {
   if (_watchdogTimer !== null) { return; }
 
@@ -41,9 +39,9 @@ export function startStreamWatchdog() {
 
     for (const convId of stuckConversationIds) {
       console.warn(
-        `[StreamWatchdog] 流卡住: conversationId=${convId}, 已运行 ${
+        `[StreamWatchdog] stream stuck: conversationId=${convId}, running ${
           Math.round((now - state.streamingStartTimestamps[convId]) / 1000)
-        }s，自动取消`,
+        }s, auto-cancelling`,
       );
 
       // 标记消息为错误（仅当消息仍在流式传输中，避免覆盖用户编辑内容）
@@ -54,8 +52,7 @@ export function startStreamWatchdog() {
             m.id === msgId && m.status === "partial"
               ? {
                 ...m,
-                content: m.content + "\n\n> "
-                  + (i18n.t("stream.timeout", "⚠️ 流式响应超时（5分钟无更新），已自动中断")),
+                content: m.content + "\n\n> " + i18n.t("stream.timeout"),
                 status: "error" as const,
               }
               : m
@@ -69,9 +66,7 @@ export function startStreamWatchdog() {
   }, WATCHDOG_INTERVAL_MS);
 }
 
-/**
- * 停止卡住的流看门狗（应用退出或不再需要时调用）
- */
+// 停止流看门狗（应用退出时调用）
 export function stopStreamWatchdog() {
   if (_watchdogTimer !== null) {
     clearInterval(_watchdogTimer);
@@ -287,12 +282,11 @@ export function resetMultiModelState() {
   _multiModelDoneResolve = null;
 }
 
-/** 完整重置所有模块级可变状态。仅供测试使用。
- *
- * 注意：这些变量故意放在模块级而非 Zustand store 中，
- * 因为流式处理是性能关键路径（每 50ms 到达一个 chunk），
- * Zustand 的不可变更新周期会显著增加 CPU 开销。
- * 当前以 setter/getter 函数封装，resetStreamRuntime 保证测试隔离。 */
+// 完整重置所有模块级可变状态。仅供测试使用。
+// 这些变量放在模块级而非 Zustand store 中，
+// 因为流式处理每 50ms 到达一个 chunk，
+// Zustand 不可变更新周期会增加 CPU 开销。
+// resetStreamRuntime 保证测试隔离。
 export function resetStreamRuntime() {
   _unlisten?.();
   _unlisten = null;

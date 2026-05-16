@@ -200,11 +200,11 @@ export function createEventMethods(
             void invoke("auto_extract_incremental_memories", {
               conversationId: conversation_id,
               namespaceId: memNsId ?? null,
-            }).catch(logIpcError("自动提取增量记忆"));
+            }).catch(logIpcError("auto_extract_memories"));
             void invoke("extract_conversation_entities", {
               conversationId: conversation_id,
-            }).catch(logIpcError("提取对话实体"));
-          }).catch(logIpcError("动态导入 invoke 模块"));
+            }).catch(logIpcError("extract_entities"));
+          }).catch(logIpcError("dynamic_import_invoke"));
 
           return;
         }

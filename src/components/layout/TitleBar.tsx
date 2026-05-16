@@ -54,7 +54,7 @@ function useEvolutionStatus() {
             auto_tools_count: s.auto_tools_count,
           })
         )
-        .catch(logIpcError("获取后端状态"));
+        .catch(logIpcError("fetch_backend_status"));
     };
     fetch();
     const id = setInterval(fetch, 60000);

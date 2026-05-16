@@ -5472,5 +5472,8 @@
     "browser": "",
     "synthesizer": "",
     "executor": ""
+  },
+  "stream": {
+    "timeout": "⚠️ 串流回應超時（5分鐘無更新），已自動中斷"
   }
 }

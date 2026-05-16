@@ -5472,5 +5472,8 @@
     "browser": "",
     "synthesizer": "",
     "executor": ""
+  },
+  "stream": {
+    "timeout": "⚠️ Délai de flux dépassé (aucune mise à jour depuis 5 min), arrêté automatiquement"
   }
 }

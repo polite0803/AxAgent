@@ -5929,5 +5929,8 @@
     "browser": "Browser",
     "synthesizer": "Synthesizer",
     "executor": "Executor"
+  },
+  "stream": {
+    "timeout": "⚠️ Stream timeout (no update for 5 minutes), automatically stopped"
   }
 }
