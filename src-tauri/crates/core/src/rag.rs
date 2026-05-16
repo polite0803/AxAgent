@@ -1024,8 +1024,8 @@ async fn get_oldest_item_timestamp(
     db: &DatabaseConnection,
     collection_name: &str,
 ) -> Result<Option<i64>> {
-    let sanitized = collection_name.replace(['-', '\'', '"', ';'], "_");
-    let table_name = format!("vec_{}_meta", sanitized);
+    let safe_name = validate_collection_name(collection_name)?;
+    let table_name = format!("vec_{}_meta", safe_name.replace('-', "_"));
     let result = db
         .query_one_raw(Statement::from_string(
             DbBackend::Sqlite,

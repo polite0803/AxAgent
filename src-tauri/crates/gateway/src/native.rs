@@ -419,27 +419,12 @@ fn build_upstream_url(
     path: &str,
     query: Option<&str>,
     protocol: NativeProtocol,
-    api_key: &str,
+    _api_key: &str,
 ) -> String {
     let mut url = join_upstream_base_and_path(base_url, path);
     if let Some(query) = query.filter(|value| !value.is_empty()) {
         url.push('?');
         url.push_str(query);
-    }
-    if matches!(
-        protocol,
-        NativeProtocol::GeminiModels
-            | NativeProtocol::GeminiGenerateContent
-            | NativeProtocol::GeminiStreamGenerateContent
-            | NativeProtocol::GeminiCountTokens
-    ) {
-        if url.contains('?') {
-            url.push('&');
-        } else {
-            url.push('?');
-        }
-        url.push_str("key=");
-        url.push_str(api_key);
     }
     url
 }
@@ -736,7 +721,9 @@ fn build_upstream_request(
         NativeProtocol::GeminiModels
         | NativeProtocol::GeminiGenerateContent
         | NativeProtocol::GeminiStreamGenerateContent
-        | NativeProtocol::GeminiCountTokens => {},
+        | NativeProtocol::GeminiCountTokens => {
+            request = request.header("x-goog-api-key", api_key);
+        },
     }
 
     if *method != Method::GET {

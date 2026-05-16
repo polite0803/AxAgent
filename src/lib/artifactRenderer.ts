@@ -1,4 +1,5 @@
 import type { ArtifactFormat } from "@/types";
+import DOMPurify from "dompurify";
 
 export type PreviewType = "react" | "diagram" | "html" | "code";
 
@@ -26,16 +27,19 @@ export class ArtifactRenderer {
 
   renderMermaid(code: string, container: HTMLElement): void {
     console.warn("[ArtifactRenderer] renderMermaid not fully implemented");
-    container.innerHTML = `<pre>${code}</pre>`;
+    container.textContent = code;
   }
 
   renderD2(code: string, container: HTMLElement): void {
     console.warn("[ArtifactRenderer] renderD2 not fully implemented");
-    container.innerHTML = `<pre>${code}</pre>`;
+    container.textContent = code;
   }
 
   renderSvg(code: string, container: HTMLElement): void {
-    container.innerHTML = code;
+    container.innerHTML = DOMPurify.sanitize(code, {
+      USE_PROFILES: { svg: true, svgFilters: true },
+      ADD_TAGS: ["use"],
+    });
   }
 
   createSandbox(_container: HTMLElement): HTMLIFrameElement {

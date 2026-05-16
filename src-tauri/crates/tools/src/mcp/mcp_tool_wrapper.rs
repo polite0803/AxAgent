@@ -67,7 +67,7 @@ impl Tool for McpToolWrapper {
                 })?
             },
             McpTransportConfig::Http { endpoint } => {
-                axagent_core::mcp_client::call_tool_http(endpoint, &self.tool_name, input)
+                axagent_core::mcp_client::call_tool_http(endpoint, &self.tool_name, input, None)
                     .await
                     .map_err(|e| {
                         ToolError::execution_failed_for(
@@ -77,7 +77,7 @@ impl Tool for McpToolWrapper {
                     })?
             },
             McpTransportConfig::Sse { endpoint } => {
-                axagent_core::mcp_client::call_tool_sse(endpoint, &self.tool_name, input)
+                axagent_core::mcp_client::call_tool_sse(endpoint, &self.tool_name, input, None)
                     .await
                     .map_err(|e| {
                         ToolError::execution_failed_for(

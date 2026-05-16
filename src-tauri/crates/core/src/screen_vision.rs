@@ -287,8 +287,9 @@ Return the analysis in this JSON format:
         let client = reqwest::Client::new();
         let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
         let response = client
-            .post(format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={}", api_key))
+            .post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent")
             .header("content-type", "application/json")
+            .header("x-goog-api-key", &api_key)
             .json(&request_body)
             .send()
             .await?;

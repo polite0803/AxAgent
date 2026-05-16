@@ -1,6 +1,7 @@
 import { SyncOutlined } from "@ant-design/icons";
 import Think from "@ant-design/x/es/think";
 import { theme, Tooltip, Typography } from "antd";
+import DOMPurify from "dompurify";
 import {
   Brain,
   Check,
@@ -760,7 +761,14 @@ function ChatD2BlockNode({
             : (
               <div className="d2-render" style={previewStyle}>
                 {svgMarkup
-                  ? <div className="d2-svg" dangerouslySetInnerHTML={{ __html: svgMarkup }} />
+                  ? (
+                    <div
+                      className="d2-svg"
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(svgMarkup, { USE_PROFILES: { svg: true, svgFilters: true } }),
+                      }}
+                    />
+                  )
                   : (
                     <div
                       className="flex items-center justify-center px-4 py-10"

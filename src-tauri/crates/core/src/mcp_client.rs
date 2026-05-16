@@ -705,8 +705,13 @@ pub async fn call_tool_http(
     endpoint: &str,
     tool_name: &str,
     tool_arguments: Value,
+    auth_header: Option<&str>,
 ) -> Result<McpToolResult> {
-    let transport = StreamableHttpClientWorker::<reqwest::Client>::new_simple(endpoint);
+    let mut transport_builder = StreamableHttpClientWorker::<reqwest::Client>::new_simple(endpoint);
+    if let Some(auth) = auth_header {
+        transport_builder = transport_builder.with_auth_header(auth.to_string());
+    }
+    let transport = transport_builder;
 
     let client = ()
         .serve(transport)
@@ -735,6 +740,7 @@ pub async fn call_tool_sse(
     endpoint: &str,
     tool_name: &str,
     tool_arguments: Value,
+    auth_header: Option<&str>,
 ) -> Result<McpToolResult> {
     let request = serde_json::json!({
         "jsonrpc": "2.0",
@@ -745,7 +751,7 @@ pub async fn call_tool_sse(
             "arguments": tool_arguments,
         }
     });
-    let response = sse_send_request(endpoint, request).await?;
+    let response = sse_send_request(endpoint, request, auth_header).await?;
     let result_obj = response.get("result").ok_or_else(|| {
         let err = response
             .get("error")
@@ -902,9 +908,7 @@ pub async fn call_tool_unified_with_opts(
     };
 
     // OAuth: resolve credentials for HTTP/SSE servers
-    let _auth_header = server_id.and_then(|_sid| {
-        // 非阻塞检查——如果已存储凭据则使用
-        // 完整 OAuth 流程由 Tauri 命令 start_mcp_oauth_flow 触发
+    let auth_header = server_id.and_then(|_sid| {
         std::env::var("MCP_OAUTH_TOKEN")
             .ok()
             .map(|token| format!("Bearer {token}"))
@@ -942,7 +946,7 @@ pub async fn call_tool_unified_with_opts(
                 .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
 
             report("executing", &format!("执行工具: {tool_name}"), Some(50));
-            let mut result = call_tool_http(endpoint, tool_name, tool_arguments).await?;
+            let mut result = call_tool_http(endpoint, tool_name, tool_arguments, auth_header.as_deref()).await?;
             report("done", "完成", Some(100));
             result.progress = progress;
             Ok(result)
@@ -953,7 +957,7 @@ pub async fn call_tool_unified_with_opts(
                 .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
 
             report("executing", &format!("执行工具: {tool_name}"), Some(50));
-            let mut result = call_tool_sse(endpoint, tool_name, tool_arguments).await?;
+            let mut result = call_tool_sse(endpoint, tool_name, tool_arguments, auth_header.as_deref()).await?;
             report("done", "完成", Some(100));
             result.progress = progress;
             Ok(result)
@@ -1010,7 +1014,7 @@ pub async fn discover_tools_unified(
 // ---------------------------------------------------------------------------
 
 /// Perform a full legacy MCP SSE session: connect → initialize → send request → return response.
-async fn sse_send_request(sse_url: &str, request: Value) -> Result<Value> {
+async fn sse_send_request(sse_url: &str, request: Value, auth_header: Option<&str>) -> Result<Value> {
     use futures::StreamExt;
 
     let client = reqwest::Client::builder()
@@ -1021,9 +1025,13 @@ async fn sse_send_request(sse_url: &str, request: Value) -> Result<Value> {
 
     // 1. GET the SSE endpoint to open a persistent stream
     tracing::info!("SSE: connecting to {}", sse_url);
-    let sse_resp = client
+    let mut sse_req = client
         .get(sse_url)
-        .header("Accept", "text/event-stream")
+        .header("Accept", "text/event-stream");
+    if let Some(auth) = auth_header {
+        sse_req = sse_req.header("Authorization", auth);
+    }
+    let sse_resp = sse_req
         .send()
         .await
         .map_err(|e| AxAgentError::Gateway(format!("SSE connect failed: {}", e)))?;

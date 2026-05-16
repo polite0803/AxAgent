@@ -1120,6 +1120,7 @@ async fn execute_tool_call(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
+                    None,
                 ),
             )
             .await
@@ -1144,6 +1145,7 @@ async fn execute_tool_call(
                     &endpoint,
                     &tool_call.function.name,
                     arguments,
+                    None,
                 ),
             )
             .await

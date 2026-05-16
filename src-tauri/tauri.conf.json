@@ -10,9 +10,9 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: wss: ipc: http://ipc.localhost; img-src 'self' data: https: asset: http://asset.localhost; font-src 'self' data:; media-src 'self' data:; worker-src 'self' blob:;"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: wss: ipc: http://ipc.localhost; img-src 'self' data: https: asset: http://asset.localhost; font-src 'self' data:; media-src 'self' data:; worker-src 'self' blob:; frame-src 'self';"
     },
     "windows": [
       {

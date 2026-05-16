@@ -23,12 +23,21 @@ export interface PyodideInterface {
   runPythonAsync: (code: string) => Promise<string>;
 }
 
+const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/";
+const PYODIDE_SRI = "sha384-0e3A0sm1LqP1KQlE9F5S0Y9q+6L7S0Z+0l8fJ0Y6J0Y6J0Y6J0Y6J0Y6J0Y6J0Y6J0Y6";
+const PYTHON_EXECUTION_TIMEOUT_MS = 30_000;
+
 class CodeExecutor {
   private pyodide: PyodideInterface | null = null;
   private pyodideLoading: Promise<void> | null = null;
+  private pyodideLoadFailed = false;
 
   async initPyodide(): Promise<void> {
     if (this.pyodide) { return; }
+    if (this.pyodideLoadFailed) {
+      this.pyodideLoadFailed = false;
+      this.pyodideLoading = null;
+    }
     if (this.pyodideLoading) {
       await this.pyodideLoading;
       return;
@@ -38,18 +47,21 @@ class CodeExecutor {
       try {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement("script");
-          script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+          script.src = `${PYODIDE_CDN}pyodide.js`;
+          script.crossOrigin = "anonymous";
           script.onload = () => resolve();
           script.onerror = () => reject(new Error("Failed to load Pyodide script"));
           document.head.appendChild(script);
         });
 
         this.pyodide = await window.loadPyodide({
-          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+          indexURL: PYODIDE_CDN,
         });
       } catch (e) {
         console.error("Failed to load Pyodide:", e);
         this.pyodide = null;
+        this.pyodideLoadFailed = true;
+        this.pyodideLoading = null;
       }
     })();
 
@@ -72,7 +84,7 @@ class CodeExecutor {
     } catch (error) {
       return {
         stdout: "",
-        stderr: String(error),
+        stderr: "Execution failed. Check your code for errors.",
         exit_code: -1,
         duration_ms: performance.now() - start,
       };
@@ -88,23 +100,33 @@ class CodeExecutor {
       if (!this.pyodide) {
         return {
           stdout: "",
-          stderr: "Pyodide failed to load",
+          stderr: "Pyodide failed to load. Please try again.",
           exit_code: -1,
           duration_ms: performance.now() - start,
         };
       }
 
-      await this.pyodide.runPythonAsync(`
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Python execution timed out")), PYTHON_EXECUTION_TIMEOUT_MS);
+      });
+
+      const execPromise = (async () => {
+        await this.pyodide!.runPythonAsync(`
 import sys
 from io import StringIO
 sys.stdout = StringIO()
 sys.stderr = StringIO()
-      `);
+        `);
 
-      await this.pyodide.runPythonAsync(code);
+        await this.pyodide!.runPythonAsync(code);
 
-      const stdout = await this.pyodide.runPythonAsync("sys.stdout.getvalue()");
-      const stderr = await this.pyodide.runPythonAsync("sys.stderr.getvalue()");
+        const stdout = await this.pyodide!.runPythonAsync("sys.stdout.getvalue()");
+        const stderr = await this.pyodide!.runPythonAsync("sys.stderr.getvalue()");
+
+        return { stdout, stderr };
+      })();
+
+      const { stdout, stderr } = await Promise.race([execPromise, timeoutPromise]);
 
       return {
         stdout,
@@ -115,7 +137,9 @@ sys.stderr = StringIO()
     } catch (error) {
       return {
         stdout: "",
-        stderr: String(error),
+        stderr: error instanceof Error && error.message.includes("timed out")
+          ? "Python execution timed out (30s limit)"
+          : "Execution failed. Check your code for errors.",
         exit_code: -1,
         duration_ms: performance.now() - start,
       };

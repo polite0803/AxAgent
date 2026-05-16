@@ -3,6 +3,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
     Router,
 };
+use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::auth::auth_middleware;
@@ -27,7 +28,7 @@ pub fn create_router(state: GatewayAppState) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
 
     // Protected routes (require auth)
     let protected = Router::new()

@@ -55,11 +55,31 @@ impl Tool for DatabaseQueryTool {
                 "仅允许只读查询 (SELECT/EXPLAIN/DESCRIBE/SHOW/PRAGMA/WITH)",
             ));
         }
+        if sql.contains(';') {
+            return Err(ToolError::invalid_input(
+                "SQL 语句不允许包含分号（防止多语句注入）",
+            ));
+        }
+        if sql.contains("--") || sql.contains("/*") {
+            return Err(ToolError::invalid_input(
+                "SQL 语句不允许包含注释（防止注入）",
+            ));
+        }
         Ok(())
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let sql = input["sql"].as_str().unwrap();
+        let trimmed = sql.trim().to_uppercase();
+        let allowed = ["SELECT", "EXPLAIN", "DESCRIBE", "SHOW", "PRAGMA", "WITH"];
+        if !allowed.iter().any(|p| trimmed.starts_with(p)) {
+            return Err(ToolError::invalid_input(
+                "仅允许只读查询 (SELECT/EXPLAIN/DESCRIBE/SHOW/PRAGMA/WITH)",
+            ));
+        }
+        if sql.contains(';') || sql.contains("--") || sql.contains("/*") {
+            return Err(ToolError::invalid_input("SQL 语句未通过安全验证"));
+        }
         let db = get_db()?;
 
         let stmt = Statement::from_string(DatabaseBackend::Sqlite, sql);

@@ -232,11 +232,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     usePreferenceStore.getState().setThinkingBudget(budget);
     set({ thinkingBudget: budget });
   },
-  toggleKnowledgeBase: (id) => {
+  toggleKnowledgeBase: async (id) => {
     const current = get().enabledKnowledgeBaseIds;
     const next = current.includes(id) ? current.filter((s) => s !== id) : [...current, id];
-    usePreferenceStore.getState().toggleKnowledgeBase(id);
     set({ enabledKnowledgeBaseIds: next });
+    try {
+      await usePreferenceStore.getState().toggleKnowledgeBase(id);
+    } catch (e) {
+      set({ enabledKnowledgeBaseIds: current });
+      throw e;
+    }
   },
   setActiveMemoryNamespace: (id) => {
     const current = get().activeMemoryNamespaceId;
@@ -1195,7 +1200,7 @@ export function resetSidebarAutoSelectSuppression() {
 
 // 设置 sidebar 自动选择抑制，带超时保护防止永久抑制
 export function setSidebarAutoSelectSuppression() {
-  setSidebarAutoSelectSuppression();
+  _suppressSidebarAutoSelect = true;
   if (_sideBarSuppressTimer) { clearTimeout(_sideBarSuppressTimer); }
   _sideBarSuppressTimer = setTimeout(() => {
     _suppressSidebarAutoSelect = false;

@@ -27,9 +27,18 @@
     "global-shortcut:allow-unregister-all",
     "global-shortcut:allow-is-registered",
     "autostart:default",
-    "fs:allow-write-text-file",
-    "fs:allow-write-file",
-    "fs:allow-read-file",
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }, { "path": "$HOME/**" }]
+    },
     "updater:default",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-text"

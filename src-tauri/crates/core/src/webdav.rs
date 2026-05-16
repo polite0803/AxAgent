@@ -545,9 +545,10 @@ pub fn create_backup_zip(
         if key_path.exists() {
             let key_data = std::fs::read(key_path)
                 .map_err(|e| AxAgentError::Gateway(format!("Failed to read master.key: {}", e)))?;
-            zip.start_file("master.key", options)
+            let encrypted_key = crate::crypto::encrypt_backup_key(&key_data);
+            zip.start_file("master.key.enc", options)
                 .map_err(|e| AxAgentError::Gateway(format!("ZIP error: {}", e)))?;
-            zip.write_all(&key_data)
+            zip.write_all(&encrypted_key)
                 .map_err(|e| AxAgentError::Gateway(format!("ZIP write error: {}", e)))?;
         }
     }
@@ -590,7 +591,7 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
             .map_err(|e| AxAgentError::Gateway(format!("ZIP read error: {}", e)))?;
         let name = entry.name().to_string();
 
-        if name.contains("..") {
+        if name.contains("..") || name.starts_with('/') || name.starts_with('\\') {
             continue;
         }
 
@@ -610,6 +611,21 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
                 serde_json::from_str::<serde_json::Value>(&contents)
                     .map_err(|e| AxAgentError::Gateway(format!("Invalid metadata JSON: {}", e)))?,
             );
+        } else if name == "master.key.enc" {
+            let mut enc_data = Vec::new();
+            entry
+                .read_to_end(&mut enc_data)
+                .map_err(|e| AxAgentError::Gateway(format!("Failed to read master.key.enc: {}", e)))?;
+            let key_data = crate::crypto::decrypt_backup_key(&enc_data)
+                .map_err(|e| AxAgentError::Gateway(format!("Failed to decrypt master.key: {}", e)))?;
+            let path = dest_dir.join("master.key");
+            let mut outfile = std::fs::File::create(&path).map_err(|e| {
+                AxAgentError::Gateway(format!("Failed to extract master.key: {}", e))
+            })?;
+            outfile.write_all(&key_data).map_err(|e| {
+                AxAgentError::Gateway(format!("Failed to write master.key: {}", e))
+            })?;
+            master_key_path = Some(path);
         } else if name == "master.key" {
             let path = dest_dir.join("master.key");
             let mut outfile = std::fs::File::create(&path).map_err(|e| {
