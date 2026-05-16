@@ -1281,7 +1281,7 @@ impl PluginManager {
                     let _ = std::fs::remove_dir_all(&staged);
                 }
                 Ok(manifest)
-            }
+            },
         }
     }
 
@@ -2802,11 +2802,19 @@ mod tests {
     }
 
     fn write_tool_plugin_with_name(root: &Path, name: &str, version: &str, tool_name: &str) {
-        let script_path = root.join("tools").join("echo-json.sh");
-        write_file(
-            &script_path,
-            "#!/bin/sh\nINPUT=$(cat)\nprintf '{\"plugin\":\"%s\",\"tool\":\"%s\",\"input\":%s}\\n' \"$CLAWD_PLUGIN_ID\" \"$CLAWD_TOOL_NAME\" \"$INPUT\"\n",
+        #[cfg(windows)]
+        let (script_name, script_content) = (
+            "echo-json.cmd",
+            "@echo off\r\nset /p INPUT=\r\necho {\"plugin\":\"%CLAWD_PLUGIN_ID%\",\"tool\":\"%CLAWD_TOOL_NAME%\",\"input\":%INPUT%}\r\n",
         );
+        #[cfg(not(windows))]
+        let (script_name, script_content) = (
+            "echo-json.sh",
+            "#!/bin/sh\nINPUT=$(cat)\nprintf '{\\\"plugin\\\":\\\"%s\\\",\\\"tool\\\":\\\"%s\\\",\\\"input\\\":%s}\\n' \"$CLAWD_PLUGIN_ID\" \"$CLAWD_TOOL_NAME\" \"$INPUT\"\n",
+        );
+
+        let script_path = root.join("tools").join(script_name);
+        write_file(&script_path, script_content);
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -2818,7 +2826,7 @@ mod tests {
         write_file(
             root.join(MANIFEST_RELATIVE_PATH).as_path(),
             format!(
-                "{{\n  \"name\": \"{name}\",\n  \"version\": \"{version}\",\n  \"description\": \"tool plugin\",\n  \"tools\": [\n    {{\n      \"name\": \"{tool_name}\",\n      \"description\": \"Echo JSON input\",\n      \"inputSchema\": {{\"type\": \"object\", \"properties\": {{\"message\": {{\"type\": \"string\"}}}}, \"required\": [\"message\"], \"additionalProperties\": false}},\n      \"command\": \"./tools/echo-json.sh\",\n      \"requiredPermission\": \"workspace-write\"\n    }}\n  ]\n}}"
+                "{{\n  \"name\": \"{name}\",\n  \"version\": \"{version}\",\n  \"description\": \"tool plugin\",\n  \"tools\": [\n    {{\n      \"name\": \"{tool_name}\",\n      \"description\": \"Echo JSON input\",\n      \"inputSchema\": {{\"type\": \"object\", \"properties\": {{\"message\": {{\"type\": \"string\"}}}}, \"required\": [\"message\"], \"additionalProperties\": false}},\n      \"command\": \"./tools/{script_name}\",\n      \"requiredPermission\": \"workspace-write\"\n    }}\n  ]\n}}"
             )
             .as_str(),
         );
@@ -2969,32 +2977,44 @@ mod tests {
     }
 
     #[test]
-    fn load_plugin_from_directory_rejects_claude_code_manifest_contracts_with_guidance() {
-        let root = temp_dir("manifest-claude-code-contract");
+    #[test]
+    fn load_plugin_from_directory_accepts_mcpservers_skills_agents_still_rejects_unknown_hooks() {
+        let root = temp_dir("manifest-cc-compat");
         write_file(
             root.join(MANIFEST_FILE_NAME).as_path(),
             r#"{
   "name": "oh-my-claudecode",
   "version": "4.10.2",
-  "description": "Claude Code plugin manifest",
+  "description": "Claude Code style manifest",
   "hooks": {
     "SessionStart": ["scripts/session-start.mjs"]
   },
-  "agents": ["agents/*.md"],
+  "agents": [{"agentType": "bot", "description": "test", "tools": [], "disallowedTools": [], "background": false}],
   "commands": ["commands/**/*.md"],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+  "skills": [{"name": "skill", "path": "s.md"}],
+  "mcpServers": [{"name": "mcp", "command": "echo", "args": [], "env": {}}]
 }"#,
         );
 
         let error = load_plugin_from_directory(&root)
-            .expect_err("Claude Code plugin manifest should fail with guidance");
+            .expect_err("should reject SessionStart hook and string commands");
         let rendered = error.to_string();
-        assert!(rendered.contains("field `skills` uses the Claude Code plugin contract"));
-        assert!(rendered.contains("field `mcpServers` uses the Claude Code plugin contract"));
-        assert!(rendered.contains("field `agents` uses the Claude Code plugin contract"));
-        assert!(rendered.contains("field `commands` uses Claude Code-style directory globs"));
-        assert!(rendered.contains("hook `SessionStart` uses the Claude Code lifecycle contract"));
+        // OpenClaw compat: skills/mcpServers/agents are now ACCEPTED
+        assert!(
+            !rendered.contains("field `skills`"),
+            "skills should be accepted but got: {rendered}"
+        );
+        assert!(
+            !rendered.contains("field `mcpServers`"),
+            "mcpServers should be accepted but got: {rendered}"
+        );
+        assert!(
+            !rendered.contains("field `agents`"),
+            "agents should be accepted but got: {rendered}"
+        );
+        // Still rejected: SessionStart hook and string commands
+        assert!(rendered.contains("hook `SessionStart`"));
+        assert!(rendered.contains("field `commands`"));
 
         let _ = fs::remove_dir_all(root);
     }

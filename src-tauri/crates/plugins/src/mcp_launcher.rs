@@ -41,10 +41,7 @@ impl fmt::Debug for McpLauncher {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("McpLauncher")
             .field("plugin_count", &self.running.len())
-            .field(
-                "total_servers",
-                &self.running.values().map(|v| v.len()).sum::<usize>(),
-            )
+            .field("total_servers", &self.running.values().map(|v| v.len()).sum::<usize>())
             .finish()
     }
 }
@@ -76,10 +73,7 @@ impl McpLauncher {
     pub fn stop_plugin_mcps(&mut self, plugin_id: &str) {
         if let Some(processes) = self.running.remove(plugin_id) {
             for mut proc in processes {
-                info!(
-                    "mcp: stopping server `{}` for plugin `{}`",
-                    proc.server_name, plugin_id
-                );
+                info!("mcp: stopping server `{}` for plugin `{}`", proc.server_name, plugin_id);
                 let _ = proc.child.kill();
                 let _ = proc.child.wait();
             }
@@ -129,7 +123,7 @@ impl McpLauncher {
                     server.name, plugin_id, status
                 );
                 Err(McpLaunchError::ImmediateExit(server.name.clone()))
-            }
+            },
             Ok(None) => {
                 info!(
                     "mcp: server `{}` for plugin `{}` running (pid {})",
@@ -141,7 +135,7 @@ impl McpLauncher {
                     child,
                     server_name: server.name.clone(),
                 })
-            }
+            },
             Err(e) => Err(McpLaunchError::SpawnFailed {
                 server: server.name.clone(),
                 source: e,

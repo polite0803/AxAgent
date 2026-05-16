@@ -393,6 +393,16 @@ mod tests {
         let _ = path;
     }
 
+    #[cfg(windows)]
+    fn write_script(path: &Path, message: &str) {
+        fs::write(path, format!("@echo off\r\necho {message}\r\n")).expect("write script");
+    }
+
+    #[cfg(not(windows))]
+    fn write_script(path: &Path, message: &str) {
+        fs::write(path, format!("#!/bin/sh\nprintf '%s\\n' '{message}'\n")).expect("write script");
+    }
+
     fn write_hook_plugin(
         root: &Path,
         name: &str,
@@ -403,24 +413,26 @@ mod tests {
         fs::create_dir_all(root.join(".claude-plugin")).expect("manifest dir");
         fs::create_dir_all(root.join("hooks")).expect("hooks dir");
 
-        let pre_path = root.join("hooks").join("pre.sh");
-        fs::write(&pre_path, format!("#!/bin/sh\nprintf '%s\\n' '{pre_message}'\n"))
-            .expect("write pre hook");
+        #[cfg(windows)]
+        let (pre_ext, post_ext, failure_ext) = ("pre.cmd", "post.cmd", "failure.cmd");
+        #[cfg(not(windows))]
+        let (pre_ext, post_ext, failure_ext) = ("pre.sh", "post.sh", "failure.sh");
+
+        let pre_path = root.join("hooks").join(pre_ext);
+        write_script(&pre_path, pre_message);
         make_executable(&pre_path);
 
-        let post_path = root.join("hooks").join("post.sh");
-        fs::write(&post_path, format!("#!/bin/sh\nprintf '%s\\n' '{post_message}'\n"))
-            .expect("write post hook");
+        let post_path = root.join("hooks").join(post_ext);
+        write_script(&post_path, post_message);
         make_executable(&post_path);
 
-        let failure_path = root.join("hooks").join("failure.sh");
-        fs::write(&failure_path, format!("#!/bin/sh\nprintf '%s\\n' '{failure_message}'\n"))
-            .expect("write failure hook");
+        let failure_path = root.join("hooks").join(failure_ext);
+        write_script(&failure_path, failure_message);
         make_executable(&failure_path);
         fs::write(
             root.join(".claude-plugin").join("plugin.json"),
             format!(
-                "{{\n  \"name\": \"{name}\",\n  \"version\": \"1.0.0\",\n  \"description\": \"hook plugin\",\n  \"hooks\": {{\n    \"PreToolUse\": [\"./hooks/pre.sh\"],\n    \"PostToolUse\": [\"./hooks/post.sh\"],\n    \"PostToolUseFailure\": [\"./hooks/failure.sh\"]\n  }}\n}}"
+                "{{\n  \"name\": \"{name}\",\n  \"version\": \"1.0.0\",\n  \"description\": \"hook plugin\",\n  \"hooks\": {{\n    \"PreToolUse\": [\"./hooks/{pre_ext}\"],\n    \"PostToolUse\": [\"./hooks/{post_ext}\"],\n    \"PostToolUseFailure\": [\"./hooks/{failure_ext}\"]\n  }}\n}}"
             ),
         )
         .expect("write plugin manifest");
@@ -487,8 +499,13 @@ mod tests {
     #[test]
     fn pre_tool_use_denies_when_plugin_hook_exits_two() {
         // given
+        #[cfg(windows)]
+        let deny_cmd = "echo blocked by plugin & exit 2";
+        #[cfg(not(windows))]
+        let deny_cmd = "printf 'blocked by plugin'; exit 2";
+
         let runner = HookRunner::new(crate::PluginHooks {
-            pre_tool_use: vec!["printf 'blocked by plugin'; exit 2".to_string()],
+            pre_tool_use: vec![deny_cmd.to_string()],
             post_tool_use: Vec::new(),
             post_tool_use_failure: Vec::new(),
         });
@@ -504,11 +521,14 @@ mod tests {
     #[test]
     fn propagates_plugin_hook_failures() {
         // given
+        #[cfg(windows)]
+        let (fail_cmd, later_cmd) = ("echo broken plugin hook & exit 1", "echo later plugin hook");
+        #[cfg(not(windows))]
+        let (fail_cmd, later_cmd) =
+            ("printf 'broken plugin hook'; exit 1", "printf 'later plugin hook'");
+
         let runner = HookRunner::new(crate::PluginHooks {
-            pre_tool_use: vec![
-                "printf 'broken plugin hook'; exit 1".to_string(),
-                "printf 'later plugin hook'".to_string(),
-            ],
+            pre_tool_use: vec![fail_cmd.to_string(), later_cmd.to_string()],
             post_tool_use: Vec::new(),
             post_tool_use_failure: Vec::new(),
         });
