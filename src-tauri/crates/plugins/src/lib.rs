@@ -1,9 +1,11 @@
 pub mod agent_provider;
 mod hooks;
+pub mod mcp_launcher;
+pub mod skill_installer;
 #[cfg(test)]
 pub mod test_isolation;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,7 +16,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use axagent_npm::NpmRegistry;
+
 pub use hooks::{HookEvent, HookRunResult, HookRunner};
+pub use mcp_launcher::{McpLaunchError, McpLauncher};
+pub use skill_installer::SkillInstaller;
 
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
@@ -133,6 +139,36 @@ pub struct PluginManifest {
     pub commands: Vec<PluginCommandManifest>,
     #[serde(default)]
     pub scenarios: Vec<String>,
+    pub mcp_servers: Vec<PluginMcpServer>,
+    pub skills: Vec<PluginSkillEntry>,
+    pub agents: Vec<PluginAgentDefInternal>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginMcpServer {
+    pub name: String,
+    pub command: String,
+    pub args: Vec<String>,
+    pub env: HashMap<String, String>,
+    pub cwd: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginSkillEntry {
+    pub name: String,
+    pub path: String,
+}
+
+/// 插件内部 Agent 定义（反序列化后转换为 agent_provider::PluginAgentDef）
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginAgentDefInternal {
+    pub agent_type: String,
+    pub description: String,
+    pub tools: Vec<String>,
+    pub disallowed_tools: Vec<String>,
+    pub model: Option<String>,
+    pub background: bool,
+    pub system_prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -226,7 +262,40 @@ pub struct PluginCommandManifest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct RawPluginManifest {
+pub struct RawPluginMcpServer {
+    pub name: String,
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+    pub cwd: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RawPluginSkillEntry {
+    pub name: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RawPluginAgentDef {
+    #[serde(rename = "agentType")]
+    pub agent_type: String,
+    pub description: String,
+    #[serde(default)]
+    pub tools: Vec<String>,
+    #[serde(rename = "disallowedTools", default)]
+    pub disallowed_tools: Vec<String>,
+    pub model: Option<String>,
+    #[serde(default)]
+    pub background: bool,
+    #[serde(rename = "systemPrompt")]
+    pub system_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct RawPluginManifest {
     pub name: String,
     pub version: String,
     pub description: String,
@@ -244,6 +313,12 @@ struct RawPluginManifest {
     pub commands: Vec<PluginCommandManifest>,
     #[serde(default)]
     pub scenarios: Vec<String>,
+    #[serde(default, alias = "mcpServers")]
+    pub mcp_servers: Vec<RawPluginMcpServer>,
+    #[serde(default)]
+    pub skills: Vec<RawPluginSkillEntry>,
+    #[serde(default)]
+    pub agents: Vec<RawPluginAgentDef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -358,8 +433,16 @@ fn default_tool_permission_label() -> String {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PluginInstallSource {
-    LocalPath { path: PathBuf },
-    GitUrl { url: String },
+    LocalPath {
+        path: PathBuf,
+    },
+    GitUrl {
+        url: String,
+    },
+    NpmPackage {
+        name: String,
+        version: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -392,6 +475,8 @@ pub struct BuiltinPlugin {
     hooks: PluginHooks,
     lifecycle: PluginLifecycle,
     tools: Vec<PluginTool>,
+    mcp_servers: Vec<PluginMcpServer>,
+    skills: Vec<PluginSkillEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -400,6 +485,8 @@ pub struct BundledPlugin {
     hooks: PluginHooks,
     lifecycle: PluginLifecycle,
     tools: Vec<PluginTool>,
+    mcp_servers: Vec<PluginMcpServer>,
+    skills: Vec<PluginSkillEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -408,6 +495,8 @@ pub struct ExternalPlugin {
     hooks: PluginHooks,
     lifecycle: PluginLifecycle,
     tools: Vec<PluginTool>,
+    mcp_servers: Vec<PluginMcpServer>,
+    skills: Vec<PluginSkillEntry>,
 }
 
 pub trait Plugin {
@@ -415,6 +504,8 @@ pub trait Plugin {
     fn hooks(&self) -> &PluginHooks;
     fn lifecycle(&self) -> &PluginLifecycle;
     fn tools(&self) -> &[PluginTool];
+    fn mcp_servers(&self) -> &[PluginMcpServer];
+    fn skills(&self) -> &[PluginSkillEntry];
     fn validate(&self) -> Result<(), PluginError>;
     fn initialize(&self) -> Result<(), PluginError>;
     fn shutdown(&self) -> Result<(), PluginError>;
@@ -442,6 +533,14 @@ impl Plugin for BuiltinPlugin {
 
     fn tools(&self) -> &[PluginTool] {
         &self.tools
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        &self.mcp_servers
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        &self.skills
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -472,6 +571,14 @@ impl Plugin for BundledPlugin {
 
     fn tools(&self) -> &[PluginTool] {
         &self.tools
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        &self.mcp_servers
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        &self.skills
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -509,6 +616,14 @@ impl Plugin for ExternalPlugin {
 
     fn tools(&self) -> &[PluginTool] {
         &self.tools
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        &self.mcp_servers
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        &self.skills
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -561,6 +676,22 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.tools(),
             Self::Bundled(plugin) => plugin.tools(),
             Self::External(plugin) => plugin.tools(),
+        }
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        match self {
+            Self::Builtin(plugin) => plugin.mcp_servers(),
+            Self::Bundled(plugin) => plugin.mcp_servers(),
+            Self::External(plugin) => plugin.mcp_servers(),
+        }
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        match self {
+            Self::Builtin(plugin) => plugin.skills(),
+            Self::Bundled(plugin) => plugin.skills(),
+            Self::External(plugin) => plugin.skills(),
         }
     }
 
@@ -641,6 +772,23 @@ impl RegisteredPlugin {
         PluginSummary {
             metadata: self.metadata().clone(),
             enabled: self.enabled,
+            tool_names: self
+                .tools()
+                .iter()
+                .map(|t| t.definition().name.clone())
+                .collect(),
+            mcp_server_names: self
+                .definition
+                .mcp_servers()
+                .iter()
+                .map(|m| m.name.clone())
+                .collect(),
+            skill_names: self
+                .definition
+                .skills()
+                .iter()
+                .map(|s| s.name.clone())
+                .collect(),
         }
     }
 }
@@ -649,6 +797,9 @@ impl RegisteredPlugin {
 pub struct PluginSummary {
     pub metadata: PluginMetadata,
     pub enabled: bool,
+    pub tool_names: Vec<String>,
+    pub mcp_server_names: Vec<String>,
+    pub skill_names: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -868,9 +1019,11 @@ impl PluginManagerConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct PluginManager {
     config: PluginManagerConfig,
+    mcp_launcher: McpLauncher,
+    skill_installer: SkillInstaller,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1034,7 +1187,12 @@ impl From<serde_json::Error> for PluginError {
 impl PluginManager {
     #[must_use]
     pub fn new(config: PluginManagerConfig) -> Self {
-        Self { config }
+        let skill_installer = SkillInstaller::new(config.config_home.join("skills"));
+        Self {
+            config,
+            mcp_launcher: McpLauncher::new(),
+            skill_installer,
+        }
     }
 
     #[must_use]
@@ -1164,10 +1322,36 @@ impl PluginManager {
         self.config
             .enabled_plugins
             .insert(plugin_id.to_string(), true);
+        // 启动 MCP 服务
+        let registry = self.load_registry()?;
+        if let Some(record) = registry.plugins.get(plugin_id) {
+            let manifest = load_plugin_from_directory(&record.install_path)?;
+            if !manifest.mcp_servers.is_empty() {
+                self.mcp_launcher
+                    .start_plugin_mcps(plugin_id, &manifest.mcp_servers, &record.install_path)
+                    .map_err(|e| PluginError::CommandFailed(e.to_string()))?;
+            }
+            // 安装 skills
+            if !manifest.skills.is_empty() {
+                self.skill_installer
+                    .install_plugin_skills(plugin_id, &manifest.skills, &record.install_path)
+                    .map_err(|e| PluginError::CommandFailed(e.to_string()))?;
+            }
+            // 注册 agents
+            if !manifest.agents.is_empty() {
+                crate::agent_provider::register_plugin_agents(plugin_id, &manifest.agents);
+            }
+        }
         Ok(())
     }
 
     pub fn disable(&mut self, plugin_id: &str) -> Result<(), PluginError> {
+        // 先停 MCP
+        self.mcp_launcher.stop_plugin_mcps(plugin_id);
+        // 注销 agents
+        crate::agent_provider::unregister_plugin_agents(plugin_id);
+        // 移除 skills
+        self.skill_installer.remove_plugin_skills(plugin_id).ok();
         self.ensure_known_plugin(plugin_id)?;
         self.write_enabled_state(plugin_id, Some(false))?;
         self.config
@@ -1187,6 +1371,8 @@ impl PluginManager {
                 "plugin `{plugin_id}` is bundled and managed automatically; disable it instead"
             )));
         }
+        crate::agent_provider::unregister_plugin_agents(plugin_id);
+        self.skill_installer.remove_plugin_skills(plugin_id).ok();
         if record.install_path.exists() {
             fs::remove_dir_all(&record.install_path)?;
         }
@@ -1563,6 +1749,8 @@ pub fn builtin_plugins() -> Vec<PluginDefinition> {
         hooks: PluginHooks::default(),
         lifecycle: PluginLifecycle::default(),
         tools: Vec::new(),
+        mcp_servers: Vec::new(),
+        skills: Vec::new(),
     })]
 }
 
@@ -1586,24 +1774,32 @@ fn load_plugin_definition(
     let hooks = resolve_hooks(root, &manifest.hooks);
     let lifecycle = resolve_lifecycle(root, &manifest.lifecycle);
     let tools = resolve_tools(root, &metadata.id, &metadata.name, &manifest.tools);
+    let mcp_servers = manifest.mcp_servers;
+    let skills = manifest.skills;
     Ok(match kind {
         PluginKind::Builtin => PluginDefinition::Builtin(BuiltinPlugin {
             metadata,
             hooks,
             lifecycle,
             tools,
+            mcp_servers,
+            skills,
         }),
         PluginKind::Bundled => PluginDefinition::Bundled(BundledPlugin {
             metadata,
             hooks,
             lifecycle,
             tools,
+            mcp_servers,
+            skills,
         }),
         PluginKind::External => PluginDefinition::External(ExternalPlugin {
             metadata,
             hooks,
             lifecycle,
             tools,
+            mcp_servers,
+            skills,
         }),
     })
 }
@@ -1690,6 +1886,9 @@ fn load_manifest_from_skill_md(
         tools: Vec::new(),
         commands: Vec::new(),
         scenarios: Vec::new(),
+        mcp_servers: Vec::new(),
+        skills: Vec::new(),
+        agents: Vec::new(),
     };
     Ok(manifest)
 }
@@ -1713,7 +1912,7 @@ fn load_manifest_from_path(
     build_plugin_manifest(root, raw_manifest)
 }
 
-fn detect_claude_code_manifest_contract_gaps(
+pub(crate) fn detect_claude_code_manifest_contract_gaps(
     raw_manifest: &Value,
 ) -> Vec<PluginManifestValidationError> {
     let Some(root) = raw_manifest.as_object() else {
@@ -1721,27 +1920,6 @@ fn detect_claude_code_manifest_contract_gaps(
     };
 
     let mut errors = Vec::new();
-
-    for (field, detail) in [
-        (
-            "skills",
-            "plugin manifest field `skills` uses the Claude Code plugin contract; `claw` does not load plugin-managed skills and instead discovers skills from local roots such as `.claw/skills`, `.omc/skills`, `.agents/skills`, `~/.omc/skills`, and `~/.claude/skills/omc-learned`.",
-        ),
-        (
-            "mcpServers",
-            "plugin manifest field `mcpServers` uses the Claude Code plugin contract; `claw` does not import MCP servers from plugin manifests.",
-        ),
-        (
-            "agents",
-            "plugin manifest field `agents` uses the Claude Code plugin contract; `claw` does not load plugin-managed agent markdown catalogs from plugin manifests.",
-        ),
-    ] {
-        if root.contains_key(field) {
-            errors.push(PluginManifestValidationError::UnsupportedManifestContract {
-                detail: detail.to_string(),
-            });
-        }
-    }
 
     if root
         .get("commands")
@@ -1826,6 +2004,38 @@ fn build_plugin_manifest(
         tools,
         commands,
         scenarios: raw.scenarios,
+        mcp_servers: raw
+            .mcp_servers
+            .into_iter()
+            .map(|r| PluginMcpServer {
+                name: r.name,
+                command: r.command,
+                args: r.args,
+                env: r.env,
+                cwd: r.cwd,
+            })
+            .collect(),
+        skills: raw
+            .skills
+            .into_iter()
+            .map(|r| PluginSkillEntry {
+                name: r.name,
+                path: r.path,
+            })
+            .collect(),
+        agents: raw
+            .agents
+            .into_iter()
+            .map(|r| PluginAgentDefInternal {
+                agent_type: r.agent_type,
+                description: r.description,
+                tools: r.tools,
+                disallowed_tools: r.disallowed_tools,
+                model: r.model,
+                background: r.background,
+                system_prompt: r.system_prompt,
+            })
+            .collect(),
     })
 }
 
@@ -2225,7 +2435,26 @@ fn resolve_local_source(source: &str) -> Result<PathBuf, PluginError> {
     }
 }
 
-fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
+fn looks_like_npm_spec(source: &str) -> bool {
+    !source.starts_with("http://")
+        && !source.starts_with("https://")
+        && !source.starts_with("git@")
+        && !source.starts_with('/')
+        && !source.starts_with('.')
+        && !source.starts_with('\\')
+        && !source.contains("://")
+        && (source.starts_with('@') || source.contains('@'))
+}
+
+pub(crate) fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
+    // npm 包检测
+    if looks_like_npm_spec(source) {
+        let (name, version) = NpmRegistry::parse_package_spec(source);
+        return Ok(PluginInstallSource::NpmPackage {
+            name: name.to_string(),
+            version: version.map(|v| v.to_string()),
+        });
+    }
     if source.starts_with("http://")
         || source.starts_with("https://")
         || source.starts_with("git@")
@@ -2273,6 +2502,30 @@ fn materialize_source(
             }
             Ok(destination)
         },
+        PluginInstallSource::NpmPackage { name, version } => {
+            let name = name.clone();
+            let version = version.clone();
+            let dest = temp_root.join(format!("npm-{}", sanitize_plugin_id(&name)));
+            let result = std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+                rt.block_on(async {
+                    let registry = NpmRegistry::new();
+                    let info = registry
+                        .fetch_package_info(&name)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    let ver = NpmRegistry::resolve_version(&info, version.as_deref())
+                        .map_err(|e| e.to_string())?;
+                    registry
+                        .download_and_extract(&ver.dist, &dest)
+                        .await
+                        .map_err(|e| e.to_string())
+                })
+            })
+            .join()
+            .unwrap();
+            result.map_err(PluginError::CommandFailed)
+        },
     }
 }
 
@@ -2312,6 +2565,10 @@ fn describe_install_source(source: &PluginInstallSource) -> String {
     match source {
         PluginInstallSource::LocalPath { path } => path.display().to_string(),
         PluginInstallSource::GitUrl { url } => url.clone(),
+        PluginInstallSource::NpmPackage { name, version } => match version {
+            Some(version) => format!("{name}@{version}"),
+            None => name.clone(),
+        },
     }
 }
 
@@ -3708,5 +3965,102 @@ mod tests {
 
         // Cleanup
         let _ = fs::remove_dir_all(base_dir);
+    }
+
+    #[test]
+    fn parse_install_source_recognizes_npm_scoped() {
+        let result = parse_install_source("@clawd/ths").expect("should parse");
+        assert!(matches!(
+            result,
+            PluginInstallSource::NpmPackage { ref name, ref version }
+            if name == "@clawd/ths" && version.is_none()
+        ));
+    }
+
+    #[test]
+    fn parse_install_source_recognizes_npm_with_version() {
+        let result = parse_install_source("@clawd/stock@1.2.0").expect("should parse");
+        assert!(matches!(
+            result,
+            PluginInstallSource::NpmPackage { ref name, ref version }
+            if name == "@clawd/stock" && version == &Some("1.2.0".to_string())
+        ));
+    }
+
+    #[test]
+    fn parse_install_source_recognizes_git_url() {
+        let result =
+            parse_install_source("https://github.com/user/repo.git").expect("should parse");
+        assert!(matches!(result, PluginInstallSource::GitUrl { .. }));
+    }
+
+    #[test]
+    fn manifest_parses_mcp_servers() {
+        let json = r#"{
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "mcpServers": [
+                {
+                    "name": "test-mcp",
+                    "command": "python",
+                    "args": ["-m", "test"],
+                    "env": {}
+                }
+            ]
+        }"#;
+        let raw: RawPluginManifest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(raw.mcp_servers.len(), 1);
+        assert_eq!(raw.mcp_servers[0].name, "test-mcp");
+    }
+
+    #[test]
+    fn manifest_parses_skills() {
+        let json = r#"{
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "skills": [
+                {"name": "analyzer", "path": "skills/analyzer/SKILL.md"}
+            ]
+        }"#;
+        let raw: RawPluginManifest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(raw.skills.len(), 1);
+        assert_eq!(raw.skills[0].name, "analyzer");
+    }
+
+    #[test]
+    fn manifest_parses_agents() {
+        let json = r#"{
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "agents": [
+                {
+                    "agentType": "stock-bot",
+                    "description": "Stock analysis agent",
+                    "tools": ["get_price"],
+                    "disallowedTools": [],
+                    "background": false
+                }
+            ]
+        }"#;
+        let raw: RawPluginManifest = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(raw.agents.len(), 1);
+        assert_eq!(raw.agents[0].agent_type, "stock-bot");
+    }
+
+    #[test]
+    fn manifest_accepts_mcp_servers_without_error() {
+        let json = serde_json::json!({
+            "name": "test-plugin",
+            "version": "1.0.0",
+            "description": "test",
+            "mcpServers": [{"name": "mcp", "command": "echo", "args": [], "env": {}}],
+            "skills": [{"name": "skill", "path": "s.md"}],
+            "agents": [{"agentType": "bot", "description": "bot", "tools": [], "disallowedTools": [], "background": false}]
+        });
+        let errors = detect_claude_code_manifest_contract_gaps(&json);
+        assert!(errors.is_empty(), "mcpServers/skills/agents should not be rejected");
     }
 }

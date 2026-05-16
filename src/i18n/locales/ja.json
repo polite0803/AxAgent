@@ -631,6 +631,7 @@
         "disable": "無効化",
         "enable": "有効化",
         "install": "インストール",
+        "installPlaceholder": "インストール: @scope/name または GitURL またはローカルパス",
         "loading": "加载中...",
         "refresh": "更新",
         "title": "插件市场"

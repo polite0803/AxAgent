@@ -916,11 +916,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-npm"
+version = "1.5.8"
+dependencies = [
+ "flate2",
+ "reqwest 0.13.2",
+ "serde",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "axagent-plugins"
 version = "1.5.8"
 dependencies = [
+ "axagent-npm",
  "serde",
  "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]

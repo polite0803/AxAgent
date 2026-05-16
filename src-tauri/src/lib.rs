@@ -851,11 +851,13 @@ pub fn run() {
             commands::dream::dream_get_status,
             commands::dream::dream_set_config,
             // Plugin commands
-            commands::plugin::list_plugin_tools,
+            commands::plugin::plugin_list,
+            commands::plugin::plugin_validate_source,
+            commands::plugin::plugin_install,
             commands::plugin::plugin_enable,
             commands::plugin::plugin_disable,
-            commands::plugin::plugin_install,
             commands::plugin::plugin_uninstall,
+            commands::plugin::plugin_update,
             // File authorizer
             commands::files::file_revoke_authorization,
             // Metrics

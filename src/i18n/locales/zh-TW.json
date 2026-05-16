@@ -631,6 +631,7 @@
         "disable": "禁用",
         "enable": "啟用",
         "install": "安裝",
+        "installPlaceholder": "安裝: @scope/name 或 Git URL 或本機路徑",
         "loading": "加載中...",
         "refresh": "刷新",
         "title": "插件市場"
