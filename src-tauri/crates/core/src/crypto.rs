@@ -81,8 +81,7 @@ pub fn encrypt_backup_key(key_data: &[u8]) -> Vec<u8> {
     hasher.update(b"axagent-backup-encryption");
     derived_key.copy_from_slice(&hasher.finalize());
 
-    let cipher = Aes256Gcm::new_from_slice(&derived_key)
-        .expect("Failed to create backup cipher");
+    let cipher = Aes256Gcm::new_from_slice(&derived_key).expect("Failed to create backup cipher");
 
     let mut nonce_bytes = [0u8; NONCE_SIZE];
     OsRng.fill_bytes(&mut nonce_bytes);

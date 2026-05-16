@@ -56,14 +56,10 @@ impl Tool for DatabaseQueryTool {
             ));
         }
         if sql.contains(';') {
-            return Err(ToolError::invalid_input(
-                "SQL 语句不允许包含分号（防止多语句注入）",
-            ));
+            return Err(ToolError::invalid_input("SQL 语句不允许包含分号（防止多语句注入）"));
         }
         if sql.contains("--") || sql.contains("/*") {
-            return Err(ToolError::invalid_input(
-                "SQL 语句不允许包含注释（防止注入）",
-            ));
+            return Err(ToolError::invalid_input("SQL 语句不允许包含注释（防止注入）"));
         }
         Ok(())
     }

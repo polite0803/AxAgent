@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 #[allow(unused_imports)]
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
 use tracing::info;
@@ -953,7 +953,8 @@ pub async fn call_tool_unified_with_opts(
                 .ok_or_else(|| AxAgentError::Gateway("HTTP transport requires endpoint".into()))?;
 
             report("executing", &format!("执行工具: {tool_name}"), Some(50));
-            let mut result = call_tool_http(endpoint, tool_name, tool_arguments, auth_header.as_deref()).await?;
+            let mut result =
+                call_tool_http(endpoint, tool_name, tool_arguments, auth_header.as_deref()).await?;
             report("done", "完成", Some(100));
             result.progress = progress;
             Ok(result)
@@ -964,7 +965,8 @@ pub async fn call_tool_unified_with_opts(
                 .ok_or_else(|| AxAgentError::Gateway("SSE transport requires endpoint".into()))?;
 
             report("executing", &format!("执行工具: {tool_name}"), Some(50));
-            let mut result = call_tool_sse(endpoint, tool_name, tool_arguments, auth_header.as_deref()).await?;
+            let mut result =
+                call_tool_sse(endpoint, tool_name, tool_arguments, auth_header.as_deref()).await?;
             report("done", "完成", Some(100));
             result.progress = progress;
             Ok(result)
@@ -1021,7 +1023,11 @@ pub async fn discover_tools_unified(
 // ---------------------------------------------------------------------------
 
 /// Perform a full legacy MCP SSE session: connect → initialize → send request → return response.
-async fn sse_send_request(sse_url: &str, request: Value, auth_header: Option<&str>) -> Result<Value> {
+async fn sse_send_request(
+    sse_url: &str,
+    request: Value,
+    auth_header: Option<&str>,
+) -> Result<Value> {
     use futures::StreamExt;
 
     let client = reqwest::Client::builder()
@@ -1032,9 +1038,7 @@ async fn sse_send_request(sse_url: &str, request: Value, auth_header: Option<&st
 
     // 1. GET the SSE endpoint to open a persistent stream
     tracing::info!("SSE: connecting to {}", sse_url);
-    let mut sse_req = client
-        .get(sse_url)
-        .header("Accept", "text/event-stream");
+    let mut sse_req = client.get(sse_url).header("Accept", "text/event-stream");
     if let Some(auth) = auth_header {
         sse_req = sse_req.header("Authorization", auth);
     }

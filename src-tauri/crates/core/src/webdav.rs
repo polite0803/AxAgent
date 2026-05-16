@@ -613,18 +613,19 @@ pub fn extract_backup_zip(zip_path: &Path, dest_dir: &Path) -> Result<BackupZipC
             );
         } else if name == "master.key.enc" {
             let mut enc_data = Vec::new();
-            entry
-                .read_to_end(&mut enc_data)
-                .map_err(|e| AxAgentError::Gateway(format!("Failed to read master.key.enc: {}", e)))?;
-            let key_data = crate::crypto::decrypt_backup_key(&enc_data)
-                .map_err(|e| AxAgentError::Gateway(format!("Failed to decrypt master.key: {}", e)))?;
+            entry.read_to_end(&mut enc_data).map_err(|e| {
+                AxAgentError::Gateway(format!("Failed to read master.key.enc: {}", e))
+            })?;
+            let key_data = crate::crypto::decrypt_backup_key(&enc_data).map_err(|e| {
+                AxAgentError::Gateway(format!("Failed to decrypt master.key: {}", e))
+            })?;
             let path = dest_dir.join("master.key");
             let mut outfile = std::fs::File::create(&path).map_err(|e| {
                 AxAgentError::Gateway(format!("Failed to extract master.key: {}", e))
             })?;
-            outfile.write_all(&key_data).map_err(|e| {
-                AxAgentError::Gateway(format!("Failed to write master.key: {}", e))
-            })?;
+            outfile
+                .write_all(&key_data)
+                .map_err(|e| AxAgentError::Gateway(format!("Failed to write master.key: {}", e)))?;
             master_key_path = Some(path);
         } else if name == "master.key" {
             let path = dest_dir.join("master.key");

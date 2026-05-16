@@ -7,7 +7,6 @@ use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::auth::auth_middleware;
-use crate::middleware::rate_limit_middleware;
 use crate::handlers::{
     cancel_run, chat_completions, create_job, delete_job, delete_response, detailed_health_check,
     disable_job, enable_job, get_job, get_job_schedule, get_response, get_run, get_run_logs,
@@ -18,6 +17,7 @@ use crate::marketplace_handlers::{
     create_review, delete_review, get_marketplace_stats, get_my_review, get_reviews, update_review,
 };
 use crate::metrics::metrics_handler;
+use crate::middleware::rate_limit_middleware;
 use crate::native::{
     anthropic_count_tokens, anthropic_messages, gemini_list_models, gemini_model_operation,
     openai_responses,

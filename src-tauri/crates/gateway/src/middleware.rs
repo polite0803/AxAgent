@@ -89,10 +89,7 @@ pub async fn rate_limit_middleware(request: Request<Body>, next: Next) -> Respon
     let limiter = global_limiter();
 
     if !limiter.allow(&key).await {
-        return (
-            StatusCode::TOO_MANY_REQUESTS,
-            "Rate limit exceeded. Please try again later.",
-        )
+        return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded. Please try again later.")
             .into_response();
     }
 

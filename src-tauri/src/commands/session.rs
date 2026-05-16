@@ -1,6 +1,8 @@
-use crate::commands::conversations_search::{session_search as inner_session_search, SessionSearchResult};
-use tauri::State;
+use crate::commands::conversations_search::{
+    session_search as inner_session_search, SessionSearchResult,
+};
 use crate::AppState;
+use tauri::State;
 
 #[tauri::command]
 pub async fn session_search(

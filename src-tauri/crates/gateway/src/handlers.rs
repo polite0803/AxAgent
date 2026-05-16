@@ -7,12 +7,12 @@ use axum::{
     },
 };
 use futures::StreamExt;
+use sea_orm::DatabaseConnection;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
-use sea_orm::DatabaseConnection;
 
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::*;
@@ -323,10 +323,11 @@ pub async fn list_jobs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -393,10 +394,11 @@ pub async fn create_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -465,10 +467,11 @@ pub async fn get_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -536,10 +539,11 @@ pub async fn update_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -608,10 +612,11 @@ pub async fn delete_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -672,10 +677,11 @@ pub async fn pause_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -736,10 +742,11 @@ pub async fn resume_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -800,10 +807,11 @@ pub async fn trigger_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -864,10 +872,11 @@ pub async fn list_runs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -934,10 +943,11 @@ pub async fn trigger_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1005,10 +1015,11 @@ pub async fn get_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1074,10 +1085,11 @@ pub async fn cancel_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1136,10 +1148,11 @@ pub async fn get_run_logs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1205,10 +1218,11 @@ pub async fn retry_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1274,10 +1288,11 @@ pub async fn get_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1344,10 +1359,11 @@ pub async fn update_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1421,10 +1437,11 @@ pub async fn enable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1483,10 +1500,11 @@ pub async fn disable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
-        Ok(r) => r,
-        Err(resp) => return resp,
-    };
+    let (provider, ctx, registry) =
+        match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+            Ok(r) => r,
+            Err(resp) => return resp,
+        };
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -2203,21 +2221,17 @@ async fn resolve_hermes_provider_context(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
 ) -> Result<(ProviderConfig, ProviderRequestContext, ProviderRegistry), axum::response::Response> {
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return Err(error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &e.to_string(),
-                ));
-            },
-        };
+    let providers: Vec<ProviderConfig> = match axagent_core::repo::provider::list_providers(db)
+        .await
+    {
+        Ok(p) => p
+            .into_iter()
+            .filter(|p| matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes))
+            .collect(),
+        Err(e) => {
+            return Err(error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()));
+        },
+    };
 
     let provider = match providers.first() {
         Some(p) => p.clone(),
@@ -2229,25 +2243,21 @@ async fn resolve_hermes_provider_context(
         },
     };
 
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return Err(error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                ));
-            },
-        };
+    let provider_key = match axagent_core::repo::provider::get_active_key(db, &provider.id).await {
+        Ok(k) => k,
+        Err(_) => {
+            return Err(error_response(
+                StatusCode::BAD_GATEWAY,
+                &format!("No active API key for provider '{}'", provider.name),
+            ));
+        },
+    };
 
     let api_key = match decrypt_key(&provider_key.key_encrypted, master_key) {
         Ok(k) => k,
         Err(e) => {
             tracing::error!("Failed to decrypt provider key: {}", e);
-            return Err(error_response(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal key error",
-            ));
+            return Err(error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error"));
         },
     };
 
