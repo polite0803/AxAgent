@@ -140,6 +140,12 @@ function recordInvocation(cmd: string, durationMs: number, success: boolean, err
   _invokeCounts.set(cmd, stats);
 }
 
+/** 清空 invoke 历史记录和统计计数器 */
+export function clearInvokeHistory() {
+  _invokeHistory.length = 0;
+  _invokeCounts.clear();
+}
+
 function percentile(sorted: number[], pct: number): number {
   if (sorted.length === 0) { return 0; }
   const idx = Math.ceil(pct / 100 * sorted.length) - 1;

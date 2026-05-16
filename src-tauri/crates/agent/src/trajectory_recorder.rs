@@ -1380,7 +1380,8 @@ mod tests {
 
     #[test]
     fn test_trajectory_store_debug() {
-        let db: Arc<DatabaseConnection> = Arc::new(unsafe { std::mem::zeroed() });
+        // 使用合法的内存值构造空 Arc，避免 zeroed() 未定义行为
+        let db: Arc<DatabaseConnection> = Arc::new(DatabaseConnection::default());
         let store = TrajectoryStore::new(db);
         let debug_str = format!("{:?}", store);
         assert!(debug_str.contains("TrajectoryStore"));

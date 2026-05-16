@@ -2481,7 +2481,7 @@ struct SkillTaskContext {
     constraints: Option<Vec<String>>,
 }
 
-use std::sync::RwLock;
+use std::sync::Mutex;
 
 static SKILL_MCP_REGISTRY: std::sync::OnceLock<
     std::sync::Arc<axagent_tools::registry::UnifiedToolRegistry>,
@@ -2494,24 +2494,24 @@ struct SkillExecutionRecord {
 }
 
 struct SkillOutputTracker {
-    inner: RwLock<HashMap<String, Vec<SkillExecutionRecord>>>,
+    inner: Mutex<HashMap<String, Vec<SkillExecutionRecord>>>,
 }
 
 impl SkillOutputTracker {
     fn new() -> Self {
         Self {
-            inner: RwLock::new(HashMap::new()),
+            inner: Mutex::new(HashMap::new()),
         }
     }
 
     fn record_execution(&self, conversation_id: &str, record: SkillExecutionRecord) {
-        let mut tracker = self.inner.write().expect("SkillOutputTracker poisoned");
+        let mut tracker = self.inner.lock().expect("SkillOutputTracker poisoned");
         let entries = tracker.entry(conversation_id.to_string()).or_default();
         entries.push(record);
     }
 
     fn get_recent_skills(&self, conversation_id: &str, limit: usize) -> Vec<SkillExecutionRecord> {
-        let tracker = self.inner.read().expect("SkillOutputTracker poisoned");
+        let tracker = self.inner.lock().expect("SkillOutputTracker poisoned");
         if let Some(entries) = tracker.get(conversation_id) {
             let start = if entries.len() > limit {
                 entries.len() - limit
@@ -2524,7 +2524,7 @@ impl SkillOutputTracker {
     }
 
     fn update_output(&self, conversation_id: &str, skill_name: &str, output: String) {
-        let mut tracker = self.inner.write().expect("SkillOutputTracker poisoned");
+        let mut tracker = self.inner.lock().expect("SkillOutputTracker poisoned");
         if let Some(entries) = tracker.get_mut(conversation_id) {
             if let Some(last) = entries
                 .iter_mut()

@@ -89,6 +89,7 @@ import { useContinuationStore } from "@/stores/feature/continuationStore";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useTopicGroupStore } from "@/stores/feature/topicGroupStore";
+import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { ProactiveSuggestionBar } from "../proactive/ProactiveSuggestionBar";
@@ -133,7 +134,7 @@ import { WorkflowEndMarker } from "./WorkflowEndMarker";
 import { WorkflowSuggestionCard } from "./WorkflowSuggestionCard";
 
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { ConversationStats, Message } from "@/types";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { registerHighlight } from "stream-markdown";
@@ -708,7 +709,7 @@ function ChatViewInner({ onScrollToReady }: {
   const [toolCount, setToolCount] = useState(0);
 
   useEffect(() => {
-    invoke<number>("get_tool_count").then(setToolCount).catch(() => {});
+    invoke<number>("get_tool_count").then(setToolCount).catch(logIpcError("获取工具数量"));
   }, []);
   const createConversation = useConversationStore((s) => s.createConversation);
   const providers = useProviderStore((s) => s.providers);
@@ -730,7 +731,9 @@ function ChatViewInner({ onScrollToReady }: {
   // Pre-load Shiki themes into the singleton highlighter when theme settings change
   useEffect(() => {
     if (codeBlockThemes.length > 0) {
-      registerHighlight({ themes: codeBlockThemes as import("@shikijs/types").ThemeInput[] }).catch(() => {});
+      registerHighlight({ themes: codeBlockThemes as import("@shikijs/types").ThemeInput[] }).catch(
+        logIpcError("预加载代码高亮主题"),
+      );
     }
   }, [codeBlockThemes, codeBlockDarkTheme, codeBlockLightTheme, isDarkMode]);
 
@@ -3251,7 +3254,7 @@ function ChatViewInner({ onScrollToReady }: {
         {mermaidPreviewSvg && (
           <div
             style={{ width: "100%", display: "flex", justifyContent: "center" }}
-            dangerouslySetInnerHTML={{ __html: mermaidPreviewSvg }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(mermaidPreviewSvg) }}
           />
         )}
       </Modal>

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // 必须在导入前 mock，因为 codeExecutor.ts 顶层调用了 import
-vi.mock("@tauri-apps/api/core", () => ({
+vi.mock("@/lib/invoke", () => ({
   invoke: vi.fn(),
 }));
 
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 import { codeExecutor } from "../codeExecutor";
 
 const mockedInvoke = vi.mocked(invoke);

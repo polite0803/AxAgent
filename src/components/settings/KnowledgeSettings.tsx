@@ -1,7 +1,7 @@
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
-import { invoke, listen } from "@/lib/invoke";
+import { invoke, listen, logIpcError } from "@/lib/invoke";
 import { useKnowledgeStore, useSettingsStore } from "@/stores";
 import type { IndexingStatus, KnowledgeBase, KnowledgeDocument } from "@/types";
 import {
@@ -383,7 +383,7 @@ function KnowledgeBaseDetail({
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
-    invoke<any[]>("list_local_models").then(setModelList).catch(() => {});
+    invoke<any[]>("list_local_models").then(setModelList).catch(logIpcError("获取本地模型列表"));
   }, []);
 
   const handleDownloadModel = async (filename: string) => {

@@ -970,9 +970,25 @@ pub async fn check_vault_rag_capacity(
     })
 }
 
+/// 校验 collection_name 只包含安全字符（字母、数字、下划线、连字符），防止 SQL 注入
+fn validate_collection_name(name: &str) -> Result<&str> {
+    if name.is_empty() || name.len() > 128 {
+        return Err(AxAgentError::Rag(format!("非法的 collection 名称长度: {}", name.len())));
+    }
+    for ch in name.chars() {
+        if !ch.is_ascii_alphanumeric() && ch != '_' && ch != '-' {
+            return Err(AxAgentError::Rag(format!(
+                "collection 名称包含非法字符 '{}': {}",
+                ch, name
+            )));
+        }
+    }
+    Ok(name)
+}
+
 async fn count_collection_items(db: &DatabaseConnection, collection_name: &str) -> Result<usize> {
-    let sanitized = collection_name.replace(['-', '\'', '"', ';'], "_");
-    let table_name = format!("vec_{}_meta", sanitized);
+    let safe_name = validate_collection_name(collection_name)?;
+    let table_name = format!("vec_{}_meta", safe_name.replace('-', "_"));
     let count: i64 = db
         .query_one_raw(Statement::from_string(
             DbBackend::Sqlite,

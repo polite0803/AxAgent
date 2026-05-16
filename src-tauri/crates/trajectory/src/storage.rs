@@ -1472,5 +1472,9 @@ pub struct TrajectoryStatistics {
     pub recent_trajectories: usize,
 }
 
+// SAFETY: TrajectoryStorage 包含 FTS5Search，其内部使用 std::sync::RwLock<Connection>
+// 保证所有对内部 Connection 的访问都经过 RwLock 的 read()/write() 方法同步访问，
+// 不存在数据竞争。Send 是安全的因为所有字段已实现 Send。
+// Sync 是安全的因为 FTS5Search 通过 RwLock 提供内部可变性的同步访问。
 unsafe impl Send for TrajectoryStorage {}
 unsafe impl Sync for TrajectoryStorage {}

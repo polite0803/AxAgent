@@ -6,6 +6,7 @@ import type { Note } from "@/types";
 import { DeleteOutlined, DownloadOutlined, EyeOutlined, HistoryOutlined, SaveOutlined } from "@ant-design/icons";
 import { save } from "@tauri-apps/plugin-dialog";
 import { Button, message, Modal, Popconfirm, Select, Spin, theme } from "antd";
+import DOMPurify from "dompurify";
 import { ArrowLeft, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -305,7 +306,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                     color: token.colorText,
                     lineHeight: 1.7,
                   }}
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(markdownToHtml(content)) }}
                 />
               )
               : (

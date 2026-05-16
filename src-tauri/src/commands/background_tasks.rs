@@ -4,6 +4,21 @@ use chrono::Utc;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
+use tracing::warn;
+
+/// 对传给 shell 的命令参数做基础转义，防止命令注入。
+/// 仅允许字母数字、空格和常见安全字符，拒绝包含 shell 元字符的命令。
+fn validate_command(cmd: &str) -> Result<(), String> {
+    // 危险字符黑名单：管道、重定向、命令分隔符、命令替换、变量展开
+    const DANGEROUS_CHARS: &[char] = &[';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r'];
+    for ch in DANGEROUS_CHARS {
+        if cmd.contains(*ch) {
+            warn!("background_tasks: 命令包含危险字符 '{}', 已拒绝: {}", ch, cmd);
+            return Err(format!("命令包含不允许的字符: '{}'", ch));
+        }
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackgroundTaskInfo {
@@ -123,6 +138,10 @@ pub async fn spawn_background_task(
 
     if task_type == "bash" {
         if let Some(cmd) = command {
+            // 安全校验：拒绝包含 shell 元字符的命令，防止命令注入
+            if let Err(e) = validate_command(&cmd) {
+                return Err(e);
+            }
             let db1 = db.clone();
             let db2 = db.clone();
             let db3 = db.clone();
@@ -133,7 +152,9 @@ pub async fn spawn_background_task(
             let tid5 = id.clone();
             let app = app_handle.clone();
             tokio::spawn(async move {
-                let _ = update_status(&db1, &tid1, "running", None).await;
+                if let Err(e) = update_status(&db1, &tid1, "running", None).await {
+                    warn!("更新任务状态失败: {}", e);
+                }
                 let mut child =
                     match tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
                         .arg(if cfg!(windows) { "/C" } else { "-c" })
@@ -144,8 +165,12 @@ pub async fn spawn_background_task(
                     {
                         Ok(c) => c,
                         Err(e) => {
-                            let _ = append_output(&db2, &tid2, &format!("启动失败: {}", e)).await;
-                            let _ = update_status(&db2, &tid2, "failed", Some(-1)).await;
+                            if let Err(e2) = append_output(&db2, &tid2, &format!("启动失败: {}", e)).await {
+                                warn!("追加输出失败: {}", e2);
+                            }
+                            if let Err(e2) = update_status(&db2, &tid2, "failed", Some(-1)).await {
+                                warn!("更新任务状态失败: {}", e2);
+                            }
                             let _ = app.emit("background-task:updated", &tid2);
                             return;
                         },
@@ -159,7 +184,9 @@ pub async fn spawn_background_task(
                         use tokio::io::AsyncBufReadExt;
                         let mut lines = tokio::io::BufReader::new(&mut reader).lines();
                         while let Ok(Some(line)) = lines.next_line().await {
-                            let _ = append_output(&db_o, &tid_o, &line).await;
+                            if let Err(e) = append_output(&db_o, &tid_o, &line).await {
+                                warn!("追加 stdout 输出失败: {}", e);
+                            }
                         }
                     }
                 });
@@ -170,8 +197,11 @@ pub async fn spawn_background_task(
                         use tokio::io::AsyncBufReadExt;
                         let mut lines = tokio::io::BufReader::new(&mut reader).lines();
                         while let Ok(Some(line)) = lines.next_line().await {
-                            let _ =
-                                append_output(&db_e, &tid_e, &format!("[stderr] {}", line)).await;
+                            if let Err(e) =
+                                append_output(&db_e, &tid_e, &format!("[stderr] {}", line)).await
+                            {
+                                warn!("追加 stderr 输出失败: {}", e);
+                            }
                         }
                     }
                 });

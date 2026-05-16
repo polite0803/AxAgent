@@ -12,7 +12,10 @@ use tauri::State;
 const SEARCH_CACHE_TTL_SECS: u64 = 300;
 
 fn home_dir() -> PathBuf {
-    dirs::home_dir().expect("Could not determine home directory")
+    dirs::home_dir().unwrap_or_else(|| {
+        tracing::warn!("无法确定用户主目录，使用当前目录作为后备");
+        PathBuf::from(".")
+    })
 }
 
 fn skills_dir() -> PathBuf {

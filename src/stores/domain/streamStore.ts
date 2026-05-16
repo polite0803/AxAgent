@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { invoke, isTauri, type UnlistenFn } from "@/lib/invoke";
 import type { Message } from "@/types";
 import { create } from "zustand";
@@ -45,15 +46,16 @@ export function startStreamWatchdog() {
         }s，自动取消`,
       );
 
-      // 标记消息为错误
+      // 标记消息为错误（仅当消息仍在流式传输中，避免覆盖用户编辑内容）
       const msgId = state.activeStreams[convId];
       if (msgId && _conversationStoreRef) {
         _conversationStoreRef.setState((s: any) => ({
           messages: s.messages.map((m: Message) =>
-            m.id === msgId
+            m.id === msgId && m.status === "streaming"
               ? {
                 ...m,
-                content: m.content + "\n\n> ⚠️ 流式响应超时（5分钟无更新），已自动中断",
+                content: m.content + "\n\n> "
+                  + (i18n.t("stream.timeout", "⚠️ 流式响应超时（5分钟无更新），已自动中断")),
                 status: "error" as const,
               }
               : m
@@ -92,6 +94,11 @@ export interface StreamBuffer {
 }
 
 export let _streamBuffer: StreamBuffer | null = null;
+/**
+ * Per-messageId stream buffers for multi-model mode.
+ * Each message gets its own buffer so parallel streams don't corrupt each other.
+ */
+const _multiModelBuffers = new Map<string, StreamBuffer>();
 /**
  * Preserved buffers from conversations the user navigated away from while streaming.
  * When switching back, these are used instead of the live buffer (which may have
@@ -291,6 +298,7 @@ export function resetStreamRuntime() {
   _unlisten = null;
   _listenerGen = 0;
   _streamBuffer = null;
+  _multiModelBuffers.clear();
   _orphanedBuffers.clear();
   _streamPrefix = "";
   _pendingConversationRefresh.clear();
@@ -332,8 +340,7 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
   model_id?: string,
   providerId?: string,
 ) {
-  // Accumulate into stream buffer only in single-stream mode
-  // (parallel multi-model streams would corrupt the shared buffer)
+  // 单模型模式用共享缓冲区，多模型模式用 per-messageId 缓冲防止互相覆盖
   if (!_isMultiModelActive) {
     if (!_streamBuffer || _streamBuffer.conversationId !== conversationId) {
       // Preserve the previous conversation's buffer before overwriting
@@ -347,6 +354,18 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
     // Track ID resolution (placeholder → real ID)
     if (_streamBuffer.messageId !== messageId && !_streamBuffer.resolvedId) {
       _streamBuffer.resolvedId = messageId;
+    }
+  } else {
+    // 多模型模式：每个 messageId 独立缓冲
+    let buf = _multiModelBuffers.get(messageId);
+    if (!buf) {
+      buf = { messageId, conversationId, content: _streamPrefix, resolvedId: null, thinking: null };
+      _streamPrefix = "";
+      _multiModelBuffers.set(messageId, buf);
+    }
+    buf.content += content ?? "";
+    if (buf.messageId !== messageId && !buf.resolvedId) {
+      buf.resolvedId = messageId;
     }
   }
 
@@ -480,11 +499,14 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
 
     // 3. No placeholder found — create new assistant message with full buffered content
     const isMultiModel = _isMultiModelActive;
+    const bufferContent = isMultiModel
+      ? _multiModelBuffers.get(messageId)?.content
+      : _streamBuffer?.content;
     const newMessage: Message = {
       id: messageId,
       conversation_id: conversationId,
       role: "assistant",
-      content: _streamBuffer?.content ?? (content ?? ""),
+      content: bufferContent ?? (content ?? ""),
       provider_id: chunkProviderId ?? null,
       model_id: chunkModelId ?? null,
       token_count: null,
@@ -644,6 +666,14 @@ export const useStreamStore = create<StreamState>((set, get) => ({
 
     _pendingUiChunk = null;
     _streamBuffer = null;
+    // 清理被取消对话的多模型缓冲
+    if (_isMultiModelActive && activeConvId) {
+      for (const [msgId, buf] of _multiModelBuffers) {
+        if (buf.conversationId === activeConvId) {
+          _multiModelBuffers.delete(msgId);
+        }
+      }
+    }
     // Only clear the pending refresh for the conversation being cancelled,
     // not all conversations (other conversations may have completed streams
     // that need to be loaded when the user switches back to them).

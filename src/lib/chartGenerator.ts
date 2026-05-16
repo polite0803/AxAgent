@@ -1,5 +1,5 @@
 // i18n-exempt: NLP intent detection patterns. Not user-facing UI.
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/invoke";
 
 export interface ChartGenRequest {
   description: string;

@@ -1,7 +1,7 @@
 import appLogo from "@/assets/image/logo.png";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { TITLEBAR_ICON_COLORS } from "@/lib/iconColors";
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import { useBackupStore, useSettingsStore } from "@/stores";
 import type { PageKey } from "@/types";
@@ -54,7 +54,7 @@ function useEvolutionStatus() {
             auto_tools_count: s.auto_tools_count,
           })
         )
-        .catch(() => {});
+        .catch(logIpcError("获取后端状态"));
     };
     fetch();
     const id = setInterval(fetch, 60000);

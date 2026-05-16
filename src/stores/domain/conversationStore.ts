@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
+import { invoke, isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
 import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/lib/messageUtils";
 import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
@@ -84,6 +84,12 @@ import {
   useStreamStore,
 } from "./streamStore";
 
+// 单调递增计数器，与 Date.now() 组合防止同毫秒 ID 重复
+let _idSeq = 0;
+function tempId(prefix: string): string {
+  return `${prefix}${Date.now()}-${++_idSeq}`;
+}
+
 // ─── Fallback model chain ───
 //
 // When the primary model fails (rate limit, timeout, provider error),
@@ -105,10 +111,10 @@ function buildFallbackChain(
   const chain: FallbackModel[] = [];
   try {
     const providers = useProviderStore.getState().providers ?? [];
-    // 默认模型优先级的元数据尚未在 store 中实现，
-    // 此处保留占位以维持 fallback 链的优先级结构
-    const defaultProviderId: string | undefined = undefined;
-    const defaultModelId: string | undefined = undefined;
+    // 从偏好设置中读取用户默认模型，用于 fallback 链优先级排序
+    const prefs = usePreferenceStore.getState();
+    const defaultProviderId: string | undefined = prefs.defaultProviderId;
+    const defaultModelId: string | undefined = prefs.defaultModelId;
 
     for (const p of providers) {
       for (const m of p.models ?? []) {
@@ -342,7 +348,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     } catch {
       // If backend command doesn't exist yet, add optimistic local message
       const localMsg: Message = {
-        id: `ctx-clear-${Date.now()}`,
+        id: tempId("ctx-clear-"),
         conversation_id: conversationId,
         role: "system",
         content: "<!-- context-clear -->",
@@ -418,26 +424,26 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const providers = useProviderStore.getState().providers;
       const keyword = modelKeyword.toLowerCase();
 
-      // 优先匹配当前 provider 下的模型，其次跨 provider
+      // 优先精确匹配，其次同 provider 子串匹配，最后跨 provider 子串匹配
       let bestProviderId: string | null = null;
       let bestModelId: string | null = null;
+      let bestScore = 0; // 3=精确+同provider, 2=精确+跨provider, 1=子串+同provider, 0=子串+跨provider
 
       for (const p of providers) {
         for (const m of p.models) {
-          if (m.enabled && m.model_id.toLowerCase().includes(keyword)) {
-            if (p.id === conversation.provider_id) {
-              // 同 provider 匹配，最高优先级
-              bestProviderId = p.id;
-              bestModelId = m.model_id;
-              break;
-            }
-            if (!bestProviderId) {
-              bestProviderId = p.id;
-              bestModelId = m.model_id;
-            }
+          if (!m.enabled) { continue; }
+          const modelLower = m.model_id.toLowerCase();
+          const exact = modelLower === keyword;
+          const contains = modelLower.includes(keyword);
+          if (!exact && !contains) { continue; }
+          const sameProvider = p.id === conversation.provider_id;
+          const score = exact ? (sameProvider ? 3 : 2) : (sameProvider ? 1 : 0);
+          if (score > bestScore) {
+            bestScore = score;
+            bestProviderId = p.id;
+            bestModelId = m.model_id;
           }
         }
-        if (bestProviderId === conversation.provider_id) { break; }
       }
 
       if (bestProviderId && bestModelId) {
@@ -533,7 +539,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     });
     // Sync preference state from the conversation (direct setState to avoid triggering persistence)
     usePreferenceStore.setState(prefState);
-    get().fetchMessages(id).then(() => {
+    // 保留尚未持久化的 temp- 消息，防止被服务端返回的列表覆盖丢失
+    const tempIds = get().messages.filter(m => m.id.startsWith("temp-")).map(m => m.id);
+    get().fetchMessages(id, tempIds).then(() => {
       if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== id) {
         return;
       }
@@ -642,9 +650,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           },
         }, 10_000);
       } catch (preferenceError) {
-        // Non-fatal: conversation is created, preferences just weren't applied.
-        // The conversation is still usable with defaults.
-        set({ error: String(preferenceError) });
+        // 非致命：对话已创建，偏好设置未应用，使用默认值
+        console.warn("[createConversation] 偏好设置更新失败，使用默认值:", preferenceError);
       }
       // Clean up the previous active conversation's stores before switching.
       // createConversation bypassed setActiveConversation, which would normally
@@ -729,7 +736,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // so the ChatView shows the welcome screen instead of jumping to another
       // conversation. The flag is reset by ChatSidebar on next render.
       if (state.activeConversationId === id) {
-        _suppressSidebarAutoSelect = true;
+        setSidebarAutoSelectSuppression();
       }
       set({
         conversations: state.conversations.filter((c) => c.id !== id),
@@ -825,7 +832,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       if (updated.is_archived) {
         // When archiving the active conversation, suppress sidebar auto-select
         if (get().activeConversationId === id) {
-          _suppressSidebarAutoSelect = true;
+          setSidebarAutoSelectSuppression();
         }
         set((s) => ({
           conversations: s.conversations.filter((c) => c.id !== id),
@@ -856,7 +863,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Archive succeeded — move from active list to archived list
       // When archiving the active conversation, suppress sidebar auto-select
       if (get().activeConversationId === id) {
-        _suppressSidebarAutoSelect = true;
+        setSidebarAutoSelectSuppression();
       }
       set((s) => ({
         conversations: s.conversations.filter((c) => c.id !== id),
@@ -904,15 +911,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   batchArchive: async (ids) => {
-    const archived: Conversation[] = [];
     // Cancel any active streams for the conversations being archived
     for (const id of ids) {
       if (isConvStreaming(useStreamStore.getState().activeStreams, id)) {
         useStreamStore.getState().cancelCurrentStream(id);
       }
     }
-    for (const id of ids) {
-      try {
+    // 并行归档所有对话（无依赖关系）
+    const results = await Promise.allSettled(
+      ids.map(async (id) => {
         const conv = get().conversations.find((c) => c.id === id);
         const command = conv?.session_type === "workflow"
           ? "archive_workflow_session"
@@ -920,9 +927,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         const params = conv?.session_type === "workflow"
           ? { conversationId: id }
           : { id };
-        const updated = await invoke<Conversation>(command, params);
-        if (updated.is_archived) { archived.push(updated); }
-      } catch (_) { /* skip */ }
+        return invoke<Conversation>(command, params);
+      }),
+    );
+    const archived: Conversation[] = [];
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value.is_archived) {
+        archived.push(r.value);
+      }
     }
     // Clean up other stores for all archived conversations
     for (const id of ids) {
@@ -959,7 +971,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     // Optimistically add user message BEFORE backend call
     const optimisticUserMsg: Message = {
-      id: `temp-user-${Date.now()}`,
+      id: tempId("temp-user-"),
       conversation_id: conversationId,
       role: "user",
       content,
@@ -967,7 +979,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       model_id: null,
       token_count: null,
       attachments: attachments.map((a) => ({
-        id: `temp-att-${Date.now()}`,
+        id: tempId("temp-att-"),
         file_name: a.file_name,
         file_type: a.file_type,
         file_path: "",
@@ -985,7 +997,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     };
 
     // Create assistant placeholder upfront (for search status or streaming)
-    const tempAssistantId = `temp-assistant-${Date.now()}`;
+    const tempAssistantId = tempId("temp-assistant-");
     kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
     const activeMemId1 = usePreferenceStore.getState().activeMemoryNamespaceId;
     memIds = activeMemId1 ? [activeMemId1] : [];
@@ -1129,6 +1141,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         if (currentProviderId && currentModelId) {
           const fallbackChain = buildFallbackChain(currentProviderId, currentModelId);
           let fallbackSucceeded = false;
+          // 保存原始 provider/model，全部 fallback 失败后恢复
+          const originalProviderId = currentProviderId;
+          const originalModelId = currentModelId;
           for (let i = 0; i < fallbackChain.length; i++) {
             const fb = fallbackChain[i];
             try {
@@ -1156,7 +1171,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                   : undefined,
               });
               // Re-start stream
-              const newTempId = `temp-assistant-${Date.now()}`;
+              const newTempId = tempId("temp-assistant-");
               useStreamStore.setState((s) => ({
                 ...startConversationStream(s.activeStreams, conversationId, newTempId),
                 streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
@@ -1167,6 +1182,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             } catch (_fallbackErr) { /* continue to next */ }
           }
           if (fallbackSucceeded) { return; }
+
+          // 全部 fallback 失败，恢复原始 provider/model
+          await get().updateConversation(conversationId, {
+            provider_id: originalProviderId,
+            model_id: originalModelId,
+          }).catch(logIpcError("恢复原始模型配置"));
         }
       }
 
@@ -1182,7 +1203,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         thinkingActiveMessageIds: new Set<string>(),
       }));
       // Generate error message ID upfront so it can be preserved across fetchMessages
-      const tempErrorId = `temp-error-${Date.now()}`;
+      const tempErrorId = tempId("temp-error-");
       set((s) => ({
         messages: currentStreamingMessageId
           ? s.messages.map(m =>
@@ -1244,7 +1265,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         messages: [
           ...s.messages,
           {
-            id: `temp-user-${Date.now()}`,
+            id: tempId("temp-user-"),
             conversation_id: conversationId,
             role: "user",
             content,
@@ -1262,7 +1283,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             status: "complete",
           },
           {
-            id: `temp-agent-error-${Date.now()}`,
+            id: tempId("temp-agent-error-"),
             conversation_id: conversationId,
             role: "assistant",
             content: i18n.t("agentMode.requiresTauriDetail"),
@@ -1289,7 +1310,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     // Optimistic user message
     const optimisticUserMsg: Message = {
-      id: `temp-user-${Date.now()}`,
+      id: tempId("temp-user-"),
       conversation_id: conversationId,
       role: "user",
       content,
@@ -1297,7 +1318,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       model_id: null,
       token_count: null,
       attachments: attachments.map((a) => ({
-        id: `temp-att-${Date.now()}`,
+        id: tempId("temp-att-"),
         file_name: a.file_name,
         file_type: a.file_type,
         file_path: "",
@@ -1747,7 +1768,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         set((s) => ({
           messages: s.messages.map((m) =>
             m.id === currentMsgId
-              ? { ...m, content: `🔄 ${event.payload.message}` }
+              ? { ...m, thinking: `🔄 ${event.payload.message}` }
               : m
           ),
         }));
@@ -1847,7 +1868,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     // Optimistic user message
     const optimisticUserMsg: Message = {
-      id: `temp-user-${Date.now()}`,
+      id: tempId("temp-user-"),
       conversation_id: conversationId,
       role: "user",
       content,
@@ -1855,7 +1876,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       model_id: null,
       token_count: null,
       attachments: attachments.map((a) => ({
-        id: `temp-att-${Date.now()}`,
+        id: tempId("temp-att-"),
         file_name: a.file_name,
         file_type: a.file_type,
         file_path: "",
@@ -1993,7 +2014,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
 
     // Create placeholder for new version, preserving original created_at for position
-    const tempAssistantId = `temp-assistant-${Date.now()}`;
+    const tempAssistantId = tempId("temp-assistant-");
     const parentId = userMsg.id;
 
     // Find the original active AI message to preserve its created_at
@@ -2121,7 +2142,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const originalAiMsg = msgs.find(m => m.parent_message_id === parentId && m.is_active);
 
     // Create placeholder with the target model info
-    const tempAssistantId = `temp-assistant-${Date.now()}`;
+    const tempAssistantId = tempId("temp-assistant-");
     const placeholderAssistant: Message = {
       id: tempAssistantId,
       conversation_id: conversationId,
@@ -2513,11 +2534,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           void invoke("auto_extract_incremental_memories", {
             conversationId: conversation_id,
             namespaceId: memNsId ?? null,
-          }).catch(() => {});
+          }).catch(logIpcError("自动提取增量记忆"));
           void invoke("extract_conversation_entities", {
             conversationId: conversation_id,
-          }).catch(() => {});
-        }).catch(() => {});
+          }).catch(logIpcError("提取对话实体"));
+        }).catch(logIpcError("动态导入 invoke 模块"));
 
         return;
       }
@@ -2976,9 +2997,25 @@ registerConversationStoreRef({
 // render cycle, keeping the ChatView on the welcome screen.
 export let _suppressSidebarAutoSelect = false;
 
+let _sideBarSuppressTimer: ReturnType<typeof setTimeout> | null = null;
+
 /** Reset the sidebar auto-select suppression flag (called by ChatSidebar after consuming). */
 export function resetSidebarAutoSelectSuppression() {
   _suppressSidebarAutoSelect = false;
+  if (_sideBarSuppressTimer) {
+    clearTimeout(_sideBarSuppressTimer);
+    _sideBarSuppressTimer = null;
+  }
+}
+
+/** 设置 sidebar 自动选择抑制，带超时保护防止永久抑制 */
+export function setSidebarAutoSelectSuppression() {
+  setSidebarAutoSelectSuppression();
+  if (_sideBarSuppressTimer) { clearTimeout(_sideBarSuppressTimer); }
+  _sideBarSuppressTimer = setTimeout(() => {
+    _suppressSidebarAutoSelect = false;
+    _sideBarSuppressTimer = null;
+  }, 5000); // 5s 安全超时，防止 ChatSidebar 未挂载导致永久抑制
 }
 
 // Auto-rebuild message index on every messages replacement to keep O(1) streaming fast.

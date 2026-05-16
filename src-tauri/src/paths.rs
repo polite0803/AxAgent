@@ -28,9 +28,15 @@ pub fn axagent_home() -> PathBuf {
     #[cfg(not(mobile))]
     {
         #[cfg(not(windows))]
-        let home = std::env::var("HOME").expect("HOME env var not set");
+        let home = std::env::var("HOME").unwrap_or_else(|_| {
+            tracing::warn!("HOME 环境变量未设置，使用当前目录作为后备");
+            String::from(".")
+        });
         #[cfg(windows)]
-        let home = std::env::var("USERPROFILE").expect("USERPROFILE env var not set");
+        let home = std::env::var("USERPROFILE").unwrap_or_else(|_| {
+            tracing::warn!("USERPROFILE 环境变量未设置，使用当前目录作为后备");
+            String::from(".")
+        });
 
         PathBuf::from(home).join(".axagent")
     }
