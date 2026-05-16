@@ -1269,8 +1269,20 @@ impl PluginManager {
     }
 
     pub fn validate_plugin_source(&self, source: &str) -> Result<PluginManifest, PluginError> {
-        let path = resolve_local_source(source)?;
-        load_plugin_from_directory(&path)
+        let install_source = parse_install_source(source)?;
+        match install_source {
+            PluginInstallSource::LocalPath { path } => load_plugin_from_directory(&path),
+            _ => {
+                let temp_root = self.install_root().join(".tmp");
+                let staged = materialize_source(&install_source, &temp_root)?;
+                let manifest = load_plugin_from_directory(&staged)?;
+                // 清理临时目录
+                if staged.starts_with(&temp_root) {
+                    let _ = std::fs::remove_dir_all(&staged);
+                }
+                Ok(manifest)
+            }
+        }
     }
 
     pub fn install(&mut self, source: &str) -> Result<InstallOutcome, PluginError> {
@@ -1371,6 +1383,7 @@ impl PluginManager {
                 "plugin `{plugin_id}` is bundled and managed automatically; disable it instead"
             )));
         }
+        self.mcp_launcher.stop_plugin_mcps(plugin_id);
         crate::agent_provider::unregister_plugin_agents(plugin_id);
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
         if record.install_path.exists() {
@@ -2436,14 +2449,24 @@ fn resolve_local_source(source: &str) -> Result<PathBuf, PluginError> {
 }
 
 fn looks_like_npm_spec(source: &str) -> bool {
-    !source.starts_with("http://")
-        && !source.starts_with("https://")
-        && !source.starts_with("git@")
-        && !source.starts_with('/')
-        && !source.starts_with('.')
-        && !source.starts_with('\\')
-        && !source.contains("://")
-        && (source.starts_with('@') || source.contains('@'))
+    // 排除明显是其他格式的源
+    if source.starts_with("http://")
+        || source.starts_with("https://")
+        || source.starts_with("git@")
+        || source.starts_with('/')
+        || source.starts_with('.')
+        || source.starts_with('\\')
+        || source.contains("://")
+    {
+        return false;
+    }
+    // npm 包：@scope/name 或 name@version 或裸包名
+    // 裸包名不含路径分隔符 / 和 \
+    if source.starts_with('@') || source.contains('@') {
+        return true;
+    }
+    // 裸包名：不含路径分隔符且不含空格
+    !source.contains('/') && !source.contains('\\') && !source.contains(' ')
 }
 
 pub(crate) fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
