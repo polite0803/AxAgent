@@ -9,8 +9,8 @@ pub struct Model {
     pub key_id: String,
     pub provider_id: String,
     pub model_id: Option<String>,
-    pub request_tokens: i32,
-    pub response_tokens: i32,
+    pub request_tokens: i64,
+    pub response_tokens: i64,
     pub created_at: i64,
 }
 

@@ -584,9 +584,9 @@ async fn record_native_outcome(
     }
 
     let elapsed = start_time.elapsed().as_millis() as i32;
-    let request_tokens = usage.map(|usage| usage.prompt_tokens as i32).unwrap_or(0);
+    let request_tokens = usage.map(|usage| usage.prompt_tokens as i64).unwrap_or(0);
     let response_tokens = usage
-        .map(|usage| usage.completion_tokens as i32)
+        .map(|usage| usage.completion_tokens as i64)
         .unwrap_or(0);
     let _ = axagent_core::repo::gateway_request_log::record_request_log(
         db,

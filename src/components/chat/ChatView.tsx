@@ -61,7 +61,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import NodeRenderer from "markstream-react";
 
@@ -888,8 +888,7 @@ function ChatViewInner({ onScrollToReady }: {
     lastUserScrollIntentAtRef.current = Date.now();
   }, []);
 
-  // Keep scrollBoxRef in sync with bubbleListRef
-  useEffect(() => {
+  useLayoutEffect(() => {
     scrollBoxRef.current = (bubbleListRef.current?.scrollBoxNativeElement as HTMLElement) ?? null;
     scrollContentRef.current = (scrollBoxRef.current?.firstElementChild as HTMLElement | null) ?? null;
   });

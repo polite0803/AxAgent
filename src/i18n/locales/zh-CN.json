@@ -3201,7 +3201,14 @@
     "searchPlaceholder": "搜索笔记...",
     "selectWiki": "选择 Wiki",
     "selectWikiPrompt": "请选择一个 Wiki",
-    "source": "源码",
+    "source": {
+      "title": "标题",
+      "type": "类型",
+      "status": "状态",
+      "chunks": "分块",
+      "path": "路径",
+      "deleteNotImplemented": "删除功能尚未实现"
+    },
     "sources": "来源",
     "sync": {
       "byWiki": "按 Wiki",
@@ -5423,7 +5430,7 @@
     "error": "错误",
     "citations": "引用",
     "copyReport": "复制报告",
-    "mockFinding": ""
+    "mockFinding": "模拟研究发现"
   },
   "reportViewer": {
     "noReport": "暂无生成报告",

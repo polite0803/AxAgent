@@ -7,6 +7,7 @@ use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::auth::auth_middleware;
+use crate::middleware::rate_limit_middleware;
 use crate::handlers::{
     cancel_run, chat_completions, create_job, delete_job, delete_response, detailed_health_check,
     disable_job, enable_job, get_job, get_job_schedule, get_response, get_run, get_run_logs,
@@ -91,7 +92,8 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route("/health", get(health_check))
         .route("/health/detailed", get(detailed_health_check))
         .route("/v1/realtime", get(realtime_handler))
-        .route("/metrics", get(metrics_handler));
+        .route("/metrics", get(metrics_handler))
+        .layer(middleware::from_fn(rate_limit_middleware));
 
     Router::new()
         .merge(protected)

@@ -21,6 +21,7 @@ use axagent_core::error::{AxAgentError, Result};
 pub struct GatewayAppState {
     pub db: DatabaseConnection,
     pub master_key: [u8; 32],
+    pub started_at: i64,
 }
 
 /// TLS certificate material.
@@ -117,9 +118,11 @@ impl GatewayServer {
         master_key: [u8; 32],
         config: GatewayStartConfig,
     ) -> Result<Self> {
+        let started_at = axagent_core::utils::now_ts();
         let app_state = GatewayAppState {
             db: pool,
             master_key,
+            started_at,
         };
 
         // ── Bind HTTP listener ──────────────────────────────────────────

@@ -61,8 +61,22 @@ pub async fn get_desktop_capabilities() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-pub async fn send_desktop_notification(_title: String, _body: String) -> Result<(), String> {
-    // Placeholder — real notification via tauri notification plugin
+pub async fn send_desktop_notification(app: tauri::AppHandle, title: String, body: String) -> Result<(), String> {
+    #[cfg(feature = "notification")]
+    {
+        use tauri_plugin_notification::NotificationExt;
+        match app.notification().builder().title(&title).body(&body).show() {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                tracing::warn!("Native notification failed, falling back to log: {}", e);
+            }
+        }
+    }
+    tracing::info!(
+        title = %title,
+        body = %body,
+        "Desktop notification (placeholder — notification plugin not available)"
+    );
     Ok(())
 }
 

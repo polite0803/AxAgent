@@ -1,25 +1,18 @@
-// @ts-nocheck - S-20 extracted module, types verified at composition point
-import { invoke, isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
-import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/lib/messageUtils";
-import type { ChatStreamErrorEvent, ChatStreamEvent, Conversation } from "@/types";
+import { invoke, isTauri, listen, logIpcError } from "@/lib/invoke";
+import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
+import type { ChatStreamErrorEvent, ChatStreamEvent } from "@/types";
 import type { ConversationState } from "./conversationStore";
-import {} from "./preferenceStore";
+import { usePreferenceStore } from "./preferenceStore";
 import {
-  _activeMessageLoadSeq,
   _isMultiModelActive,
   _listenerGen,
   _multiModelDoneResolve,
   _multiModelFirstMessageId,
-  _multiModelFirstModelId,
   _multiModelTotalRemaining,
-  _pendingConversationRefresh,
-  _pendingUiChunk,
   _streamBuffer,
   _streamPrefix,
   _streamUiFlushTimer,
-  // Module-level variable accessors
   _unlisten,
-  _userManuallySelectedVersion,
   addPendingConversationRefresh,
   appendStreamChunk,
   clearPendingConversationRefresh,
@@ -27,7 +20,6 @@ import {
   flushPendingStreamChunk,
   getStreamingMessageId,
   incrementListenerGen,
-  isConversationStreaming as isConvStreaming,
   resetMultiModelState,
   setMultiModelDoneResolve,
   setMultiModelFirstMessageId,
@@ -35,20 +27,13 @@ import {
   setStreamBuffer,
   setStreamPrefix,
   setStreamUiFlushTimer,
-  // Setter functions
   setUnlisten,
   stopConversationStream,
   useStreamStore,
 } from "./streamStore";
 
-// 单调递增计数器，与 Date.now() 组合防止同毫秒 ID 重复
-let _idSeq = 0;
-function tempId(prefix: string): string {
-  return `${prefix}${Date.now()}-${++_idSeq}`;
-}
-
 export function createEventMethods(
-  set: (fn: (s: ConversationState) => Partial<ConversationState>) => void,
+  set: (partial: Partial<ConversationState> | ((s: ConversationState) => Partial<ConversationState>)) => void,
   get: () => ConversationState,
 ) {
   return {

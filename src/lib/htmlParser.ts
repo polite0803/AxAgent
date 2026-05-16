@@ -24,6 +24,11 @@ export function parseHtmlContent(content: string): ParsedHtml {
 }
 
 export function composeHtml(parts: Partial<ParsedHtml>): string {
+  // ⚠️ SECURITY WARNING: The output of this function contains raw HTML, CSS, and JS
+  // which may include user-generated or AI-generated content. This output MUST only be
+  // rendered inside a sandboxed iframe (sandbox="" attribute) to prevent XSS attacks,
+  // data exfiltration, and other security risks. Never inject this output directly into
+  // the host page's DOM or use it with dangerouslySetInnerHTML outside an iframe.
   const html = parts.html || "";
   const css = parts.css || "";
   const js = parts.js || "";

@@ -1,1 +1,13 @@
-// Stub module - session search functionality is in conversations_search.rs
+use crate::commands::conversations_search::{session_search as inner_session_search, SessionSearchResult};
+use tauri::State;
+use crate::AppState;
+
+#[tauri::command]
+pub async fn session_search(
+    state: State<'_, AppState>,
+    query: String,
+    limit: Option<u32>,
+) -> Result<Vec<SessionSearchResult>, String> {
+    tracing::warn!("session_search is a stub delegating to conversations_search::session_search");
+    inner_session_search(state, query, limit).await
+}

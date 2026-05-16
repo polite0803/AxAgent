@@ -30,50 +30,60 @@ pub struct RecordErrorRequest {
 
 #[command]
 pub fn tracer_start_span(_request: StartSpanRequest) -> Result<String, String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok("span_id_placeholder".to_string())
 }
 
 #[command]
 pub fn tracer_end_span(_request: EndSpanRequest) -> Result<(), String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(())
 }
 
 #[command]
 pub fn tracer_record_error(_request: RecordErrorRequest) -> Result<(), String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(())
 }
 
 #[command]
 pub fn tracer_list_traces(_filter: TraceFilter) -> Result<Vec<TraceSummary>, String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(vec![])
 }
 
 #[command]
 pub fn tracer_get_trace(_trace_id: String) -> Result<Option<TraceExport>, String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(None)
 }
 
 #[command]
 pub fn tracer_get_span(_span_id: String) -> Result<Option<Span>, String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(None)
 }
 
 #[command]
 pub fn tracer_get_metrics(_trace_id: String) -> Result<Option<TraceMetrics>, String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(None)
 }
 
 #[command]
 pub fn tracer_export_traces(_trace_ids: Vec<String>, _format: String) -> Result<Vec<u8>, String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(vec![])
 }
 
 #[command]
 pub fn tracer_delete_trace(_trace_id: String) -> Result<(), String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(())
 }
 
 #[command]
 pub fn tracer_delete_old_traces(_older_than_days: u32) -> Result<u64, String> {
+    tracing::warn!("Tracer functionality is experimental and returns placeholder data");
     Ok(0)
 }

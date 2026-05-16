@@ -40,7 +40,7 @@ export function ArtifactPreview({ code, format }: ArtifactPreviewProps) {
         });
         break;
       default:
-        containerRef.current.innerHTML = `<pre style="padding: 16px; background: #f5f5f5;">${code}</pre>`;
+        containerRef.current.textContent = code;
     }
   }, [code, format]);
 

@@ -31,7 +31,7 @@ ${css || ""}
 <div id="root"></div>
 <script>
 window.onerror = function(msg, src, line, col, err) {
-  window.parent.postMessage({ type: 'react-preview-error', message: String(msg) }, '*');
+  window.parent.postMessage({ type: 'react-preview-error', message: String(msg) }, window.location.origin);
 };
 try {
   var transformed = Babel.transform(${JSON.stringify(code)}, {
@@ -42,7 +42,7 @@ try {
   fn(React, ReactDOM);
 } catch(e) {
   document.getElementById('root').innerHTML = '<pre style="color:red;padding:16px">' + e.message + '</pre>';
-  window.parent.postMessage({ type: 'react-preview-error', message: e.message }, '*');
+  window.parent.postMessage({ type: 'react-preview-error', message: e.message }, window.location.origin);
 }
 <\/script>
 </body>

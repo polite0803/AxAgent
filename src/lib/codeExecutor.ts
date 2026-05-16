@@ -48,6 +48,7 @@ class CodeExecutor {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement("script");
           script.src = `${PYODIDE_CDN}pyodide.js`;
+          script.integrity = PYODIDE_SRI;
           script.crossOrigin = "anonymous";
           script.onload = () => resolve();
           script.onerror = () => reject(new Error("Failed to load Pyodide script"));

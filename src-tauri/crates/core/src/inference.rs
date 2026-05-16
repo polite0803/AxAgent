@@ -21,6 +21,7 @@ use crate::error::Result;
 /// 模型按需延迟加载，以文件名为 key 缓存在 `loaded_models` 中。
 /// `InferenceEngine` 内部使用 `Arc`，clone 成本很低。
 #[derive(Clone)]
+#[deprecated(note = "InferenceEngine is a stub - rerank/judge return placeholder scores. Do not rely on these results.")]
 pub struct InferenceEngine {
     /// 已加载的模型缓存
     loaded_models: Arc<Mutex<HashMap<String, LoadedModel>>>,

@@ -113,6 +113,7 @@ interface GlobalErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
   errorInfo: React.ErrorInfo | null;
+  retryKey: number;
 }
 
 interface GlobalErrorBoundaryProps {
@@ -130,6 +131,7 @@ class GlobalErrorBoundary extends React.Component<
       hasError: false,
       error: null,
       errorInfo: null,
+      retryKey: 0,
     };
   }
 
@@ -150,15 +152,16 @@ class GlobalErrorBoundary extends React.Component<
   }
 
   handleRetry = () => {
-    this.setState({
+    this.setState((prev) => ({
       hasError: false,
       error: null,
       errorInfo: null,
-    });
+      retryKey: prev.retryKey + 1,
+    }));
   };
 
   render() {
-    const { hasError, error, errorInfo } = this.state;
+    const { hasError, error, errorInfo, retryKey } = this.state;
     const { children, FallbackComponent } = this.props;
 
     if (hasError && error) {
@@ -166,7 +169,7 @@ class GlobalErrorBoundary extends React.Component<
       return <Fallback error={error} errorInfo={errorInfo ?? undefined} onRetry={this.handleRetry} />;
     }
 
-    return children;
+    return <React.Fragment key={retryKey}>{children}</React.Fragment>;
   }
 }
 

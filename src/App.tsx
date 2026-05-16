@@ -4,6 +4,7 @@ import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
 import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
 import { GlobalErrorBoundary } from "@/components/layout/GlobalErrorBoundary";
+import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { InteractiveTutorial } from "@/components/onboarding/InteractiveTutorial";
@@ -200,7 +201,9 @@ function AppInner() {
           : (
             <>
               <SkillPanels />
-              <TitleBar />
+              <ModuleErrorBoundary moduleName="TitleBar">
+                <TitleBar />
+              </ModuleErrorBoundary>
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
               <Layout

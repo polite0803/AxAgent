@@ -14,8 +14,8 @@ pub async fn record_request_log(
     provider_id: Option<&str>,
     status_code: i32,
     duration_ms: i32,
-    request_tokens: i32,
-    response_tokens: i32,
+    request_tokens: i64,
+    response_tokens: i64,
     error_message: Option<&str>,
 ) -> Result<()> {
     gateway_request_logs::ActiveModel {

@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
+use sea_orm::DatabaseConnection;
 
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::*;
@@ -45,10 +46,8 @@ pub async fn detailed_health_check(State(state): State<GatewayAppState>) -> impl
         Err(_) => 0,
     };
 
-    let uptime = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
+    let uptime = axagent_core::utils::now_ts() - state.started_at;
+    let uptime = if uptime > 0 { uptime as u64 } else { 0 };
 
     Json(json!({
         "status": "ok",
@@ -324,68 +323,10 @@ pub async fn list_jobs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -452,68 +393,10 @@ pub async fn create_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -582,68 +465,10 @@ pub async fn get_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -711,68 +536,10 @@ pub async fn update_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -841,68 +608,10 @@ pub async fn delete_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -963,68 +672,10 @@ pub async fn pause_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1085,68 +736,10 @@ pub async fn resume_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1207,68 +800,10 @@ pub async fn trigger_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1329,68 +864,10 @@ pub async fn list_runs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1457,68 +934,10 @@ pub async fn trigger_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1586,68 +1005,10 @@ pub async fn get_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1713,68 +1074,10 @@ pub async fn cancel_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1833,68 +1136,10 @@ pub async fn get_run_logs(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -1960,68 +1205,10 @@ pub async fn retry_run(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -2087,68 +1274,10 @@ pub async fn get_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -2215,68 +1344,10 @@ pub async fn update_job_schedule(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -2350,68 +1421,10 @@ pub async fn enable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -2470,68 +1483,10 @@ pub async fn disable_job(
     let AuthenticatedKey(gateway_key) = auth;
     let start_time = Instant::now();
 
-    let providers: Vec<ProviderConfig> =
-        match axagent_core::repo::provider::list_providers(&state.db).await {
-            Ok(p) => p
-                .into_iter()
-                .filter(|p| {
-                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
-                })
-                .collect(),
-            Err(e) => {
-                return error_response(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string());
-            },
-        };
-
-    let provider = match providers.first() {
-        Some(p) => p,
-        None => {
-            return error_response(
-                StatusCode::BAD_GATEWAY,
-                "No Hermes/OpenClaw provider configured",
-            );
-        },
+    let (provider, ctx, registry) = match resolve_hermes_provider_context(&state.db, &state.master_key).await {
+        Ok(r) => r,
+        Err(resp) => return resp,
     };
-
-    let provider_key =
-        match axagent_core::repo::provider::get_active_key(&state.db, &provider.id).await {
-            Ok(k) => k,
-            Err(_) => {
-                return error_response(
-                    StatusCode::BAD_GATEWAY,
-                    &format!("No active API key for provider '{}'", provider.name),
-                );
-            },
-        };
-
-    let api_key = match decrypt_key(&provider_key.key_encrypted, &state.master_key) {
-        Ok(k) => k,
-        Err(e) => {
-            tracing::error!("Failed to decrypt provider key: {}", e);
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal key error");
-        },
-    };
-
-    let global_settings = axagent_core::repo::settings::get_settings(&state.db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: provider_key.id.clone(),
-        provider_id: provider.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
-        api_path: provider.api_path.clone(),
-        proxy_config: resolved_proxy,
-        custom_headers: None,
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let registry = axagent_providers::registry::ProviderRegistry::create_default();
     let adapter = match registry.get(provider_type_to_str(&provider.provider_type)) {
         Some(a) => a,
         None => {
@@ -2804,8 +1759,8 @@ async fn handle_non_stream(
                 Some(provider_id),
                 200,
                 elapsed,
-                response.usage.prompt_tokens as i32,
-                response.usage.completion_tokens as i32,
+                response.usage.prompt_tokens as i64,
+                response.usage.completion_tokens as i64,
                 None,
             )
             .await;
@@ -2925,8 +1880,8 @@ async fn handle_stream(
             Some(&prov_id),
             status_code,
             elapsed,
-            total_prompt as i32,
-            total_completion as i32,
+            total_prompt as i64,
+            total_completion as i64,
             stream_error.as_deref(),
         )
         .await;
@@ -3197,7 +2152,23 @@ pub(crate) fn resolve_provider_for_model(
                     StatusCode::NOT_FOUND,
                     &format!("Model '{}' not found", parsed.model_id),
                 )),
-                _ => Ok(((*matching[0]).clone(), parsed.model_id.clone())),
+                1 => Ok(((*matching[0]).clone(), parsed.model_id.clone())),
+                _ => {
+                    let provider_names: Vec<&str> = matching
+                        .iter()
+                        .filter_map(|p| public_id_map.get(&p.id).map(|s| s.as_str()))
+                        .collect();
+                    Err(error_response(
+                        StatusCode::CONFLICT,
+                        &format!(
+                            "Model '{}' is available on multiple providers: {}. Please specify a provider using the 'provider/model' format (e.g. '{}/{}')",
+                            parsed.model_id,
+                            provider_names.join(", "),
+                            provider_names.first().unwrap_or(&"provider"),
+                            parsed.model_id
+                        ),
+                    ))
+                },
             }
         },
     }
@@ -3226,6 +2197,82 @@ pub(crate) fn error_response(status: StatusCode, message: &str) -> axum::respons
         })),
     )
         .into_response()
+}
+
+async fn resolve_hermes_provider_context(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+) -> Result<(ProviderConfig, ProviderRequestContext, ProviderRegistry), axum::response::Response> {
+    let providers: Vec<ProviderConfig> =
+        match axagent_core::repo::provider::list_providers(db).await {
+            Ok(p) => p
+                .into_iter()
+                .filter(|p| {
+                    matches!(p.provider_type, ProviderType::OpenClaw | ProviderType::Hermes)
+                })
+                .collect(),
+            Err(e) => {
+                return Err(error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &e.to_string(),
+                ));
+            },
+        };
+
+    let provider = match providers.first() {
+        Some(p) => p.clone(),
+        None => {
+            return Err(error_response(
+                StatusCode::BAD_GATEWAY,
+                "No Hermes/OpenClaw provider configured",
+            ));
+        },
+    };
+
+    let provider_key =
+        match axagent_core::repo::provider::get_active_key(db, &provider.id).await {
+            Ok(k) => k,
+            Err(_) => {
+                return Err(error_response(
+                    StatusCode::BAD_GATEWAY,
+                    &format!("No active API key for provider '{}'", provider.name),
+                ));
+            },
+        };
+
+    let api_key = match decrypt_key(&provider_key.key_encrypted, master_key) {
+        Ok(k) => k,
+        Err(e) => {
+            tracing::error!("Failed to decrypt provider key: {}", e);
+            return Err(error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal key error",
+            ));
+        },
+    };
+
+    let global_settings = axagent_core::repo::settings::get_settings(db)
+        .await
+        .unwrap_or_default();
+    let resolved_proxy = ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
+
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: provider_key.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        api_path: provider.api_path.clone(),
+        proxy_config: resolved_proxy,
+        custom_headers: None,
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let registry = axagent_providers::registry::ProviderRegistry::create_default();
+
+    Ok((provider, ctx, registry))
 }
 
 // ── Unit tests ────────────────────────────────────────────────────────────────

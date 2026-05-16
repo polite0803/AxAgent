@@ -1,93 +1,39 @@
-// @ts-nocheck - S-20 extracted module, types verified at composition point
 // S-20: Send method factory extracted from conversationStore
 
 import i18n from "@/i18n";
 import { invoke, isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
-import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
-import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/lib/messageUtils";
+import { buildKnowledgeTag, buildMemoryTag, buildWikiTag } from "@/lib/memoryUtils";
 import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
 import { useSearchStore } from "@/stores";
 import { useProviderStore } from "@/stores/feature/providerStore";
+import { useSettingsStore } from "@/stores/feature/settingsStore";
 import type {
   AgentDoneEvent,
   AgentErrorEvent,
   AgentStreamTextEvent,
   AgentStreamThinkingEvent,
   AttachmentInput,
-  ChatStreamErrorEvent,
-  ChatStreamEvent,
-  CompareResponsesResult,
-  Conversation,
-  ConversationBranch,
-  ConversationSearchResult,
-  ConversationWorkspaceSnapshot,
   Message,
-  MessagePage,
-  UpdateConversationInput,
   WorkflowCompleteEvent,
   WorkflowEvent,
 } from "@/types";
-import { create } from "zustand";
 import { useAgentStore } from "../feature/agentStore";
-import { useCategoryStore } from "../feature/categoryStore";
 import { useExecutionStore } from "../feature/executionStore";
-import { usePlanStore } from "../feature/planStore";
-import { useTrajectoryStore } from "../feature/trajectoryStore";
 import { useMultiModelStore } from "./multiModelStore";
+import { getEffectiveThinkingBudget, usePreferenceStore } from "./preferenceStore";
 import {
-  categoryTemplateUpdateFromCategory,
-  conversationPreferenceStateFromConversation,
-  conversationPreferenceUpdateFromState,
-  getEffectiveThinkingBudget,
-  getStagedPreferenceUpdate,
-  mergeConversationCollections,
-  usePreferenceStore,
-} from "./preferenceStore";
-import {
-  _activeMessageLoadSeq,
-  _isMultiModelActive,
-  _listenerGen,
-  _multiModelDoneResolve,
-  _multiModelFirstMessageId,
-  _multiModelFirstModelId,
-  _multiModelTotalRemaining,
-  _pendingConversationRefresh,
-  _pendingUiChunk,
-  _streamBuffer,
-  _streamPrefix,
   _streamUiFlushTimer,
-  // Module-level variable accessors
-  _unlisten,
-  _userManuallySelectedVersion,
-  addPendingConversationRefresh,
-  appendStreamChunk,
-  clearPendingConversationRefresh,
-  decrementMultiModelTotalRemaining,
-  deletePendingConversationRefresh,
-  flushPendingStreamChunk,
   getStreamingMessageId,
-  incrementActiveMessageLoadSeq,
-  incrementListenerGen,
   isConversationStreaming as isConvStreaming,
-  rebuildMessageIndex,
-  registerConversationStoreRef,
-  resetMultiModelState,
-  setMultiModelDoneResolve,
-  setMultiModelFirstMessageId,
   setPendingUiChunk,
-  setStreamBuffer,
   setStreamPrefix,
   setStreamUiFlushTimer,
-  // Setter functions
-  setUnlisten,
-  setUserManuallySelectedVersion,
   startConversationStream,
   stopConversationStream,
   STREAM_UI_FLUSH_INTERVAL_MS,
   useStreamStore,
 } from "./streamStore";
 
-// 单调递增计数器，与 Date.now() 组合防止同毫秒 ID 重复
 import { tempId } from "./conversationHelpers";
 
 // ─── Fallback model chain ───
@@ -111,10 +57,9 @@ function buildFallbackChain(
   const chain: FallbackModel[] = [];
   try {
     const providers = useProviderStore.getState().providers ?? [];
-    // TODO: 从 providerStore 读取用户配置的默认模型。当前 store 尚未实现
-    // 默认模型优先级选择功能，保留 undefined 占位以维持 fallback 链结构。
-    const defaultProviderId: string | undefined = undefined;
-    const defaultModelId: string | undefined = undefined;
+    const settings = useSettingsStore.getState().settings;
+    const defaultProviderId: string | undefined = settings.default_provider_id ?? undefined;
+    const defaultModelId: string | undefined = settings.default_model_id ?? undefined;
 
     for (const p of providers) {
       for (const m of p.models ?? []) {
@@ -143,12 +88,16 @@ function buildFallbackChain(
 import type { ConversationState } from "./conversationStore";
 
 export function createSendMethods(
-  set: (fn: (s: ConversationState) => Partial<ConversationState>) => void,
+  set: (partial: Partial<ConversationState> | ((s: ConversationState) => Partial<ConversationState>)) => void,
   get: () => ConversationState,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return {
-    sendMessage: async (content, attachments = [], searchProviderId = null) => {
+    sendMessage: async (
+      content: string,
+      attachments: AttachmentInput[] = [],
+      searchProviderId: string | null = null,
+    ) => {
       const conversationId = get().activeConversationId;
       if (!conversationId) { throw new Error("No active conversation"); }
 
@@ -444,7 +393,11 @@ export function createSendMethods(
       }
     },
 
-    sendAgentMessage: async (content, attachments = [], searchProviderId: string | null = null) => {
+    sendAgentMessage: async (
+      content: string,
+      attachments: AttachmentInput[] = [],
+      searchProviderId: string | null = null,
+    ) => {
       const conversationId = get().activeConversationId;
       if (!conversationId) { throw new Error("No active conversation"); }
 
@@ -1009,7 +962,7 @@ export function createSendMethods(
 
         // Only set error state if the message doesn't already have an error state
         // (agent-error event listener may have already set it with the backend message)
-        const currentMsgs = useConversationStore.getState().messages;
+        const currentMsgs = get().messages;
         const msgAlreadyHasError = currentMsgs.some(
           (m) => m.id === currentMsgId && m.status === "error",
         );
@@ -1051,7 +1004,11 @@ export function createSendMethods(
       }
     },
 
-    sendPlanMessage: async (content, attachments = [], _searchProviderId: string | null = null) => {
+    sendPlanMessage: async (
+      content: string,
+      attachments: AttachmentInput[] = [],
+      _searchProviderId: string | null = null,
+    ) => {
       const conversationId = get().activeConversationId;
       if (!conversationId) { throw new Error("No active conversation"); }
 
@@ -1461,7 +1418,12 @@ export function createSendMethods(
       }
     },
 
-    sendMultiModelMessage: (content, companionModels, attachments, searchProviderId) => {
+    sendMultiModelMessage: (
+      content: string,
+      companionModels: Array<{ providerId: string; model_id: string }>,
+      attachments?: AttachmentInput[],
+      searchProviderId?: string | null,
+    ) => {
       // 委托给 multiModelStore 实现
       return useMultiModelStore.getState().sendMultiModelMessage(
         content,

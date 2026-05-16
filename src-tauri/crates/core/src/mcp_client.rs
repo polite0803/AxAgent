@@ -17,9 +17,16 @@ use serde_json::Value;
 #[allow(unused_imports)]
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
 use tracing::info;
+
+static SSE_JSON_RPC_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_rpc_id() -> u64 {
+    SSE_JSON_RPC_ID.fetch_add(1, Ordering::Relaxed)
+}
 
 /// Progress update during a tool call.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -744,7 +751,7 @@ pub async fn call_tool_sse(
 ) -> Result<McpToolResult> {
     let request = serde_json::json!({
         "jsonrpc": "2.0",
-        "id": 1,
+        "id": next_rpc_id(),
         "method": "tools/call",
         "params": {
             "name": tool_name,
@@ -812,7 +819,7 @@ pub async fn discover_tools_http(endpoint: &str) -> Result<Vec<DiscoveredTool>> 
 pub async fn discover_tools_sse(endpoint: &str) -> Result<Vec<DiscoveredTool>> {
     let request = serde_json::json!({
         "jsonrpc": "2.0",
-        "id": 1,
+        "id": next_rpc_id(),
         "method": "tools/list",
         "params": {}
     });
@@ -1071,7 +1078,7 @@ async fn sse_send_request(sse_url: &str, request: Value, auth_header: Option<&st
     // 3. POST initialize handshake
     let init_request = serde_json::json!({
         "jsonrpc": "2.0",
-        "id": 0,
+        "id": next_rpc_id(),
         "method": "initialize",
         "params": {
             "protocolVersion": "2024-11-05",

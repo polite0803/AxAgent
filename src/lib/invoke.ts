@@ -109,6 +109,7 @@ interface InvokeRecord {
 
 const _invokeHistory: InvokeRecord[] = [];
 const MAX_INVOKE_HISTORY = 500;
+const MAX_INVOKE_COUNTS = 200;
 const _invokeCounts = new Map<string, { total: number; failed: number; totalDurationMs: number }>();
 
 export interface InvokeMetricsSnapshot {
@@ -138,6 +139,12 @@ function recordInvocation(cmd: string, durationMs: number, success: boolean, err
   stats.totalDurationMs += durationMs;
   if (!success) { stats.failed++; }
   _invokeCounts.set(cmd, stats);
+  if (_invokeCounts.size > MAX_INVOKE_COUNTS) {
+    const oldestKey = _invokeCounts.keys().next().value;
+    if (oldestKey !== undefined) {
+      _invokeCounts.delete(oldestKey);
+    }
+  }
 }
 
 // 清空 invoke 历史记录和统计计数器
@@ -409,5 +416,6 @@ export async function listen<T>(
     return tauriListen<T>(event, handler);
   }
   // Browser mode: no-op listener
+  console.warn("[invoke] listen() called in browser mode - events will not fire");
   return () => {};
 }

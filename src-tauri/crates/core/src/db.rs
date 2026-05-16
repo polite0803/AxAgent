@@ -1,4 +1,3 @@
-#[cfg(mobile)]
 use std::path::PathBuf;
 
 use sea_orm::{
@@ -6,8 +5,6 @@ use sea_orm::{
     EntityTrait, QueryFilter, Statement,
 };
 use tracing::info;
-#[cfg(mobile)]
-use tracing::warn;
 
 use crate::entity::providers;
 use crate::error::Result;
@@ -74,7 +71,10 @@ pub fn default_db_path() -> String {
             PathBuf::from(".")
         });
     #[cfg(not(mobile))]
-    let home = dirs::home_dir().expect("Could not determine home directory");
+    let home = dirs::home_dir().unwrap_or_else(|| {
+        tracing::warn!("Could not determine home directory for DB path, using current dir");
+        PathBuf::from(".")
+    });
 
     let path = home.join(".axagent").join("data").join("axagent.db");
     path.to_string_lossy().to_string()
@@ -95,7 +95,10 @@ pub fn profile_db_path(profile_name: &str) -> String {
             PathBuf::from(".")
         });
     #[cfg(not(mobile))]
-    let home = dirs::home_dir().expect("Could not determine home directory");
+    let home = dirs::home_dir().unwrap_or_else(|| {
+        tracing::warn!("Could not determine home directory for DB path, using current dir");
+        PathBuf::from(".")
+    });
 
     let path = home
         .join(".axagent")

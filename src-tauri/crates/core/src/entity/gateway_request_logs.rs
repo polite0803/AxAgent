@@ -14,8 +14,8 @@ pub struct Model {
     pub provider_id: Option<String>,
     pub status_code: i32,
     pub duration_ms: i32,
-    pub request_tokens: i32,
-    pub response_tokens: i32,
+    pub request_tokens: i64,
+    pub response_tokens: i64,
     pub error_message: Option<String>,
     pub created_at: i64,
 }
