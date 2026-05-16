@@ -1,10 +1,16 @@
+#[cfg(not(target_os = "android"))]
 use anyhow::Result;
+#[cfg(not(target_os = "android"))]
 use serde::Serialize;
+#[cfg(not(target_os = "android"))]
 use std::process::Stdio;
+#[cfg(not(target_os = "android"))]
 use tokio::process::Command;
 
+#[cfg(not(target_os = "android"))]
 const SANDBOX_TIMEOUT_SECS: u64 = 30;
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize)]
 pub struct ExecutionResult {
     pub stdout: String,
@@ -12,16 +18,19 @@ pub struct ExecutionResult {
     pub exit_code: i32,
 }
 
+#[cfg(not(target_os = "android"))]
 pub struct SandboxRunner {
     node_path: String,
 }
 
+#[cfg(not(target_os = "android"))]
 impl Default for SandboxRunner {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(not(target_os = "android"))]
 impl SandboxRunner {
     pub fn new() -> Self {
         Self {
@@ -30,7 +39,6 @@ impl SandboxRunner {
     }
 
     pub async fn execute(&self, code: &str, language: &str) -> Result<ExecutionResult> {
-        // 应用沙箱资源限制
         let limits = crate::resource_limits::ResourceLimits::default_sandbox();
         if let Err(e) = limits.apply_to_current_process() {
             tracing::warn!("Failed to apply sandbox resource limits: {}", e);
@@ -44,8 +52,6 @@ impl SandboxRunner {
     }
 
     async fn execute_js(&self, code: &str) -> Result<ExecutionResult> {
-        // 安全边界：此方法仅在 SecuritySandbox::check_command 通过后调用
-        // 网络隔离已由调用方 SecuritySandbox（network_enabled=false）保证
         let temp_dir = std::env::temp_dir();
         let script_path = temp_dir.join(format!("axagent_sandbox_{}.js", uuid::Uuid::new_v4()));
 
@@ -80,6 +86,33 @@ impl SandboxRunner {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn create_sandbox_runner() -> SandboxRunner {
     SandboxRunner::new()
+}
+
+#[cfg(target_os = "android")]
+pub struct SandboxRunner;
+
+#[cfg(target_os = "android")]
+impl SandboxRunner {
+    pub fn new() -> Self {
+        Self
+    }
+    pub async fn execute(&self, _code: &str, _language: &str) -> anyhow::Result<ExecutionResult> {
+        anyhow::bail!("Sandbox execution is not available on Android")
+    }
+}
+
+#[cfg(target_os = "android")]
+pub fn create_sandbox_runner() -> SandboxRunner {
+    SandboxRunner::new()
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, serde::Serialize)]
+pub struct ExecutionResult {
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: i32,
 }

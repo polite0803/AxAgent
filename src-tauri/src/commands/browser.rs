@@ -1,10 +1,12 @@
+#[cfg(not(target_os = "android"))]
 use axagent_core::browser_automation::{ExtractedElement, NavigateResult, ScreenshotResult};
+#[cfg(not(target_os = "android"))]
 use tauri::State;
 
+#[cfg(not(target_os = "android"))]
 use crate::AppState;
 
-/// 懒初始化浏览器客户端（如果尚未启动的话）
-/// 从 AppState 管理生命周期，替代原来不安全的 static mut 全局变量
+#[cfg(not(target_os = "android"))]
 async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
     let mut client_guard = state.browser_client.lock().await;
     if client_guard.is_none() {
@@ -16,6 +18,7 @@ async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_navigate(
     state: State<'_, AppState>,
@@ -27,6 +30,7 @@ pub async fn browser_navigate(
     client.navigate(&url).await.map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_screenshot(
     state: State<'_, AppState>,
@@ -41,6 +45,7 @@ pub async fn browser_screenshot(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Result<(), String> {
     ensure_browser_client(&state).await?;
@@ -49,6 +54,7 @@ pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Resu
     client.click(&selector).await.map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_fill(
     state: State<'_, AppState>,
@@ -64,6 +70,7 @@ pub async fn browser_fill(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_type(
     state: State<'_, AppState>,
@@ -79,6 +86,7 @@ pub async fn browser_type(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_extract_text(
     state: State<'_, AppState>,
@@ -93,6 +101,7 @@ pub async fn browser_extract_text(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_extract_all(
     state: State<'_, AppState>,
@@ -107,6 +116,7 @@ pub async fn browser_extract_all(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, String> {
     ensure_browser_client(&state).await?;
@@ -115,6 +125,7 @@ pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, S
     client.get_content().await.map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_wait_for(
     state: State<'_, AppState>,
@@ -130,6 +141,7 @@ pub async fn browser_wait_for(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_select(
     state: State<'_, AppState>,
@@ -145,6 +157,7 @@ pub async fn browser_select(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_close(state: State<'_, AppState>) -> Result<(), String> {
     let mut guard = state.browser_client.lock().await;
@@ -152,4 +165,70 @@ pub async fn browser_close(state: State<'_, AppState>) -> Result<(), String> {
         client.close().await.map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_navigate(_url: String) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_screenshot(_full_page: Option<bool>) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_click(_selector: String) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_fill(_selector: String, _value: String) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_type(_selector: String, _text: String) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_extract_text(_selector: String) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_extract_all(_selector: String) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_get_content() -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_wait_for(_selector: String, _timeout: Option<u32>) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_select(_selector: String, _value: String) -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn browser_close() -> Result<(), String> {
+    Err("Browser automation is not available on Android".to_string())
 }

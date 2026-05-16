@@ -11,11 +11,10 @@ test.describe("Chat Flow", () => {
   });
 
   test("should have message input area", async ({ page }) => {
+    // S-25: 硬断言 — 输入区域是核心 UI 元素
     const input = page.locator('[data-testid="message-input"]');
-    const isVisible = await input.isVisible({ timeout: 10000 }).catch(() => false);
-    if (isVisible) {
-      await expect(input).toBeVisible();
-    }
+    await expect(input).toBeVisible({ timeout: 15000 });
+    await expect(input).toBeEnabled();
   });
 
   test("should navigate to settings page via URL", async ({ page }) => {
@@ -34,15 +33,9 @@ test.describe("Settings", () => {
     await expect(page.locator('[data-testid="settings-sidebar"]')).toBeVisible();
   });
 
-  test("should save theme preference", async ({ page }) => {
-    const displayNav = page.locator(".ant-menu-item").filter({ hasText: /显示|display|appearance|theme/i }).first();
-    const isVisible = await displayNav.isVisible({ timeout: 5000 }).catch(() => false);
-    if (isVisible) {
-      await displayNav.click({ force: true });
-      const darkModeToggle = page.locator('[data-testid="dark-mode-toggle"]');
-      if (await darkModeToggle.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(darkModeToggle).toBeVisible();
-      }
-    }
+  test("should show dark mode toggle in settings", async ({ page }) => {
+    // S-25: 硬断言 — 导航到设置页面验证暗色模式切换存在
+    const darkModeToggle = page.locator('[data-testid="dark-mode-toggle"]');
+    await expect(darkModeToggle).toBeVisible({ timeout: 15000 });
   });
 });

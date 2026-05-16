@@ -1,6 +1,9 @@
+#[cfg(not(target_os = "android"))]
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_os = "android"))]
 use std::path::Path;
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitDiffSummary {
     pub files_changed: usize,
@@ -9,6 +12,7 @@ pub struct GitDiffSummary {
     pub file_diffs: Vec<FileDiff>,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileDiff {
     pub path: String,
@@ -18,6 +22,7 @@ pub struct FileDiff {
     pub hunks: Vec<Hunk>,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hunk {
     pub old_start: u32,
@@ -27,6 +32,7 @@ pub struct Hunk {
     pub content: String,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReviewComment {
     pub file: String,
@@ -36,6 +42,7 @@ pub struct ReviewComment {
     pub suggestion: Option<String>,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReviewSeverity {
     Info,
@@ -43,6 +50,7 @@ pub enum ReviewSeverity {
     Error,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BranchInfo {
     pub name: String,
@@ -52,6 +60,7 @@ pub struct BranchInfo {
     pub last_commit_date: String,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitLogEntry {
     pub hash: String,
@@ -61,6 +70,7 @@ pub struct GitLogEntry {
     pub body: Option<String>,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitStatusEntry {
     pub path: String,
@@ -68,8 +78,10 @@ pub struct GitStatusEntry {
     pub staged: bool,
 }
 
+#[cfg(not(target_os = "android"))]
 pub struct GitTools;
 
+#[cfg(not(target_os = "android"))]
 impl GitTools {
     pub fn get_staged_diff(repo_path: &str) -> Result<GitDiffSummary, String> {
         let stat_output = run_git(repo_path, &["diff", "--staged", "--numstat"])?;
@@ -362,6 +374,7 @@ impl GitTools {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 fn run_git(cwd: &str, args: &[&str]) -> Result<String, String> {
     if !Path::new(cwd).exists() {
         return Err(format!("Directory does not exist: {}", cwd));
@@ -381,6 +394,7 @@ fn run_git(cwd: &str, args: &[&str]) -> Result<String, String> {
     String::from_utf8(output.stdout).map_err(|e| format!("Invalid UTF-8 output: {}", e))
 }
 
+#[cfg(not(target_os = "android"))]
 fn classify_change(insertions: usize, deletions: usize) -> String {
     match (insertions, deletions) {
         (0, 0) => "modified".to_string(),
@@ -390,6 +404,7 @@ fn classify_change(insertions: usize, deletions: usize) -> String {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,5 +415,144 @@ mod tests {
         assert_eq!(classify_change(0, 5), "deleted");
         assert_eq!(classify_change(5, 3), "modified");
         assert_eq!(classify_change(0, 0), "modified");
+    }
+}
+
+#[cfg(target_os = "android")]
+use serde::{Deserialize, Serialize};
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitDiffSummary {
+    pub files_changed: usize,
+    pub insertions: usize,
+    pub deletions: usize,
+    pub file_diffs: Vec<FileDiff>,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileDiff {
+    pub path: String,
+    pub status: String,
+    pub insertions: usize,
+    pub deletions: usize,
+    pub hunks: Vec<Hunk>,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Hunk {
+    pub old_start: u32,
+    pub old_lines: u32,
+    pub new_start: u32,
+    pub new_lines: u32,
+    pub content: String,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReviewComment {
+    pub file: String,
+    pub line: u32,
+    pub severity: ReviewSeverity,
+    pub message: String,
+    pub suggestion: Option<String>,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ReviewSeverity {
+    Info,
+    Warning,
+    Error,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BranchInfo {
+    pub name: String,
+    pub is_current: bool,
+    pub is_remote: bool,
+    pub last_commit: String,
+    pub last_commit_date: String,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitLogEntry {
+    pub hash: String,
+    pub author: String,
+    pub date: String,
+    pub subject: String,
+    pub body: Option<String>,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitStatusEntry {
+    pub path: String,
+    pub status: String,
+    pub staged: bool,
+}
+
+#[cfg(target_os = "android")]
+pub struct GitTools;
+
+#[cfg(target_os = "android")]
+impl GitTools {
+    pub fn get_staged_diff(_repo_path: &str) -> Result<GitDiffSummary, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn get_branch_diff(_repo_path: &str, _base_branch: &str) -> Result<GitDiffSummary, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn get_branch_commits(
+        _repo_path: &str,
+        _base_branch: &str,
+    ) -> Result<Vec<GitLogEntry>, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn commit(_repo_path: &str, _message: &str) -> Result<String, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn stage_all(_repo_path: &str) -> Result<String, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn stage_files(_repo_path: &str, _files: &[&str]) -> Result<String, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn get_status(_repo_path: &str) -> Result<Vec<GitStatusEntry>, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn list_branches(_repo_path: &str) -> Result<Vec<BranchInfo>, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn get_log(_repo_path: &str, _max_count: usize) -> Result<Vec<GitLogEntry>, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn create_branch(_repo_path: &str, _name: &str) -> Result<String, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn switch_branch(_repo_path: &str, _name: &str) -> Result<String, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn generate_commit_context(_repo_path: &str) -> Result<String, String> {
+        Err("Git tools are not available on Android".to_string())
+    }
+
+    pub fn generate_pr_context(_repo_path: &str, _base_branch: &str) -> Result<String, String> {
+        Err("Git tools are not available on Android".to_string())
     }
 }

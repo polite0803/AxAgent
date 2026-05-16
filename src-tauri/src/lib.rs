@@ -1253,5 +1253,40 @@ pub fn run() {
                 }
             }
         }
+
+        // 优雅关闭：通知后台任务停止并等待完成 (S-39)
+        if let tauri::RunEvent::Exit = _event {
+            let state = _app.state::<AppState>();
+            state.shutdown_token.cancel();
+            tracing::info!("[shutdown] 正在停止后台任务...");
+
+            let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+                tracing::error!("[shutdown] 无法创建退出 Runtime: {}", e);
+                std::process::exit(1);
+            });
+
+            let timeout = std::time::Duration::from_secs(5);
+            let await_handle = |handle: &std::sync::Arc<
+                tokio::sync::Mutex<Option<tokio::task::JoinHandle<()>>>,
+            >,
+                                name: &str| {
+                let mut guard = rt.block_on(handle.lock());
+                if let Some(mut h) = guard.take() {
+                    match rt.block_on(async { tokio::time::timeout(timeout, &mut h).await }) {
+                        Ok(Ok(())) => tracing::info!("[shutdown] {} 已优雅停止", name),
+                        Ok(Err(e)) => tracing::warn!("[shutdown] {} join 错误: {}", name, e),
+                        Err(_) => {
+                            tracing::warn!("[shutdown] {} 超时 ({:?})，强制中止", name, timeout);
+                            h.abort();
+                        },
+                    }
+                }
+            };
+
+            await_handle(&state.auto_backup_handle, "auto_backup");
+            await_handle(&state.webdav_sync_handle, "webdav_sync");
+            await_handle(&state.api_server_handle, "api_server");
+            tracing::info!("[shutdown] 退出完成");
+        }
     });
 }

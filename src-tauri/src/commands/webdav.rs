@@ -267,12 +267,14 @@ pub async fn restart_webdav_sync(state: State<'_, AppState>) -> Result<(), Strin
     let master_key = state.master_key;
     let app_data_dir = state.app_data_dir.clone();
     let interval_minutes = settings.webdav_sync_interval_minutes;
+    let shutdown_token = state.shutdown_token.clone();
     let task = spawn_webdav_sync_task(
         db,
         master_key,
         app_data_dir,
         interval_minutes,
         interval_minutes as u64 * 60,
+        shutdown_token,
     );
 
     *guard = Some(task);
@@ -478,17 +480,25 @@ pub(crate) fn spawn_webdav_sync_task(
     app_data_dir: std::path::PathBuf,
     interval_minutes: u32,
     initial_delay_secs: u64,
+    shutdown_token: tokio_util::sync::CancellationToken,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let interval = std::time::Duration::from_secs(interval_minutes as u64 * 60);
         // Initial wait (may be shorter if overdue)
         tokio::time::sleep(std::time::Duration::from_secs(initial_delay_secs)).await;
         loop {
-            match do_webdav_backup_impl(&db, &master_key, &app_data_dir).await {
-                Ok(name) => tracing::info!("WebDAV auto-sync completed: {}", name),
-                Err(e) => tracing::warn!("WebDAV auto-sync failed: {}", e),
+            tokio::select! {
+                _ = shutdown_token.cancelled() => {
+                    tracing::info!("[webdav_sync] 收到关闭信号，停止同步");
+                    break;
+                }
+                _ = tokio::time::sleep(interval) => {
+                    match do_webdav_backup_impl(&db, &master_key, &app_data_dir).await {
+                        Ok(name) => tracing::info!("WebDAV auto-sync completed: {}", name),
+                        Err(e) => tracing::warn!("WebDAV auto-sync failed: {}", e),
+                    }
+                }
             }
-            tokio::time::sleep(interval).await;
         }
     })
 }

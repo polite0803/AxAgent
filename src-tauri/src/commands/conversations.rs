@@ -4185,6 +4185,9 @@ mod tests {
             dashboard_registry: None,
             webhook_subscription_manager: None,
             semantic_cache,
+            #[cfg(not(target_os = "android"))]
+            browser_client: Arc::new(tokio::sync::Mutex::new(None)),
+            #[cfg(target_os = "android")]
             browser_client: Arc::new(tokio::sync::Mutex::new(None)),
             dream_consolidator: Arc::new(axagent_trajectory::DreamConsolidator::new()),
             text_grad_engine: Arc::new(tokio::sync::Mutex::new(
@@ -4225,13 +4228,17 @@ mod tests {
             dream_data_provider: Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
                 trajectory_storage.clone(),
             )),
+            #[cfg(not(target_os = "android"))]
             sandbox_executor: Arc::new(
                 axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
             ),
+            #[cfg(target_os = "android")]
+            sandbox_executor: Arc::new(()),
             sync_engine: None,
             plugin_manager: std::sync::Mutex::new(axagent_plugins::PluginManager::new(
                 axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
             )),
+            shutdown_token: tokio_util::sync::CancellationToken::new(),
         };
 
         let attachments = vec![AttachmentInput {

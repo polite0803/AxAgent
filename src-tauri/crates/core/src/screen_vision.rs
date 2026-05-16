@@ -1,6 +1,9 @@
+#[cfg(not(target_os = "android"))]
 use anyhow::Result;
+#[cfg(not(target_os = "android"))]
 use serde::{Deserialize, Serialize};
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenAnalysis {
     pub elements: Vec<UIElementInfo>,
@@ -9,6 +12,7 @@ pub struct ScreenAnalysis {
     pub confidence: f32,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UIElementInfo {
     pub element_type: String,
@@ -20,6 +24,7 @@ pub struct UIElementInfo {
     pub confidence: f32,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ElementBounds {
     pub x: f64,
@@ -28,6 +33,7 @@ pub struct ElementBounds {
     pub height: f64,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SuggestedAction {
     pub action_type: ActionType,
@@ -36,6 +42,7 @@ pub struct SuggestedAction {
     pub reasoning: String,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionType {
@@ -49,6 +56,7 @@ pub enum ActionType {
     None,
 }
 
+#[cfg(not(target_os = "android"))]
 impl ActionType {
     #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
@@ -65,16 +73,19 @@ impl ActionType {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VisionPrompt {
     pub task_description: String,
     pub image_base64: String,
 }
 
+#[cfg(not(target_os = "android"))]
 pub struct ScreenVisionAnalyzer {
     provider: VisionProvider,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum VisionProvider {
     #[default]
@@ -83,6 +94,7 @@ pub enum VisionProvider {
     Gemini,
 }
 
+#[cfg(not(target_os = "android"))]
 impl ScreenVisionAnalyzer {
     pub fn new(provider: VisionProvider) -> Self {
         Self { provider }
@@ -449,6 +461,139 @@ Return the analysis in this JSON format:
     }
 }
 
+#[cfg(not(target_os = "android"))]
+impl Default for ScreenVisionAnalyzer {
+    fn default() -> Self {
+        Self::new(VisionProvider::Anthropic)
+    }
+}
+
+#[cfg(target_os = "android")]
+use serde::{Deserialize, Serialize};
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScreenAnalysis {
+    pub elements: Vec<UIElementInfo>,
+    pub suggested_actions: Vec<SuggestedAction>,
+    pub reasoning: String,
+    pub confidence: f32,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UIElementInfo {
+    pub element_type: String,
+    pub name: String,
+    pub description: String,
+    pub bounds: ElementBounds,
+    pub clickable: bool,
+    pub editable: bool,
+    pub confidence: f32,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElementBounds {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SuggestedAction {
+    pub action_type: ActionType,
+    pub target_element: String,
+    pub description: String,
+    pub reasoning: String,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ActionType {
+    Click,
+    DoubleClick,
+    RightClick,
+    Type,
+    Hover,
+    Scroll,
+    Select,
+    None,
+}
+
+#[cfg(target_os = "android")]
+impl ActionType {
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "click" => ActionType::Click,
+            "double_click" | "doubleclick" => ActionType::DoubleClick,
+            "right_click" | "rightclick" => ActionType::RightClick,
+            "type" | "input" => ActionType::Type,
+            "hover" | "mouse_over" => ActionType::Hover,
+            "scroll" => ActionType::Scroll,
+            "select" => ActionType::Select,
+            _ => ActionType::None,
+        }
+    }
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VisionPrompt {
+    pub task_description: String,
+    pub image_base64: String,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum VisionProvider {
+    #[default]
+    Anthropic,
+    OpenAI,
+    Gemini,
+}
+
+#[cfg(target_os = "android")]
+pub struct ScreenVisionAnalyzer {
+    provider: VisionProvider,
+}
+
+#[cfg(target_os = "android")]
+impl ScreenVisionAnalyzer {
+    pub fn new(provider: VisionProvider) -> Self {
+        Self { provider }
+    }
+
+    pub async fn analyze_screen(
+        &self,
+        _image_base64: &str,
+        _task_description: &str,
+    ) -> anyhow::Result<ScreenAnalysis> {
+        Err(anyhow::anyhow!("Screen vision is not available on Android"))
+    }
+
+    pub async fn find_element(
+        &self,
+        _image_base64: &str,
+        _element_description: &str,
+    ) -> anyhow::Result<Option<UIElementInfo>> {
+        Err(anyhow::anyhow!("Screen vision is not available on Android"))
+    }
+
+    pub async fn suggest_next_action(
+        &self,
+        _image_base64: &str,
+        _current_task: &str,
+    ) -> anyhow::Result<Vec<SuggestedAction>> {
+        Err(anyhow::anyhow!("Screen vision is not available on Android"))
+    }
+}
+
+#[cfg(target_os = "android")]
 impl Default for ScreenVisionAnalyzer {
     fn default() -> Self {
         Self::new(VisionProvider::Anthropic)

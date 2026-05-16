@@ -78,6 +78,7 @@ axagent-tools = { path = "crates/tools" }
 axagent-plugins = { path = "crates/plugins" }
 axagent-prompt-guard = { path = "crates/prompt-guard" }
 tokio = { workspace = true }
+tokio-util = { version = "0.7", features = ["rt"] }
 uuid = { workspace = true }
 sea-orm = { workspace = true }
 chrono = { workspace = true }

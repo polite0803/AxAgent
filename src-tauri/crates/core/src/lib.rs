@@ -6,6 +6,7 @@
 
 // builtin_tools, builtin_tools_registry 已迁移至 axagent-tools crate
 pub mod ast_index;
+#[cfg(not(target_os = "android"))]
 pub mod browser_automation;
 pub mod cache;
 pub mod cache_persister;
@@ -13,6 +14,9 @@ pub mod cache_snapshot;
 pub mod cloud_storage;
 pub mod cloud_workspace;
 pub mod command_validator;
+#[cfg(not(target_os = "android"))]
+pub mod computer_control;
+#[cfg(target_os = "android")]
 pub mod computer_control;
 pub mod crypto;
 pub mod db;
@@ -23,9 +27,15 @@ pub mod error;
 pub mod file_authorizer;
 pub mod file_index;
 pub mod file_store;
+#[cfg(not(target_os = "android"))]
+pub mod git_tools;
+#[cfg(target_os = "android")]
 pub mod git_tools;
 pub mod html_cleaner;
 pub mod hybrid_search;
+#[cfg(not(target_os = "android"))]
+pub mod incremental_indexer;
+#[cfg(target_os = "android")]
 pub mod incremental_indexer;
 pub mod inference;
 pub mod markdown_parser;
@@ -55,6 +65,9 @@ pub mod s3_backup;
 pub mod sandbox_runner;
 pub mod schema_validator;
 pub mod screen_capture;
+#[cfg(not(target_os = "android"))]
+pub mod screen_vision;
+#[cfg(target_os = "android")]
 pub mod screen_vision;
 pub mod search;
 pub mod self_rag;

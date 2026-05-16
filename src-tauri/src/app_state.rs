@@ -8,6 +8,7 @@ use sea_orm::DatabaseConnection;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 
 use std::path::PathBuf;
 use tokio::sync::RwLock as TokioRwLock;
@@ -22,6 +23,8 @@ pub struct AppState {
     pub auto_backup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub webdav_sync_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub api_server_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    /// 优雅关闭信号，通知所有后台任务停止
+    pub shutdown_token: CancellationToken,
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,
     pub indexing_semaphore: Arc<tokio::sync::Semaphore>,
     pub stream_cancel_flags: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
@@ -70,8 +73,11 @@ pub struct AppState {
     pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
     pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCache>>,
     // 浏览器客户端：使用 tokio::sync::Mutex 取代全局 static mut，避免数据竞争
+    #[cfg(not(target_os = "android"))]
     pub browser_client:
         Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,
+    #[cfg(target_os = "android")]
+    pub browser_client: Arc<tokio::sync::Mutex<Option<()>>>,
     pub dream_consolidator: Arc<axagent_trajectory::DreamConsolidator>,
     pub text_grad_engine: Arc<tokio::sync::Mutex<axagent_trajectory::TextGradEngine>>,
     pub auto_tool_creator: Arc<tokio::sync::Mutex<axagent_trajectory::AutoToolCreator>>,
@@ -81,7 +87,17 @@ pub struct AppState {
     pub constitution: Arc<axagent_trajectory::ImmutableConstitution>,
     pub process_reward_model: Arc<tokio::sync::Mutex<axagent_trajectory::ProcessRewardModel>>,
     pub dream_data_provider: Arc<axagent_trajectory::TrajectoryDreamDataProvider>,
+    #[cfg(not(target_os = "android"))]
     pub sandbox_executor: Arc<axagent_trajectory::SkillSandboxExecutor>,
+    #[cfg(target_os = "android")]
+    pub sandbox_executor: Arc<()>,
     pub sync_engine: Option<Arc<SyncEngine>>,
     pub plugin_manager: std::sync::Mutex<PluginManager>,
+}
+
+impl Drop for AppState {
+    fn drop(&mut self) {
+        self.shutdown_token.cancel();
+        tracing::info!("[shutdown] CancellationToken 已通知，后台任务应停止");
+    }
 }

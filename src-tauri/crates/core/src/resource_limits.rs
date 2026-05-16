@@ -35,7 +35,7 @@ impl ResourceLimits {
 
     /// 应用资源限制到当前进程及其子进程
     pub fn apply_to_current_process(&self) -> Result<(), String> {
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        #[cfg(all(unix, not(target_os = "android")))]
         self.apply_rlimit()?;
 
         #[cfg(target_os = "windows")]
@@ -52,7 +52,7 @@ impl ResourceLimits {
         Ok(())
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(all(unix, not(target_os = "android")))]
     fn apply_rlimit(&self) -> Result<(), String> {
         // RLIMIT_CPU: 进程可使用的 CPU 时间（秒）
         self.set_rlimit(
@@ -81,7 +81,7 @@ impl ResourceLimits {
         Ok(())
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(all(unix, not(target_os = "android")))]
     fn set_rlimit(&self, resource: u32, soft: u64, hard: u64) -> Result<(), String> {
         let rlim = libc::rlimit {
             rlim_cur: soft.min(hard),

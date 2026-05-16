@@ -10,6 +10,7 @@ use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
+use tokio_util::sync::CancellationToken;
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
     let DatabaseInitResult {
@@ -158,6 +159,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         auto_backup_handle: Arc::new(Mutex::new(None)),
         webdav_sync_handle: Arc::new(Mutex::new(None)),
         api_server_handle: Arc::new(Mutex::new(None)),
+        shutdown_token: CancellationToken::new(),
         vector_store: vector_store_arc,
         indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
         stream_cancel_flags: Arc::new(Mutex::new(std::collections::HashMap::new())),
@@ -202,10 +204,15 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             shared_trajectory_storage.clone(),
             axagent_trajectory::BatchConfig::default(),
         )),
+        #[cfg(not(target_os = "android"))]
         skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
             axagent_trajectory::SkillEvolutionEngine::new().with_sandbox(Arc::new(
                 axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
             )),
+        )),
+        #[cfg(target_os = "android")]
+        skill_evolution_engine: Arc::new(tokio::sync::Mutex::new(
+            axagent_trajectory::SkillEvolutionEngine::new(),
         )),
         skill_proposal_service: Arc::new(TokioRwLock::new(
             axagent_trajectory::SkillProposalService::new(shared_trajectory_storage.clone()),
@@ -373,7 +380,10 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         dream_data_provider: Arc::new(axagent_trajectory::TrajectoryDreamDataProvider::new(
             shared_trajectory_storage.clone(),
         )),
+        #[cfg(not(target_os = "android"))]
         sandbox_executor: Arc::new(axagent_trajectory::SkillSandboxExecutor::with_default_policy()),
+        #[cfg(target_os = "android")]
+        sandbox_executor: Arc::new(()),
         sync_engine,
         plugin_manager,
     }

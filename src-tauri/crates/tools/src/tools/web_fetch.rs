@@ -123,9 +123,23 @@ impl Tool for WebFetchTool {
 
         // JS 渲染分支
         if render_js {
-            return self
-                .fetch_with_js_rendering(url, &prompt, render_wait_ms, start)
-                .await;
+            #[cfg(not(target_os = "android"))]
+            {
+                return self
+                    .fetch_with_js_rendering(url, &prompt, render_wait_ms, start)
+                    .await;
+            }
+            #[cfg(target_os = "android")]
+            {
+                return Ok(ToolResult {
+                    content: "JavaScript rendering is not available on Android".to_string(),
+                    truncated: false,
+                    is_error: true,
+                    metadata: None,
+                    duration_ms: Some(start.elapsed().as_millis() as u64),
+                    progress,
+                });
+            }
         }
 
         let client = shared_http_client();
@@ -241,6 +255,7 @@ impl Tool for WebFetchTool {
 
 impl WebFetchTool {
     /// JS 渲染路径：启动 headless browser 导航 → 等待 → 提取内容
+    #[cfg(not(target_os = "android"))]
     async fn fetch_with_js_rendering(
         &self,
         url: &str,

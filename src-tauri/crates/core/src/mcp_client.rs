@@ -515,10 +515,12 @@ async fn spawn_stdio_client(
 }
 
 /// Global MCP connection pool (lazy-initialized).
+#[cfg(not(target_os = "android"))]
 static MCP_POOL: OnceLock<Arc<McpConnectionPool>> = OnceLock::new();
 
 /// Get the global MCP connection pool.
 /// Idle timeout is 5 minutes — connections not used for 5 min are evicted.
+#[cfg(not(target_os = "android"))]
 pub fn global_mcp_pool() -> Arc<McpConnectionPool> {
     MCP_POOL
         .get_or_init(|| Arc::new(McpConnectionPool::new(std::time::Duration::from_secs(300))))
@@ -527,6 +529,7 @@ pub fn global_mcp_pool() -> Arc<McpConnectionPool> {
 
 /// Execute a tool call against an MCP server via stdio transport,
 /// using the connection pool to reuse existing connections.
+#[cfg(not(target_os = "android"))]
 pub async fn call_tool_stdio_pooled(
     command: &str,
     args: &[String],
@@ -573,6 +576,7 @@ pub async fn call_tool_stdio_pooled(
 
 /// Execute a tool call against an MCP server via stdio transport.
 /// (Legacy non-pooled version — kept for backward compatibility and tests)
+#[cfg(not(target_os = "android"))]
 pub async fn call_tool_stdio(
     command: &str,
     args: &[String],
@@ -620,6 +624,7 @@ pub async fn call_tool_stdio(
 }
 
 /// Discover tools from an MCP server via stdio transport.
+#[cfg(not(target_os = "android"))]
 pub async fn discover_tools_stdio(
     command: &str,
     args: &[String],
@@ -658,6 +663,37 @@ pub async fn discover_tools_stdio(
     let _ = client.cancel().await;
 
     Ok(tools.iter().map(tool_to_discovered).collect())
+}
+
+#[cfg(target_os = "android")]
+pub async fn call_tool_stdio(
+    _command: &str,
+    _args: &[String],
+    _env: &HashMap<String, String>,
+    _tool_name: &str,
+    _tool_arguments: Value,
+) -> Result<McpToolResult> {
+    Err(AxAgentError::Gateway("MCP stdio transport is not available on Android".into()))
+}
+
+#[cfg(target_os = "android")]
+pub async fn call_tool_stdio_pooled(
+    _command: &str,
+    _args: &[String],
+    _env: &HashMap<String, String>,
+    _tool_name: &str,
+    _tool_arguments: Value,
+) -> Result<McpToolResult> {
+    Err(AxAgentError::Gateway("MCP stdio transport is not available on Android".into()))
+}
+
+#[cfg(target_os = "android")]
+pub async fn discover_tools_stdio(
+    _command: &str,
+    _args: &[String],
+    _env: &HashMap<String, String>,
+) -> Result<Vec<DiscoveredTool>> {
+    Err(AxAgentError::Gateway("MCP stdio transport is not available on Android".into()))
 }
 
 // ---------------------------------------------------------------------------
@@ -876,18 +912,29 @@ pub async fn call_tool_unified_with_opts(
 
     match transport {
         "stdio" => {
-            report("connecting", "启动 MCP 进程...", Some(10));
-            let command = command
-                .ok_or_else(|| AxAgentError::Gateway("stdio transport requires command".into()))?;
-            let args = args.unwrap_or(&[]);
-            let env = env.cloned().unwrap_or_default();
+            #[cfg(target_os = "android")]
+            {
+                let _ = (command, args, env, tool_name, tool_arguments, on_progress);
+                return Err(AxAgentError::Gateway(
+                    "MCP stdio transport is not available on Android".into(),
+                ));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                report("connecting", "启动 MCP 进程...", Some(10));
+                let command = command.ok_or_else(|| {
+                    AxAgentError::Gateway("stdio transport requires command".into())
+                })?;
+                let args = args.unwrap_or(&[]);
+                let env = env.cloned().unwrap_or_default();
 
-            report("executing", &format!("执行工具: {tool_name}"), Some(50));
-            let mut result =
-                call_tool_stdio_pooled(command, args, &env, tool_name, tool_arguments).await?;
-            report("done", "完成", Some(100));
-            result.progress = progress;
-            Ok(result)
+                report("executing", &format!("执行工具: {tool_name}"), Some(50));
+                let mut result =
+                    call_tool_stdio_pooled(command, args, &env, tool_name, tool_arguments).await?;
+                report("done", "完成", Some(100));
+                result.progress = progress;
+                Ok(result)
+            }
         },
         "http" => {
             report("connecting", "连接 HTTP MCP 服务器...", Some(10));
@@ -927,11 +974,22 @@ pub async fn discover_tools_unified(
 ) -> Result<Vec<DiscoveredTool>> {
     match transport {
         "stdio" => {
-            let command = command
-                .ok_or_else(|| AxAgentError::Gateway("stdio transport requires command".into()))?;
-            let args = args.unwrap_or(&[]);
-            let env = env.cloned().unwrap_or_default();
-            discover_tools_stdio(command, args, &env).await
+            #[cfg(target_os = "android")]
+            {
+                let _ = (command, args, env);
+                return Err(AxAgentError::Gateway(
+                    "MCP stdio transport is not available on Android".into(),
+                ));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                let command = command.ok_or_else(|| {
+                    AxAgentError::Gateway("stdio transport requires command".into())
+                })?;
+                let args = args.unwrap_or(&[]);
+                let env = env.cloned().unwrap_or_default();
+                discover_tools_stdio(command, args, &env).await
+            }
         },
         "http" => {
             let endpoint = endpoint
@@ -1175,6 +1233,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
+    #[cfg(not(target_os = "android"))]
     #[test]
     fn configure_stdio_env_applies_custom_variables() {
         let mut env = HashMap::new();
@@ -1199,6 +1258,7 @@ mod tests {
         assert_eq!(env_map.get("PATH"), Some(&Some("/custom/bin".to_string())));
     }
 
+    #[cfg(not(target_os = "android"))]
     #[tokio::test]
     async fn call_tool_stdio_does_not_hang_when_initialize_stdout_is_non_json_then_eof() {
         let args = vec!["npm notice".to_string()];

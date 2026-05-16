@@ -1,26 +1,26 @@
-//! File system watcher for incremental index updates.
-//!
-//! Monitors a project directory for file changes (create/modify/delete)
-//! and triggers targeted incremental index rebuilding for only the
-//! affected files, avoiding expensive full-rescan operations.
-//!
-//! Integrates with `FileIndex` and `AstIndex` to keep both in sync
-//! with the filesystem state.
-
+#[cfg(not(target_os = "android"))]
 use crate::ast_index::AstIndex;
+#[cfg(not(target_os = "android"))]
 use crate::file_index::{FileIndex, FileIndexConfig};
+#[cfg(not(target_os = "android"))]
 use notify::{Event, EventKind, RecursiveMode, Watcher};
+#[cfg(not(target_os = "android"))]
 use std::cell::RefCell;
+#[cfg(not(target_os = "android"))]
 use std::path::{Path, PathBuf};
+#[cfg(not(target_os = "android"))]
 use std::sync::mpsc;
+#[cfg(not(target_os = "android"))]
 use std::time::{Duration, Instant};
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone)]
 pub struct WatchConfig {
     pub debounce_ms: u64,
     pub code_extensions: Vec<String>,
 }
 
+#[cfg(not(target_os = "android"))]
 impl Default for WatchConfig {
     fn default() -> Self {
         Self {
@@ -33,12 +33,14 @@ impl Default for WatchConfig {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 pub struct IncrementalIndexer {
     watch_config: WatchConfig,
     file_index_config: FileIndexConfig,
     last_event: RefCell<Instant>,
 }
 
+#[cfg(not(target_os = "android"))]
 impl IncrementalIndexer {
     pub fn new(watch_config: WatchConfig, file_index_config: FileIndexConfig) -> Self {
         Self {
@@ -48,10 +50,6 @@ impl IncrementalIndexer {
         }
     }
 
-    /// Start watching a directory for changes and apply incremental index updates.
-    ///
-    /// This function blocks on the watcher channel, so it should be spawned
-    /// on a dedicated thread or tokio task.
     pub fn watch_and_index(
         &self,
         root: &Path,
@@ -92,7 +90,6 @@ impl IncrementalIndexer {
             return;
         }
 
-        // Debounce: ignore events arriving faster than the configured window
         let now = Instant::now();
         if now.duration_since(*self.last_event.borrow())
             < Duration::from_millis(self.watch_config.debounce_ms)
@@ -128,19 +125,16 @@ impl IncrementalIndexer {
         for path in &event.paths {
             if let Ok(rel) = path.strip_prefix(root) {
                 let rel_str = rel.to_string_lossy();
-                // Skip excluded directories
                 for pattern in &self.file_index_config.exclude_patterns {
                     if rel_str.contains(pattern.as_str()) {
                         return true;
                     }
                 }
-                // Check extension for code files
                 if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
                     if self.watch_config.code_extensions.iter().any(|e| e == ext) {
                         return false;
                     }
                 }
-                // Always index files without extension (e.g. Dockerfile, Makefile)
                 if path.extension().is_none() && path.is_file() {
                     return false;
                 }
@@ -179,10 +173,8 @@ impl IncrementalIndexer {
             .unwrap_or("")
             .to_string();
 
-        // Update file index
         file_index.upsert(&rel_str, &ext, size, modified)?;
 
-        // Re-index AST
         let content = std::fs::read_to_string(path).map_err(|e| format!("read: {e}"))?;
         ast_index.index_file(&rel_str, &content)?;
 
@@ -190,21 +182,15 @@ impl IncrementalIndexer {
         Ok(())
     }
 
-    /// Perform an initial full scan of a directory, then begin watching.
-    ///
-    /// This combines the initial full scan with incremental watching so that
-    /// the index is always up-to-date.
     pub fn initial_scan_and_watch(
         &self,
         root: &Path,
         file_index: &FileIndex,
         ast_index: &AstIndex,
     ) -> Result<(), String> {
-        // Full initial scan
         let file_count = file_index.scan_directory(root, &self.file_index_config)?;
         tracing::info!("Initial file scan complete: {} files indexed", file_count);
 
-        // Build AST index for all indexed files
         let mut ast_count = 0;
         let entries = file_index.all_entries()?;
         for entry in &entries {
@@ -222,17 +208,18 @@ impl IncrementalIndexer {
         }
         tracing::info!("Initial AST index complete: {} definitions", ast_count);
 
-        // Begin watching
         self.watch_and_index(root, file_index, ast_index)
     }
 }
 
+#[cfg(not(target_os = "android"))]
 impl Default for IncrementalIndexer {
     fn default() -> Self {
         Self::new(WatchConfig::default(), FileIndexConfig::default())
     }
 }
 
+#[cfg(not(target_os = "android"))]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,5 +250,63 @@ mod tests {
         assert_eq!(results[0].name, "hello");
 
         let _ = fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(target_os = "android")]
+use std::path::Path;
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone)]
+pub struct WatchConfig {
+    pub debounce_ms: u64,
+    pub code_extensions: Vec<String>,
+}
+
+#[cfg(target_os = "android")]
+impl Default for WatchConfig {
+    fn default() -> Self {
+        Self {
+            debounce_ms: 500,
+            code_extensions: Vec::new(),
+        }
+    }
+}
+
+#[cfg(target_os = "android")]
+pub struct IncrementalIndexer;
+
+#[cfg(target_os = "android")]
+impl IncrementalIndexer {
+    pub fn new(
+        _watch_config: WatchConfig,
+        _file_index_config: crate::file_index::FileIndexConfig,
+    ) -> Self {
+        Self
+    }
+
+    pub fn watch_and_index(
+        &self,
+        _root: &Path,
+        _file_index: &crate::file_index::FileIndex,
+        _ast_index: &crate::ast_index::AstIndex,
+    ) -> Result<(), String> {
+        Err("Incremental indexing is not available on Android".to_string())
+    }
+
+    pub fn initial_scan_and_watch(
+        &self,
+        _root: &Path,
+        _file_index: &crate::file_index::FileIndex,
+        _ast_index: &crate::ast_index::AstIndex,
+    ) -> Result<(), String> {
+        Err("Incremental indexing is not available on Android".to_string())
+    }
+}
+
+#[cfg(target_os = "android")]
+impl Default for IncrementalIndexer {
+    fn default() -> Self {
+        Self
     }
 }

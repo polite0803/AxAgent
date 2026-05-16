@@ -1,13 +1,13 @@
-//! 浏览器自动化工具（共享连接池）
-//!
-//! 10 个浏览器操作工具共享同一个 PlaywrightClient 连接。
-//! 首次使用时自动启动浏览器，后续工具调用复用同一会话。
-
+#[cfg(not(target_os = "android"))]
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+#[cfg(not(target_os = "android"))]
 use async_trait::async_trait;
+#[cfg(not(target_os = "android"))]
 use axagent_core::browser_automation::{shared_browser_pool, PlaywrightClient};
+#[cfg(not(target_os = "android"))]
 use serde_json::Value;
 
+#[cfg(not(target_os = "android"))]
 macro_rules! browser_tool {
     ($name:ident, $display:literal, $desc:literal, $schema:expr, |$input:ident, $cl:ident| $body:expr) => {
         pub struct $name;
@@ -34,7 +34,6 @@ macro_rules! browser_tool {
                 $input: Value,
                 _ctx: &ToolContext,
             ) -> Result<ToolResult, ToolError> {
-                // 确保浏览器客户端已启动
                 {
                     let mut guard = shared_browser_pool().lock().await;
                     if guard.is_none() {
@@ -43,7 +42,6 @@ macro_rules! browser_tool {
                         })?);
                     }
                 }
-                // 获取共享客户端引用并执行操作
                 let mut guard = shared_browser_pool().lock().await;
                 let $cl = guard
                     .as_mut()
@@ -54,6 +52,7 @@ macro_rules! browser_tool {
     };
 }
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserNavigateTool,
     "BrowserNavigate",
@@ -76,6 +75,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserScreenshotTool,
     "BrowserScreenshot",
@@ -94,6 +94,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserClickTool,
     "BrowserClick",
@@ -115,6 +116,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserFillTool,
     "BrowserFill",
@@ -141,6 +143,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserTypeTool,
     "BrowserType",
@@ -167,6 +170,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserExtractTextTool,
     "BrowserExtractText",
@@ -189,6 +193,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserExtractAllTool,
     "BrowserExtractAll",
@@ -211,6 +216,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserGetContentTool,
     "BrowserGetContent",
@@ -225,6 +231,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserSelectTool,
     "BrowserSelect",
@@ -251,6 +258,7 @@ browser_tool!(
     }
 );
 
+#[cfg(not(target_os = "android"))]
 browser_tool!(
     BrowserWaitForTool,
     "BrowserWaitFor",
@@ -274,4 +282,123 @@ browser_tool!(
             .map_err(|e| ToolError::execution_failed(e.to_string()))?;
         Ok(ToolResult::success("等待成功"))
     }
+);
+
+#[cfg(target_os = "android")]
+use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+#[cfg(target_os = "android")]
+use async_trait::async_trait;
+#[cfg(target_os = "android")]
+use serde_json::Value;
+
+#[cfg(target_os = "android")]
+macro_rules! android_browser_stub {
+    ($name:ident, $display:literal, $desc:literal, $schema:expr) => {
+        pub struct $name;
+        #[async_trait]
+        impl Tool for $name {
+            fn name(&self) -> &str {
+                $display
+            }
+            fn description(&self) -> &str {
+                $desc
+            }
+            fn input_schema(&self) -> Value {
+                $schema
+            }
+            fn category(&self) -> ToolCategory {
+                ToolCategory::Browser
+            }
+            fn is_concurrency_safe(&self) -> bool {
+                false
+            }
+            async fn call(
+                &self,
+                _input: Value,
+                _ctx: &ToolContext,
+            ) -> Result<ToolResult, ToolError> {
+                Err(ToolError::execution_failed("Browser tools are not available on Android"))
+            }
+        }
+    };
+}
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserNavigateTool,
+    "BrowserNavigate",
+    "在浏览器中导航到指定 URL。导航后浏览器会话保持，后续点击/填充等操作在同一页面进行。",
+    serde_json::json!({"type":"object","properties":{"url":{"type":"string"}},"required":["url"]})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserScreenshotTool,
+    "BrowserScreenshot",
+    "截取浏览器当前页面的屏幕截图。返回 Base64 编码图片。",
+    serde_json::json!({"type":"object","properties":{"full_page":{"type":"boolean"}}})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserClickTool,
+    "BrowserClick",
+    "点击浏览器当前页面中的元素（CSS 选择器）。",
+    serde_json::json!({"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserFillTool,
+    "BrowserFill",
+    "在浏览器表单元素中填入值（CSS 选择器 + 值）。",
+    serde_json::json!({"type":"object","properties":{"selector":{"type":"string"},"value":{"type":"string"}},"required":["selector"]})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserTypeTool,
+    "BrowserType",
+    "在浏览器元素中逐字符输入文本（模拟键盘输入）。",
+    serde_json::json!({"type":"object","properties":{"selector":{"type":"string"},"text":{"type":"string"}},"required":["selector"]})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserExtractTextTool,
+    "BrowserExtractText",
+    "从浏览器当前页面提取指定元素的文本内容。",
+    serde_json::json!({"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserExtractAllTool,
+    "BrowserExtractAll",
+    "提取浏览器页面中所有匹配元素的详细信息（JSON 数组）。",
+    serde_json::json!({"type":"object","properties":{"selector":{"type":"string"}},"required":["selector"]})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserGetContentTool,
+    "BrowserGetContent",
+    "获取浏览器当前页面的完整 HTML 内容。",
+    serde_json::json!({"type":"object","properties":{}})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserSelectTool,
+    "BrowserSelect",
+    "在浏览器下拉选择框中选择指定选项。",
+    serde_json::json!({"type":"object","properties":{"selector":{"type":"string"},"value":{"type":"string"}},"required":["selector"]})
+);
+
+#[cfg(target_os = "android")]
+android_browser_stub!(
+    BrowserWaitForTool,
+    "BrowserWaitFor",
+    "等待浏览器页面中指定元素出现（可选超时毫秒）。",
+    serde_json::json!({"type":"object","properties":{"selector":{"type":"string"},"timeout_ms":{"type":"integer","default":5000}},"required":["selector"]})
 );

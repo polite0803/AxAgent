@@ -6,29 +6,16 @@ test.describe("Agent Execution Flow", () => {
     await page.waitForSelector('[data-testid="chat-view"]', { timeout: 60000 });
   });
 
-  test("should display agent status indicator when active", async ({ page }) => {
+  test("should display agent status indicator", async ({ page }) => {
+    // S-25: 硬断言 — agent 状态指示器应始终在聊天头部渲染
     const statusIndicator = page.locator('[data-testid="agent-status"]');
-    const isVisible = await statusIndicator.isVisible({ timeout: 5000 }).catch(() => false);
-    if (isVisible) {
-      await expect(statusIndicator).toBeVisible();
-    }
+    await expect(statusIndicator).toBeVisible({ timeout: 10000 });
   });
 
-  test("should find chat input area", async ({ page }) => {
+  test("should have chat input area enabled", async ({ page }) => {
+    // S-25: 硬断言 — 输入区域是核心 UI
     const input = page.locator('[data-testid="message-input"]');
-    const isVisible = await input.isVisible({ timeout: 10000 }).catch(() => false);
-    if (isVisible) {
-      await expect(input).toBeVisible();
-    }
-  });
-
-  test("should switch models in agent config", async ({ page }) => {
-    await page.goto("/settings");
-    await page.waitForSelector('[data-testid="settings-panel"]', { timeout: 30000 });
-
-    const modelSection = page.locator("text=Model");
-    if (await modelSection.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await expect(modelSection.first()).toBeVisible();
-    }
+    await expect(input).toBeVisible({ timeout: 15000 });
+    await expect(input).toBeEnabled();
   });
 });

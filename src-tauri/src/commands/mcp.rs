@@ -195,8 +195,11 @@ pub async fn hot_reload_mcp_server(
     // 3. Evict any cached connections for this server in the MCP pool
     //    so the next tool call will establish a fresh connection
     {
-        let pool = axagent_core::mcp_client::global_mcp_pool();
-        pool.evict_by_server_id(&id);
+        #[cfg(not(target_os = "android"))]
+        {
+            let pool = axagent_core::mcp_client::global_mcp_pool();
+            pool.evict_by_server_id(&id);
+        }
     }
 
     // 4. Emit event so frontend can update its tool list

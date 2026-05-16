@@ -1,14 +1,22 @@
+#[cfg(not(target_os = "android"))]
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_os = "android"))]
 use std::future::Future;
+#[cfg(not(target_os = "android"))]
 use std::pin::Pin;
+#[cfg(not(target_os = "android"))]
 use std::process::Stdio;
+#[cfg(not(target_os = "android"))]
 use std::time::Instant;
+#[cfg(not(target_os = "android"))]
 use tokio::process::Command;
 
+#[cfg(not(target_os = "android"))]
 use crate::skill_evolution::{
     ProcedureStep, SandboxExecutor, SandboxValidationResult, SkillGenome,
 };
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SandboxPolicy {
     pub allowed_tools: Vec<String>,
@@ -17,6 +25,7 @@ pub struct SandboxPolicy {
     pub max_output_bytes: u64,
 }
 
+#[cfg(not(target_os = "android"))]
 impl Default for SandboxPolicy {
     fn default() -> Self {
         Self {
@@ -35,6 +44,7 @@ impl Default for SandboxPolicy {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepValidationResult {
     pub step_order: usize,
@@ -48,10 +58,12 @@ pub struct StepValidationResult {
     pub violations: Vec<String>,
 }
 
+#[cfg(not(target_os = "android"))]
 pub struct SkillSandboxExecutor {
     policy: SandboxPolicy,
 }
 
+#[cfg(not(target_os = "android"))]
 impl SkillSandboxExecutor {
     pub fn new(policy: SandboxPolicy) -> Self {
         Self { policy }
@@ -208,6 +220,7 @@ impl SkillSandboxExecutor {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 impl SandboxExecutor for SkillSandboxExecutor {
     fn execute_skill<'a>(
         &'a self,
@@ -270,10 +283,12 @@ impl SandboxExecutor for SkillSandboxExecutor {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 pub struct DryRunSandboxExecutor {
     policy: SandboxPolicy,
 }
 
+#[cfg(not(target_os = "android"))]
 impl DryRunSandboxExecutor {
     pub fn new(policy: SandboxPolicy) -> Self {
         Self { policy }
@@ -339,6 +354,7 @@ impl DryRunSandboxExecutor {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 impl SandboxExecutor for DryRunSandboxExecutor {
     fn execute_skill<'a>(
         &'a self,
@@ -600,5 +616,15 @@ mod tests {
         let step2 = make_step(0, "Use read_file", Some("read_file"));
         let result2 = executor.validate_step(&step2);
         assert!(!result2.allowed);
+    }
+}
+
+#[cfg(target_os = "android")]
+pub struct SkillSandboxExecutor;
+
+#[cfg(target_os = "android")]
+impl SkillSandboxExecutor {
+    pub fn with_default_policy() -> Self {
+        Self
     }
 }

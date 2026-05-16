@@ -34,6 +34,7 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
     let db = state.sea_db.clone();
     let app_data = app_dir.clone();
     let handle = state.auto_backup_handle.clone();
+    let shutdown_token = state.shutdown_token.clone();
     tauri::async_runtime::spawn(async move {
         if let Ok(settings) = axagent_core::repo::settings::get_settings(&db).await {
             if settings.auto_backup_enabled && settings.auto_backup_interval_hours > 0 {
@@ -44,6 +45,7 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                 let interval_secs = interval as u64 * 3600;
                 let db2 = db.clone();
                 let app_dir2 = app_data.clone();
+                let shutdown_token = shutdown_token.clone();
 
                 let initial_delay_secs = match axagent_core::repo::backup::list_backups(&db).await {
                     Ok(backups) if !backups.is_empty() => {
@@ -68,22 +70,29 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                     let dur = std::time::Duration::from_secs(interval_secs);
                     tokio::time::sleep(std::time::Duration::from_secs(initial_delay_secs)).await;
                     loop {
-                        let backup_dir = axagent_core::repo::backup::resolve_backup_dir(
-                            backup_dir_setting.as_deref(),
-                            &app_dir2,
-                        );
-                        if let Err(e) =
-                            axagent_core::repo::backup::create_backup(&db2, "sqlite", &backup_dir)
-                                .await
-                        {
-                            tracing::warn!("Auto-backup failed: {}", e);
-                        } else {
-                            tracing::info!("Auto-backup created");
-                            let _ =
-                                axagent_core::repo::backup::cleanup_old_backups(&db2, max_count)
-                                    .await;
+                        tokio::select! {
+                            _ = shutdown_token.cancelled() => {
+                                tracing::info!("[auto_backup] 收到关闭信号，停止自动备份");
+                                break;
+                            }
+                            _ = tokio::time::sleep(dur) => {
+                                let backup_dir = axagent_core::repo::backup::resolve_backup_dir(
+                                    backup_dir_setting.as_deref(),
+                                    &app_dir2,
+                                );
+                                if let Err(e) =
+                                    axagent_core::repo::backup::create_backup(&db2, "sqlite", &backup_dir)
+                                        .await
+                                {
+                                    tracing::warn!("Auto-backup failed: {}", e);
+                                } else {
+                                    tracing::info!("Auto-backup created");
+                                    let _ =
+                                        axagent_core::repo::backup::cleanup_old_backups(&db2, max_count)
+                                            .await;
+                                }
+                            }
                         }
-                        tokio::time::sleep(dur).await;
                     }
                 });
                 *handle.lock().await = Some(task);
@@ -157,6 +166,7 @@ fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
     let master_key = state.master_key;
     let app_data_dir = app_dir.clone();
     let handle = state.webdav_sync_handle.clone();
+    let shutdown_token = state.shutdown_token.clone();
     tauri::async_runtime::spawn(async move {
         if let Ok(settings) = axagent_core::repo::settings::get_settings(&db).await {
             if settings.webdav_sync_enabled && settings.webdav_sync_interval_minutes > 0 {
@@ -188,6 +198,7 @@ fn start_webdav_sync(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
                     app_data_dir,
                     interval,
                     initial_delay_secs,
+                    shutdown_token,
                 );
                 *handle.lock().await = Some(task);
             }

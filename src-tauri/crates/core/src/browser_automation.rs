@@ -1,11 +1,19 @@
+#[cfg(not(target_os = "android"))]
 use anyhow::Result;
+#[cfg(not(target_os = "android"))]
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_os = "android"))]
 use std::process::Stdio;
+#[cfg(not(target_os = "android"))]
 use std::sync::{Arc, OnceLock};
+#[cfg(not(target_os = "android"))]
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+#[cfg(not(target_os = "android"))]
 use tokio::process::{Child, Command};
+#[cfg(not(target_os = "android"))]
 use tokio::sync::Mutex;
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
 struct BrowserRequest {
     id: u64,
@@ -13,6 +21,7 @@ struct BrowserRequest {
     params: serde_json::Value,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
 struct BrowserResponse {
     id: u64,
@@ -20,6 +29,7 @@ struct BrowserResponse {
     error: Option<String>,
 }
 
+#[cfg(not(target_os = "android"))]
 pub struct PlaywrightClient {
     child: Child,
     stdin: tokio::process::ChildStdin,
@@ -27,6 +37,7 @@ pub struct PlaywrightClient {
     next_id: u64,
 }
 
+#[cfg(not(target_os = "android"))]
 impl PlaywrightClient {
     pub async fn launch() -> Result<Self> {
         let script_path = std::env::current_exe()?
@@ -184,31 +195,35 @@ impl PlaywrightClient {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 impl Drop for PlaywrightClient {
     fn drop(&mut self) {
         let _ = self.child.start_kill();
     }
 }
 
-/// 全局共享浏览器连接池（仅启动一次，所有工具复用）
+#[cfg(not(target_os = "android"))]
 static SHARED_BROWSER: OnceLock<Arc<Mutex<Option<PlaywrightClient>>>> = OnceLock::new();
 
-/// 获取共享浏览器连接池引用
+#[cfg(not(target_os = "android"))]
 pub fn shared_browser_pool() -> &'static Arc<Mutex<Option<PlaywrightClient>>> {
     SHARED_BROWSER.get_or_init(|| Arc::new(Mutex::new(None)))
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NavigateResult {
     pub url: String,
     pub title: String,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScreenshotResult {
     pub image_base64: String,
 }
 
+#[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExtractedElement {
     pub tag: String,
@@ -217,4 +232,19 @@ pub struct ExtractedElement {
     #[serde(rename = "type")]
     pub input_type: Option<String>,
     pub placeholder: Option<String>,
+}
+
+#[cfg(target_os = "android")]
+pub struct PlaywrightClient;
+
+#[cfg(target_os = "android")]
+impl PlaywrightClient {
+    pub async fn launch() -> anyhow::Result<Self> {
+        anyhow::bail!("Browser automation is not available on Android")
+    }
+}
+
+#[cfg(target_os = "android")]
+pub fn shared_browser_pool() -> Option<&'static PlaywrightClient> {
+    None
 }

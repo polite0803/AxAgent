@@ -104,6 +104,9 @@ pub enum AxAgentError {
 
     #[error("Model inference error: {0}")]
     Inference(String),
+
+    #[error("RAG error: {0}")]
+    Rag(String),
 }
 
 impl AxAgentError {
@@ -213,6 +216,7 @@ impl AxAgentError {
             AxAgentError::ModelDownload(_) => ErrorCode::NetworkError,
             AxAgentError::ModelIntegrity { .. } => ErrorCode::ValidationError,
             AxAgentError::Inference(_) => ErrorCode::AgentError,
+            AxAgentError::Rag(_) => ErrorCode::ValidationError,
         }
     }
 
@@ -259,6 +263,7 @@ impl AxAgentError {
             AxAgentError::ModelDownload(_) => true,
             AxAgentError::ModelIntegrity { .. } => false,
             AxAgentError::Inference(_) => false,
+            AxAgentError::Rag(_) => false,
             _ => false,
         }
     }
