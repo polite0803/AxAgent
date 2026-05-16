@@ -51,7 +51,7 @@ export function startStreamWatchdog() {
       if (msgId && _conversationStoreRef) {
         _conversationStoreRef.setState((s: any) => ({
           messages: s.messages.map((m: Message) =>
-            m.id === msgId && m.status === "streaming"
+            m.id === msgId && m.status === "partial"
               ? {
                 ...m,
                 content: m.content + "\n\n> "

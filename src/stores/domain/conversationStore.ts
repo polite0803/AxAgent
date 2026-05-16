@@ -111,10 +111,10 @@ function buildFallbackChain(
   const chain: FallbackModel[] = [];
   try {
     const providers = useProviderStore.getState().providers ?? [];
-    // 从偏好设置中读取用户默认模型，用于 fallback 链优先级排序
-    const prefs = usePreferenceStore.getState();
-    const defaultProviderId: string | undefined = prefs.defaultProviderId;
-    const defaultModelId: string | undefined = prefs.defaultModelId;
+    // TODO: 从 providerStore 读取用户配置的默认模型。当前 store 尚未实现
+    // 默认模型优先级选择功能，保留 undefined 占位以维持 fallback 链结构。
+    const defaultProviderId: string | undefined = undefined;
+    const defaultModelId: string | undefined = undefined;
 
     for (const p of providers) {
       for (const m of p.models ?? []) {
