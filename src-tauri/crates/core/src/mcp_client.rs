@@ -714,11 +714,14 @@ pub async fn call_tool_http(
     tool_arguments: Value,
     auth_header: Option<&str>,
 ) -> Result<McpToolResult> {
-    let mut transport_builder = StreamableHttpClientWorker::<reqwest::Client>::new_simple(endpoint);
-    if let Some(auth) = auth_header {
-        transport_builder = transport_builder.with_auth_header(auth.to_string());
-    }
-    let transport = transport_builder;
+    let transport = {
+        use rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig;
+        let mut config = StreamableHttpClientTransportConfig::with_uri(endpoint);
+        if let Some(auth) = auth_header {
+            config = config.auth_header(auth.to_string());
+        }
+        StreamableHttpClientWorker::<reqwest::Client>::new(reqwest::Client::new(), config)
+    };
 
     let client = ()
         .serve(transport)
@@ -823,7 +826,7 @@ pub async fn discover_tools_sse(endpoint: &str) -> Result<Vec<DiscoveredTool>> {
         "method": "tools/list",
         "params": {}
     });
-    let response = sse_send_request(endpoint, request).await?;
+    let response = sse_send_request(endpoint, request, None).await?;
     tracing::info!(
         "SSE tools/list response: {}",
         serde_json::to_string_pretty(&response).unwrap_or_default()
