@@ -56,7 +56,7 @@ pub async fn get_desktop_capabilities() -> Result<serde_json::Value, String> {
         { "key": "global_shortcut", "supported": true },
         { "key": "protocol_handler", "supported": true },
         { "key": "mini_window", "supported": true },
-        { "key": "notification", "supported": true }
+        { "key": "notification", "supported": cfg!(feature = "notification") }
     ]))
 }
 
@@ -85,7 +85,7 @@ pub async fn send_desktop_notification(
     tracing::info!(
         title = %title,
         body = %body,
-        "Desktop notification (placeholder — notification plugin not available)"
+        "Desktop notification (placeholder — notification plugin not available or failed)"
     );
     Ok(())
 }

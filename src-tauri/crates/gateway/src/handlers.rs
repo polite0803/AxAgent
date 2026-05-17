@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{
         sse::{Event, KeepAlive, Sse},
         IntoResponse, Json,
@@ -26,8 +26,16 @@ pub async fn health_check() -> impl IntoResponse {
     Json(json!({ "status": "ok" }))
 }
 
-/// GET /health/detailed — detailed health check with system info
-pub async fn detailed_health_check(State(state): State<GatewayAppState>) -> impl IntoResponse {
+/// GET /health/detailed — detailed health check with system info (requires authentication)
+pub async fn detailed_health_check(
+    State(state): State<GatewayAppState>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    let auth_header = headers.get(http::header::AUTHORIZATION);
+    if auth_header.is_none() {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+
     let db_status = match axagent_core::repo::provider::list_providers(&state.db).await {
         Ok(_) => "connected",
         Err(e) => {
@@ -57,6 +65,7 @@ pub async fn detailed_health_check(State(state): State<GatewayAppState>) -> impl
         "active_keys_count": active_keys_count,
         "version": env!("CARGO_PKG_VERSION"),
     }))
+    .into_response()
 }
 
 /// GET /v1/responses/{response_id} — retrieve a stored response
@@ -406,7 +415,7 @@ pub async fn create_job(
         },
     };
 
-    let job_data_str = serde_json::to_string(&job_data).unwrap_or_default();
+    let job_data_str = serde_json::to_string(&job_data).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter.create_job(&ctx, &job_data_str).await {
         Ok(response_body) => {
@@ -551,7 +560,7 @@ pub async fn update_job(
         },
     };
 
-    let job_data_str = serde_json::to_string(&job_data).unwrap_or_default();
+    let job_data_str = serde_json::to_string(&job_data).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter.update_job(&ctx, &job_id, &job_data_str).await {
         Ok(response_body) => {
@@ -955,7 +964,7 @@ pub async fn trigger_run(
         },
     };
 
-    let params_str = serde_json::to_string(&params).unwrap_or_default();
+    let params_str = serde_json::to_string(&params).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter.trigger_run(&ctx, &job_id, Some(&params_str)).await {
         Ok(response_body) => {
@@ -1371,7 +1380,7 @@ pub async fn update_job_schedule(
         },
     };
 
-    let schedule_str = serde_json::to_string(&schedule).unwrap_or_default();
+    let schedule_str = serde_json::to_string(&schedule).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter
         .update_job_schedule(&ctx, &job_id, &schedule_str)
@@ -2124,6 +2133,7 @@ pub(crate) fn parse_model_field(model: &str, known_public_ids: &HashSet<String>)
 ///   succeed only when exactly one provider has it — otherwise error with a
 ///   helpful message asking the caller to use the `provider/model` form.
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::result_large_err)]
 pub(crate) fn resolve_provider_for_model(
     providers: &[ProviderConfig],
     public_id_map: &HashMap<String, String>,
@@ -2220,7 +2230,14 @@ pub(crate) fn error_response(status: StatusCode, message: &str) -> axum::respons
 async fn resolve_hermes_provider_context(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
-) -> Result<(ProviderConfig, ProviderRequestContext, ProviderRegistry), axum::response::Response> {
+) -> Result<
+    (
+        ProviderConfig,
+        ProviderRequestContext,
+        axagent_providers::registry::ProviderRegistry,
+    ),
+    axum::response::Response,
+> {
     let providers: Vec<ProviderConfig> = match axagent_core::repo::provider::list_providers(db)
         .await
     {
@@ -2417,6 +2434,7 @@ mod tests {
                     model_type: ModelType::Chat,
                     capabilities: vec![],
                     max_tokens: None,
+                    max_output_tokens: None,
                     enabled: true,
                     param_overrides: None,
                     input_price_per_mtok: None,
@@ -2506,6 +2524,8 @@ mod tests {
                 prompt_tokens: 12,
                 completion_tokens: 8,
                 total_tokens: 20,
+                cache_creation_tokens: None,
+                cache_read_tokens: None,
             },
             tool_calls: None,
         });

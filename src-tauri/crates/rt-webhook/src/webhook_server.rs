@@ -220,7 +220,8 @@ async fn create_subscription_handler(
     let subscription = state
         .subscription_manager
         .subscribe(req.url, events, req.secret)
-        .await;
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
     Ok(Json(subscription))
 }
 

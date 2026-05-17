@@ -371,10 +371,10 @@ impl RuleBasedValidator {
     }
 
     fn detect_output_format(&self, output: &str) -> OutputFormat {
-        if output.starts_with('{') || output.starts_with('[') {
-            if serde_json::from_str::<serde_json::Value>(output).is_ok() {
-                return OutputFormat::Json;
-            }
+        if (output.starts_with('{') || output.starts_with('['))
+            && serde_json::from_str::<serde_json::Value>(output).is_ok()
+        {
+            return OutputFormat::Json;
         }
 
         let lines: Vec<&str> = output.lines().collect();
@@ -441,14 +441,13 @@ impl RuleBasedValidator {
         let input_json = serde_json::from_str::<serde_json::Value>(input);
         if let Ok(ref parsed) = input_json {
             if let Some(obj) = parsed.as_object() {
-                if obj.contains_key("path")
+                if (obj.contains_key("path")
                     || obj.contains_key("file_path")
-                    || obj.contains_key("filepath")
+                    || obj.contains_key("filepath"))
+                    && (output.contains("No such file") || output.contains("not found"))
                 {
-                    if output.contains("No such file") || output.contains("not found") {
-                        return VerificationResult::invalid("Referenced file path does not exist")
-                            .with_correction("Verify the file path in the input");
-                    }
+                    return VerificationResult::invalid("Referenced file path does not exist")
+                        .with_correction("Verify the file path in the input");
                 }
 
                 if let Some(query) = obj.get("query").and_then(|v| v.as_str()) {
@@ -981,20 +980,18 @@ impl SelfVerifier {
     ) -> Result<VerificationResult, VerificationError> {
         let cmd_lower = input.to_lowercase();
 
-        if cmd_lower.contains("rm ")
+        if (cmd_lower.contains("rm ")
             || cmd_lower.contains("delete ")
-            || cmd_lower.contains("remove ")
+            || cmd_lower.contains("remove "))
+            && !result.contains("removed")
+            && !result.contains("deleted")
+            && !result.contains("cannot find")
+            && !result.is_empty()
         {
-            if !result.contains("removed")
-                && !result.contains("deleted")
-                && !result.contains("cannot find")
-                && !result.is_empty()
-            {
-                return Ok(VerificationResult::uncertain(
-                    0.7,
-                    "Deletion command completed but output is unclear",
-                ));
-            }
+            return Ok(VerificationResult::uncertain(
+                0.7,
+                "Deletion command completed but output is unclear",
+            ));
         }
 
         if result.contains("Segmentation fault")

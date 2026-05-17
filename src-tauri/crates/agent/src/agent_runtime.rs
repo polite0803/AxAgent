@@ -60,7 +60,6 @@ where
 {
     session: Session,
     conversation_runtime: ConversationRuntime<C, T>,
-    #[allow(dead_code)]
     config: AgentRuntimeConfig,
     event_sender: broadcast::Sender<AgentEvent>,
     /// 主动模式（可选）
@@ -177,13 +176,19 @@ where
 
         let result = self.conversation_runtime.run_turn(&effective_input, None);
 
-        // 恢复主动模式（如果之前因用户输入暂停）
         if let Some(ref mut proactive) = self.proactive {
             proactive.resume();
         }
 
         match result {
             Ok(summary) => {
+                if summary.iterations >= self.config.max_iterations {
+                    tracing::warn!(
+                        "Agent '{}' reached max iterations ({})",
+                        self.config.role,
+                        self.config.max_iterations
+                    );
+                }
                 self.emit(AgentEvent::TurnCompleted {
                     iteration: summary.iterations,
                 });
@@ -211,14 +216,16 @@ where
                 })
             },
             Err(e) => {
-                // API 错误时暂停主动模式
                 if let Some(ref mut proactive) = self.proactive {
                     proactive.on_api_error();
                 }
                 self.emit(AgentEvent::Error {
                     error: e.to_string(),
                 });
-                Err(AgentRuntimeError::RuntimeError(e.to_string()))
+                Err(AgentRuntimeError::RuntimeError(format!(
+                    "Agent '{}' error (timeout_secs={}): {}",
+                    self.config.role, self.config.timeout_secs, e
+                )))
             },
         }
     }

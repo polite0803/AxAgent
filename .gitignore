@@ -73,3 +73,12 @@ Docs/
 
 # Worktrees
 .worktrees/test_backup_page*.py
+
+.env
+.env.*
+*.pem
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json

@@ -4,7 +4,7 @@ use axum::{
     Router,
 };
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 use crate::auth::auth_middleware;
 use crate::handlers::{
@@ -27,8 +27,12 @@ use crate::server::GatewayAppState;
 
 pub fn create_router(state: GatewayAppState) -> Router {
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
+        .allow_origin([
+            "http://localhost:1419".parse().unwrap(),
+            "http://127.0.0.1:1419".parse().unwrap(),
+            "tauri://localhost".parse().unwrap(),
+        ])
+        .allow_methods([http::Method::GET, http::Method::POST, http::Method::PUT, http::Method::PATCH, http::Method::DELETE, http::Method::OPTIONS])
         .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
 
     // Protected routes (require auth)

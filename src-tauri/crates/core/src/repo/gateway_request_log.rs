@@ -4,6 +4,7 @@ use crate::types::GatewayRequestLog;
 use crate::utils::{gen_id, now_ts};
 use sea_orm::*;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn record_request_log(
     db: &DatabaseConnection,
     key_id: &str,

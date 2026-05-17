@@ -89,12 +89,10 @@ pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(dead_code)]
 pub struct CreateWikiInput {
     pub name: String,
     pub root_path: String,
     pub description: Option<String>,
-    #[allow(dead_code)]
     pub embedding_provider: Option<String>,
 }
 
@@ -107,7 +105,7 @@ pub async fn llm_wiki_create(
         name: input.name,
         description: input.description,
         root_path: input.root_path,
-        embedding_provider: None,
+        embedding_provider: input.embedding_provider,
     };
 
     let model = wiki::create_wiki(&state.sea_db, wiki_input)

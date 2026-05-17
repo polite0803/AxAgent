@@ -16,8 +16,6 @@
 //! - Semantic cache hit check (if embedding matches, return cached)
 //! - Cost budget enforcement (downgrade tier if budget exceeded)
 
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 // ─── Route Decision ───

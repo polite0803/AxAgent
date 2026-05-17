@@ -11,7 +11,7 @@ function browserDownload(filename: string, content: string, mimeType: string) {
   a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 async function saveFile(
@@ -47,7 +47,7 @@ async function saveFile(
     a.href = url;
     a.download = defaultName;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
   return true;
 }

@@ -291,7 +291,6 @@ impl TraceMetadataUpdate {
 pub struct SpanGuard<'a> {
     tracer: &'a mut Tracer,
     span_id: String,
-    #[allow(dead_code)]
     span_type: SpanType,
     _span: Span,
 }
@@ -328,6 +327,7 @@ impl<'a> SpanGuard<'a> {
 
 impl<'a> Drop for SpanGuard<'a> {
     fn drop(&mut self) {
+        let _ = &self.span_type;
         self.tracer.end_span(&self.span_id, SpanStatus::Ok);
     }
 }

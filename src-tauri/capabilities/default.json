@@ -37,10 +37,9 @@
     },
     {
       "identifier": "fs:allow-read-file",
-      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }, { "path": "$HOME/**" }]
+      "allow": [{ "path": "$APPDATA/**" }, { "path": "$HOME/.axagent/**" }]
     },
     "updater:default",
-    "clipboard-manager:allow-write-text",
-    "clipboard-manager:allow-read-text"
+    "clipboard-manager:allow-write-text"
   ]
 }

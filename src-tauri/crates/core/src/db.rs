@@ -116,7 +116,7 @@ pub async fn create_pool_for_profile(profile_name: &str) -> Result<DbHandle> {
         profile_db_path(profile_name)
     };
     if let Some(parent) = std::path::Path::new(&db_path).parent() {
-        std::fs::create_dir_all(parent)?;
+        tokio::fs::create_dir_all(parent).await?;
     }
     create_pool(&db_path).await
 }
@@ -362,6 +362,7 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
                 model_type: ModelType::detect(model_id),
                 capabilities: caps,
                 max_tokens,
+                max_output_tokens: None,
                 enabled: true,
                 param_overrides: None,
                 input_price_per_mtok: None,

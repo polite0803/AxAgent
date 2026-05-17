@@ -38,6 +38,7 @@ impl OpenAIResponsesAdapter {
         resolve_chat_url(&Self::base_url(ctx), ctx.api_path.as_deref(), "/responses")
     }
 
+    #[allow(clippy::result_large_err)]
     fn get_client(&self, ctx: &ProviderRequestContext) -> Result<reqwest::Client> {
         match &ctx.proxy_config {
             Some(c) if c.proxy_type.as_deref() != Some("none") => build_http_client(Some(c)),
@@ -542,11 +543,15 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                 prompt_tokens: u.input_tokens,
                 completion_tokens: u.output_tokens,
                 total_tokens: u.total_tokens,
+                cache_creation_tokens: None,
+                cache_read_tokens: None,
             })
             .unwrap_or(TokenUsage {
                 prompt_tokens: 0,
                 completion_tokens: 0,
                 total_tokens: 0,
+                cache_creation_tokens: None,
+                cache_read_tokens: None,
             });
 
         Ok(ChatResponse {
@@ -786,6 +791,8 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                                 prompt_tokens: u.input_tokens,
                                                 completion_tokens: u.output_tokens,
                                                 total_tokens: u.total_tokens,
+                                                cache_creation_tokens: None,
+                                                cache_read_tokens: None,
                                             });
                                         // Extract function_call items from response.output as fallback
                                         let fc_from_output: Vec<ToolCall> = evt
@@ -1017,6 +1024,7 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                     model_type,
                     capabilities: caps,
                     max_tokens: None,
+                    max_output_tokens: None,
                     enabled: true,
                     param_overrides: None,
                     input_price_per_mtok: None,

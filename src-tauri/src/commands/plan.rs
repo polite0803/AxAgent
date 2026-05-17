@@ -44,7 +44,6 @@ pub struct PlanCancelRequest {
     pub conversation_id: String,
     #[serde(rename = "planId")]
     pub plan_id: String,
-    #[allow(dead_code)]
     pub reason: Option<String>,
 }
 
@@ -938,6 +937,9 @@ pub async fn plan_cancel(
         am.status = Set("cancelled".to_string());
         am.is_active = Set(0);
         am.updated_at = Set(chrono::Utc::now().timestamp_millis());
+        if let Some(ref reason) = request.reason {
+            tracing::info!("Plan {} cancelled: {}", request.plan_id, reason);
+        }
         am.update(db).await.ok();
     }
 

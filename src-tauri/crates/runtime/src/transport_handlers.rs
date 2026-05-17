@@ -431,7 +431,6 @@ pub struct SSETransportHandler {
     streams: Arc<RwLock<HashMap<String, mpsc::Sender<AgentMessage>>>>,
 }
 
-#[allow(dead_code)]
 impl SSETransportHandler {
     pub fn new() -> Self {
         Self {
@@ -446,7 +445,7 @@ impl SSETransportHandler {
         self
     }
 
-    async fn establish_sse_connection(
+    pub async fn establish_sse_connection(
         &self,
         _endpoint: &AgentEndpoint,
     ) -> Result<(), GatewayError> {
@@ -485,6 +484,8 @@ impl TransportHandler for SSETransportHandler {
     async fn connect(&self, endpoint: &AgentEndpoint) -> Result<(), GatewayError> {
         let connections = self.connections.clone();
         let endpoint = endpoint.clone();
+
+        let _ = self.establish_sse_connection(&endpoint).await;
 
         tokio::spawn(async move {
             let mut conns = connections.write().await;

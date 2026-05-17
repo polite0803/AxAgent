@@ -243,11 +243,17 @@ impl PlatformBridge {
 
         conversation::increment_message_count(&self.db, &conv.id).await?;
 
+        let safe_username: String = username
+            .unwrap_or("unknown")
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
+            .take(32)
+            .collect();
         let system_prompt = format!(
             "You are AxAgent. The user is messaging from {} (username: {}). \
              Provide helpful, concise responses.",
             platform,
-            username.unwrap_or("unknown")
+            safe_username
         );
 
         let messages: Vec<axagent_core::types::ChatMessage> = vec![

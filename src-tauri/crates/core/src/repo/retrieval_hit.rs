@@ -4,6 +4,7 @@ use crate::entity::retrieval_hits;
 use crate::utils::gen_id;
 
 /// Record a single retrieval hit.
+#[allow(clippy::too_many_arguments)]
 pub async fn record_hit(
     db: &DatabaseConnection,
     conversation_id: &str,

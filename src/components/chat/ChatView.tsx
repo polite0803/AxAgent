@@ -2603,7 +2603,14 @@ function ChatViewInner({ onScrollToReady }: {
 
   const topicGroupRole = useCallback((bubbleData: BubbleItemType) => {
     const group = bubbleData.content as import("@/stores/feature/topicGroupStore").TopicGroup;
-    if (!group || !activeConversationId) { return {} as any; }
+    if (!group || !activeConversationId) {
+      return {
+        placement: "start" as const,
+        variant: "borderless" as const,
+        className: "context-clear-bubble",
+        contentRender: () => null,
+      };
+    }
     return {
       placement: "start" as const,
       variant: "borderless" as const,

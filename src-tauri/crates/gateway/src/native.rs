@@ -106,6 +106,7 @@ impl NativeProtocol {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn upstream_path(self, gemini_model: Option<&str>) -> Result<String, axum::response::Response> {
         match self {
             NativeProtocol::OpenAiResponses => Ok("/v1/responses".to_string()),
@@ -212,6 +213,8 @@ impl AnthropicMessagesStreamState {
             prompt_tokens,
             completion_tokens,
             total_tokens: prompt_tokens + completion_tokens,
+            cache_creation_tokens: None,
+            cache_read_tokens: None,
         })
     }
 }
@@ -307,6 +310,8 @@ fn extract_openai_response_usage(value: &serde_json::Value) -> Option<TokenUsage
         prompt_tokens,
         completion_tokens,
         total_tokens,
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     })
 }
 
@@ -319,6 +324,8 @@ fn extract_anthropic_message_usage(value: &serde_json::Value) -> Option<TokenUsa
         prompt_tokens,
         completion_tokens,
         total_tokens: prompt_tokens + completion_tokens,
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     })
 }
 
@@ -328,6 +335,8 @@ fn extract_anthropic_count_tokens_usage(value: &serde_json::Value) -> Option<Tok
         prompt_tokens,
         completion_tokens: 0,
         total_tokens: prompt_tokens,
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     })
 }
 
@@ -345,6 +354,8 @@ fn extract_gemini_generate_content_usage(value: &serde_json::Value) -> Option<To
         prompt_tokens,
         completion_tokens,
         total_tokens,
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     })
 }
 
@@ -354,6 +365,8 @@ fn extract_gemini_count_tokens_usage(value: &serde_json::Value) -> Option<TokenU
         prompt_tokens,
         completion_tokens: 0,
         total_tokens: prompt_tokens,
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     })
 }
 
@@ -395,6 +408,7 @@ fn should_copy_response_header(name: &HeaderName) -> bool {
     !matches!(name.as_str(), "content-length" | "connection" | "transfer-encoding")
 }
 
+#[allow(clippy::result_large_err)]
 fn extract_model_from_body(
     body_json: Option<&serde_json::Value>,
     protocol: NativeProtocol,
@@ -418,7 +432,7 @@ fn build_upstream_url(
     base_url: &str,
     path: &str,
     query: Option<&str>,
-    protocol: NativeProtocol,
+    _protocol: NativeProtocol,
     _api_key: &str,
 ) -> String {
     let mut url = join_upstream_base_and_path(base_url, path);
@@ -556,6 +570,7 @@ async fn resolve_native_context(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn record_native_outcome(
     db: &sea_orm::DatabaseConnection,
     gateway_key: &GatewayKey,
@@ -605,6 +620,7 @@ async fn record_native_outcome(
     .await;
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn proxy_buffered_response(
     protocol: NativeProtocol,
     gateway_key: &GatewayKey,
@@ -682,6 +698,7 @@ fn is_event_stream(headers: &HeaderMap) -> bool {
         .unwrap_or(false)
 }
 
+#[allow(clippy::result_large_err)]
 fn build_upstream_request(
     client: reqwest::Client,
     protocol: NativeProtocol,
@@ -733,6 +750,7 @@ fn build_upstream_request(
     Ok(request)
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn proxy_stream_response(
     protocol: NativeProtocol,
     gateway_key: GatewayKey,
@@ -1143,6 +1161,7 @@ mod tests {
                 model_type: ModelType::Chat,
                 capabilities: vec![ModelCapability::TextChat],
                 max_tokens: Some(4096),
+                max_output_tokens: None,
                 enabled: true,
                 param_overrides: None,
                 input_price_per_mtok: None,
@@ -1202,6 +1221,7 @@ mod tests {
                 model_type: ModelType::Chat,
                 capabilities: vec![ModelCapability::TextChat],
                 max_tokens: Some(4096),
+                max_output_tokens: None,
                 enabled: true,
                 param_overrides: None,
                 input_price_per_mtok: None,

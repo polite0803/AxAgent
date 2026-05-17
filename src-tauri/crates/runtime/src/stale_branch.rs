@@ -1,4 +1,3 @@
-#![allow(clippy::must_use_candidate)]
 use std::path::Path;
 use std::process::Command;
 

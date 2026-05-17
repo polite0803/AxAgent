@@ -1,4 +1,3 @@
-#![allow(clippy::must_use_candidate)]
 //! In-memory registry for Team lifecycle management.
 //!
 //! Provides TeamCreate/Delete runtime backing.

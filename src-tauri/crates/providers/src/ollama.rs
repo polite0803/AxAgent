@@ -56,7 +56,6 @@ impl OllamaAdapter {
     }
 
     /// Resolve the effective chat URL for Ollama.
-    #[allow(dead_code)]
     fn effective_chat_url(ctx: &ProviderRequestContext) -> String {
         let base = Self::base_url(ctx);
         let path = ctx.api_path.as_deref().unwrap_or(DEFAULT_OLLAMA_PATH);
@@ -64,6 +63,7 @@ impl OllamaAdapter {
     }
 
     /// Build an HTTP client, respecting proxy configuration.
+    #[allow(clippy::result_large_err)]
     fn get_client(&self, ctx: &ProviderRequestContext) -> Result<reqwest::Client> {
         self.inner.get_client(ctx)
     }
@@ -79,15 +79,12 @@ struct OllamaTagsResponse {
 #[derive(Deserialize)]
 struct OllamaModel {
     name: String,
-    #[allow(dead_code)]
     details: Option<OllamaModelDetails>,
 }
 
 #[derive(Deserialize)]
 struct OllamaModelDetails {
-    #[allow(dead_code)]
     family: Option<String>,
-    #[allow(dead_code)]
     parameter_size: Option<String>,
 }
 
@@ -171,14 +168,21 @@ impl ProviderAdapter for OllamaAdapter {
                 }
                 let group_name = m.details.as_ref().and_then(|d| d.family.clone());
                 let max_tokens = axagent_core::model_knowledge::get_model_context_window(&m.name);
+                let name = m
+                    .details
+                    .as_ref()
+                    .and_then(|d| d.parameter_size.clone())
+                    .map(|ps| format!("{} ({})", m.name, ps))
+                    .unwrap_or(m.name.clone());
                 Model {
                     provider_id: ctx.provider_id.clone(),
                     model_id: m.name.clone(),
-                    name: m.name,
+                    name,
                     group_name,
                     model_type,
                     capabilities: caps,
                     max_tokens,
+                    max_output_tokens: None,
                     enabled: true,
                     param_overrides: None,
                     input_price_per_mtok: None,
@@ -197,6 +201,7 @@ impl ProviderAdapter for OllamaAdapter {
     async fn validate_key(&self, ctx: &ProviderRequestContext) -> Result<bool> {
         let base = Self::base_url(ctx);
         let url = format!("{}/api/tags", base.trim_end_matches('/'));
+        let chat_url = Self::effective_chat_url(ctx);
 
         let client = self.get_client(ctx)?;
         let resp = crate::apply_request_headers(client.get(&url), ctx)
@@ -211,6 +216,7 @@ impl ProviderAdapter for OllamaAdapter {
             })?;
 
         if resp.status().is_success() {
+            tracing::debug!("[Ollama] Tags endpoint OK, chat URL resolved to: {}", chat_url);
             Ok(true)
         } else {
             let s = resp.status();

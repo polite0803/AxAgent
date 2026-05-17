@@ -6,7 +6,6 @@ use super::parser::ParsedCommand;
 use std::collections::HashSet;
 
 /// 命令白名单条目
-#[allow(dead_code)]
 struct CommandSpec {
     /// 可执行文件名
     name: &'static str,
@@ -17,7 +16,6 @@ struct CommandSpec {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 enum FlagArg {
     /// 无参数 (如 -l, --help)
     None,
@@ -33,6 +31,8 @@ enum FlagArg {
 pub struct SecurityAnalyzer {
     /// 允许的命令集
     allowed_commands: HashSet<&'static str>,
+    /// 命令规格
+    command_specs: Vec<CommandSpec>,
 }
 
 impl SecurityAnalyzer {
@@ -91,6 +91,49 @@ impl SecurityAnalyzer {
 
         Self {
             allowed_commands: allowed,
+            command_specs: vec![
+                CommandSpec {
+                    name: "ls",
+                    safe_flags: &[("-l", FlagArg::None), ("-a", FlagArg::None)],
+                    allow_no_args: true,
+                },
+                CommandSpec {
+                    name: "cat",
+                    safe_flags: &[("-n", FlagArg::None)],
+                    allow_no_args: false,
+                },
+                CommandSpec {
+                    name: "grep",
+                    safe_flags: &[
+                        ("-r", FlagArg::None),
+                        ("-i", FlagArg::None),
+                        ("-n", FlagArg::None),
+                        ("-A", FlagArg::Number),
+                        ("-B", FlagArg::Number),
+                        ("-C", FlagArg::Number),
+                    ],
+                    allow_no_args: false,
+                },
+                CommandSpec {
+                    name: "git",
+                    safe_flags: &[
+                        ("log", FlagArg::None),
+                        ("diff", FlagArg::None),
+                        ("status", FlagArg::None),
+                        ("-C", FlagArg::OptionalString),
+                    ],
+                    allow_no_args: true,
+                },
+                CommandSpec {
+                    name: "find",
+                    safe_flags: &[
+                        ("-name", FlagArg::String),
+                        ("-type", FlagArg::String),
+                        ("-maxdepth", FlagArg::Number),
+                    ],
+                    allow_no_args: true,
+                },
+            ],
         }
     }
 
@@ -161,6 +204,25 @@ impl SecurityAnalyzer {
                 "命令 '{}' 不在白名单中，请检查后执行",
                 program_base
             ));
+        }
+
+        // 5. 命令规格检查
+        if let Some(spec) = self.command_specs.iter().find(|s| s.name == program_base) {
+            if cmd.argv.len() == 1 && !spec.allow_no_args {
+                return SecurityResult::Warning(format!("命令 '{}' 需要参数", program_base));
+            }
+            for arg in &cmd.argv[1..] {
+                let is_safe = spec
+                    .safe_flags
+                    .iter()
+                    .any(|(flag, _)| arg.starts_with(flag));
+                if arg.starts_with('-') && !is_safe {
+                    return SecurityResult::Warning(format!(
+                        "命令 '{}' 的标志 '{}' 不在安全列表中",
+                        program_base, arg
+                    ));
+                }
+            }
         }
 
         SecurityResult::safe("命令通过安全审查")

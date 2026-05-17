@@ -96,7 +96,6 @@ pub trait ModuleSwitch: Send + Sync {
 /// A module entry in the registry.
 struct ModuleEntry {
     module: Arc<dyn ModuleSwitch>,
-    #[allow(dead_code)]
     state: ModuleState,
 }
 
@@ -121,9 +120,14 @@ impl ModuleRegistry {
 
     /// Enable a module by ID.
     pub async fn enable_module(&self, module_id: &str) -> Result<(), String> {
-        let entries = self.entries.read().await;
-        if let Some(entry) = entries.iter().find(|e| e.module.module_id() == module_id) {
-            entry.module.enable().await
+        let mut entries = self.entries.write().await;
+        if let Some(entry) = entries
+            .iter_mut()
+            .find(|e| e.module.module_id() == module_id)
+        {
+            entry.module.enable().await?;
+            entry.state = entry.module.state();
+            Ok(())
         } else {
             Err(format!("Module '{module_id}' not found"))
         }
@@ -131,9 +135,14 @@ impl ModuleRegistry {
 
     /// Disable a module by ID.
     pub async fn disable_module(&self, module_id: &str) -> Result<(), String> {
-        let entries = self.entries.read().await;
-        if let Some(entry) = entries.iter().find(|e| e.module.module_id() == module_id) {
-            entry.module.disable().await
+        let mut entries = self.entries.write().await;
+        if let Some(entry) = entries
+            .iter_mut()
+            .find(|e| e.module.module_id() == module_id)
+        {
+            entry.module.disable().await?;
+            entry.state = entry.module.state();
+            Ok(())
         } else {
             Err(format!("Module '{module_id}' not found"))
         }
@@ -141,9 +150,14 @@ impl ModuleRegistry {
 
     /// Put a module to sleep.
     pub async fn sleep_module(&self, module_id: &str) -> Result<(), String> {
-        let entries = self.entries.read().await;
-        if let Some(entry) = entries.iter().find(|e| e.module.module_id() == module_id) {
-            entry.module.sleep().await
+        let mut entries = self.entries.write().await;
+        if let Some(entry) = entries
+            .iter_mut()
+            .find(|e| e.module.module_id() == module_id)
+        {
+            entry.module.sleep().await?;
+            entry.state = entry.module.state();
+            Ok(())
         } else {
             Err(format!("Module '{module_id}' not found"))
         }
@@ -151,9 +165,14 @@ impl ModuleRegistry {
 
     /// Wake a sleeping module.
     pub async fn wake_module(&self, module_id: &str) -> Result<(), String> {
-        let entries = self.entries.read().await;
-        if let Some(entry) = entries.iter().find(|e| e.module.module_id() == module_id) {
-            entry.module.wake().await
+        let mut entries = self.entries.write().await;
+        if let Some(entry) = entries
+            .iter_mut()
+            .find(|e| e.module.module_id() == module_id)
+        {
+            entry.module.wake().await?;
+            entry.state = entry.module.state();
+            Ok(())
         } else {
             Err(format!("Module '{module_id}' not found"))
         }
@@ -165,7 +184,7 @@ impl ModuleRegistry {
         entries
             .iter()
             .find(|e| e.module.module_id() == module_id)
-            .map(|e| e.module.state())
+            .map(|e| e.state)
     }
 
     /// List all registered modules.

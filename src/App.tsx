@@ -267,7 +267,15 @@ function AppRoot() {
       const t0 = performance.now();
 
       if (isTauri()) {
-        await checkIpcHealth();
+        const health = await checkIpcHealth();
+        if (!health.ok) {
+          console.warn(`[启动] IPC 健康检查失败: ${health.detail}`);
+          await new Promise((r) => setTimeout(r, 2000));
+          const retry = await checkIpcHealth();
+          if (!retry.ok) {
+            console.error(`[启动] IPC 重试仍失败: ${retry.detail}`);
+          }
+        }
       }
 
       try {

@@ -2,6 +2,13 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen } from "@tauri-apps/api/event";
 import { handleCommand } from "./browserMock";
 
+declare global {
+  interface Window {
+    isTauri?: boolean;
+  }
+  var isTauri: boolean | undefined;
+}
+
 export type UnlistenFn = () => void;
 
 /** Default timeout for Tauri invoke calls (5 minutes). Set to 0 to disable. */
@@ -305,10 +312,7 @@ export async function checkIpcHealth(): Promise<{ ok: boolean; detail: string; i
 }
 
 export function isTauri(): boolean {
-  // 使用与 @tauri-apps/api/core 相同的检测方式：
-  // window.isTauri 由 Tauri 运行时在初始化时设置，仅 Tauri 环境下为 true。
-  // 不要检查 __TAURI_INTERNALS__，因为浏览器模式下它可能被注入但 IPC 通道不存在。
-  return !!(globalThis as any).isTauri || !!(typeof window !== "undefined" && (window as any).isTauri);
+  return !!globalThis.isTauri || !!(typeof window !== "undefined" && window.isTauri);
 }
 
 /**

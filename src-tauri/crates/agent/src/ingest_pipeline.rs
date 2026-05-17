@@ -446,6 +446,7 @@ Output ONLY valid JSON inside a ```json fenced code block."#
         serde_json::from_str(trimmed).map_err(|e| format!("Failed to parse analysis JSON: {}", e))
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn generate_wiki_pages(
         &self,
         adapter: &dyn ProviderAdapter,

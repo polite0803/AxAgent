@@ -3,6 +3,8 @@ import type { ConversationSummary, MessagePage } from "@/types";
 import { create } from "zustand";
 import { useConversationStore } from "./conversationStore";
 
+const MESSAGE_PAGE_SIZE = 100;
+
 interface CompressState {
   compressing: boolean;
   compressContext: () => Promise<void>;
@@ -22,7 +24,7 @@ export const useCompressStore = create<CompressState>((set) => ({
       // Reload messages to get the new compression marker
       const page = await invoke<MessagePage>("list_messages_page", {
         conversationId,
-        limit: 100,
+        limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: null,
       });
       useConversationStore.setState({
@@ -56,7 +58,7 @@ export const useCompressStore = create<CompressState>((set) => ({
       // Reload messages to remove the compression marker
       const page = await invoke<MessagePage>("list_messages_page", {
         conversationId,
-        limit: 100,
+        limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: null,
       });
       useConversationStore.setState({

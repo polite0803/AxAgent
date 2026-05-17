@@ -39,7 +39,6 @@ pub struct WikiCompiler {
     llm_adapter: Arc<dyn ProviderAdapter>,
     llm_ctx: ProviderRequestContext,
     llm_model: String,
-    #[allow(dead_code)]
     quality_threshold: f64,
     use_llm_quality_eval: bool,
 }
@@ -737,6 +736,15 @@ impl WikiCompiler {
             self.calculate_quality_score(page).await
         };
 
+        if score < self.quality_threshold {
+            tracing::warn!(
+                "Page '{}' quality score {:.2} below threshold {:.2}",
+                page.title,
+                score,
+                self.quality_threshold
+            );
+        }
+
         let wiki_page = wiki_pages::Entity::find()
             .filter(wiki_pages::Column::NoteId.eq(&note.id))
             .one(self.db.as_ref())
@@ -1342,6 +1350,8 @@ mod tests {
                     prompt_tokens: 0,
                     completion_tokens: 0,
                     total_tokens: 0,
+                    cache_creation_tokens: None,
+                    cache_read_tokens: None,
                 },
                 tool_calls: None,
             })

@@ -98,8 +98,17 @@ impl Tool for FileWriteTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input["file_path"].as_str().unwrap();
-        let content = input["content"].as_str().unwrap();
+        let file_path = input["file_path"].as_str().unwrap_or("");
+        if file_path.is_empty() {
+            return Err(ToolError::invalid_input_for("FileWrite", "缺少 file_path 参数"));
+        }
+        if file_path.contains("..") {
+            return Err(ToolError::invalid_input_for("FileWrite", "file_path 包含路径遍历字符 '..'"));
+        }
+        let content = input["content"].as_str().unwrap_or("");
+        if content.is_empty() && !input["content"].is_string() {
+            return Err(ToolError::invalid_input_for("FileWrite", "缺少 content 参数"));
+        }
 
         let path = Path::new(file_path);
 

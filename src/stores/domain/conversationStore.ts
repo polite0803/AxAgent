@@ -7,7 +7,6 @@ import type {
   Conversation,
   ConversationBranch,
   ConversationSearchResult,
-  ConversationWorkspaceSnapshot,
   Message,
   MessagePage,
   UpdateConversationInput,
@@ -19,17 +18,17 @@ import { useExecutionStore } from "../feature/executionStore";
 import { usePlanStore } from "../feature/planStore";
 import { useTrajectoryStore } from "../feature/trajectoryStore";
 import { tempId } from "./conversationHelpers";
-import { createEventMethods } from "./conversationStoreEvents";
-import { createSendMethods } from "./conversationStoreSend";
-import { useMultiModelStore } from "./multiModelStore";
 import {
   categoryTemplateUpdateFromCategory,
   conversationPreferenceStateFromConversation,
   conversationPreferenceUpdateFromState,
   getStagedPreferenceUpdate,
   mergeConversationCollections,
-  usePreferenceStore,
-} from "./preferenceStore";
+} from "./conversationPreferences";
+import { createEventMethods, type EventMethods } from "./conversationStoreEvents";
+import { createSendMethods, type SendMethods } from "./conversationStoreSend";
+import { useMultiModelStore } from "./multiModelStore";
+import { usePreferenceStore } from "./preferenceStore";
 import {
   _activeMessageLoadSeq,
   _isMultiModelActive,
@@ -246,7 +245,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   setActiveMemoryNamespace: (id) => {
     const current = get().activeMemoryNamespaceId;
     const nextId = current === id ? null : id;
-    usePreferenceStore.getState().setActiveMemoryNamespace(id);
+    usePreferenceStore.getState().setActiveMemoryNamespaceId(nextId);
     set({ activeMemoryNamespaceId: nextId });
   },
   toggleWiki: (id) => {
@@ -875,7 +874,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       error: null,
     }));
   },
-  ...createSendMethods(set, get) as any,
+  ...createSendMethods(set, get),
   deleteMessage: async (messageId) => {
     const conversationId = get().activeConversationId;
     if (!conversationId) { return; }
@@ -1004,7 +1003,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       throw e;
     }
   },
-  ...createEventMethods(set, get) as any,
+  ...createEventMethods(set, get),
   switchMessageVersion: async (conversationId, parentMessageId, messageId) => {
     try {
       if (_isMultiModelActive) {
@@ -1185,7 +1184,20 @@ registerConversationStoreRef({
 // ChatSidebar's useEffect would normally auto-select the next conversation.
 // Setting this flag to true tells the sidebar to skip auto-select for one
 // render cycle, keeping the ChatView on the welcome screen.
-export let _suppressSidebarAutoSelect = false;
+//
+// TEMPORARY ESCAPE HATCH: This module-level flag is a workaround for
+// preventing sidebar auto-selection after deletion/archive. A proper
+// solution would use a Zustand store action or a dedicated UI state machine.
+
+let _suppressSidebarAutoSelect = false;
+
+export function isSidebarAutoSelectSuppressed(): boolean {
+  return _suppressSidebarAutoSelect;
+}
+
+export function setSidebarAutoSelectSuppressed(val: boolean): void {
+  _suppressSidebarAutoSelect = val;
+}
 
 let _sideBarSuppressTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1198,14 +1210,12 @@ export function resetSidebarAutoSelectSuppression() {
   }
 }
 
-// 设置 sidebar 自动选择抑制，带超时保护防止永久抑制
 export function setSidebarAutoSelectSuppression() {
   _suppressSidebarAutoSelect = true;
   if (_sideBarSuppressTimer) { clearTimeout(_sideBarSuppressTimer); }
   _sideBarSuppressTimer = setTimeout(() => {
     _suppressSidebarAutoSelect = false;
     _sideBarSuppressTimer = null;
-    // 5s 安全超时，防止 ChatSidebar 未挂载导致永久抑制
   }, 5000);
 }
 

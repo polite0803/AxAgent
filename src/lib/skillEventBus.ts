@@ -2,16 +2,25 @@
 
 type EventHandler = (payload: unknown) => void | Promise<void>;
 const listeners = new Map<string, Set<EventHandler>>();
+const MAX_LISTENER_KEYS = 200;
+
+function evictIfNeeded() {
+  if (listeners.size <= MAX_LISTENER_KEYS) { return; }
+  const keys = listeners.keys();
+  const excess = listeners.size - MAX_LISTENER_KEYS;
+  for (let i = 0; i < excess; i++) {
+    const key = keys.next().value;
+    if (key !== undefined) { listeners.delete(key); }
+  }
+}
 
 export const skillEventBus = {
-  /** 发送事件（指定 skill namespace） */
   emit(skillName: string, event: string, payload: unknown): void {
     const key = `${skillName}:${event}`;
     const handlers = listeners.get(key);
     if (handlers) {
       for (const handler of handlers) {
         try {
-          // 用 Promise.resolve 包裹以捕获同步和异步错误
           const result = handler(payload);
           if (result instanceof Promise) {
             result.catch((e) => console.error(`[skillEventBus] 异步 handler 错误 ${key}:`, e));
@@ -23,11 +32,11 @@ export const skillEventBus = {
     }
   },
 
-  /** 监听事件，返回取消监听的函数 */
   on(skillName: string, event: string, handler: EventHandler): () => void {
     const key = `${skillName}:${event}`;
     if (!listeners.has(key)) {
       listeners.set(key, new Set());
+      evictIfNeeded();
     }
     listeners.get(key)!.add(handler);
     return () => {
@@ -35,12 +44,15 @@ export const skillEventBus = {
     };
   },
 
-  /** 清除指定 skill 的所有监听 */
   clear(skillName: string): void {
     for (const [key] of listeners) {
       if (key.startsWith(`${skillName}:`)) {
         listeners.delete(key);
       }
     }
+  },
+
+  destroy(): void {
+    listeners.clear();
   },
 };

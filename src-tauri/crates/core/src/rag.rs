@@ -320,6 +320,7 @@ pub enum ChunkStrategy {
 /// Depending on the `ChunkStrategy`, the content is either:
 /// - Parsed from a file, chunked, and batch-embedded (`ParseAndChunk`), or
 /// - Embedded directly as a single item (`Direct`).
+#[allow(clippy::too_many_arguments)]
 pub async fn index(
     vector_store: &VectorStore,
     collection_prefix: &str,
@@ -566,6 +567,7 @@ async fn resolve_source_config(
 /// Returns a `RagContextResult` containing both formatted context parts
 /// (for injection into the system prompt) and structured results
 /// (for frontend display).  Errors for individual sources are logged and skipped.
+#[allow(clippy::too_many_arguments)]
 pub async fn collect_rag_context(
     db: &DatabaseConnection,
     master_key: &[u8; 32],
@@ -951,6 +953,7 @@ pub async fn check_vault_rag_capacity(
     let wiki = crate::repo::wiki::get_wiki(db, vault_id).await?;
 
     let collection_name = collection_id("wiki", vault_id);
+    validate_collection_name(&collection_name)?;
     let current_count = count_collection_items(db, &collection_name).await?;
 
     let is_over_limit = current_count >= VAULT_SOFT_LIMIT;
@@ -971,24 +974,28 @@ pub async fn check_vault_rag_capacity(
 }
 
 /// 校验 collection_name 只包含安全字符（字母、数字、下划线、连字符），防止 SQL 注入
-fn validate_collection_name(name: &str) -> Result<&str> {
-    if name.is_empty() || name.len() > 128 {
-        return Err(AxAgentError::Rag(format!("非法的 collection 名称长度: {}", name.len())));
+fn validate_collection_name(name: &str) -> Result<()> {
+    if name.is_empty() {
+        return Err(AxAgentError::Validation("Collection name cannot be empty".to_string()));
     }
-    for ch in name.chars() {
-        if !ch.is_ascii_alphanumeric() && ch != '_' && ch != '-' {
-            return Err(AxAgentError::Rag(format!(
-                "collection 名称包含非法字符 '{}': {}",
-                ch, name
-            )));
-        }
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err(AxAgentError::Validation(format!(
+            "Invalid collection name '{}': only alphanumeric characters and underscores are allowed",
+            name
+        )));
     }
-    Ok(name)
+    if name.len() > 64 {
+        return Err(AxAgentError::Validation(format!(
+            "Collection name '{}' is too long (max 64 characters)",
+            name
+        )));
+    }
+    Ok(())
 }
 
 async fn count_collection_items(db: &DatabaseConnection, collection_name: &str) -> Result<usize> {
-    let safe_name = validate_collection_name(collection_name)?;
-    let table_name = format!("vec_{}_meta", safe_name.replace('-', "_"));
+    validate_collection_name(collection_name)?;
+    let table_name = format!("vec_{}_meta", collection_name.replace('-', "_"));
     let count: i64 = db
         .query_one_raw(Statement::from_string(
             DbBackend::Sqlite,
@@ -1007,6 +1014,7 @@ pub async fn get_vault_capacity_info(
 ) -> Result<VaultCapacityInfo> {
     let _wiki = crate::repo::wiki::get_wiki(db, vault_id).await?;
     let collection_name = collection_id("wiki", vault_id);
+    validate_collection_name(&collection_name)?;
     let current_count = count_collection_items(db, &collection_name).await?;
 
     let oldest_item_timestamp = get_oldest_item_timestamp(db, &collection_name).await?;
@@ -1024,8 +1032,8 @@ async fn get_oldest_item_timestamp(
     db: &DatabaseConnection,
     collection_name: &str,
 ) -> Result<Option<i64>> {
-    let safe_name = validate_collection_name(collection_name)?;
-    let table_name = format!("vec_{}_meta", safe_name.replace('-', "_"));
+    validate_collection_name(collection_name)?;
+    let table_name = format!("vec_{}_meta", collection_name.replace('-', "_"));
     let result = db
         .query_one_raw(Statement::from_string(
             DbBackend::Sqlite,

@@ -1,4 +1,3 @@
-#![allow(clippy::unnested_or_patterns, clippy::map_unwrap_or)]
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 

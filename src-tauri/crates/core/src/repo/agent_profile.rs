@@ -80,6 +80,7 @@ pub async fn get_agent_profile_system_prompt(db: &DatabaseConnection, id: &str) 
     Ok(row.system_prompt)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_agent_profile(
     db: &DatabaseConnection,
     id: &str,
@@ -120,6 +121,7 @@ pub async fn create_agent_profile(
     get_agent_profile(db, id).await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn upsert_agent_profile(
     db: &DatabaseConnection,
     id: &str,

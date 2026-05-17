@@ -20,6 +20,9 @@ pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<t
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build());
 
+    #[cfg(feature = "notification")]
+    let builder = builder.plugin(tauri_plugin_notification::init());
+
     #[cfg(all(debug_assertions, not(target_os = "android")))]
     let builder = builder.plugin(tauri_plugin_mcp_bridge::init());
 

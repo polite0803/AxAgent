@@ -142,6 +142,22 @@ pub struct PluginManifest {
     pub mcp_servers: Vec<PluginMcpServer>,
     pub skills: Vec<PluginSkillEntry>,
     pub agents: Vec<PluginAgentDefInternal>,
+    #[serde(default)]
+    pub dependencies: Vec<PluginDependency>,
+    #[serde(default)]
+    pub integrity: Option<PluginIntegrity>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginDependency {
+    pub plugin_name: String,
+    pub min_version: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginIntegrity {
+    pub algorithm: String,
+    pub hash: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -319,6 +335,10 @@ pub(crate) struct RawPluginManifest {
     pub skills: Vec<RawPluginSkillEntry>,
     #[serde(default)]
     pub agents: Vec<RawPluginAgentDef>,
+    #[serde(default)]
+    pub dependencies: Vec<PluginDependency>,
+    #[serde(default)]
+    pub integrity: Option<PluginIntegrity>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -380,6 +400,50 @@ impl PluginTool {
     #[must_use]
     pub fn required_permission(&self) -> &str {
         self.required_permission.as_str()
+    }
+
+    pub fn check_permission(
+        &self,
+        declared_permissions: &[PluginPermission],
+    ) -> Result<(), PluginError> {
+        match self.required_permission {
+            PluginToolPermission::ReadOnly => Ok(()),
+            PluginToolPermission::WorkspaceWrite => {
+                if declared_permissions.contains(&PluginPermission::Write)
+                    || declared_permissions.contains(&PluginPermission::Execute)
+                {
+                    Ok(())
+                } else {
+                    Err(PluginError::CommandFailed(format!(
+                        "plugin tool `{}` requires workspace-write permission, but plugin `{}` only declares {:?}",
+                        self.definition.name,
+                        self.plugin_id,
+                        declared_permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>()
+                    )))
+                }
+            },
+            PluginToolPermission::DangerFullAccess => {
+                if declared_permissions.contains(&PluginPermission::Execute) {
+                    Ok(())
+                } else {
+                    Err(PluginError::CommandFailed(format!(
+                        "plugin tool `{}` requires danger-full-access permission, but plugin `{}` only declares {:?} (needs 'execute')",
+                        self.definition.name,
+                        self.plugin_id,
+                        declared_permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>()
+                    )))
+                }
+            },
+        }
+    }
+
+    pub fn execute_with_permission_check(
+        &self,
+        input: &Value,
+        declared_permissions: &[PluginPermission],
+    ) -> Result<String, PluginError> {
+        self.check_permission(declared_permissions)?;
+        self.execute(input)
     }
 
     pub fn execute(&self, input: &Value) -> Result<String, PluginError> {
@@ -1079,6 +1143,15 @@ pub enum PluginManifestValidationError {
     UnsupportedManifestContract {
         detail: String,
     },
+    DependencyNotSatisfied {
+        plugin_name: String,
+        min_version: Option<String>,
+    },
+    IntegrityCheckFailed {
+        algorithm: String,
+        expected: String,
+        actual: String,
+    },
 }
 
 impl Display for PluginManifestValidationError {
@@ -1125,6 +1198,15 @@ impl Display for PluginManifestValidationError {
                 "plugin tool `{tool_name}` requiredPermission `{permission}` must be read-only, workspace-write, or danger-full-access"
             ),
             Self::UnsupportedManifestContract { detail } => f.write_str(detail),
+            Self::DependencyNotSatisfied { plugin_name, min_version } => {
+                match min_version {
+                    Some(ver) => write!(f, "plugin dependency `{plugin_name}` (min version {ver}) is not satisfied"),
+                    None => write!(f, "plugin dependency `{plugin_name}` is not installed"),
+                }
+            },
+            Self::IntegrityCheckFailed { algorithm, expected, actual } => {
+                write!(f, "plugin integrity check failed ({algorithm}): expected {expected}, got {actual}")
+            },
         }
     }
 }
@@ -1225,6 +1307,73 @@ impl PluginManager {
 
     pub fn plugin_registry(&self) -> Result<PluginRegistry, PluginError> {
         self.plugin_registry_report()?.into_registry()
+    }
+
+    pub fn validate_dependencies(&self, manifest: &PluginManifest) -> Result<(), PluginError> {
+        if manifest.dependencies.is_empty() {
+            return Ok(());
+        }
+        let registry = self.plugin_registry()?;
+        let available: BTreeMap<&str, &str> = registry
+            .plugins()
+            .iter()
+            .map(|p| (p.metadata().name.as_str(), p.metadata().version.as_str()))
+            .collect();
+
+        let mut errors = Vec::new();
+        for dep in &manifest.dependencies {
+            match available.get(dep.plugin_name.as_str()) {
+                None => {
+                    errors.push(PluginManifestValidationError::DependencyNotSatisfied {
+                        plugin_name: dep.plugin_name.clone(),
+                        min_version: dep.min_version.clone(),
+                    });
+                },
+                Some(&installed_version) => {
+                    if let Some(ref min_ver) = dep.min_version {
+                        if !version_satisfies(installed_version, min_ver) {
+                            errors.push(PluginManifestValidationError::DependencyNotSatisfied {
+                                plugin_name: dep.plugin_name.clone(),
+                                min_version: Some(min_ver.clone()),
+                            });
+                        }
+                    }
+                },
+            }
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(PluginError::ManifestValidation(errors))
+        }
+    }
+
+    pub fn verify_integrity(
+        &self,
+        plugin_root: &Path,
+        integrity: &PluginIntegrity,
+    ) -> Result<(), PluginError> {
+        match integrity.algorithm.as_str() {
+            "sha256" => {
+                let manifest_path = plugin_manifest_path(plugin_root)?;
+                let data = fs::read(&manifest_path).map_err(|e| PluginError::Io(e))?;
+                let hash = sha256_hash(&data);
+                if hash.eq_ignore_ascii_case(&integrity.hash) {
+                    Ok(())
+                } else {
+                    Err(PluginError::ManifestValidation(vec![
+                        PluginManifestValidationError::IntegrityCheckFailed {
+                            algorithm: integrity.algorithm.clone(),
+                            expected: integrity.hash.clone(),
+                            actual: hash,
+                        },
+                    ]))
+                }
+            },
+            other => {
+                Err(PluginError::CommandFailed(format!("unsupported integrity algorithm: {other}")))
+            },
+        }
     }
 
     pub fn plugin_registry_report(&self) -> Result<PluginRegistryReport, PluginError> {
@@ -1840,7 +1989,6 @@ fn load_manifest_from_skill_md(
         PluginError::NotFound(format!("SKILL.md not found at {}: {error}", manifest_path.display()))
     })?;
 
-    // 解析 YAML 前导元数据 (--- ... ---)
     let dir_name = root
         .file_name()
         .and_then(|n| n.to_str())
@@ -1849,10 +1997,18 @@ fn load_manifest_from_skill_md(
     let mut name = String::from(dir_name);
     let mut description = String::new();
     let mut version = String::from("1.0.0");
+    let mut permissions: Vec<String> = Vec::new();
+    let mut pre_tool_use: Vec<String> = Vec::new();
+    let mut post_tool_use: Vec<String> = Vec::new();
+    let mut post_tool_use_failure: Vec<String> = Vec::new();
+    let mut init_commands: Vec<String> = Vec::new();
+    let mut shutdown_commands: Vec<String> = Vec::new();
+    let mut default_enabled = true;
 
     let lines: Vec<&str> = contents.lines().collect();
     if lines.first().map(|l| l.trim()) == Some("---") {
         let mut in_frontmatter = false;
+        let mut current_list_key: Option<String> = None;
         for line in &lines[1..] {
             let trimmed = line.trim();
             if trimmed == "---" {
@@ -1865,12 +2021,56 @@ fn load_manifest_from_skill_md(
             if !in_frontmatter {
                 in_frontmatter = true;
             }
+
+            if trimmed.is_empty() {
+                current_list_key = None;
+                continue;
+            }
+
+            if let Some(list_key) = &current_list_key {
+                if trimmed.starts_with("- ") {
+                    let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+                    match list_key.as_str() {
+                        "permissions" => permissions.push(item.to_string()),
+                        "pre_tool_use" | "PreToolUse" => pre_tool_use.push(item.to_string()),
+                        "post_tool_use" | "PostToolUse" => post_tool_use.push(item.to_string()),
+                        "post_tool_use_failure" | "PostToolUseFailure" => {
+                            post_tool_use_failure.push(item.to_string())
+                        },
+                        "init" | "Init" => init_commands.push(item.to_string()),
+                        "shutdown" | "Shutdown" => shutdown_commands.push(item.to_string()),
+                        _ => {},
+                    }
+                    continue;
+                } else {
+                    current_list_key = None;
+                }
+            }
+
             if let Some((key, value)) = trimmed.split_once(':') {
                 let val = value.trim().trim_matches('"').trim_matches('\'');
                 match key.trim() {
                     "name" => name = val.to_string(),
                     "description" => description = val.to_string(),
                     "version" => version = val.to_string(),
+                    "default_enabled" | "defaultEnabled" => {
+                        default_enabled = val.eq_ignore_ascii_case("true");
+                    },
+                    "permissions"
+                    | "pre_tool_use"
+                    | "PreToolUse"
+                    | "post_tool_use"
+                    | "PostToolUse"
+                    | "post_tool_use_failure"
+                    | "PostToolUseFailure"
+                    | "init"
+                    | "Init"
+                    | "shutdown"
+                    | "Shutdown" => {
+                        if val.is_empty() {
+                            current_list_key = Some(key.trim().to_string());
+                        }
+                    },
                     _ => {},
                 }
             }
@@ -1885,16 +2085,19 @@ fn load_manifest_from_skill_md(
             description
         },
         version,
-        permissions: Vec::new(),
-        default_enabled: true,
+        permissions: permissions
+            .iter()
+            .filter_map(|p| PluginPermission::parse(p))
+            .collect(),
+        default_enabled,
         hooks: PluginHooks {
-            pre_tool_use: Vec::new(),
-            post_tool_use: Vec::new(),
-            post_tool_use_failure: Vec::new(),
+            pre_tool_use,
+            post_tool_use,
+            post_tool_use_failure,
         },
         lifecycle: PluginLifecycle {
-            init: Vec::new(),
-            shutdown: Vec::new(),
+            init: init_commands,
+            shutdown: shutdown_commands,
         },
         tools: Vec::new(),
         commands: Vec::new(),
@@ -1902,6 +2105,8 @@ fn load_manifest_from_skill_md(
         mcp_servers: Vec::new(),
         skills: Vec::new(),
         agents: Vec::new(),
+        dependencies: Vec::new(),
+        integrity: None,
     };
     Ok(manifest)
 }
@@ -2049,6 +2254,8 @@ fn build_plugin_manifest(
                 system_prompt: r.system_prompt,
             })
             .collect(),
+        dependencies: raw.dependencies,
+        integrity: raw.integrity,
     })
 }
 
@@ -2658,6 +2865,36 @@ fn env_lock() -> &'static std::sync::Mutex<()> {
     &ENV_LOCK
 }
 
+fn version_satisfies(installed: &str, required: &str) -> bool {
+    let installed_parts: Vec<u32> = installed
+        .split('.')
+        .filter_map(|s| s.parse().ok())
+        .collect();
+    let required_parts: Vec<u32> = required.split('.').filter_map(|s| s.parse().ok()).collect();
+
+    for i in 0..required_parts.len().max(installed_parts.len()) {
+        let installed_val = installed_parts.get(i).copied().unwrap_or(0);
+        let required_val = required_parts.get(i).copied().unwrap_or(0);
+        if installed_val > required_val {
+            return true;
+        }
+        if installed_val < required_val {
+            return false;
+        }
+    }
+    true
+}
+
+fn sha256_hash(data: &[u8]) -> String {
+    use std::fmt::Write as _;
+    let hash = <sha2::Sha256 as sha2::Digest>::digest(data);
+    let mut result = String::with_capacity(hash.len() * 2);
+    for byte in hash {
+        write!(result, "{byte:02x}").unwrap();
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2665,7 +2902,10 @@ mod tests {
     fn env_guard() -> std::sync::MutexGuard<'static, ()> {
         env_lock()
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(|e| {
+                tracing::warn!("env lock poisoned, recovering");
+                e.into_inner()
+            })
     }
 
     fn temp_dir(label: &str) -> PathBuf {
@@ -2976,7 +3216,6 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
-    #[test]
     #[test]
     fn load_plugin_from_directory_accepts_mcpservers_skills_agents_still_rejects_unknown_hooks() {
         let root = temp_dir("manifest-cc-compat");

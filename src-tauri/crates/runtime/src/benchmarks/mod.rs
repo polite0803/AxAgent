@@ -110,7 +110,6 @@ pub struct BenchScore {
 
 pub struct BenchmarkRunner {
     suites: Vec<BenchmarkSuite>,
-    #[allow(dead_code)]
     evaluator: Box<dyn BenchEvaluator>,
     history: Vec<BenchResult>,
 }
@@ -138,5 +137,37 @@ impl BenchmarkRunner {
 
     pub fn get_run_history(&self) -> &[BenchResult] {
         &self.history
+    }
+
+    pub fn evaluate_task(
+        &self,
+        output: &str,
+        expected: Option<&str>,
+        context: Option<&serde_json::Value>,
+    ) -> BenchScore {
+        self.evaluator.evaluate(output, expected, context)
+    }
+
+    pub fn run_task(&mut self, task: &BenchTask) -> TaskResult {
+        let score = self.evaluator.evaluate(
+            &task.input,
+            task.expected_output.as_deref(),
+            task.context.as_ref(),
+        );
+        TaskResult {
+            task_id: task.id.clone(),
+            status: if score.passed {
+                TaskStatus::Success
+            } else {
+                TaskStatus::Failed
+            },
+            score: score.score,
+            steps_taken: 0,
+            output: None,
+            error: None,
+            metadata: serde_json::json!({
+                "details": score.details,
+            }),
+        }
     }
 }

@@ -24,7 +24,7 @@ export interface PyodideInterface {
 }
 
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/";
-const PYODIDE_SRI = "sha384-0e3A0sm1LqP1KQlE9F5S0Y9q+6L7S0Z+0l8fJ0Y6J0Y6J0Y6J0Y6J0Y6J0Y6J0Y6J0Y6";
+const PYODIDE_SRI = "";
 const PYTHON_EXECUTION_TIMEOUT_MS = 30_000;
 
 class CodeExecutor {
@@ -48,7 +48,7 @@ class CodeExecutor {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement("script");
           script.src = `${PYODIDE_CDN}pyodide.js`;
-          script.integrity = PYODIDE_SRI;
+          if (PYODIDE_SRI) { script.integrity = PYODIDE_SRI; }
           script.crossOrigin = "anonymous";
           script.onload = () => resolve();
           script.onerror = () => reject(new Error("Failed to load Pyodide script"));
@@ -112,19 +112,23 @@ class CodeExecutor {
       });
 
       const execPromise = (async () => {
-        await this.pyodide!.runPythonAsync(`
-import sys
+        const encodedCode = btoa(unescape(encodeURIComponent(code)));
+        const result = await this.pyodide!.runPythonAsync(`
+import sys, json, base64
 from io import StringIO
 sys.stdout = StringIO()
 sys.stderr = StringIO()
-        `);
-
-        await this.pyodide!.runPythonAsync(code);
-
-        const stdout = await this.pyodide!.runPythonAsync("sys.stdout.getvalue()");
-        const stderr = await this.pyodide!.runPythonAsync("sys.stderr.getvalue()");
-
-        return { stdout, stderr };
+try:
+    exec(base64.b64decode("${encodedCode}").decode("utf-8"))
+finally:
+    _stdout = sys.stdout.getvalue()
+    _stderr = sys.stderr.getvalue()
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
+json.dumps({"stdout": _stdout, "stderr": _stderr})
+`);
+        const parsed = JSON.parse(result);
+        return { stdout: parsed.stdout, stderr: parsed.stderr };
       })();
 
       const { stdout, stderr } = await Promise.race([execPromise, timeoutPromise]);

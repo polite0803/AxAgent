@@ -416,8 +416,8 @@ impl AutoToolCreator {
         let mut patterns: Vec<(String, u32)> = self
             .pattern_counts
             .iter()
-            .filter(|(_, &count)| count >= min_freq)
-            .map(|(k, &v)| (k.clone(), v))
+            .filter(|&(_, &count)| count >= min_freq)
+            .map(|(k, v)| (k.clone(), *v))
             .collect();
         patterns.sort_by_key(|b| std::cmp::Reverse(b.1));
         patterns

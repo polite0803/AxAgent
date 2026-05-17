@@ -7,7 +7,6 @@ use super::backend_trait::{
     BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput,
 };
 
-#[allow(dead_code)]
 pub struct DockerBackend {
     socket_path: String,
     connected: Arc<RwLock<bool>>,
@@ -38,7 +37,7 @@ impl DockerBackend {
         path: &str,
         body: Option<serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value> {
-        let base_url = "http://localhost";
+        let base_url = format!("http://{}", self.socket_path);
         let url = format!("{}{}", base_url, path);
         let client = reqwest::Client::new();
 

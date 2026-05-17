@@ -3,7 +3,7 @@ use axagent_core::repo::backup;
 use axagent_core::repo::settings::get_settings;
 use axagent_core::types::*;
 use sea_orm::DatabaseConnection;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
@@ -58,9 +58,6 @@ pub async fn restore_backup(
 
             // SQLite 恢复后需要重启应用
             app.restart();
-
-            #[allow(unreachable_code)]
-            Ok(serde_json::json!({ "restarted": true }))
         },
         "json" => {
             let strategy = match strategy.as_deref() {
@@ -146,7 +143,7 @@ pub async fn update_backup_settings(
 async fn restart_auto_backup(
     handle: &Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     db: &DatabaseConnection,
-    #[allow(clippy::ptr_arg)] app_data_dir: &PathBuf,
+    app_data_dir: &Path,
     settings: &AutoBackupSettings,
 ) {
     let mut guard = handle.lock().await;
@@ -161,7 +158,7 @@ async fn restart_auto_backup(
     }
 
     let db = db.clone();
-    let app_dir = app_data_dir.clone();
+    let app_dir = app_data_dir.to_path_buf();
     let interval_hours = settings.interval_hours;
     let max_count = settings.max_count;
     let interval_secs = interval_hours as u64 * 3600;

@@ -152,6 +152,10 @@ pub enum TaskExecutorError {
 
 impl TaskExecutor {
     pub fn new() -> Self {
+        Self::default_inner().with_inner_executor(DefaultTaskExecutorImpl)
+    }
+
+    fn default_inner() -> Self {
         let decomposer = Arc::new(TaskDecomposer::new());
         let (event_sender, _) = broadcast::channel(100);
 
@@ -169,7 +173,6 @@ impl TaskExecutor {
         self
     }
 
-    #[allow(dead_code)]
     pub(crate) fn with_inner_executor(mut self, executor: DefaultTaskExecutorImpl) -> Self {
         self.inner_executor = Arc::new(executor);
         self
@@ -1067,5 +1070,11 @@ mod tests {
         let executor = TaskExecutor::new();
         let result = executor.execute_with_groups().await;
         assert!(matches!(result, Err(ExecutionError::NotPrepared)));
+    }
+
+    #[tokio::test]
+    async fn test_task_executor_with_inner_executor() {
+        let executor = TaskExecutor::new().with_inner_executor(DefaultTaskExecutorImpl);
+        assert!(executor.get_graph().await.is_none());
     }
 }

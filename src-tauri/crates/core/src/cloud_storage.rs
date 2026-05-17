@@ -189,7 +189,6 @@ impl S3Backend {
         format!("{}.{}", self.config.bucket, endpoint)
     }
 
-    #[allow(dead_code)]
     fn base_url(&self) -> String {
         if self.config.use_path_style {
             format!("{}/{}", self.config.endpoint.trim_end_matches('/'), self.config.bucket)
@@ -304,16 +303,7 @@ impl S3Backend {
             self.config.access_key_id, scope, signed_headers, signature
         );
 
-        let url = format!(
-            "{}://{}{}",
-            if self.config.endpoint.starts_with("http://") {
-                "http"
-            } else {
-                "https"
-            },
-            host,
-            canonical_uri
-        );
+        let url = format!("{}{}", self.base_url(), canonical_uri);
         let url = if canonical_querystring.is_empty() {
             url
         } else {

@@ -207,7 +207,7 @@ pub mod prelude {
         SkillReference, TaskComplexity, ValidationResult,
     };
     pub use crate::skill_proposal::{create_skill_from_proposal, SkillProposalService};
-    pub use crate::storage::{TrajectoryStatistics, TrajectoryStorage};
+    pub use crate::storage::{TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectoryStatistics, TrajectoryStorage};
     pub use crate::sub_agent::{
         AgentMailbox, AgentMessage, AgentMessageError, AgentMessageKind, MessageBus, SubAgent,
         SubAgentMetadata, SubAgentQuery, SubAgentRegistry, SubAgentResult, SubAgentStatus,

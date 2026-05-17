@@ -188,13 +188,11 @@ pub fn levenshtein_distance(s1: &str, s2: &str) -> usize {
 
     let mut matrix = vec![vec![0usize; len2 + 1]; len1 + 1];
 
-    #[allow(clippy::needless_range_loop)]
-    for i in 0..=len1 {
-        matrix[i][0] = i;
+    for (i, row) in matrix.iter_mut().enumerate() {
+        row[0] = i;
     }
-    #[allow(clippy::needless_range_loop)]
-    for j in 0..=len2 {
-        matrix[0][j] = j;
+    for (j, val) in matrix[0].iter_mut().enumerate() {
+        *val = j;
     }
 
     let s1_chars: Vec<char> = s1.chars().collect();

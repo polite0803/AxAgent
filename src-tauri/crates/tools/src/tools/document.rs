@@ -82,16 +82,138 @@ impl Tool for ExportWordTool {
     }
 }
 
-/// 基于 pulldown-cmark 事件流生成 docx 文档
+/// 基于 pulldown-cmark 事件流生成专业 docx 文档
+///
+/// 使用 docx-rs 样式系统、表格边框、列表编号、页码、行内格式等完整能力。
 fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
     use docx_rs::*;
     use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
     let mut doc = Docx::new();
-    doc = doc.page_size(11906, 16838);
-    doc = doc.page_margin(PageMargin::new().top(567).bottom(567).left(567).right(567));
 
-    // 页眉
+    // ── 页面设置 ──
+    doc = doc.page_size(11906, 16838); // A4
+    doc = doc.page_margin(
+        PageMargin::new()
+            .top(1440)    // 1 inch
+            .bottom(1440)
+            .left(1440)
+            .right(1440),
+    );
+
+    // ── 文档样式 ──
+    let default_font = RunFonts::new()
+        .ascii("Calibri")
+        .hi_ansi("Calibri")
+        .east_asia("微软雅黑")
+        .cs("Calibri");
+
+    let heading_font = RunFonts::new()
+        .ascii("Calibri Light")
+        .hi_ansi("Calibri Light")
+        .east_asia("微软雅黑");
+
+    let styles = Styles::new()
+        .default_fonts(default_font)
+        .default_size(22) // 11pt
+        .default_line_spacing(
+            LineSpacing::new()
+                .line_rule(LineSpacingType::Auto)
+                .line(276)  // 1.15x
+                .after(120), // 段后 6pt
+        )
+        .add_style(
+            Style::new("Heading1", StyleType::Paragraph)
+                .name("Heading 1")
+                .based_on("Normal")
+                .q_format(true)
+                .size(32)
+                .bold()
+                .color("1F3864")
+                .fonts(heading_font.clone())
+                .line_spacing(
+                    LineSpacing::new()
+                        .before(240)
+                        .after(120)
+                        .line_rule(LineSpacingType::Auto)
+                        .line(276),
+                )
+                
+                .outline_lvl(0),
+        )
+        .add_style(
+            Style::new("Heading2", StyleType::Paragraph)
+                .name("Heading 2")
+                .based_on("Normal")
+                .q_format(true)
+                .size(26)
+                .bold()
+                .color("2E75B6")
+                .fonts(heading_font.clone())
+                .line_spacing(
+                    LineSpacing::new()
+                        .before(200)
+                        .after(80)
+                        .line_rule(LineSpacingType::Auto)
+                        .line(276),
+                )
+                
+                .outline_lvl(1),
+        )
+        .add_style(
+            Style::new("Heading3", StyleType::Paragraph)
+                .name("Heading 3")
+                .based_on("Normal")
+                .q_format(true)
+                .size(24)
+                .bold()
+                .color("2E75B6")
+                .fonts(heading_font)
+                .line_spacing(
+                    LineSpacing::new()
+                        .before(160)
+                        .after(60)
+                        .line_rule(LineSpacingType::Auto)
+                        .line(276),
+                )
+                
+                .outline_lvl(2),
+        );
+    doc = doc.styles(styles);
+
+    // ── 列表编号定义 ──
+    let abs_ordered = AbstractNumbering::new(1).add_level(
+        Level::new(
+            0,
+            Start::new(1),
+            NumberFormat::new("decimal"),
+            LevelText::new("%1."),
+            LevelJc::new("left"),
+        )
+        .indent(Some(567), Some(SpecialIndentType::Hanging(284)), None, None)
+        .size(22),
+    );
+    let num_ordered = Numbering::new(10, 1);
+
+    let abs_bullet = AbstractNumbering::new(2).add_level(
+        Level::new(
+            0,
+            Start::new(1),
+            NumberFormat::new("bullet"),
+            LevelText::new("\u{2022}"),
+            LevelJc::new("left"),
+        )
+        .indent(Some(567), Some(SpecialIndentType::Hanging(284)), None, None)
+        .size(22),
+    );
+    let num_bullet = Numbering::new(20, 2);
+    doc = doc
+        .add_abstract_numbering(abs_ordered)
+        .add_numbering(num_ordered)
+        .add_abstract_numbering(abs_bullet)
+        .add_numbering(num_bullet);
+
+    // ── 页眉 ──
     let header = Header::new().add_paragraph(
         Paragraph::new()
             .add_run(Run::new().add_text(title).size(18).color("888888"))
@@ -99,14 +221,20 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
     );
     doc = doc.header(header);
 
-    // 标题
+    // ── 封面标题 ──
     doc = doc.add_paragraph(
         Paragraph::new()
             .add_run(Run::new().add_text(title).size(36).bold().color("1a1a1a"))
-            .align(AlignmentType::Center),
+            .align(AlignmentType::Center)
+            .line_spacing(
+                LineSpacing::new()
+                    .after(240)
+                    .line_rule(LineSpacingType::Auto)
+                    .line(276),
+            ),
     );
-    doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text("")));
 
+    // ── 解析器设置 ──
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
@@ -114,10 +242,10 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
 
     let parser = Parser::new_ext(markdown_text, options);
 
-    // 状态
+    // ── 状态变量 ──
     let mut para_runs: Vec<Run> = Vec::new();
     let mut heading_text = String::new();
-    let mut in_heading: Option<usize> = None; // heading level
+    let mut in_heading: Option<usize> = None;
     let mut in_code_block = false;
     let mut code_lines: Vec<String> = Vec::new();
     let mut code_lang = String::new();
@@ -127,12 +255,62 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
     let mut table_row_text = String::new();
     let mut in_table_head = false;
     let mut table_headers: Vec<String> = Vec::new();
-    let mut in_list = false;
     let mut list_ordered = false;
     let mut in_blockquote = false;
+    // 行内格式跟踪
+    let mut bold_depth: u32 = 0;
+    let mut italic_depth: u32 = 0;
+    let mut strike_depth: u32 = 0;
+    let mut link_url: Option<String> = None;
+    // 累积文本（延迟到获取格式信息后创建 Run）
+    let mut text_buf: String = String::new();
+
+    // 辅助：刷新 text_buf 为 Run 并推入 para_runs
+    let flush_text = |para_runs: &mut Vec<Run>,
+                      text_buf: &mut String,
+                      in_heading: &mut Option<usize>,
+                      heading_text: &mut String,
+                      in_table: bool,
+                      table_row_text: &mut String,
+                      bold_depth: u32,
+                      italic_depth: u32,
+                      strike_depth: u32,
+                      link_url: &Option<String>,
+                      in_code_block: bool| {
+        if text_buf.is_empty() {
+            return;
+        }
+        let text = std::mem::take(text_buf);
+        if in_code_block {
+            return; // handled separately
+        }
+        if in_heading.is_some() {
+            heading_text.push_str(&text);
+            return;
+        }
+        if in_table {
+            table_row_text.push_str(&text);
+            return;
+        }
+        let mut run = Run::new().add_text(text).size(22);
+        if bold_depth > 0 {
+            run = run.bold();
+        }
+        if italic_depth > 0 {
+            run = run.italic();
+        }
+        if strike_depth > 0 {
+            run = run.strike();
+        }
+        if let Some(_url) = link_url {
+            run = run.color("0563C1").underline("single");
+        }
+        para_runs.push(run);
+    };
 
     for event in parser {
         match event {
+            // ── Start Tags ──
             Event::Start(tag) => match tag {
                 Tag::Heading { level, .. } => {
                     let lvl = match level {
@@ -143,7 +321,63 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                         HeadingLevel::H5 => 5,
                         HeadingLevel::H6 => 6,
                     };
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
                     in_heading = Some(lvl);
+                },
+                Tag::Strong => bold_depth += 1,
+                Tag::Emphasis => italic_depth += 1,
+                Tag::Strikethrough => strike_depth += 1,
+                Tag::Link { dest_url, .. } => {
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
+                    link_url = Some(dest_url.to_string());
+                },
+                Tag::Image {
+                    dest_url, title, ..
+                } => {
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
+                    // 刷新当前段落
+                    if !para_runs.is_empty() {
+                        let p = Paragraph::new();
+                        let p = add_runs_to_para(p, std::mem::take(&mut para_runs), in_blockquote);
+                        doc = doc.add_paragraph(p);
+                    }
+                    doc = embed_image(doc, &title, &dest_url);
                 },
                 Tag::CodeBlock(kind) => {
                     in_code_block = true;
@@ -153,82 +387,155 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                     };
                 },
                 Tag::Table(_) => {
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
+                    // 刷新当前段落
+                    if !para_runs.is_empty() {
+                        let p = Paragraph::new();
+                        let p = add_runs_to_para(p, std::mem::take(&mut para_runs), in_blockquote);
+                        doc = doc.add_paragraph(p);
+                    }
                     in_table = true;
                     table_rows.clear();
                     table_headers.clear();
                     in_table_head = true;
                 },
                 Tag::TableHead => in_table_head = true,
-                Tag::TableRow => {
-                    table_row_cells.clear();
-                },
+                Tag::TableRow => table_row_cells.clear(),
                 Tag::List(order) => {
-                    in_list = true;
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
                     list_ordered = order.is_some();
                 },
                 Tag::Item => {},
-                Tag::BlockQuote(_) => {
-                    in_blockquote = true;
-                },
+                Tag::BlockQuote(_) => in_blockquote = true,
                 _ => {},
             },
 
+            // ── End Tags ──
             Event::End(tag) => match tag {
                 TagEnd::Heading(_) => {
-                    let size = match in_heading.unwrap_or(1) {
-                        1 => 36,
-                        2 => 30,
-                        3 => 26,
-                        4 => 24,
-                        _ => 22,
+                    let heading_style = match in_heading.unwrap_or(1) {
+                        1 => "Heading1",
+                        2 => "Heading2",
+                        _ => "Heading3",
                     };
                     let text = std::mem::take(&mut heading_text);
                     doc = doc.add_paragraph(
                         Paragraph::new()
-                            .add_run(Run::new().add_text(text).size(size).bold().color("1a1a1a")),
+                            .add_run(Run::new().add_text(text))
+                            .style(heading_style),
                     );
                     para_runs.clear();
                     in_heading = None;
                 },
+                TagEnd::Strong => bold_depth = bold_depth.saturating_sub(1),
+                TagEnd::Emphasis => italic_depth = italic_depth.saturating_sub(1),
+                TagEnd::Strikethrough => strike_depth = strike_depth.saturating_sub(1),
+                TagEnd::Link => {
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
+                    link_url = None;
+                },
                 TagEnd::Paragraph if !para_runs.is_empty() => {
-                    let mut p = Paragraph::new();
-                    for r in std::mem::take(&mut para_runs) {
-                        p = p.add_run(r);
-                    }
-                    if in_list {
-                        p = p.indent(Some(567), None, None, None);
-                    }
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
+                    let p = Paragraph::new();
+                    let p = add_runs_to_para(p, std::mem::take(&mut para_runs), in_blockquote);
                     if in_blockquote {
-                        p = p.indent(Some(284), None, None, None);
+                        doc = doc.add_paragraph(
+                            p.indent(Some(284), None, None, None).line_spacing(
+                                LineSpacing::new()
+                                    .line_rule(LineSpacingType::Auto)
+                                    .line(276),
+                            ),
+                        );
+                    } else {
+                        doc = doc.add_paragraph(p);
                     }
-                    doc = doc.add_paragraph(p);
                 },
                 TagEnd::Paragraph => {},
                 TagEnd::CodeBlock => {
                     in_code_block = false;
-                    let label = if code_lang.is_empty() {
-                        "代码块".to_string()
-                    } else {
-                        format!("代码块 ({})", &code_lang)
-                    };
-                    doc = doc.add_paragraph(
-                        Paragraph::new()
-                            .add_run(Run::new().add_text(&label).size(18).bold().color("888888")),
-                    );
-                    for line in &code_lines {
+                    if !code_lines.is_empty() {
+                        let label = if code_lang.is_empty() {
+                            "代码".to_string()
+                        } else {
+                            format!("{}", &code_lang)
+                        };
                         doc = doc.add_paragraph(
                             Paragraph::new()
                                 .add_run(
-                                    Run::new()
-                                        .add_text(line.replace('\t', "    "))
-                                        .size(18)
-                                        .fonts(
-                                            RunFonts::new().ascii("Consolas").hi_ansi("Consolas"),
-                                        )
-                                        .color("2d2d2d"),
+                                    Run::new().add_text(&label).size(16).bold().color("888888"),
                                 )
                                 .indent(Some(284), None, None, None),
                         );
+                        for line in &code_lines {
+                            doc = doc.add_paragraph(
+                                Paragraph::new()
+                                    .add_run(
+                                        Run::new()
+                                            .add_text(line.replace('\t', "    "))
+                                            .size(18)
+                                            .fonts(
+                                                RunFonts::new()
+                                                    .ascii("Consolas")
+                                                    .hi_ansi("Consolas"),
+                                            )
+                                            .color("2D2D2D"),
+                                    )
+                                    .indent(Some(284), None, None, None)
+                                    .line_spacing(
+                                        LineSpacing::new()
+                                            .line_rule(LineSpacingType::Exact)
+                                            .line(280),
+                                    ),
+                            );
+                        }
                     }
                     code_lines.clear();
                     code_lang.clear();
@@ -237,6 +544,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                     in_table = false;
                     if !table_headers.is_empty() || !table_rows.is_empty() {
                         let mut t_rows: Vec<TableRow> = Vec::new();
+
                         // 表头行
                         if !table_headers.is_empty() {
                             let cells: Vec<TableCell> = table_headers
@@ -244,27 +552,53 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                                 .map(|h| {
                                     TableCell::new()
                                         .shading(
-                                            Shading::new().fill("4a90d9").shd_type(ShdType::Clear),
+                                            Shading::new().fill("1F3864").shd_type(ShdType::Clear),
                                         )
-                                        .add_paragraph(Paragraph::new().add_run(
-                                            Run::new().add_text(h).size(22).bold().color("ffffff"),
-                                        ))
+                                        .vertical_align(VAlignType::Center)
+                                        .add_paragraph(
+                                            Paragraph::new()
+                                                .add_run(
+                                                    Run::new()
+                                                        .add_text(h)
+                                                        .size(20)
+                                                        .bold()
+                                                        .color("FFFFFF"),
+                                                )
+                                                .line_spacing(
+                                                    docx_rs::LineSpacing::new()
+                                                        .line_rule(docx_rs::LineSpacingType::Auto)
+                                                        .line(240),
+                                                ),
+                                        )
                                 })
                                 .collect();
                             t_rows.push(TableRow::new(cells));
                         }
+
                         // 数据行
                         for (ri, row) in table_rows.iter().enumerate() {
                             let cells: Vec<TableCell> = row
                                 .iter()
                                 .map(|cell| {
-                                    let c =
-                                        TableCell::new().add_paragraph(Paragraph::new().add_run(
-                                            Run::new().add_text(cell).size(22).color("333333"),
-                                        ));
+                                    let c = TableCell::new()
+                                        .vertical_align(VAlignType::Center)
+                                        .add_paragraph(
+                                            Paragraph::new()
+                                                .add_run(
+                                                    Run::new()
+                                                        .add_text(cell)
+                                                        .size(20)
+                                                        .color("333333"),
+                                                )
+                                                .line_spacing(
+                                                    docx_rs::LineSpacing::new()
+                                                        .line_rule(docx_rs::LineSpacingType::Auto)
+                                                        .line(240),
+                                                ),
+                                        );
                                     if ri % 2 == 1 {
                                         c.shading(
-                                            Shading::new().fill("f9f9f9").shd_type(ShdType::Clear),
+                                            Shading::new().fill("F2F7FB").shd_type(ShdType::Clear),
                                         )
                                     } else {
                                         c
@@ -273,8 +607,46 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                                 .collect();
                             t_rows.push(TableRow::new(cells));
                         }
-                        doc = doc.add_table(Table::new(t_rows));
-                        doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text("")));
+
+                        // 表格边框：外框粗线，内线细线
+                        let table_borders = TableBorders::new()
+                            .set(
+                                TableBorder::new(TableBorderPosition::Top)
+                                    .size(8)
+                                    .color("1F3864"),
+                            )
+                            .set(
+                                TableBorder::new(TableBorderPosition::Bottom)
+                                    .size(8)
+                                    .color("1F3864"),
+                            )
+                            .set(
+                                TableBorder::new(TableBorderPosition::Left)
+                                    .size(4)
+                                    .color("D0D0D0"),
+                            )
+                            .set(
+                                TableBorder::new(TableBorderPosition::Right)
+                                    .size(4)
+                                    .color("D0D0D0"),
+                            )
+                            .clear(TableBorderPosition::InsideH)
+                            .clear(TableBorderPosition::InsideV);
+
+                        doc = doc.add_table(
+                            Table::new(t_rows)
+                                .set_borders(table_borders)
+                                .width(5000, WidthType::Pct),
+                        );
+                        doc = doc.add_paragraph(
+                            Paragraph::new()
+                                .add_run(Run::new().add_text(""))
+                                .line_spacing(
+                                    docx_rs::LineSpacing::new()
+                                        .line_rule(docx_rs::LineSpacingType::Auto)
+                                        .line(240),
+                                ),
+                        );
                     }
                     table_rows.clear();
                     table_headers.clear();
@@ -295,93 +667,246 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                 },
                 TagEnd::TableCell => {},
                 TagEnd::List(_) => {
-                    in_list = false;
-                    doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text("")));
+                    doc = doc.add_paragraph(
+                        Paragraph::new()
+                            .add_run(Run::new().add_text(""))
+                            .line_spacing(
+                                docx_rs::LineSpacing::new()
+                                    .line_rule(docx_rs::LineSpacingType::Auto)
+                                    .line(240),
+                            ),
+                    );
                 },
                 TagEnd::Item if !para_runs.is_empty() => {
-                    let prefix = if list_ordered { "" } else { "• " };
-                    let mut p = Paragraph::new()
-                        .add_run(Run::new().add_text(prefix).size(22))
-                        .indent(Some(567), None, None, None);
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
+                    let mut p = Paragraph::new().line_spacing(
+                        docx_rs::LineSpacing::new()
+                            .line_rule(docx_rs::LineSpacingType::Auto)
+                            .line(240),
+                    );
                     for r in std::mem::take(&mut para_runs) {
                         p = p.add_run(r);
+                    }
+                    if list_ordered {
+                        p = p.numbering(NumberingId::new(10), IndentLevel::new(0));
+                    } else {
+                        p = p.numbering(NumberingId::new(20), IndentLevel::new(0));
                     }
                     doc = doc.add_paragraph(p);
                 },
                 TagEnd::Item => {},
-                TagEnd::BlockQuote(_) => {
-                    in_blockquote = false;
-                },
+                TagEnd::BlockQuote(_) => in_blockquote = false,
+                TagEnd::Image => {},
                 _ => {},
             },
 
+            // ── Text / Code events ──
             Event::Text(text) => {
                 if in_code_block {
                     code_lines.push(text.to_string());
-                } else if in_heading.is_some() {
-                    heading_text.push_str(&text);
-                } else if in_table {
-                    table_row_text.push_str(&text);
                 } else {
-                    para_runs.push(Run::new().add_text(text.to_string()).size(22));
+                    text_buf.push_str(&text);
                 }
             },
-
             Event::Code(text) => {
                 if in_code_block {
                     code_lines.push(text.to_string());
-                } else if in_heading.is_some() {
-                    heading_text.push_str(&text);
-                } else if in_table {
-                    table_row_text.push_str(&text);
-                } else {
+                } else if !in_table {
+                    flush_text(
+                        &mut para_runs,
+                        &mut text_buf,
+                        &mut in_heading,
+                        &mut heading_text,
+                        in_table,
+                        &mut table_row_text,
+                        bold_depth,
+                        italic_depth,
+                        strike_depth,
+                        &link_url,
+                        in_code_block,
+                    );
                     para_runs.push(
                         Run::new()
                             .add_text(text.to_string())
                             .size(20)
                             .fonts(RunFonts::new().ascii("Consolas").hi_ansi("Consolas"))
-                            .color("c7254e"),
+                            .color("C7254E"),
                     );
+                } else {
+                    table_row_text.push_str(&text);
                 }
             },
 
+            // ── Break events ──
             Event::SoftBreak | Event::HardBreak if !in_table => {
-                para_runs.push(Run::new().add_text(" "));
+                text_buf.push(' ');
             },
             Event::SoftBreak | Event::HardBreak => {},
 
+            // ── Rule ──
             Event::Rule => {
+                flush_text(
+                    &mut para_runs,
+                    &mut text_buf,
+                    &mut in_heading,
+                    &mut heading_text,
+                    in_table,
+                    &mut table_row_text,
+                    bold_depth,
+                    italic_depth,
+                    strike_depth,
+                    &link_url,
+                    in_code_block,
+                );
+                if !para_runs.is_empty() {
+                    let p = Paragraph::new();
+                    let p = add_runs_to_para(p, std::mem::take(&mut para_runs), in_blockquote);
+                    doc = doc.add_paragraph(p);
+                }
                 doc = doc.add_paragraph(
-                    Paragraph::new()
-                        .add_run(Run::new().add_text("─".repeat(60)).size(18).color("cccccc"))
-                        .align(AlignmentType::Center),
+                    Paragraph::new().align(AlignmentType::Center).line_spacing(
+                        LineSpacing::new()
+                            .line_rule(LineSpacingType::Exact)
+                            .line(40)
+                            .before(120)
+                            .after(120),
+                    ),
                 );
             },
 
+            // ── Task list marker ──
             Event::TaskListMarker(checked) => {
-                para_runs.push(
-                    Run::new()
-                        .add_text(if checked { "☑ " } else { "☐ " })
-                        .size(22),
-                );
+                text_buf.push_str(if checked { "☑ " } else { "☐ " });
             },
 
             _ => {},
         }
     }
 
-    // 页脚
+    // 刷新残留内容
+    flush_text(
+        &mut para_runs,
+        &mut text_buf,
+        &mut in_heading,
+        &mut heading_text,
+        in_table,
+        &mut table_row_text,
+        bold_depth,
+        italic_depth,
+        strike_depth,
+        &link_url,
+        in_code_block,
+    );
+    if !para_runs.is_empty() {
+        let p = Paragraph::new();
+        let p = add_runs_to_para(p, std::mem::take(&mut para_runs), in_blockquote);
+        doc = doc.add_paragraph(p);
+    }
+    if !heading_text.is_empty() {
+        let lvl = in_heading.unwrap_or(1);
+        let heading_style = match lvl {
+            1 => "Heading1",
+            2 => "Heading2",
+            _ => "Heading3",
+        };
+        doc = doc.add_paragraph(
+            Paragraph::new()
+                .add_run(Run::new().add_text(std::mem::take(&mut heading_text)))
+                .style(heading_style),
+        );
+    }
+
+    // ── 页脚（含页码） ──
     let footer = Footer::new().add_paragraph(
         Paragraph::new()
-            .add_run(
-                Run::new()
-                    .add_text("由 AxAgent 生成")
-                    .size(16)
-                    .color("999999"),
-            )
+            .add_run(Run::new().add_text("第 ").size(16).color("888888"))
+            .add_page_num(PageNum::new())
+            .add_run(Run::new().add_text(" 页，共 ").size(16).color("888888"))
+            .add_num_pages(NumPages::new())
+            .add_run(Run::new().add_text(" 页").size(16).color("888888"))
             .align(AlignmentType::Center),
     );
     doc = doc.footer(footer);
+
+    doc
+}
+
+fn add_runs_to_para(
+    p: docx_rs::Paragraph,
+    runs: Vec<docx_rs::Run>,
+    _in_blockquote: bool,
+) -> docx_rs::Paragraph {
+    let mut p = p;
+    for r in runs {
+        p = p.add_run(r);
+    }
+    p
+}
+
+/// 嵌入图片到文档
+fn embed_image(mut doc: docx_rs::Docx, alt: &str, path: &str) -> docx_rs::Docx {
+    use docx_rs::*;
+    use std::path::Path;
+
+    let resolved = Path::new(path);
+    if !resolved.exists() {
+        return doc.add_paragraph(
+            Paragraph::new().add_run(
+                Run::new()
+                    .add_text(format!("[图片: {} ({})]", alt, path))
+                    .size(20)
+                    .italic()
+                    .color("999999"),
+            ),
+        );
+    }
+
+    match std::fs::read(resolved) {
+        Ok(bytes) => {
+            let pic = Pic::new(&bytes);
+            doc = doc.add_paragraph(
+                Paragraph::new()
+                    .add_run(Run::new().add_image(pic))
+                    .align(AlignmentType::Center),
+            );
+            if !alt.is_empty() {
+                doc = doc.add_paragraph(
+                    Paragraph::new()
+                        .add_run(
+                            Run::new()
+                                .add_text(format!("图：{}", alt))
+                                .size(18)
+                                .italic()
+                                .color("888888"),
+                        )
+                        .align(AlignmentType::Center),
+                );
+            }
+        },
+        Err(e) => {
+            doc = doc.add_paragraph(
+                Paragraph::new().add_run(
+                    Run::new()
+                        .add_text(format!("[图片读取失败: {} — {}]", path, e))
+                        .size(20)
+                        .italic()
+                        .color("CC0000"),
+                ),
+            );
+        },
+    }
 
     doc
 }
@@ -520,147 +1045,362 @@ impl Tool for ExportPdfTool {
 }
 
 fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Result<(), String> {
-    // 使用原始 PDF 语法构建最简单的 PDF
-    // 仅支持 ASCII/UTF-8 文本，复杂格式后续可增强为使用 HTML→PDF 引擎
-    let mut pdf = Vec::new();
+    use lopdf::{dictionary, Document, Object, ObjectId, Stream};
 
-    // 收集所有文本
-    let mut text_lines: Vec<String> = Vec::new();
-    text_lines.push(title.to_string());
-    text_lines.push(String::new());
+    let mut pdf = Document::new();
+
+    // ── 字体（内置 Type1，无需嵌入）──
+    let fid_h = pdf.add_object(
+        dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica" },
+    );
+    let fid_hb = pdf.add_object(
+        dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica-Bold" },
+    );
+    let fid_c = pdf.add_object(
+        dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Courier" },
+    );
+    let font_res = dictionary! { "F1" => fid_h, "F2" => fid_hb, "F3" => fid_c };
+
+    // ── 页面参数（A4, pt）──
+    let pw: f64 = 595.0;
+    let ph: f64 = 842.0;
+    let ml: f64 = 72.0;
+    let mr: f64 = pw - 60.0;
+    let mt: f64 = 720.0;
+    let mb: f64 = 60.0;
+    let tw: f64 = mr - ml;
+    let lh: f64 = 14.0;
+
+    // ── 收集文本行 ──
+    struct Line {
+        text: String,
+        font: &'static str,
+        size: f64,
+        x: f64,
+        gap: f64,
+    }
+    let mut blocks: Vec<Vec<Line>> = Vec::new();
+    let mut cur: Vec<Line> = Vec::new();
+    let push = |cur: &mut Vec<Line>, blocks: &mut Vec<Vec<Line>>| {
+        if !cur.is_empty() {
+            blocks.push(std::mem::take(cur));
+        }
+    };
+
+    // 封面
+    cur.push(Line {
+        text: title.to_string(),
+        font: "F2",
+        size: 24.0,
+        x: ml,
+        gap: lh * 2.0,
+    });
+    cur.push(Line {
+        text: format!("由 AxAgent 生成 | {}", chrono::Local::now().format("%Y-%m-%d")),
+        font: "F1",
+        size: 10.0,
+        x: ml,
+        gap: lh * 3.0,
+    });
+    push(&mut cur, &mut blocks);
 
     for block in &doc.blocks {
         match block {
-            markdown::MdBlock::Heading { level: _, text } => {
-                text_lines.push(text.clone());
-                text_lines.push(String::new());
+            markdown::MdBlock::Heading { level, text } => {
+                let (font, size) = match level {
+                    1 => ("F2", 16.0),
+                    2 => ("F2", 13.0),
+                    _ => ("F2", 11.0),
+                };
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 6.0,
+                    x: ml,
+                    gap: 6.0,
+                });
+                cur.push(Line {
+                    text: text.clone(),
+                    font,
+                    size,
+                    x: ml,
+                    gap: if *level <= 2 { lh * 1.6 } else { lh },
+                });
+                cur.push(Line {
+                    text: "─".repeat((tw / 5.0) as usize),
+                    font: "F1",
+                    size: 1.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
             markdown::MdBlock::Paragraph { inlines } => {
-                let t = inlines_to_plain_text(inlines);
-                if !t.trim().is_empty() {
-                    text_lines.push(t);
+                let text = inlines_to_plain_text(inlines);
+                if text.trim().is_empty() {
+                    continue;
                 }
+                for line in wrap_lines(&text, tw, 9.0) {
+                    cur.push(Line {
+                        text: line,
+                        font: "F1",
+                        size: 9.0,
+                        x: ml,
+                        gap: lh,
+                    });
+                }
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
             markdown::MdBlock::CodeBlock { code, .. } => {
                 for line in code.lines() {
-                    text_lines.push(format!("    {}", line));
+                    cur.push(Line {
+                        text: line.replace('\t', "    "),
+                        font: "F3",
+                        size: 8.0,
+                        x: ml + 12.0,
+                        gap: lh * 0.85,
+                    });
                 }
-                text_lines.push(String::new());
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
             markdown::MdBlock::Table { headers, rows } => {
-                if !headers.is_empty() {
-                    text_lines.push(headers.join(" | "));
-                    text_lines.push(
-                        headers
-                            .iter()
-                            .map(|_| "---")
-                            .collect::<Vec<_>>()
-                            .join(" | "),
-                    );
-                }
+                let cols = headers.len().max(1) as f64;
+                let cw = tw / cols;
+                cur.push(Line {
+                    text: format_row(&headers, cw),
+                    font: "F2",
+                    size: 8.0,
+                    x: ml,
+                    gap: lh,
+                });
                 for row in rows {
-                    text_lines.push(row.join(" | "));
+                    cur.push(Line {
+                        text: format_row(&row, cw),
+                        font: "F1",
+                        size: 8.0,
+                        x: ml,
+                        gap: lh * 0.85,
+                    });
                 }
-                text_lines.push(String::new());
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
             markdown::MdBlock::List { items, .. } => {
                 for item in items {
-                    text_lines.push(format!("  • {}", inlines_to_plain_text(item)));
+                    let text = inlines_to_plain_text(item);
+                    cur.push(Line {
+                        text: format!("  • {}", text),
+                        font: "F1",
+                        size: 9.0,
+                        x: ml + 14.0,
+                        gap: lh,
+                    });
                 }
-                text_lines.push(String::new());
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
             markdown::MdBlock::Blockquote { inlines } => {
-                text_lines.push(format!("  │ {}", inlines_to_plain_text(inlines)));
+                let text = inlines_to_plain_text(inlines);
+                cur.push(Line {
+                    text: format!("▎ {}", text),
+                    font: "F1",
+                    size: 8.0,
+                    x: ml + 14.0,
+                    gap: lh * 1.1,
+                });
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
             markdown::MdBlock::HorizontalRule => {
-                text_lines.push("─".repeat(60));
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
+                cur.push(Line {
+                    text: "─".repeat(60),
+                    font: "F1",
+                    size: 7.0,
+                    x: ml,
+                    gap: lh,
+                });
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
             markdown::MdBlock::Image { alt, .. } => {
-                text_lines.push(format!("[图片: {}]", alt));
+                cur.push(Line {
+                    text: format!("[图片: {}]", alt),
+                    font: "F1",
+                    size: 8.0,
+                    x: ml,
+                    gap: lh,
+                });
+                cur.push(Line {
+                    text: String::new(),
+                    font: "F1",
+                    size: 4.0,
+                    x: ml,
+                    gap: 4.0,
+                });
             },
         }
     }
+    push(&mut cur, &mut blocks);
 
-    let _content = text_lines.join("\n");
-    // 构建最小有效 PDF
-    pdf.extend_from_slice(b"%PDF-1.4\n");
+    // ── 页面分配 ──
+    let mut pages: Vec<Vec<u8>> = Vec::new();
+    let mut buf: Vec<u8> = Vec::new();
+    let mut y = mt;
 
-    // Object 1: Catalog
-    pdf.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-
-    // Object 2: Pages
-    pdf.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-
-    // Object 3: Page
-    pdf.extend_from_slice(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n");
-
-    // Object 4: Content stream
-    let mut stream = Vec::new();
-    stream.extend_from_slice(b"BT\n/F1 10 Tf\n");
-    let mut y: f64 = 750.0;
-    for line in &text_lines {
-        if y < 40.0 {
-            break;
+    for blk in &blocks {
+        for line in blk {
+            let need = line.gap + 4.0;
+            if y < mb + lh * 3.0 || (y - need < mb && !pages.is_empty()) {
+                pages.push(std::mem::take(&mut buf));
+                y = mt;
+            }
+            if !line.text.is_empty() {
+                let escaped = line
+                    .text
+                    .replace('\\', "\\\\")
+                    .replace('(', "\\(")
+                    .replace(')', "\\)");
+                buf.extend_from_slice(
+                    format!(
+                        "/{} {} Tf\n1 0 0 1 {} {} Tm\n({}) Tj\n",
+                        line.font, line.size, line.x, y, escaped
+                    )
+                    .as_bytes(),
+                );
+            }
+            y -= need;
         }
-        // 对 PDF 字符串进行转义
-        let escaped = line
-            .replace('\\', "\\\\")
-            .replace('(', "\\(")
-            .replace(')', "\\)");
-        stream.extend_from_slice(format!("1 0 0 1 36 {} Tm\n({}) Tj\nT*\n", y, escaped).as_bytes());
-        y -= 14.0;
     }
-    stream.extend_from_slice(b"ET\n");
+    pages.push(buf);
 
-    pdf.extend_from_slice(format!("4 0 obj\n<< /Length {} >>\nstream\n", stream.len()).as_bytes());
-    pdf.extend_from_slice(&stream);
-    pdf.extend_from_slice(b"\nendstream\nendobj\n");
+    // ── 构建 PDF 对象 ──
+    let mut page_ids: Vec<ObjectId> = Vec::new();
+    for (pi, body) in pages.iter().enumerate() {
+        let mut content = body.clone();
+        // 页码
+        content.extend_from_slice(
+            format!(
+                "BT\n/F1 7 Tf\n1 0 0 1 {} 28 Tm\n({} / {}) Tj\nET\n",
+                pw / 2.0 - 15.0,
+                pi + 1,
+                pages.len()
+            )
+            .as_bytes(),
+        );
+        let sid = pdf.add_object(Stream::new(lopdf::Dictionary::new(), content));
+        let pid = pdf.new_object_id();
+        pdf.objects.insert(pid, Object::Dictionary(dictionary! {
+            "Type" => "Page",
+            "MediaBox" => vec![0.into(), 0.into(), Object::Real(pw as f32), Object::Real(ph as f32)],
+            "Contents" => vec![sid.into()],
+            "Resources" => dictionary! { "Font" => font_res.clone() },
+        }));
+        page_ids.push(pid);
+    }
 
-    // Object 5: Font (Courier as base font — always available)
-    pdf.extend_from_slice(
-        b"5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n",
+    let pt_id = pdf.new_object_id();
+    let kids: Vec<Object> = page_ids.iter().map(|id| Object::Reference(*id)).collect();
+    pdf.objects.insert(
+        pt_id,
+        Object::Dictionary(dictionary! {
+            "Type" => "Pages", "Kids" => kids, "Count" => Object::Integer(page_ids.len() as i64),
+        }),
     );
+    for pid in &page_ids {
+        if let Ok(d) = pdf.get_dictionary_mut(*pid) {
+            d.set("Parent", Object::Reference(pt_id));
+        }
+    }
+    let cat_id = pdf.new_object_id();
+    pdf.objects.insert(
+        cat_id,
+        Object::Dictionary(dictionary! { "Type" => "Catalog", "Pages" => pt_id }),
+    );
+    pdf.trailer.set("Root", Object::Reference(cat_id));
 
-    // Cross-reference table
-    let xref_offset = pdf.len();
-    pdf.extend_from_slice(b"xref\n0 6\n0000000000 65535 f \n");
-    pdf.extend_from_slice(format!("{:010} 00000 n \n", find_obj_offset(&pdf, 1)).as_bytes());
-    pdf.extend_from_slice(format!("{:010} 00000 n \n", find_obj_offset(&pdf, 2)).as_bytes());
-    pdf.extend_from_slice(format!("{:010} 00000 n \n", find_obj_offset(&pdf, 3)).as_bytes());
-    pdf.extend_from_slice(format!("{:010} 00000 n \n", find_obj_offset(&pdf, 4)).as_bytes());
-    pdf.extend_from_slice(format!("{:010} 00000 n \n", find_obj_offset(&pdf, 5)).as_bytes());
-
-    pdf.extend_from_slice(b"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n");
-    pdf.extend_from_slice(format!("{}\n", xref_offset).as_bytes());
-    pdf.extend_from_slice(b"%%EOF\n");
-
-    std::fs::write(output_path, &pdf).map_err(|e| format!("写入 PDF 失败: {}", e))
+    pdf.save(output_path)
+        .map(|_| ())
+        .map_err(|e| format!("保存 PDF 失败: {}", e))
 }
 
-fn find_obj_offset(pdf: &[u8], obj_num: usize) -> usize {
-    let marker = format!("{} 0 obj", obj_num);
-    let marker_bytes = marker.as_bytes();
-    pdf.windows(marker_bytes.len())
-        .position(|w| w == marker_bytes)
-        .unwrap_or(0)
+fn wrap_lines(text: &str, max_w_pt: f64, font_pt: f64) -> Vec<String> {
+    let max_chars = (max_w_pt / (font_pt * 0.5)) as usize;
+    let mut lines = Vec::new();
+    let mut cur = String::new();
+    for word in text.split_inclusive(|c: char| c.is_whitespace()) {
+        if cur.chars().count() + word.chars().count() > max_chars && !cur.is_empty() {
+            lines.push(cur.trim_end().to_string());
+            cur = String::new();
+        }
+        cur.push_str(word);
+    }
+    if !cur.is_empty() {
+        lines.push(cur.trim_end().to_string());
+    }
+    if lines.is_empty() {
+        lines.push(text.to_string());
+    }
+    lines
 }
 
-fn inlines_to_plain_text(inlines: &[markdown::MdInline]) -> String {
-    inlines
+fn format_row(cells: &[String], col_w: f64) -> String {
+    let max_chars = (col_w / 5.0) as usize;
+    cells
         .iter()
-        .map(|i| match i {
-            markdown::MdInline::Text(s)
-            | markdown::MdInline::Bold(s)
-            | markdown::MdInline::Italic(s)
-            | markdown::MdInline::Code(s) => s.clone(),
-            markdown::MdInline::Link { text, .. } => text.clone(),
-            markdown::MdInline::Image { alt, .. } => alt.clone(),
+        .enumerate()
+        .map(|(i, c)| {
+            let s = if c.chars().count() > max_chars {
+                format!("{}…", &c[..max_chars.saturating_sub(1)])
+            } else {
+                c.clone()
+            };
+            if i == 0 {
+                s
+            } else {
+                format!("  {}", s)
+            }
         })
         .collect::<Vec<_>>()
         .join("")
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // ExportXlsx — MD 表格→XLSX
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -738,10 +1478,33 @@ fn build_xlsx(markdown_text: &str, sheet_name: &str, output_path: &str) -> Resul
     }
 
     let mut workbook = Workbook::new();
+
+    // 专业格式定义
     let header_format = Format::new()
         .set_bold()
-        .set_background_color(Color::RGB(0x4A90D9))
-        .set_font_color(Color::White);
+        .set_background_color(Color::RGB(0x1F3864))
+        .set_font_color(Color::White)
+        .set_font_size(10)
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0x1F3864))
+        .set_text_wrap();
+
+    let data_format = Format::new()
+        .set_font_size(10)
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xD0D0D0));
+
+    let alt_row_format = Format::new()
+        .set_font_size(10)
+        .set_background_color(Color::RGB(0xF2F7FB))
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xD0D0D0));
+
+    let number_format = Format::new()
+        .set_font_size(10)
+        .set_border(FormatBorder::Thin)
+        .set_border_color(Color::RGB(0xD0D0D0))
+        .set_num_format("#,##0.00");
 
     for (ti, table_block) in tables.iter().enumerate() {
         let (headers, rows) = match table_block {
@@ -750,14 +1513,17 @@ fn build_xlsx(markdown_text: &str, sheet_name: &str, output_path: &str) -> Resul
         };
 
         let name = if ti == 0 {
-            sheet_name.to_string()
+            sanitize_sheet_name(sheet_name)
         } else {
-            format!("{}_{}", sheet_name, ti + 1)
+            sanitize_sheet_name(&format!("{}_{}", sheet_name, ti + 1))
         };
         let worksheet = workbook
             .add_worksheet()
             .set_name(&name)
             .map_err(|e| e.to_string())?;
+
+        let num_cols = headers.len().max(1) as u16;
+        let num_rows = rows.len() + 1;
 
         // 写表头
         for (ci, h) in headers.iter().enumerate() {
@@ -765,18 +1531,92 @@ fn build_xlsx(markdown_text: &str, sheet_name: &str, output_path: &str) -> Resul
                 .write_with_format(0, ci as u16, h, &header_format)
                 .map_err(|e| e.to_string())?;
         }
+
         // 写数据行
         for (ri, row) in rows.iter().enumerate() {
+            let row_idx = (ri + 1) as u32;
+            let fmt = if ri % 2 == 1 {
+                &alt_row_format
+            } else {
+                &data_format
+            };
             for (ci, cell) in row.iter().enumerate() {
+                // 尝试检测数字
+                let cell_trimmed = cell.trim();
+                let cell_fmt = if cell_trimmed.parse::<f64>().is_ok() {
+                    &number_format
+                } else {
+                    fmt
+                };
                 worksheet
-                    .write((ri + 1) as u32, ci as u16, cell)
+                    .write_with_format(row_idx, ci as u16, cell_trimmed, cell_fmt)
                     .map_err(|e| e.to_string())?;
             }
         }
+
+        // 冻结表头行
+        worksheet
+            .set_freeze_panes(1, 0)
+            .map_err(|e| e.to_string())?;
+
+        // 自动筛选
+        worksheet
+            .autofilter(0, 0, (num_rows - 1) as u32, num_cols - 1)
+            .map_err(|e| e.to_string())?;
+
+        // 自动列宽（基于表头和数据内容）
+        for ci in 0..num_cols {
+            let mut max_width: f64 = headers
+                .get(ci as usize)
+                .map(|h| char_width_estimate(h))
+                .unwrap_or(8.0);
+            for row in rows.iter() {
+                if let Some(cell) = row.get(ci as usize) {
+                    let w = char_width_estimate(cell);
+                    if w > max_width {
+                        max_width = w;
+                    }
+                }
+            }
+            // 限制列宽范围：8~40 字符宽度
+            let col_width = max_width.clamp(8.0, 40.0) + 2.0;
+            worksheet
+                .set_column_width(ci, col_width)
+                .map_err(|e| e.to_string())?;
+        }
+
+        // 表头行高
+        worksheet.set_row_height(0, 24).map_err(|e| e.to_string())?;
     }
 
     workbook.save(output_path).map_err(|e| e.to_string())?;
     Ok(tables.len())
+}
+
+/// 估算字符串的字符宽度（CJK 字符 ≈ 2，ASCII ≈ 1）
+fn char_width_estimate(s: &str) -> f64 {
+    let mut width = 0.0f64;
+    for c in s.chars() {
+        if c > '\u{2E80}' {
+            width += 2.0; // CJK / 全角
+        } else {
+            width += 1.0;
+        }
+    }
+    width
+}
+
+fn sanitize_sheet_name(name: &str) -> String {
+    let s: String = name
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == ' ')
+        .take(31)
+        .collect();
+    if s.is_empty() {
+        "Sheet1".to_string()
+    } else {
+        s
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -980,38 +1820,76 @@ fn build_pptx(markdown_text: &str, title: &str, output_path: &str) -> Result<usi
         .write_all(pres_xml.as_bytes())
         .map_err(|e| e.to_string())?;
 
-    // 每张幻灯片
+    // 每张幻灯片 — 专业布局
     for (si, (slide_title, bullets)) in slides.iter().enumerate() {
         let slide_num = si + 1;
         let escaped_title = xml_escape(slide_title);
+
+        // 标题: 顶部居中, 大号深蓝粗体, 底部带金色装饰线
         let mut slide_xml = format!(
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n\
              <p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"\
              xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"\
              xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\">\n\
              <p:cSld>\n<p:spTree>\n\
+             // 顶部装饰条\n\
+             <p:sp><p:nvSpPr><p:cNvPr id=\"4\" name=\"AccentBar\"/><p:cNvSpPr><p:spLocks noGrp=\"1\"/></p:cNvSpPr>\
+             <p:nvPr/></p:nvSpPr>\
+             <p:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"9144000\" cy=\"73152\"/></a:xfrm>\
+             <a:solidFill><a:srgbClr val=\"1F3864\"/></a:solidFill></p:spPr></p:sp>\n\
+             // 标题\n\
              <p:sp><p:nvSpPr><p:cNvPr id=\"1\" name=\"Title\"/><p:cNvSpPr><p:spLocks noGrp=\"1\"/></p:cNvSpPr>\
              <p:nvPr/></p:nvSpPr>\
-             <p:spPr><a:xfrm><a:off x=\"685800\" y=\"274320\"/><a:ext cx=\"7772400\" cy=\"822960\"/></a:xfrm></p:spPr>\
-             <p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang=\"zh-CN\" sz=\"3200\" b=\"1\"/>\
-             <a:t>{}</a:t></a:r></a:p></p:txBody></p:sp>\n",
+             <p:spPr><a:xfrm><a:off x=\"685800\" y=\"274320\"/><a:ext cx=\"7772400\" cy=\"914400\"/></a:xfrm></p:spPr>\
+             <p:txBody><a:bodyPr/><a:lstStyle/>\
+             <a:p><a:pPr algn=\"l\"/>\
+             <a:r><a:rPr lang=\"zh-CN\" sz=\"3200\" b=\"1\">\
+             <a:solidFill><a:srgbClr val=\"1F3864\"/></a:solidFill></a:rPr>\
+             <a:t>{}</a:t></a:r></a:p></p:txBody></p:sp>\n\
+             // 标题下划线\n\
+             <p:sp><p:nvSpPr><p:cNvPr id=\"5\" name=\"TitleLine\"/><p:cNvSpPr><p:spLocks noGrp=\"1\"/></p:cNvSpPr>\
+             <p:nvPr/></p:nvSpPr>\
+             <p:spPr><a:xfrm><a:off x=\"685800\" y=\"1219200\"/><a:ext cx=\"1371600\" cy=\"27432\"/></a:xfrm>\
+             <a:solidFill><a:srgbClr val=\"2E75B6\"/></a:solidFill></p:spPr></p:sp>\n",
             escaped_title
         );
 
-        // 项目符号
-        let mut content_y: u32 = 1_371_600; // 起始 y 位置
-        for bullet in bullets {
+        // 内容区域: 项目符号列表
+        let mut content_y: u32 = 1_554_000;
+        for (bi, bullet) in bullets.iter().enumerate() {
+            if content_y > 6_200_000 {
+                break;
+            } // 超出幻灯片区域
             let escaped_bullet = xml_escape(bullet);
+            // 项目符号（蓝色圆点）+ 文本
             slide_xml.push_str(&format!(
-                "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"Bullet\"/><p:cNvSpPr><p:spLocks noGrp=\"1\"/></p:cNvSpPr>\
+                "<p:sp><p:nvSpPr><p:cNvPr id=\"{}\" name=\"Content{}\"/><p:cNvSpPr><p:spLocks noGrp=\"1\"/></p:cNvSpPr>\
                  <p:nvPr/></p:nvSpPr>\
-                 <p:spPr><a:xfrm><a:off x=\"914400\" y=\"{}\"/><a:ext cx=\"7315200\" cy=\"411480\"/></a:xfrm></p:spPr>\
-                 <p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang=\"zh-CN\" sz=\"2000\"/>\
+                 <p:spPr><a:xfrm><a:off x=\"914400\" y=\"{}\"/><a:ext cx=\"7315200\" cy=\"365760\"/></a:xfrm></p:spPr>\
+                 <p:txBody><a:bodyPr/>\
+                 <a:lstStyle><a:lvl1pPr marL=\"285750\" indent=\"-285750\">\
+                 <a:buChar char=\"•\"/><a:buClr><a:srgbClr val=\"2E75B6\"/></a:buClr>\
+                 <a:buSzTx/><a:buFont typeface=\"Calibri\"/></a:lvl1pPr></a:lstStyle>\
+                 <a:p><a:pPr marL=\"285750\" indent=\"-285750\"/>\
+                 <a:r><a:rPr lang=\"zh-CN\" sz=\"2200\">\
+                 <a:solidFill><a:srgbClr val=\"333333\"/></a:solidFill></a:rPr>\
                  <a:t>{}</a:t></a:r></a:p></p:txBody></p:sp>\n",
-                content_y, escaped_bullet
+                100 + bi, bi, content_y, escaped_bullet
             ));
-            content_y += 457_200; // 行间距
+            content_y += 411_480;
         }
+
+        // 幻灯片编号（右下角）
+        slide_xml.push_str(&format!(
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"3\" name=\"SlideNum\"/><p:cNvSpPr><p:spLocks noGrp=\"1\"/></p:cNvSpPr>\
+             <p:nvPr/></p:nvSpPr>\
+             <p:spPr><a:xfrm><a:off x=\"8229600\" y=\"6400800\"/><a:ext cx=\"685800\" cy=\"365760\"/></a:xfrm></p:spPr>\
+             <p:txBody><a:bodyPr/>\
+             <a:p><a:pPr algn=\"r\"/><a:r><a:rPr lang=\"en-US\" sz=\"1200\">\
+             <a:solidFill><a:srgbClr val=\"999999\"/></a:solidFill></a:rPr>\
+             <a:t>{} / {}</a:t></a:r></a:p></p:txBody></p:sp>\n",
+            slide_num, slide_count
+        ));
 
         slide_xml.push_str("</p:spTree>\n</p:cSld>\n</p:sld>");
 
@@ -1034,6 +1912,21 @@ fn xml_escape(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
+}
+
+fn inlines_to_plain_text(inlines: &[markdown::MdInline]) -> String {
+    inlines
+        .iter()
+        .map(|i| match i {
+            markdown::MdInline::Text(s)
+            | markdown::MdInline::Bold(s)
+            | markdown::MdInline::Italic(s)
+            | markdown::MdInline::Code(s) => s.clone(),
+            markdown::MdInline::Link { text, .. } => text.clone(),
+            markdown::MdInline::Image { alt, .. } => alt.clone(),
+        })
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

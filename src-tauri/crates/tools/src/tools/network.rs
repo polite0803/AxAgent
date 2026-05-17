@@ -10,6 +10,26 @@ use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
+fn is_safe_url(url: &str) -> Result<(), ToolError> {
+    let parsed = url::Url::parse(url).map_err(|_| ToolError::invalid_input("无效的 URL"))?;
+    let host = parsed.host_str().unwrap_or("");
+    let blocked_hosts = [
+        "127.0.0.1", "0.0.0.0", "localhost", "::1",
+        "169.254.169.254",
+    ];
+    for blocked in &blocked_hosts {
+        if host == *blocked {
+            return Err(ToolError::permission_denied("Network", &format!("不允许访问内部地址: {}", host)));
+        }
+    }
+    if let Some(ip) = host.parse::<std::net::IpAddr>().ok() {
+        if ip.is_loopback() || is_link_local_ip(&ip) || is_private_ip(&ip) {
+            return Err(ToolError::permission_denied("Network", &format!("不允许访问内部地址: {}", host)));
+        }
+    }
+    Ok(())
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // HttpRequest — 通用 HTTP 客户端
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -53,6 +73,9 @@ impl Tool for HttpRequestTool {
         }
         if !url.starts_with("http://") && !url.starts_with("https://") {
             return Ok(ToolResult::error("url 必须以 http:// 或 https:// 开头"));
+        }
+        if let Err(e) = is_safe_url(&url) {
+            return Ok(ToolResult::error(format!("Error: {}", e.message)));
         }
 
         let method = input["method"].as_str().unwrap_or("GET").to_uppercase();
@@ -131,6 +154,25 @@ impl Tool for HttpRequestTool {
     }
 }
 
+fn is_link_local_ip(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => v4.is_link_local(),
+        std::net::IpAddr::V6(v6) => v6.segments()[0] & 0xFFC0 == 0xFE80,
+    }
+}
+
+fn is_private_ip(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            v4.octets()[0] == 10
+                || (v4.octets()[0] == 172 && v4.octets()[1] >= 16 && v4.octets()[1] <= 31)
+                || (v4.octets()[0] == 192 && v4.octets()[1] == 168)
+                || v4.octets()[0] == 127
+        },
+        std::net::IpAddr::V6(v6) => v6.segments()[0] & 0xFE00 == 0xFC00 || v6.is_loopback(),
+    }
+}
+
 fn http_status_text(code: u16) -> &'static str {
     match code {
         200 => "OK",
@@ -192,7 +234,7 @@ impl Tool for PingTool {
         }
 
         // 过滤危险字符，防止命令注入
-        if host.contains(';') || host.contains('|') || host.contains('&') || host.contains('$') {
+        if host.contains(';') || host.contains('|') || host.contains('&') || host.contains('$') || host.contains('`') || host.contains('\n') || host.contains('\r') || host.contains(' ') {
             return Ok(ToolResult::error("Error: host 包含非法字符"));
         }
 
@@ -313,6 +355,10 @@ impl Tool for DnsLookupTool {
         let hostname = input["hostname"].as_str().unwrap_or("").to_string();
         if hostname.is_empty() {
             return Ok(ToolResult::error("Error: hostname 是必需的"));
+        }
+        let dangerous_chars = [';', '|', '&', '$', '`', '\n', '\r', ' ', '>', '<'];
+        if hostname.chars().any(|c| dangerous_chars.contains(&c)) {
+            return Ok(ToolResult::error("Error: hostname 包含非法字符"));
         }
 
         let record_type = input["record_type"].as_str().unwrap_or("A");
@@ -445,6 +491,9 @@ impl Tool for JsonApiTool {
         let url = input["url"].as_str().unwrap_or("").to_string();
         if url.is_empty() {
             return Ok(ToolResult::error("Error: url 是必需的"));
+        }
+        if let Err(e) = is_safe_url(&url) {
+            return Ok(ToolResult::error(format!("Error: {}", e.message)));
         }
 
         let method = input["method"].as_str().unwrap_or("GET").to_uppercase();

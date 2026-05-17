@@ -1,11 +1,3 @@
-#![allow(
-    clippy::await_holding_lock,
-    clippy::doc_markdown,
-    clippy::match_same_arms,
-    clippy::must_use_candidate,
-    clippy::uninlined_format_args,
-    clippy::unnested_or_patterns
-)]
 //! Bridge between MCP tool surface (ListMcpResources, ReadMcpResource, McpAuth, MCP)
 //! and the existing McpServerManager runtime.
 //!
@@ -191,6 +183,7 @@ impl McpToolRegistry {
         }
     }
 
+    #[allow(clippy::await_holding_lock)]
     async fn call_tool_via_manager(
         manager: Arc<tokio::sync::Mutex<McpServerManager>>,
         qualified_tool_name: String,
@@ -230,6 +223,7 @@ impl McpToolRegistry {
             .map_err(|error| format!("failed to serialize MCP tool result: {error}"))
     }
 
+    #[allow(clippy::await_holding_lock)]
     pub async fn call_tool(
         &self,
         server_name: &str,
@@ -273,6 +267,7 @@ impl McpToolRegistry {
     /// This is the preferred execution path — it uses connection pooling and
     /// supports all transport types (stdio/http/sse). Falls back to the legacy
     /// `McpServerManager` path if the server has no transport config stored.
+    #[allow(clippy::await_holding_lock)]
     pub async fn call_tool_via_unified_client(
         &self,
         server_name: &str,

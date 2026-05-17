@@ -216,8 +216,8 @@ function mergeExtensions(skills: Skill[]) {
     }
 
     for (const cap of capabilities) {
-      const capType = (cap as { type: string }).type;
-      const capId = (cap as { id: string }).id;
+      const capType = cap.type;
+      const capId = cap.id;
 
       if (capType === "toolbar") {
         checkToolbarPositionConflict((cap as SkillToolbarCapability).position, skill.name);
@@ -366,7 +366,7 @@ function mergeCapability(
       });
       break;
     default:
-      console.warn(i18n.t("skillExtension.unknownCapabilityType", { type: (cap as any).type }));
+      console.warn(i18n.t("skillExtension.unknownCapabilityType", { type: cap.type }));
   }
 }
 

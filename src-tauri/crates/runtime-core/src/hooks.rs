@@ -301,6 +301,7 @@ impl HookRunner {
     }
 
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub fn run_post_tool_use_with_context(
         &self,
         tool_name: &str,

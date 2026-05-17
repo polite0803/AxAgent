@@ -1,7 +1,9 @@
 use std::ffi::OsStr;
-#[allow(unused_imports)]
+#[cfg(not(windows))]
 use std::path::Path;
 use std::process::Command;
+use std::sync::Arc;
+use std::time::Duration;
 
 use serde_json::json;
 
@@ -28,6 +30,7 @@ impl HookEvent {
 pub struct HookRunResult {
     denied: bool,
     failed: bool,
+    timed_out: bool,
     messages: Vec<String>,
 }
 
@@ -37,6 +40,7 @@ impl HookRunResult {
         Self {
             denied: false,
             failed: false,
+            timed_out: false,
             messages,
         }
     }
@@ -52,24 +56,75 @@ impl HookRunResult {
     }
 
     #[must_use]
+    pub fn is_timed_out(&self) -> bool {
+        self.timed_out
+    }
+
+    #[must_use]
     pub fn messages(&self) -> &[String] {
         &self.messages
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+const DEFAULT_HOOK_TIMEOUT_SECS: u64 = 30;
+
+#[derive(Clone, Default)]
 pub struct HookRunner {
     hooks: PluginHooks,
+    timeout: Duration,
+    in_process_hooks: Vec<Arc<dyn axagent_runtime_core::plugin_hooks::PluginHook>>,
 }
+
+impl std::fmt::Debug for HookRunner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HookRunner")
+            .field("hooks", &self.hooks)
+            .field("timeout", &self.timeout)
+            .field("in_process_hooks_count", &self.in_process_hooks.len())
+            .finish()
+    }
+}
+
+impl PartialEq for HookRunner {
+    fn eq(&self, other: &Self) -> bool {
+        self.hooks == other.hooks
+            && self.timeout == other.timeout
+            && self.in_process_hooks.len() == other.in_process_hooks.len()
+    }
+}
+
+impl Eq for HookRunner {}
 
 impl HookRunner {
     #[must_use]
     pub fn new(hooks: PluginHooks) -> Self {
-        Self { hooks }
+        Self {
+            hooks,
+            timeout: Duration::from_secs(DEFAULT_HOOK_TIMEOUT_SECS),
+            in_process_hooks: Vec::new(),
+        }
     }
 
     pub fn from_registry(plugin_registry: &PluginRegistry) -> Result<Self, PluginError> {
         Ok(Self::new(plugin_registry.aggregated_hooks()?))
+    }
+
+    #[must_use]
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    pub fn register_in_process_hook(
+        &mut self,
+        hook: Arc<dyn axagent_runtime_core::plugin_hooks::PluginHook>,
+    ) {
+        self.in_process_hooks.push(hook);
+    }
+
+    #[must_use]
+    pub fn in_process_hooks(&self) -> &[Arc<dyn axagent_runtime_core::plugin_hooks::PluginHook>] {
+        &self.in_process_hooks
     }
 
     #[must_use]
@@ -81,6 +136,7 @@ impl HookRunner {
             tool_input,
             None,
             false,
+            self.timeout,
         )
     }
 
@@ -99,6 +155,7 @@ impl HookRunner {
             tool_input,
             Some(tool_output),
             is_error,
+            self.timeout,
         )
     }
 
@@ -116,6 +173,7 @@ impl HookRunner {
             tool_input,
             Some(tool_error),
             true,
+            self.timeout,
         )
     }
 
@@ -126,6 +184,7 @@ impl HookRunner {
         tool_input: &str,
         tool_output: Option<&str>,
         is_error: bool,
+        timeout: Duration,
     ) -> HookRunResult {
         if commands.is_empty() {
             return HookRunResult::allow(Vec::new());
@@ -144,6 +203,7 @@ impl HookRunner {
                 tool_output,
                 is_error,
                 &payload,
+                timeout,
             ) {
                 HookCommandOutcome::Allow { message } => {
                     if let Some(message) = message {
@@ -157,6 +217,7 @@ impl HookRunner {
                     return HookRunResult {
                         denied: true,
                         failed: false,
+                        timed_out: false,
                         messages,
                     };
                 },
@@ -165,6 +226,16 @@ impl HookRunner {
                     return HookRunResult {
                         denied: false,
                         failed: true,
+                        timed_out: false,
+                        messages,
+                    };
+                },
+                HookCommandOutcome::TimedOut { message } => {
+                    messages.push(message);
+                    return HookRunResult {
+                        denied: false,
+                        failed: true,
+                        timed_out: true,
                         messages,
                     };
                 },
@@ -183,6 +254,7 @@ impl HookRunner {
         tool_output: Option<&str>,
         is_error: bool,
         payload: &str,
+        timeout: Duration,
     ) -> HookCommandOutcome {
         let mut child = shell_command(command);
         child.stdin(std::process::Stdio::piped());
@@ -196,8 +268,8 @@ impl HookRunner {
             child.env("HOOK_TOOL_OUTPUT", tool_output);
         }
 
-        match child.output_with_stdin(payload.as_bytes()) {
-            Ok(output) => {
+        match child.spawn_with_timeout(payload.as_bytes(), timeout) {
+            Ok(TimeoutOutput::Completed(output)) => {
                 let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
                 let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
                 let message = (!stdout.is_empty()).then_some(stdout);
@@ -220,6 +292,13 @@ impl HookRunner {
                     },
                 }
             },
+            Ok(TimeoutOutput::TimedOut) => HookCommandOutcome::TimedOut {
+                message: format!(
+                    "{} hook `{command}` timed out after {}s while handling `{tool_name}`",
+                    event.as_str(),
+                    timeout.as_secs(),
+                ),
+            },
             Err(error) => HookCommandOutcome::Failed {
                 message: format!(
                     "{} hook `{command}` failed to start for `{tool_name}`: {error}",
@@ -234,6 +313,7 @@ enum HookCommandOutcome {
     Allow { message: Option<String> },
     Deny { message: Option<String> },
     Failed { message: String },
+    TimedOut { message: String },
 }
 
 fn hook_payload(
@@ -334,35 +414,59 @@ impl CommandWithStdin {
         self
     }
 
-    fn output_with_stdin(&mut self, stdin: &[u8]) -> std::io::Result<std::process::Output> {
+    fn spawn_with_timeout(
+        &mut self,
+        stdin_data: &[u8],
+        timeout: Duration,
+    ) -> std::io::Result<TimeoutOutput> {
+        self.command.stdin(std::process::Stdio::piped());
+        self.command.stdout(std::process::Stdio::piped());
+        self.command.stderr(std::process::Stdio::piped());
+
         let mut child = self.command.spawn()?;
+
         if let Some(mut child_stdin) = child.stdin.take() {
             use std::io::Write as _;
-            // Tolerate BrokenPipe: a hook script that runs to completion
-            // (or exits early without reading stdin) closes its stdin
-            // before the parent finishes writing the JSON payload, and
-            // the kernel raises EPIPE on the parent's write_all. That is
-            // not a hook failure â€” the child still exited cleanly and we
-            // still need to wait_with_output() to capture stdout/stderr
-            // and the real exit code. Other write errors (e.g. EIO,
-            // permission, OOM) still propagate.
-            //
-            // This was the root cause of the Linux CI flake on
-            // hooks::tests::collects_and_runs_hooks_from_enabled_plugins
-            // (ROADMAP #25, runs 24120271422 / 24120538408 / 24121392171
-            // / 24121776826): the test hook scripts run in microseconds
-            // and the parent's stdin write races against child exit.
-            // macOS pipes happen to buffer the small payload before the
-            // child exits; Linux pipes do not, so the race shows up
-            // deterministically on ubuntu runners.
-            match child_stdin.write_all(stdin) {
+            match child_stdin.write_all(stdin_data) {
                 Ok(()) => {},
                 Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {},
                 Err(error) => return Err(error),
             }
         }
-        child.wait_with_output()
+
+        match child.try_wait() {
+            Ok(Some(_status)) => {
+                let output = child.wait_with_output()?;
+                Ok(TimeoutOutput::Completed(output))
+            },
+            Ok(None) => {
+                let start = std::time::Instant::now();
+                loop {
+                    match child.try_wait() {
+                        Ok(Some(_)) => {
+                            let output = child.wait_with_output()?;
+                            return Ok(TimeoutOutput::Completed(output));
+                        },
+                        Ok(None) => {
+                            if start.elapsed() >= timeout {
+                                let _ = child.kill();
+                                let _ = child.wait();
+                                return Ok(TimeoutOutput::TimedOut);
+                            }
+                            std::thread::sleep(Duration::from_millis(50));
+                        },
+                        Err(e) => return Err(e),
+                    }
+                }
+            },
+            Err(e) => Err(e),
+        }
     }
+}
+
+enum TimeoutOutput {
+    Completed(std::process::Output),
+    TimedOut,
 }
 
 #[cfg(test)]
@@ -371,7 +475,7 @@ mod tests {
     use crate::{PluginManager, PluginManagerConfig};
     use std::fs;
     use std::path::{Path, PathBuf};
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     fn temp_dir(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
@@ -387,7 +491,9 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
             let perms = fs::Permissions::from_mode(0o755);
             fs::set_permissions(path, perms)
-                .unwrap_or_else(|e| panic!("chmod +x {}: {e}", path.display()));
+                .unwrap_or_else(|e| {
+                    tracing::error!("chmod +x {}: {e}", path.display());
+                });
         }
         #[cfg(not(unix))]
         let _ = path;
@@ -440,7 +546,6 @@ mod tests {
 
     #[test]
     fn collects_and_runs_hooks_from_enabled_plugins() {
-        // given
         let config_home = temp_dir("config");
         let first_source_root = temp_dir("source-a");
         let second_source_root = temp_dir("source-b");
@@ -468,10 +573,8 @@ mod tests {
             .expect("second plugin install should succeed");
         let registry = manager.plugin_registry().expect("registry should build");
 
-        // when
         let runner = HookRunner::from_registry(&registry).expect("plugin hooks should load");
 
-        // then
         assert_eq!(
             runner.run_pre_tool_use("Read", r#"{"path":"README.md"}"#),
             HookRunResult::allow(vec!["plugin pre one".to_string(), "plugin pre two".to_string(),])
@@ -498,7 +601,6 @@ mod tests {
 
     #[test]
     fn pre_tool_use_denies_when_plugin_hook_exits_two() {
-        // given
         #[cfg(windows)]
         let deny_cmd = "echo blocked by plugin & exit 2";
         #[cfg(not(windows))]
@@ -510,17 +612,14 @@ mod tests {
             post_tool_use_failure: Vec::new(),
         });
 
-        // when
         let result = runner.run_pre_tool_use("Bash", r#"{"command":"pwd"}"#);
 
-        // then
         assert!(result.is_denied());
         assert_eq!(result.messages(), &["blocked by plugin".to_string()]);
     }
 
     #[test]
     fn propagates_plugin_hook_failures() {
-        // given
         #[cfg(windows)]
         let (fail_cmd, later_cmd) = ("echo broken plugin hook & exit 1", "echo later plugin hook");
         #[cfg(not(windows))]
@@ -533,10 +632,8 @@ mod tests {
             post_tool_use_failure: Vec::new(),
         });
 
-        // when
         let result = runner.run_pre_tool_use("Bash", r#"{"command":"pwd"}"#);
 
-        // then
         assert!(result.is_failed());
         assert!(result
             .messages()
@@ -549,15 +646,45 @@ mod tests {
     }
 
     #[test]
+    fn hook_timeout_kills_stuck_process() {
+        #[cfg(windows)]
+        let stuck_cmd = "powershell -Command \"Start-Sleep -Seconds 60\"";
+        #[cfg(not(windows))]
+        let stuck_cmd = "sleep 60";
+
+        let runner = HookRunner::new(crate::PluginHooks {
+            pre_tool_use: vec![stuck_cmd.to_string()],
+            post_tool_use: Vec::new(),
+            post_tool_use_failure: Vec::new(),
+        })
+        .with_timeout(Duration::from_secs(5));
+
+        let start = std::time::Instant::now();
+        let result = runner.run_pre_tool_use("Bash", r#"{"command":"pwd"}"#);
+        let elapsed = start.elapsed();
+
+        assert!(
+            result.is_timed_out(),
+            "expected timed_out, got: denied={}, failed={}, messages={:?}",
+            result.is_denied(),
+            result.is_failed(),
+            result.messages()
+        );
+        assert!(
+            elapsed < Duration::from_secs(15),
+            "timeout should have killed the process quickly, took {:?}",
+            elapsed
+        );
+    }
+
+    #[test]
     #[cfg(unix)]
     fn generated_hook_scripts_are_executable() {
         use std::os::unix::fs::PermissionsExt;
 
-        // given
         let root = temp_dir("exec-guard");
         write_hook_plugin(&root, "exec-check", "pre", "post", "fail");
 
-        // then
         for script in ["pre.sh", "post.sh", "failure.sh"] {
             let path = root.join("hooks").join(script);
             let mode = fs::metadata(&path)

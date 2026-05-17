@@ -71,6 +71,7 @@ pub async fn upsert_workflow_template(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn update_workflow_template(
     db: &DatabaseConnection,
     id: &str,

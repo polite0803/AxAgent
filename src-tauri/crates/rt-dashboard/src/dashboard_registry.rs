@@ -1,5 +1,5 @@
 use crate::dashboard_plugin::{
-    DashboardPlugin, DashboardPluginAdapter, DashboardPluginManifest, PanelPosition,
+    DashboardPlugin, DashboardPluginAdapter, DashboardPluginManifest, PanelPosition, RenderOutput,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -153,13 +153,30 @@ impl DashboardRegistry {
         plugin_id: &str,
         panel_id: &str,
         props: HashMap<String, serde_json::Value>,
-    ) -> Result<String, String> {
+    ) -> Result<RenderOutput, String> {
         let entries = self.entries.read().await;
         if let Some(entry) = entries.get(plugin_id) {
             if !entry.enabled {
                 return Err(format!("Plugin '{}' is disabled", plugin_id));
             }
             entry.plugin.render_panel(panel_id, props).await
+        } else {
+            Err(format!("Plugin '{}' not found", plugin_id))
+        }
+    }
+
+    pub async fn fetch_panel_data(
+        &self,
+        plugin_id: &str,
+        panel_id: &str,
+        query: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, String> {
+        let entries = self.entries.read().await;
+        if let Some(entry) = entries.get(plugin_id) {
+            if !entry.enabled {
+                return Err(format!("Plugin '{}' is disabled", plugin_id));
+            }
+            entry.plugin.fetch_data(panel_id, query).await
         } else {
             Err(format!("Plugin '{}' not found", plugin_id))
         }
@@ -193,12 +210,16 @@ impl DashboardRegistry {
             self.config.plugin_dirs.len()
         );
 
-        let mut entries = self.entries.write().await;
-        let old_enabled: HashMap<String, bool> = entries
-            .iter()
-            .map(|(id, e)| (id.clone(), e.enabled))
-            .collect();
-        entries.clear();
+        let old_entries = {
+            let mut entries = self.entries.write().await;
+            let old: HashMap<String, (Arc<dyn DashboardPlugin>, bool)> = entries
+                .drain()
+                .map(|(id, entry)| (id, (entry.plugin, entry.enabled)))
+                .collect();
+            old
+        };
+
+        let mut new_entries: HashMap<String, PluginEntry> = HashMap::new();
 
         for dir in &self.config.plugin_dirs {
             if !dir.exists() {
@@ -222,25 +243,35 @@ impl DashboardRegistry {
                 let manifest: DashboardPluginManifest = serde_json::from_str(&manifest_str)
                     .map_err(|e| format!("Failed to parse manifest {:?}: {}", manifest_path, e))?;
 
-                let frontend_entry = manifest.frontend_entry.clone();
                 let plugin_dir = path.clone();
+                let panel_id_prefix = manifest.id.clone();
                 let plugin = DashboardPluginAdapter::new(manifest, move |panel_id, props| {
-                    let panel_info = serde_json::json!({
-                        "panel_id": panel_id,
-                        "props": props,
-                        "plugin_dir": plugin_dir.to_string_lossy().to_string(),
-                        "frontend_entry": frontend_entry,
-                    });
-                    panel_info.to_string()
+                    crate::dashboard_plugin::RenderOutput::Directive(
+                        crate::dashboard_plugin::RenderDirective {
+                            panel_id: panel_id.to_string(),
+                            component: format!("{}_{}", panel_id_prefix, panel_id),
+                            props,
+                            data_endpoint: Some(format!(
+                                "/api/plugins/{}/data/{}",
+                                plugin_dir.to_string_lossy(),
+                                panel_id
+                            )),
+                            refresh_interval_ms: None,
+                        },
+                    )
                 });
 
                 let id = plugin.manifest().id.clone();
-                let preserved_enabled = old_enabled
+                let preserved_enabled = old_entries
                     .get(&id)
-                    .copied()
+                    .map(|(_, enabled)| *enabled)
                     .unwrap_or(self.config.auto_load);
-                plugin.on_load().await.ok();
-                entries.insert(
+
+                if !old_entries.contains_key(&id) {
+                    plugin.on_load().await.ok();
+                }
+
+                new_entries.insert(
                     id,
                     PluginEntry {
                         plugin: Arc::from(plugin),
@@ -250,6 +281,15 @@ impl DashboardRegistry {
                 tracing::info!("Loaded plugin from: {:?}", path);
             }
         }
+
+        for (id, (plugin, _)) in &old_entries {
+            if !new_entries.contains_key(id) {
+                plugin.on_unload().await.ok();
+            }
+        }
+
+        let mut entries = self.entries.write().await;
+        *entries = new_entries;
 
         Ok(())
     }

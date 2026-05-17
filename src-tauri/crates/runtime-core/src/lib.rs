@@ -6,10 +6,6 @@
 //! axagent-runtime re-exports everything from this crate, so consumers that
 //! import from `axagent_runtime` continue to work without changes.
 
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::await_holding_lock)]
-#![allow(clippy::wrong_self_convention)]
-
 pub mod cache_guard;
 pub mod compact;
 pub mod compact_thresholds;

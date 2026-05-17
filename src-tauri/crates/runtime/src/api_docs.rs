@@ -208,10 +208,10 @@ impl ApiDocGenerator {
     }
 
     pub fn generate_default_spec() -> OpenApiSpec {
-        let mut gen = Self::new("AxAgent Gateway", env!("CARGO_PKG_VERSION"));
-        gen.add_chat_completion();
-        gen.add_models_endpoint();
-        gen.add_schema(
+        let mut r#gen = Self::new("AxAgent Gateway", env!("CARGO_PKG_VERSION"));
+        r#gen.add_chat_completion();
+        r#gen.add_models_endpoint();
+        r#gen.add_schema(
             "ChatMessage",
             serde_json::json!({
                 "type": "object",
@@ -224,7 +224,7 @@ impl ApiDocGenerator {
                 }
             }),
         );
-        gen.build()
+        r#gen.build()
     }
 
     pub fn build(self) -> OpenApiSpec {
@@ -262,8 +262,8 @@ mod tests {
 
     #[test]
     fn test_add_custom_operation() {
-        let mut gen = ApiDocGenerator::new("Test", "1.0.0");
-        gen.add_operation(
+        let mut r#gen = ApiDocGenerator::new("Test", "1.0.0");
+        r#gen.add_operation(
             "/v1/custom",
             "get",
             OperationObject {
@@ -283,7 +283,7 @@ mod tests {
             },
         );
 
-        let spec = gen.build();
+        let spec = r#gen.build();
         assert!(spec.paths.contains_key("/v1/custom"));
         let get_op = spec.paths.get("/v1/custom").unwrap().get("get").unwrap();
         assert_eq!(get_op.parameters.len(), 1);

@@ -85,13 +85,29 @@ function buildFallbackChain(
   return chain.slice(0, 3); // Max 3 fallback attempts
 }
 
+import type { AttachmentInput } from "@/types";
 import type { ConversationState } from "./conversationStore";
+
+export interface SendMethods {
+  sendMessage: (content: string, attachments?: AttachmentInput[], searchProviderId?: string | null) => Promise<void>;
+  sendAgentMessage: (
+    content: string,
+    attachments?: AttachmentInput[],
+    searchProviderId?: string | null,
+  ) => Promise<void>;
+  sendPlanMessage: (
+    content: string,
+    attachments?: AttachmentInput[],
+    searchProviderId?: string | null,
+  ) => Promise<void>;
+  regenerateMessage: (targetMessageId?: string) => Promise<void>;
+  regenerateWithModel: (targetMessageId: string, providerId: string, model_id: string) => Promise<void>;
+}
 
 export function createSendMethods(
   set: (partial: Partial<ConversationState> | ((s: ConversationState) => Partial<ConversationState>)) => void,
   get: () => ConversationState,
-) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): SendMethods {
   return {
     sendMessage: async (
       content: string,

@@ -5,6 +5,8 @@ use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
 use sea_orm::DatabaseConnection;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -12,6 +14,53 @@ use tokio_util::sync::CancellationToken;
 
 use std::path::PathBuf;
 use tokio::sync::RwLock as TokioRwLock;
+
+// Tree of Thoughts types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TotNode {
+    pub id: String,
+    pub parent_id: Option<String>,
+    pub content: String,
+    pub score: Option<f64>,
+    pub children: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TotSession {
+    pub nodes: HashMap<String, TotNode>,
+    pub current_node_id: Option<String>,
+    pub root_node_id: Option<String>,
+}
+
+// Replanning types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlannerAction {
+    pub id: String,
+    pub timestamp: i64,
+    pub action_type: String,
+    pub data: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlannerVersion {
+    pub id: u32,
+    pub timestamp: i64,
+    pub reason: String,
+    pub state: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlannerSession {
+    pub actions: Vec<PlannerAction>,
+    pub versions: Vec<PlannerVersion>,
+    pub current_version: u32,
+}
+
+// Semantic cache (add enabled flag)
+pub struct SemanticCacheState {
+    pub cache: SemanticCache,
+    pub enabled: bool,
+}
 
 pub struct AppState {
     pub sea_db: DatabaseConnection,
@@ -71,8 +120,12 @@ pub struct AppState {
     pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
     pub dashboard_registry: Option<Arc<DashboardRegistry>>,
     pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
-    pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCache>>,
-    // 浏览器客户端：使用 tokio::sync::Mutex 取代全局 static mut，避免数据竞争
+    pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>>,
+    // Tree of Thoughts state
+    pub tot_sessions: Arc<tokio::sync::Mutex<HashMap<String, TotSession>>>,
+    // Replanning state
+    pub planner_sessions: Arc<tokio::sync::Mutex<HashMap<String, PlannerSession>>>,
+    // Browser client: use tokio::sync::Mutex to replace global static mut to avoid data race
     #[cfg(not(target_os = "android"))]
     pub browser_client:
         Arc<tokio::sync::Mutex<Option<axagent_core::browser_automation::PlaywrightClient>>>,

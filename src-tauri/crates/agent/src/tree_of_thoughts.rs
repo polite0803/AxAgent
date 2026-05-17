@@ -130,12 +130,10 @@ impl TreeOfThoughtsEngine {
         depth
     }
 
-    #[allow(clippy::ptr_arg)]
-    #[allow(dead_code)]
-    fn collect_leaves(&self, node_id: &String) -> Vec<String> {
+    fn collect_leaves(&self, node_id: &str) -> Vec<String> {
         if let Some(node) = self.tree.get(node_id) {
             if node.is_leaf() || node.status == ThoughtStatus::Pruned {
-                return vec![node_id.clone()];
+                return vec![node_id.to_string()];
             }
             node.children
                 .iter()
@@ -434,8 +432,17 @@ Respond with only a number between 0.0 and 1.0.",
     }
 
     pub fn select_best_leaf(&self) -> Option<String> {
-        let best_path = self.select_best_path();
-        best_path.last().cloned()
+        let leaves = self.collect_leaves(&self.root_id);
+        leaves
+            .into_iter()
+            .filter_map(|id| self.tree.get(&id))
+            .filter(|n| n.status != ThoughtStatus::Pruned)
+            .max_by(|a, b| {
+                a.evaluation_score
+                    .partial_cmp(&b.evaluation_score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .map(|n| n.id.clone())
     }
 
     pub fn get_current_state(&self) -> ToTStateSummary {
@@ -472,6 +479,7 @@ Respond with only a number between 0.0 and 1.0.",
         }
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn backtrack_to(&mut self, node_id: &str) -> Result<(), AxAgentError> {
         if !self.tree.contains_key(node_id) {
             return Err(AxAgentError::Agent {

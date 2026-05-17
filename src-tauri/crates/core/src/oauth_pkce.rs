@@ -24,7 +24,7 @@ pub fn generate_pkce() -> PkceParams {
 }
 
 fn generate_code_verifier() -> String {
-    let bytes: [u8; 32] = OsRng.gen();
+    let bytes: [u8; 32] = Rng::r#gen(&mut OsRng);
     URL_SAFE_NO_PAD.encode(bytes)
 }
 

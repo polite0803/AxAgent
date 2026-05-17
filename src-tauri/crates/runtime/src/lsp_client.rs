@@ -1,10 +1,13 @@
-#![allow(clippy::should_implement_trait, clippy::must_use_candidate)]
 //! LSP (Language Server Protocol) client registry for tool dispatch.
 
 use std::collections::HashMap;
+use std::path::Path;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
+
+use super::lsp_process::{LspProcess, LspProcessManager, LspServerConfig};
 
 /// Supported LSP actions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,17 +22,19 @@ pub enum LspAction {
     Format,
 }
 
-impl LspAction {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for LspAction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "diagnostics" => Some(Self::Diagnostics),
-            "hover" => Some(Self::Hover),
-            "definition" | "goto_definition" => Some(Self::Definition),
-            "references" | "find_references" => Some(Self::References),
-            "completion" | "completions" => Some(Self::Completion),
-            "symbols" | "document_symbols" => Some(Self::Symbols),
-            "format" | "formatting" => Some(Self::Format),
-            _ => None,
+            "diagnostics" => Ok(Self::Diagnostics),
+            "hover" => Ok(Self::Hover),
+            "definition" | "goto_definition" => Ok(Self::Definition),
+            "references" | "find_references" => Ok(Self::References),
+            "completion" | "completions" => Ok(Self::Completion),
+            "symbols" | "document_symbols" => Ok(Self::Symbols),
+            "format" | "formatting" => Ok(Self::Format),
+            _ => Err(()),
         }
     }
 }
@@ -109,6 +114,7 @@ pub struct LspServerState {
 #[derive(Debug, Clone, Default)]
 pub struct LspRegistry {
     inner: Arc<Mutex<RegistryInner>>,
+    process_manager: Arc<LspProcessManager>,
 }
 
 #[derive(Debug, Default)]
@@ -119,7 +125,50 @@ struct RegistryInner {
 impl LspRegistry {
     #[must_use]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            inner: Arc::new(Mutex::new(RegistryInner::default())),
+            process_manager: Arc::new(LspProcessManager::new()),
+        }
+    }
+
+    pub async fn start_server(
+        &self,
+        config: LspServerConfig,
+        root_path: impl AsRef<Path>,
+    ) -> Result<Arc<LspProcess>, String> {
+        let language = config.language.clone();
+        let process = self.process_manager.start_server(config, root_path).await?;
+        
+        let capabilities: Vec<String> = {
+            let inner = process.inner.lock().await;
+            inner.capabilities.as_object()
+                .map(|obj| obj.keys().cloned().collect())
+                .unwrap_or_default()
+        };
+        
+        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        inner.servers.insert(
+            language.clone(),
+            LspServerState {
+                language,
+                status: LspServerStatus::Connected,
+                root_path: None,
+                capabilities,
+                diagnostics: Vec::new(),
+            },
+        );
+        
+        Ok(process)
+    }
+
+    pub async fn stop_server(&self, language: &str) -> Result<(), String> {
+        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        inner.servers.remove(language);
+        self.process_manager.stop_server(language).await
+    }
+
+    pub async fn get_server_process(&self, language: &str) -> Option<Arc<LspProcess>> {
+        self.process_manager.get_server(language).await
     }
 
     pub fn register(
@@ -216,7 +265,8 @@ impl LspRegistry {
     }
 
     /// Disconnect a server.
-    pub fn disconnect(&self, language: &str) -> Option<LspServerState> {
+    pub async fn disconnect(&self, language: &str) -> Option<LspServerState> {
+        let _ = self.stop_server(language).await;
         let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
         inner.servers.remove(language)
     }
@@ -233,7 +283,7 @@ impl LspRegistry {
     }
 
     /// Dispatch an LSP action and return a structured result.
-    pub fn dispatch(
+    pub async fn dispatch(
         &self,
         action: &str,
         path: Option<&str>,
@@ -242,7 +292,7 @@ impl LspRegistry {
         _query: Option<&str>,
     ) -> Result<serde_json::Value, String> {
         let lsp_action =
-            LspAction::from_str(action).ok_or_else(|| format!("unknown LSP action: {action}"))?;
+            LspAction::from_str(action).map_err(|_| format!("unknown LSP action: {action}"))?;
 
         // For diagnostics, we can check existing cached diagnostics
         if lsp_action == LspAction::Diagnostics {
@@ -282,17 +332,81 @@ impl LspRegistry {
             ));
         }
 
-        // Return structured placeholder — actual LSP JSON-RPC calls would
-        // go through the real LSP process here.
-        Ok(serde_json::json!({
-            "action": action,
-            "path": path,
-            "line": line,
-            "character": character,
-            "language": server.language,
-            "status": "dispatched",
-            "message": format!("LSP {} dispatched to {} server", action, server.language)
-        }))
+        let process = self.get_server_process(&server.language).await.ok_or("LSP process not available")?;
+
+        match lsp_action {
+            LspAction::Hover => {
+                let line = line.ok_or("line is required for hover")?;
+                let character = character.ok_or("character is required for hover")?;
+                let result = process.hover(path, line, character).await?;
+                Ok(serde_json::json!({
+                    "action": "hover",
+                    "path": path,
+                    "line": line,
+                    "character": character,
+                    "language": server.language,
+                    "result": result
+                }))
+            }
+            LspAction::Definition => {
+                let line = line.ok_or("line is required for definition")?;
+                let character = character.ok_or("character is required for definition")?;
+                let result = process.goto_definition(path, line, character).await?;
+                Ok(serde_json::json!({
+                    "action": "definition",
+                    "path": path,
+                    "line": line,
+                    "character": character,
+                    "language": server.language,
+                    "result": result
+                }))
+            }
+            LspAction::References => {
+                let line = line.ok_or("line is required for references")?;
+                let character = character.ok_or("character is required for references")?;
+                let result = process.references(path, line, character).await?;
+                Ok(serde_json::json!({
+                    "action": "references",
+                    "path": path,
+                    "line": line,
+                    "character": character,
+                    "language": server.language,
+                    "result": result
+                }))
+            }
+            LspAction::Completion => {
+                let line = line.ok_or("line is required for completion")?;
+                let character = character.ok_or("character is required for completion")?;
+                let result = process.completion(path, line, character).await?;
+                Ok(serde_json::json!({
+                    "action": "completion",
+                    "path": path,
+                    "line": line,
+                    "character": character,
+                    "language": server.language,
+                    "result": result
+                }))
+            }
+            LspAction::Symbols => {
+                let result = process.document_symbols(path).await?;
+                Ok(serde_json::json!({
+                    "action": "symbols",
+                    "path": path,
+                    "language": server.language,
+                    "result": result
+                }))
+            }
+            LspAction::Format => {
+                let result = process.formatting(path).await?;
+                Ok(serde_json::json!({
+                    "action": "format",
+                    "path": path,
+                    "language": server.language,
+                    "result": result
+                }))
+            }
+            _ => Err(format!("unhandled LSP action: {}", action))
+        }
     }
 }
 
@@ -445,7 +559,7 @@ mod tests {
         // when
         let resolved: Vec<_> = cases
             .into_iter()
-            .map(|(input, expected)| (input, LspAction::from_str(input), expected))
+            .map(|(input, expected)| (input, LspAction::from_str(input).ok(), expected))
             .collect();
 
         // then

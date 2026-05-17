@@ -132,11 +132,7 @@ fn main() {
         let _ = stdout.flush();
     }
 
-    loop {
-        let Some(request) = read_frame(&mut stdin) else {
-            break;
-        };
-
+    while let Some(request) = read_frame(&mut stdin) {
         let method = request["method"].as_str().unwrap_or("");
         log_call(&log_path, method);
 

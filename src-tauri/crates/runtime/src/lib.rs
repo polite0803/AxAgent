@@ -4,10 +4,6 @@
 //! MCP plumbing, tool-facing file operations, and the core conversation loop
 //! that drives interactive and one-shot turns.
 
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::await_holding_lock)]
-#![allow(clippy::wrong_self_convention)]
-
 pub mod adversarial_debate;
 pub mod agent_roles;
 pub mod api_docs;
@@ -96,9 +92,10 @@ pub use bootstrap::{BootstrapPhase, BootstrapPlan};
 pub use branch_lock::{detect_branch_lock_collisions, BranchLockCollision, BranchLockIntent};
 
 pub use file_ops::{
-    edit_file, glob_search, grep_search, read_file, write_file, EditFileOutput, GlobSearchOutput,
-    GrepSearchInput, GrepSearchOutput, ReadFileOutput, StructuredPatchHunk, TextFilePayload,
-    WriteFileOutput,
+    edit_file, edit_file_in_workspace, glob_search, grep_search, is_symlink_escape, read_file,
+    read_file_in_workspace, validate_workspace_boundary, write_file, write_file_in_workspace,
+    EditFileOutput, GlobSearchOutput, GrepSearchInput, GrepSearchOutput, ReadFileOutput,
+    StructuredPatchHunk, TextFilePayload, WriteFileOutput,
 };
 pub use git_context::{GitCommitEntry, GitContext};
 

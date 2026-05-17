@@ -1,4 +1,3 @@
-#![allow(clippy::doc_markdown, clippy::uninlined_format_args, unused_imports)]
 //! Integration tests for cross-module wiring.
 //!
 //! These tests verify that adjacent modules in the runtime crate actually

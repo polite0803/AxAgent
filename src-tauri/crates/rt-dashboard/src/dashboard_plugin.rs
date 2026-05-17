@@ -40,6 +40,22 @@ pub struct DashboardPluginManifest {
     pub frontend_entry: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RenderDirective {
+    pub panel_id: String,
+    pub component: String,
+    pub props: HashMap<String, serde_json::Value>,
+    pub data_endpoint: Option<String>,
+    pub refresh_interval_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RenderOutput {
+    Directive(RenderDirective),
+    Html { content: String },
+    Data { payload: serde_json::Value },
+}
+
 #[async_trait]
 pub trait DashboardPlugin: Send + Sync {
     fn manifest(&self) -> &DashboardPluginManifest;
@@ -49,10 +65,18 @@ pub trait DashboardPlugin: Send + Sync {
         &self,
         panel_id: &str,
         props: HashMap<String, serde_json::Value>,
-    ) -> Result<String, String>;
+    ) -> Result<RenderOutput, String>;
+    async fn fetch_data(
+        &self,
+        panel_id: &str,
+        query: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, String> {
+        let _ = (panel_id, query);
+        Err("fetch_data not implemented".to_string())
+    }
 }
 
-type RenderFn = Box<dyn Fn(&str, HashMap<String, serde_json::Value>) -> String + Send + Sync>;
+type RenderFn = Box<dyn Fn(&str, HashMap<String, serde_json::Value>) -> RenderOutput + Send + Sync>;
 
 pub struct DashboardPluginAdapter {
     manifest: DashboardPluginManifest,
@@ -62,7 +86,7 @@ pub struct DashboardPluginAdapter {
 impl DashboardPluginAdapter {
     pub fn new<F>(manifest: DashboardPluginManifest, render_fn: F) -> Self
     where
-        F: Fn(&str, HashMap<String, serde_json::Value>) -> String + Send + Sync + 'static,
+        F: Fn(&str, HashMap<String, serde_json::Value>) -> RenderOutput + Send + Sync + 'static,
     {
         Self {
             manifest,
@@ -91,7 +115,7 @@ impl DashboardPlugin for DashboardPluginAdapter {
         &self,
         panel_id: &str,
         props: HashMap<String, serde_json::Value>,
-    ) -> Result<String, String> {
+    ) -> Result<RenderOutput, String> {
         Ok((self.render_fn)(panel_id, props))
     }
 }

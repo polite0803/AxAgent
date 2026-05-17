@@ -1,9 +1,5 @@
 //! AxAgent Agent - ClawCode Runtime Integration
 
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::collapsible_if)]
-#![allow(clippy::result_large_err)]
-
 pub mod ab_testing;
 pub mod academic_search;
 pub mod action_executor;

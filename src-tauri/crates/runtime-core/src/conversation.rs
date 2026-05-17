@@ -163,7 +163,6 @@ pub enum ToolErrorKind {
 }
 
 impl ToolError {
-    #[allow(dead_code)]
     fn kind_str(kind: &ToolErrorKind) -> &'static str {
         match kind {
             ToolErrorKind::NotFound => "notFound",
@@ -241,7 +240,7 @@ impl ToolError {
 
 impl Display for ToolError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
+        write!(f, "[{}] {}", Self::kind_str(&self.kind), self.message)
     }
 }
 
@@ -330,7 +329,6 @@ where
     }
 
     #[must_use]
-    #[allow(clippy::needless_pass_by_value)]
     pub fn new_with_features(
         session: Session,
         api_client: C,
@@ -510,7 +508,7 @@ where
         }
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // Complex agent loop with cancel/pause/compaction hooks; splitting would obscure control flow
     pub fn run_turn(
         &mut self,
         user_input: impl Into<String>,

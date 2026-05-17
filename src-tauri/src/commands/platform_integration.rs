@@ -52,6 +52,7 @@ pub async fn update_platform_config(
 
 // ── 消息处理命令 ──
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn process_telegram_message(
     state: State<'_, AppState>,

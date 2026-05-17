@@ -43,6 +43,8 @@ pub struct GeneratedImage {
     pub width: u32,
     pub height: u32,
     pub seed: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revised_prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,7 +69,9 @@ impl FluxProvider {
     pub fn new(api_token: String) -> Self {
         Self {
             api_token,
-            client: Client::new(),
+            client: crate::build_default_http_client()
+                .map_err(|e| ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e)))
+                .expect("Failed to build default HTTP client"),
         }
     }
 }
@@ -151,6 +155,7 @@ impl ImageGenProvider for FluxProvider {
                 width: request.width.unwrap_or(1024),
                 height: request.height.unwrap_or(1024),
                 seed: request.seed,
+                revised_prompt: None,
             })
             .collect();
 
@@ -173,7 +178,9 @@ impl DallEProvider {
         Self {
             api_key,
             base_url: base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string()),
-            client: Client::new(),
+            client: crate::build_default_http_client()
+                .map_err(|e| ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e)))
+                .expect("Failed to build default HTTP client"),
         }
     }
 }
@@ -214,7 +221,6 @@ impl ImageGenProvider for DallEProvider {
         struct DallEImage {
             b64_json: Option<String>,
             url: Option<String>,
-            #[allow(dead_code)]
             revised_prompt: Option<String>,
         }
 
@@ -229,6 +235,7 @@ impl ImageGenProvider for DallEProvider {
                 width: request.width.unwrap_or(1024),
                 height: request.height.unwrap_or(1024),
                 seed: None,
+                revised_prompt: img.revised_prompt,
             })
             .collect();
 

@@ -15,8 +15,7 @@ export interface AsyncState {
 
 export const INIT_ASYNC: AsyncState = { loading: false, error: null };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SetFn = (partial: Record<string, any>) => void;
+type SetFn = (partial: Record<string, unknown>) => void;
 
 export function startAsync(set: SetFn): void {
   set({ loading: true, error: null });

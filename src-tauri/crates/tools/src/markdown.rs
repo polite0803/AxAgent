@@ -292,23 +292,48 @@ pub fn render_to_html(markdown: &str) -> String {
 
     let parser = Parser::new_ext(markdown, options);
     let mut html = String::new();
-    html.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
+    html.push_str("<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n");
     html.push_str("<meta charset=\"utf-8\">\n");
+    html.push_str("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n");
     html.push_str("<style>\n");
-    html.push_str("body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:800px;margin:0 auto;padding:2em;line-height:1.6;color:#333}\n");
-    html.push_str("h1{font-size:2em;border-bottom:2px solid #4a90d9;padding-bottom:.3em}\n");
-    html.push_str("h2{font-size:1.5em;border-bottom:1px solid #ddd;padding-bottom:.2em}\n");
-    html.push_str("h3{font-size:1.25em}\n");
-    html.push_str("code{background:#f5f5f5;padding:2px 6px;border-radius:3px;font-family:Consolas,monospace;font-size:.9em}\n");
-    html.push_str("pre{background:#f5f5f5;padding:1em;border-radius:4px;overflow-x:auto}\n");
-    html.push_str("pre code{background:none;padding:0}\n");
-    html.push_str("table{border-collapse:collapse;width:100%}\n");
-    html.push_str("th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}\n");
-    html.push_str("th{background:#4a90d9;color:#fff}\n");
-    html.push_str("tr:nth-child(even){background:#f9f9f9}\n");
-    html.push_str("blockquote{border-left:4px solid #4a90d9;margin:0;padding:0 1em;color:#666}\n");
-    html.push_str("img{max-width:100%}\n");
-    html.push_str("a{color:#0563c1}\n");
+    // 专业排版样式（与 docx 主题一致：主色 1F3864, 辅色 2E75B6）
+    html.push_str(":root{--primary:#1F3864;--secondary:#2E75B6;--accent-bg:#F2F7FB}\n");
+    html.push_str("*{box-sizing:border-box}\n");
+    html.push_str("body{font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei','Calibri',sans-serif;max-width:860px;margin:0 auto;padding:2.5em 2em;line-height:1.8;color:#222;background:#fff}\n");
+    // headings
+    html.push_str("h1{font-size:1.8em;color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:.25em;margin-top:1.5em;font-weight:700}\n");
+    html.push_str("h2{font-size:1.35em;color:var(--secondary);border-bottom:1px solid #D0D0D0;padding-bottom:.2em;margin-top:1.2em;font-weight:600}\n");
+    html.push_str("h3{font-size:1.15em;color:var(--secondary);margin-top:1em;font-weight:600}\n");
+    // body
+    html.push_str("p{margin:.5em 0;text-align:justify}\n");
+    // code
+    html.push_str("code{font-family:'Consolas','Courier New',monospace;font-size:.88em;background:#F5F5F5;padding:2px 6px;border-radius:3px;color:#C7254E}\n");
+    html.push_str("pre{background:#F5F5F5;border-left:3px solid var(--primary);padding:1em 1.2em;overflow-x:auto;font-size:.85em;line-height:1.55;border-radius:0 4px 4px 0}\n");
+    html.push_str("pre code{background:none;padding:0;color:#2D2D2D;font-size:inherit}\n");
+    // table
+    html.push_str("table{border-collapse:collapse;width:100%;margin:0.8em 0;font-size:.92em}\n");
+    html.push_str("th{background:var(--primary);color:#fff;padding:8px 14px;text-align:left;font-weight:600;border:1px solid var(--primary)}\n");
+    html.push_str("td{padding:6px 14px;border:1px solid #D0D0D0}\n");
+    html.push_str("tr:nth-child(even) td{background:var(--accent-bg)}\n");
+    // list
+    html.push_str("ul,ol{margin:.3em 0;padding-left:1.8em}\n");
+    html.push_str("li{margin:.15em 0}\n");
+    // blockquote
+    html.push_str("blockquote{border-left:4px solid var(--secondary);margin:.6em 0;padding:.4em 1.2em;color:#555;background:#F8F9FA;font-style:italic}\n");
+    // others
+    html.push_str("hr{border:none;border-top:1px solid #CCC;margin:1.5em 0}\n");
+    html.push_str(
+        "img{max-width:100%;height:auto;display:block;margin:.5em auto;border-radius:4px}\n",
+    );
+    html.push_str("a{color:#0563C1;text-decoration:none}\n");
+    html.push_str("a:hover{text-decoration:underline}\n");
+    // task list
+    html.push_str("input[type=checkbox]{margin-right:.4em}\n");
+    // print
+    html.push_str("@media print{body{font-size:10.5pt;max-width:100%;padding:0}\n");
+    html.push_str("pre,blockquote{break-inside:avoid}\n");
+    html.push_str("h1,h2,h3{break-after:avoid}\n");
+    html.push_str("table{break-inside:avoid}}\n");
     html.push_str("</style>\n</head>\n<body>\n");
     pulldown_cmark::html::push_html(&mut html, parser);
     html.push_str("</body>\n</html>");

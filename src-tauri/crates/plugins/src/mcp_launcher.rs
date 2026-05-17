@@ -2,11 +2,14 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tracing::{info, warn};
 
 use crate::PluginMcpServer;
+
+const MCP_STARTUP_POLL_INTERVAL_MS: u64 = 100;
+const MCP_STARTUP_TIMEOUT_SECS: u64 = 10;
 
 struct RunningMcpProcess {
     child: Child,
@@ -31,10 +34,13 @@ pub enum McpLaunchError {
     },
     #[error("MCP server `{0}` exited immediately after start")]
     ImmediateExit(String),
+    #[error("MCP server `{0}` did not become healthy within startup timeout")]
+    StartupTimeout(String),
 }
 
 pub struct McpLauncher {
     running: HashMap<String, Vec<RunningMcpProcess>>,
+    startup_timeout: Duration,
 }
 
 impl fmt::Debug for McpLauncher {
@@ -50,10 +56,15 @@ impl McpLauncher {
     pub fn new() -> Self {
         Self {
             running: HashMap::new(),
+            startup_timeout: Duration::from_secs(MCP_STARTUP_TIMEOUT_SECS),
         }
     }
 
-    /// 启动插件声明的所有 MCP 服务
+    pub fn with_startup_timeout(mut self, timeout: Duration) -> Self {
+        self.startup_timeout = timeout;
+        self
+    }
+
     pub fn start_plugin_mcps(
         &mut self,
         plugin_id: &str,
@@ -69,7 +80,6 @@ impl McpLauncher {
         Ok(())
     }
 
-    /// 停止插件所有 MCP 服务
     pub fn stop_plugin_mcps(&mut self, plugin_id: &str) {
         if let Some(processes) = self.running.remove(plugin_id) {
             for mut proc in processes {
@@ -78,6 +88,29 @@ impl McpLauncher {
                 let _ = proc.child.wait();
             }
         }
+    }
+
+    pub fn healthcheck(&mut self) -> HashMap<String, Vec<ServerHealthStatusEntry>> {
+        let mut result = HashMap::new();
+        for (plugin_id, processes) in &mut self.running {
+            let mut statuses = Vec::new();
+            for proc in processes {
+                let status = match proc.child.try_wait() {
+                    Ok(None) => ServerHealthStatus::Running,
+                    Ok(Some(status)) => ServerHealthStatus::Exited {
+                        code: status.code(),
+                    },
+                    Err(e) => ServerHealthStatus::Error(e.to_string()),
+                };
+                statuses.push(ServerHealthStatusEntry {
+                    server_name: proc.server_name.clone(),
+                    pid: proc.child.id(),
+                    status,
+                });
+            }
+            result.insert(plugin_id.clone(), statuses);
+        }
+        result
     }
 
     fn spawn_server(
@@ -114,34 +147,55 @@ impl McpLauncher {
             source,
         })?;
 
-        // 等待短暂时间确认进程没有立即崩溃
-        std::thread::sleep(Duration::from_secs(2));
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                warn!(
-                    "mcp: server `{}` for plugin `{}` exited immediately with {:?}",
-                    server.name, plugin_id, status
-                );
-                Err(McpLaunchError::ImmediateExit(server.name.clone()))
-            },
-            Ok(None) => {
-                info!(
-                    "mcp: server `{}` for plugin `{}` running (pid {})",
-                    server.name,
-                    plugin_id,
-                    child.id()
-                );
-                Ok(RunningMcpProcess {
-                    child,
-                    server_name: server.name.clone(),
-                })
-            },
-            Err(e) => Err(McpLaunchError::SpawnFailed {
-                server: server.name.clone(),
-                source: e,
-            }),
+        let start = Instant::now();
+        let poll_interval = Duration::from_millis(MCP_STARTUP_POLL_INTERVAL_MS);
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    warn!(
+                        "mcp: server `{}` for plugin `{}` exited immediately with {:?}",
+                        server.name, plugin_id, status
+                    );
+                    return Err(McpLaunchError::ImmediateExit(server.name.clone()));
+                },
+                Ok(None) => {
+                    if start.elapsed() >= self.startup_timeout {
+                        info!(
+                            "mcp: server `{}` for plugin `{}` assumed healthy after polling (pid {})",
+                            server.name,
+                            plugin_id,
+                            child.id()
+                        );
+                        return Ok(RunningMcpProcess {
+                            child,
+                            server_name: server.name.clone(),
+                        });
+                    }
+                    std::thread::sleep(poll_interval);
+                },
+                Err(e) => {
+                    return Err(McpLaunchError::SpawnFailed {
+                        server: server.name.clone(),
+                        source: e,
+                    });
+                },
+            }
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum ServerHealthStatus {
+    Running,
+    Exited { code: Option<i32> },
+    Error(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerHealthStatusEntry {
+    pub server_name: String,
+    pub pid: u32,
+    pub status: ServerHealthStatus,
 }
 
 impl Drop for McpLauncher {

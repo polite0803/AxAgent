@@ -381,7 +381,7 @@ impl WorkflowEngine {
             }
             let mut queue: Vec<&str> = in_degree
                 .iter()
-                .filter(|(_, &deg)| deg == 0)
+                .filter(|&(_, &deg)| deg == 0)
                 .map(|(&id, _)| id)
                 .collect();
             let mut visited = 0usize;
@@ -610,7 +610,7 @@ impl WorkflowEngine {
 
         let mut queue: Vec<String> = in_degree
             .iter()
-            .filter(|(_, &deg)| deg == 0)
+            .filter(|&(_, &deg)| deg == 0)
             .map(|(id, _)| id.clone())
             .collect();
 

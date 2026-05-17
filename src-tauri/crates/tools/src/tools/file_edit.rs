@@ -100,7 +100,17 @@ impl Tool for FileEditTool {
         Ok(())
     }
 
-    fn check_permissions(&self, _input: &Value, _ctx: &ToolContext) -> PermissionResult {
+    fn check_permissions(&self, input: &Value, _ctx: &ToolContext) -> PermissionResult {
+        let path = input["file_path"].as_str().unwrap_or("");
+        let dangerous_prefixes = [
+            "/etc", "/boot", "/sys", "/proc", "/dev",
+            "C:\\Windows", "C:\\Program Files",
+        ];
+        for prefix in &dangerous_prefixes {
+            if path.starts_with(prefix) {
+                return PermissionResult::Ask(format!("编辑系统路径 '{}'，确认？", path));
+            }
+        }
         PermissionResult::Allow
     }
 

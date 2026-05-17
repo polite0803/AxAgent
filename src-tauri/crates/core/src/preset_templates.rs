@@ -578,11 +578,8 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
 
         let y = start_y + (node_index as f64 * 200.0);
         nodes.push(step_to_agent_node(step, i));
-        #[allow(clippy::collapsible_match)]
-        if let Some(node) = nodes.last_mut() {
-            if let WorkflowNode::Agent(agent) = node {
-                agent.base.position.y = y;
-            }
+        if let Some(WorkflowNode::Agent(agent)) = nodes.last_mut() {
+            agent.base.position.y = y;
         }
         node_index += 1;
     }

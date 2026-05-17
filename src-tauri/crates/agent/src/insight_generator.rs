@@ -77,17 +77,20 @@ impl InsightCategory {
             InsightCategory::ToolUsage => "tool_usage",
         }
     }
+}
 
-    #[allow(clippy::should_implement_trait)]
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for InsightCategory {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "error_pattern" => Some(InsightCategory::ErrorPattern),
-            "success_pattern" => Some(InsightCategory::SuccessPattern),
-            "optimization" => Some(InsightCategory::Optimization),
-            "knowledge" => Some(InsightCategory::Knowledge),
-            "workflow" => Some(InsightCategory::Workflow),
-            "tool_usage" => Some(InsightCategory::ToolUsage),
-            _ => None,
+            "error_pattern" => Ok(InsightCategory::ErrorPattern),
+            "success_pattern" => Ok(InsightCategory::SuccessPattern),
+            "optimization" => Ok(InsightCategory::Optimization),
+            "knowledge" => Ok(InsightCategory::Knowledge),
+            "workflow" => Ok(InsightCategory::Workflow),
+            "tool_usage" => Ok(InsightCategory::ToolUsage),
+            _ => Err(()),
         }
     }
 }
@@ -479,16 +482,22 @@ mod tests {
 
     #[test]
     fn test_insight_category_from_str() {
-        assert_eq!(InsightCategory::from_str("error_pattern"), Some(InsightCategory::ErrorPattern));
         assert_eq!(
-            InsightCategory::from_str("success_pattern"),
+            "error_pattern".parse::<InsightCategory>().ok(),
+            Some(InsightCategory::ErrorPattern)
+        );
+        assert_eq!(
+            "success_pattern".parse::<InsightCategory>().ok(),
             Some(InsightCategory::SuccessPattern)
         );
-        assert_eq!(InsightCategory::from_str("optimization"), Some(InsightCategory::Optimization));
-        assert_eq!(InsightCategory::from_str("knowledge"), Some(InsightCategory::Knowledge));
-        assert_eq!(InsightCategory::from_str("workflow"), Some(InsightCategory::Workflow));
-        assert_eq!(InsightCategory::from_str("tool_usage"), Some(InsightCategory::ToolUsage));
-        assert_eq!(InsightCategory::from_str("invalid"), None);
+        assert_eq!(
+            "optimization".parse::<InsightCategory>().ok(),
+            Some(InsightCategory::Optimization)
+        );
+        assert_eq!("knowledge".parse::<InsightCategory>().ok(), Some(InsightCategory::Knowledge));
+        assert_eq!("workflow".parse::<InsightCategory>().ok(), Some(InsightCategory::Workflow));
+        assert_eq!("tool_usage".parse::<InsightCategory>().ok(), Some(InsightCategory::ToolUsage));
+        assert_eq!("invalid".parse::<InsightCategory>().ok(), None);
     }
 
     #[test]

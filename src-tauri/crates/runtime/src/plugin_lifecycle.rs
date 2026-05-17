@@ -1,4 +1,3 @@
-#![allow(clippy::redundant_closure_for_method_calls)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};

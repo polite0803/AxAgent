@@ -2,6 +2,7 @@ import { invoke, isTauri, listen, logIpcError } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag, type RagContextRetrievedEvent } from "@/lib/memoryUtils";
 import type { ChatStreamErrorEvent, ChatStreamEvent } from "@/types";
 import type { ConversationState } from "./conversationStore";
+import { useConversationStore } from "./conversationStore";
 import { usePreferenceStore } from "./preferenceStore";
 import {
   _isMultiModelActive,
@@ -32,10 +33,16 @@ import {
   useStreamStore,
 } from "./streamStore";
 
+export interface EventMethods {
+  startStreamListening: () => Promise<void>;
+  stopStreamListening: () => void;
+  cancelCurrentStream: () => void;
+}
+
 export function createEventMethods(
   set: (partial: Partial<ConversationState> | ((s: ConversationState) => Partial<ConversationState>)) => void,
   get: () => ConversationState,
-) {
+): EventMethods {
   return {
     startStreamListening: async () => {
       // Increment generation and clean up previous listeners
@@ -52,6 +59,8 @@ export function createEventMethods(
          }
         const { conversation_id, message_id, chunk, model_id: evt_model_id, provider_id: evt_provider_id } =
           event.payload;
+
+        if (typeof conversation_id !== "string" || !conversation_id) { return; }
 
         if (chunk.done) {
           if (chunk.is_final === false) {
@@ -180,15 +189,36 @@ export function createEventMethods(
           }
 
           // Auto incremental memory extraction after stream completes
-          import("@/lib/invoke").then(({ invoke }) => {
+          // Delayed + staggered to avoid competing with the main LLM for API quota.
+          // Skip entirely if an agent execution is still active for this conversation.
+          Promise.all([
+            import("@/lib/invoke"),
+            import("@/stores/feature/executionStore"),
+          ]).then(([{ invoke }, { useExecutionStore }]) => {
+            const isAgentActive = useExecutionStore.getState().isActive(conversation_id);
+            if (isAgentActive) { return; }
+
+            const scheduledConvId = conversation_id;
             const memNsId = usePreferenceStore.getState().activeMemoryNamespaceId;
-            void invoke("auto_extract_incremental_memories", {
-              conversationId: conversation_id,
-              namespaceId: memNsId ?? null,
-            }).catch(logIpcError("auto_extract_memories"));
-            void invoke("extract_conversation_entities", {
-              conversationId: conversation_id,
-            }).catch(logIpcError("extract_entities"));
+            setTimeout(() => {
+              const currentConvId = useConversationStore.getState().activeConversationId;
+              if (currentConvId !== scheduledConvId) { return; }
+              const stillActive = useExecutionStore.getState().isActive(conversation_id);
+              if (stillActive) { return; }
+              void invoke("auto_extract_incremental_memories", {
+                conversationId: conversation_id,
+                namespaceId: memNsId ?? null,
+              }).catch(logIpcError("auto_extract_memories"));
+            }, 5000);
+            setTimeout(() => {
+              const currentConvId = useConversationStore.getState().activeConversationId;
+              if (currentConvId !== scheduledConvId) { return; }
+              const stillActive = useExecutionStore.getState().isActive(conversation_id);
+              if (stillActive) { return; }
+              void invoke("extract_conversation_entities", {
+                conversationId: conversation_id,
+              }).catch(logIpcError("extract_entities"));
+            }, 8000);
           }).catch(logIpcError("dynamic_import_invoke"));
 
           return;

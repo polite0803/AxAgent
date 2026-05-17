@@ -178,7 +178,7 @@ impl PermissionPolicy {
     }
 
     #[must_use]
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // Multi-branch permission decision tree; splitting would scatter the deny→ask→allow→mode logic
     pub fn authorize_with_context(
         &self,
         tool_name: &str,

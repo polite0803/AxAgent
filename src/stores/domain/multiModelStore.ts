@@ -9,7 +9,7 @@
 import { invoke } from "@/lib/invoke";
 import type { AttachmentInput } from "@/types";
 import { create } from "zustand";
-import { useConversationStore } from "./conversationStore";
+import { type ConversationState, useConversationStore } from "./conversationStore";
 import { getEffectiveThinkingBudget, usePreferenceStore } from "./preferenceStore";
 import {
   _isMultiModelActive,
@@ -343,7 +343,15 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
 // 消费者组件通过 useConversationStore 读取 multiModelParentId 等字段，
 // 所以 multiModelStore 状态变化时需要同步写入 conversationStore。
 useMultiModelStore.subscribe((state, prev) => {
-  const updates: Record<string, unknown> = {};
+  const updates: Partial<
+    Pick<
+      ConversationState,
+      | "pendingCompanionModels"
+      | "multiModelParentId"
+      | "multiModelDoneMessageIds"
+      | "pendingPromptText"
+    >
+  > = {};
   if (state.pendingCompanionModels !== prev.pendingCompanionModels) {
     updates.pendingCompanionModels = state.pendingCompanionModels;
   }
@@ -357,6 +365,6 @@ useMultiModelStore.subscribe((state, prev) => {
     updates.pendingPromptText = state.pendingPromptText;
   }
   if (Object.keys(updates).length > 0) {
-    useConversationStore.setState(updates as any);
+    useConversationStore.setState(updates);
   }
 });

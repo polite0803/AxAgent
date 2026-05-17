@@ -9,7 +9,6 @@ use super::backend_trait::{
     BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput,
 };
 
-#[allow(dead_code)]
 pub struct SshBackend {
     host: String,
     port: u16,
@@ -47,11 +46,18 @@ impl SshBackend {
             "UserKnownHostsFile=/dev/null".to_string(),
             "-o".to_string(),
             "BatchMode=yes".to_string(),
+            "-p".to_string(),
+            self.port.to_string(),
         ];
 
         if let Some(ref key) = self.key_path {
             args.push("-i".to_string());
             args.push(key.clone());
+        }
+
+        if self.password.is_some() {
+            args.push("-o".to_string());
+            args.push("PasswordAuthentication=yes".to_string());
         }
 
         if let Some(ref user) = self.username {

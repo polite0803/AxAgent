@@ -152,10 +152,11 @@ impl HermesAdapter {
             .unwrap_or_else(|| "http://localhost:8642".to_string())
     }
 
+    #[allow(clippy::result_large_err)]
     fn get_client(ctx: &ProviderRequestContext) -> Result<reqwest::Client> {
         match &ctx.proxy_config {
             Some(c) if c.proxy_type.as_deref() != Some("none") => build_http_client(Some(c)),
-            _ => Ok(reqwest::Client::new()),
+            _ => crate::build_default_http_client(),
         }
     }
 

@@ -483,6 +483,7 @@ impl SessionManager {
     /// - Building the `AxAgentApiClient` with tools, model, params, and streaming callbacks
     /// - Persisting user/assistant messages to the DB
     /// - Emitting Tauri events
+    #[allow(clippy::too_many_arguments)]
     pub async fn run_turn_with_tools(
         &self,
         session_id: &str,

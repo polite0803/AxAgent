@@ -20,12 +20,19 @@ use sea_orm::{
     QueryFilter, QueryOrder, Set,
 };
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::info;
 use uuid::Uuid;
 
 pub struct TrajectoryStorage {
     db: Arc<DatabaseConnection>,
     fts_searcher: Option<FTS5Search>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TrajectoryCleanupConfig {
+    pub max_age_days: Option<u32>,
+    pub max_trajectories: Option<u32>,
 }
 
 impl TrajectoryStorage {
@@ -38,7 +45,7 @@ impl TrajectoryStorage {
 
     pub fn with_fts(
         db: Arc<DatabaseConnection>,
-        fts_conn: Arc<std::sync::RwLock<rusqlite::Connection>>,
+        fts_conn: Arc<Mutex<rusqlite::Connection>>,
     ) -> Self {
         Self {
             db,
@@ -48,15 +55,18 @@ impl TrajectoryStorage {
 
     /// 从数据库文件路径创建带 FTS5 全文搜索的存储实例。
     /// 自动创建 FTS5 虚拟表（如不存在）。
-    #[allow(clippy::arc_with_non_send_sync)]
-    pub fn with_fts_path(db: Arc<DatabaseConnection>, db_file_path: &str) -> Result<Self> {
-        let conn =
-            rusqlite::Connection::open(db_file_path).context("Failed to open FTS5 database")?;
-        conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;")
-            .context("Failed to set FTS5 connection pragmas")?;
-        let conn = Arc::new(std::sync::RwLock::new(conn));
+    pub async fn with_fts_path(db: Arc<DatabaseConnection>, db_file_path: &str) -> Result<Self> {
+        let db_file_path = db_file_path.to_string();
+        let conn = tokio::task::spawn_blocking(move || {
+            let conn = rusqlite::Connection::open(&db_file_path)
+                .context("Failed to open FTS5 database")?;
+            conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;")
+                .context("Failed to set FTS5 connection pragmas")?;
+            Ok::<_, anyhow::Error>(conn)
+        }).await??;
+        let conn = Arc::new(Mutex::new(conn));
         let fts = FTS5Search::new(conn, FTS5Config::default());
-        fts.create_fts_tables()?;
+        fts.create_fts_tables().await?;
         Ok(Self {
             db,
             fts_searcher: Some(fts),
@@ -64,7 +74,7 @@ impl TrajectoryStorage {
     }
 
     /// 安全地 block_on：检测当前 runtime 上下文，避免嵌套 runtime panic
-    fn block_on<F: std::future::Future>(f: F) -> F::Output {
+    pub(crate) fn block_on<F: std::future::Future>(f: F) -> F::Output {
         match tokio::runtime::Handle::try_current() {
             Ok(handle) => tokio::task::block_in_place(move || handle.block_on(f)),
             Err(_) => tokio::runtime::Runtime::new()
@@ -164,7 +174,7 @@ impl TrajectoryStorage {
                 .insert(self.db.as_ref())
                 .await?;
             }
-            let _ = self.index_trajectory_fts(t);
+            let _ = self.index_trajectory_fts(t).await;
             Ok(())
         })
     }
@@ -204,6 +214,77 @@ impl TrajectoryStorage {
             }
             Ok(r)
         })
+    }
+
+    pub fn delete_trajectory(&self, id: &str) -> Result<()> {
+        Self::block_on(async {
+            // Delete all related records first
+            trajectory_steps::Entity::delete_many()
+                .filter(trajectory_steps::Column::TrajectoryId.eq(id))
+                .exec(self.db.as_ref())
+                .await?;
+            trajectory_rewards::Entity::delete_many()
+                .filter(trajectory_rewards::Column::TrajectoryId.eq(id))
+                .exec(self.db.as_ref())
+                .await?;
+            trajectory_skill_executions::Entity::delete_many()
+                .filter(trajectory_skill_executions::Column::TrajectoryId.eq(id))
+                .exec(self.db.as_ref())
+                .await?;
+            // Delete the trajectory itself
+            trajectories::Entity::delete_by_id(id)
+                .exec(self.db.as_ref())
+                .await?;
+            // Delete from FTS index if available
+            let _ = self.delete_trajectory_fts(id);
+            info!("Deleted trajectory {}", id);
+            Ok(())
+        })
+    }
+
+    pub fn cleanup_old_trajectories_by_age(&self, max_age_days: u32) -> Result<usize> {
+        Self::block_on(async {
+            let cutoff = Utc::now() - chrono::Duration::days(max_age_days as i64);
+            let cutoff_str = cutoff.to_rfc3339();
+            let old_trajectories = trajectories::Entity::find()
+                .filter(trajectories::Column::CreatedAt.lt(cutoff_str))
+                .all(self.db.as_ref())
+                .await?;
+            let count = old_trajectories.len();
+            for traj in old_trajectories {
+                self.delete_trajectory(&traj.id)?;
+            }
+            Ok(count)
+        })
+    }
+
+    pub fn cleanup_old_trajectories_by_count(&self, max_trajectories: u32) -> Result<usize> {
+        Self::block_on(async {
+            let all_trajectories = trajectories::Entity::find()
+                .order_by_desc(trajectories::Column::CreatedAt)
+                .all(self.db.as_ref())
+                .await?;
+            if all_trajectories.len() <= max_trajectories as usize {
+                return Ok(0);
+            }
+            let to_delete = &all_trajectories[max_trajectories as usize..];
+            let count = to_delete.len();
+            for traj in to_delete {
+                self.delete_trajectory(&traj.id)?;
+            }
+            Ok(count)
+        })
+    }
+
+    pub fn cleanup(&self, config: &TrajectoryCleanupConfig) -> Result<usize> {
+        let mut total_deleted = 0;
+        if let Some(max_age_days) = config.max_age_days {
+            total_deleted += self.cleanup_old_trajectories_by_age(max_age_days)?;
+        }
+        if let Some(max_trajectories) = config.max_trajectories {
+            total_deleted += self.cleanup_old_trajectories_by_count(max_trajectories)?;
+        }
+        Ok(total_deleted)
     }
 
     pub fn get_session_trajectories(&self, session_id: &str) -> Result<Vec<Trajectory>> {
@@ -411,7 +492,7 @@ impl TrajectoryStorage {
             )
             .exec(self.db.as_ref())
             .await?;
-            let _ = self.index_skill_fts(skill);
+            let _ = self.index_skill_fts(skill).await;
             Ok(())
         })
     }
@@ -446,7 +527,7 @@ impl TrajectoryStorage {
             trajectory_skills::Entity::delete_by_id(id)
                 .exec(self.db.as_ref())
                 .await?;
-            let _ = self.delete_skill_fts(id);
+            let _ = self.delete_skill_fts(id).await;
             info!("Deleted skill {}", id);
             Ok(())
         })
@@ -728,7 +809,7 @@ impl TrajectoryStorage {
             }
             .insert(self.db.as_ref())
             .await?;
-            let _ = self.index_message_fts(msg);
+            let _ = self.index_message_fts(msg).await;
             Ok(())
         })
     }
@@ -924,8 +1005,8 @@ impl TrajectoryStorage {
                 .await?
             {
                 let mut am: trajectory_learned_patterns::ActiveModel = m.into_active_model();
-                am.success = Set(am.success.unwrap() + sd);
-                am.failure = Set(am.failure.unwrap() + fd);
+                am.success = Set(am.success.take().unwrap_or(0) + sd);
+                am.failure = Set(am.failure.take().unwrap_or(0) + fd);
                 am.last_used = Set(Utc::now().to_rfc3339());
                 am.update(self.db.as_ref()).await?;
             }
@@ -1096,27 +1177,28 @@ impl TrajectoryStorage {
     }
 
     // FTS delegates
-    pub fn create_fts_tables(&self) -> Result<()> {
-        self.fts_searcher
-            .as_ref()
-            .map(|f| f.create_fts_tables())
-            .unwrap_or(Ok(()))
-    }
-    pub fn search_fts(&self, query: FTS5Query) -> Result<Vec<FTS5Result>> {
+    pub async fn create_fts_tables(&self) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
-            fts.search(query)
-        } else {
-            Ok(Vec::new())
-        }
-    }
-    pub fn index_trajectory_fts(&self, t: &Trajectory) -> Result<()> {
-        if let Some(ref fts) = self.fts_searcher {
-            fts.index_trajectory(t, &t.session_id)
+            fts.create_fts_tables().await
         } else {
             Ok(())
         }
     }
-    pub fn index_skill_fts(&self, skill: &Skill) -> Result<()> {
+    pub async fn search_fts(&self, query: FTS5Query) -> Result<Vec<FTS5Result>> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.search(query).await
+        } else {
+            Ok(Vec::new())
+        }
+    }
+    pub async fn index_trajectory_fts(&self, t: &Trajectory) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.index_trajectory(t, &t.session_id).await
+        } else {
+            Ok(())
+        }
+    }
+    pub async fn index_skill_fts(&self, skill: &Skill) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
             fts.index_skill(
                 &skill.id,
@@ -1125,19 +1207,19 @@ impl TrajectoryStorage {
                 &skill.content,
                 &skill.category,
                 &skill.tags,
-            )
+            ).await
         } else {
             Ok(())
         }
     }
-    pub fn index_message_fts(&self, msg: &Message) -> Result<()> {
+    pub async fn index_message_fts(&self, msg: &Message) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
-            fts.index_message(msg)
+            fts.index_message(msg).await
         } else {
             Ok(())
         }
     }
-    pub fn index_memory_fts(
+    pub async fn index_memory_fts(
         &self,
         id: &str,
         mt: &str,
@@ -1145,37 +1227,38 @@ impl TrajectoryStorage {
         entities: &[String],
     ) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
-            fts.index_memory(id, mt, content, entities)
+            fts.index_memory(id, mt, content, entities).await
         } else {
             Ok(())
         }
     }
-    pub fn delete_memory_fts(&self, id: &str) -> Result<()> {
+    pub async fn delete_memory_fts(&self, id: &str) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
-            fts.delete_from_fts("trajectory_memories_fts", id)
+            fts.delete_from_fts("trajectory_memories_fts", id).await
         } else {
             Ok(())
         }
     }
-    pub fn delete_skill_fts(&self, id: &str) -> Result<()> {
+    pub async fn delete_skill_fts(&self, id: &str) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
-            fts.delete_from_fts("trajectory_skills_fts", id)
+            fts.delete_from_fts("trajectory_skills_fts", id).await
         } else {
             Ok(())
         }
     }
-    pub fn delete_trajectory_fts(&self, id: &str) -> Result<()> {
+    pub async fn delete_trajectory_fts(&self, id: &str) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
-            fts.delete_from_fts("trajectories_fts", id)
+            fts.delete_from_fts("trajectories_fts", id).await
         } else {
             Ok(())
         }
     }
-    pub fn optimize_fts(&self) -> Result<()> {
-        self.fts_searcher
-            .as_ref()
-            .map(|f| f.optimize())
-            .unwrap_or(Ok(()))
+    pub async fn optimize_fts(&self) -> Result<()> {
+        if let Some(ref fts) = self.fts_searcher {
+            fts.optimize().await
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -1353,11 +1436,13 @@ pub struct TrajectoryQueue {
     storage: Arc<TrajectoryStorage>,
     sender: Sender<Trajectory>,
     handle: tokio::task::JoinHandle<()>,
+    shutdown_tx: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
 impl TrajectoryQueue {
     pub fn new(storage: Arc<TrajectoryStorage>, buffer_size: usize) -> Self {
         let (tx, mut rx) = mpsc::channel::<Trajectory>(buffer_size);
+        let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel::<()>();
         let sc = storage.clone();
         let handle = tokio::spawn(async move {
             let mut batch: VecDeque<Trajectory> = VecDeque::with_capacity(32);
@@ -1366,6 +1451,7 @@ impl TrajectoryQueue {
                 tokio::select! {
                     Some(t) = rx.recv() => { batch.push_back(t); if batch.len() >= 32 { flush(&sc, &mut batch).await; } }
                     _ = fi.tick() => { if !batch.is_empty() { flush(&sc, &mut batch).await; } }
+                    _ = &mut shutdown_rx => { flush(&sc, &mut batch).await; break; }
                 }
             }
         });
@@ -1373,6 +1459,7 @@ impl TrajectoryQueue {
             storage,
             sender: tx,
             handle,
+            shutdown_tx: Some(shutdown_tx),
         }
     }
 
@@ -1391,8 +1478,11 @@ impl TrajectoryQueue {
     pub fn storage(&self) -> &Arc<TrajectoryStorage> {
         &self.storage
     }
-    pub fn shutdown(self) {
-        self.handle.abort();
+    pub async fn shutdown(self) {
+        if let Some(tx) = self.shutdown_tx {
+            let _ = tx.send(());
+        }
+        let _ = self.handle.await;
     }
 }
 
@@ -1400,6 +1490,75 @@ async fn flush(storage: &Arc<TrajectoryStorage>, batch: &mut VecDeque<Trajectory
     while let Some(t) = batch.pop_front() {
         if let Err(e) = storage.save_trajectory(&t) {
             tracing::warn!("[TrajectoryQueue] failed: {}", e);
+        }
+    }
+}
+
+// ── Trajectory Cleanup Task ──
+
+pub struct TrajectoryCleanupTask {
+    storage: Arc<TrajectoryStorage>,
+    config: TrajectoryCleanupConfig,
+    interval: std::time::Duration,
+    handle: Option<tokio::task::JoinHandle<()>>,
+    shutdown_tx: Option<tokio::sync::oneshot::Sender<()>>,
+}
+
+impl TrajectoryCleanupTask {
+    pub fn new(
+        storage: Arc<TrajectoryStorage>,
+        config: TrajectoryCleanupConfig,
+        interval: std::time::Duration,
+    ) -> Self {
+        Self {
+            storage,
+            config,
+            interval,
+            handle: None,
+            shutdown_tx: None,
+        }
+    }
+
+    pub fn start(&mut self) {
+        if self.handle.is_some() {
+            return;
+        }
+        let storage = self.storage.clone();
+        let config = self.config.clone();
+        let interval = self.interval;
+        let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+        let handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(interval);
+            loop {
+                tokio::select! {
+                    _ = interval.tick() => {
+                        match storage.cleanup(&config) {
+                            Ok(count) if count > 0 => {
+                                info!("Cleaned up {} old trajectories", count);
+                            }
+                            Ok(_) => {}
+                            Err(e) => {
+                                tracing::warn!("[TrajectoryCleanupTask] cleanup failed: {}", e);
+                            }
+                        }
+                    }
+                    _ = &mut shutdown_rx => {
+                        info!("Trajectory cleanup task shutting down");
+                        break;
+                    }
+                }
+            }
+        });
+        self.handle = Some(handle);
+        self.shutdown_tx = Some(shutdown_tx);
+    }
+
+    pub async fn shutdown(self) {
+        if let Some(tx) = self.shutdown_tx {
+            let _ = tx.send(());
+        }
+        if let Some(handle) = self.handle {
+            let _ = handle.await;
         }
     }
 }
@@ -1472,9 +1631,4 @@ pub struct TrajectoryStatistics {
     pub recent_trajectories: usize,
 }
 
-// SAFETY: TrajectoryStorage 包含 FTS5Search，其内部使用 std::sync::RwLock<Connection>
-// 保证所有对内部 Connection 的访问都经过 RwLock 的 read()/write() 方法同步访问，
-// 不存在数据竞争。Send 是安全的因为所有字段已实现 Send。
-// Sync 是安全的因为 FTS5Search 通过 RwLock 提供内部可变性的同步访问。
-unsafe impl Send for TrajectoryStorage {}
-unsafe impl Sync for TrajectoryStorage {}
+

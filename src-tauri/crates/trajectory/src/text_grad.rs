@@ -144,8 +144,8 @@ impl ComputationGraph {
 
         let mut queue: VecDeque<&str> = in_degree
             .iter()
-            .filter(|(_, &deg)| deg == 0)
-            .map(|(&id, _)| id)
+            .filter(|&(_, &deg)| deg == 0)
+            .map(|(id, _)| *id)
             .collect();
 
         let mut sorted = Vec::with_capacity(self.nodes.len());

@@ -26,6 +26,31 @@ use crate::sync_conflict::{
 };
 use crate::workspace_uri::WorkspaceUri;
 
+#[derive(Debug)]
+struct LocalFileInfo {
+    key: String,
+    size: i64,
+    content_hash: String,
+    modified_at: u64,
+}
+
+impl LocalFileInfo {}
+
+#[derive(Debug)]
+struct RemoteFileInfo {
+    key: String,
+    etag: Option<String>,
+    size: i64,
+    modified_at: Option<u64>,
+    exists: bool,
+}
+
+impl RemoteFileInfo {
+    fn is_newer_than(&self, local: &LocalFileInfo) -> bool {
+        self.modified_at.unwrap_or(0) > local.modified_at
+    }
+}
+
 /// Manager for cloud workspaces with conflict handling.
 pub struct CloudWorkspace {
     uri: WorkspaceUri,
@@ -365,7 +390,7 @@ impl CloudWorkspace {
         &self,
         local_files: &HashMap<String, LocalFileInfo>,
         remote_files: &HashMap<String, RemoteFileInfo>,
-        _remote_tombstones: &HashSet<String>,
+        remote_tombstones: &HashSet<String>,
     ) -> SyncDiff {
         let mut diff = SyncDiff::default();
         let strategy = self.sync_state.conflict_strategy;
@@ -466,9 +491,10 @@ impl CloudWorkspace {
                             (true, true) => {
                                 // Both changed - conflict!
                                 if let Some(remote_info) = remote_info {
+                                    let kind = ConflictKind::BothModified;
                                     diff.conflicts.push(ConflictEntry {
-                                        key: key.clone(),
-                                        kind: ConflictKind::BothModified,
+                                        key: local_info.key.clone(),
+                                        kind,
                                         local_size: local_info.size,
                                         remote_size: remote_info.size,
                                         local_hash: local_info.content_hash.clone(),
@@ -489,13 +515,51 @@ impl CloudWorkspace {
         // Check remote files that don't exist locally
         for (key, remote_info) in remote_files {
             if !local_files.contains_key(key) && !remote_info.exists {
-                // Remote file doesn't exist locally
-                let sync_entry = self.sync_state.get_entry(key);
+                let sync_entry = self.sync_state.get_entry(&remote_info.key);
                 if sync_entry.is_none() || sync_entry.map(|e| e.locally_deleted).unwrap_or(false) {
-                    continue; // Already handled
+                    continue;
                 }
-                // New remote file - download
-                diff.to_download.insert(key.clone());
+                diff.to_download.insert(remote_info.key.clone());
+            } else if let Some(local_info) = local_files.get(key) {
+                if remote_info.is_newer_than(local_info) && !self.sync_state.is_tombstoned(key) {
+                    tracing::debug!(
+                        "[CloudWorkspace] Remote file '{}' is newer than local",
+                        remote_info.key
+                    );
+                }
+            }
+        }
+
+        // Process remote tombstones - files deleted remotely that may still exist locally
+        for key in remote_tombstones {
+            if local_files.contains_key(key) && !self.sync_state.is_tombstoned(key) {
+                let sync_entry = self.sync_state.get_entry(key);
+                if let Some(entry) = sync_entry {
+                    let local_info = &local_files[key];
+                    let local_changed =
+                        entry.last_sync_local_hash.as_deref() != Some(&local_info.content_hash);
+                    if local_changed {
+                        // Locally modified vs remote deleted - conflict
+                        diff.conflicts.push(ConflictEntry {
+                            key: key.clone(),
+                            kind: ConflictKind::DeletedVsModified,
+                            local_size: local_info.size,
+                            remote_size: 0,
+                            local_hash: local_info.content_hash.clone(),
+                            remote_hash: String::new(),
+                            local_modified_at: local_info.modified_at,
+                            remote_modified_at: 0,
+                            is_resolved: false,
+                            resolution: None,
+                        });
+                    } else {
+                        // Local unchanged - safe to delete locally
+                        diff.remote_deletions.insert(key.clone());
+                    }
+                } else {
+                    // Not tracked but tombstoned remotely - delete locally
+                    diff.remote_deletions.insert(key.clone());
+                }
             }
         }
 
@@ -914,25 +978,6 @@ impl ConflictEntry {
         self.is_resolved = true;
         self.resolution = Some(resolution);
     }
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-struct LocalFileInfo {
-    key: String,
-    size: i64,
-    content_hash: String,
-    modified_at: u64,
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-struct RemoteFileInfo {
-    key: String,
-    etag: Option<String>,
-    size: i64,
-    modified_at: Option<u64>,
-    exists: bool,
 }
 
 fn current_epoch_ms() -> u64 {

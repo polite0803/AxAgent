@@ -63,25 +63,21 @@ pub fn sha256_hash(input: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-pub fn key_prefix(key: &str) -> String {
-    if key.len() > 8 {
-        format!("{}****", &key[..4])
-    } else {
-        "****".to_string()
-    }
+pub fn key_prefix(_key: &str) -> String {
+    "****".to_string()
 }
 
 const BACKUP_KEY_DERIVATION_SALT: &[u8] = b"axagent-backup-key-derivation-v1";
 
-pub fn encrypt_backup_key(key_data: &[u8]) -> Vec<u8> {
+pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
     let mut derived_key = [0u8; 32];
     let mut hasher = Sha256::new();
     hasher.update(BACKUP_KEY_DERIVATION_SALT);
-    hasher.update(key_data);
     hasher.update(b"axagent-backup-encryption");
     derived_key.copy_from_slice(&hasher.finalize());
 
-    let cipher = Aes256Gcm::new_from_slice(&derived_key).expect("Failed to create backup cipher");
+    let cipher = Aes256Gcm::new_from_slice(&derived_key)
+        .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
 
     let mut nonce_bytes = [0u8; NONCE_SIZE];
     OsRng.fill_bytes(&mut nonce_bytes);
@@ -89,12 +85,12 @@ pub fn encrypt_backup_key(key_data: &[u8]) -> Vec<u8> {
 
     let ciphertext = cipher
         .encrypt(nonce, key_data)
-        .expect("Backup key encryption failed");
+        .map_err(|e| AxAgentError::Crypto(format!("Backup key encryption failed: {}", e)))?;
 
     let mut combined = Vec::with_capacity(NONCE_SIZE + ciphertext.len());
     combined.extend_from_slice(&nonce_bytes);
     combined.extend_from_slice(&ciphertext);
-    combined
+    Ok(combined)
 }
 
 pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {

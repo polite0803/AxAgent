@@ -1,11 +1,8 @@
-//! Plugin Agent 提供者 — 插件可以注册自定义 agent 定义
-
 use std::collections::HashMap;
 use std::sync::RwLock;
 
 use crate::PluginAgentDefInternal;
 
-/// Agent 定义（简化的，避免循环依赖）
 #[derive(Debug, Clone)]
 pub struct PluginAgentDef {
     pub agent_type: String,
@@ -17,7 +14,6 @@ pub struct PluginAgentDef {
     pub system_prompt: Option<String>,
 }
 
-/// Plugin Agent 注册表
 pub struct PluginAgentRegistry {
     agents: RwLock<HashMap<String, PluginAgentDef>>,
 }
@@ -29,22 +25,46 @@ impl PluginAgentRegistry {
         }
     }
 
-    /// 插件注册一个 agent
     pub fn register(&self, def: PluginAgentDef) {
-        self.agents
-            .write()
-            .unwrap()
-            .insert(def.agent_type.clone(), def);
+        match self.agents.write() {
+            Ok(mut guard) => {
+                guard.insert(def.agent_type.clone(), def);
+            },
+            Err(e) => {
+                tracing::error!(
+                    "PluginAgentRegistry: lock poisoned during register, recovering: {}",
+                    e
+                );
+                let mut guard = e.into_inner();
+                guard.insert(def.agent_type.clone(), def);
+            },
+        }
     }
 
-    /// 插件注销一个 agent
     pub fn unregister(&self, agent_type: &str) {
-        self.agents.write().unwrap().remove(agent_type);
+        match self.agents.write() {
+            Ok(mut guard) => {
+                guard.remove(agent_type);
+            },
+            Err(e) => {
+                tracing::error!(
+                    "PluginAgentRegistry: lock poisoned during unregister, recovering: {}",
+                    e
+                );
+                let mut guard = e.into_inner();
+                guard.remove(agent_type);
+            },
+        }
     }
 
-    /// 获取所有已注册的插件 agent
     pub fn all(&self) -> Vec<PluginAgentDef> {
-        self.agents.read().unwrap().values().cloned().collect()
+        match self.agents.read() {
+            Ok(guard) => guard.values().cloned().collect(),
+            Err(e) => {
+                tracing::error!("PluginAgentRegistry: lock poisoned during all, recovering: {}", e);
+                e.into_inner().values().cloned().collect()
+            },
+        }
     }
 }
 
@@ -54,16 +74,13 @@ impl Default for PluginAgentRegistry {
     }
 }
 
-/// 全局单例
 static GLOBAL_PLUGIN_AGENTS: std::sync::LazyLock<PluginAgentRegistry> =
     std::sync::LazyLock::new(PluginAgentRegistry::default);
 
-/// 获取全局 Plugin Agent 注册表
 pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
     &GLOBAL_PLUGIN_AGENTS
 }
 
-/// 从插件清单注册 agents
 pub fn register_plugin_agents(plugin_id: &str, agents: &[PluginAgentDefInternal]) {
     let registry = global_plugin_agents();
     for agent in agents {
@@ -79,7 +96,6 @@ pub fn register_plugin_agents(plugin_id: &str, agents: &[PluginAgentDefInternal]
     }
 }
 
-/// 从插件注销所有 agents
 pub fn unregister_plugin_agents(plugin_id: &str) {
     let registry = global_plugin_agents();
     let prefix = format!("{}/", plugin_id);

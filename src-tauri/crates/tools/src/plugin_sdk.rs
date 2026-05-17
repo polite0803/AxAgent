@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginManifest {
@@ -14,6 +16,14 @@ pub struct PluginManifest {
     pub permissions: Vec<PluginPermission>,
     pub tools: Vec<PluginToolDef>,
     pub min_app_version: Option<String>,
+    #[serde(default)]
+    pub dependencies: Vec<PluginDependency>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginDependency {
+    pub plugin_id: String,
+    pub min_version: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,7 +36,7 @@ pub enum PluginCategory {
     Custom(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PluginPermission {
     FileSystemRead,
     FileSystemWrite,
@@ -34,6 +44,19 @@ pub enum PluginPermission {
     SubprocessExecution,
     ClipboardAccess,
     NotificationAccess,
+}
+
+impl PluginPermission {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::FileSystemRead => "file_system_read",
+            Self::FileSystemWrite => "file_system_write",
+            Self::NetworkAccess => "network_access",
+            Self::SubprocessExecution => "subprocess_execution",
+            Self::ClipboardAccess => "clipboard_access",
+            Self::NotificationAccess => "notification_access",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,6 +115,7 @@ impl PluginBuilder {
                 permissions: Vec::new(),
                 tools: Vec::new(),
                 min_app_version: None,
+                dependencies: Vec::new(),
             },
         }
     }
@@ -126,6 +150,14 @@ impl PluginBuilder {
         self
     }
 
+    pub fn dependency(mut self, plugin_id: &str, min_version: Option<&str>) -> Self {
+        self.manifest.dependencies.push(PluginDependency {
+            plugin_id: plugin_id.to_string(),
+            min_version: min_version.map(|v| v.to_string()),
+        });
+        self
+    }
+
     pub fn build(self) -> PluginManifest {
         self.manifest
     }
@@ -151,6 +183,157 @@ impl PluginToolDef {
     }
 }
 
+struct SdkPluginEntry {
+    plugin: Arc<RwLock<Box<dyn AxAgentPlugin>>>,
+    initialized: bool,
+}
+
+pub struct SdkPluginRegistry {
+    plugins: RwLock<HashMap<String, SdkPluginEntry>>,
+}
+
+impl SdkPluginRegistry {
+    pub fn new() -> Self {
+        Self {
+            plugins: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub async fn register(&self, plugin: Box<dyn AxAgentPlugin>) -> Result<(), String> {
+        let id = plugin.manifest().id.clone();
+        let mut plugins = self.plugins.write().await;
+        if plugins.contains_key(&id) {
+            return Err(format!("SDK plugin '{}' already registered", id));
+        }
+        plugins.insert(
+            id,
+            SdkPluginEntry {
+                plugin: Arc::new(RwLock::new(plugin)),
+                initialized: false,
+            },
+        );
+        Ok(())
+    }
+
+    pub async fn unregister(&self, plugin_id: &str) -> Result<(), String> {
+        let mut plugins = self.plugins.write().await;
+        if let Some(entry) = plugins.remove(plugin_id) {
+            let mut plugin = entry.plugin.write().await;
+            plugin.shutdown().await.ok();
+            Ok(())
+        } else {
+            Err(format!("SDK plugin '{}' not found", plugin_id))
+        }
+    }
+
+    pub async fn initialize(&self, plugin_id: &str, ctx: &PluginContext) -> Result<(), String> {
+        let plugins = self.plugins.read().await;
+        let entry = plugins
+            .get(plugin_id)
+            .ok_or_else(|| format!("SDK plugin '{}' not found", plugin_id))?;
+        if entry.initialized {
+            return Ok(());
+        }
+        drop(plugins);
+
+        let mut plugins = self.plugins.write().await;
+        let entry = plugins
+            .get_mut(plugin_id)
+            .ok_or_else(|| format!("SDK plugin '{}' not found", plugin_id))?;
+        let mut plugin = entry.plugin.write().await;
+        plugin.initialize(ctx).await?;
+        entry.initialized = true;
+        Ok(())
+    }
+
+    pub async fn execute_tool(
+        &self,
+        plugin_id: &str,
+        tool_name: &str,
+        input: &serde_json::Value,
+        ctx: &PluginContext,
+    ) -> Result<PluginToolResult, String> {
+        let plugins = self.plugins.read().await;
+        let entry = plugins
+            .get(plugin_id)
+            .ok_or_else(|| format!("SDK plugin '{}' not found", plugin_id))?;
+        if !entry.initialized {
+            return Err(format!("SDK plugin '{}' is not initialized", plugin_id));
+        }
+        let plugin = entry.plugin.read().await;
+        plugin.execute_tool(tool_name, input, ctx).await
+    }
+
+    pub async fn list_plugins(&self) -> Vec<PluginManifest> {
+        let plugins = self.plugins.read().await;
+        let mut result = Vec::new();
+        for entry in plugins.values() {
+            let plugin = entry.plugin.read().await;
+            result.push(plugin.manifest().clone());
+        }
+        result
+    }
+
+    pub async fn contains(&self, plugin_id: &str) -> bool {
+        self.plugins.read().await.contains_key(plugin_id)
+    }
+
+    pub async fn check_permissions(
+        &self,
+        plugin_id: &str,
+        required: &[PluginPermission],
+    ) -> Result<(), String> {
+        let plugins = self.plugins.read().await;
+        let entry = plugins
+            .get(plugin_id)
+            .ok_or_else(|| format!("SDK plugin '{}' not found", plugin_id))?;
+        let plugin = entry.plugin.read().await;
+        let declared = &plugin.manifest().permissions;
+        for perm in required {
+            if !declared.contains(perm) {
+                return Err(format!(
+                    "SDK plugin '{}' lacks required permission: {}",
+                    plugin_id,
+                    perm.as_str()
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Default for SdkPluginRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+static GLOBAL_SDK_PLUGINS: std::sync::LazyLock<SdkPluginRegistry> =
+    std::sync::LazyLock::new(SdkPluginRegistry::default);
+
+pub fn global_sdk_plugins() -> &'static SdkPluginRegistry {
+    &GLOBAL_SDK_PLUGINS
+}
+
+pub async fn register_sdk_plugin(plugin: Box<dyn AxAgentPlugin>) -> Result<(), String> {
+    global_sdk_plugins().register(plugin).await
+}
+
+pub async fn unregister_sdk_plugin(plugin_id: &str) -> Result<(), String> {
+    global_sdk_plugins().unregister(plugin_id).await
+}
+
+pub async fn execute_sdk_plugin_tool(
+    plugin_id: &str,
+    tool_name: &str,
+    input: &serde_json::Value,
+    ctx: &PluginContext,
+) -> Result<PluginToolResult, String> {
+    global_sdk_plugins()
+        .execute_tool(plugin_id, tool_name, input, ctx)
+        .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,11 +347,13 @@ mod tests {
             .permission(PluginPermission::FileSystemRead)
             .tool(PluginToolDef::simple("my_tool", "Does something"))
             .min_version("1.4.0")
+            .dependency("other-plugin", Some("2.0.0"))
             .build();
 
         assert_eq!(manifest.id, "my-plugin");
         assert_eq!(manifest.permissions.len(), 1);
         assert_eq!(manifest.tools.len(), 1);
+        assert_eq!(manifest.dependencies.len(), 1);
     }
 
     #[test]

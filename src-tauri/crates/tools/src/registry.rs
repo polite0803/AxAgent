@@ -18,6 +18,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+pub type SkillToolHandler = Box<dyn FnMut(&str) -> Result<String, crate::ToolError> + Send>;
+
 /// 工具组摘要信息（替代 agent::LocalToolGroup）
 #[derive(Debug, Clone)]
 pub struct ToolGroupInfo {
@@ -240,9 +242,7 @@ pub fn tools_to_openai_format(tools: &[ToolInfo]) -> serde_json::Value {
 // 统一 ToolRegistry（含 MCP + 缓存 + 审计 + 统计）
 // ============================================================
 
-#[allow(dead_code)]
 const CACHE_TTL_SECS: u64 = 300;
-#[allow(dead_code)]
 const CACHE_MAX_ENTRIES: usize = 200;
 
 #[derive(Debug, Clone)]
@@ -305,7 +305,6 @@ pub struct UnifiedToolRegistry {
     /// 工具调用审计器
     pub auditor: Arc<ToolAuditor>,
     /// 结果缓存（待集成）
-    #[allow(dead_code)]
     result_cache: HashMap<(String, u64), (String, Instant)>,
     /// 权限控制
     allowed_tools: HashSet<String>,
@@ -713,12 +712,7 @@ impl UnifiedToolRegistry {
             .collect()
     }
 
-    #[allow(clippy::type_complexity)]
-    pub fn register_skill_tool(
-        self,
-        _name: impl Into<String>,
-        _handler: Box<dyn FnMut(&str) -> Result<String, crate::ToolError> + Send>,
-    ) -> Self {
+    pub fn register_skill_tool(self, _name: impl Into<String>, _handler: SkillToolHandler) -> Self {
         self
     }
 
@@ -809,7 +803,21 @@ impl UnifiedToolRegistry {
 
         let start = Instant::now();
 
-        // 实际执行
+        self.result_cache
+            .retain(|_, (_, inserted)| inserted.elapsed().as_secs() < CACHE_TTL_SECS);
+        if self.result_cache.len() > CACHE_MAX_ENTRIES {
+            let mut entries: Vec<_> = self.result_cache.iter().collect();
+            entries.sort_by_key(|(_, (_, t))| *t);
+            let keys_to_remove: Vec<_> = entries
+                .into_iter()
+                .take(self.result_cache.len() - CACHE_MAX_ENTRIES)
+                .map(|(k, _)| k.clone())
+                .collect();
+            for k in keys_to_remove {
+                self.result_cache.remove(&k);
+            }
+        }
+
         let result = {
             // 1. 尝试新体系工具
             if let Some(tool) = self.tools.find(tool_name) {

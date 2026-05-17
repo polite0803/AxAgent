@@ -54,6 +54,7 @@ fn model_from_entity(m: models::Model) -> Model {
         model_type: m.model_type.parse().unwrap_or_default(),
         capabilities: serde_json::from_str(&m.capabilities).unwrap_or_default(),
         max_tokens: m.max_tokens.map(|v| v as u32),
+        max_output_tokens: None,
         enabled: m.enabled != 0,
         param_overrides: m
             .param_overrides
@@ -565,6 +566,7 @@ pub async fn list_providers_merged(db: &DatabaseConnection) -> Result<Vec<Provid
                         model_type: ModelType::detect(model_id),
                         capabilities: caps.clone(),
                         max_tokens: *max_tokens,
+                        max_output_tokens: None,
                         enabled: true,
                         param_overrides: None,
                         input_price_per_mtok: None,
@@ -653,6 +655,7 @@ pub async fn ensure_builtin_provider(db: &DatabaseConnection, builtin_id: &str) 
             model_type: ModelType::detect(model_id),
             capabilities: caps.clone(),
             max_tokens: *max_tokens,
+            max_output_tokens: None,
             enabled: true,
             param_overrides: None,
             input_price_per_mtok: None,

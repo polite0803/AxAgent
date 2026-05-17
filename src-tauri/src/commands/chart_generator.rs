@@ -13,6 +13,7 @@ pub struct ChartGenResult {
     pub title: String,
 }
 
+#[allow(clippy::too_many_arguments)]
 #[command]
 pub async fn generate_chart_config(
     description: String,

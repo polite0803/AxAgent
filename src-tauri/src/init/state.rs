@@ -8,6 +8,7 @@ use super::database::DatabaseInitResult;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::AppState;
+use crate::app_state::{SemanticCacheState, TotSession, PlannerSession};
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use tokio_util::sync::CancellationToken;
@@ -86,9 +87,11 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
         let db_file_path = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
-        let storage = axagent_trajectory::TrajectoryStorage::with_fts_path(
-            Arc::new(sea_db.clone()),
-            db_file_path,
+        let storage = rt.block_on(
+            axagent_trajectory::TrajectoryStorage::with_fts_path(
+                Arc::new(sea_db.clone()),
+                db_file_path,
+            )
         )
         .unwrap_or_else(|e| {
             tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
@@ -332,8 +335,13 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                     }
                 },
             };
-            Arc::new(tokio::sync::Mutex::new(cache))
+            Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
+                cache,
+                enabled: true,
+            }))
         },
+        tot_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+        planner_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
         dream_consolidator: Arc::new(
             axagent_trajectory::DreamConsolidator::new().with_data_provider(Arc::new(

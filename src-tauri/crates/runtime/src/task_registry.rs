@@ -1,4 +1,3 @@
-#![allow(clippy::must_use_candidate, clippy::unnecessary_map_or)]
 //! In-memory task registry for sub-agent task lifecycle management.
 
 use std::collections::HashMap;
@@ -124,7 +123,7 @@ impl TaskRegistry {
         inner
             .tasks
             .values()
-            .filter(|t| status_filter.map_or(true, |s| t.status == s))
+            .filter(|t| status_filter.is_none_or(|s| t.status == s))
             .cloned()
             .collect()
     }

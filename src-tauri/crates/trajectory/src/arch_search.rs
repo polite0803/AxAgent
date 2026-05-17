@@ -494,7 +494,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         mutant.generation = self.generation;
         mutant.fitness = 0.0;
 
-        let mutation_type: f64 = rng.gen();
+        let mutation_type: f64 = rng.r#gen();
 
         if mutation_type < 0.33 && mutant.nodes.len() < self.config.max_nodes {
             let node_type_idx = rng.gen_range(0..self.search_space.allowed_node_types.len());
@@ -657,7 +657,7 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         let mut rng = rand::thread_rng();
 
         while new_pop.len() < self.config.population_size {
-            let r: f64 = rng.gen();
+            let r: f64 = rng.r#gen();
 
             if r < self.config.crossover_rate {
                 let p1 = self.tournament_select(3);

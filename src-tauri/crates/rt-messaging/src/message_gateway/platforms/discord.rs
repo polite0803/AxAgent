@@ -241,7 +241,7 @@ async fn handle_dispatch(
     match event_type {
         "MESSAGE_CREATE" => {
             let channel_id = data["channel_id"].as_str().unwrap_or("").to_string();
-            if let Some(ref channels) = allowed_channels {
+            if let Some(channels) = allowed_channels {
                 if !channels.contains(&channel_id) {
                     return;
                 }

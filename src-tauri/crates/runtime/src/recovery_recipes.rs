@@ -1,4 +1,3 @@
-#![allow(clippy::cast_possible_truncation, clippy::uninlined_format_args)]
 //! Recovery recipes for common failure scenarios.
 //!
 //! Encodes known automatic recoveries for the six failure scenarios

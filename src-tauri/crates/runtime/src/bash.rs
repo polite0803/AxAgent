@@ -172,8 +172,11 @@ fn sandbox_status_for_input(input: &BashCommandInput, cwd: &std::path::Path) -> 
         |_| SandboxConfig::default(),
         |runtime_config| runtime_config.sandbox().clone(),
     );
+    let sandbox_enabled = input.dangerously_disable_sandbox
+        .and_then(|disabled| if disabled { None } else { Some(true) })
+        .unwrap_or(true);
     let request = config.resolve_request(
-        input.dangerously_disable_sandbox.map(|disabled| !disabled),
+        Some(sandbox_enabled),
         input.namespace_restrictions,
         input.isolate_network,
         input.filesystem_mode,

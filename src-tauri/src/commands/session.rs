@@ -4,7 +4,6 @@ use crate::commands::conversations_search::{
 use crate::AppState;
 use tauri::State;
 
-#[tauri::command]
 pub async fn session_search(
     state: State<'_, AppState>,
     query: String,

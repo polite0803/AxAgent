@@ -138,6 +138,7 @@ pub async fn list_messages_page(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_message(
     db: &DatabaseConnection,
     conversation_id: &str,
@@ -160,6 +161,7 @@ pub async fn create_message(
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_message_with_parts(
     db: &DatabaseConnection,
     conversation_id: &str,
@@ -323,7 +325,6 @@ pub async fn update_message_parts(
 /// # Returns
 ///
 /// Returns `Ok(())` on success, or error if message not found.
-#[allow(clippy::unnecessary_to_owned)]
 pub async fn append_message_content(
     db: &DatabaseConnection,
     id: &str,
@@ -333,7 +334,7 @@ pub async fn append_message_content(
 
     db.execute_raw(Statement::from_sql_and_values(
         sea_orm::DatabaseBackend::Sqlite,
-        query.to_owned(),
+        query,
         vec![append_content.into(), id.into()],
     ))
     .await?;
@@ -558,6 +559,7 @@ pub async fn create_tool_result_message(
 }
 
 /// Create an assistant message that contains tool_calls (intermediate message in tool loop).
+#[allow(clippy::too_many_arguments)]
 pub async fn create_assistant_tool_call_message(
     db: &DatabaseConnection,
     conversation_id: &str,

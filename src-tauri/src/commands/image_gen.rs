@@ -3,6 +3,7 @@ use axagent_providers::image_gen::{
 };
 use tauri::command;
 
+#[allow(clippy::too_many_arguments)]
 #[command]
 pub async fn generate_image(
     prompt: String,

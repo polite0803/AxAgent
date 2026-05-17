@@ -139,7 +139,7 @@ impl TaskDecomposer {
                 .and_then(|v| v.as_str())
                 .unwrap_or("query");
 
-            let task_type = TaskType::from_str(type_str).unwrap_or(TaskType::Query);
+            let task_type = type_str.parse::<TaskType>().unwrap_or(TaskType::Query);
 
             let dependencies = task_val
                 .get("dependencies")

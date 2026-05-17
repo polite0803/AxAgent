@@ -34,6 +34,7 @@ impl GeminiAdapter {
             .unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
     }
 
+    #[allow(clippy::result_large_err)]
     fn get_client(&self, ctx: &ProviderRequestContext) -> Result<reqwest::Client> {
         match &ctx.proxy_config {
             Some(c) if c.proxy_type.as_deref() != Some("none") => build_http_client(Some(c)),
@@ -149,12 +150,10 @@ struct GeminiModelsResponse {
 struct GeminiModel {
     name: String,
     display_name: Option<String>,
-    #[allow(dead_code)]
     supported_generation_methods: Option<Vec<String>>,
     #[serde(rename = "inputTokenLimit")]
     input_token_limit: Option<u32>,
     #[serde(rename = "outputTokenLimit")]
-    #[allow(dead_code)]
     output_token_limit: Option<u32>,
 }
 
@@ -413,11 +412,15 @@ fn usage_from_meta(meta: Option<GeminiUsageMetadata>) -> TokenUsage {
         prompt_tokens: u.prompt_token_count.unwrap_or(0),
         completion_tokens: u.candidates_token_count.unwrap_or(0),
         total_tokens: u.total_token_count.unwrap_or(0),
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     })
     .unwrap_or(TokenUsage {
         prompt_tokens: 0,
         completion_tokens: 0,
         total_tokens: 0,
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     })
 }
 
@@ -497,7 +500,10 @@ impl ProviderAdapter for GeminiAdapter {
         let resp = crate::apply_request_headers(self.get_client(ctx)?.post(&url).json(&body), ctx)
             .send()
             .await
-            .map_err(|e| AxAgentError::Provider(format!("Request failed: {e}")))?;
+            .map_err(|e| {
+                let redacted_url = crate::redact_api_key_from_url(&url);
+                AxAgentError::Provider(format!("Request to {} failed: {}", redacted_url, e))
+            })?;
 
         if !resp.status().is_success() {
             let s = resp.status();
@@ -578,6 +584,7 @@ impl ProviderAdapter for GeminiAdapter {
             "{}/models/{}:streamGenerateContent?alt=sse&key={}",
             base_url, request.model, api_key
         );
+        let redacted_url = crate::redact_api_key_from_url(&url);
 
         let (system_instruction, contents) = convert_messages(&request.messages);
         let body = GeminiRequest {
@@ -607,8 +614,11 @@ impl ProviderAdapter for GeminiAdapter {
                     return;
                 },
                 Err(e) => {
-                    let _ =
-                        tx.try_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
+                    let _ = tx.try_send(Err(AxAgentError::Provider(format!(
+                        "Request to {} failed: {}",
+                        redacted_url,
+                        super::diagnose_reqwest_error(&e)
+                    ))));
                     return;
                 },
             };
@@ -695,6 +705,8 @@ impl ProviderAdapter for GeminiAdapter {
                                         prompt_tokens: u.prompt_token_count.unwrap_or(0),
                                         completion_tokens: u.candidates_token_count.unwrap_or(0),
                                         total_tokens: u.total_token_count.unwrap_or(0),
+                                        cache_creation_tokens: None,
+                                        cache_read_tokens: None,
                                     });
 
                                     let _ = tx.try_send(Ok(ChatStreamChunk {
@@ -744,7 +756,10 @@ impl ProviderAdapter for GeminiAdapter {
         let resp = crate::apply_request_headers(self.get_client(ctx)?.get(&url), ctx)
             .send()
             .await
-            .map_err(|e| AxAgentError::Provider(format!("Request failed: {e}")))?;
+            .map_err(|e| {
+                let redacted_url = crate::redact_api_key_from_url(&url);
+                AxAgentError::Provider(format!("Request to {} failed: {}", redacted_url, e))
+            })?;
 
         if !resp.status().is_success() {
             let s = resp.status();
@@ -761,6 +776,15 @@ impl ProviderAdapter for GeminiAdapter {
             .models
             .unwrap_or_default()
             .into_iter()
+            .filter(|m| {
+                m.supported_generation_methods
+                    .as_ref()
+                    .is_none_or(|methods| {
+                        methods
+                            .iter()
+                            .any(|m| m == "generateContent" || m == "generateAnswer")
+                    })
+            })
             .map(|m| {
                 let model_id = m
                     .name
@@ -785,6 +809,7 @@ impl ProviderAdapter for GeminiAdapter {
                     model_type,
                     capabilities: caps,
                     max_tokens: m.input_token_limit,
+                    max_output_tokens: m.output_token_limit,
                     enabled: true,
                     param_overrides: None,
                     input_price_per_mtok: None,
@@ -823,7 +848,10 @@ impl ProviderAdapter for GeminiAdapter {
         let resp = crate::apply_request_headers(self.get_client(ctx)?.post(&url).json(&body), ctx)
             .send()
             .await
-            .map_err(|e| AxAgentError::Provider(format!("Gemini embed request failed: {e}")))?;
+            .map_err(|e| {
+                let redacted_url = crate::redact_api_key_from_url(&url);
+                AxAgentError::Provider(format!("Gemini embed request to {} failed: {}", redacted_url, e))
+            })?;
 
         if !resp.status().is_success() {
             let s = resp.status();

@@ -85,11 +85,17 @@ export async function initStoreRegistry(): Promise<void> {
         return key ? state[key] : state;
       },
       set: (payload?: unknown) => {
+        if (payload !== undefined && (typeof payload !== "object" || payload === null || Array.isArray(payload))) {
+          console.warn(`[storeRegistry] set() expected a plain object, received: ${typeof payload}`);
+          return;
+        }
         store.setState(payload as Parameters<typeof store.setState>[0]);
       },
       update: (payload?: unknown) => {
-        if (payload && typeof payload === "object") {
+        if (payload && typeof payload === "object" && !Array.isArray(payload)) {
           store.setState(payload as Parameters<typeof store.setState>[0]);
+        } else if (payload !== undefined) {
+          console.warn(`[storeRegistry] update() expected a plain object, received: ${typeof payload}`);
         }
       },
     });

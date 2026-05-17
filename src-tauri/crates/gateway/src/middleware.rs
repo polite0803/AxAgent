@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
 
 use axum::{
     body::Body,
+    extract::ConnectInfo,
     http::{Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
@@ -12,12 +14,14 @@ use tokio::sync::Mutex;
 
 const RATE_LIMIT_CAPACITY: u64 = 60;
 const RATE_LIMIT_REFILL_PER_SEC: u64 = 1;
+const MAX_ENTRIES: usize = 10_000;
 
 struct TokenBucket {
     tokens: u64,
     max_tokens: u64,
     refill_rate: u64,
     last_refill: Instant,
+    last_access: Instant,
 }
 
 impl TokenBucket {
@@ -27,11 +31,13 @@ impl TokenBucket {
             max_tokens,
             refill_rate,
             last_refill: Instant::now(),
+            last_access: Instant::now(),
         }
     }
 
     fn try_consume(&mut self) -> bool {
         self.refill();
+        self.last_access = Instant::now();
         if self.tokens > 0 {
             self.tokens -= 1;
             true
@@ -55,6 +61,12 @@ pub struct RateLimiter {
     buckets: Arc<Mutex<HashMap<String, TokenBucket>>>,
 }
 
+impl Default for RateLimiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RateLimiter {
     pub fn new() -> Self {
         Self {
@@ -64,6 +76,21 @@ impl RateLimiter {
 
     pub async fn allow(&self, key: &str) -> bool {
         let mut buckets = self.buckets.lock().await;
+
+        if let Some(bucket) = buckets.get_mut(key) {
+            return bucket.try_consume();
+        }
+
+        if buckets.len() >= MAX_ENTRIES {
+            if let Some(oldest_key) = buckets
+                .iter()
+                .min_by_key(|(_, b)| b.last_access)
+                .map(|(k, _)| k.clone())
+            {
+                buckets.remove(&oldest_key);
+            }
+        }
+
         let bucket = buckets
             .entry(key.to_string())
             .or_insert_with(|| TokenBucket::new(RATE_LIMIT_CAPACITY, RATE_LIMIT_REFILL_PER_SEC));
@@ -78,13 +105,19 @@ fn global_limiter() -> &'static RateLimiter {
 }
 
 pub async fn rate_limit_middleware(request: Request<Body>, next: Next) -> Response {
-    let key = request
-        .headers()
-        .get("x-forwarded-for")
-        .or_else(|| request.headers().get("x-real-ip"))
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("unknown")
-        .to_string();
+    let key = if let Some(ci) = request.extensions().get::<ConnectInfo<SocketAddr>>() {
+        ci.0.ip().to_string()
+    } else {
+        // NOTE: In production behind a reverse proxy, x-forwarded-for and x-real-ip
+        // headers should be validated against trusted proxy IPs to prevent IP spoofing.
+        request
+            .headers()
+            .get("x-forwarded-for")
+            .or_else(|| request.headers().get("x-real-ip"))
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("unknown")
+            .to_string()
+    };
 
     let limiter = global_limiter();
 

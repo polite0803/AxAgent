@@ -90,9 +90,7 @@ pub struct UserProfileUpdates {
     pub coding_style: Option<CodingStylePreferences>,
     pub communication: Option<CommunicationPreferences>,
     pub work_habits: Option<WorkHabitPreferences>,
-    #[allow(dead_code)]
     pub domain_knowledge: Option<DomainKnowledgeProfile>,
-    #[allow(dead_code)]
     pub learning_state: Option<LearningStateProfile>,
 }
 
@@ -191,6 +189,26 @@ pub async fn update_user_profile(
             .set_preference("break_frequency".to_string(), work_habits.break_frequency.to_string());
     }
 
+    if let Some(ref domain_knowledge) = updates.domain_knowledge {
+        for area in &domain_knowledge.expertise_areas {
+            profile.set_preference("expertise_area".to_string(), serde_json::to_string(&area).unwrap_or_default());
+        }
+        for topic in &domain_knowledge.interest_topics {
+            profile.set_preference("interest_topic".to_string(), topic.clone());
+        }
+    }
+
+    if let Some(ref learning_state) = updates.learning_state {
+        profile.set_preference(
+            "total_interactions".to_string(),
+            learning_state.total_interactions.to_string(),
+        );
+        profile.set_preference(
+            "stability_score".to_string(),
+            learning_state.stability_score.to_string(),
+        );
+    }
+
     drop(profile);
     let profile = app_state.user_profile.read().await;
     Ok(profile_to_response(&profile))
@@ -273,7 +291,6 @@ pub struct LearnedPatternResponse {
 pub struct CodeSampleInput {
     pub code: String,
     pub language: String,
-    #[allow(dead_code)]
     pub timestamp: String,
 }
 
@@ -281,7 +298,6 @@ pub struct CodeSampleInput {
 pub struct MessageSampleInput {
     pub content: String,
     pub role: String,
-    #[allow(dead_code)]
     pub timestamp: String,
 }
 
@@ -410,6 +426,10 @@ pub async fn style_learn_code(
             format!("code_sample_{}", sample.language),
             sample.code.chars().take(100).collect(),
         );
+        profile.set_preference(
+            format!("code_sample_ts_{}", sample.language),
+            sample.timestamp.chars().take(30).collect(),
+        );
     }
 
     Ok(default_style_profile())
@@ -429,6 +449,10 @@ pub async fn style_learn_messages(
         profile.set_preference(
             format!("message_{}", msg.role),
             msg.content.chars().take(100).collect(),
+        );
+        profile.set_preference(
+            format!("message_ts_{}", msg.role),
+            msg.timestamp.chars().take(30).collect(),
         );
     }
 

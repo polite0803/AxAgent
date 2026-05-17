@@ -98,7 +98,11 @@ impl HybridSearcher {
             .take(options.top_k)
             .collect();
 
-        filtered.sort_by(|a, b| b.combined_score.partial_cmp(&a.combined_score).unwrap());
+        filtered.sort_by(|a, b| {
+            b.combined_score
+                .partial_cmp(&a.combined_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Ok(filtered)
     }

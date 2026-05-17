@@ -194,7 +194,11 @@ impl LinkGraph {
             .filter(|(_, s)| s.total_score() > 0.0)
             .collect();
 
-        scored.sort_by(|a, b| b.1.total_score().partial_cmp(&a.1.total_score()).unwrap());
+        scored.sort_by(|a, b| {
+            b.1.total_score()
+                .partial_cmp(&a.1.total_score())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         scored.truncate(k);
         scored
     }
@@ -235,7 +239,11 @@ impl LinkGraph {
             current = next;
         }
 
-        results.sort_by(|a, b| b.1.total_score().partial_cmp(&a.1.total_score()).unwrap());
+        results.sort_by(|a, b| {
+            b.1.total_score()
+                .partial_cmp(&a.1.total_score())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(top_k);
         results
     }

@@ -5,7 +5,6 @@
 
 use axagent_core::error::AxAgentError;
 
-/// 知识库搜索命中条目
 pub struct KnowledgeSearchHit {
     pub document_id: String,
     pub chunk_index: i32,
@@ -13,65 +12,23 @@ pub struct KnowledgeSearchHit {
     pub score: f32,
 }
 
-/// 全局知识搜索回调（全 RAG pipeline，含 embedding + vector store）
-#[allow(clippy::type_complexity)]
-static CALLBACK: std::sync::OnceLock<
-    std::sync::Arc<
-        dyn Fn(
-                &str,
-                &str,
-                usize,
-            ) -> std::pin::Pin<
-                Box<
-                    dyn std::future::Future<
-                            Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>,
-                        > + Send
-                        + 'static,
-                >,
-            > + Send
-            + Sync,
+pub type KnowledgeSearchFuture = std::pin::Pin<
+    Box<
+        dyn std::future::Future<Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>>
+            + Send
+            + 'static,
     >,
-> = std::sync::OnceLock::new();
+>;
 
-/// 设置全局知识搜索回调。应用启动时调用一次。
-#[allow(clippy::type_complexity)]
-pub fn set_knowledge_search_callback(
-    cb: std::sync::Arc<
-        dyn Fn(
-                &str,
-                &str,
-                usize,
-            ) -> std::pin::Pin<
-                Box<
-                    dyn std::future::Future<
-                            Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>,
-                        > + Send
-                        + 'static,
-                >,
-            > + Send
-            + Sync,
-    >,
-) {
+pub type KnowledgeSearchCallback =
+    std::sync::Arc<dyn Fn(&str, &str, usize) -> KnowledgeSearchFuture + Send + Sync>;
+
+static CALLBACK: std::sync::OnceLock<KnowledgeSearchCallback> = std::sync::OnceLock::new();
+
+pub fn set_knowledge_search_callback(cb: KnowledgeSearchCallback) {
     let _ = CALLBACK.set(cb);
 }
 
-/// 获取全局知识搜索回调
-pub fn get_knowledge_search_callback() -> Option<
-    std::sync::Arc<
-        dyn Fn(
-                &str,
-                &str,
-                usize,
-            ) -> std::pin::Pin<
-                Box<
-                    dyn std::future::Future<
-                            Output = std::result::Result<Vec<KnowledgeSearchHit>, AxAgentError>,
-                        > + Send
-                        + 'static,
-                >,
-            > + Send
-            + Sync,
-    >,
-> {
+pub fn get_knowledge_search_callback() -> Option<KnowledgeSearchCallback> {
     CALLBACK.get().cloned()
 }

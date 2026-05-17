@@ -178,6 +178,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         set(
           (s) => {
             const from = s.phases[conversationId] || "idle";
+            if (from === to) { return {}; }
             const allowed = PHASE_TRANSITIONS[from] || [];
             if (!allowed.includes(to)) {
               console.warn(
@@ -451,6 +452,8 @@ export const useExecutionStore = create<ExecutionStore>()(
       },
 
       handleDone: (event) => {
+        const current = get().phases[event.conversationId];
+        if (current && TERMINAL_PHASES.has(current as ExecutionPhase)) { return; }
         get().transition(event.conversationId, "completed");
         set(
           (s) => ({
@@ -463,6 +466,8 @@ export const useExecutionStore = create<ExecutionStore>()(
       },
 
       handleError: (event) => {
+        const current = get().phases[event.conversationId];
+        if (current && TERMINAL_PHASES.has(current as ExecutionPhase)) { return; }
         get().transition(event.conversationId, "failed");
         set(
           (s) => ({

@@ -38,6 +38,7 @@ impl OpenAIAdapter {
         resolve_chat_url(&Self::base_url(ctx), ctx.api_path.as_deref(), "/chat/completions")
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn get_client(&self, ctx: &ProviderRequestContext) -> Result<reqwest::Client> {
         match &ctx.proxy_config {
             Some(c) if c.proxy_type.as_deref() != Some("none") => build_http_client(Some(c)),
@@ -267,6 +268,8 @@ fn extract_gemini_compat_chunk(data: &str) -> Option<ChatStreamChunk> {
         prompt_tokens: usage.prompt_token_count.unwrap_or(0),
         completion_tokens: usage.candidates_token_count.unwrap_or(0),
         total_tokens: usage.total_token_count.unwrap_or(0),
+        cache_creation_tokens: None,
+        cache_read_tokens: None,
     });
 
     if content.is_none() && usage.is_none() {
@@ -644,11 +647,15 @@ impl ProviderAdapter for OpenAIAdapter {
                 prompt_tokens: u.prompt_tokens,
                 completion_tokens: u.completion_tokens,
                 total_tokens: u.total_tokens,
+                cache_creation_tokens: None,
+                cache_read_tokens: None,
             })
             .unwrap_or(TokenUsage {
                 prompt_tokens: 0,
                 completion_tokens: 0,
                 total_tokens: 0,
+                cache_creation_tokens: None,
+                cache_read_tokens: None,
             });
 
         let tool_calls = msg.tool_calls.as_ref().map(|tcs| {
@@ -820,6 +827,8 @@ impl ProviderAdapter for OpenAIAdapter {
                         prompt_tokens: u.prompt_tokens,
                         completion_tokens: u.completion_tokens,
                         total_tokens: u.total_tokens,
+                        cache_creation_tokens: None,
+                        cache_read_tokens: None,
                     });
                     let content = choice
                         .delta
@@ -873,6 +882,8 @@ impl ProviderAdapter for OpenAIAdapter {
                             prompt_tokens: u.prompt_tokens,
                             completion_tokens: u.completion_tokens,
                             total_tokens: u.total_tokens,
+                            cache_creation_tokens: None,
+                            cache_read_tokens: None,
                         }),
                         tool_calls: None,
                     }));
@@ -1016,6 +1027,7 @@ impl ProviderAdapter for OpenAIAdapter {
                         model_type,
                         capabilities: caps,
                         max_tokens: None,
+                        max_output_tokens: None,
                         enabled: true,
                         param_overrides: None,
                         input_price_per_mtok: None,

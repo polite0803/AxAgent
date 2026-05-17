@@ -18,13 +18,17 @@ impl DebugMode {
             DebugMode::Verbose => "verbose",
         }
     }
+}
 
-    #[allow(clippy::should_implement_trait)]
-    pub fn from_str(s: &str) -> Self {
+impl std::str::FromStr for DebugMode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "basic" => DebugMode::Basic,
-            "verbose" => DebugMode::Verbose,
-            _ => DebugMode::Off,
+            "basic" => Ok(DebugMode::Basic),
+            "verbose" => Ok(DebugMode::Verbose),
+            "off" => Ok(DebugMode::Off),
+            _ => Err(()),
         }
     }
 }

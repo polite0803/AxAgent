@@ -56,7 +56,6 @@ struct PricingModel {
     input_price: f64,
     output_price: f64,
     #[serde(default)]
-    #[allow(dead_code)]
     tier: String,
 }
 
@@ -135,6 +134,7 @@ fn lookup_pricing_from_config(model_id: &str) -> Option<(f64, f64)> {
     let config = PRICING_CONFIG.get()?;
     for m in &config.models {
         if m.model_id == model_id || m.aliases.iter().any(|a| a == model_id) {
+            let _ = &m.tier;
             return Some((m.input_price, m.output_price));
         }
     }
@@ -273,7 +273,6 @@ pub struct AgentUsagePayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentErrorPayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -283,7 +282,6 @@ pub struct AgentErrorPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentToolStartPayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -297,7 +295,6 @@ pub struct AgentToolStartPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentToolUsePayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -313,7 +310,6 @@ pub struct AgentToolUsePayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentToolResultPayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -331,7 +327,6 @@ pub struct AgentToolResultPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentStreamTextPayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -341,7 +336,6 @@ pub struct AgentStreamTextPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentStreamThinkingPayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -351,7 +345,6 @@ pub struct AgentStreamThinkingPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentPermissionPayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -367,7 +360,6 @@ pub struct AgentPermissionPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct SubAgentCardPayload {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,
@@ -433,7 +425,6 @@ pub struct AgentQueryRequest {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentOptions {
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,
@@ -521,7 +512,6 @@ pub struct AgentGetSessionResponse {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 pub struct AgentEnsureWorkspaceRequest {
     #[serde(rename = "conversationId")]
     pub conversation_id: String,

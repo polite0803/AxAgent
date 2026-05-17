@@ -60,7 +60,7 @@ pub async fn webhook_create_subscription(
         .iter()
         .filter_map(|e| WebhookEvent::from_event_str(e))
         .collect();
-    let subscription = manager.subscribe(url, webhook_events, secret).await;
+    let subscription = manager.subscribe(url, webhook_events, secret).await?;
     Ok(subscription.into())
 }
 

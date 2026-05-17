@@ -131,19 +131,7 @@ fn estimated_size(msg: &AgentMessage) -> usize {
 }
 
 fn uuid_v4() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let random: u128 = timestamp << 64 | (rand_u64() as u128);
-    format!("{:032x}", random)
-}
-
-fn rand_u64() -> u64 {
-    use std::collections::hash_map::RandomState;
-    use std::hash::{BuildHasher, Hasher};
-    RandomState::new().build_hasher().finish()
+    uuid::Uuid::new_v4().to_string()
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -184,7 +172,7 @@ pub enum CompressionLevel {
 }
 
 impl CompressionLevel {
-    fn to_i32(&self) -> i32 {
+    fn to_i32(self) -> i32 {
         match self {
             Self::Fast => 1,
             Self::Default => 6,

@@ -18,15 +18,18 @@ impl TaskType {
             TaskType::Validation => "validation",
         }
     }
+}
 
-    #[allow(clippy::should_implement_trait)]
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for TaskType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "tool_call" => Some(TaskType::ToolCall),
-            "reasoning" => Some(TaskType::Reasoning),
-            "query" => Some(TaskType::Query),
-            "validation" => Some(TaskType::Validation),
-            _ => None,
+            "tool_call" => Ok(TaskType::ToolCall),
+            "reasoning" => Ok(TaskType::Reasoning),
+            "query" => Ok(TaskType::Query),
+            "validation" => Ok(TaskType::Validation),
+            _ => Err(()),
         }
     }
 }
@@ -316,11 +319,11 @@ mod tests {
 
     #[test]
     fn test_task_type_from_str() {
-        assert_eq!(TaskType::from_str("tool_call"), Some(TaskType::ToolCall));
-        assert_eq!(TaskType::from_str("reasoning"), Some(TaskType::Reasoning));
-        assert_eq!(TaskType::from_str("query"), Some(TaskType::Query));
-        assert_eq!(TaskType::from_str("validation"), Some(TaskType::Validation));
-        assert_eq!(TaskType::from_str("unknown"), None);
+        assert_eq!("tool_call".parse::<TaskType>().ok(), Some(TaskType::ToolCall));
+        assert_eq!("reasoning".parse::<TaskType>().ok(), Some(TaskType::Reasoning));
+        assert_eq!("query".parse::<TaskType>().ok(), Some(TaskType::Query));
+        assert_eq!("validation".parse::<TaskType>().ok(), Some(TaskType::Validation));
+        assert_eq!("unknown".parse::<TaskType>().ok(), None);
     }
 
     #[test]

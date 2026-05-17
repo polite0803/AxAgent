@@ -63,7 +63,6 @@ pub struct TerminalAnalyzer {
     history: VecDeque<String>,
     last_exit_code: Option<i32>,
     last_command: Option<String>,
-    #[allow(dead_code)]
     prompt_pattern: Regex,
     error_patterns: Vec<(Regex, TerminalErrorType)>,
 }
@@ -140,12 +139,22 @@ impl TerminalAnalyzer {
 
     pub fn analyze(&self) -> TerminalAnalysis {
         let errors = self.detect_errors();
+        let prompt_lines = self.detect_prompt_lines();
 
         let summary = if errors.is_empty() {
             if self.last_exit_code == Some(0) {
-                "Command completed successfully".to_string()
+                if prompt_lines > 0 {
+                    format!("Command completed successfully ({} prompt(s) detected)", prompt_lines)
+                } else {
+                    "Command completed successfully".to_string()
+                }
             } else if let Some(code) = self.last_exit_code {
                 format!("Command exited with code {} but no recognized error patterns found", code)
+            } else if prompt_lines > 0 {
+                format!(
+                    "No errors detected in terminal output ({} prompt(s) detected)",
+                    prompt_lines
+                )
             } else {
                 "No errors detected in terminal output".to_string()
             }
@@ -190,6 +199,13 @@ impl TerminalAnalyzer {
         }
 
         errors
+    }
+
+    fn detect_prompt_lines(&self) -> usize {
+        self.history
+            .iter()
+            .filter(|line| self.prompt_pattern.is_match(line))
+            .count()
     }
 
     pub fn suggest_fixes(&self, analysis: &TerminalAnalysis) -> Vec<TerminalSuggestion> {

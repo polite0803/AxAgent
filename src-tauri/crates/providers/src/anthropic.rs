@@ -43,6 +43,7 @@ impl AnthropicAdapter {
         resolve_chat_url(&Self::base_url(ctx), ctx.api_path.as_deref(), "/messages")
     }
 
+    #[allow(clippy::result_large_err)]
     fn get_client(&self, ctx: &ProviderRequestContext) -> Result<reqwest::Client> {
         match &ctx.proxy_config {
             Some(c) if c.proxy_type.as_deref() != Some("none") => build_http_client(Some(c)),
@@ -112,7 +113,6 @@ struct AnthropicContentBlock {
 }
 
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct AnthropicUsage {
     input_tokens: u32,
     output_tokens: u32,
@@ -453,6 +453,8 @@ impl ProviderAdapter for AnthropicAdapter {
                 prompt_tokens: ar.usage.input_tokens,
                 completion_tokens: ar.usage.output_tokens,
                 total_tokens: ar.usage.input_tokens + ar.usage.output_tokens,
+                cache_creation_tokens: ar.usage.cache_creation_input_tokens,
+                cache_read_tokens: ar.usage.cache_read_input_tokens,
             },
             tool_calls: if tool_calls.is_empty() {
                 None
@@ -698,6 +700,8 @@ impl ProviderAdapter for AnthropicAdapter {
                                                 prompt_tokens: accumulated_prompt_tokens,
                                                 completion_tokens: out,
                                                 total_tokens: accumulated_prompt_tokens + out,
+                                                cache_creation_tokens: None,
+                                                cache_read_tokens: None,
                                             }),
                                             tool_calls: None,
                                         }));
@@ -730,6 +734,8 @@ impl ProviderAdapter for AnthropicAdapter {
                                             completion_tokens: accumulated_completion_tokens,
                                             total_tokens: accumulated_prompt_tokens
                                                 + accumulated_completion_tokens,
+                                            cache_creation_tokens: None,
+                                            cache_read_tokens: None,
                                         })
                                     } else {
                                         None
@@ -836,6 +842,7 @@ impl ProviderAdapter for AnthropicAdapter {
                     model_type,
                     capabilities: caps,
                     max_tokens: None,
+                    max_output_tokens: None,
                     enabled: true,
                     param_overrides: None,
                     input_price_per_mtok: None,

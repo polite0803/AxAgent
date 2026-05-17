@@ -22,6 +22,7 @@ pub async fn get_generated_tool_by_name(
     Ok(tool)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn insert_generated_tool(
     db: &DatabaseConnection,
     id: &str,

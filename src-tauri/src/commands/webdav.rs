@@ -207,9 +207,6 @@ pub async fn webdav_restore(
 
     // 8. Auto-restart to pick up the restored database
     app.restart();
-
-    #[allow(unreachable_code)]
-    Ok(())
 }
 
 /// Delete a remote backup file.

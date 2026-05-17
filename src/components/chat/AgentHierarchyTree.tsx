@@ -18,11 +18,11 @@ interface AgentHierarchyTreeProps {
 
 // 将 AgentPoolItem 转换为 Tree DataNode
 function toTreeNode(
-  item: AgentPoolItem,
+  item: AgentPoolItem & { isFork?: boolean },
   allItems: AgentPoolItem[],
-  t: (key: string, ...args: any[]) => string,
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): DataNode {
-  const isFork = (item as { isFork?: boolean }).isFork;
+  const isFork = item.isFork;
   const children = allItems
     .filter((child) => child.dependsOn?.includes(item.id))
     .map((child) => toTreeNode(child, allItems, t));
@@ -71,9 +71,9 @@ export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) 
   const treeData = useMemo(() => {
     const roots = pool.filter((item) => !item.dependsOn || item.dependsOn.length === 0);
     if (roots.length === 0 && pool.length > 0) {
-      return pool.slice(0, 2).map((item) => toTreeNode(item, pool, t as any));
+      return pool.slice(0, 2).map((item) => toTreeNode(item, pool, t));
     }
-    return roots.map((item) => toTreeNode(item, pool, t as any));
+    return roots.map((item) => toTreeNode(item, pool, t));
   }, [pool, t]);
 
   if (treeData.length === 0) { return null; }

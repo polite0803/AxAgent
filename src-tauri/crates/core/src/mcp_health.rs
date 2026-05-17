@@ -22,7 +22,6 @@ pub enum HealthStatus {
 pub struct McpHealthMonitor {
     pool: Arc<McpConnectionPool>,
     check_interval: Duration,
-    #[allow(dead_code)]
     unhealthy_count: Mutex<HashMap<String, u32>>,
     unhealthy_threshold: u32,
 }
@@ -78,13 +77,30 @@ impl McpHealthMonitor {
 
         let after_check = self.pool.len().await;
         if after_check < pool_size {
-            tracing::warn!(
-                "[McpHealth] 健康检查期间驱逐了 {} 个不健康连接",
-                pool_size - after_check
-            );
+            let evicted = pool_size - after_check;
+            tracing::warn!("[McpHealth] 健康检查期间驱逐了 {} 个不健康连接", evicted);
+            self.increment_unhealthy_count("evicted_pool", evicted)
+                .await;
         }
 
         reports
+    }
+
+    pub async fn increment_unhealthy_count(&self, server_id: &str, count: usize) {
+        let mut map = self.unhealthy_count.lock().await;
+        let entry = map.entry(server_id.to_string()).or_insert(0);
+        *entry += count as u32;
+    }
+
+    pub async fn is_unhealthy(&self, server_id: &str) -> bool {
+        let map = self.unhealthy_count.lock().await;
+        map.get(server_id)
+            .is_some_and(|&c| c >= self.unhealthy_threshold)
+    }
+
+    pub async fn reset_unhealthy_count(&self, server_id: &str) {
+        let mut map = self.unhealthy_count.lock().await;
+        map.remove(server_id);
     }
 }
 
@@ -124,5 +140,21 @@ mod tests {
                 reason: "timeout".into()
             }
         );
+    }
+
+    #[cfg(not(target_os = "android"))]
+    #[tokio::test]
+    async fn unhealthy_count_tracking() {
+        let monitor = McpHealthMonitor::default();
+        assert!(!monitor.is_unhealthy("server1").await);
+
+        monitor.increment_unhealthy_count("server1", 1).await;
+        assert!(!monitor.is_unhealthy("server1").await);
+
+        monitor.increment_unhealthy_count("server1", 2).await;
+        assert!(monitor.is_unhealthy("server1").await);
+
+        monitor.reset_unhealthy_count("server1").await;
+        assert!(!monitor.is_unhealthy("server1").await);
     }
 }

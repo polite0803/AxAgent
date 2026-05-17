@@ -300,12 +300,12 @@ impl GitTools {
     }
 
     pub fn create_branch(repo_path: &str, name: &str) -> Result<String, String> {
-        let output = run_git(repo_path, &["checkout", "-b", name])?;
+        let output = run_git(repo_path, &["checkout", "-b", "--", name])?;
         Ok(output)
     }
 
     pub fn switch_branch(repo_path: &str, name: &str) -> Result<String, String> {
-        let output = run_git(repo_path, &["checkout", name])?;
+        let output = run_git(repo_path, &["checkout", "--", name])?;
         Ok(output)
     }
 

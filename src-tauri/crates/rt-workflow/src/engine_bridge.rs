@@ -18,6 +18,8 @@ use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 
+type EngineSenderMap = RwLock<HashMap<EngineId, mpsc::Sender<EngineMessage>>>;
+
 /// The identifier for an engine instance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EngineId {
@@ -86,8 +88,7 @@ pub struct EngineHealth {
 /// The engine bridge manages inter-engine communication and isolation.
 pub struct EngineBridge {
     /// Channels per engine for sending messages.
-    #[allow(clippy::type_complexity)]
-    senders: RwLock<HashMap<EngineId, mpsc::Sender<EngineMessage>>>,
+    senders: EngineSenderMap,
     /// Health state for each engine.
     health: RwLock<HashMap<EngineId, EngineHealth>>,
     /// Shared session store keyed by engine ID.

@@ -183,7 +183,8 @@ pub fn validate_command(command: &str) -> Result<(), String> {
     }
 
     for blocked in get_platform_blocked_commands() {
-        if command.contains(blocked) {
+        let normalized: String = command.chars().filter(|c| !c.is_whitespace()).collect();
+        if command.contains(blocked) || normalized.contains(blocked) {
             return Err(format!("命令因安全原因被封锁: {}", blocked));
         }
     }

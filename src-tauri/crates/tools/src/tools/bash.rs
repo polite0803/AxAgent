@@ -123,7 +123,10 @@ impl Tool for BashTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let cmd = input["command"].as_str().unwrap();
+        let cmd = input["command"].as_str().unwrap_or("");
+        if cmd.is_empty() {
+            return Err(ToolError::invalid_input_for("Bash", "缺少 command 参数"));
+        }
         // ── 安全分析（call() 中也做，防御 validate() 被绕过） ──
         use crate::bash::parser::parse_command;
         use crate::bash::security::SecurityAnalyzer;
@@ -133,6 +136,11 @@ impl Tool for BashTool {
                 analyzer.analyze(&parsed)
             {
                 return Err(ToolError::permission_denied("Bash", &format!("安全阻止: {}", reason)));
+            }
+        } else {
+            let classifier_result = HeuristicClassifier::classify_bash(cmd);
+            if classifier_result.suggest_deny {
+                return Err(ToolError::permission_denied("Bash", &classifier_result.reason));
             }
         }
         let timeout_secs = input

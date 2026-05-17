@@ -130,6 +130,7 @@ pub struct Model {
     pub model_type: ModelType,
     pub capabilities: Vec<ModelCapability>,
     pub max_tokens: Option<u32>,
+    pub max_output_tokens: Option<u32>,
     pub enabled: bool,
     pub param_overrides: Option<ModelParamOverrides>,
     /// Input price per million tokens (USD). When set, used for accurate cost calculation.
@@ -1134,6 +1135,10 @@ pub struct TokenUsage {
     pub prompt_tokens: u32,
     pub completion_tokens: u32,
     pub total_tokens: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_creation_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache_read_tokens: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1662,24 +1667,13 @@ impl SourceRef {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceConfig {
     pub embedding_provider: Option<String>,
     pub embedding_dimensions: Option<i32>,
     pub retrieval_threshold: Option<f32>,
     pub retrieval_top_k: Option<i32>,
-}
-
-impl SourceConfig {
-    pub fn default() -> Self {
-        Self {
-            embedding_provider: None,
-            embedding_dimensions: None,
-            retrieval_threshold: None,
-            retrieval_top_k: None,
-        }
-    }
 }
 
 // Artifacts

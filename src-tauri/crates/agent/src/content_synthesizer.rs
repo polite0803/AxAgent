@@ -166,11 +166,27 @@ impl ContentSynthesizer {
             })
             .collect();
 
+        let key_findings = self.extract_key_findings(sources);
+        let findings_section = if key_findings.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\n\n**Key Findings:**\n{}",
+                key_findings
+                    .iter()
+                    .enumerate()
+                    .map(|(i, f)| format!("{}. {}", i + 1, f))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            )
+        };
+
         let synthesis = format!(
-            "Based on the analysis of {} sources:\n\n{}\n\n{}",
+            "Based on the analysis of {} sources:\n\n{}\n\n{}{}",
             sources.len(),
             source_materials.join("\n\n"),
-            self.generate_source_stats(sources)
+            self.generate_source_stats(sources),
+            findings_section
         );
 
         synthesis
@@ -217,7 +233,6 @@ impl ContentSynthesizer {
         )
     }
 
-    #[allow(dead_code)]
     fn extract_key_findings(&self, sources: &[SearchResult]) -> Vec<String> {
         let mut findings = Vec::new();
 

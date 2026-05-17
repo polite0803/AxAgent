@@ -303,7 +303,6 @@ pub struct ValidateWorkflowInput {
     pub edges: Vec<WorkflowEdge>,
 }
 
-#[allow(clippy::unnecessary_filter_map)]
 #[tauri::command]
 pub async fn validate_workflow_template(
     _state: State<'_, AppState>,
@@ -315,7 +314,7 @@ pub async fn validate_workflow_template(
     let mut warnings = Vec::new();
     let node_ids: std::collections::HashSet<String> = nodes
         .iter()
-        .filter_map(|n| match n {
+        .map(|n| match n {
             WorkflowNode::Trigger(t) => Some(t.base.id.clone()),
             WorkflowNode::Agent(t) => Some(t.base.id.clone()),
             WorkflowNode::Llm(t) => Some(t.base.id.clone()),
@@ -332,6 +331,7 @@ pub async fn validate_workflow_template(
             WorkflowNode::VectorRetrieve(t) => Some(t.base.id.clone()),
             WorkflowNode::End(t) => Some(t.base.id.clone()),
         })
+        .flatten()
         .collect();
 
     if nodes.is_empty() {

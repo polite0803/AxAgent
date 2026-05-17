@@ -691,7 +691,7 @@ impl CrossSessionLearner {
 
         let high_freq: Vec<_> = pattern_freq
             .iter()
-            .filter(|(_, &count)| count >= 3)
+            .filter(|&(_, &count)| count >= 3)
             .collect();
 
         if !high_freq.is_empty() {

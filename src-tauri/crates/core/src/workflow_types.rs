@@ -792,8 +792,7 @@ pub struct WorkflowMigrator;
 impl WorkflowMigrator {
     /// Migrate a workflow Tool and Code nodes to Agent nodes.
     /// Returns a MigrationResult with details of what was migrated.
-    #[allow(clippy::ptr_arg)]
-    pub fn migrate(nodes: &mut Vec<WorkflowNode>) -> MigrationResult {
+    pub fn migrate(nodes: &mut [WorkflowNode]) -> MigrationResult {
         let mut migrated_nodes = Vec::new();
         let mut has_changes = false;
 

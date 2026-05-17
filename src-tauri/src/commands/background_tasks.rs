@@ -101,6 +101,7 @@ async fn update_status(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn spawn_background_task(
     state: State<'_, AppState>,

@@ -91,7 +91,7 @@ import { PromptTemplateSelector } from "./PromptTemplateSelector";
 import { VoiceCall } from "./VoiceCall";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1] || "";
@@ -101,6 +101,9 @@ async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
         file_size: file.size,
         data: base64,
       });
+    };
+    reader.onerror = () => {
+      reject(new Error(`Failed to read file: ${file.name}`));
     };
     reader.readAsDataURL(file);
   });

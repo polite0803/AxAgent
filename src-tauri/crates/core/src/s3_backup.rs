@@ -57,17 +57,15 @@ impl S3Client {
         format!("{}.{}", self.config.bucket, endpoint)
     }
 
-    #[allow(dead_code)]
     fn base_url(&self) -> String {
+        let endpoint = self.config.endpoint
+            .trim_start_matches("https://")
+            .trim_start_matches("http://")
+            .trim_end_matches('/');
         if self.config.use_path_style {
-            format!("{}/{}", self.config.endpoint.trim_end_matches('/'), self.config.bucket)
+            format!("https://{}/{}", endpoint, self.config.bucket)
         } else {
-            let endpoint = self.config.endpoint.trim_start_matches("https://");
-            if self.config.endpoint.starts_with("http://") {
-                format!("http://{}.{}", self.config.bucket, endpoint)
-            } else {
-                format!("https://{}.{}", self.config.bucket, endpoint)
-            }
+            format!("https://{}.{}", self.config.bucket, endpoint)
         }
     }
 
@@ -283,16 +281,7 @@ impl S3Client {
             self.config.access_key_id, scope, signed_headers, signature
         );
 
-        let url = format!(
-            "{}://{}{}",
-            if self.config.endpoint.starts_with("http://") {
-                "http"
-            } else {
-                "https"
-            },
-            host,
-            canonical_uri
-        );
+        let url = format!("{}{}", self.base_url(), canonical_uri);
         let url = if canonical_querystring.is_empty() {
             url
         } else {

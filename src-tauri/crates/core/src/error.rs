@@ -201,7 +201,7 @@ impl AxAgentError {
             AxAgentError::Provider(_) => ErrorCode::LLMProviderError,
             AxAgentError::Gateway(_) => ErrorCode::NetworkError,
             AxAgentError::Crypto(_) => ErrorCode::InternalError,
-            AxAgentError::NotFound(_) => ErrorCode::ResourceExhaustionError,
+            AxAgentError::NotFound(_) => ErrorCode::ValidationError,
             AxAgentError::Validation(_) => ErrorCode::ValidationError,
             AxAgentError::Io(_) => ErrorCode::InternalError,
             AxAgentError::Config(_) => ErrorCode::ConfigurationError,

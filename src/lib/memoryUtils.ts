@@ -109,7 +109,9 @@ export function formatImportance(importance: number): string {
 
 export function isExpired(entry: MemoryEntry): boolean {
   if (entry.expires_at == null) { return false; }
-  return Date.now() / 1000 > entry.expires_at;
+  let expiresAt = entry.expires_at;
+  if (expiresAt > 1e12) { expiresAt = expiresAt / 1000; }
+  return Date.now() / 1000 > expiresAt;
 }
 
 export function effectiveScore(entry: MemoryEntry): number {

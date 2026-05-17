@@ -2,6 +2,25 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
 
 use crate::error::{AxAgentError, Result};
 
+fn validate_collection_name(name: &str) -> Result<()> {
+    if name.is_empty() {
+        return Err(AxAgentError::Validation("Collection name cannot be empty".to_string()));
+    }
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err(AxAgentError::Validation(format!(
+            "Invalid collection name '{}': only alphanumeric characters and underscores are allowed",
+            name
+        )));
+    }
+    if name.len() > 64 {
+        return Err(AxAgentError::Validation(format!(
+            "Collection name '{}' is too long (max 64 characters)",
+            name
+        )));
+    }
+    Ok(())
+}
+
 /// Register the sqlite-vec extension globally.
 ///
 /// Must be called **once** before any SQLite connection is opened.
@@ -31,8 +50,15 @@ pub fn register_sqlite_vec_extension() {
     }
     #[cfg(not(target_os = "android"))]
     unsafe {
-        libsqlite3_sys::sqlite3_auto_extension(Some(std::mem::transmute(
-            sqlite_vec::sqlite3_vec_init as *const (),
+        libsqlite3_sys::sqlite3_auto_extension(Some(std::mem::transmute::<
+            *const (),
+            unsafe extern "C" fn(
+                *mut libsqlite3_sys::sqlite3,
+                *mut *mut i8,
+                *const libsqlite3_sys::sqlite3_api_routines,
+            ) -> i32,
+        >(
+            sqlite_vec::sqlite3_vec_init as *const ()
         )));
     }
 }
@@ -134,6 +160,7 @@ impl VectorStore {
     /// Ensure both the metadata and vec0 tables exist for a collection.
     /// Validates that existing vector dimensions match the requested dimensions.
     pub async fn ensure_collection(&self, collection_id: &str, dimensions: usize) -> Result<()> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
         self.exec(&format!(
@@ -174,6 +201,7 @@ impl VectorStore {
     /// Query the current embedding dimensions of a collection's vec0 table.
     /// Returns None if the table does not exist.
     pub async fn get_collection_dimensions(&self, collection_id: &str) -> Result<Option<usize>> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
         let table_exists = self.table_exists(&name).await?;
         if !table_exists {
@@ -214,6 +242,7 @@ impl VectorStore {
         dimensions: usize,
         hnsw_config: HnswConfig,
     ) -> Result<()> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
         self.exec(&format!(
@@ -266,6 +295,7 @@ impl VectorStore {
         collection_id: &str,
         records: Vec<EmbeddingRecord>,
     ) -> Result<()> {
+        validate_collection_name(collection_id)?;
         if records.is_empty() {
             return Ok(());
         }
@@ -383,6 +413,7 @@ impl VectorStore {
         content: &str,
         embedding: &[f32],
     ) -> Result<String> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
@@ -487,6 +518,7 @@ impl VectorStore {
         query_embedding: Vec<f32>,
         top_k: usize,
     ) -> Result<Vec<VectorSearchResult>> {
+        validate_collection_name(knowledge_base_id)?;
         let name = Self::validated_collection_name(knowledge_base_id)?;
 
         if !self.table_exists(&format!("{name}_meta")).await? {
@@ -544,6 +576,7 @@ impl VectorStore {
         knowledge_base_id: &str,
         document_id: &str,
     ) -> Result<()> {
+        validate_collection_name(knowledge_base_id)?;
         let name = Self::validated_collection_name(knowledge_base_id)?;
 
         if !self.table_exists(&format!("{name}_meta")).await? {
@@ -557,6 +590,7 @@ impl VectorStore {
     ///
     /// Silently succeeds if the tables do not exist.
     pub async fn delete_collection(&self, knowledge_base_id: &str) -> Result<()> {
+        validate_collection_name(knowledge_base_id)?;
         let name = Self::validated_collection_name(knowledge_base_id)?;
         let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
         let _ = self
@@ -568,6 +602,7 @@ impl VectorStore {
     /// Clear only the embedding vectors (vec0), keeping chunk metadata (_meta) intact.
     /// This allows re-embedding without losing user edits or manually added chunks.
     pub async fn clear_embeddings(&self, collection_id: &str) -> Result<()> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
 
         // Drop and recreate vec0 to clear all embeddings
@@ -601,6 +636,7 @@ impl VectorStore {
     /// List all chunk metadata with rowids for re-embedding.
     /// Returns (rowid, chunk_id, content) tuples.
     pub async fn list_all_chunks(&self, collection_id: &str) -> Result<Vec<(i64, String, String)>> {
+        validate_collection_name(collection_id)?;
         self.list_chunks_raw(collection_id, None).await
     }
 
@@ -610,6 +646,7 @@ impl VectorStore {
         collection_id: &str,
         document_id: &str,
     ) -> Result<Vec<(i64, String, String)>> {
+        validate_collection_name(collection_id)?;
         self.list_chunks_raw(collection_id, Some(document_id)).await
     }
 
@@ -663,6 +700,7 @@ impl VectorStore {
         collection_id: &str,
         entries: Vec<(i64, Vec<f32>)>, // (rowid, embedding)
     ) -> Result<()> {
+        validate_collection_name(collection_id)?;
         self.upsert_document_embeddings(collection_id, entries)
             .await
     }
@@ -675,6 +713,7 @@ impl VectorStore {
         collection_id: &str,
         entries: Vec<(i64, Vec<f32>)>,
     ) -> Result<()> {
+        validate_collection_name(collection_id)?;
         if entries.is_empty() {
             return Ok(());
         }
@@ -724,6 +763,7 @@ impl VectorStore {
 
     /// Delete a single chunk by its id from both vec0 and metadata tables.
     pub async fn delete_chunk(&self, collection_id: &str, chunk_id: &str) -> Result<()> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
@@ -787,6 +827,7 @@ impl VectorStore {
         chunk_id: &str,
         new_content: &str,
     ) -> Result<()> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
@@ -813,6 +854,7 @@ impl VectorStore {
         chunk_id: &str,
         embedding: &[f32],
     ) -> Result<()> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 
@@ -920,6 +962,7 @@ impl VectorStore {
         collection_id: &str,
         document_id: &str,
     ) -> Result<Vec<VectorSearchResult>> {
+        validate_collection_name(collection_id)?;
         let name = Self::validated_collection_name(collection_id)?;
         let meta_table = format!("{name}_meta");
 

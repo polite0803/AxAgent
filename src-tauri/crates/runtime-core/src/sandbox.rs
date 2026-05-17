@@ -48,7 +48,7 @@ pub struct ContainerEnvironment {
     pub markers: Vec<String>,
 }
 
-#[allow(clippy::struct_excessive_bools)]
+#[allow(clippy::struct_excessive_bools)] // Status flags for distinct sandbox capabilities; grouping would reduce readability
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct SandboxStatus {
     pub enabled: bool,

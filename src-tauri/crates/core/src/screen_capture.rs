@@ -95,7 +95,7 @@ fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
             ..Default::default()
         };
 
-        GetDIBits(
+        let result = GetDIBits(
             mem_dc,
             bitmap,
             0,
@@ -108,6 +108,10 @@ fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
         let _ = DeleteDC(mem_dc);
         let _ = ReleaseDC(Some(hwnd), hdc);
         let _ = DeleteObject(bitmap.into());
+
+        if result == 0 {
+            anyhow::bail!("GetDIBits failed");
+        }
 
         // BGRA → RGBA
         for pixel in buffer.chunks_exact_mut(4) {
@@ -171,11 +175,10 @@ impl ScreenCapture {
         }
     }
 
-    #[allow(unused_variables)]
-    pub async fn capture_window(&self, window_title: &str) -> Result<ScreenCaptureResult> {
+    pub async fn capture_window(&self, _window_title: &str) -> Result<ScreenCaptureResult> {
         #[cfg(target_os = "windows")]
         {
-            self.capture_windows_by_title(window_title).await
+            self.capture_windows_by_title(_window_title).await
         }
         #[cfg(not(target_os = "windows"))]
         {
@@ -266,8 +269,9 @@ impl ScreenCapture {
 
     #[cfg(target_os = "macos")]
     async fn capture_macos_full(&self, _monitor_index: u32) -> Result<ScreenCaptureResult> {
+        let temp_path = format!("/tmp/axagent_capture_{}.png", std::process::id());
         let output = tokio::process::Command::new("screencapture")
-            .args(["-x", "/tmp/axagent_capture.png"])
+            .args(["-x", &temp_path])
             .output()
             .await?;
 
@@ -275,7 +279,8 @@ impl ScreenCapture {
             anyhow::bail!("screencapture failed");
         }
 
-        let img = image::open("/tmp/axagent_capture.png")?;
+        let img = image::open(&temp_path)?;
+        let _ = std::fs::remove_file(&temp_path);
         let width = img.width();
         let height = img.height();
         let rgba = img.to_rgba8();
@@ -293,8 +298,9 @@ impl ScreenCapture {
 
     #[cfg(target_os = "linux")]
     async fn capture_linux_full(&self, _monitor_index: u32) -> Result<ScreenCaptureResult> {
+        let temp_path = format!("/tmp/axagent_capture_{}.png", std::process::id());
         let output = tokio::process::Command::new("import")
-            .args(["-window", "root", "/tmp/axagent_capture.png"])
+            .args(["-window", "root", &temp_path])
             .output()
             .await?;
 
@@ -302,7 +308,8 @@ impl ScreenCapture {
             anyhow::bail!("import (ImageMagick) failed");
         }
 
-        let img = image::open("/tmp/axagent_capture.png")?;
+        let img = image::open(&temp_path)?;
+        let _ = std::fs::remove_file(&temp_path);
         let width = img.width();
         let height = img.height();
         let rgba = img.to_rgba8();

@@ -427,17 +427,14 @@ impl LspProcess {
     }
 
     fn spawn_reader_task(&self, stdout: tokio::process::ChildStdout) {
-        let _inner = Arc::clone(&self.inner);
-        let _diagnostics = Arc::clone(&self.diagnostics);
+        let inner = Arc::clone(&self.inner);
+        let diagnostics = Arc::clone(&self.diagnostics);
         let shutdown = Arc::clone(&self.shutdown);
         let status = Arc::clone(&self.status);
 
         tokio::spawn(async move {
-            let reader = BufReader::new(stdout);
-            let mut lines = reader.lines();
-
-            let mut buffer = String::new();
-            let mut content_length: Option<usize> = None;
+            use super::lsp_protocol::{LspMessageReader, is_notification, get_method, get_params, parse_response};
+            let mut reader = LspMessageReader::new(stdout);
 
             loop {
                 if shutdown.load(std::sync::atomic::Ordering::SeqCst) {
@@ -445,33 +442,63 @@ impl LspProcess {
                 }
 
                 tokio::select! {
-                    result = lines.next_line() => {
+                    result = reader.read_message() => {
                         match result {
-                            Ok(Some(line)) => {
-                                if line.starts_with("Content-Length:") {
-                                    content_length = line
-                                        .split(':')
-                                        .nth(1)
-                                        .and_then(|v| v.trim().parse::<usize>().ok());
-                                } else if line.is_empty() {
-                                    if let Some(len) = content_length.take() {
-                                        buffer.clear();
-                                        let _body_buf = vec![0u8; len];
-                                        // We need to read from the underlying reader
-                                        // For simplicity, we'll read line by line
-                                        // In production, use a proper framed reader
+                            Ok(msg) => {
+                                if let Ok((id_opt, response_result)) = parse_response(&msg) {
+                                    if let Some(id) = id_opt {
+                                        let result = response_result.unwrap_or(serde_json::Value::Null);
+                                        let mut inner = inner.lock().await;
+                                        if let Some(tx) = inner.pending_requests.remove(&id) {
+                                            let _ = tx.send(result);
+                                        }
                                     }
-                                } else {
-                                    buffer.push_str(&line);
-                                    buffer.push('\n');
+                                }
+                                if is_notification(&msg) {
+                                    let method = get_method(&msg).unwrap_or("");
+                                    let params = get_params(&msg);
+                                    if method == "textDocument/publishDiagnostics" {
+                                        let mut new_diags = Vec::new();
+                                        let mut target_path = String::new();
+                                        if let Some(uri) = params.get("uri").and_then(|v| v.as_str()) {
+                                            let path = uri.strip_prefix("file://").unwrap_or(uri);
+                                            target_path = path.to_string();
+                                            if let Some(diags) = params.get("diagnostics").and_then(|v| v.as_array()) {
+                                                for diag in diags {
+                                                    let empty_range = serde_json::json!({});
+                                                    let start = diag
+                                                        .get("range")
+                                                        .and_then(|r| r.get("start"))
+                                                        .unwrap_or(&empty_range);
+                                                    new_diags.push(LspDiagnostic {
+                                                        path: path.to_string(),
+                                                        line: start.get("line").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                                                        character: start.get("character").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                                                        severity: diag.get("severity").and_then(|v| v.as_u64()).map(|s| match s {
+                                                            1 => "error",
+                                                            2 => "warning",
+                                                            3 => "information",
+                                                            4 => "hint",
+                                                            _ => "unknown",
+                                                        }).unwrap_or("unknown").to_string(),
+                                                        message: diag.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                                        source: diag.get("source").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        let mut all_diags = diagnostics.write().await;
+                                        all_diags.retain(|d| d.path != target_path);
+                                        all_diags.extend(new_diags);
+                                    }
                                 }
                             }
-                            Ok(None) => {
-                                tracing::info!("LSP stdout EOF");
-                                break;
-                            }
                             Err(e) => {
-                                tracing::warn!("LSP stdout read error: {}", e);
+                                if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                                    tracing::info!("LSP stdout EOF");
+                                } else {
+                                    tracing::warn!("LSP stdout read error: {}", e);
+                                }
                                 break;
                             }
                         }
@@ -487,8 +514,7 @@ impl LspProcess {
         });
     }
 
-    #[allow(dead_code)]
-    fn handle_response(&self, id: i64, result: serde_json::Value) {
+    pub fn handle_response(&self, id: i64, result: serde_json::Value) {
         let inner = self.inner.clone();
         tokio::spawn(async move {
             let mut inner = inner.lock().await;
@@ -498,8 +524,7 @@ impl LspProcess {
         });
     }
 
-    #[allow(dead_code)]
-    fn handle_notification(&self, method: &str, params: serde_json::Value) {
+    pub fn handle_notification(&self, method: &str, params: serde_json::Value) {
         if method == "textDocument/publishDiagnostics" {
             let diagnostics = Arc::clone(&self.diagnostics);
             tokio::spawn(async move {

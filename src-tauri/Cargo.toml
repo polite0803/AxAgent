@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.package]
 version = "1.5.9"
-edition = "2021"
+edition = "2024"
 license = "AGPL-3.0-only"
 
 [workspace.dependencies]
@@ -35,8 +35,12 @@ version = "1.5.9"
 description = "AxAgent - AI Chat Desktop App"
 authors = ["刘小平 <polite0803@outlook.com>"]
 license = "AGPL-3.0-only"
-edition = "2021"
+edition = "2024"
 default-run = "AxAgent"
+
+[features]
+default = ["notification"]
+notification = ["dep:tauri-plugin-notification"]
 
 [lib]
 name = "axagent_lib"
@@ -91,6 +95,7 @@ toml = "0.8"
 rcgen = "0.13"
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "ring"] }
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-notification = { version = "2", optional = true }
 reqwest = { workspace = true }
 zip = "2"
 tempfile = "3"

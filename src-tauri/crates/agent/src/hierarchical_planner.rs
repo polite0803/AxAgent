@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+type TaskCallback = Box<dyn Fn(&str, &PlannedTask) + Send + Sync>;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plan {
     pub id: String,
@@ -125,13 +127,12 @@ pub struct ReplanRecord {
     pub pending_steps: Vec<String>,
 }
 
-#[allow(clippy::type_complexity)]
 pub struct HierarchicalPlanner {
     current_plan: Option<Plan>,
     max_retries: u32,
-    on_task_start: Option<Box<dyn Fn(&str, &PlannedTask) + Send + Sync>>,
-    on_task_complete: Option<Box<dyn Fn(&str, &PlannedTask) + Send + Sync>>,
-    on_task_fail: Option<Box<dyn Fn(&str, &PlannedTask) + Send + Sync>>,
+    on_task_start: Option<TaskCallback>,
+    on_task_complete: Option<TaskCallback>,
+    on_task_fail: Option<TaskCallback>,
     plan_versions: Vec<PlanVersion>,
     replan_history: Vec<ReplanRecord>,
     current_version: u32,

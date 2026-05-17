@@ -64,6 +64,7 @@ impl MarketplaceSearchCache {
     }
 
     pub fn set(&mut self, key: String, results: Vec<MarketplaceSkill>) {
+        self.cleanup_expired();
         self.cache.insert(
             key,
             CachedSearchResult {
@@ -73,7 +74,6 @@ impl MarketplaceSearchCache {
         );
     }
 
-    #[allow(dead_code)]
     pub fn cleanup_expired(&mut self) {
         self.cache.retain(|_, v| v.created_at.elapsed() < self.ttl);
     }
@@ -637,7 +637,6 @@ fn save_skill_manifest(
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct SkillVersion {
     pub version: String,
     pub installed_at: String,

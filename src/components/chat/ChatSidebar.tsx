@@ -21,7 +21,7 @@ import {
   useUIStore,
   useWorkflowEditorStore,
 } from "@/stores";
-import { _suppressSidebarAutoSelect, resetSidebarAutoSelectSuppression } from "@/stores/domain/conversationStore";
+import { isSidebarAutoSelectSuppressed, resetSidebarAutoSelectSuppression } from "@/stores/domain/conversationStore";
 import type { Conversation, Message } from "@/types";
 import Conversations from "@ant-design/x/es/conversations";
 import type { ConversationItemType } from "@ant-design/x/es/conversations/interface";
@@ -177,7 +177,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   useEffect(() => {
     // Suppress auto-select when the active conversation was just deleted/archived.
     // The user explicitly closed the conversation and should see the welcome screen.
-    if (_suppressSidebarAutoSelect) {
+    if (isSidebarAutoSelectSuppressed()) {
       resetSidebarAutoSelectSuppression();
       return;
     }

@@ -1,10 +1,3 @@
-#![allow(
-    clippy::struct_excessive_bools,
-    clippy::too_many_lines,
-    clippy::question_mark,
-    clippy::redundant_closure,
-    clippy::map_unwrap_or
-)]
 //! In-memory worker-boot state machine and control registry.
 //!
 //! This provides a foundational control plane for reliable worker startup:
@@ -728,9 +721,7 @@ fn detect_prompt_misdelivery(
     expected_cwd: &str,
     expected_receipt: Option<&WorkerTaskReceipt>,
 ) -> Option<PromptDeliveryObservation> {
-    let Some(prompt) = prompt else {
-        return None;
-    };
+    let prompt = prompt?;
 
     let prompt_snippet = prompt
         .lines()
@@ -836,7 +827,7 @@ fn detect_observed_shell_cwd(screen_text: &str) -> Option<String> {
         let tokens = line.split_whitespace().collect::<Vec<_>>();
         tokens
             .iter()
-            .position(|token| is_shell_prompt_token(token))
+            .position(is_shell_prompt_token)
             .and_then(|index| index.checked_sub(1).map(|cwd_index| tokens[cwd_index]))
             .filter(|candidate| looks_like_cwd_label(candidate))
             .map(ToOwned::to_owned)

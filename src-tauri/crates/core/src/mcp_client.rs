@@ -14,8 +14,9 @@ use rmcp::{
 type McpPeer = rmcp::service::Peer<RoleClient>;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-#[allow(unused_imports)]
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(all(unix, not(target_os = "android")))]
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -265,10 +266,8 @@ fn build_stdio_command(
     args: &[String],
     env: &HashMap<String, String>,
 ) -> tokio::process::Command {
-    let mut cmd = tokio::process::Command::new("cmd.exe");
-    let mut all_args: Vec<String> = vec!["/C".to_string(), command.to_string()];
-    all_args.extend_from_slice(args);
-    cmd.args(&all_args);
+    let mut cmd = tokio::process::Command::new(command);
+    cmd.args(args);
     configure_stdio_env(&mut cmd, env);
     cmd
 }
@@ -720,7 +719,14 @@ pub async fn call_tool_http(
         if let Some(auth) = auth_header {
             config = config.auth_header(auth.to_string());
         }
-        StreamableHttpClientWorker::<reqwest::Client>::new(reqwest::Client::new(), config)
+        StreamableHttpClientWorker::<reqwest::Client>::new(
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(60))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+            config,
+        )
     };
 
     let client = ()
@@ -869,6 +875,7 @@ pub async fn discover_tools_sse(endpoint: &str) -> Result<Vec<DiscoveredTool>> {
 ///
 /// When `server_id` is provided, OAuth credentials are automatically looked up
 /// and injected for HTTP/SSE transports.
+#[allow(clippy::too_many_arguments)]
 pub async fn call_tool_unified(
     transport: &str,
     command: Option<&str>,
@@ -893,6 +900,7 @@ pub async fn call_tool_unified(
 }
 
 /// Extended unified entry point with optional `server_id` (OAuth) and progress callback.
+#[allow(clippy::too_many_arguments)]
 pub async fn call_tool_unified_with_opts(
     transport: &str,
     command: Option<&str>,

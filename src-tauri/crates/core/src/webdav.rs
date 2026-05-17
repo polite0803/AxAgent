@@ -498,6 +498,7 @@ impl WebDavClient {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_backup_zip(
     db_path: &Path,
     documents_dir: Option<&Path>,
@@ -545,7 +546,8 @@ pub fn create_backup_zip(
         if key_path.exists() {
             let key_data = std::fs::read(key_path)
                 .map_err(|e| AxAgentError::Gateway(format!("Failed to read master.key: {}", e)))?;
-            let encrypted_key = crate::crypto::encrypt_backup_key(&key_data);
+            let encrypted_key = crate::crypto::encrypt_backup_key(&key_data)
+                .map_err(|e| AxAgentError::Gateway(format!("Failed to encrypt backup key: {}", e)))?;
             zip.start_file("master.key.enc", options)
                 .map_err(|e| AxAgentError::Gateway(format!("ZIP error: {}", e)))?;
             zip.write_all(&encrypted_key)

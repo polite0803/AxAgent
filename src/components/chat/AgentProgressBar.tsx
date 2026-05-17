@@ -10,7 +10,7 @@ interface AgentProgressBarProps {
   conversationId: string;
 }
 
-function getToolDisplayName(toolName: string, t: (key: string, ...args: any[]) => string): string {
+function getToolDisplayName(toolName: string, t: (key: string) => string): string {
   const lower = toolName.toLowerCase();
   const map: Record<string, string> = {
     read: "FileRead",
@@ -53,7 +53,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
 
   const displayName = useMemo(() => {
     return currentToolCall?.conversationId === conversationId
-      ? getToolDisplayName(currentToolCall.toolName, t as any)
+      ? getToolDisplayName(currentToolCall.toolName, t)
       : null;
   }, [currentToolCall?.toolName, currentToolCall?.toolUseId, currentToolCall?.conversationId, conversationId, t]);
 

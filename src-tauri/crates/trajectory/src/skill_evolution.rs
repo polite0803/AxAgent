@@ -115,7 +115,7 @@ impl EvolutionPopulation {
             let parent1 = tournament_select(&self.individuals, 3);
             let parent2 = tournament_select(&self.individuals, 3);
 
-            let child = if rand::thread_rng().gen::<f64>() < config.crossover_rate {
+            let child = if rand::thread_rng().r#gen::<f64>() < config.crossover_rate {
                 crossover_genomes(&parent1, &parent2)
             } else {
                 parent1.clone()
@@ -192,7 +192,7 @@ fn crossover_genomes(parent1: &SkillGenome, parent2: &SkillGenome) -> SkillGenom
     SkillGenome {
         skill_id: parent1.skill_id.clone(),
         content: child_content,
-        description: if rng.gen::<bool>() {
+        description: if rng.r#gen::<bool>() {
             parent1.description.clone()
         } else {
             parent2.description.clone()
@@ -207,14 +207,14 @@ fn mutate_genome(genome: &SkillGenome, mutation_rate: f64) -> SkillGenome {
     let mut new_steps: Vec<ProcedureStep> = genome.steps.clone();
 
     for step in &mut new_steps {
-        if rng.gen::<f64>() < mutation_rate {
-            if rng.gen::<f64>() < 0.3 {
+        if rng.r#gen::<f64>() < mutation_rate {
+            if rng.r#gen::<f64>() < 0.3 {
                 step.action = step.action.to_uppercase();
-            } else if rng.gen::<f64>() < 0.3 {
+            } else if rng.r#gen::<f64>() < 0.3 {
                 step.action = step.action.to_lowercase();
             }
 
-            if rng.gen::<f64>() < mutation_rate && step.order > 0 {
+            if rng.r#gen::<f64>() < mutation_rate && step.order > 0 {
                 step.order = step.order.saturating_sub(1);
             }
         }

@@ -162,6 +162,11 @@ impl ToolRecommender {
     fn calculate_relevance(&self, tool: &Tool, context: &TaskContext) -> f32 {
         let mut score: f32 = 0.0;
 
+        let similarity = self
+            .similarity_model
+            .calculate_similarity(&tool.description, &context.task_description);
+        score += similarity * 0.3;
+
         match context.task_type {
             TaskType::InformationRetrieval => {
                 if tool
@@ -244,10 +249,11 @@ impl ToolRecommender {
         let mut score: f32 = 0.8;
 
         for constraint in &context.constraints {
-            if constraint.constraint_type.as_str() == "speed" {
-                if constraint.value == "fast" && tool.id.0 == "browser" {
-                    score -= 0.3;
-                }
+            if constraint.constraint_type.as_str() == "speed"
+                && constraint.value == "fast"
+                && tool.id.0 == "browser"
+            {
+                score -= 0.3;
             }
         }
 
@@ -342,7 +348,6 @@ impl SimilarityModel {
         Self
     }
 
-    #[allow(dead_code)]
     fn calculate_similarity(&self, text1: &str, text2: &str) -> f32 {
         let text1_lower = text1.to_lowercase();
         let text2_lower = text2.to_lowercase();
