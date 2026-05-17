@@ -1,5 +1,6 @@
 import i18n from "@/i18n";
 import { invoke, isTauri, type UnlistenFn } from "@/lib/invoke";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { Conversation, Message } from "@/types";
 import { create } from "zustand";
 
@@ -923,6 +924,15 @@ export const useStreamStore = create<StreamState>((set, get) => ({
       streamingStartTimestamps: restTimestamps,
       thinkingActiveMessageIds: updatedThinking,
     });
+
+    // Proactively clean up execution phase for cancelled conversations.
+    // cancelCurrentStream removes activeStreams immediately but the backend
+    // agent-cancelled event (which normally transitions the phase) may be
+    // delayed or lost, leaving AgentProgressBar spinning indefinitely.
+    const execStore = useExecutionStore.getState();
+    if (execStore.isActive(activeConvId)) {
+      execStore.handleCancelled({ conversationId: activeConvId, reason: "cancelled" });
+    }
 
     if (streamMsgId && convRef) {
       convRef.setState((s) => ({
