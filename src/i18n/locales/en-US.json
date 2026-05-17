@@ -769,11 +769,12 @@
       "tool": "Tool",
       "agent": "Agent",
       "status": "Status",
-      "completed": "Completed",
-      "failed": "Failed",
-      "running": "Running",
+      "completed": "{{completed}} completed",
+      "failed": "{{failed}} failed",
+      "running": "{{running}} running",
       "cancelled": "Cancelled",
-      "pending": "Pending"
+      "pending": "Pending",
+      "totalEvents": "{{total}} events"
     },
     "agent": {
       "acceptEdits": "Accept Edits",
@@ -845,6 +846,10 @@
       "user": "User",
       "system": "System",
       "assistant": "Assistant"
+    },
+    "sidebar": {
+      "fallbackTitle": "Chat",
+      "searchPastSessions": "Search past sessions"
     }
   },
   "gateway": {
@@ -2662,7 +2667,8 @@
     "gatewayStartFailed": "Gateway start failed",
     "proxyTestFailed": "Proxy test failed",
     "invalidFormat": "Invalid format",
-    "page": "Error"
+    "page": "Error",
+    "message": "错误"
   },
   "desktop": {
     "title": "Desktop Integration",
@@ -3916,7 +3922,7 @@
     "exportMarkdown": "Export Markdown",
     "passRate": "Pass Rate",
     "overallScore": "Overall Score",
-    "taskCount": "Task Count",
+    "taskCount": "{{count}} tasks",
     "totalDuration": "Total Duration",
     "waiting": "Waiting",
     "noResult": "No Result",
@@ -3944,7 +3950,10 @@
     "difficultyMedium": "Medium",
     "difficultyHard": "Hard",
     "difficultyExpert": "Expert",
-    "includeTraces": "Include Traces"
+    "includeTraces": "Include Traces",
+    "tags": "Tags: {{tags}}",
+    "none": "None",
+    "response": "Response"
   },
   "traceExplorer": {
     "selectTrace": "Select a trace to view details"
@@ -4491,8 +4500,7 @@
     "quickCapture": "Quick capture...",
     "refresh": "Refresh",
     "startImport": "Import",
-    "vaultPath": "Vault path...",
-    "sourceLabel": "Source"
+    "vaultPath": "Vault path..."
   },
   "notification": {
     "clear": "Clear",
@@ -5154,12 +5162,6 @@
     "lastActive": "Last Active"
   },
   "sourceManager": {
-    "createSource": "Create Source",
-    "typeLabel": "Type",
-    "sourceName": "Name",
-    "description": "Description",
-    "rootPath": "Root Path",
-    "embeddingModel": "Embedding Model",
     "type": {
       "knowledge": "Knowledge",
       "memory": "Memory",
@@ -5436,7 +5438,16 @@
     "error": "Error",
     "citations": "Citations",
     "copyReport": "Copy Report",
-    "mockFinding": "Mock Research Finding"
+    "mockFinding": "Mock Research Finding",
+    "progress": {
+      "phasePlanning": "Planning",
+      "phaseSearching": "Searching",
+      "phaseExtracting": "Extracting",
+      "phaseAnalyzing": "Analyzing",
+      "phaseSynthesizing": "Synthesizing",
+      "phaseReporting": "Reporting",
+      "currentPhase": "Current phase: {{phase}}"
+    }
   },
   "reportViewer": {
     "noReport": "No report generated yet",
@@ -5569,7 +5580,35 @@
     "selectExpert": "Select Expert Role"
   },
   "permissionModal": {
-    "title": "Permission Approval"
+    "title": "Permission Approval",
+    "deny": "Deny",
+    "allow": "Allow",
+    "alwaysAllow": "Always Allow",
+    "unknownTool": "Unknown Tool",
+    "pendingCount": "{{count}} pending (current #{{current}})",
+    "pendingOne": "1 pending",
+    "expandDetails": "Expand details",
+    "collapseDetails": "Collapse details",
+    "noParams": "(no parameters)",
+    "riskExecute": " — This operation may modify system state, please review carefully",
+    "riskWrite": " — This operation will create or modify files",
+    "riskRead": " — This operation only reads data, no modifications will be made",
+    "riskLevel": "Risk level: {{level}}",
+    "approveError": "Approval failed",
+    "toolDesc": {
+      "readFilePath": "Read {{path}}",
+      "readFile": "Read file {{file}}",
+      "readFileGeneric": "Read file or directory contents",
+      "writeFile": "Write file {{path}}",
+      "writeFileGeneric": "Create or modify file",
+      "execCommand": "Execute command: {{cmd}}",
+      "execShell": "Execute shell command",
+      "deletePath": "Delete {{path}}",
+      "deleteGeneric": "Delete file or directory",
+      "webSearch": "Search the web for information",
+      "mcpTool": "Execute MCP tool",
+      "execTool": "Execute {{toolName}}"
+    }
   },
   "teammatePanel": {
     "memberCount": "{{count}} teammates",
@@ -5932,5 +5971,30 @@
   },
   "stream": {
     "timeout": "⚠️ Stream timeout (no update for 5 minutes), automatically stopped"
+  },
+  "chat:workflow": {
+    "templateList": {
+      "presetsImported": "导入成功"
+    }
+  },
+  "report": {
+    "source": {
+      "web": "Web",
+      "academic": "Academic",
+      "wikipedia": "Wikipedia",
+      "documentation": "Documentation",
+      "news": "News",
+      "blog": "Blog",
+      "forum": "Forum",
+      "unknown": "Unknown"
+    },
+    "citations": "References",
+    "generatedAt": "Generated at: {{time}}",
+    "export": "Export",
+    "copyReport": "Copy report",
+    "startNewResearch": "Start new research",
+    "preview": "Preview",
+    "summary": "Summary",
+    "lowCredibilityNotice": "Note: Report contains {{count}} low-credibility sources, use with caution"
   }
 }

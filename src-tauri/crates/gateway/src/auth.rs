@@ -49,7 +49,9 @@ pub async fn auth_middleware(
             let pool_bg = pool.clone();
             let key_id = key.id.clone();
             tokio::spawn(async move {
-                let _ = axagent_core::repo::gateway::update_last_used(&pool_bg, &key_id).await;
+                if let Err(e) = axagent_core::repo::gateway::update_last_used(&pool_bg, &key_id).await {
+                    tracing::warn!(%e, "Failed to update gateway key last_used");
+                }
             });
 
             request.extensions_mut().insert(AuthenticatedKey(key));

@@ -204,10 +204,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.warn("[settingsStore] saveSettings skipped: settings not loaded yet");
       return;
     }
-    const merged = { ...get().settings, ...partial };
-    set({ settings: merged, error: null });
+    set((s) => ({ settings: { ...s.settings, ...partial }, error: null }));
     try {
-      await invoke("save_settings", { settings: merged });
+      await invoke("save_settings", { settings: get().settings });
     } catch (e) {
       set({ error: String(e) });
     }

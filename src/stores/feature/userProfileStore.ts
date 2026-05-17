@@ -149,7 +149,7 @@ export const useUserProfileStore = create<UserProfileState>()(
       isLoading: false,
       error: null,
       updateProfile: (partial) => {
-        set({ profile: { ...get().profile, ...partial } });
+        set((s) => ({ profile: { ...s.profile, ...partial } }));
       },
       saveAvatarFile: async (dataUri: string) => {
         const match = dataUri.match(/^data:([^;]+);base64,(.+)$/s);
@@ -160,21 +160,21 @@ export const useUserProfileStore = create<UserProfileState>()(
             data,
             mimeType,
           });
-          set({
+          set((s) => ({
             profile: {
-              ...get().profile,
+              ...s.profile,
               avatarType: "file",
               avatarValue: relativePath,
             },
-          });
+          }));
         } else {
-          set({
+          set((s) => ({
             profile: {
-              ...get().profile,
+              ...s.profile,
               avatarType: "file",
               avatarValue: dataUri,
             },
-          });
+          }));
         }
       },
       loadTrajectoryProfile: async () => {

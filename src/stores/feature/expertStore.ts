@@ -307,9 +307,8 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   },
 
   addCustomRole: (role) => {
-    const updated = [...get().customRoles, role];
-    saveCustomRoles(updated);
-    set({ customRoles: updated });
+    set((s) => ({ customRoles: [...s.customRoles, role] }));
+    saveCustomRoles(get().customRoles);
   },
 
   updateCustomRole: (role) => {
@@ -352,9 +351,8 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       if (validRoles.length > 0) {
         const existingIds = new Set(get().customRoles.map((r) => r.id));
         const newRoles = validRoles.filter((r) => !existingIds.has(r.id));
-        const updated = [...get().customRoles, ...newRoles];
-        saveCustomRoles(updated);
-        set({ customRoles: updated });
+        set((s) => ({ customRoles: [...s.customRoles, ...newRoles] }));
+        saveCustomRoles(get().customRoles);
       }
       return { count: validRoles.length, errors };
     } catch (e) {

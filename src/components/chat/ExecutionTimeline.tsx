@@ -397,21 +397,21 @@ export const ExecutionTimeline = React.memo(
             {t("chat.timeline.title")}
           </span>
           <span style={{ color: token.colorTextSecondary }}>
-            {total} 个事件
+            {t("chat.timeline.totalEvents", { total: String(total) })}
           </span>
           {completed > 0 && (
             <Tag color="green" style={{ margin: 0, fontSize: 10 }}>
-              {completed} 完成
+              {t("chat.timeline.completed", { completed: String(completed) })}
             </Tag>
           )}
           {running > 0 && (
             <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>
-              {running} 运行中
+              {t("chat.timeline.running", { running: String(running) })}
             </Tag>
           )}
           {failed > 0 && (
             <Tag color="red" style={{ margin: 0, fontSize: 10 }}>
-              {failed} 失败
+              {t("chat.timeline.failed", { failed: String(failed) })}
             </Tag>
           )}
           <div style={{ flex: 1 }} />

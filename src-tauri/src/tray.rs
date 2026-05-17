@@ -14,7 +14,9 @@ static TRAY_LABELS: LazyLock<Mutex<(String, String)>> =
 #[tauri::command]
 pub fn set_tray_labels(app: AppHandle, show_label: String, quit_label: String) {
     *TRAY_LABELS.lock().unwrap() = (show_label.clone(), quit_label.clone());
-    let _ = sync_tray_menu(&app);
+    if let Err(e) = sync_tray_menu(&app) {
+        tracing::warn!("Failed to sync tray menu: {}", e);
+    }
 }
 
 fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::Error>> {

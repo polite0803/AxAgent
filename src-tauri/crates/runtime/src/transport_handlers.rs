@@ -602,7 +602,7 @@ impl TransportHandler for StdioTransportHandler {
                 reason: e.to_string(),
             })?;
 
-        println!("{}", json);
+        tracing::debug!(%json, "AgentMessage prepared for transport");
 
         Ok(())
     }

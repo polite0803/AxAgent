@@ -693,11 +693,12 @@
       "tool": "工具",
       "agent": "智能体",
       "status": "状态",
-      "completed": "完成",
-      "failed": "失败",
-      "running": "运行中",
+      "completed": "{{completed}} 完成",
+      "failed": "{{failed}} 失败",
+      "running": "{{running}} 运行中",
       "cancelled": "已取消",
-      "pending": "等待中"
+      "pending": "等待中",
+      "totalEvents": "{{total}} 个事件"
     },
     "agent": {
       "acceptEdits": "接受编辑",
@@ -819,6 +820,10 @@
       "user": "用户",
       "system": "系统",
       "assistant": "助手"
+    },
+    "sidebar": {
+      "fallbackTitle": "对话",
+      "searchPastSessions": "搜索历史会话"
     }
   },
   "gateway": {
@@ -4234,7 +4239,7 @@
     "exportMarkdown": "导出 Markdown",
     "passRate": "通过率",
     "overallScore": "总体得分",
-    "taskCount": "任务数",
+    "taskCount": "{{count}} 个任务",
     "totalDuration": "总耗时",
     "waiting": "等待",
     "noResult": "暂无结果",
@@ -4262,7 +4267,10 @@
     "difficultyMedium": "中等",
     "difficultyHard": "困难",
     "difficultyExpert": "专家",
-    "includeTraces": "包含追踪记录"
+    "includeTraces": "包含追踪记录",
+    "tags": "标签: {{tags}}",
+    "none": "无",
+    "response": "响应"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情"
@@ -5430,7 +5438,16 @@
     "error": "错误",
     "citations": "引用",
     "copyReport": "复制报告",
-    "mockFinding": "模拟研究发现"
+    "mockFinding": "模拟研究发现",
+    "progress": {
+      "phasePlanning": "规划",
+      "phaseSearching": "搜索",
+      "phaseExtracting": "提取",
+      "phaseAnalyzing": "分析",
+      "phaseSynthesizing": "综合",
+      "phaseReporting": "报告",
+      "currentPhase": "当前阶段: {{phase}}"
+    }
   },
   "reportViewer": {
     "noReport": "暂无生成报告",
@@ -5563,7 +5580,35 @@
     "selectExpert": "选择专家角色"
   },
   "permissionModal": {
-    "title": "权限审批"
+    "title": "权限审批",
+    "deny": "拒绝",
+    "allow": "允许",
+    "alwaysAllow": "始终允许",
+    "unknownTool": "未知工具",
+    "pendingCount": "待审批 {{count}} 项 (当前第 {{current}} 项)",
+    "pendingOne": "待审批 1 项",
+    "expandDetails": "展开参数详情",
+    "collapseDetails": "收起参数详情",
+    "noParams": "(无参数)",
+    "riskExecute": " — 此操作可能修改系统状态，请谨慎审批",
+    "riskWrite": " — 此操作将创建或修改文件",
+    "riskRead": " — 此操作仅读取数据，不会修改任何内容",
+    "riskLevel": "风险等级：{{level}}",
+    "approveError": "审批失败",
+    "toolDesc": {
+      "readFilePath": "读取 {{path}}",
+      "readFile": "读取文件 {{file}}",
+      "readFileGeneric": "读取文件或目录内容",
+      "writeFile": "写入文件 {{path}}",
+      "writeFileGeneric": "创建或修改文件",
+      "execCommand": "执行命令: {{cmd}}",
+      "execShell": "执行 Shell 命令",
+      "deletePath": "删除 {{path}}",
+      "deleteGeneric": "删除文件或目录",
+      "webSearch": "搜索网络获取信息",
+      "mcpTool": "执行 MCP 工具",
+      "execTool": "执行 {{toolName}}"
+    }
   },
   "teammatePanel": {
     "memberCount": "{{count}} 名队友",
@@ -5927,5 +5972,25 @@
   },
   "stream": {
     "timeout": "⚠️ 流式响应超时（5分钟无更新），已自动中断"
+  },
+  "report": {
+    "source": {
+      "web": "网页",
+      "academic": "学术",
+      "wikipedia": "维基百科",
+      "documentation": "文档",
+      "news": "新闻",
+      "blog": "博客",
+      "forum": "论坛",
+      "unknown": "未知"
+    },
+    "citations": "参考文献",
+    "generatedAt": "生成时间: {{time}}",
+    "export": "导出",
+    "copyReport": "复制报告",
+    "startNewResearch": "开始新研究",
+    "preview": "预览",
+    "summary": "摘要",
+    "lowCredibilityNotice": "注意: 报告中包含 {{count}} 个低可信度来源，请谨慎使用"
   }
 }

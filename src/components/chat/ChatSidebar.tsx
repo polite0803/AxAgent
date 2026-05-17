@@ -490,7 +490,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     } else {
       icon = (
         <Avatar size={20} style={{ fontSize: 12, backgroundColor: token.colorPrimaryBg, color: token.colorPrimary }}>
-          {(conv.title || "对")[0]}
+          {(conv.title || t("chat.sidebar.fallbackTitle"))[0]}
         </Avatar>
       );
     }
@@ -1464,7 +1464,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
-                <Tooltip title={t("chat.searchPastSessions") ?? "搜索历史会话"}>
+                <Tooltip title={t("chat.searchPastSessions")}>
                   <Button
                     type="text"
                     size="small"

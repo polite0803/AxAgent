@@ -397,7 +397,7 @@ impl ProviderAdapter for AnthropicAdapter {
 
         if !resp.status().is_success() {
             let s = resp.status();
-            let t = resp.text().await.unwrap_or_default();
+            let t = resp.text().await.unwrap_or_else(|e| format!("[body read error: {e}]"));
             return Err(AxAgentError::Provider(format!("Anthropic API error {s}: {t}")));
         }
 
@@ -792,7 +792,7 @@ impl ProviderAdapter for AnthropicAdapter {
 
         if !resp.status().is_success() {
             let s = resp.status();
-            let t = resp.text().await.unwrap_or_default();
+            let t = resp.text().await.unwrap_or_else(|e| format!("[body read error: {e}]"));
             return Err(AxAgentError::Provider(format!("Anthropic API error {s}: {t}")));
         }
 

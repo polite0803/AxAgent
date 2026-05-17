@@ -807,7 +807,9 @@ fn fallback_recommendations(context: &str) -> Vec<NodeRecommendation> {
         });
     }
 
-    recommendations.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
+    recommendations.sort_by(|a, b| {
+        b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal)
+    });
     recommendations.truncate(5);
 
     recommendations

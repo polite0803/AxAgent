@@ -693,6 +693,10 @@ export function InputArea() {
   );
 
   // Expert menu items — 专家角色选择（所有模式通用）
+  // 通过 selector 订阅 store 状态变更，确保 useMemo 响应式更新
+  const expertBuiltinRoles = useExpertStore((s) => s.builtinRoles);
+  const agencyRoles = useExpertStore((s) => s.agencyRoles);
+  const customRoles = useExpertStore((s) => s.customRoles);
   const expertMenuItems = useMemo<MenuProps["items"]>(() => {
     const grouped = useExpertStore.getState().getRolesByCategory();
     const items: MenuProps["items"] = [];
@@ -719,7 +723,7 @@ export function InputArea() {
       }
     }
     return items;
-  }, []);
+  }, [expertBuiltinRoles, agencyRoles, customRoles, t]);
 
   // Mode menu items (Q&A, Agent, Gateway options)
   const modeMenuItems = useMemo<MenuProps["items"]>(() => {

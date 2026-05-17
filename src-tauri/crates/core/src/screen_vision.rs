@@ -54,6 +54,7 @@ pub enum ActionType {
     since = "0.1.0",
     note = "Use ProviderType from axagent_core::types instead. VisionProvider is no longer used by the provider-based screen_vision implementation."
 )]
+#[allow(deprecated)]
 pub enum VisionProvider {
     #[default]
     Anthropic,
@@ -75,6 +76,7 @@ pub struct VisionPrompt {
     since = "0.1.0",
     note = "Use axagent_providers::screen_vision functions with a ProviderAdapter and ProviderRequestContext instead."
 )]
+#[allow(deprecated)]
 pub struct ScreenVisionAnalyzer {
     pub provider: VisionProvider,
 }

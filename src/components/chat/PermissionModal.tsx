@@ -39,6 +39,7 @@ const RISK_CONFIG: Record<
 function generateOperationSummary(
   toolName: string,
   input: Record<string, unknown>,
+  t: (key: string, options?: Record<string, string>) => string,
 ): string {
   const lowerTool = toolName.toLowerCase();
 
@@ -48,16 +49,15 @@ function generateOperationSummary(
     || lowerTool.includes("glob")
     || lowerTool.includes("ls")
   ) {
-    if (input.path) { return `读取 ${input.path}`; }
-    if (input.file) { return `读取文件 ${input.file}`; }
-    return "读取文件或目录内容";
+    if (input.path) { return t("permissionModal.toolDesc.readFilePath", { path: String(input.path) }); }
+    if (input.file) { return t("permissionModal.toolDesc.readFile", { file: String(input.file) }); }
+    return t("permissionModal.toolDesc.readFileGeneric");
   }
 
   if (lowerTool.includes("write") || lowerTool.includes("edit")) {
-    if (input.file_path || input.path) {
-      return `写入文件 ${input.file_path || input.path}`;
-    }
-    return "创建或修改文件";
+    const filePath = input.file_path || input.path;
+    if (filePath) { return t("permissionModal.toolDesc.writeFile", { path: String(filePath) }); }
+    return t("permissionModal.toolDesc.writeFileGeneric");
   }
 
   if (
@@ -66,26 +66,27 @@ function generateOperationSummary(
     || lowerTool.includes("exec")
   ) {
     if (input.command) {
-      const cmd = String(input.command).slice(0, 60);
-      return `执行命令: ${cmd}${cmd.length >= 60 ? "..." : ""}`;
+      const raw = String(input.command);
+      const cmd = raw.slice(0, 60);
+      return t("permissionModal.toolDesc.execCommand", { cmd: cmd + (raw.length > 60 ? "..." : "") });
     }
-    return "执行 Shell 命令";
+    return t("permissionModal.toolDesc.execShell");
   }
 
   if (lowerTool.includes("delete") || lowerTool.includes("remove")) {
-    if (input.path) { return `删除 ${input.path}`; }
-    return "删除文件或目录";
+    if (input.path) { return t("permissionModal.toolDesc.deletePath", { path: String(input.path) }); }
+    return t("permissionModal.toolDesc.deleteGeneric");
   }
 
   if (lowerTool.includes("search") || lowerTool.includes("web")) {
-    return "搜索网络获取信息";
+    return t("permissionModal.toolDesc.webSearch");
   }
 
   if (lowerTool.includes("mcp")) {
-    return "执行 MCP 工具";
+    return t("permissionModal.toolDesc.mcpTool");
   }
 
-  return `执行 ${toolName}`;
+  return t("permissionModal.toolDesc.execTool", { toolName });
 }
 
 /**
@@ -133,8 +134,9 @@ export const PermissionModal: React.FC = () => {
     return generateOperationSummary(
       permissionRequest.toolName,
       permissionRequest.input,
+      t,
     );
-  }, [permissionRequest]);
+  }, [permissionRequest, t]);
 
   const inputJson = useMemo(() => {
     if (!permissionRequest?.input) { return ""; }
@@ -158,7 +160,7 @@ export const PermissionModal: React.FC = () => {
           permissionRequest.toolName,
         );
       } catch (e) {
-        console.error("[PermissionModal] 审批失败:", e);
+        console.error("[PermissionModal]", t("permissionModal.approveError"), e);
       } finally {
         setLoading(null);
         // 移动到下一个待审批项
@@ -204,8 +206,11 @@ export const PermissionModal: React.FC = () => {
         >
           <div style={{ fontSize: 12, color: "var(--ant-color-text-secondary)" }}>
             {pendingEntries.length > 1
-              ? `待审批 ${pendingEntries.length} 项 (当前第 ${currentIndex + 1} 项)`
-              : "待审批 1 项"}
+              ? t("permissionModal.pendingCount", {
+                count: String(pendingEntries.length),
+                current: String(currentIndex + 1),
+              })
+              : t("permissionModal.pendingOne")}
           </div>
           <Space size={8}>
             <Button
@@ -214,14 +219,14 @@ export const PermissionModal: React.FC = () => {
               loading={loading === "deny"}
               onClick={() => handleDecision("deny")}
             >
-              拒绝
+              {t("permissionModal.deny")}
             </Button>
             <Button
               icon={<ShieldCheck size={14} />}
               loading={loading === "allow_once"}
               onClick={() => handleDecision("allow_once")}
             >
-              允许
+              {t("permissionModal.allow")}
             </Button>
             <Button
               type="primary"
@@ -229,7 +234,7 @@ export const PermissionModal: React.FC = () => {
               loading={loading === "allow_always"}
               onClick={() => handleDecision("allow_always")}
             >
-              始终允许
+              {t("permissionModal.alwaysAllow")}
             </Button>
           </Space>
         </div>
@@ -258,7 +263,7 @@ export const PermissionModal: React.FC = () => {
             />
             <div>
               <Text strong style={{ fontSize: 14, display: "block" }}>
-                {permissionRequest?.toolName ?? "未知工具"}
+                {permissionRequest?.toolName ?? t("permissionModal.unknownTool")}
               </Text>
               <Text type="secondary" style={{ fontSize: 13 }}>
                 {operationSummary}
@@ -271,12 +276,12 @@ export const PermissionModal: React.FC = () => {
         {permissionRequest?.riskLevel && (
           <div>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              风险等级：{t(riskCfg.labelKey)}
+              {t("permissionModal.riskLevel", { level: t(riskCfg.labelKey) })}
               {riskLevel === "execute"
-                ? " — 此操作可能修改系统状态，请谨慎审批"
+                ? t("permissionModal.riskExecute")
                 : riskLevel === "write"
-                ? " — 此操作将创建或修改文件"
-                : " — 此操作仅读取数据，不会修改任何内容"}
+                ? t("permissionModal.riskWrite")
+                : t("permissionModal.riskRead")}
             </Text>
           </div>
         )}
@@ -294,7 +299,7 @@ export const PermissionModal: React.FC = () => {
             }}
           >
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {showDetails ? "收起参数详情" : "展开参数详情"}
+              {showDetails ? t("permissionModal.collapseDetails") : t("permissionModal.expandDetails")}
             </Text>
           </div>
           {showDetails && (
@@ -313,7 +318,7 @@ export const PermissionModal: React.FC = () => {
                 lineHeight: 1.5,
               }}
             >
-              {inputJson || "(无参数)"}
+              {inputJson || t("permissionModal.noParams")}
             </pre>
           )}
           {!showDetails && inputPreview && (

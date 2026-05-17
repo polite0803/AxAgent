@@ -2930,9 +2930,9 @@ mod tests {
 
     fn write_file(path: &Path, contents: &str) {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).expect("parent dir");
+            fs::create_dir_all(parent).unwrap_or_else(|e| panic!("Failed to create parent dir {parent:?}: {e}"));
         }
-        fs::write(path, contents).expect("write file");
+        fs::write(path, contents).unwrap_or_else(|e| panic!("Failed to write file {path:?}: {e}"));
     }
 
     fn write_loader_plugin(root: &Path) {

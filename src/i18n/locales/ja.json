@@ -434,7 +434,8 @@
       "suggestionReason": "使用工作流可以获得更结构化的多步骤执行",
       "switchToWorkflow": "切换到此工作流",
       "unnamed": "工作流",
-      "viewDetails": "查看步骤详情"
+      "viewDetails": "查看步骤详情",
+      "presetsNotImported": "Development workflow templates (code review, bug fix, refactoring, etc.) require importing built-in experts in the expert selector first."
     },
     "modelRoutingConfig": {
       "title": "モデルルーティング設定",
@@ -692,11 +693,12 @@
       "tool": "ツール",
       "agent": "エージェント",
       "status": "状態",
-      "completed": "完了",
-      "failed": "失敗",
-      "running": "実行中",
+      "completed": "{{completed}} 完了",
+      "failed": "{{failed}} 失敗",
+      "running": "{{running}} 実行中",
       "cancelled": "キャンセル",
-      "pending": "保留中"
+      "pending": "保留中",
+      "totalEvents": "{{total}} 件のイベント"
     },
     "agent": {
       "acceptEdits": "編集を許可",
@@ -800,7 +802,11 @@
       "fileChanges": "File Changes",
       "collapseAll": "Collapse All",
       "expandAll": "Expand All",
-      "acceptAll": "Accept All"
+      "acceptAll": "Accept All",
+      "lines": "lines",
+      "newFile": "New",
+      "deleted": "Deleted",
+      "modified": "Modified"
     },
     "selfEvolution": "Self Evolution",
     "tracer": "Tracer",
@@ -814,6 +820,10 @@
       "user": "User",
       "system": "System",
       "assistant": "Assistant"
+    },
+    "sidebar": {
+      "fallbackTitle": "チャット",
+      "searchPastSessions": "過去のセッションを検索"
     }
   },
   "gateway": {
@@ -957,7 +967,9 @@
     "providers": "プロバイダー管理",
     "conversationSettings": "会話",
     "defaultModel": "デフォルトモデル",
-    "general": "一般",
+    "general": {
+      "title": "General"
+    },
     "display": "表示",
     "proxy": "プロキシ",
     "messageChannels": "メッセージチャネル",
@@ -1904,7 +1916,8 @@
       "performUpgrade": "アップグレードを実行",
       "upgradeSuccess": "ツールアップグレード提案が生成されました",
       "upgradeSuggestion": "アップグレード提案",
-      "reasoning": "理由"
+      "reasoning": "理由",
+      "selectTool": "Select a tool from the left panel to start semantic checking"
     },
     "groupWorkspace": "ワークスペース",
     "defaultWorkspaceDir": "デフォルトワークスペースディレクトリ",
@@ -2202,7 +2215,10 @@
     "zhipu": "智谱",
     "modelNamePlaceholder": "GPT 5.4 Think",
     "expertPromptNote": "Expert prompt note",
-    "modelGroupPlaceholder": "Select model group"
+    "modelGroupPlaceholder": "Select model group",
+    "cloudWorkspace": {
+      "title": "Cloud Workspace"
+    }
   },
   "backup": {
     "title": "バックアップセンター",
@@ -2485,7 +2501,8 @@
     "gatewayStartFailed": "ゲートウェイの起動に失敗しました",
     "proxyTestFailed": "プロキシテストに失敗しました",
     "invalidFormat": "無効なフォーマット",
-    "page": "Error"
+    "page": "Error",
+    "message": "错误"
   },
   "desktop": {
     "title": "デスクトップ統合",
@@ -2622,7 +2639,11 @@
       "claude": "Claude",
       "agents": "代理",
       "builtin": "ビルトイン",
-      "project": "プロジェクト"
+      "project": "プロジェクト",
+      "bundled": "Bundled",
+      "codebuddy": "CodeBuddy",
+      "trae": "Trae",
+      "workbuddy": "WorkBuddy"
     },
     "enabled": "有効",
     "disabled": "無効",
@@ -3024,7 +3045,8 @@
       "dragHint": "从左侧面板将这些节点拖到画布上",
       "noRecommendations": "暂无推荐",
       "aiAssistant": "AI 助手",
-      "clickCanvasToAdd": "已选择 \"{{label}}\" — 点击画布放置节点"
+      "clickCanvasToAdd": "已选择 \"{{label}}\" — 点击画布放置节点",
+      "explanation": "Explanation"
     },
     "previewInDevelopment": "预览功能开发中",
     "publishInDevelopment": "发布功能开发中",
@@ -3076,7 +3098,10 @@
       "edgeCount": "边数",
       "format": "格式",
       "formatAxAgent": "AxAgent Format",
-      "formatN8n": "n8n Format"
+      "formatN8n": "n8n Format",
+      "scanningFolder": "Scanning folder...",
+      "axagentFolderHint": "Select a folder containing AxAgent format JSON files. All workflow templates will be automatically scanned and imported.",
+      "n8nFolderHint": "Select a folder containing n8n format JSON files. All n8n workflows will be automatically converted and imported."
     },
     "preview": "プレビュー",
     "publish": "公開",
@@ -3352,7 +3377,12 @@
       "failed": "失敗",
       "avgNodeTime": "平均节点耗时",
       "nodeExecutions": "节点执行",
-      "selectedNodeDetails": "选中节点详情"
+      "selectedNodeDetails": "选中节点详情",
+      "noExecutionData": "No execution data. Please run the workflow first.",
+      "variables": "Variables",
+      "performance": "Performance",
+      "slowestNode": "Slowest Node",
+      "fastestNode": "Fastest Node"
     },
     "applySemanticCheck": "適用",
     "applyUpgrade": "应用升级",
@@ -3737,7 +3767,31 @@
     "errorOnly": "Errors Only",
     "successOnly": "Success Only",
     "apply": "Apply",
-    "timelineView": "Timeline View ({{count}} spans)"
+    "timelineView": "Timeline View ({{count}} spans)",
+    "sessionId": "Session ID",
+    "filterSession": "Filter session",
+    "timeRange": "Time Range",
+    "minDuration": "Min Duration",
+    "maxDuration": "Max Duration",
+    "errorFilter": "Error Filter",
+    "includeErrors": "Include errors",
+    "searchTraceId": "Search trace ID...",
+    "deleteTrace": "Delete trace",
+    "spanId": "Span ID",
+    "name": "Name",
+    "type": "Type",
+    "statusLabel": "Status",
+    "duration": "Duration",
+    "endTime": "End Time",
+    "service": "Service",
+    "exportJson": "Export JSON",
+    "exportCsv": "Export CSV",
+    "model": "Model",
+    "callTree": "Call Tree",
+    "timeline": "Timeline",
+    "costAnalysis": "Cost Analysis",
+    "durationAnalysis": "Duration Analysis",
+    "spanDetail": "Span Detail"
   },
   "browser": {
     "control": "浏览器控制",
@@ -3763,7 +3817,12 @@
   "recommendation": {
     "toolTitle": "工具推荐",
     "describePlaceholder": "描述你的任务...",
-    "availableTools": "可用工具"
+    "availableTools": "可用工具",
+    "title": "Tool Recommendation",
+    "taskDescription": "Task Description",
+    "analysisResult": "Analysis Result",
+    "recommendedTools": "Recommended Tools",
+    "alternativeApproaches": "Alternative Approaches"
   },
   "benchmark": {
     "selectBenchmarkFirst": "请先选择基准测试",
@@ -3792,7 +3851,32 @@
     "difficultyMedium": "Medium",
     "difficultyHard": "Hard",
     "difficultyExpert": "Expert",
-    "includeTraces": "Include Traces"
+    "includeTraces": "Include Traces",
+    "reportTitle": "Test Report",
+    "exportJson": "Export JSON",
+    "exportMarkdown": "Export Markdown",
+    "passRate": "Pass Rate",
+    "overallScore": "Overall Score",
+    "taskCount": "{{count}} 件のタスク",
+    "totalDuration": "Total Duration",
+    "waiting": "Waiting",
+    "noResult": "No Result",
+    "maxDifficulty": "Max Difficulty",
+    "noLimit": "No Limit",
+    "selectBenchmark": "Select Benchmark",
+    "task": "Task",
+    "difficulty": "Difficulty",
+    "status": "Status",
+    "score": "Score",
+    "duration": "Duration",
+    "criteria": "Criteria",
+    "taskDetails": "Task Details",
+    "recommendations": "Recommendations",
+    "action": "Action",
+    "retry": "Retry",
+    "tags": "タグ: {{tags}}",
+    "none": "なし",
+    "response": "応答"
   },
   "traceExplorer": {
     "selectTrace": "选择一个 trace 查看详情"
@@ -3959,7 +4043,12 @@
     "docker": "Docker",
     "ssh": "SSH",
     "sessions": "{{count}} sessions",
-    "configureBackends": "Configure Backends..."
+    "configureBackends": "Configure Backends...",
+    "newTerminal": "New Terminal",
+    "analyzeOutput": "Analyze Output",
+    "clear": "Clear",
+    "killProcess": "Kill Process",
+    "closeSession": "Close Session"
   },
   "search": {
     "resultPrefix": "以下是联网搜索结果，回答问题前请参考：\n\n",
@@ -4051,7 +4140,9 @@
       "fitView": "适应画布",
       "focusSelected": "聚焦选中",
       "zoomIn": "放大",
-      "zoomOut": "缩小"
+      "zoomOut": "缩小",
+      "communities": "Communities",
+      "noConnectedNodes": "No connected nodes"
     },
     "ingest": {
       "docx": "Word 文档",
@@ -4250,12 +4341,7 @@
     },
     "titlePlaceholder": "笔记标题...",
     "userNote": "用户",
-    "wiki": {
-      "description": "説明",
-      "name": "名前",
-      "rootPath": "根路径",
-      "schemaVersion": "Schema 版本"
-    },
+    "wiki": "Wiki",
     "manage": "管理",
     "viewingWiki": "正在查看 Wiki: {{id}}",
     "deleted": "已删除",
@@ -4531,7 +4617,13 @@
     "saveError": "Save failed: {{error}}",
     "jsonTab": "JSON Editor",
     "previewTab": "Preview",
-    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings."
+    "manifestHint": "Edit skill-manifest.json. Supported capability types: page, panel, toolbar, chatCommand, statusBar, navigation, settings.",
+    "manifestSaved": "Manifest configuration saved",
+    "jsonFormatError": "JSON format error: {{error}}",
+    "editManifest": "Edit Manifest",
+    "editManifestTitle": "Edit Skill Manifest — {{name}}",
+    "editManifestDesc": "Edit",
+    "supportedCapabilities": "Supported capability types"
   },
   "knowledge": {
     "commonPanel": "共通パネル",
@@ -4826,7 +4918,15 @@
     "syncing": "同期中...",
     "lastSync": "最終同期",
     "syncNow": "今すぐ同期",
-    "settings": "クラウド設定"
+    "settings": "クラウド設定",
+    "notConfiguredDesc": "Configure S3 or WebDAV cloud storage to sync your workspace",
+    "configureFirst": "Configure Now",
+    "testConnection": "Test Connection",
+    "connectionSuccess": "Connection successful",
+    "connectionFailed": "Connection failed",
+    "lastSyncResult": "Last Sync Result",
+    "cacheDir": "Cache Directory",
+    "quickActions": "Quick Actions"
   },
   "buddy": {
     "rarity": {
@@ -4990,7 +5090,9 @@
     "builtinImported": "12 built-in experts imported",
     "builtinImportedLabel": "Imported",
     "importBuiltin": "Import all built-in experts (code review, debugging, architecture design, etc.)",
-    "importBuiltinBtn": "Import Built-in"
+    "importBuiltinBtn": "Import Built-in",
+    "capabilityDetail": "Capability Details",
+    "detail": "Detail"
   },
   "agentProfile": {
     "importSuccess": "成功导入 {{count}} 个角色",
@@ -5033,7 +5135,11 @@
     "testFirst": "请先测试连接",
     "noSessions": "暂无活跃会话",
     "confirmClose": "确认关闭此会话?",
-    "close": "閉じる"
+    "close": "閉じる",
+    "directory": "Directory",
+    "permission": "Permission",
+    "activeTasks": "Active Tasks",
+    "lastActive": "Last Active"
   },
   "sourceManager": {
     "config": {
@@ -5159,7 +5265,45 @@
       "fullAccess": "Full Access"
     },
     "permissionStrategy": "Permission Execution Strategy",
-    "shellConfirm": "Shell Execution Requires Confirmation"
+    "shellConfirm": "Shell Execution Requires Confirmation",
+    "agentMode": "Agent Run Mode",
+    "defaultMode": "Default Mode",
+    "enableTokenBudget": "Enable Token Budget Detection",
+    "autoRetry": "Auto Retry",
+    "maxRetries": "Max Retries",
+    "retryDelay": "Retry Delay (seconds)",
+    "modelFallback": "Model Fallback",
+    "memoryLimit": "Memory Limit (MB)",
+    "enableIdleDetection": "Enable Idle Detection",
+    "idleTimeout": "Idle Timeout (seconds)",
+    "faultRecovery": "Fault Recovery Strategy",
+    "resourceControl": "Resource Control & Eco Strategy",
+    "contextCompression": "Context Compression Threshold",
+    "autoCompressThreshold": "Auto Compress Threshold (token)",
+    "warningBuffer": "Warning Buffer (token)",
+    "maxConsecutiveFailures": "Max Consecutive Compression Failures",
+    "enableMemoryCompression": "Enable Session Memory Compression",
+    "dreamConsolidation": "Dream Background Consolidation",
+    "enableDream": "Enable Dream Consolidation",
+    "minInterval": "Min Interval (hours)",
+    "minNewSessions": "Min New Sessions",
+    "maxDuration": "Max Duration (seconds)",
+    "lspServer": "LSP Language Server",
+    "enableLspDiagnostics": "Enable LSP Diagnostics",
+    "tokenBudgetLimit": "Token Budget Limit",
+    "cpuLimit": "CPU Usage Limit (%)",
+    "mode": {
+      "general": "General Mode",
+      "speed": "Speed Mode (Lightweight)",
+      "deep": "Deep Mode (Research)",
+      "plan": "Plan Mode"
+    },
+    "diagnosticLevelLabel": "Diagnostic Level",
+    "diagnosticLevel": {
+      "error": "Errors Only",
+      "warning": "Errors + Warnings",
+      "information": "All"
+    }
   },
   "fineTune": {
     "stats": {
@@ -5176,7 +5320,67 @@
     "title": "Model Fine-Tuning"
   },
   "research": {
-    "mockFinding": "Mock Research Finding"
+    "mockFinding": "Mock Research Finding",
+    "highCredibility": "High Credibility",
+    "mediumCredibility": "Medium Credibility",
+    "lowCredibility": "Low Credibility",
+    "topic": "Research Topic:",
+    "searchResults": "Search Results",
+    "generatedReport": "Generated Research Report",
+    "startNew": "Start New Research",
+    "notEvaluated": "Not Evaluated",
+    "topicPlaceholder": "Enter research topic, e.g.: History and future trends of AI",
+    "noSearchResults": "No search results",
+    "relevance": "Relevance",
+    "addToCitation": "Add to Citation",
+    "moreSources": "{{count}} more sources...",
+    "sourceDetail": "Source Detail",
+    "sourceTitle": "Title",
+    "sourceType": "Source Type",
+    "snippet": "Snippet",
+    "credibilityScore": "Credibility Score",
+    "relevanceScore": "Relevance Score",
+    "addToReportCitation": "Add to Report Citation",
+    "sourceTypeWeb": "Web",
+    "sourceTypeAcademic": "Academic",
+    "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeDocumentation": "Documentation",
+    "sourceTypeNews": "News",
+    "sourceTypeBlog": "Blog",
+    "sourceTypeForum": "Forum",
+    "sourceTypeUnknown": "Unknown",
+    "selectSourceToView": "Select a source to view details",
+    "phasePlanning": "Planning",
+    "phaseSearching": "Searching",
+    "phaseExtracting": "Extracting",
+    "phaseAnalyzing": "Analyzing",
+    "phaseSynthesizing": "Synthesizing",
+    "phaseReporting": "Reporting",
+    "mockTitle1": "Latest Research on Artificial Intelligence",
+    "mockSnippet1": "This article explores the current state and future trends of AI technology...",
+    "mockTitle2": "Deep Learning Research Survey",
+    "mockSnippet2": "This paper surveys the applications and research progress of deep learning in various fields...",
+    "mockSummary": "This report is based on {{count}} sources and provides an in-depth analysis of \"{{topic}}\".",
+    "mockContent": "# Research Report on \"{{topic}}\"\n\n## Summary\n\nThis report is based on research from {{count}} sources and provides an in-depth analysis of \"{{topic}}\".\n\n## Key Findings\n\n{{findings}}\n\n## Conclusion\n\nThrough in-depth research and analysis of {{count}} sources, we have gained a more comprehensive understanding of \"{{topic}}\".\n\n## References",
+    "errorOccurred": "An error occurred during research",
+    "researchAgent": "Research Agent",
+    "stop": "Stop",
+    "inputHint": "Enter a research topic, AI will automatically search, analyze multiple sources and generate a research report.",
+    "startResearch": "Start Research",
+    "pause": "Pause",
+    "continue": "Continue",
+    "error": "Error",
+    "citations": "Citations",
+    "copyReport": "Copy Report",
+    "progress": {
+      "phasePlanning": "計画",
+      "phaseSearching": "検索",
+      "phaseExtracting": "抽出",
+      "phaseAnalyzing": "分析",
+      "phaseSynthesizing": "統合",
+      "phaseReporting": "レポート",
+      "currentPhase": "現在のフェーズ: {{phase}}"
+    }
   },
   "citationManager": {
     "totalCitations": "Total Citations:",
@@ -5475,5 +5679,322 @@
   },
   "stream": {
     "timeout": "⚠️ ストリームがタイムアウトしました（5分間更新なし）、自動的に停止"
+  },
+  "permissionModal": {
+    "deny": "拒否",
+    "allow": "許可",
+    "alwaysAllow": "常に許可",
+    "unknownTool": "不明なツール",
+    "pendingCount": "{{count}} 件の承認待ち (現在 {{current}} 件目)",
+    "pendingOne": "1 件の承認待ち",
+    "expandDetails": "詳細を展開",
+    "collapseDetails": "詳細を折りたたむ",
+    "noParams": "(パラメータなし)",
+    "riskExecute": " — この操作はシステム状態を変更する可能性があります。慎重に審査してください",
+    "riskWrite": " — この操作はファイルを作成または変更します",
+    "riskRead": " — この操作はデータの読み取りのみで、変更は行われません",
+    "riskLevel": "リスクレベル: {{level}}",
+    "approveError": "承認に失敗しました",
+    "toolDesc": {
+      "readFilePath": "{{path}} を読み取り",
+      "readFile": "ファイル {{file}} を読み取り",
+      "readFileGeneric": "ファイルまたはディレクトリの内容を読み取り",
+      "writeFile": "ファイル {{path}} に書き込み",
+      "writeFileGeneric": "ファイルを作成または変更",
+      "execCommand": "コマンド実行: {{cmd}}",
+      "execShell": "シェルコマンドを実行",
+      "deletePath": "{{path}} を削除",
+      "deleteGeneric": "ファイルまたはディレクトリを削除",
+      "webSearch": "ウェブで情報を検索",
+      "mcpTool": "MCP ツールを実行",
+      "execTool": "{{toolName}} を実行"
+    },
+    "title": "Permission Approval"
+  },
+  "gatewayMonitor": {
+    "refresh": "Refresh",
+    "clear": "Clear",
+    "totalRequests": "Total Requests",
+    "totalTokens": "Total Tokens",
+    "activeConnections": "Active Connections",
+    "avgLatency": "Avg Latency",
+    "errorCount": "Error Count",
+    "uptime": "Uptime",
+    "requestLogs": "Request Logs",
+    "clearLogsConfirm": "Clear all logs?",
+    "loadMetricsFailed": "Failed to load gateway metrics: {{error}}",
+    "title": "Gateway Monitor",
+    "colTime": "Time",
+    "colMethod": "Method",
+    "colPath": "Path",
+    "colStatus": "Status",
+    "colLatency": "Latency",
+    "noRequestLogs": "No request logs"
+  },
+  "filePermission": {
+    "title": "File Access Authorization",
+    "authLevel": "Authorization Level",
+    "authDuration": "Authorization Duration",
+    "minutes": "minutes",
+    "deny": "Deny",
+    "close": "Close",
+    "purposePlaceholder": "Describe the purpose of accessing this file...",
+    "requestReason": "Request Reason",
+    "authId": "Authorization ID",
+    "filePath": "File Path",
+    "authRequest": "Authorization Request",
+    "authSuccess": "Authorization Successful",
+    "authFailed": "Authorization Failed",
+    "levelRead": "Read Only",
+    "levelReadDesc": "Can only read file contents",
+    "levelWrite": "Write Only",
+    "levelWriteDesc": "Can only write file contents",
+    "levelReadWrite": "Read & Write",
+    "levelReadWriteDesc": "Can read and write file contents",
+    "levelTemp": "Temporary",
+    "levelTempDesc": "Temporary authorization, auto-revoked",
+    "accessRequestDesc": "The application requests access to the following file:",
+    "maxDuration": "(max 24 hours)",
+    "duration30min": "30 minutes",
+    "duration1hour": "1 hour",
+    "duration4hours": "4 hours",
+    "authorize": "Authorize",
+    "validUntil": "Valid until: ",
+    "revoke": "Revoke",
+    "done": "Done"
+  },
+  "imageGen": {
+    "title": "Image Generation",
+    "inferenceSteps": "Inference Steps",
+    "promptPlaceholder": "Describe the image you want to generate...",
+    "negativePrompt": "Negative Prompt (optional)",
+    "loading": "Loading...",
+    "defaultProvider": "Default Provider",
+    "autoSaveArtifact": "Auto Save as Artifact",
+    "enterPrompt": "Please enter a prompt",
+    "configureApiKey": "Please configure API Key",
+    "generateImage": "Generate Image",
+    "model": "Model",
+    "elapsed": "Elapsed",
+    "providerFlux": "Flux (Replicate)",
+    "providerDalle": "DALL-E 3 (OpenAI)",
+    "replicateApiToken": "Replicate API Token",
+    "replicateApiTokenPlaceholder": "r8_...",
+    "openaiApiKeyDalle": "OpenAI API Key (DALL-E)",
+    "openaiApiKeyPlaceholder": "sk-...",
+    "openaiBaseUrl": "OpenAI Base URL",
+    "openaiBaseUrlPlaceholder": "https://api.openai.com/v1"
+  },
+  "diffViewer": {
+    "newFile": "New",
+    "deleted": "Deleted",
+    "modified": "Modified",
+    "newFileLabel": "New File",
+    "deletedContent": "Deleted Content"
+  },
+  "reportViewer": {
+    "noReport": "No report generated yet",
+    "noReferences": "No references available",
+    "noOutline": "No outline available",
+    "noSummary": "No summary available"
+  },
+  "settingsPage": {
+    "refreshPage": "Refresh Page"
+  },
+  "createTeam": {
+    "createTeam": "Create Team",
+    "cancel": "Cancel",
+    "teamName": "Team Name",
+    "memberList": "Member List",
+    "teamNamePlaceholder": "e.g.: Frontend Team, Data Analysis Team",
+    "memberNamePlaceholder": "Member Name",
+    "backendTypePlaceholder": "Backend Type",
+    "teamNameRequired": "Please enter a team name",
+    "memberNameRequired": "Please enter a teammate name",
+    "backendTypeRequired": "Please select a backend type",
+    "inProcess": "In-Process",
+    "subProcess": "Sub-Process",
+    "addTeammate": "Add Teammate"
+  },
+  "toolManager": {
+    "destructive": "Destructive",
+    "destructiveTooltip": "Destructive operation — irreversible after execution",
+    "readOnly": "Read Only",
+    "noTools": "No tool data available",
+    "clickToDisable": "Click to disable this tool",
+    "clickToEnable": "Click to enable this tool",
+    "groupDisabled": "Category disabled, cannot control individually",
+    "enabled": "enabled",
+    "enabledCount": "{{enabledCount}}/{{totalCount}} enabled",
+    "disableGroup": "Disable entire category",
+    "enableGroup": "Enable entire category"
+  },
+  "dreamStatus": {
+    "running": "Dream consolidation running...",
+    "consolidating": "Dream consolidating...",
+    "memoriesCount": "{{count}} memories",
+    "patternsCount": "{{count}} patterns",
+    "errorLabel": "Error: {{error}}",
+    "separator": ", ",
+    "completed": "Consolidation completed",
+    "completedTitle": "Dream completed ({{secs}}s)",
+    "totalConsolidations": "{{count}} consolidations total",
+    "statsSummary": "{{memories}} memories · {{patterns}} patterns"
+  },
+  "expertBadge": {
+    "generalAssistant": "General Assistant",
+    "selectExpert": "Select Expert Role"
+  },
+  "teammatePanel": {
+    "memberCount": "{{count}} teammates",
+    "statusIdle": "Idle",
+    "statusBusy": "Working",
+    "statusOffline": "Offline",
+    "statusError": "Error",
+    "defaultTeam": "Default Team",
+    "idle": "Idle",
+    "duration": "Duration {{seconds}}s",
+    "title": "Swarm Teammates",
+    "createTeam": "Create Team",
+    "newTeam": "New Team",
+    "waitingForTask": "Waiting for task assignment",
+    "teamCreated": "Team \"{{name}}\" created with {{count}} teammates"
+  },
+  "chatPage": {
+    "loading": "Loading..."
+  },
+  "sshConfig": {
+    "title": "SSH Configuration",
+    "connect": "Connect",
+    "host": "Host",
+    "port": "Port",
+    "username": "Username"
+  },
+  "dockerConfig": {
+    "title": "Docker Configuration",
+    "connect": "Connect",
+    "socketPath": "Docker Socket Path"
+  },
+  "datasetManager": {
+    "title": "Fine-Tune Dataset Manager",
+    "name": "Name",
+    "description": "Description",
+    "samples": "Samples",
+    "created": "Created",
+    "action": "Action",
+    "deleteConfirm": "Delete this dataset?",
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel",
+    "createNew": "Create New Dataset"
+  },
+  "loraConfig": {
+    "trainingSetup": "Training Setup",
+    "dataset": "Dataset",
+    "baseModel": "Base Model",
+    "rank": "Rank",
+    "alpha": "Alpha",
+    "learningRate": "Learning Rate",
+    "batchSize": "Batch Size",
+    "epochs": "Epochs",
+    "reset": "Reset"
+  },
+  "trainingJob": {
+    "title": "Training Jobs",
+    "totalJobs": "Total Jobs",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "id": "ID",
+    "status": "Status",
+    "baseModel": "Base Model",
+    "datasetId": "Dataset ID",
+    "progress": "Progress",
+    "loss": "Loss",
+    "loraOutput": "LoRA Output",
+    "action": "Action",
+    "ready": "Ready"
+  },
+  "errorRecovery": {
+    "noError": "No error to recover from",
+    "title": "Error Recovery",
+    "attempts": "Recovery Attempts",
+    "status": "Status",
+    "attemptsLabel": "Attempts",
+    "time": "Time"
+  },
+  "cronResult": {
+    "success": "Success",
+    "failed": "Failed",
+    "schedule": "Schedule",
+    "platform": "Platform",
+    "time": "Time"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "retryLoad": "Retry loading this module"
+  },
+  "cacheIndicator": {
+    "notEstablished": "Prompt cache not established. First turn in session.",
+    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force."
+  },
+  "artifactPanel": {
+    "fullscreen": "Fullscreen"
+  },
+  "cronManager": {
+    "deleteConfirm": "Delete this cron job?",
+    "title": "Cron Jobs",
+    "addJob": "Add Job",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "name": "Name",
+    "prompt": "Prompt",
+    "never": "Never"
+  },
+  "cacheConfig": {
+    "title": "Prompt Cache",
+    "enableBreakpoints": "Enable Cache Breakpoints"
+  },
+  "reflection": {
+    "noReflection": "No reflection available",
+    "title": "Reflection",
+    "qualityAnalysis": "Quality Analysis",
+    "efficiencyAnalysis": "Efficiency Analysis",
+    "generatedInsights": "Generated Insights",
+    "usageCount": "Usage count"
+  },
+  "subAgentCard": {
+    "fork": "Fork"
+  },
+  "modelParam": {
+    "topP": "Top P"
+  },
+  "insight": {
+    "placeholder": "e.g. User prefers dark mode..."
+  },
+  "chat:workflow": {
+    "templateList": {
+      "presetsImported": "导入成功"
+    }
+  },
+  "report": {
+    "source": {
+      "web": "ウェブ",
+      "academic": "学術",
+      "wikipedia": "ウィキペディア",
+      "documentation": "ドキュメント",
+      "news": "ニュース",
+      "blog": "ブログ",
+      "forum": "フォーラム",
+      "unknown": "不明"
+    },
+    "citations": "参考文献",
+    "generatedAt": "生成日時: {{time}}",
+    "export": "エクスポート",
+    "copyReport": "レポートをコピー",
+    "startNewResearch": "新しい研究を開始",
+    "preview": "プレビュー",
+    "summary": "概要",
+    "lowCredibilityNotice": "注意: レポートに {{count}} 件の低信頼度ソースが含まれています。注意して使用してください"
   }
 }
