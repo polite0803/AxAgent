@@ -366,7 +366,7 @@ function mergeCapability(
       });
       break;
     default:
-      console.warn(i18n.t("skillExtension.unknownCapabilityType", { type: cap.type }));
+      console.warn(i18n.t("skillExtension.unknownCapabilityType", { type: (cap as Record<string, unknown>).type }));
   }
 }
 

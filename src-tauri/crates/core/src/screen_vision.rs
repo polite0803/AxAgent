@@ -50,6 +50,10 @@ pub enum ActionType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[deprecated(
+    since = "0.1.0",
+    note = "Use ProviderType from axagent_core::types instead. VisionProvider is no longer used by the provider-based screen_vision implementation."
+)]
 pub enum VisionProvider {
     #[default]
     Anthropic,
@@ -58,29 +62,37 @@ pub enum VisionProvider {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[deprecated(
+    since = "0.1.0",
+    note = "No longer used. The provider-based screen_vision functions accept image_base64 and task_description directly."
+)]
 pub struct VisionPrompt {
     pub task_description: String,
     pub image_base64: String,
 }
 
-// Kept for backward compatibility
+#[deprecated(
+    since = "0.1.0",
+    note = "Use axagent_providers::screen_vision functions with a ProviderAdapter and ProviderRequestContext instead."
+)]
 pub struct ScreenVisionAnalyzer {
     pub provider: VisionProvider,
 }
 
+#[allow(deprecated)]
 impl ScreenVisionAnalyzer {
     pub fn new(provider: VisionProvider) -> Self {
         Self { provider }
     }
 
-    // These functions are kept for backward compatibility but should not be used
-    // Use the new providers::screen_vision functions instead
     pub async fn analyze_screen(
         &self,
         _image_base64: &str,
         _task_description: &str,
     ) -> anyhow::Result<ScreenAnalysis> {
-        Err(anyhow::anyhow!("ScreenVisionAnalyzer is deprecated. Use axagent_providers::screen_vision instead."))
+        Err(anyhow::anyhow!(
+            "ScreenVisionAnalyzer is deprecated. Use axagent_providers::screen_vision::analyze_screen instead."
+        ))
     }
 
     pub async fn find_element(
@@ -88,7 +100,9 @@ impl ScreenVisionAnalyzer {
         _image_base64: &str,
         _element_description: &str,
     ) -> anyhow::Result<Option<UIElementInfo>> {
-        Err(anyhow::anyhow!("ScreenVisionAnalyzer is deprecated. Use axagent_providers::screen_vision instead."))
+        Err(anyhow::anyhow!(
+            "ScreenVisionAnalyzer is deprecated. Use axagent_providers::screen_vision::find_element instead."
+        ))
     }
 
     pub async fn suggest_next_action(
@@ -96,10 +110,13 @@ impl ScreenVisionAnalyzer {
         _image_base64: &str,
         _current_task: &str,
     ) -> anyhow::Result<Vec<SuggestedAction>> {
-        Err(anyhow::anyhow!("ScreenVisionAnalyzer is deprecated. Use axagent_providers::screen_vision instead."))
+        Err(anyhow::anyhow!(
+            "ScreenVisionAnalyzer is deprecated. Use axagent_providers::screen_vision::suggest_next_action instead."
+        ))
     }
 }
 
+#[allow(deprecated)]
 impl Default for ScreenVisionAnalyzer {
     fn default() -> Self {
         Self::new(VisionProvider::Anthropic)

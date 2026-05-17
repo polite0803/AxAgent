@@ -25,6 +25,7 @@ libsqlite3-sys = { version = "0.30", features = ["bundled"] }
 sysinfo = "0.32"
 lazy_static = "1"
 sha2 = "0.10"
+hex = "0.4"
 image = { version = "0.25", features = ["png"] }
 xcap = "0.9.4"
 enigo = "0.6"
@@ -105,6 +106,7 @@ dirs = "5"
 hostname = "0.3"
 lazy_static = { workspace = true }
 sha2 = { workspace = true }
+hex = { workspace = true }
 notify = "8"
 rusqlite = { version = "0.32", features = ["bundled"] }
 

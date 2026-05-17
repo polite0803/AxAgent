@@ -748,6 +748,7 @@ dependencies = [
  "dirs 5.0.1",
  "font-kit",
  "futures",
+ "hex",
  "hostname",
  "lazy_static",
  "log",

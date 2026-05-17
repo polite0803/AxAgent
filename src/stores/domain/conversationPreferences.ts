@@ -68,7 +68,8 @@ export function conversationPreferenceStateFromConversation(
     searchEnabled: conversation?.search_enabled ?? false,
     searchProviderId: conversation?.search_provider_id ?? null,
     thinkingBudget: conversation?.thinking_budget ?? null,
-    mcpMode: conversation?.mcp_mode ?? "auto",
+    mcpMode: ((conversation as Record<string, unknown> | null | undefined)?.mcp_mode as "auto" | "disabled" | "manual")
+      ?? "auto",
     enabledMcpServerIds: [...(conversation?.enabled_mcp_server_ids ?? [])],
     enabledKnowledgeBaseIds: [...(conversation?.enabled_knowledge_base_ids ?? [])],
     activeMemoryNamespaceId: (conversation?.enabled_memory_namespace_ids ?? [])[0] ?? null,

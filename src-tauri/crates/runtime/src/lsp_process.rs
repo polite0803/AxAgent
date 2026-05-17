@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::AsyncWriteExt;
 use tokio::process::{Child, Command};
 use tokio::sync::{Mutex, RwLock};
 
@@ -58,7 +58,7 @@ struct LspProcessInner {
     child: Option<Child>,
     stdin: Option<tokio::process::ChildStdin>,
     request_id: i64,
-    pending_requests: HashMap<i64, tokio::sync::oneshot::Sender<serde_json::Value>>,
+    pending_requests: HashMap<i64, tokio::sync::oneshot::Sender<Result<serde_json::Value, String>>>,
     initialized: bool,
     root_path: PathBuf,
     capabilities: serde_json::Value,
@@ -379,7 +379,8 @@ impl LspProcess {
         self.write_message(&message).await?;
 
         match tokio::time::timeout(std::time::Duration::from_secs(30), rx).await {
-            Ok(Ok(result)) => Ok(result),
+            Ok(Ok(Ok(result))) => Ok(result),
+            Ok(Ok(Err(e))) => Err(e),
             Ok(Err(_)) => Err(format!("LSP request '{}' channel dropped", method)),
             Err(_) => Err(format!("LSP request '{}' timed out", method)),
         }
@@ -437,74 +438,70 @@ impl LspProcess {
             let mut reader = LspMessageReader::new(stdout);
 
             loop {
-                if shutdown.load(std::sync::atomic::Ordering::SeqCst) {
-                    break;
-                }
+                let result = reader.read_message().await;
 
-                tokio::select! {
-                    result = reader.read_message() => {
-                        match result {
-                            Ok(msg) => {
-                                if let Ok((id_opt, response_result)) = parse_response(&msg) {
-                                    if let Some(id) = id_opt {
-                                        let result = response_result.unwrap_or(serde_json::Value::Null);
-                                        let mut inner = inner.lock().await;
-                                        if let Some(tx) = inner.pending_requests.remove(&id) {
-                                            let _ = tx.send(result);
-                                        }
-                                    }
+                match result {
+                    Ok(msg) => {
+                        if let Ok((id_opt, response_result)) = parse_response(&msg) {
+                            if let Some(id) = id_opt {
+                                let value = response_result
+                                    .map_err(|e| format!("JSON-RPC error (code {}): {}", e.code, e.message));
+                                let mut inner = inner.lock().await;
+                                if let Some(tx) = inner.pending_requests.remove(&id) {
+                                    let _ = tx.send(value);
                                 }
-                                if is_notification(&msg) {
-                                    let method = get_method(&msg).unwrap_or("");
-                                    let params = get_params(&msg);
-                                    if method == "textDocument/publishDiagnostics" {
-                                        let mut new_diags = Vec::new();
-                                        let mut target_path = String::new();
-                                        if let Some(uri) = params.get("uri").and_then(|v| v.as_str()) {
-                                            let path = uri.strip_prefix("file://").unwrap_or(uri);
-                                            target_path = path.to_string();
-                                            if let Some(diags) = params.get("diagnostics").and_then(|v| v.as_array()) {
-                                                for diag in diags {
-                                                    let empty_range = serde_json::json!({});
-                                                    let start = diag
-                                                        .get("range")
-                                                        .and_then(|r| r.get("start"))
-                                                        .unwrap_or(&empty_range);
-                                                    new_diags.push(LspDiagnostic {
-                                                        path: path.to_string(),
-                                                        line: start.get("line").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-                                                        character: start.get("character").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-                                                        severity: diag.get("severity").and_then(|v| v.as_u64()).map(|s| match s {
-                                                            1 => "error",
-                                                            2 => "warning",
-                                                            3 => "information",
-                                                            4 => "hint",
-                                                            _ => "unknown",
-                                                        }).unwrap_or("unknown").to_string(),
-                                                        message: diag.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                                                        source: diag.get("source").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                                                    });
-                                                }
-                                            }
-                                        }
-                                        let mut all_diags = diagnostics.write().await;
-                                        all_diags.retain(|d| d.path != target_path);
-                                        all_diags.extend(new_diags);
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                if e.kind() == std::io::ErrorKind::UnexpectedEof {
-                                    tracing::info!("LSP stdout EOF");
-                                } else {
-                                    tracing::warn!("LSP stdout read error: {}", e);
-                                }
-                                break;
                             }
                         }
+                        if is_notification(&msg) {
+                            let method = get_method(&msg).unwrap_or("");
+                            let params = get_params(&msg);
+                            if method == "textDocument/publishDiagnostics" {
+                                let mut new_diags = Vec::new();
+                                let mut target_path = String::new();
+                                if let Some(uri) = params.get("uri").and_then(|v| v.as_str()) {
+                                    let path = uri.strip_prefix("file://").unwrap_or(uri);
+                                    target_path = path.to_string();
+                                    if let Some(diags) = params.get("diagnostics").and_then(|v| v.as_array()) {
+                                        for diag in diags {
+                                            let empty_range = serde_json::json!({});
+                                            let start = diag
+                                                .get("range")
+                                                .and_then(|r| r.get("start"))
+                                                .unwrap_or(&empty_range);
+                                            new_diags.push(LspDiagnostic {
+                                                path: path.to_string(),
+                                                line: start.get("line").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                                                character: start.get("character").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                                                severity: diag.get("severity").and_then(|v| v.as_u64()).map(|s| match s {
+                                                    1 => "error",
+                                                    2 => "warning",
+                                                    3 => "information",
+                                                    4 => "hint",
+                                                    _ => "unknown",
+                                                }).unwrap_or("unknown").to_string(),
+                                                message: diag.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                                source: diag.get("source").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                            });
+                                        }
+                                    }
+                                }
+                                let mut all_diags = diagnostics.write().await;
+                                all_diags.retain(|d| d.path != target_path);
+                                all_diags.extend(new_diags);
+                            }
+                        }
+
+                        if shutdown.load(std::sync::atomic::Ordering::SeqCst) {
+                            break;
+                        }
                     }
-                    _ = tokio::time::sleep(std::time::Duration::from_millis(100)) => {
-                        continue;
+                    Err(e) => {
+                        if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                            tracing::info!("LSP stdout EOF");
+                        } else {
+                            tracing::warn!("LSP stdout read error: {}", e);
+                        }
+                        break;
                     }
                 }
             }
@@ -519,7 +516,7 @@ impl LspProcess {
         tokio::spawn(async move {
             let mut inner = inner.lock().await;
             if let Some(tx) = inner.pending_requests.remove(&id) {
-                let _ = tx.send(result);
+                let _ = tx.send(Ok(result));
             }
         });
     }

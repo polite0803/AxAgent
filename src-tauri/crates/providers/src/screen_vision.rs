@@ -109,7 +109,7 @@ Return the analysis in this JSON format:
       "element_type": "button|text_field|menu|checkbox|...",
       "name": "visible name or label",
       "description": "brief description",
-      "bounds": {{"x": 100, "y": 200, "width": 150, "height": 40},
+      "bounds": {{"x": 100, "y": 200, "width": 150, "height": 40}},
       "clickable": true/false,
       "editable": true/false,
       "confidence": 0.0-1.0
@@ -143,7 +143,7 @@ fn parse_analysis_response(response: &str) -> Result<ScreenAnalysis> {
                     .trim(),
             )
         })
-        .map_err(|e| AxAgentError::Provider(format!("Failed to parse JSON: {} - Response: {}", e, response))?;
+        .map_err(|e| AxAgentError::Provider(format!("Failed to parse JSON: {} - Response: {}", e, response)))?;
 
     let elements: Vec<UIElementInfo> = parsed["elements"]
         .as_array()

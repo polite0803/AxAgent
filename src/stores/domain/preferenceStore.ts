@@ -5,11 +5,8 @@ import { create } from "zustand";
 import { useMcpStore } from "../feature/mcpStore";
 import { useProviderStore } from "../feature/providerStore";
 import {
-  clearStagedPrefs,
   type ConversationPreferenceState,
   conversationPreferenceStateFromConversation,
-  conversationPreferenceUpdateFromState,
-  getStagedPreferenceUpdate,
   isLatestConversationPreferenceSave,
   mergeConversationCollections,
   nextConversationPreferenceSaveSeq,

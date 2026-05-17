@@ -23,6 +23,24 @@ pub struct TotNode {
     pub content: String,
     pub score: Option<f64>,
     pub children: Vec<String>,
+    pub depth: u32,
+    pub thought_type: String,
+    pub metadata: serde_json::Value,
+}
+
+impl Default for TotNode {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            parent_id: None,
+            content: String::new(),
+            score: None,
+            children: Vec::new(),
+            depth: 0,
+            thought_type: "reasoning".to_string(),
+            metadata: serde_json::Value::Null,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,6 +48,24 @@ pub struct TotSession {
     pub nodes: HashMap<String, TotNode>,
     pub current_node_id: Option<String>,
     pub root_node_id: Option<String>,
+    pub traversal_strategy: String,
+    pub pruning_threshold: f64,
+    pub max_depth: u32,
+    pub max_branches: u32,
+}
+
+impl Default for TotSession {
+    fn default() -> Self {
+        Self {
+            nodes: HashMap::new(),
+            current_node_id: None,
+            root_node_id: None,
+            traversal_strategy: "bfs".to_string(),
+            pruning_threshold: 0.3,
+            max_depth: 5,
+            max_branches: 3,
+        }
+    }
 }
 
 // Replanning types
@@ -47,6 +83,17 @@ pub struct PlannerVersion {
     pub timestamp: i64,
     pub reason: String,
     pub state: serde_json::Value,
+    pub action_snapshot: Vec<PlannerAction>,
+    pub diff_from_previous: Option<PlannerVersionDiff>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlannerVersionDiff {
+    pub from_version: u32,
+    pub to_version: u32,
+    pub actions_added: Vec<PlannerAction>,
+    pub actions_removed: Vec<String>,
+    pub summary: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +107,20 @@ pub struct PlannerSession {
 pub struct SemanticCacheState {
     pub cache: SemanticCache,
     pub enabled: bool,
+    pub in_memory_entries: Vec<InMemoryCacheEntry>,
+    pub similarity_threshold: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InMemoryCacheEntry {
+    pub query_hash: String,
+    pub query_text: String,
+    pub query_embedding: Vec<f32>,
+    pub response: String,
+    pub model_id: Option<String>,
+    pub created_at: i64,
+    pub access_count: u32,
+    pub ttl_secs: u64,
 }
 
 pub struct AppState {
@@ -72,6 +133,7 @@ pub struct AppState {
     pub auto_backup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub webdav_sync_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub api_server_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    pub trajectory_cleanup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     /// 优雅关闭信号，通知所有后台任务停止
     pub shutdown_token: CancellationToken,
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,

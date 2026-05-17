@@ -85,7 +85,6 @@ function buildFallbackChain(
   return chain.slice(0, 3); // Max 3 fallback attempts
 }
 
-import type { AttachmentInput } from "@/types";
 import type { ConversationState } from "./conversationStore";
 
 export interface SendMethods {
@@ -102,6 +101,12 @@ export interface SendMethods {
   ) => Promise<void>;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
   regenerateWithModel: (targetMessageId: string, providerId: string, model_id: string) => Promise<void>;
+  sendMultiModelMessage: (
+    content: string,
+    companionModels: Array<{ providerId: string; model_id: string }>,
+    attachments?: AttachmentInput[],
+    searchProviderId?: string | null,
+  ) => Promise<void>;
 }
 
 export function createSendMethods(

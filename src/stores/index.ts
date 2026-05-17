@@ -25,6 +25,7 @@ export { useCategoryStore } from "./feature/categoryStore";
 export { useContinuationStore } from "./feature/continuationStore";
 export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useExecutionStore } from "./feature/executionStore";
+export { useExpertStore } from "./feature/expertStore";
 export { useFileStore } from "./feature/fileStore";
 export { useGatewayLinkStore } from "./feature/gatewayLinkStore";
 export { useGatewayStore } from "./feature/gatewayStore";

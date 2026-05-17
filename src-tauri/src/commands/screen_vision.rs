@@ -1,8 +1,8 @@
-use axagent_core::screen_vision::{ScreenAnalysis, UIElementInfo};
+use axagent_core::screen_vision::UIElementInfo;
 use axagent_core::types::ProviderType;
-use axagent_providers::registry::ProviderRegistry;
-use axagent_providers::ProviderRequestContext;
+use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tauri::State;
 
 use crate::AppState;
@@ -25,62 +25,66 @@ pub struct SuggestedActionInfo {
     pub y: f64,
 }
 
-fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
-    match pt {
-        ProviderType::OpenAI => "openai",
-        ProviderType::OpenAIResponses => "openai_responses",
-        ProviderType::Anthropic => "anthropic",
-        ProviderType::Gemini => "gemini",
-        ProviderType::OpenClaw => "openclaw",
-        ProviderType::Hermes => "hermes",
-        ProviderType::Ollama => "ollama",
+fn resolve_provider_adapter(
+    provider_type: &ProviderType,
+) -> Result<Arc<dyn ProviderAdapter>, String> {
+    match provider_type {
+        ProviderType::OpenAI => Ok(Arc::new(axagent_providers::openai::OpenAIAdapter::new())),
+        ProviderType::OpenAIResponses => {
+            Ok(Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new()))
+        }
+        ProviderType::Anthropic => {
+            Ok(Arc::new(axagent_providers::anthropic::AnthropicAdapter::new()))
+        }
+        ProviderType::Gemini => Ok(Arc::new(axagent_providers::gemini::GeminiAdapter::new())),
+        ProviderType::OpenClaw => {
+            Ok(Arc::new(axagent_providers::openclaw::OpenClawAdapter::new()))
+        }
+        ProviderType::Hermes => Ok(Arc::new(axagent_providers::hermes::HermesAdapter::new())),
+        ProviderType::Ollama => Ok(Arc::new(axagent_providers::ollama::OllamaAdapter::new())),
     }
 }
 
-#[tauri::command]
-pub async fn analyze_screen(
-    state: State<'_, AppState>,
-    task_description: String,
+async fn capture_screenshot(
     monitor_index: Option<u32>,
-    provider_id: String,
-    model_id: String,
-) -> Result<ScreenAnalysisResult, String> {
+) -> Result<axagent_core::screen_capture::Screenshot, String> {
     let capture = axagent_core::screen_capture::ScreenCapture::new();
-    let screenshot = capture
+    capture
         .capture_full(monitor_index)
         .await
-        .map_err(|e| format!("Screen capture failed: {}", e))?;
+        .map_err(|e| format!("Screen capture failed: {}", e))
+}
 
-    // Get provider from DB
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &provider_id)
+struct VisionContext {
+    adapter: Arc<dyn ProviderAdapter>,
+    ctx: ProviderRequestContext,
+}
+
+async fn build_vision_context(
+    db: &sea_orm::DatabaseConnection,
+    master_key: &[u8; 32],
+    provider_id: &str,
+) -> Result<VisionContext, String> {
+    let provider = axagent_core::repo::provider::get_provider(db, provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    // Get active key
-    let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider_id)
+    let key_row = axagent_core::repo::provider::get_active_key(db, provider_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    // Decrypt key
     let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
+        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key)
             .map_err(|e| e.to_string())?;
 
-    // Get global settings for proxy
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
+    let global_settings = axagent_core::repo::settings::get_settings(db)
         .await
         .unwrap_or_default();
     let resolved_proxy =
         axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
 
-    // Get adapter
-    let registry = ProviderRegistry::create_default();
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = registry
-        .get(registry_key)
-        .ok_or_else(|| format!("No adapter for provider type: {:?}", provider.provider_type))?;
+    let adapter = resolve_provider_adapter(&provider.provider_type)?;
 
-    // Build context
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
         key_id: key_row.id,
@@ -101,33 +105,26 @@ pub async fn analyze_screen(
         store_response: None,
     };
 
-    // Analyze screen
-    let analysis = axagent_providers::screen_vision::analyze_screen(
-        adapter.as_ref(),
-        &ctx,
-        model_id,
-        &screenshot.image_base64,
-        &task_description,
-    )
-    .await
-    .map_err(|e| format!("Screen analysis failed: {}", e))?;
+    Ok(VisionContext { adapter, ctx })
+}
 
-    let suggested_actions: Vec<SuggestedActionInfo> = analysis
-        .suggested_actions
+fn map_actions_to_info(
+    actions: &[axagent_core::screen_vision::SuggestedAction],
+    elements: &[UIElementInfo],
+) -> Vec<SuggestedActionInfo> {
+    actions
         .iter()
         .map(|action| {
-            let (x, y) = if let Some(element) = analysis
-                .elements
+            let (x, y) = elements
                 .iter()
                 .find(|e| e.name == action.target_element)
-            {
-                (
-                    element.bounds.x + element.bounds.width / 2.0,
-                    element.bounds.y + element.bounds.height / 2.0,
-                )
-            } else {
-                (0.0, 0.0)
-            };
+                .map(|element| {
+                    (
+                        element.bounds.x + element.bounds.width / 2.0,
+                        element.bounds.y + element.bounds.height / 2.0,
+                    )
+                })
+                .unwrap_or((0.0, 0.0));
 
             SuggestedActionInfo {
                 action_type: format!("{:?}", action.action_type).to_lowercase(),
@@ -138,7 +135,32 @@ pub async fn analyze_screen(
                 y,
             }
         })
-        .collect();
+        .collect()
+}
+
+#[tauri::command]
+pub async fn analyze_screen(
+    state: State<'_, AppState>,
+    task_description: String,
+    monitor_index: Option<u32>,
+    provider_id: String,
+    model_id: String,
+) -> Result<ScreenAnalysisResult, String> {
+    let screenshot = capture_screenshot(monitor_index).await?;
+    let VisionContext { adapter, ctx } =
+        build_vision_context(&state.sea_db, &state.master_key, &provider_id).await?;
+
+    let analysis = axagent_providers::screen_vision::analyze_screen(
+        adapter.as_ref(),
+        &ctx,
+        model_id,
+        &screenshot.image_base64,
+        &task_description,
+    )
+    .await
+    .map_err(|e| format!("Screen analysis failed: {}", e))?;
+
+    let suggested_actions = map_actions_to_info(&analysis.suggested_actions, &analysis.elements);
 
     Ok(ScreenAnalysisResult {
         elements: analysis.elements,
@@ -156,61 +178,9 @@ pub async fn find_element_on_screen(
     provider_id: String,
     model_id: String,
 ) -> Result<Option<UIElementInfo>, String> {
-    let capture = axagent_core::screen_capture::ScreenCapture::new();
-    let screenshot = capture
-        .capture_full(monitor_index)
-        .await
-        .map_err(|e| format!("Screen capture failed: {}", e))?;
-
-    // Get provider from DB
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // Get active key
-    let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // Decrypt key
-    let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-            .map_err(|e| e.to_string())?;
-
-    // Get global settings for proxy
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy =
-        axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    // Get adapter
-    let registry = ProviderRegistry::create_default();
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = registry
-        .get(registry_key)
-        .ok_or_else(|| format!("No adapter for provider type: {:?}", provider.provider_type))?;
-
-    // Build context
-    let ctx = ProviderRequestContext {
-        api_key: decrypted_key,
-        key_id: key_row.id,
-        provider_id: provider.id,
-        base_url: Some(axagent_providers::resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
-        api_path: provider.api_path,
-        proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
+    let screenshot = capture_screenshot(monitor_index).await?;
+    let VisionContext { adapter, ctx } =
+        build_vision_context(&state.sea_db, &state.master_key, &provider_id).await?;
 
     axagent_providers::screen_vision::find_element(
         adapter.as_ref(),
@@ -231,61 +201,9 @@ pub async fn suggest_screen_action(
     provider_id: String,
     model_id: String,
 ) -> Result<Vec<SuggestedActionInfo>, String> {
-    let capture = axagent_core::screen_capture::ScreenCapture::new();
-    let screenshot = capture
-        .capture_full(monitor_index)
-        .await
-        .map_err(|e| format!("Screen capture failed: {}", e))?;
-
-    // Get provider from DB
-    let provider = axagent_core::repo::provider::get_provider(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // Get active key
-    let key_row = axagent_core::repo::provider::get_active_key(&state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // Decrypt key
-    let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-            .map_err(|e| e.to_string())?;
-
-    // Get global settings for proxy
-    let global_settings = axagent_core::repo::settings::get_settings(&state.sea_db)
-        .await
-        .unwrap_or_default();
-    let resolved_proxy =
-        axagent_core::types::ProviderProxyConfig::resolve(&provider.proxy_config, &global_settings);
-
-    // Get adapter
-    let registry = ProviderRegistry::create_default();
-    let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = registry
-        .get(registry_key)
-        .ok_or_else(|| format!("No adapter for provider type: {:?}", provider.provider_type))?;
-
-    // Build context
-    let ctx = ProviderRequestContext {
-        api_key: decrypted_key,
-        key_id: key_row.id,
-        provider_id: provider.id,
-        base_url: Some(axagent_providers::resolve_base_url_for_type(
-            &provider.api_host,
-            &provider.provider_type,
-        )),
-        api_path: provider.api_path,
-        proxy_config: resolved_proxy,
-        custom_headers: provider
-            .custom_headers
-            .as_ref()
-            .and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
+    let screenshot = capture_screenshot(monitor_index).await?;
+    let VisionContext { adapter, ctx } =
+        build_vision_context(&state.sea_db, &state.master_key, &provider_id).await?;
 
     let actions = axagent_providers::screen_vision::suggest_next_action(
         adapter.as_ref(),
@@ -297,8 +215,6 @@ pub async fn suggest_screen_action(
     .await
     .map_err(|e| format!("Screen analysis failed: {}", e))?;
 
-    // We need to parse the analysis to get elements for coordinates
-    // Alternatively, call analyze_screen first
     let analysis = axagent_providers::screen_vision::analyze_screen(
         adapter.as_ref(),
         &ctx,
@@ -309,34 +225,7 @@ pub async fn suggest_screen_action(
     .await
     .map_err(|e| format!("Screen analysis failed: {}", e))?;
 
-    let suggested_actions: Vec<SuggestedActionInfo> = actions
-        .iter()
-        .map(|action| {
-            let (x, y) = if let Some(element) = analysis
-                .elements
-                .iter()
-                .find(|e| e.name == action.target_element)
-            {
-                (
-                    element.bounds.x + element.bounds.width / 2.0,
-                    element.bounds.y + element.bounds.height / 2.0,
-                )
-            } else {
-                (0.0, 0.0)
-            };
-
-            SuggestedActionInfo {
-                action_type: format!("{:?}", action.action_type).to_lowercase(),
-                target_element: action.target_element.clone(),
-                description: action.description.clone(),
-                reasoning: action.reasoning.clone(),
-                x,
-                y,
-            }
-        })
-        .collect();
-
-    Ok(suggested_actions)
+    Ok(map_actions_to_info(&actions, &analysis.elements))
 }
 
 #[tauri::command]

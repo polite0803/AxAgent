@@ -361,7 +361,7 @@ vi.mock("antd", async () => {
   return {
     ...actual,
     App: {
-      ...actual.App,
+      ...(actual.App as Record<string, unknown>),
       useApp: () => ({
         message: {
           info: vi.fn(),

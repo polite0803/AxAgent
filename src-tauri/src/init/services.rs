@@ -28,6 +28,7 @@ pub fn start_background_services(
     start_skill_watcher(app);
     start_memory_decay_tick(state);
     start_memory_maintenance_tick(state);
+    start_trajectory_cleanup(state);
 }
 
 fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::path::PathBuf) {
@@ -1079,4 +1080,52 @@ fn start_cron_scheduler(state: &AppState) {
     });
 
     tracing::info!("[CronScheduler] 已启动（统一 Cron + ScheduledTask），每30秒轮询一次");
+}
+
+fn start_trajectory_cleanup(state: &AppState) {
+    let trajectory_storage = state.trajectory_storage.clone();
+    let handle = state.trajectory_cleanup_handle.clone();
+    let shutdown_token = state.shutdown_token.clone();
+    let config = axagent_trajectory::TrajectoryCleanupConfig::default();
+    let interval = std::time::Duration::from_secs(24 * 3600);
+
+    let task = tokio::spawn(async move {
+        let mut tick = tokio::time::interval(interval);
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            tokio::select! {
+                _ = tick.tick() => {
+                    match trajectory_storage.cleanup(&config) {
+                        Ok(count) if count > 0 => {
+                            tracing::info!(
+                                "[trajectory_cleanup] Cleaned up {} old trajectories",
+                                count
+                            );
+                        }
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::warn!(
+                                "[trajectory_cleanup] cleanup failed: {}",
+                                e
+                            );
+                        }
+                    }
+                }
+                _ = shutdown_token.cancelled() => {
+                    tracing::info!(
+                        "[trajectory_cleanup] Received shutdown signal, stopping"
+                    );
+                    break;
+                }
+            }
+        }
+    });
+    tauri::async_runtime::spawn(async move {
+        *handle.lock().await = Some(task);
+    });
+    tracing::info!(
+        "[trajectory_cleanup] Started with max_age_days={:?}, max_trajectories={:?}, interval=24h",
+        config.max_age_days,
+        config.max_trajectories
+    );
 }

@@ -162,6 +162,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         auto_backup_handle: Arc::new(Mutex::new(None)),
         webdav_sync_handle: Arc::new(Mutex::new(None)),
         api_server_handle: Arc::new(Mutex::new(None)),
+        trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
         shutdown_token: CancellationToken::new(),
         vector_store: vector_store_arc,
         indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
@@ -338,6 +339,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
                 cache,
                 enabled: true,
+                in_memory_entries: Vec::new(),
+                similarity_threshold: 0.85,
             }))
         },
         tot_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),

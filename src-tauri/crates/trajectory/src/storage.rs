@@ -35,6 +35,15 @@ pub struct TrajectoryCleanupConfig {
     pub max_trajectories: Option<u32>,
 }
 
+impl Default for TrajectoryCleanupConfig {
+    fn default() -> Self {
+        Self {
+            max_age_days: Some(90),
+            max_trajectories: Some(10000),
+        }
+    }
+}
+
 impl TrajectoryStorage {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {

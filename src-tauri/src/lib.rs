@@ -550,13 +550,21 @@ pub fn run() {
             commands::agent_advanced::tot_get_state,
             commands::agent_advanced::tot_backtrack,
             commands::agent_advanced::tot_explore,
+            commands::agent_advanced::tot_score_node,
+            commands::agent_advanced::tot_traverse,
+            commands::agent_advanced::tot_prune,
+            commands::agent_advanced::tot_get_best_path,
             commands::agent_advanced::planner_replan,
             commands::agent_advanced::planner_rollback,
+            commands::agent_advanced::planner_diff_versions,
             commands::agent_advanced::planner_get_history,
             commands::agent_advanced::planner_get_versions,
             commands::agent_advanced::semantic_cache_stats,
             commands::agent_advanced::semantic_cache_clear,
             commands::agent_advanced::semantic_cache_set_enabled,
+            commands::agent_advanced::semantic_cache_lookup,
+            commands::agent_advanced::semantic_cache_store,
+            commands::agent_advanced::semantic_cache_set_threshold,
             commands::agent_advanced::error_get_report,
             commands::agent::skill_evolution_start,
             commands::agent::skill_evolution_status,
@@ -1286,6 +1294,7 @@ pub fn run() {
             await_handle(&state.auto_backup_handle, "auto_backup");
             await_handle(&state.webdav_sync_handle, "webdav_sync");
             await_handle(&state.api_server_handle, "api_server");
+            await_handle(&state.trajectory_cleanup_handle, "trajectory_cleanup");
             tracing::info!("[shutdown] 退出完成");
         }
     });

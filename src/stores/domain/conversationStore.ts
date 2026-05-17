@@ -7,6 +7,7 @@ import type {
   Conversation,
   ConversationBranch,
   ConversationSearchResult,
+  ConversationWorkspaceSnapshot,
   Message,
   MessagePage,
   UpdateConversationInput,
@@ -25,8 +26,8 @@ import {
   getStagedPreferenceUpdate,
   mergeConversationCollections,
 } from "./conversationPreferences";
-import { createEventMethods, type EventMethods } from "./conversationStoreEvents";
-import { createSendMethods, type SendMethods } from "./conversationStoreSend";
+import { createEventMethods } from "./conversationStoreEvents";
+import { createSendMethods } from "./conversationStoreSend";
 import { useMultiModelStore } from "./multiModelStore";
 import { usePreferenceStore } from "./preferenceStore";
 import {
