@@ -7,7 +7,7 @@ import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, use
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar, theme, Tooltip } from "antd";
-import { Database, HelpCircle, MessageSquare, Router, User } from "lucide-react";
+import { Database, FolderOpen, HelpCircle, MessageSquare, Router, Terminal, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   link: "/link",
   gateway: "/gateway",
   files: "/files",
+  terminal: "/terminal",
   settings: "/settings",
 };
 
@@ -66,6 +67,20 @@ const builtinNavItems: NavItem[] = [
     icon: <Router size={18} color={NAV_ICON_COLORS.Router} />,
     labelKey: "nav.gateway",
     path: "/gateway",
+    isPlugin: false,
+  },
+  {
+    key: "terminal",
+    icon: <Terminal size={18} color={NAV_ICON_COLORS.Database} />,
+    labelKey: "nav.terminal",
+    path: "/terminal",
+    isPlugin: false,
+  },
+  {
+    key: "files",
+    icon: <FolderOpen size={18} color={NAV_ICON_COLORS.Router} />,
+    labelKey: "nav.files",
+    path: "/files",
     isPlugin: false,
   },
 ];

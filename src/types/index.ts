@@ -692,6 +692,7 @@ export type BuiltinPageKey =
   | "link"
   | "gateway"
   | "files"
+  | "terminal"
   | "settings"
   | "marketplace"
   | "wiki";
