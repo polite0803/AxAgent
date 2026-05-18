@@ -3,6 +3,9 @@ import { SkillCreateModal } from "@/components/chat/SkillCreateEditModal";
 import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";
 import { CopyButton } from "@/components/common/CopyButton";
 import { DecompositionPreview } from "@/components/decomposition/DecompositionPreview";
+import { AgentGeneratorModal } from "@/components/settings/AgentGeneratorModal";
+import { SkillsHubSettings } from "@/components/settings/SkillsHubSettings";
+import { ActionChainEditor } from "@/components/skill/ActionChainEditor";
 import { FrontendEditorModal } from "@/components/skill/FrontendEditorModal";
 import { SkillDependencyCheck } from "@/components/skill/SkillDependencyCheck";
 import { SkillStatsPanel } from "@/components/skill/SkillStatsPanel";
@@ -487,6 +490,9 @@ export function SkillsPage() {
     } | null
   >(null);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
+  // ═══ ActionChain 编辑器状态（供 Skill 动作链编辑使用）═══
+  const [editingActionChain, setEditingActionChain] = useState<Skill | null>(null);
+  const [agentGeneratorOpen, setAgentGeneratorOpen] = useState(false);
 
   useEffect(() => {
     loadSkills();
@@ -789,6 +795,9 @@ export function SkillsPage() {
           />
           <Button onClick={() => setCreateModalOpen(true)}>
             {t("skill.create")}
+          </Button>
+          <Button onClick={() => setAgentGeneratorOpen(true)}>
+            {t("skill.generateAgent")}
           </Button>
           <Button
             icon={<Lightbulb size={14} color={CHAT_ICON_COLORS.Lightbulb} />}
@@ -1232,6 +1241,20 @@ export function SkillsPage() {
               children: marketplaceContent,
             },
             {
+              key: "hub",
+              label: (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Store size={14} color={CHAT_ICON_COLORS.Cloud} />
+                  {"Skills Hub"}
+                </span>
+              ),
+              children: (
+                <div style={{ padding: "0 4px", overflow: "auto", height: "100%" }}>
+                  <SkillsHubSettings />
+                </div>
+              ),
+            },
+            {
               key: "stats",
               label: (
                 <span
@@ -1452,6 +1475,17 @@ export function SkillsPage() {
         onClose={() => setProposalPanelOpen(false)}
       />
 
+      <AgentGeneratorModal
+        open={agentGeneratorOpen}
+        onClose={() => setAgentGeneratorOpen(false)}
+        conversationId=""
+        onSave={(config) => {
+          messageApi.success(t("skill.agentGenerated", { name: config.display_name }));
+          setAgentGeneratorOpen(false);
+          loadSkills();
+        }}
+      />
+
       {decomposeRequest && (
         <DecompositionPreview
           visible={decomposePreviewOpen}
@@ -1474,6 +1508,22 @@ export function SkillsPage() {
           loadSkills();
         }}
       />
+
+      <Modal
+        title={t("skill.actionChainEditor")}
+        open={!!editingActionChain}
+        onCancel={() => setEditingActionChain(null)}
+        footer={null}
+        width={700}
+      >
+        {editingActionChain && (
+          <ActionChainEditor
+            actions={[]}
+            availableHandlers={["invoke", "navigate", "emit", "store", "function", "handler", "chain"]}
+            onChange={() => {}}
+          />
+        )}
+      </Modal>
     </>
   );
 }

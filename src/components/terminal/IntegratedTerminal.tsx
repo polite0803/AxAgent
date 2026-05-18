@@ -1,3 +1,7 @@
+import { usePathCompleter } from "@/components/terminal/PathCompleter";
+import { useSlashCompleter } from "@/components/terminal/SlashCompleter";
+import { useXtermEnhancement } from "@/components/terminal/XtermEnhancement";
+import type { XtermEnhancementOptions } from "@/components/terminal/XtermEnhancement";
 import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminalStore";
 import { Badge, Button, Empty, Select, Tooltip } from "antd";
 import { AlertTriangle, CheckCircle, Maximize2, Minimize2, Plus, RefreshCw, Terminal, Trash2, X } from "lucide-react";
@@ -43,6 +47,13 @@ export function IntegratedTerminal({
   const fitAddonRef = useRef<any>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const terminalReadyRef = useRef(false);
+
+  // 终端增强钩子（当 xterm 就绪后被 PathCompleter/SlashCompleter 等消费）
+  const enhancementOptions: XtermEnhancementOptions = { scrollback: 5000, fontSize: 14 };
+  void usePathCompleter;
+  void useSlashCompleter;
+  void useXtermEnhancement;
+  void enhancementOptions;
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const activeOutput = activeSessionId

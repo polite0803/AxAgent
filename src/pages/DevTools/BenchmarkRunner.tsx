@@ -1,8 +1,9 @@
 import { BenchmarkConfig } from "@/components/benchmark/BenchmarkConfig";
 import { BenchmarkReportView } from "@/components/benchmark/BenchmarkReportView";
 import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
+import { TaskList } from "@/components/benchmark/TaskList";
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import { Button, Card, message, Spin } from "antd";
+import { Button, Card, message, Spin, Tabs } from "antd";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -78,7 +79,20 @@ export function BenchmarkRunner() {
         </div>
       )}
 
-      {currentResult && currentReport && <BenchmarkReportView report={currentReport} />}
+      {currentResult && currentReport && (
+        <Tabs
+          items={[
+            { key: "report", label: t("benchmark.report"), children: <BenchmarkReportView report={currentReport} /> },
+            {
+              key: "tasks",
+              label: t("benchmark.tasks"),
+              children: (
+                <TaskList tasks={(currentReport as any).tasks ?? []} results={(currentReport as any).results ?? []} />
+              ),
+            },
+          ]}
+        />
+      )}
 
       {!currentResult && !isLoading && (
         <div className="text-center text-zinc-400 py-20">

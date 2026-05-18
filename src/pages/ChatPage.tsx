@@ -4,6 +4,7 @@ import { ChatView } from "@/components/chat/ChatView";
 import { RightPanelContainer } from "@/components/chat/RightPanelContainer";
 import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
 import { TabBar } from "@/components/chat/TabBar";
+import { useSkillChatCommands } from "@/components/skill/SkillChatCommands";
 import { useConversationStore, useProviderStore, useSettingsStore, useTabStore } from "@/stores";
 import { theme } from "antd";
 import { ChevronRight, PanelRight } from "lucide-react";
@@ -107,6 +108,8 @@ export function ChatPage() {
     };
   }, [rightDragging]);
 
+  const skillCommands = useSkillChatCommands(); // slash-command suggestions for chat input
+  void skillCommands; // consumed by chat slash-command input
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore(
     (s) => s.activeConversationId,

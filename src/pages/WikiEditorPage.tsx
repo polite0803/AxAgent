@@ -1,13 +1,26 @@
+import { BaseModal } from "@/components/shared/BaseModal";
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import { BacklinkPanel } from "@/components/wiki/BacklinkPanel";
+import { LintReport } from "@/components/wiki/LintReport";
+import { OperationTimeline } from "@/components/wiki/OperationTimeline";
+import { TagAggregationPanel } from "@/components/wiki/TagAggregationPanel";
 import { VersionHistoryPanel } from "@/components/wiki/VersionHistoryPanel";
+import { WikiSidebar } from "@/components/wiki/WikiSidebar";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { Note } from "@/types";
 import { DeleteOutlined, DownloadOutlined, EyeOutlined, HistoryOutlined, SaveOutlined } from "@ant-design/icons";
 import { save } from "@tauri-apps/plugin-dialog";
 import { Button, message, Modal, Popconfirm, Select, Spin, theme } from "antd";
 import DOMPurify from "dompurify";
-import { ArrowLeft, PanelRightClose, PanelRightOpen } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckSquare,
+  History,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -48,6 +61,9 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   >(undefined);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [backlinkPanelOpen, setBacklinkPanelOpen] = useState(true);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  const [lintOpen, setLintOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string>("");
 
@@ -270,6 +286,12 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
       </div>
 
       <div className="flex-1 overflow-hidden flex">
+        {leftSidebarOpen && (
+          <div className="w-56 shrink-0 overflow-auto border-r" style={{ borderColor: token.colorBorderSecondary }}>
+            <TagAggregationPanel notes={notes} onTagClick={() => {}} activeTag={null} />
+            <WikiSidebar notes={notes} selectedNoteId={noteId} onSelectNote={() => {}} loading={false} />
+          </div>
+        )}
         <div className="flex-1 overflow-hidden p-4">
           <div className="h-full flex flex-col">
             <div className="mb-2 flex items-center gap-2">
@@ -298,6 +320,26 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                 onClick={() => setVersionHistoryOpen(true)}
               >
                 {t("wiki.history")}
+              </Button>
+              <Button
+                size="small"
+                type="text"
+                icon={leftSidebarOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+                onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+              />
+              <Button
+                size="small"
+                icon={<CheckSquare size={14} />}
+                onClick={() => setLintOpen(true)}
+              >
+                Lint
+              </Button>
+              <Button
+                size="small"
+                icon={<History size={14} />}
+                onClick={() => setTimelineOpen(true)}
+              >
+                Timeline
               </Button>
               <Button
                 size="small"
@@ -397,6 +439,26 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         onClose={() => setVersionHistoryOpen(false)}
         onRestore={loadNote}
       />
+
+      {note?.vaultId && (
+        <BaseModal
+          open={lintOpen}
+          onCancel={() => setLintOpen(false)}
+          title="Lint Report"
+        >
+          <LintReport wikiId={note.vaultId} />
+        </BaseModal>
+      )}
+
+      <Modal
+        title="Operation Timeline"
+        open={timelineOpen}
+        onCancel={() => setTimelineOpen(false)}
+        footer={null}
+        width={600}
+      >
+        <OperationTimeline operations={[]} />
+      </Modal>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { TraceDetail } from "@/components/devtools/TraceDetail";
+import { TraceFilters } from "@/components/devtools/TraceFilters";
 import { TraceList } from "@/components/devtools/TraceList";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Empty, Spin } from "antd";
@@ -15,7 +16,8 @@ export function TraceExplorer() {
 
   return (
     <div className="flex h-full">
-      <div className="w-80 border-r border-zinc-200 overflow-auto">
+      <div className="w-80 border-r border-zinc-200 overflow-auto flex flex-col">
+        <TraceFilters />
         <TraceList />
       </div>
       <div className="flex-1 overflow-auto">
