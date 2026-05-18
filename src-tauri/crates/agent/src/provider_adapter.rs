@@ -670,8 +670,8 @@ mod tests {
             prompt_tokens: 100,
             completion_tokens: 50,
             total_tokens: 150,
-            cache_creation_tokens: 0,
-            cache_read_tokens: 0,
+            cache_creation_tokens: 0u64,
+            cache_read_tokens: 0u64,
         };
         let runtime_usage = AxAgentApiClient::convert_usage(&usage);
         assert_eq!(runtime_usage.input_tokens, 100);
@@ -887,6 +887,8 @@ mod tests {
             prompt_tokens: 500,
             completion_tokens: 250,
             total_tokens: 750,
+            cache_creation_tokens: 0u64,
+            cache_read_tokens: 0u64,
         };
         let runtime_usage = AxAgentApiClient::convert_usage(&usage);
         assert_eq!(runtime_usage.input_tokens, 500);

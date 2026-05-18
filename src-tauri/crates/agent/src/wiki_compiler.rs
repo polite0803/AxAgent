@@ -1358,6 +1358,7 @@ mod tests {
             &self,
             _ctx: &ProviderRequestContext,
             _request: ChatRequest,
+            _cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
         ) -> Pin<Box<dyn Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>>
         {
             Box::pin(futures::stream::empty())

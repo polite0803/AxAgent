@@ -479,8 +479,8 @@ mod tests {
         assert!(registry.get_diagnostics("src/main.rs").is_empty());
     }
 
-    #[test]
-    fn dispatches_diagnostics_action() {
+    #[tokio::test]
+    async fn dispatches_diagnostics_action() {
         let registry = LspRegistry::new();
         registry.register("rust", LspServerStatus::Connected, None, vec![]);
         registry
@@ -504,8 +504,8 @@ mod tests {
         assert_eq!(result["count"], 1);
     }
 
-    #[test]
-    fn dispatches_hover_action() {
+    #[tokio::test]
+    async fn dispatches_hover_action() {
         let registry = LspRegistry::new();
         registry.register("rust", LspServerStatus::Connected, None, vec![]);
 
@@ -517,8 +517,8 @@ mod tests {
         assert_eq!(result["language"], "rust");
     }
 
-    #[test]
-    fn rejects_action_on_disconnected_server() {
+    #[tokio::test]
+    async fn rejects_action_on_disconnected_server() {
         let registry = LspRegistry::new();
         registry.register("rust", LspServerStatus::Disconnected, None, vec![]);
 
@@ -530,8 +530,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn rejects_unknown_action() {
+    #[tokio::test]
+    async fn rejects_unknown_action() {
         let registry = LspRegistry::new();
         assert!(
             registry
@@ -541,8 +541,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn disconnects_server() {
+    #[tokio::test]
+    async fn disconnects_server() {
         let registry = LspRegistry::new();
         registry.register("rust", LspServerStatus::Connected, None, vec![]);
         assert_eq!(registry.len(), 1);
@@ -611,8 +611,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn dispatch_diagnostics_without_path_aggregates() {
+    #[tokio::test]
+    async fn dispatch_diagnostics_without_path_aggregates() {
         // given
         let registry = LspRegistry::new();
         registry.register("rust", LspServerStatus::Connected, None, vec![]);
@@ -656,8 +656,8 @@ mod tests {
         assert_eq!(result["diagnostics"].as_array().map(Vec::len), Some(2));
     }
 
-    #[test]
-    fn dispatch_non_diagnostics_requires_path() {
+    #[tokio::test]
+    async fn dispatch_non_diagnostics_requires_path() {
         // given
         let registry = LspRegistry::new();
 
@@ -671,8 +671,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn dispatch_no_server_for_path_errors() {
+    #[tokio::test]
+    async fn dispatch_no_server_for_path_errors() {
         // given
         let registry = LspRegistry::new();
 
@@ -684,8 +684,8 @@ mod tests {
         assert!(error.contains("no LSP server available for path: notes.md"));
     }
 
-    #[test]
-    fn dispatch_disconnected_server_error_payload() {
+    #[tokio::test]
+    async fn dispatch_disconnected_server_error_payload() {
         // given
         let registry = LspRegistry::new();
         registry.register("typescript", LspServerStatus::Disconnected, None, vec![]);
