@@ -1,8 +1,10 @@
+import { useSkillChatCommands } from "@/components/skill/SkillChatCommands";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { executeActionChain } from "@/lib/skillActionExecutor";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import { Input, List, Modal, Tag, theme, Typography } from "antd";
+import { Sparkles as SparklesExtra } from "lucide-react";
 import { MessageSquare, Network, PanelLeftClose, Plus, Puzzle, Search, Settings, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -96,6 +98,27 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+
+  // Register skill chat commands
+  const skillCommands = useSkillChatCommands();
+  useEffect(() => {
+    const ids: string[] = [];
+    for (const cmd of skillCommands) {
+      const id = `skill:${cmd.skillName}:${cmd.name}`;
+      registerCommand({
+        id,
+        label: cmd.label,
+        icon: cmd.icon ?? <Sparkles size={14} />,
+        category: cmd.skillName,
+        action: () => {
+          const store = useSkillExtensionStore.getState();
+          store.executeActionChain?.(cmd.source);
+        },
+      });
+      ids.push(id);
+    }
+    return () => ids.forEach((id) => unregisterCommand(id));
+  }, [skillCommands]);
 
   // 基础命令 + 注册的动态命令
   const commands = useMemo<Command[]>(() => {

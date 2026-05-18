@@ -471,6 +471,9 @@ jobs:
           # 添加 ProGuard 规则，防止 R8 混淆/剥离 JNI 桥接类导致闪退
           cp src-tauri/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro
 
+      - name: Build frontend (Vite)
+        run: npm run build:skip-typecheck
+
       - name: Build Android APK
         run: |
           cd src-tauri

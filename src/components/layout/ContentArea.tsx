@@ -42,6 +42,7 @@ const LazyWikiGraphPage = lazy(() => import("@/pages/WikiGraphPage").then((m) =>
 const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => ({ default: m.WikiEditPage })));
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 const LazyTerminalPage = lazy(() => import("@/pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
+const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ default: m.FilesPage })));
 
 function PageLoader() {
   return (
@@ -190,6 +191,10 @@ export function ContentArea() {
           <Route
             path="/quickbar"
             element={<SafeLazyPage Page={LazyQuickBarPage} />}
+          />
+          <Route
+            path="/files"
+            element={<SafeLazyPage Page={LazyFilesPage} />}
           />
           <Route
             path="/terminal"

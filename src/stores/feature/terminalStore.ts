@@ -1,3 +1,4 @@
+import { doneAsync, failAsync, startAsync } from "@/lib/asyncState";
 import { invoke } from "@/lib/invoke";
 import { create } from "zustand";
 
@@ -70,7 +71,7 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
   error: null,
 
   createSession: async (config) => {
-    set({ loading: true, error: null });
+    startAsync(set);
     try {
       const id = await invoke<string>("pty_create_session", {
         config: {
@@ -93,11 +94,11 @@ export const useTerminalStore = create<TerminalStoreState>((set) => ({
         sessions: [...state.sessions, newSession],
         activeSessionId: id,
         outputBuffers: { ...state.outputBuffers, [id]: [] },
-        loading: false,
       }));
+      doneAsync(set);
       return id;
     } catch (e: unknown) {
-      set({ error: String(e), loading: false });
+      failAsync(set, e);
       throw e;
     }
   },
