@@ -46,7 +46,7 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold">{t("benchmark.reportTitle")}</h3>
+        <h3 className="text-lg font-semibold">{t("benchmark.reportTitle")}</h3>
         <div className="flex gap-2">
           <Button onClick={() => exportReport("json")}>{t("benchmark.exportJson")}</Button>
           <Button onClick={() => exportReport("markdown")}>{t("benchmark.exportMarkdown")}</Button>

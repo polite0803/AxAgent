@@ -76,6 +76,14 @@ export function SubAgentCard({ card }: SubAgentCardProps) {
         isCompleted ? "sub-agent-card--completed" : ""
       } ${isFailed ? "sub-agent-card--failed" : ""}`}
       onClick={handleClick}
+      role="button"
+      tabIndex={isRunning ? -1 : 0}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && !isRunning) {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       style={{ cursor: isRunning ? "default" : "pointer" }}
       data-component="sub-agent-card"
     >

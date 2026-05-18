@@ -87,6 +87,8 @@ function CollapsiblePanel({ panel }: { panel: ReturnType<typeof useSkillExtensio
   return (
     <div>
       <div
+        role="button"
+        tabIndex={0}
         style={{
           display: "flex",
           alignItems: "center",
@@ -99,6 +101,9 @@ function CollapsiblePanel({ panel }: { panel: ReturnType<typeof useSkillExtensio
           borderBottom: collapsed ? "none" : "1px solid var(--color-border-secondary)",
         }}
         onClick={() => setCollapsed(!collapsed)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { setCollapsed(!collapsed); }
+        }}
       >
         <Button type="text" size="small" icon={collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />} />
         {panel.title}

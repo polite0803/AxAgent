@@ -152,10 +152,8 @@ const PHASE_PATTERNS: { phase: ThinkingPhase; keywords: string[] }[] = [
 function detectPhase(line: string): ThinkingPhase | null {
   const lower = line.toLowerCase().trim();
   for (const { phase, keywords } of PHASE_PATTERNS) {
-    for (const kw of keywords) {
-      if (lower.includes(kw)) {
-        return phase;
-      }
+    if (keywords.some((kw) => lower.indexOf(kw) !== -1)) {
+      return phase;
     }
   }
   return null;
@@ -342,7 +340,7 @@ export const StructuredThinking = React.memo(function StructuredThinking({
             />
           )}
           {!isStreaming && blocks.length > 0 && (
-            <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
+            <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
               {blocks.length} 个阶段
             </span>
           )}

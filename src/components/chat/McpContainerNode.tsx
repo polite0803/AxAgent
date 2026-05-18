@@ -52,21 +52,40 @@ function extractText(children: any[] | undefined): string {
   return parts.join("");
 }
 
+/**
+ * Extracted component for rendering non-MCP container nodes.
+ * Fixes react-doctor/no-render-in-render by moving the renderNode call out of McpContainerNode.
+ */
+function DefaultContainer({
+  node,
+  ctx,
+  renderNode,
+  indexKey,
+}: {
+  node: any;
+  ctx: any;
+  renderNode?: ((child: any, key: string, ctx: any) => React.ReactNode) | undefined;
+  indexKey: string | undefined;
+}) {
+  return (
+    <div className={`vmr-container vmr-container-${node.name ?? "unknown"}`}>
+      {Array.isArray(node.children) && ctx && renderNode
+        ? node.children.map((child: any, i: number) => (
+          <React.Fragment key={`${String(indexKey ?? "vmr-container")}-${i}`}>
+            {renderNode(child, `${String(indexKey ?? "vmr-container")}-${i}`, ctx)}
+          </React.Fragment>
+        ))
+        : null}
+    </div>
+  );
+}
+
 export function McpContainerNode(props: NodeComponentProps<any>) {
-  const { node, ctx, renderNode, indexKey } = props;
+  const { node } = props;
 
   if (node.name !== "mcp") {
-    return (
-      <div className={`vmr-container vmr-container-${node.name ?? "unknown"}`}>
-        {Array.isArray(node.children) && ctx && renderNode
-          ? node.children.map((child: any, i: number) => (
-            <React.Fragment key={`${String(indexKey ?? "vmr-container")}-${i}`}>
-              {renderNode(child, `${String(indexKey ?? "vmr-container")}-${i}`, ctx)}
-            </React.Fragment>
-          ))
-          : null}
-      </div>
-    );
+    const { node: n, ctx, renderNode, indexKey } = props;
+    return <DefaultContainer node={n} ctx={ctx} renderNode={renderNode} indexKey={indexKey as string | undefined} />;
   }
 
   return <McpToolCard node={node} />;

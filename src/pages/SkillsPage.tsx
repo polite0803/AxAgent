@@ -380,7 +380,7 @@ export function SkillsPage() {
   const [installing, setInstalling] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [marketplaceSource, setMarketplaceSource] = useState<"skillhub" | "github">("skillhub");
-  const [marketplaceQuery, setMarketplaceQuery] = useState("");
+  const marketplaceQueryRef = useRef("");
   const marketplaceLoaded = useRef(false);
   const [marketplaceDetailOpen, setMarketplaceDetailOpen] = useState(false);
   const [marketplaceDetailContent, setMarketplaceDetailContent] = useState<
@@ -413,14 +413,14 @@ export function SkillsPage() {
   // Re-search when source changes (if marketplace was already searched)
   useEffect(() => {
     if (marketplaceLoaded.current) {
-      searchMarketplace(marketplaceQuery, marketplaceSource, sortOrder);
+      searchMarketplace(marketplaceQueryRef.current, marketplaceSource, sortOrder);
     }
   }, [marketplaceSource]);
 
   // Re-search when sort order changes
   useEffect(() => {
     if (marketplaceLoaded.current) {
-      searchMarketplace(marketplaceQuery, marketplaceSource, sortOrder);
+      searchMarketplace(marketplaceQueryRef.current, marketplaceSource, sortOrder);
     }
   }, [sortOrder]);
 
@@ -664,7 +664,7 @@ export function SkillsPage() {
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     {ALL_SOURCE_ICON}
                     {t("skills.sourceAll")}
-                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>
+                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 12 }}>
                       ({skills.length})
                     </span>
                   </span>
@@ -679,7 +679,7 @@ export function SkillsPage() {
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     {SOURCE_ICONS[src] ?? <Radio size={14} />}
                     {SOURCE_LABELS[src] ?? src}
-                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>
+                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 12 }}>
                       ({count})
                     </span>
                   </span>
@@ -687,15 +687,16 @@ export function SkillsPage() {
               });
             }
             // 动态添加其他来源 Tab
+            const standardSourceSet = new Set<string>(standardSources);
             for (const [src, count] of sourceCounts) {
-              if ((standardSources as readonly string[]).includes(src)) { continue; }
+              if (standardSourceSet.has(src)) { continue; }
               tabs.push({
                 key: src,
                 label: (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     {SOURCE_ICONS[src] ?? <Radio size={14} />}
                     {SOURCE_LABELS[src] ?? src}
-                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>
+                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 12 }}>
                       ({count})
                     </span>
                   </span>
@@ -897,7 +898,7 @@ export function SkillsPage() {
             placeholder={t("skills.searchMarketplace")}
             loading={marketplaceLoading}
             onSearch={(q) => {
-              setMarketplaceQuery(q);
+              marketplaceQueryRef.current = q;
               marketplaceLoaded.current = true;
               searchMarketplace(q, marketplaceSource, sortOrder);
             }}

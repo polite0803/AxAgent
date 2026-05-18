@@ -109,6 +109,7 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
       }
     }
 
+    // React 18 自动批处理相邻 setState（triggerType 和 suggestions 是独立状态）
     setTriggerType(activeTrigger);
 
     if (!activeTrigger) {
@@ -194,9 +195,9 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
   if (suggestions.length === 0 || !visible) { return null; }
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-      <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-        {triggerType === "/" ? i18n.t("commandSuggest.commands") : i18n.t("commandSuggest.mentions")} —{" "}
+    <div className="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50">
+      <div className="px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-700">
+        {triggerType === "/" ? i18n.t("commandSuggest.commands") : i18n.t("commandSuggest.mentions")}:{" "}
         {i18n.t("commandSuggest.filterHint")}
       </div>
       {suggestions.map((suggestion, index) => (
@@ -205,14 +206,14 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
           className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left transition-colors ${
             index === selectedIndex
               ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
           }`}
           onClick={() => onSelect(suggestion.replacement)}
           onMouseEnter={() => setSelectedIndex(index)}
         >
-          <span className="shrink-0 text-gray-400">{suggestion.icon}</span>
+          <span className="shrink-0 text-zinc-400">{suggestion.icon}</span>
           <span className="font-medium">{suggestion.label}</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500 truncate">{suggestion.description}</span>
+          <span className="text-xs text-zinc-400 dark:text-zinc-500 truncate">{suggestion.description}</span>
         </button>
       ))}
     </div>

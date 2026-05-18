@@ -1,5 +1,5 @@
 import { CheckCircleOutlined, ThunderboltOutlined, ToolOutlined, WarningOutlined } from "@ant-design/icons";
-import { Table, Tag } from "antd";
+import { Button, Table, Tag } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ToolDependency } from "../../types";
@@ -67,9 +67,9 @@ export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
         if (isSatisfied) { return null; }
         if (!onAction) { return null; }
         return (
-          <a onClick={() => onAction(record)} style={{ fontSize: 12 }}>
+          <Button type="link" size="small" onClick={() => onAction(record)}>
             {actionLoading === record.name ? t("decomposition.processingLabel") : t("decomposition.processLabel")}
-          </a>
+          </Button>
         );
       },
     },

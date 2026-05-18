@@ -180,6 +180,12 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     const nodes: ContextGraphNode[] = [];
     const edges: ContextGraphEdge[] = [];
 
+    // 预构建查找映射，避免在循环中调用 find
+    const kbMap = new Map(knowledgeBases.map((k: any) => [k.id, k]));
+    const nsMap = new Map(memoryNamespaces.map((n: any) => [n.id, n]));
+    const srvMap = new Map(mcpServers.map((s: any) => [s.id, s]));
+    const skillMap = new Map(installedSkills.map((s: any) => [s.id, s]));
+
     // Conversation node (center)
     const convName = conversationTitle || conversationId?.slice(0, 8)
       || t("chat.contextGraph.conversation");
@@ -194,7 +200,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
     // Knowledge bases
     for (const kbId of knowledgeBaseIds) {
-      const kb = knowledgeBases.find((k: any) => k.id === kbId);
+      const kb = kbMap.get(kbId);
       const label = kb?.name || kbId.slice(0, 12);
       nodes.push({ id: `kb:${kbId}`, type: "knowledge", label, detail: kb?.description });
       edges.push({
@@ -206,7 +212,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
     // Memory namespaces
     for (const nsId of memoryNamespaceIds) {
-      const ns = memoryNamespaces.find((n: any) => n.id === nsId);
+      const ns = nsMap.get(nsId);
       const label = ns?.name || nsId.slice(0, 12);
       nodes.push({ id: `mem:${nsId}`, type: "memory", label });
       edges.push({
@@ -218,7 +224,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
     // MCP servers
     for (const srvId of mcpServerIds) {
-      const srv = mcpServers.find((s: any) => s.id === srvId);
+      const srv = srvMap.get(srvId);
       const label = srv?.name || srvId.slice(0, 12);
       nodes.push({ id: `mcp:${srvId}`, type: "mcp", label });
       edges.push({ source: "conversation", target: `mcp:${srvId}`, label: t("chat.contextGraph.edges.calls") });
@@ -232,7 +238,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 
     // Skills
     for (const skillId of enabledSkillIds) {
-      const sk = installedSkills.find((s: any) => s.id === skillId);
+      const sk = skillMap.get(skillId);
       const label = sk?.name || skillId.slice(0, 12);
       nodes.push({ id: `skill:${skillId}`, type: "skill", label });
       edges.push({
@@ -332,6 +338,14 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       {/* Header — click to toggle */}
       <div
         onClick={() => setCollapsed(!collapsed)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setCollapsed(!collapsed);
+          }
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -348,7 +362,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
           <Typography.Text strong style={{ fontSize: 13 }}>
             {t("chat.contextGraph.title")}
           </Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {t("chat.contextGraph.sourceCount", { count: totalSources })}
           </Typography.Text>
           {/* Inline source pills when collapsed — compact one-line overview */}
@@ -358,23 +372,28 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
             >
               {(() => {
                 const pills: { label: string; color: string }[] = [];
+                // 预构建查找映射，避免在循环中调用 find
+                const kbMap = new Map(knowledgeBases.map((k: any) => [k.id, k]));
+                const nsMap = new Map(memoryNamespaces.map((n: any) => [n.id, n]));
+                const srvMap = new Map(mcpServers.map((s: any) => [s.id, s]));
+                const skillMap = new Map(installedSkills.map((s: any) => [s.id, s]));
                 if (modelName) { pills.push({ label: modelName.slice(0, 12), color: nodeTypeStyles.model.border }); }
                 for (const kbId of knowledgeBaseIds.slice(0, 2)) {
-                  const kb = knowledgeBases.find((k: any) => k.id === kbId);
+                  const kb = kbMap.get(kbId);
                   pills.push({ label: (kb?.name || kbId).slice(0, 10), color: nodeTypeStyles.knowledge.border });
                 }
                 if (knowledgeBaseIds.length > 2) {
                   pills.push({ label: `+${knowledgeBaseIds.length - 2}`, color: nodeTypeStyles.knowledge.border });
                 }
                 for (const nsId of memoryNamespaceIds.slice(0, 1)) {
-                  const ns = memoryNamespaces.find((n: any) => n.id === nsId);
+                  const ns = nsMap.get(nsId);
                   pills.push({ label: (ns?.name || nsId).slice(0, 10), color: nodeTypeStyles.memory.border });
                 }
                 if (memoryNamespaceIds.length > 1) {
                   pills.push({ label: `+${memoryNamespaceIds.length - 1}`, color: nodeTypeStyles.memory.border });
                 }
                 for (const srvId of mcpServerIds.slice(0, 1)) {
-                  const srv = mcpServers.find((s: any) => s.id === srvId);
+                  const srv = srvMap.get(srvId);
                   pills.push({ label: (srv?.name || srvId).slice(0, 10), color: nodeTypeStyles.mcp.border });
                 }
                 if (mcpServerIds.length > 1) {
@@ -387,7 +406,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                   });
                 }
                 for (const skillId of enabledSkillIds.slice(0, 1)) {
-                  const sk = installedSkills.find((s: any) => s.id === skillId);
+                  const sk = skillMap.get(skillId);
                   pills.push({ label: (sk?.name || skillId).slice(0, 10), color: nodeTypeStyles.skill.border });
                 }
                 if (enabledSkillIds.length > 1) {
@@ -435,6 +454,14 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                 return (
                   <span
                     key={type}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleType(type, e as unknown as React.MouseEvent);
+                      }
+                    }}
                     onClick={(e) => toggleType(type, e)}
                     style={{
                       display: "inline-flex",
@@ -514,7 +541,7 @@ interface GraphCanvasProps {
 function FitViewOnNodeChange({ nodeCount }: { nodeCount: number }) {
   const { fitView } = useReactFlow();
   const prevRef = React.useRef(nodeCount);
-  const timerRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   React.useEffect(() => {
     if (nodeCount !== prevRef.current) {
       prevRef.current = nodeCount;

@@ -194,7 +194,7 @@ function ToolCard({
             {t(item.description)}
           </Paragraph>
           {toolInfo?.configPath && (
-            <Text type="secondary" style={{ fontSize: 11 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
               {toolInfo.configPath}
             </Text>
           )}

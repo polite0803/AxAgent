@@ -209,7 +209,7 @@ export function InteractiveTutorial() {
   return createPortal(
     <>
       {/* 遮罩 */}
-      <div className="tutorial-overlay" onClick={skipTutorial} />
+      <div className="tutorial-overlay" role="presentation" onClick={skipTutorial} />
 
       {/* 高亮槽 */}
       {spotlight && (
@@ -272,7 +272,7 @@ export function InteractiveTutorial() {
           <Button size="small" type="link" onClick={skipTutorial} icon={<SkipForward size={12} />}>
             {t("onboarding.tutorialSkip")}
           </Button>
-          <div style={{ fontSize: 11, color: token.colorTextQuaternary }}>
+          <div style={{ fontSize: 12, color: token.colorTextQuaternary }}>
             {tutorialStep + 1} / {steps.length}
           </div>
           <Button size="small" type="primary" onClick={handleNext} icon={<ArrowRight size={12} />}>

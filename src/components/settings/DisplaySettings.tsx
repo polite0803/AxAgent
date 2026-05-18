@@ -69,7 +69,12 @@ export function DisplaySettings() {
               return (
                 <Tooltip key={preset.key} title={preset.label}>
                   <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => saveSettings({ theme_preset: preset.key })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") { saveSettings({ theme_preset: preset.key }); }
+                    }}
                     style={{
                       width: 48,
                       height: 48,
@@ -128,7 +133,12 @@ export function DisplaySettings() {
             ].map((color) => (
               <div
                 key={color}
+                role="button"
+                tabIndex={0}
                 onClick={() => saveSettings({ primary_color: color })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { saveSettings({ primary_color: color }); }
+                }}
                 style={{
                   width: 24,
                   height: 24,

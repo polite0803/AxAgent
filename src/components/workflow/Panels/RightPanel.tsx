@@ -27,6 +27,147 @@ interface RightPanelProps {
   selectedEdge: WorkflowEdge | null;
 }
 
+/**
+ * Extracted component for rendering the property panel based on node type.
+ * Fixes react-doctor/no-render-in-render by moving renderPropertyPanel() out of renderNodeProperties.
+ */
+function NodePropertyPanel({
+  selectedNode,
+  onUpdate,
+  onDelete,
+}: {
+  selectedNode: WorkflowNode;
+  onUpdate: (updates: Partial<WorkflowNode>) => void;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation();
+
+  switch (selectedNode.type) {
+    case "trigger":
+      return <TriggerPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "agent":
+      return <AgentPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "llm":
+      return <LLMPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "condition":
+      return <ConditionPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "parallel":
+      return <ParallelPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "loop":
+      return <LoopPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "merge":
+      return <MergePropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "delay":
+      return <DelayPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "tool":
+      return <ToolPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "code":
+      return <CodePropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "subWorkflow":
+      return <SubWorkflowPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "documentParser":
+      return <DocumentParserPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "vectorRetrieve":
+      return <VectorRetrievePropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "validation":
+      return <ValidationPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    case "end":
+      return <EndPropertyPanel node={selectedNode} onUpdate={onUpdate} onDelete={onDelete} />;
+    default:
+      return (
+        <div style={{ color: "#666", textAlign: "center", padding: 20 }}>
+          {t("workflow.rightPanel.unsupportedNodeType")}
+        </div>
+      );
+  }
+}
+
+/**
+ * Extracted component for rendering template settings.
+ * Fixes react-doctor/no-render-in-render by moving renderTemplateSettings() out of RightPanel.
+ */
+function TemplateSettings({
+  currentTemplate,
+}: {
+  currentTemplate: { name: string; description?: string; icon?: string; tags?: string[] } | null;
+}) {
+  const { t } = useTranslation();
+
+  if (!currentTemplate) { return null; }
+
+  return (
+    <div style={{ padding: 12 }}>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          {t("workflow.rightPanel.name")}
+        </label>
+        <Input
+          value={currentTemplate.name}
+          size="small"
+          onChange={(e) => useWorkflowEditorStore.getState().updateTemplateMetadata({ name: e.target.value })}
+        />
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          {t("workflow.rightPanel.description")}
+        </label>
+        <Input.TextArea
+          id="right-panel-input-textarea-125"
+          value={currentTemplate.description || ""}
+          rows={3}
+          size="small"
+          onChange={(e) => useWorkflowEditorStore.getState().updateTemplateMetadata({ description: e.target.value })}
+        />
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          {t("workflow.rightPanel.icon")}
+        </label>
+        <Select
+          value={currentTemplate.icon}
+          size="small"
+          style={{ width: "100%" }}
+          onChange={(icon) => useWorkflowEditorStore.getState().updateTemplateMetadata({ icon })}
+          options={[
+            { value: "Bot", label: t("workflow.rightPanel.iconBot") },
+            { value: "Code", label: t("workflow.rightPanel.iconCode") },
+            { value: "FileText", label: t("workflow.rightPanel.iconDocument") },
+            { value: "GitBranch", label: t("workflow.rightPanel.iconGitBranch") },
+            { value: "Zap", label: t("workflow.rightPanel.iconZap") },
+            { value: "Layers", label: t("workflow.rightPanel.iconLayers") },
+          ]}
+        />
+      </div>
+
+      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+
+      <div>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          {t("workflow.rightPanel.tags")}
+        </label>
+        <Select
+          mode="tags"
+          value={currentTemplate.tags || []}
+          size="small"
+          style={{ width: "100%" }}
+          onChange={(tags) => useWorkflowEditorStore.getState().updateTemplateMetadata({ tags })}
+          placeholder={t("workflow.rightPanel.addTagsPlaceholder")}
+          options={[
+            { value: "ai", label: t("workflow.rightPanel.tagAi") },
+            { value: "automation", label: t("workflow.rightPanel.tagAutomation") },
+            { value: "workflow", label: t("workflow.rightPanel.tagWorkflow") },
+            { value: "agent", label: t("workflow.rightPanel.tagAgent") },
+            { value: "chatbot", label: t("workflow.rightPanel.tagChatbot") },
+            { value: "data-processing", label: t("workflow.rightPanel.tagDataProcessing") },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
 export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode, selectedEdge }) => {
   const { t } = useTranslation();
   const deleteNode = useWorkflowEditorStore((state) => state.deleteNode);
@@ -57,142 +198,11 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
 
     const nodeTypeInfo = NODE_TYPE_MAP[selectedNode.type] || { labelKey: "", color: "#999" };
 
-    const renderPropertyPanel = () => {
-      switch (selectedNode.type) {
-        case "trigger":
-          return (
-            <TriggerPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "agent":
-          return (
-            <AgentPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "llm":
-          return (
-            <LLMPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "condition":
-          return (
-            <ConditionPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "parallel":
-          return (
-            <ParallelPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "loop":
-          return (
-            <LoopPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "merge":
-          return (
-            <MergePropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "delay":
-          return (
-            <DelayPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "tool":
-          return (
-            <ToolPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "code":
-          return (
-            <CodePropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "subWorkflow":
-          return (
-            <SubWorkflowPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "documentParser":
-          return (
-            <DocumentParserPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "vectorRetrieve":
-          return (
-            <VectorRetrievePropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "validation":
-          return (
-            <ValidationPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        case "end":
-          return (
-            <EndPropertyPanel
-              node={selectedNode}
-              onUpdate={handleUpdateNode}
-              onDelete={handleDeleteNode}
-            />
-          );
-        default:
-          return (
-            <div style={{ color: "#666", textAlign: "center", padding: 20 }}>
-              {t("workflow.rightPanel.unsupportedNodeType")}
-            </div>
-          );
-      }
-    };
-
     return (
       <div style={{ padding: 12 }}>
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ color: "#999", fontSize: 11, textTransform: "uppercase" }}>
+            <span style={{ color: "#999", fontSize: 12, textTransform: "uppercase" }}>
               {t("workflow.rightPanel.nodeType")}
             </span>
             <span
@@ -201,7 +211,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
                 color: nodeTypeInfo.color,
                 padding: "2px 8px",
                 borderRadius: 4,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 500,
               }}
             >
@@ -212,7 +222,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
 
         <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-        {renderPropertyPanel()}
+        <NodePropertyPanel selectedNode={selectedNode} onUpdate={handleUpdateNode} onDelete={handleDeleteNode} />
       </div>
     );
   };
@@ -229,7 +239,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
     return (
       <div style={{ padding: 12 }}>
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.rightPanel.edgeType")}
           </label>
           <Select
@@ -250,7 +260,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.rightPanel.label")}
           </label>
           <Input
@@ -273,82 +283,6 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
         >
           {t("workflow.rightPanel.deleteEdge")}
         </Button>
-      </div>
-    );
-  };
-
-  const renderTemplateSettings = () => {
-    if (!currentTemplate) { return null; }
-
-    return (
-      <div style={{ padding: 12 }}>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-            {t("workflow.rightPanel.name")}
-          </label>
-          <Input
-            value={currentTemplate.name}
-            size="small"
-            onChange={(e) => useWorkflowEditorStore.getState().updateTemplateMetadata({ name: e.target.value })}
-          />
-        </div>
-
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-            {t("workflow.rightPanel.description")}
-          </label>
-          <Input.TextArea
-            id="right-panel-input-textarea-125"
-            value={currentTemplate.description || ""}
-            rows={3}
-            size="small"
-            onChange={(e) => useWorkflowEditorStore.getState().updateTemplateMetadata({ description: e.target.value })}
-          />
-        </div>
-
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-            {t("workflow.rightPanel.icon")}
-          </label>
-          <Select
-            value={currentTemplate.icon}
-            size="small"
-            style={{ width: "100%" }}
-            onChange={(icon) => useWorkflowEditorStore.getState().updateTemplateMetadata({ icon })}
-            options={[
-              { value: "Bot", label: t("workflow.rightPanel.iconBot") },
-              { value: "Code", label: t("workflow.rightPanel.iconCode") },
-              { value: "FileText", label: t("workflow.rightPanel.iconDocument") },
-              { value: "GitBranch", label: t("workflow.rightPanel.iconGitBranch") },
-              { value: "Zap", label: t("workflow.rightPanel.iconZap") },
-              { value: "Layers", label: t("workflow.rightPanel.iconLayers") },
-            ]}
-          />
-        </div>
-
-        <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
-
-        <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
-            {t("workflow.rightPanel.tags")}
-          </label>
-          <Select
-            mode="tags"
-            value={currentTemplate.tags || []}
-            size="small"
-            style={{ width: "100%" }}
-            onChange={(tags) => useWorkflowEditorStore.getState().updateTemplateMetadata({ tags })}
-            placeholder={t("workflow.rightPanel.addTagsPlaceholder")}
-            options={[
-              { value: "ai", label: t("workflow.rightPanel.tagAi") },
-              { value: "automation", label: t("workflow.rightPanel.tagAutomation") },
-              { value: "workflow", label: t("workflow.rightPanel.tagWorkflow") },
-              { value: "agent", label: t("workflow.rightPanel.tagAgent") },
-              { value: "chatbot", label: t("workflow.rightPanel.tagChatbot") },
-              { value: "data-processing", label: t("workflow.rightPanel.tagDataProcessing") },
-            ]}
-          />
-        </div>
       </div>
     );
   };
@@ -391,7 +325,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(({ selectedNode,
             label: t("workflow.rightPanel.settings"),
             children: (
               <div style={{ overflow: "auto", maxHeight: "calc(100vh - 120px)" }}>
-                {renderTemplateSettings()}
+                <TemplateSettings currentTemplate={currentTemplate} />
               </div>
             ),
           },

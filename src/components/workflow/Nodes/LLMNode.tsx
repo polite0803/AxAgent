@@ -76,7 +76,7 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({ data, selected }) 
           <span style={{ fontSize: 14 }}>{getModelIcon(data.model || "")}</span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: color,
               fontWeight: 600,
             }}

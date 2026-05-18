@@ -118,18 +118,21 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         const currentNotes = useWikiStore.getState().notes;
 
         const suggestions = currentNotes
-          .filter((n) => n.id !== noteId && n.title.toLowerCase().includes(search))
-          .map((n) => ({
-            kind: window.monaco.languages.CompletionItemKind.Reference,
-            label: n.title,
-            insertText: `[[${n.title}]]`,
-            range: {
-              startLineNumber: position.lineNumber,
-              startColumn: openBracketCol,
-              endLineNumber: position.lineNumber,
-              endColumn: position.column,
-            },
-          }));
+          .flatMap((n) =>
+            n.id !== noteId && n.title.toLowerCase().includes(search)
+              ? [{
+                kind: window.monaco.languages.CompletionItemKind.Reference,
+                label: n.title,
+                insertText: `[[${n.title}]]`,
+                range: {
+                  startLineNumber: position.lineNumber,
+                  startColumn: openBracketCol,
+                  endLineNumber: position.lineNumber,
+                  endColumn: position.column,
+                },
+              }]
+              : []
+          );
 
         return { suggestions };
       },
@@ -198,8 +201,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   }
 
   const noteOptions = notes
-    .filter((n) => n.id !== noteId)
-    .map((n) => ({ value: n.title, label: n.title }));
+    .flatMap((n) => n.id !== noteId ? [{ value: n.title, label: n.title }] : []);
 
   return (
     <div className="h-full flex flex-col" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>

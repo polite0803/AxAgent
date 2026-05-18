@@ -782,10 +782,10 @@ export function SchedulerSettings() {
                 {/* 执行历史 */}
                 {expandedHistory[task.id] && (
                   <div style={{ marginTop: 8, marginBottom: 8 }}>
-                    <Text type="secondary" style={{ fontSize: 11 }}>{t("scheduler.historyTitle")}</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("scheduler.historyTitle")}</Text>
                     {historyMap[task.id]?.length === 0
                       ? (
-                        <div style={{ fontSize: 11, color: "#888", padding: "4px 0" }}>
+                        <div style={{ fontSize: 12, color: "#888", padding: "4px 0" }}>
                           {t("scheduler.noRecords")}
                         </div>
                       )
@@ -799,7 +799,7 @@ export function SchedulerSettings() {
                                 alignItems: "center",
                                 gap: 8,
                                 padding: "3px 6px",
-                                fontSize: 11,
+                                fontSize: 12,
                                 borderBottom: "1px solid var(--color-border)",
                                 backgroundColor: rec.success ? undefined : "#fff2f0",
                               }}
@@ -850,31 +850,42 @@ export function SchedulerSettings() {
                   {t("settings.scheduler.reportTemplates")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                  {taskTemplates.filter(t => !t.workflow_id).map((template) => (
-                    <div
-                      key={template.template_type}
-                      onClick={() => handleTemplateSelect(template.template_type)}
-                      style={{
-                        padding: "10px",
-                        border: selectedTemplate === template.template_type
-                          ? "2px solid var(--color-primary)"
-                          : "1px solid var(--color-border)",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        backgroundColor: selectedTemplate === template.template_type
-                          ? "var(--color-bg-tertiary)"
-                          : "var(--color-bg-secondary)",
-                        transition: "box-shadow 0.2s, transform 0.2s",
-                      }}
-                    >
-                      <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
-                        {t(`settings.scheduler.${template.template_type}`) || template.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
-                        {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
-                      </div>
-                    </div>
-                  ))}
+                  {taskTemplates.flatMap((template) =>
+                    !template.workflow_id
+                      ? [
+                        (
+                          <div
+                            key={template.template_type}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleTemplateSelect(template.template_type)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") { handleTemplateSelect(template.template_type); }
+                            }}
+                            style={{
+                              padding: "10px",
+                              border: selectedTemplate === template.template_type
+                                ? "2px solid var(--color-primary)"
+                                : "1px solid var(--color-border)",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              backgroundColor: selectedTemplate === template.template_type
+                                ? "var(--color-bg-tertiary)"
+                                : "var(--color-bg-secondary)",
+                              transition: "box-shadow 0.2s, transform 0.2s",
+                            }}
+                          >
+                            <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
+                              {t(`settings.scheduler.${template.template_type}`) || template.name}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                              {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
+                            </div>
+                          </div>
+                        ),
+                      ]
+                      : []
+                  )}
                 </div>
               </div>
 
@@ -883,31 +894,42 @@ export function SchedulerSettings() {
                   {t("settings.scheduler.workflowTemplates")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                  {taskTemplates.filter(t => t.workflow_id).map((template) => (
-                    <div
-                      key={template.template_type}
-                      onClick={() => handleTemplateSelect(template.template_type)}
-                      style={{
-                        padding: "10px",
-                        border: selectedTemplate === template.template_type
-                          ? "2px solid var(--color-success)"
-                          : "1px solid var(--color-border)",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        backgroundColor: selectedTemplate === template.template_type
-                          ? "var(--color-bg-tertiary)"
-                          : "var(--color-bg-secondary)",
-                        transition: "box-shadow 0.2s, transform 0.2s",
-                      }}
-                    >
-                      <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
-                        {t(`settings.scheduler.${template.template_type}`) || template.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
-                        {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
-                      </div>
-                    </div>
-                  ))}
+                  {taskTemplates.flatMap((template) =>
+                    template.workflow_id
+                      ? [
+                        (
+                          <div
+                            key={template.template_type}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleTemplateSelect(template.template_type)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") { handleTemplateSelect(template.template_type); }
+                            }}
+                            style={{
+                              padding: "10px",
+                              border: selectedTemplate === template.template_type
+                                ? "2px solid var(--color-success)"
+                                : "1px solid var(--color-border)",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              backgroundColor: selectedTemplate === template.template_type
+                                ? "var(--color-bg-tertiary)"
+                                : "var(--color-bg-secondary)",
+                              transition: "box-shadow 0.2s, transform 0.2s",
+                            }}
+                          >
+                            <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
+                              {t(`settings.scheduler.${template.template_type}`) || template.name}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                              {t(`settings.scheduler.${template.template_type}Desc`) || template.description}
+                            </div>
+                          </div>
+                        ),
+                      ]
+                      : []
+                  )}
                 </div>
               </div>
             </div>

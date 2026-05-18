@@ -286,7 +286,7 @@ export function AcpSettings() {
                           <Text style={{ fontSize: 12 }}>{s.workDir}</Text>
                         </Descriptions.Item>
                         <Descriptions.Item label={t("acp.permission")}>
-                          <Tag style={{ fontSize: 11 }}>{s.permissionMode}</Tag>
+                          <Tag style={{ fontSize: 12 }}>{s.permissionMode}</Tag>
                         </Descriptions.Item>
                         <Descriptions.Item label={t("acp.activeTasks")}>
                           <Text style={{ fontSize: 12 }}>{s.activeTasks}</Text>

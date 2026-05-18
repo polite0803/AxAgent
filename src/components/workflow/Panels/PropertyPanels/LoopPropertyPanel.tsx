@@ -53,7 +53,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.loopType")}
         </label>
         <Select
@@ -73,7 +73,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       {config.loop_type === "forEach" && (
         <>
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
               {t("workflow.props.arrayVar")}
             </label>
             <Input
@@ -85,7 +85,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
             />
           </div>
           <div>
-            <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+            <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
               {t("workflow.props.iterateVar")}
             </label>
             <Input
@@ -101,7 +101,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
 
       {config.loop_type === "while" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.continueCondition")}
           </label>
           <Input.TextArea
@@ -117,7 +117,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
 
       {config.loop_type === "until" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.stopCondition")}
           </label>
           <Input.TextArea
@@ -132,7 +132,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       )}
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.maxIterations")}
         </label>
         <InputNumber
@@ -147,7 +147,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.continueOnError")}</label>
+        <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.continueOnError")}</label>
         <Switch
           size="small"
           checked={config.continue_on_error ?? false}
@@ -156,7 +156,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.loopBodySteps", { count: config.body_steps?.length || 0 })}
         </label>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -172,14 +172,14 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({ node, onUp
             </Tag>
           ))}
           {config.body_steps.length === 0 && (
-            <div style={{ color: "#666", fontSize: 11 }}>{t("workflow.props.noLoopSteps")}</div>
+            <div style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.noLoopSteps")}</div>
           )}
         </div>
       </div>
 
       {availableNodes.length > 0 && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.addStep")}
           </label>
           <Select

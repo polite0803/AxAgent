@@ -5,17 +5,17 @@ import { useTranslation } from "react-i18next";
 
 const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
   codeCompletion: (
-    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
     </svg>
   ),
   searchResults: (
-    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
   ),
   documentation: (
-    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -24,7 +24,7 @@ const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
     </svg>
   ),
   contextAnalysis: (
-    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -33,7 +33,7 @@ const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
     </svg>
   ),
   toolCache: (
-    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -44,7 +44,7 @@ const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
 };
 
 const CHECK_ICON = (
-  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
 );
@@ -106,7 +106,7 @@ export function PrefetchIndicator() {
           <div className="px-3 py-2 border-b flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span
-                className={`w-2 h-2 rounded-full ${isActive ? "bg-yellow-500" : "bg-green-500"}`}
+                className={`size-2 rounded-full ${isActive ? "bg-yellow-500" : "bg-green-500"}`}
                 style={isActive ? { animation: "prefetch-pulse 1s ease-in-out infinite" } : undefined}
                 aria-hidden="true"
               />
@@ -135,7 +135,7 @@ export function PrefetchIndicator() {
             </div>
 
             {displayedResults.length > 0 && (
-              <ul className="space-y-2" role="list" aria-label={t("proactive.prefetchReady")}>
+              <ul className="space-y-2" aria-label={t("proactive.prefetchReady")}>
                 {displayedResults.map((result) => (
                   <li key={result.resource_id} className="flex items-center gap-2">
                     <span

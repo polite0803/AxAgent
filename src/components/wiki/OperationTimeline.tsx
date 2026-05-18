@@ -115,7 +115,7 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
               </Space>
 
               <Space split={<span style={{ color: "#d9d9d9" }}>|</span>}>
-                <Text type="secondary" style={{ fontSize: 11 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("wiki.operation.status")}:
                   <Tag
                     color={op.status === "completed" ? "success" : op.status === "failed" ? "error" : "default"}
@@ -124,7 +124,7 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
                     {op.status}
                   </Tag>
                 </Text>
-                <Text type="secondary" style={{ fontSize: 11 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("wiki.operation.duration")}: {formatDuration(op.createdAt, op.completedAt)}
                 </Text>
               </Space>
@@ -136,7 +136,7 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
               )}
 
               {op.detailsJson && (
-                <div style={{ fontSize: 11, color: "#8c8c8c" }}>
+                <div style={{ fontSize: 12, color: "#8c8c8c" }}>
                   {Object.entries(op.detailsJson).slice(0, 3).map(([key, value]) => (
                     <div key={key}>
                       {key}: {String(value)}

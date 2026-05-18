@@ -140,23 +140,27 @@ export function SettingsSidebar() {
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
   const { width: tabBarWidth, onMouseDown: onTabBarResize } = useDraggableWidth(72, 48, 200);
 
+  // 预构建 section → tab 反向映射，避免循环中调用 includes
+  const sectionToTab = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
+      for (const section of sections) {
+        map.set(section, tab);
+      }
+    }
+    return map;
+  }, []);
+
   // 根据当前选中的 section 反查所属 tab
   const [activeTab, setActiveTab] = useState(() => {
-    for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
-      if (sections.includes(settingsSection)) { return tab; }
-    }
-    return "model";
+    return sectionToTab.get(settingsSection) ?? "model";
   });
 
   // 当 settingsSection 变化时，同步更新 activeTab
   useEffect(() => {
-    for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
-      if (sections.includes(settingsSection)) {
-        setActiveTab(tab);
-        break;
-      }
-    }
-  }, [settingsSection]);
+    const tab = sectionToTab.get(settingsSection);
+    if (tab) { setActiveTab(tab); }
+  }, [settingsSection, sectionToTab]);
 
   const handleTabChange = (key: string) => {
     setActiveTab(key);
@@ -226,6 +230,8 @@ export function SettingsSidebar() {
       {/* Back button */}
       <div
         className="flex items-center gap-2 cursor-pointer"
+        role="button"
+        tabIndex={0}
         style={{
           color: token.colorTextSecondary,
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
@@ -236,6 +242,9 @@ export function SettingsSidebar() {
           paddingBottom: 12,
         }}
         onClick={() => navigate("/")}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { navigate("/"); }
+        }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = token.colorText;
           e.currentTarget.style.backgroundColor = token.colorFillSecondary;
@@ -249,7 +258,7 @@ export function SettingsSidebar() {
         <span style={{ fontSize: 14 }}>{t("common.back")}</span>
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             color: token.colorTextQuaternary,
             border: `1px solid ${token.colorBorderSecondary}`,
             borderRadius: 4,
@@ -272,6 +281,8 @@ export function SettingsSidebar() {
         />
         {/* Resize handle */}
         <div
+          role="separator"
+          tabIndex={0}
           onMouseDown={onTabBarResize}
           style={{
             width: 4,

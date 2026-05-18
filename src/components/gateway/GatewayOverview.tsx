@@ -197,22 +197,19 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
               {status.is_running && (
                 <div className="text-xs flex flex-col gap-0.5 mt-1">
                   <div className="flex items-center gap-1">
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleOpenUrl(httpUrl);
-                      }}
+                    <Button
+                      type="link"
+                      onClick={() => handleOpenUrl(httpUrl)}
                       style={{
                         fontFamily: "monospace",
-                        color: token.colorPrimary,
                         textDecoration: "underline dashed",
                         textUnderlineOffset: 3,
                         userSelect: "all",
+                        padding: 0,
                       }}
                     >
                       {httpUrl}
-                    </a>
+                    </Button>
                     <CopyButton
                       text={httpUrl}
                       size={12}
@@ -221,22 +218,19 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                   </div>
                   {status.ssl_enabled && httpsUrl && (
                     <div className="flex items-center gap-1">
-                      <a
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleOpenUrl(httpsUrl);
-                        }}
+                      <Button
+                        type="link"
+                        onClick={() => handleOpenUrl(httpsUrl)}
                         style={{
                           fontFamily: "monospace",
-                          color: token.colorPrimary,
                           textDecoration: "underline dashed",
                           textUnderlineOffset: 3,
                           userSelect: "all",
+                          padding: 0,
                         }}
                       >
                         {httpsUrl}
-                      </a>
+                      </Button>
                       <CopyButton
                         text={httpsUrl}
                         size={12}
@@ -245,7 +239,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                     </div>
                   )}
                   {status.ssl_enabled && status.force_ssl && (
-                    <span style={{ color: token.colorWarning, fontSize: 11 }}>
+                    <span style={{ color: token.colorWarning, fontSize: 12 }}>
                       {t("gateway.forceSslNotice")}
                     </span>
                   )}

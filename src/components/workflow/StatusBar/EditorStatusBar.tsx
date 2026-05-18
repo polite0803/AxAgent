@@ -62,7 +62,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         alignItems: "center",
         padding: "0 12px",
         gap: 16,
-        fontSize: 11,
+        fontSize: 12,
         color: token.colorTextTertiary,
       }}
     >
@@ -97,7 +97,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
       <Tooltip title={t("workflow.statusBar.resetZoom")}>
         <span
+          role="button"
+          tabIndex={0}
           onClick={onResetZoom}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { onResetZoom(); }
+          }}
           style={{ cursor: "pointer", color: token.colorTextSecondary, userSelect: "none" }}
         >
           {Math.round(zoom * 100)}%

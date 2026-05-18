@@ -1,7 +1,7 @@
 import { Theme, ThemeColors, useThemeStore } from "@/stores/feature/themeStore";
 import { Button, Card, Form, Input, List, message, Modal, Popconfirm, Space, Typography } from "antd";
 import { Check, Copy, Delete, RefreshCw, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Title, Paragraph, Text } = Typography;
@@ -39,7 +39,7 @@ function ThemePreview({ colors, name }: ThemePreviewProps) {
             />
           ))}
         </div>
-        <div style={{ color: colors.foreground, fontSize: 11 }}>
+        <div style={{ color: colors.foreground, fontSize: 12 }}>
           <span style={{ color: colors.brightGreen }}>success</span>{" "}
           <span style={{ color: colors.brightYellow }}>warning</span>{" "}
           <span style={{ color: colors.brightRed }}>error</span>
@@ -79,7 +79,7 @@ export function ThemeManager() {
     deleteCustomTheme,
   } = useThemeStore();
 
-  const [_selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const _selectedThemeRef = useRef<string | null>(null);
   const [_editModalVisible, _setEditModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [_themeToEdit, _setThemeToEdit] = useState<Theme | null>(null);
@@ -90,7 +90,7 @@ export function ThemeManager() {
   }, [loadThemes]);
 
   const handleThemeSelect = (themeName: string) => {
-    setSelectedTheme(themeName);
+    _selectedThemeRef.current = themeName;
     setCurrentTheme(themeName);
   };
 
@@ -346,7 +346,7 @@ colors:
               </div>
               {theme.description && (
                 <Text
-                  style={{ color: colors.white, fontSize: 11 }}
+                  style={{ color: colors.white, fontSize: 12 }}
                   className="block mt-1"
                 >
                   {theme.description}

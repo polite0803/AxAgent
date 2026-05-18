@@ -205,8 +205,7 @@ export const useExecutionStore = create<ExecutionStore>()(
 
       getActiveConversations: () => {
         return Object.entries(get().phases)
-          .filter(([, p]) => ACTIVE_PHASES.has(p))
-          .map(([id]) => id);
+          .flatMap(([id, p]) => ACTIVE_PHASES.has(p) ? [id] : []);
       },
 
       // ── 进度 ──

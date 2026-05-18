@@ -191,6 +191,14 @@ function PoolItemCard({ item }: { item: AgentPoolItem }) {
         isFailed ? "pool-item--failed" : ""
       }`}
       onClick={handleClick}
+      role="button"
+      tabIndex={clickable ? 0 : -1}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && clickable) {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       style={{ cursor: clickable ? "pointer" : "default" }}
       data-component="agent-pool-item"
     >

@@ -29,7 +29,7 @@ function getToolDisplayName(toolName: string, t: (key: string) => string): strin
     mcp: t("progressBar.tool.mcp"),
   };
   for (const [key, display] of Object.entries(map)) {
-    if (lower.includes(key)) {
+    if (lower.indexOf(key) !== -1) {
       return display;
     }
   }
@@ -81,18 +81,18 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
   const displayName = currentDisplayName || lastKnownToolNameRef.current;
 
   // 用于动画过渡：当工具切换时短暂闪烁
-  const [lastToolName, setLastToolName] = useState<string | null>(null);
+  const lastToolNameRef = useRef<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
 
   useEffect(() => {
     if (
       currentToolCall?.conversationId === conversationId
       && currentToolCall?.toolName
-      && currentToolCall.toolName !== lastToolName
+      && currentToolCall.toolName !== lastToolNameRef.current
     ) {
       setTransitioning(true);
       const t = setTimeout(() => setTransitioning(false), 300);
-      setLastToolName(currentToolCall.toolName);
+      lastToolNameRef.current = currentToolCall.toolName;
       return () => clearTimeout(t);
     }
   }, [
@@ -100,7 +100,6 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
     currentToolCall?.toolUseId,
     currentToolCall?.conversationId,
     conversationId,
-    lastToolName,
   ]);
 
   // 仅依赖状态机判断当前对话是否活跃，不依赖全局 currentToolCall
@@ -141,7 +140,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
           color="processing"
           style={{
             margin: 0,
-            fontSize: 11,
+            fontSize: 12,
             lineHeight: "18px",
             padding: "0 6px",
           }}
@@ -170,7 +169,7 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
         <Text
           type="secondary"
           style={{
-            fontSize: 11,
+            fontSize: 12,
             whiteSpace: "nowrap",
             fontVariantNumeric: "tabular-nums",
           }}

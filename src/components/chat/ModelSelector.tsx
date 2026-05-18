@@ -92,6 +92,166 @@ interface ModelSelectorProps {
   excludeModelKeys?: string[];
 }
 
+/**
+ * Extracted component for rendering a model item row.
+ * Fixes react-doctor/no-render-in-render by moving renderModelItem() out of ModelSelector.
+ */
+function ModelItemCard({
+  providerId,
+  model_id,
+  modelName,
+  providerName,
+  isPinned,
+  showProviderTag,
+  model,
+  isKeyboardActive,
+  multiSelect,
+  multiSelectedKeys,
+  currentValue,
+  hoveredKey,
+  onHoveredKeyChange,
+  onActiveIndexChange,
+  onSelect,
+  onTogglePin,
+}: {
+  providerId: string;
+  model_id: string;
+  modelName: string;
+  providerName: string;
+  isPinned: boolean;
+  showProviderTag: boolean;
+  model?: Model;
+  isKeyboardActive?: boolean;
+  multiSelect: boolean;
+  multiSelectedKeys: Set<string>;
+  currentValue: string | undefined;
+  hoveredKey: string | null;
+  onHoveredKeyChange: (key: string | null) => void;
+  onActiveIndexChange: (index: number) => void;
+  onSelect: (providerId: string, model_id: string) => void;
+  onTogglePin: (key: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const key = `${providerId}::${model_id}`;
+  const isActive = multiSelect ? multiSelectedKeys.has(key) : currentValue === key;
+  const isHovered = hoveredKey === key || isKeyboardActive;
+  const visibleCaps = model ? getVisibleModelCapabilities(model) : [];
+
+  return (
+    <div
+      className="flex items-center gap-2 cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(providerId, model_id);
+        }
+      }}
+      style={{
+        backgroundColor: isActive ? token.colorPrimaryBg : isHovered ? token.colorFillSecondary : undefined,
+        borderRadius: 6,
+        margin: "0 6px",
+        padding: "5px 10px",
+        transition: "background-color 0.15s",
+      }}
+      onClick={() => onSelect(providerId, model_id)}
+      onMouseEnter={() => {
+        onHoveredKeyChange(key);
+        onActiveIndexChange(-1);
+      }}
+      onMouseLeave={() => onHoveredKeyChange(null)}
+    >
+      {multiSelect && (
+        <Checkbox
+          checked={isActive}
+          style={{ pointerEvents: "none" }}
+        />
+      )}
+      <ModelIcon model={model_id} size={20} type="avatar" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 flex-wrap">
+          {showProviderTag && providerName && (
+            <Tag
+              style={{
+                fontSize: 12,
+                margin: 0,
+                padding: "0 4px",
+                lineHeight: "18px",
+                flexShrink: 0,
+                color: token.colorPrimary,
+                backgroundColor: token.colorPrimaryBg,
+                border: "none",
+              }}
+            >
+              {providerName}
+            </Tag>
+          )}
+          <span
+            style={{
+              fontSize: 13,
+              color: isActive ? token.colorPrimary : undefined,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {modelName}
+          </span>
+          {visibleCaps.map((cap) => (
+            <Tooltip key={cap} title={t(`settings.capability.${cap}`, cap)}>
+              <Tag
+                color={CAPABILITY_COLORS[cap]}
+                variant="filled"
+                style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+              >
+                {CAPABILITY_ICONS[cap]}
+              </Tag>
+            </Tooltip>
+          ))}
+          {model?.max_tokens != null && model.max_tokens > 0 && (
+            <Tag
+              variant="filled"
+              color="default"
+              style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+            >
+              {formatTokenCount(model.max_tokens)}
+            </Tag>
+          )}
+        </div>
+      </div>
+      {!multiSelect && (
+        <div
+          className="flex items-center gap-1"
+          style={{ flexShrink: 0 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onTogglePin(key);
+              }
+            }}
+            style={{
+              cursor: "pointer",
+              color: isPinned ? token.colorPrimary : token.colorTextQuaternary,
+              fontSize: 14,
+            }}
+            onClick={() => onTogglePin(key)}
+          >
+            {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+          </span>
+        </div>
+      )}
+      {multiSelect && isActive && <Check size={14} style={{ color: token.colorPrimary, flexShrink: 0 }} />}
+    </div>
+  );
+}
+
 export function ModelSelector(
   {
     style,
@@ -160,12 +320,14 @@ export function ModelSelector(
     } else {
       for (const p of providers) {
         if (!p.enabled) { continue; }
-        const m = p.models.find((m) => m.enabled);
-        if (m) {
-          pid = p.id;
-          mid = m.model_id;
-          break;
+        for (const model of p.models) {
+          if (model.enabled) {
+            pid = p.id;
+            mid = model.model_id;
+            break;
+          }
         }
+        if (pid) { break; }
       }
     }
     if (!pid || !mid) { return null; }
@@ -183,12 +345,13 @@ export function ModelSelector(
   // All enabled models flat list (for pinned section)
   const allEnabledModels = useMemo(() => {
     const result: { pid: string; mid: string; name: string; providerName: string; model: Model }[] = [];
+    const excludeSet = new Set(excludeModelKeys);
     for (const p of providers) {
       if (!p.enabled) { continue; }
       for (const m of p.models) {
         if (!m.enabled) { continue; }
         const key = `${p.id}::${m.model_id}`;
-        if (excludeModelKeys?.includes(key)) { continue; }
+        if (excludeSet.has(key)) { continue; }
         result.push({ pid: p.id, mid: m.model_id, name: m.name, providerName: p.name, model: m });
       }
     }
@@ -199,32 +362,35 @@ export function ModelSelector(
   const pinnedItems = useMemo(() => {
     const q = search.toLowerCase().trim();
     return pinnedModels
-      .map((key) => {
+      .flatMap((key) => {
         const model = allEnabledModels.find((m) => `${m.pid}::${m.mid}` === key);
-        return model ? { ...model, key } : null;
-      })
-      .filter((item): item is NonNullable<typeof item> =>
-        item !== null && (!q || item.name.toLowerCase().includes(q) || item.mid.toLowerCase().includes(q))
-      );
+        if (!model) { return []; }
+        const item = { ...model, key };
+        if (q && !item.name.toLowerCase().includes(q) && !item.mid.toLowerCase().includes(q)) { return []; }
+        return [item];
+      });
   }, [pinnedModels, allEnabledModels, search]);
 
   // Filtered providers and models (excluding search)
   const filteredProviders = useMemo(() => {
     const q = search.toLowerCase().trim();
     return providers
-      .filter((p) => p.enabled)
-      .map((p) => ({
-        ...p,
-        models: p.models.filter(
-          (m) => {
-            if (!m.enabled) { return false; }
-            if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) { return false; }
-            if (!q) { return true; }
-            return m.name.toLowerCase().includes(q) || m.model_id.toLowerCase().includes(q)
-              || p.name.toLowerCase().includes(q);
-          },
-        ),
-      }))
+      .flatMap((p) =>
+        p.enabled
+          ? [{
+            ...p,
+            models: p.models.filter(
+              (m) => {
+                if (!m.enabled) { return false; }
+                if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) { return false; }
+                if (!q) { return true; }
+                return m.name.toLowerCase().includes(q) || m.model_id.toLowerCase().includes(q)
+                  || p.name.toLowerCase().includes(q);
+              },
+            ),
+          }]
+          : []
+      )
       .filter((p) => p.models.length > 0);
   }, [providers, search, excludeModelKeys]);
 
@@ -336,10 +502,11 @@ export function ModelSelector(
       }
       rows.push({ type: "pinned-divider" });
     }
+    const expandedSet = new Set(expandedGroups);
     for (const provider of filteredProviders) {
       rows.push({ type: "group", provider });
       // When searching, always expand all groups to avoid timing issues with expandedGroups state
-      if (hasSearchQuery || expandedGroups.includes(provider.id)) {
+      if (hasSearchQuery || expandedSet.has(provider.id)) {
         for (const model of provider.models) {
           rows.push({ type: "model", providerId: provider.id, model, providerName: provider.name });
         }
@@ -425,122 +592,24 @@ export function ModelSelector(
     [selectableIndices, activeIndex, flatRows, virtualizer, handleSelect],
   );
 
-  const renderModelItem = (
-    providerId: string,
-    model_id: string,
-    modelName: string,
-    providerName: string,
-    isPinned: boolean,
-    showProviderTag: boolean,
-    model?: Model,
-    isKeyboardActive?: boolean,
-  ) => {
-    const key = `${providerId}::${model_id}`;
-    const isActive = multiSelect ? multiSelectedKeys.has(key) : currentValue === key;
-    const isHovered = hoveredKey === key || isKeyboardActive;
-    const visibleCaps = model ? getVisibleModelCapabilities(model) : [];
-    return (
-      <div
-        className="flex items-center gap-2 cursor-pointer"
-        style={{
-          backgroundColor: isActive ? token.colorPrimaryBg : isHovered ? token.colorFillSecondary : undefined,
-          borderRadius: 6,
-          margin: "0 6px",
-          padding: "5px 10px",
-          transition: "background-color 0.15s",
-        }}
-        onClick={() => handleSelect(providerId, model_id)}
-        onMouseEnter={() => {
-          setHoveredKey(key);
-          setActiveIndex(-1);
-        }}
-        onMouseLeave={() => setHoveredKey(null)}
-      >
-        {multiSelect && (
-          <Checkbox
-            checked={isActive}
-            style={{ pointerEvents: "none" }}
-          />
-        )}
-        <ModelIcon model={model_id} size={20} type="avatar" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1 flex-wrap">
-            {showProviderTag && providerName && (
-              <Tag
-                style={{
-                  fontSize: 11,
-                  margin: 0,
-                  padding: "0 4px",
-                  lineHeight: "18px",
-                  flexShrink: 0,
-                  color: token.colorPrimary,
-                  backgroundColor: token.colorPrimaryBg,
-                  border: "none",
-                }}
-              >
-                {providerName}
-              </Tag>
-            )}
-            <span
-              style={{
-                fontSize: 13,
-                color: isActive ? token.colorPrimary : undefined,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {modelName}
-            </span>
-            {visibleCaps.map((cap) => (
-              <Tooltip key={cap} title={t(`settings.capability.${cap}`, cap)}>
-                <Tag
-                  color={CAPABILITY_COLORS[cap]}
-                  variant="filled"
-                  style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
-                >
-                  {CAPABILITY_ICONS[cap]}
-                </Tag>
-              </Tooltip>
-            ))}
-            {model?.max_tokens != null && model.max_tokens > 0 && (
-              <Tag
-                variant="filled"
-                color="default"
-                style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
-              >
-                {formatTokenCount(model.max_tokens)}
-              </Tag>
-            )}
-          </div>
-        </div>
-        {!multiSelect && (
-          <div
-            className="flex items-center gap-1"
-            style={{ flexShrink: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span
-              style={{
-                cursor: "pointer",
-                color: isPinned ? token.colorPrimary : token.colorTextQuaternary,
-                fontSize: 14,
-              }}
-              onClick={() => togglePin(key)}
-            >
-              {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
-            </span>
-          </div>
-        )}
-        {multiSelect && isActive && <Check size={14} style={{ color: token.colorPrimary, flexShrink: 0 }} />}
-      </div>
-    );
-  };
-
   return (
     <>
       {children
-        ? <span onClick={() => setOpen(true)}>{children}</span>
+        ? (
+          <span
+            onClick={() => setOpen(true)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setOpen(true);
+              }
+            }}
+          >
+            {children}
+          </span>
+        )
         : (
           <Tooltip
             title={`${t("chat.switchModel")} (${
@@ -567,7 +636,7 @@ export function ModelSelector(
                   {currentModel.providerName && (
                     <Tag
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         margin: 0,
                         padding: "0 4px",
                         lineHeight: "16px",
@@ -632,7 +701,6 @@ export function ModelSelector(
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
-            autoFocus
             style={{
               flex: 1,
               borderRadius: 8,
@@ -641,6 +709,14 @@ export function ModelSelector(
           />
           <Tooltip title={allGroupsExpanded ? t("common.collapseAll") : t("common.expandAll")}>
             <span
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  toggleAllGroups();
+                }
+              }}
               style={{
                 cursor: "pointer",
                 color: token.colorTextSecondary,
@@ -704,16 +780,24 @@ export function ModelSelector(
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    {renderModelItem(
-                      row.pid,
-                      row.mid,
-                      row.name,
-                      row.providerName,
-                      true,
-                      true,
-                      row.model,
-                      virtualRow.index === activeIndex,
-                    )}
+                    <ModelItemCard
+                      providerId={row.pid}
+                      model_id={row.mid}
+                      modelName={row.name}
+                      providerName={row.providerName}
+                      isPinned={true}
+                      showProviderTag={true}
+                      model={row.model as Model | undefined}
+                      isKeyboardActive={virtualRow.index === activeIndex}
+                      multiSelect={multiSelect ?? false}
+                      multiSelectedKeys={multiSelectedKeys}
+                      currentValue={currentValue}
+                      hoveredKey={hoveredKey}
+                      onHoveredKeyChange={setHoveredKey}
+                      onActiveIndexChange={setActiveIndex}
+                      onSelect={handleSelect}
+                      onTogglePin={togglePin}
+                    />
                   </div>
                 );
               }
@@ -756,13 +840,21 @@ export function ModelSelector(
                   >
                     <div
                       className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleGroupExpand(row.provider.id);
+                        }
+                      }}
                       style={{ userSelect: "none", background: "var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))" }}
                       onClick={() => toggleGroupExpand(row.provider.id)}
                     >
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       <SmartProviderIcon provider={row.provider} size={20} type="avatar" />
                       <span style={{ fontWeight: 600, fontSize: 13 }}>{row.provider.name}</span>
-                      <Tag style={{ fontSize: 11, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                      <Tag style={{ fontSize: 12, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
                         {row.provider.models.length}
                       </Tag>
                       <div style={{ flex: 1 }} />
@@ -798,16 +890,24 @@ export function ModelSelector(
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  {renderModelItem(
-                    row.providerId,
-                    row.model.model_id,
-                    row.model.name,
-                    row.providerName,
-                    isPinned,
-                    false,
-                    row.model,
-                    virtualRow.index === activeIndex,
-                  )}
+                  <ModelItemCard
+                    providerId={row.providerId}
+                    model_id={row.model.model_id}
+                    modelName={row.model.name}
+                    providerName={row.providerName}
+                    isPinned={isPinned}
+                    showProviderTag={false}
+                    model={row.model}
+                    isKeyboardActive={virtualRow.index === activeIndex}
+                    multiSelect={multiSelect ?? false}
+                    multiSelectedKeys={multiSelectedKeys}
+                    currentValue={currentValue}
+                    hoveredKey={hoveredKey}
+                    onHoveredKeyChange={setHoveredKey}
+                    onActiveIndexChange={setActiveIndex}
+                    onSelect={handleSelect}
+                    onTogglePin={togglePin}
+                  />
                 </div>
               );
             })}

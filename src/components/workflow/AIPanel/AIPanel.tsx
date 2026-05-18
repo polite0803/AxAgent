@@ -161,14 +161,14 @@ export const AIPanel: React.FC<AIPanelProps> = ({
               <div
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}
               >
-                <span style={{ color: token.colorTextSecondary, fontSize: 11, fontWeight: 500 }}>
+                <span style={{ color: token.colorTextSecondary, fontSize: 12, fontWeight: 500 }}>
                   {t("workflow.aiPanel.explanation")}
                 </span>
                 <Button
                   type="text"
                   size="small"
                   onClick={() => setGenerationExplanation(null)}
-                  style={{ color: token.colorTextTertiary, fontSize: 11, minWidth: "auto", padding: "0 4px" }}
+                  style={{ color: token.colorTextTertiary, fontSize: 12, minWidth: "auto", padding: "0 4px" }}
                 >
                   ✕
                 </Button>
@@ -179,7 +179,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
             </Card>
           )}
 
-          <div style={{ color: token.colorTextTertiary, fontSize: 11 }}>
+          <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             <strong>{t("workflow.aiPanel.currentCanvasState")}</strong>
             {t("workflow.aiPanel.canvasStatus", { nodes: nodes.length, edges: edges.length })}
             <br />
@@ -317,13 +317,13 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <Tag color="blue" style={{ fontSize: 11, margin: 0, padding: "0 6px" }}>
+                          <Tag color="blue" style={{ fontSize: 12, margin: 0, padding: "0 6px" }}>
                             {node.node_type}
                           </Tag>
                           <span style={{ color: token.colorText, fontSize: 12, fontWeight: 500 }}>{node.label}</span>
                         </div>
                         {node.description && (
-                          <div style={{ color: token.colorTextSecondary, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+                          <div style={{ color: token.colorTextSecondary, fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>
                             {node.description}
                           </div>
                         )}
@@ -336,7 +336,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                               : node.confidence >= 0.5
                               ? token.colorWarning
                               : token.colorError,
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 500,
                           }}
                         >
@@ -348,7 +348,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                   </Card>
                 ))}
               </div>
-              <div style={{ color: token.colorTextTertiary, fontSize: 11, marginTop: 12 }}>
+              <div style={{ color: token.colorTextTertiary, fontSize: 12, marginTop: 12 }}>
                 {t("workflow.aiPanel.dragHint")}
               </div>
             </div>

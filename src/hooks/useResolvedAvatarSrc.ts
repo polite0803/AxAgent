@@ -13,12 +13,8 @@ export function useResolvedAvatarSrc(
   const [resolved, setResolved] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    if (avatarType !== "file" || !avatarValue) {
-      setResolved(undefined);
-      return;
-    }
-    // Relative path → resolve via Rust command
-    if (!isTauri()) {
+    // 合并两个 undefined 分支：非 file 类型、非 Tauri 环境均走同一 setResolved 路径
+    if (avatarType !== "file" || !avatarValue || !isTauri()) {
       setResolved(undefined);
       return;
     }

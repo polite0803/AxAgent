@@ -10,6 +10,131 @@ interface TriggerPropertyPanelProps {
   onDelete: () => void;
 }
 
+/**
+ * Extracted component for rendering the trigger config by type.
+ * Fixes react-doctor/no-render-in-render by moving renderTriggerConfig() out of TriggerPropertyPanel.
+ */
+function TriggerConfig({ triggerConfig, handleConfigChange }: {
+  triggerConfig: { type: string; config: any };
+  handleConfigChange: (key: string, value: unknown) => void;
+}) {
+  const { t } = useTranslation();
+
+  switch (triggerConfig.type) {
+    case "schedule":
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div>
+            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.cronExpression")}</label>
+            <Input
+              id="trigger-property-panel-input-113"
+              value={(triggerConfig.config.cron as string) || ""}
+              onChange={(e) => handleConfigChange("cron", e.target.value)}
+              placeholder="* * * * *"
+              size="small"
+            />
+          </div>
+          <div>
+            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.timezone")}</label>
+            <Select
+              value={(triggerConfig.config.timezone as string) || "UTC"}
+              onChange={(value) => handleConfigChange("timezone", value)}
+              size="small"
+              style={{ width: "100%" }}
+              options={[
+                { value: "UTC", label: "UTC" },
+                { value: "Asia/Shanghai", label: "Asia/Shanghai" },
+                { value: "America/New_York", label: "America/New_York" },
+                { value: "America/Los_Angeles", label: "America/Los_Angeles" },
+                { value: "Europe/London", label: "Europe/London" },
+                { value: "Europe/Paris", label: "Europe/Paris" },
+                { value: "Asia/Tokyo", label: "Asia/Tokyo" },
+                { value: "Asia/Singapore", label: "Asia/Singapore" },
+              ]}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.enabled")}</label>
+            <Switch
+              size="small"
+              checked={(triggerConfig.config.enabled as boolean) ?? true}
+              onChange={(checked) => handleConfigChange("enabled", checked)}
+            />
+          </div>
+        </div>
+      );
+
+    case "webhook":
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div>
+            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.webhookPath")}</label>
+            <Input
+              id="trigger-property-panel-input-114"
+              value={(triggerConfig.config.path as string) || ""}
+              onChange={(e) => handleConfigChange("path", e.target.value)}
+              placeholder="/webhook/my-trigger"
+              size="small"
+            />
+          </div>
+          <div>
+            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.httpMethod")}</label>
+            <Select
+              value={(triggerConfig.config.method as string) || "GET"}
+              onChange={(value) => handleConfigChange("method", value)}
+              size="small"
+              style={{ width: "100%" }}
+              options={[
+                { value: "GET", label: "GET" },
+                { value: "POST", label: "POST" },
+                { value: "PUT", label: "PUT" },
+                { value: "DELETE", label: "DELETE" },
+              ]}
+            />
+          </div>
+          <div>
+            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.authType")}</label>
+            <Select
+              value={(triggerConfig.config.auth_type as string) || "none"}
+              onChange={(value) => handleConfigChange("auth_type", value)}
+              size="small"
+              style={{ width: "100%" }}
+              options={[
+                { value: "none", label: t("workflow.props.authNone") },
+                { value: "bearer", label: "Bearer Token" },
+                { value: "api_key", label: "API Key" },
+                { value: "basic", label: "Basic Auth" },
+              ]}
+            />
+          </div>
+        </div>
+      );
+
+    case "event":
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div>
+            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.eventType")}</label>
+            <Input
+              id="trigger-property-panel-input-115"
+              value={(triggerConfig.config.event_type as string) || ""}
+              onChange={(e) => handleConfigChange("event_type", e.target.value)}
+              placeholder="message.created"
+              size="small"
+            />
+          </div>
+        </div>
+      );
+
+    default:
+      return (
+        <div style={{ color: "#666", fontSize: 12, padding: "8px 0" }}>
+          {t("workflow.props.manualNoConfig")}
+        </div>
+      );
+  }
+}
+
 export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const triggerNode = node as TriggerNode;
@@ -43,126 +168,10 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
     });
   };
 
-  const renderTriggerConfig = () => {
-    switch (triggerConfig.type) {
-      case "schedule":
-        return (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.cronExpression")}</label>
-              <Input
-                id="trigger-property-panel-input-113"
-                value={(triggerConfig.config as { cron?: string }).cron || ""}
-                onChange={(e) => handleConfigChange("cron", e.target.value)}
-                placeholder="* * * * *"
-                size="small"
-              />
-            </div>
-            <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.timezone")}</label>
-              <Select
-                value={(triggerConfig.config as { timezone?: string }).timezone || "UTC"}
-                onChange={(value) => handleConfigChange("timezone", value)}
-                size="small"
-                style={{ width: "100%" }}
-                options={[
-                  { value: "UTC", label: "UTC" },
-                  { value: "Asia/Shanghai", label: "Asia/Shanghai" },
-                  { value: "America/New_York", label: "America/New_York" },
-                  { value: "America/Los_Angeles", label: "America/Los_Angeles" },
-                  { value: "Europe/London", label: "Europe/London" },
-                  { value: "Europe/Paris", label: "Europe/Paris" },
-                  { value: "Asia/Tokyo", label: "Asia/Tokyo" },
-                  { value: "Asia/Singapore", label: "Asia/Singapore" },
-                ]}
-              />
-            </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.enabled")}</label>
-              <Switch
-                size="small"
-                checked={(triggerConfig.config as { enabled?: boolean }).enabled ?? true}
-                onChange={(checked) => handleConfigChange("enabled", checked)}
-              />
-            </div>
-          </div>
-        );
-
-      case "webhook":
-        return (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.webhookPath")}</label>
-              <Input
-                id="trigger-property-panel-input-114"
-                value={(triggerConfig.config as { path?: string }).path || ""}
-                onChange={(e) => handleConfigChange("path", e.target.value)}
-                placeholder="/webhook/my-trigger"
-                size="small"
-              />
-            </div>
-            <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.httpMethod")}</label>
-              <Select
-                value={(triggerConfig.config as { method?: string }).method || "GET"}
-                onChange={(value) => handleConfigChange("method", value)}
-                size="small"
-                style={{ width: "100%" }}
-                options={[
-                  { value: "GET", label: "GET" },
-                  { value: "POST", label: "POST" },
-                  { value: "PUT", label: "PUT" },
-                  { value: "DELETE", label: "DELETE" },
-                ]}
-              />
-            </div>
-            <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.authType")}</label>
-              <Select
-                value={(triggerConfig.config as { auth_type?: string }).auth_type || "none"}
-                onChange={(value) => handleConfigChange("auth_type", value)}
-                size="small"
-                style={{ width: "100%" }}
-                options={[
-                  { value: "none", label: t("workflow.props.authNone") },
-                  { value: "bearer", label: "Bearer Token" },
-                  { value: "api_key", label: "API Key" },
-                  { value: "basic", label: "Basic Auth" },
-                ]}
-              />
-            </div>
-          </div>
-        );
-
-      case "event":
-        return (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.eventType")}</label>
-              <Input
-                id="trigger-property-panel-input-115"
-                value={(triggerConfig.config as { event_type?: string }).event_type || ""}
-                onChange={(e) => handleConfigChange("event_type", e.target.value)}
-                placeholder="message.created"
-                size="small"
-              />
-            </div>
-          </div>
-        );
-
-      default:
-        return (
-          <div style={{ color: "#666", fontSize: 11, padding: "8px 0" }}>
-            {t("workflow.props.manualNoConfig")}
-          </div>
-        );
-    }
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.triggerType")}
         </label>
         <Select
@@ -180,10 +189,10 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({ node
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.triggerConfig")}
         </label>
-        {renderTriggerConfig()}
+        <TriggerConfig triggerConfig={triggerConfig} handleConfigChange={handleConfigChange} />
       </div>
 
       <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>

@@ -96,7 +96,7 @@ export const useTabStore = create<TabState>((set, get) => ({
   removeTabsByConversationId: (conversationId) => {
     const { tabs, activeTabId } = get();
     const removedTabIds = new Set(
-      tabs.filter((t) => t.conversationId === conversationId).map((t) => t.id),
+      tabs.flatMap((t) => t.conversationId === conversationId ? [t.id] : []),
     );
     if (removedTabIds.size === 0) { return; }
 

@@ -89,7 +89,7 @@ export function ContextClassificationBar({
       </div>
 
       {/* Labels + Token counts */}
-      <Space size={[6, 2]} wrap style={{ fontSize: 11, lineHeight: "16px" }}>
+      <Space size={[6, 2]} wrap style={{ fontSize: 12, lineHeight: "16px" }}>
         {visibleSegments.map((seg, i) => {
           const pct = totalTokens > 0 ? (seg.tokens / totalTokens) * 100 : 0;
           return (
@@ -132,7 +132,7 @@ export function ContextClassificationBar({
       {maxTokens != null && maxTokens > 0 && (
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 500,
             color: overallRatio > 0.95
               ? token.colorError

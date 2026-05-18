@@ -46,7 +46,7 @@ export function ProactiveSuggestionBar() {
       <div className="px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <div className="size-2 rounded-full bg-primary animate-pulse" />
             <span className="text-sm font-medium">{t("proactive.suggestions")}</span>
             <span className="text-xs text-muted-foreground">
               ({suggestions.length})
@@ -59,7 +59,7 @@ export function ProactiveSuggestionBar() {
             title={t("proactive.dismissAll")}
           >
             <svg
-              className="w-4 h-4"
+              className="size-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -78,7 +78,7 @@ export function ProactiveSuggestionBar() {
           {isLoading
             ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 {t("proactive.loading")}
               </div>
             )

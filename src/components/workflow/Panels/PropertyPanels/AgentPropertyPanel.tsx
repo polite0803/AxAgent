@@ -153,7 +153,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* 角色选择（全局 agent_roles） */}
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.agentRole")}
         </label>
         <Select
@@ -175,7 +175,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       {/* 专家/AgentProfile 选择 */}
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.expertRole")}
         </label>
         {selectedExpert
@@ -236,7 +236,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.systemPrompt")}
         </label>
         <Input.TextArea
@@ -250,7 +250,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.model")}
         </label>
         <ModelSelect
@@ -264,7 +264,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.temperature")}
           </label>
           <InputNumber
@@ -279,7 +279,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.maxTokens")}
           </label>
           <InputNumber
@@ -296,7 +296,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputMode")}
         </label>
         <Select
@@ -313,7 +313,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -328,7 +328,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.toolsCount", { count: config.tools?.length || 0 })}
         </label>
         <Select
@@ -345,7 +345,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.contextSourcesCount", { count: config.context_sources?.length || 0 })}
         </label>
         <Select

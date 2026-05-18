@@ -21,7 +21,7 @@ export function VersionPagination({
 
   if (modelVersions.length <= 1) { return null; }
 
-  const sorted = [...modelVersions].sort((a, b) => a.version_index - b.version_index);
+  const sorted = modelVersions.toSorted((a, b) => a.version_index - b.version_index);
   const currentIdx = sorted.findIndex((v) => v.id === msg.id);
   const current = currentIdx >= 0 ? currentIdx : sorted.findIndex((v) => v.is_active);
 
@@ -46,7 +46,7 @@ export function VersionPagination({
         onClick={handlePrev}
         style={{ minWidth: 20, padding: "0 2px" }}
       />
-      <Typography.Text style={{ fontSize: 11, color: token.colorTextSecondary }}>
+      <Typography.Text style={{ fontSize: 12, color: token.colorTextSecondary }}>
         {current + 1}/{sorted.length}
       </Typography.Text>
       <Button

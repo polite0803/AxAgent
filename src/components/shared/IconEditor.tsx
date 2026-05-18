@@ -38,6 +38,75 @@ export interface IconEditorProps {
 }
 
 /**
+ * Extracted component for rendering the current icon display.
+ * Fixes react-doctor/no-render-in-render by moving renderIcon() out of IconEditor.
+ */
+function IconRenderer({
+  iconType,
+  iconValue,
+  size,
+  shape,
+  defaultIcon,
+  resolvedSrc,
+}: {
+  iconType: string | null | undefined;
+  iconValue: string | null | undefined;
+  size: number;
+  shape: "circle" | "square";
+  defaultIcon: React.ReactNode | undefined;
+  resolvedSrc: string | undefined;
+}) {
+  const { token } = theme.useToken();
+
+  const parseModelIcon = (value: string) => {
+    const idx = value.indexOf(":");
+    return idx > 0 ? value.substring(idx + 1) : value;
+  };
+
+  if (iconType === "emoji" && iconValue) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: shape === "circle" ? "50%" : token.borderRadius,
+          backgroundColor: token.colorFillSecondary,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: size * 0.55,
+          lineHeight: 1,
+          cursor: "pointer",
+        }}
+      >
+        {iconValue}
+      </div>
+    );
+  }
+  if ((iconType === "url" || iconType === "file") && iconValue) {
+    const src = iconType === "file" ? (resolvedSrc ?? iconValue) : iconValue;
+    return <Avatar size={size} src={src} shape={shape} style={{ cursor: "pointer" }} />;
+  }
+  if (iconType === "model_icon" && iconValue) {
+    return (
+      <div style={{ cursor: "pointer" }}>
+        <DynamicLobeIcon iconId={parseModelIcon(iconValue)} size={size} type="avatar" />
+      </div>
+    );
+  }
+  if (defaultIcon) {
+    return <div style={{ cursor: "pointer" }}>{defaultIcon}</div>;
+  }
+  return (
+    <Avatar
+      size={size}
+      shape={shape}
+      style={{ cursor: "pointer", backgroundColor: token.colorFillSecondary, color: token.colorTextSecondary }}
+    />
+  );
+}
+
+/**
  * Shared icon editor with AvatarEditBadge + Dropdown.
  * Supports emoji, URL, file upload, and optionally model/provider icon library.
  */
@@ -55,7 +124,6 @@ export function IconEditor({
   modelIconsDefaultTab = "model",
 }: IconEditorProps) {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -136,63 +204,19 @@ export function IconEditor({
     ...(extraMenuItems ?? []),
   ];
 
-  // Parse model_icon value format: "group:iconId"
-  const parseModelIcon = (value: string) => {
-    const idx = value.indexOf(":");
-    return idx > 0 ? value.substring(idx + 1) : value;
-  };
-
-  // Render current icon
-  const renderIcon = () => {
-    if (iconType === "emoji" && iconValue) {
-      return (
-        <div
-          style={{
-            width: size,
-            height: size,
-            borderRadius: shape === "circle" ? "50%" : token.borderRadius,
-            backgroundColor: token.colorFillSecondary,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: size * 0.55,
-            lineHeight: 1,
-            cursor: "pointer",
-          }}
-        >
-          {iconValue}
-        </div>
-      );
-    }
-    if ((iconType === "url" || iconType === "file") && iconValue) {
-      const src = iconType === "file" ? (resolvedSrc ?? iconValue) : iconValue;
-      return <Avatar size={size} src={src} shape={shape} style={{ cursor: "pointer" }} />;
-    }
-    if (iconType === "model_icon" && iconValue) {
-      return (
-        <div style={{ cursor: "pointer" }}>
-          <DynamicLobeIcon iconId={parseModelIcon(iconValue)} size={size} type="avatar" />
-        </div>
-      );
-    }
-    if (defaultIcon) {
-      return <div style={{ cursor: "pointer" }}>{defaultIcon}</div>;
-    }
-    return (
-      <Avatar
-        size={size}
-        shape={shape}
-        style={{ cursor: "pointer", backgroundColor: token.colorFillSecondary, color: token.colorTextSecondary }}
-      />
-    );
-  };
-
   return (
     <>
       <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomLeft">
         <div style={{ cursor: "pointer", display: "inline-flex" }}>
           <AvatarEditBadge size={size}>
-            {renderIcon()}
+            <IconRenderer
+              iconType={iconType}
+              iconValue={iconValue}
+              size={size}
+              shape={shape}
+              defaultIcon={defaultIcon}
+              resolvedSrc={resolvedSrc}
+            />
           </AvatarEditBadge>
         </div>
       </Dropdown>
@@ -230,7 +254,6 @@ export function IconEditor({
             placeholder={t("settings.memory.iconUrlPlaceholder")}
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            autoFocus
             onPressEnter={() => {
               if (urlInput.trim()) {
                 onChange("url", urlInput.trim());

@@ -154,7 +154,7 @@ export function SessionShareDialog({
                     value={inviteCode}
                     readOnly
                     size="small"
-                    suffix={<Link size={14} className="text-gray-400" />}
+                    suffix={<Link size={14} className="text-zinc-400" />}
                   />
                   <Button
                     size="small"
@@ -171,7 +171,7 @@ export function SessionShareDialog({
 
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Shield size={14} className="text-gray-500" />
+                  <Shield size={14} className="text-zinc-500" />
                   <Text strong className="text-sm">
                     {t("chat.collaboration.sessionShare.permissions")}
                   </Text>
@@ -179,7 +179,7 @@ export function SessionShareDialog({
                 <Space direction="vertical" className="w-full">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Terminal size={14} className="text-gray-500" />
+                      <Terminal size={14} className="text-zinc-500" />
                       <Text className="text-sm">
                         {t("chat.collaboration.sessionShare.terminalAccess")}
                       </Text>

@@ -66,7 +66,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.language")}
         </label>
         <Select
@@ -80,7 +80,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.code")}
           <span style={{ color: "#666", fontWeight: 400, marginLeft: 4 }}>
             {t("workflow.props.codeInputOutputHint")}
@@ -94,7 +94,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
           size="small"
           style={{
             fontFamily: "Monaco, Consolas, monospace",
-            fontSize: 11,
+            fontSize: 12,
             background: "#1a1a1a",
           }}
           placeholder={t("workflow.props.codePlaceholder")}
@@ -102,7 +102,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
         <Input

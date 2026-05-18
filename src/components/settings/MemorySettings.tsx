@@ -200,7 +200,12 @@ function SortableNamespaceItem({
       ref={setNodeRef}
       style={style}
       className="flex items-center cursor-pointer px-3 py-2.5 transition-colors"
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { onSelect(); }
+      }}
       onMouseEnter={(e) => {
         if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
       }}
@@ -212,7 +217,12 @@ function SortableNamespaceItem({
         {...attributes}
         {...listeners}
         className="flex items-center mr-2 cursor-grab"
+        role="button"
+        tabIndex={0}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+        }}
       >
         <GripVertical size={14} style={{ color: token.colorTextQuaternary }} />
       </div>
@@ -224,7 +234,7 @@ function SortableNamespaceItem({
       </div>
       <Tag
         color={ns.embeddingProvider ? "green" : "default"}
-        style={{ marginRight: 4, fontSize: 11 }}
+        style={{ marginRight: 4, fontSize: 12 }}
       >
         {ns.embeddingProvider ? t("settings.memory.vectorReady") : t("settings.memory.vectorNotConfigured")}
       </Tag>
@@ -479,7 +489,7 @@ function MemoryItemsPanel({
           query: searchQuery,
           topK: 5,
         });
-        setSearchResults([...results].sort((a, b) => a.score - b.score));
+        setSearchResults(results.toSorted((a, b) => a.score - b.score));
         setExplainedResults([]);
       }
     } catch (e) {
@@ -611,7 +621,7 @@ function MemoryItemsPanel({
       render: (status: string, record: MemoryItem) => {
         const cfg = INDEX_STATUS_CONFIG[status] || INDEX_STATUS_CONFIG.pending;
         const tag = (
-          <Tag color={cfg.color} style={{ fontSize: 11 }}>
+          <Tag color={cfg.color} style={{ fontSize: 12 }}>
             {status === "indexing" && <Spin size="small" style={{ marginRight: 4 }} />}
             {t(cfg.labelKey)}
           </Tag>
@@ -639,7 +649,7 @@ function MemoryItemsPanel({
       key: "tier",
       width: 90,
       render: (tier: MemoryTierType) => (
-        <Tag color={getTierColor(tier)} style={{ fontSize: 11 }}>
+        <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
           {getTierLabel(tier)}
         </Tag>
       ),
@@ -665,7 +675,7 @@ function MemoryItemsPanel({
       key: "nature",
       width: 80,
       render: (nature: string) => (
-        <Tag style={{ fontSize: 11 }}>{getNatureLabel(nature as "episodic" | "semantic")}</Tag>
+        <Tag style={{ fontSize: 12 }}>{getNatureLabel(nature as "episodic" | "semantic")}</Tag>
       ),
     },
     {
@@ -765,7 +775,7 @@ function MemoryItemsPanel({
       key: "tier",
       width: 80,
       render: (tier: MemoryTierType) => (
-        <Tag color={getTierColor(tier)} style={{ fontSize: 11 }}>
+        <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
           {getTierLabel(tier)}
         </Tag>
       ),
@@ -782,7 +792,7 @@ function MemoryItemsPanel({
       dataIndex: "nature",
       key: "nature",
       width: 70,
-      render: (nature: MemoryNature) => <Tag style={{ fontSize: 11 }}>{getNatureLabel(nature)}</Tag>,
+      render: (nature: MemoryNature) => <Tag style={{ fontSize: 12 }}>{getNatureLabel(nature)}</Tag>,
     },
     {
       title: t("settings.memory.age"),
@@ -948,7 +958,7 @@ function MemoryItemsPanel({
             <Tag
               key={tier}
               color={getTierColor(tier)}
-              style={{ fontSize: 11, margin: 0 }}
+              style={{ fontSize: 12, margin: 0 }}
             >
               {getTierLabel(tier)}: {tierStats.tier_counts[tier] ?? 0}
             </Tag>
@@ -1264,7 +1274,7 @@ function MemoryItemsPanel({
                   defaultSortOrder: "ascend" as const,
                   sorter: (a: VectorSearchResult, b: VectorSearchResult) => a.score - b.score,
                   render: (score: number) => (
-                    <Tag color="blue" style={{ fontSize: 11 }}>{(1 / (1 + score)).toFixed(4)}</Tag>
+                    <Tag color="blue" style={{ fontSize: 12 }}>{(1 / (1 + score)).toFixed(4)}</Tag>
                   ),
                 },
               ]}
@@ -1298,7 +1308,7 @@ function MemoryItemsPanel({
                 >
                   {result.entry.content}
                 </Typography.Paragraph>
-                <Tag color={getTierColor(result.entry.tier)} style={{ fontSize: 11, flexShrink: 0 }}>
+                <Tag color={getTierColor(result.entry.tier)} style={{ fontSize: 12, flexShrink: 0 }}>
                   {getTierLabel(result.entry.tier)}
                 </Tag>
               </div>
@@ -1327,7 +1337,7 @@ function MemoryItemsPanel({
                     strokeColor="#10b981"
                   />
                 </Tooltip>
-                <Tag color="gold" style={{ fontSize: 11 }}>
+                <Tag color="gold" style={{ fontSize: 12 }}>
                   {(result.explanation.total_score * 100).toFixed(0)}%
                 </Tag>
               </div>
@@ -1384,7 +1394,7 @@ function MemoryItemsPanel({
                       {t("settings.memory.clusterLabel", { index: idx + 1, count: cluster.ids.length })}
                     </span>
                     <div className="flex items-center gap-2">
-                      <Tag style={{ fontSize: 11 }}>
+                      <Tag style={{ fontSize: 12 }}>
                         {t("settings.memory.avgImportance")}: {(cluster.avg_importance * 100).toFixed(0)}%
                       </Tag>
                       <Button
@@ -1468,7 +1478,7 @@ function MemoryItemsPanel({
                         dataIndex: "entity_type",
                         key: "entity_type",
                         width: 100,
-                        render: (entityType: string) => <Tag color="blue" style={{ fontSize: 11 }}>{entityType}</Tag>,
+                        render: (entityType: string) => <Tag color="blue" style={{ fontSize: 12 }}>{entityType}</Tag>,
                       },
                       {
                         title: t("settings.memory.mentionCount"),
@@ -1524,7 +1534,7 @@ function MemoryItemsPanel({
                         key: "relation_type",
                         width: 120,
                         render: (relationType: string) => (
-                          <Tag color="purple" style={{ fontSize: 11 }}>{relationType}</Tag>
+                          <Tag color="purple" style={{ fontSize: 12 }}>{relationType}</Tag>
                         ),
                       },
                       {
@@ -1605,7 +1615,7 @@ function MemoryItemsPanel({
                           >
                             <Tag
                               color={getTierColor(entry.tier as MemoryTierType)}
-                              style={{ fontSize: 11, margin: 0, flexShrink: 0 }}
+                              style={{ fontSize: 12, margin: 0, flexShrink: 0 }}
                             >
                               {getTierLabel(entry.tier as MemoryTierType)}
                             </Tag>
@@ -1614,7 +1624,7 @@ function MemoryItemsPanel({
                             >
                               {entry.content}
                             </span>
-                            <span style={{ fontSize: 11, color: token.colorTextSecondary, flexShrink: 0 }}>
+                            <span style={{ fontSize: 12, color: token.colorTextSecondary, flexShrink: 0 }}>
                               {formatImportance(entry.importance)}
                             </span>
                           </div>

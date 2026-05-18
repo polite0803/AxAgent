@@ -340,12 +340,8 @@ function ThinkNode(
   const prevStreamingRef = useRef(isStreaming);
 
   useEffect(() => {
-    setExpanded(isStreaming);
-    prevStreamingRef.current = isStreaming;
-  }, [isStreaming]);
-
-  useEffect(() => {
     if (isStreaming) {
+      // React 18 自动批处理两个独立 setState
       setExpanded(true);
       setShowRawMarkdown(false);
     } else if (prevStreamingRef.current) {
@@ -438,10 +434,18 @@ function ThinkNode(
         {hasStructuredPhases && !isStreaming && (
           <div
             onClick={() => setShowRawMarkdown(!showRawMarkdown)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowRawMarkdown(!showRawMarkdown);
+              }
+            }}
             style={{
               textAlign: "center",
               padding: "4px 0",
-              fontSize: 11,
+              fontSize: 12,
               color: token.colorTextQuaternary,
               cursor: "pointer",
               userSelect: "none",
@@ -477,20 +481,26 @@ function ChatD2BlockNode({
   const [showSource, setShowSource] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { copy: copyD2, isCopied: d2Copied } = useCopyToClipboard({ timeout: 1000 });
-  const [svgMarkup, setSvgMarkup] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [d2RenderState, setD2RenderState] = useState<{ svg: string; error: string | null }>({
+    svg: "",
+    error: null,
+  });
   const [canRenderPreview, setCanRenderPreview] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    setCanRenderPreview(false);
-    if (showSource) { return; }
+    if (showSource) {
+      setCanRenderPreview(false);
+      return;
+    }
 
     const element = containerRef.current;
     if (!element || typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
       setCanRenderPreview(true);
       return;
     }
+
+    setCanRenderPreview(false);
 
     let frameId = 0;
     let timeoutId: number | null = null;
@@ -535,12 +545,11 @@ function ChatD2BlockNode({
     const renderD2 = async () => {
       const source = String(node.code ?? "");
       if (!source) {
-        setSvgMarkup("");
-        setError(null);
+        setD2RenderState({ svg: "", error: null });
         return;
       }
 
-      setError(null);
+      setD2RenderState((prev) => ({ ...prev, error: null }));
 
       try {
         const D2Ctor = await loadChatD2Ctor();
@@ -610,11 +619,13 @@ function ChatD2BlockNode({
         }
 
         if (cancelled) { return; }
-        setSvgMarkup(sanitizedSvg);
+        setD2RenderState({ svg: sanitizedSvg, error: null });
       } catch (renderError) {
         if (cancelled) { return; }
-        setSvgMarkup("");
-        setError(renderError instanceof Error ? renderError.message : "D2 render failed.");
+        setD2RenderState({
+          svg: "",
+          error: renderError instanceof Error ? renderError.message : "D2 render failed.",
+        });
       }
     };
 
@@ -639,9 +650,9 @@ function ChatD2BlockNode({
   ]);
 
   const handleExport = useCallback(() => {
-    if (!svgMarkup) { return; }
+    if (!d2RenderState.svg) { return; }
 
-    const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+    const blob = new Blob([d2RenderState.svg], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -650,7 +661,7 @@ function ChatD2BlockNode({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [svgMarkup]);
+  }, [d2RenderState.svg]);
 
   const shellStyle = useMemo(() => ({
     borderColor: isDark ? token.colorBorderSecondary : token.colorBorderSecondary,
@@ -686,7 +697,7 @@ function ChatD2BlockNode({
   return (
     <div ref={containerRef} className="d2-block my-4 rounded-lg border overflow-hidden shadow-sm" style={shellStyle}>
       <div
-        className="d2-block-header flex justify-between items-center px-4 py-1.5 border-b border-gray-400/5"
+        className="d2-block-header flex justify-between items-center px-4 py-1.5 border-b border-zinc-400/5"
         style={headerStyle}
       >
         <div className="flex items-center gap-x-2">
@@ -732,7 +743,7 @@ function ChatD2BlockNode({
             </button>
           </Tooltip>
           {/* Export */}
-          {svgMarkup
+          {d2RenderState.svg
             ? (
               <Tooltip title={t("common.export")} mouseEnterDelay={0.4}>
                 <button
@@ -752,21 +763,23 @@ function ChatD2BlockNode({
 
       {!isCollapsed && (
         <div className="d2-block-body">
-          {showSource || (!svgMarkup && !!error)
+          {showSource || (!d2RenderState.svg && !!d2RenderState.error)
             ? (
-              <div className="d2-source px-4 py-4">
+              <div className="d2-source p-4">
                 <pre className="d2-code"><code>{node.code}</code></pre>
-                {error ? <p className="d2-error mt-2 text-xs">{error}</p> : null}
+                {d2RenderState.error ? <p className="d2-error mt-2 text-xs">{d2RenderState.error}</p> : null}
               </div>
             )
             : (
               <div className="d2-render" style={previewStyle}>
-                {svgMarkup
+                {d2RenderState.svg
                   ? (
                     <div
                       className="d2-svg"
                       dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(svgMarkup, { USE_PROFILES: { svg: true, svgFilters: true } }),
+                        __html: DOMPurify.sanitize(d2RenderState.svg, {
+                          USE_PROFILES: { svg: true, svgFilters: true },
+                        }),
                       }}
                     />
                   )
@@ -781,7 +794,7 @@ function ChatD2BlockNode({
                       </span>
                     </div>
                   )}
-                {error ? <p className="d2-error px-4 pb-3 text-xs">{error}</p> : null}
+                {d2RenderState.error ? <p className="d2-error px-4 pb-3 text-xs">{d2RenderState.error}</p> : null}
               </div>
             )}
         </div>
@@ -808,10 +821,8 @@ const toolCallIcons: Record<string, React.ReactNode> = {
 };
 function getInlineToolIcon(toolName: string): React.ReactNode {
   const lower = toolName.toLowerCase();
-  for (const [key, icon] of Object.entries(toolCallIcons)) {
-    if (lower.includes(key)) { return icon; }
-  }
-  return <Zap size={14} />;
+  const entry = Object.entries(toolCallIcons).find(([key]) => lower.indexOf(key) !== -1);
+  return entry ? entry[1] : <Zap size={14} />;
 }
 
 const toolCallStatusColors: Record<string, string> = {
@@ -849,6 +860,14 @@ function ToolCallNode(
     <div style={{ margin: "4px 0" }}>
       <div
         onClick={() => hasDetails && setExpanded(!expanded)}
+        role="button"
+        tabIndex={hasDetails ? 0 : -1}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && hasDetails) {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -930,7 +949,7 @@ function ToolCallNode(
                 style={{
                   margin: "4px 0 0",
                   padding: 8,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontFamily: "monospace",
                   backgroundColor: token.colorBgTextHover,
                   borderRadius: token.borderRadius,
@@ -953,7 +972,7 @@ function ToolCallNode(
                 style={{
                   margin: "4px 0 0",
                   padding: 8,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontFamily: "monospace",
                   backgroundColor: token.colorBgTextHover,
                   borderRadius: token.borderRadius,
@@ -1030,12 +1049,13 @@ const AssistantMarkdown = React.memo(function AssistantMarkdown({
       return;
     }
 
-    setReadyToRenderHeavyNodes(false);
     const element = containerRef.current;
     if (!element || typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
       setReadyToRenderHeavyNodes(true);
       return;
     }
+
+    setReadyToRenderHeavyNodes(false);
 
     let frameId = 0;
     let timeoutId: number | null = null;

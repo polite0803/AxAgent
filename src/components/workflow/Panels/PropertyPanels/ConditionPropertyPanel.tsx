@@ -82,7 +82,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.logicalOp")}
         </label>
         <Select
@@ -99,7 +99,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <label style={{ color: "#999", fontSize: 11 }}>
+          <label style={{ color: "#999", fontSize: 12 }}>
             {t("workflow.props.conditions")} ({config.conditions.length})
           </label>
           <Button
@@ -171,7 +171,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
           ))}
 
           {config.conditions.length === 0 && (
-            <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 16 }}>
+            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 16 }}>
               {t("workflow.props.clickToAddCondition")}
             </div>
           )}

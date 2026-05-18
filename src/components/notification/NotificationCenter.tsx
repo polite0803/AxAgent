@@ -200,7 +200,7 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
                       alignItems: "center",
                     }}
                   >
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
                       {formatTime(notification.timestamp)}
                     </Text>
                     {notification.action && (

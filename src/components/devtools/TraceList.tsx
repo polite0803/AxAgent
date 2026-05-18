@@ -34,7 +34,7 @@ function TraceItem({ trace, isSelected, onClick }: TraceItemProps) {
     <Card
       size="small"
       className={`mb-2 cursor-pointer transition-colors ${
-        isSelected ? "border-blue-500 bg-blue-50" : "hover:bg-gray-50"
+        isSelected ? "border-blue-500 bg-blue-50" : "hover:bg-zinc-50"
       }`}
       onClick={onClick}
     >
@@ -106,7 +106,7 @@ export function TraceList() {
           }}
         />
       </Space>
-      <div className="text-xs text-gray-500 mb-2">
+      <div className="text-xs text-zinc-500 mb-2">
         {t("devtools.traceCount", { count: traces.length })}
       </div>
       <List

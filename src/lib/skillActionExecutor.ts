@@ -38,7 +38,5 @@ export async function executeActionChain(
   actions: SkillCommandAction[],
   navigate: (path: string) => void,
 ): Promise<void> {
-  for (const action of actions) {
-    await executeSkillAction(action, navigate);
-  }
+  await Promise.all(actions.map((action) => executeSkillAction(action, navigate)));
 }

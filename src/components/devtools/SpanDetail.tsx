@@ -33,7 +33,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
 
   return (
     <div className="py-2">
-      <div className="text-sm font-medium text-gray-600 mb-3">
+      <div className="text-sm font-medium text-zinc-600 mb-3">
         {t("devtools.spanDetail")}
       </div>
 
@@ -91,7 +91,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
 
       {span.inputs !== undefined && (
         <Card size="small" title={t("devtools.inputs")} className="mb-3">
-          <pre className="max-h-48 overflow-auto text-xs bg-gray-50 p-2 rounded">
+          <pre className="max-h-48 overflow-auto text-xs bg-zinc-50 p-2 rounded">
             {JSON.stringify(span.inputs, null, 2)}
           </pre>
         </Card>
@@ -99,7 +99,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
 
       {span.outputs !== undefined && (
         <Card size="small" title={t("devtools.outputs")} className="mb-3">
-          <pre className="max-h-48 overflow-auto text-xs bg-gray-50 p-2 rounded">
+          <pre className="max-h-48 overflow-auto text-xs bg-zinc-50 p-2 rounded">
             {JSON.stringify(span.outputs, null, 2)}
           </pre>
         </Card>

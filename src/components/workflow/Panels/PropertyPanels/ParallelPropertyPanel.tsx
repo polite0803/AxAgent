@@ -81,7 +81,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.waitForAllBranches")}</label>
+        <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.waitForAllBranches")}</label>
         <Switch
           size="small"
           checked={config.wait_for_all}
@@ -101,7 +101,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.timeoutSeconds")}
         </label>
         <Input
@@ -122,7 +122,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <label style={{ color: "#999", fontSize: 11 }}>
+          <label style={{ color: "#999", fontSize: 12 }}>
             {t("workflow.props.branches")}
           </label>
           <Button
@@ -203,7 +203,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
           })}
 
           {config.branches.length === 0 && (
-            <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 16 }}>
+            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 16 }}>
               {t("workflow.props.clickToAddBranch")}
             </div>
           )}

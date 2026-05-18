@@ -62,7 +62,7 @@ export function PatternPanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -70,7 +70,7 @@ export function PatternPanel() {
             />
           </svg>
           {t("chat.patterns")} ({patterns.length})
-          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
         </button>
       </div>
     );
@@ -91,12 +91,12 @@ export function PatternPanel() {
             <option value="medium">Medium</option>
             <option value="failure">Failure</option>
           </select>
-          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

@@ -4,7 +4,7 @@ import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
-import type { PageKey } from "@/types";
+import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar, theme, Tooltip } from "antd";
 import { Database, HelpCircle, MessageSquare, Router, User } from "lucide-react";
@@ -72,6 +72,127 @@ interface SidebarSection {
 
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 56;
+
+const NAV_SHORTCUT_MAP: Partial<Record<string, ShortcutAction>> = {
+  gateway: "toggleGateway",
+};
+
+/**
+ * Extracted component for rendering a navigation button.
+ * Fixes react-doctor/no-render-in-render by moving renderNavButton() out of Sidebar.
+ */
+function NavItemButton({
+  item,
+  activePage,
+  sidebarCollapsed,
+  settings,
+  onNavigate,
+}: {
+  item: NavItem;
+  activePage: string;
+  sidebarCollapsed: boolean;
+  settings: AppSettings;
+  onNavigate: (path: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const location = useLocation();
+
+  const isActive = item.isPlugin
+    ? location.pathname === item.path || location.pathname.startsWith(item.path + "/")
+    : activePage === item.key;
+  const label = item.isPlugin ? item.labelKey : t(item.labelKey);
+  const tooltipText = item.isPlugin ? `${label} (${item.pluginName})` : label;
+  const action = !item.isPlugin && item.key in NAV_SHORTCUT_MAP
+    ? NAV_SHORTCUT_MAP[item.key]
+    : undefined;
+  const shortcutLabel = action
+    ? formatShortcutForDisplay(getShortcutBinding(settings, action))
+    : "";
+  const title = shortcutLabel ? `${tooltipText} (${shortcutLabel})` : tooltipText;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(item.path)}
+      className={`ax-nav-item${isActive ? " ax-nav-item-active" : ""}`}
+      data-tutorial={item.key === "knowledge" ? "knowledge-nav" : undefined}
+      aria-label={title}
+      aria-current={isActive ? "page" : undefined}
+      style={{
+        backgroundColor: isActive ? token.colorPrimaryBg : undefined,
+      }}
+    >
+      <div className="ax-nav-indicator" />
+      <span style={{ display: "flex", alignItems: "center", flexShrink: 0, width: 20, justifyContent: "center" }}>
+        {item.icon}
+      </span>
+      {!sidebarCollapsed && (
+        <span
+          className="ax-nav-label"
+          style={{
+            fontSize: 13,
+            fontWeight: isActive ? 500 : 400,
+            color: isActive ? token.colorPrimary : token.colorText,
+          }}
+        >
+          {label}
+        </span>
+      )}
+      {shortcutLabel && (
+        <span style={{ marginLeft: "auto", fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 }}>
+          {shortcutLabel}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * Extracted component for rendering the user avatar.
+ * Fixes react-doctor/no-render-in-render by moving renderUserAvatar() out of Sidebar.
+ */
+function UserAvatarButton({
+  profile,
+  resolvedAvatarSrc,
+}: {
+  profile: { avatarType?: string; avatarValue?: string; name?: string };
+  resolvedAvatarSrc: string | undefined;
+}) {
+  const { token } = theme.useToken();
+  const size = 28;
+
+  if (profile.avatarType === "emoji" && profile.avatarValue) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          backgroundColor: token.colorFillSecondary,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 14,
+          cursor: "pointer",
+        }}
+      >
+        {profile.avatarValue}
+      </div>
+    );
+  }
+  if ((profile.avatarType === "url" || profile.avatarType === "file") && profile.avatarValue) {
+    const src = profile.avatarType === "file" ? resolvedAvatarSrc : profile.avatarValue;
+    return <Avatar size={size} src={src} style={{ cursor: "pointer" }} />;
+  }
+  return (
+    <Avatar
+      size={size}
+      icon={<User size={14} />}
+      style={{ cursor: "pointer", backgroundColor: token.colorPrimary }}
+    />
+  );
+}
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -150,95 +271,6 @@ export function Sidebar() {
     return sections.filter((s) => s.items.length > 0);
   }, [skillNavItems]);
 
-  const NAV_SHORTCUT_MAP: Partial<Record<string, ShortcutAction>> = {
-    gateway: "toggleGateway",
-  };
-
-  const renderNavButton = (item: NavItem) => {
-    const isActive = item.isPlugin
-      ? location.pathname === item.path || location.pathname.startsWith(item.path + "/")
-      : activePage === item.key;
-    const label = item.isPlugin ? item.labelKey : t(item.labelKey);
-    const tooltipText = item.isPlugin ? `${label} (${item.pluginName})` : label;
-    const action = !item.isPlugin && item.key in NAV_SHORTCUT_MAP
-      ? NAV_SHORTCUT_MAP[item.key]
-      : undefined;
-    const shortcutLabel = action
-      ? formatShortcutForDisplay(getShortcutBinding(settings, action))
-      : "";
-    const title = shortcutLabel ? `${tooltipText} (${shortcutLabel})` : tooltipText;
-
-    return (
-      <button
-        type="button"
-        onClick={() => navigate(item.path)}
-        className={`ax-nav-item${isActive ? " ax-nav-item-active" : ""}`}
-        data-tutorial={item.key === "knowledge" ? "knowledge-nav" : undefined}
-        aria-label={title}
-        aria-current={isActive ? "page" : undefined}
-        style={{
-          backgroundColor: isActive ? token.colorPrimaryBg : undefined,
-        }}
-      >
-        <div className="ax-nav-indicator" />
-        <span style={{ display: "flex", alignItems: "center", flexShrink: 0, width: 20, justifyContent: "center" }}>
-          {item.icon}
-        </span>
-        {!sidebarCollapsed && (
-          <span
-            className="ax-nav-label"
-            style={{
-              fontSize: 13,
-              fontWeight: isActive ? 500 : 400,
-              color: isActive ? token.colorPrimary : token.colorText,
-            }}
-          >
-            {label}
-          </span>
-        )}
-        {shortcutLabel && (
-          <span style={{ marginLeft: "auto", fontSize: 10, color: token.colorTextQuaternary, flexShrink: 0 }}>
-            {shortcutLabel}
-          </span>
-        )}
-      </button>
-    );
-  };
-
-  const renderUserAvatar = () => {
-    const size = 28;
-    if (profile.avatarType === "emoji" && profile.avatarValue) {
-      return (
-        <div
-          style={{
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            backgroundColor: token.colorFillSecondary,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 14,
-            cursor: "pointer",
-          }}
-        >
-          {profile.avatarValue}
-        </div>
-      );
-    }
-    if ((profile.avatarType === "url" || profile.avatarType === "file") && profile.avatarValue) {
-      const src = profile.avatarType === "file" ? resolvedAvatarSrc : profile.avatarValue;
-      return <Avatar size={size} src={src} style={{ cursor: "pointer" }} />;
-    }
-    return (
-      <Avatar
-        size={size}
-        icon={<User size={14} />}
-        style={{ cursor: "pointer", backgroundColor: token.colorPrimary }}
-      />
-    );
-  };
-
   return (
     <div
       className="ax-sidebar"
@@ -282,7 +314,13 @@ export function Sidebar() {
                   title={sidebarCollapsed ? tooltipText : ""}
                   placement="right"
                 >
-                  {renderNavButton(item)}
+                  <NavItemButton
+                    item={item}
+                    activePage={activePage}
+                    sidebarCollapsed={sidebarCollapsed}
+                    settings={settings}
+                    onNavigate={navigate}
+                  />
                 </Tooltip>
               );
             })}
@@ -312,7 +350,7 @@ export function Sidebar() {
           onClick={() => setProfileModalOpen(true)}
           aria-label={t("userProfile.title")}
         >
-          {renderUserAvatar()}
+          <UserAvatarButton profile={profile} resolvedAvatarSrc={resolvedAvatarSrc} />
           {!sidebarCollapsed && (
             <span
               className="ax-sidebar-user-name"

@@ -61,6 +61,14 @@ export function AgentExecutionPanel({
         >
           <div
             onClick={onToggleCompact}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggleCompact?.();
+              }
+            }}
             style={{
               width: 32,
               height: 32,

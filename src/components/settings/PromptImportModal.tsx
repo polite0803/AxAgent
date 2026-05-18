@@ -217,13 +217,13 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
                   beforeUpload={handleFileImport}
                   showUploadList={false}
                 >
-                  <p className="text-4xl text-gray-300 mb-2">
+                  <p className="text-4xl text-zinc-300 mb-2">
                     <InboxOutlined />
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-zinc-500">
                     {t("promptTemplates.dropFileHint")}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-zinc-400">
                     {t("promptTemplates.supportedFormats")}: JSON, Markdown, YAML
                   </p>
                 </Upload.Dragger>
@@ -239,10 +239,10 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
             ),
             children: (
               <div className="py-8 text-center">
-                <p className="text-5xl text-gray-300 mb-4">
+                <p className="text-5xl text-zinc-300 mb-4">
                   <FolderOpenOutlined />
                 </p>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-zinc-500 mb-4">
                   {t("promptTemplates.folderHint")}
                 </p>
                 <Button
@@ -254,7 +254,7 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
                 >
                   {t("promptTemplates.selectFolder")}
                 </Button>
-                <p className="text-xs text-gray-400 mt-3">
+                <p className="text-xs text-zinc-400 mt-3">
                   {t("promptTemplates.folderSupportedFormats")}: Markdown (.md)
                 </p>
               </div>

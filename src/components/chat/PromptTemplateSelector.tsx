@@ -119,7 +119,7 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
             locale={{ emptyText: t("promptTemplates.noTemplates") }}
             renderItem={(template) => (
               <List.Item
-                className="cursor-pointer hover:bg-gray-50 rounded px-2 py-1.5 transition-colors"
+                className="cursor-pointer hover:bg-zinc-50 rounded px-2 py-1.5 transition-colors"
                 onClick={() => handleSelect(template)}
               >
                 <div className="flex flex-col w-full min-w-0">
@@ -134,7 +134,7 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
                       </Tag>
                     )}
                   </div>
-                  <span className="text-xs text-gray-400 truncate mt-0.5">
+                  <span className="text-xs text-zinc-400 truncate mt-0.5">
                     {template.description || template.content.slice(0, 60)}
                   </span>
                 </div>
@@ -157,18 +157,18 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
         {selectedTemplate && (
           <div className="py-2">
             {selectedTemplate.description && (
-              <p className="text-sm text-gray-400 mb-3">{selectedTemplate.description}</p>
+              <p className="text-sm text-zinc-400 mb-3">{selectedTemplate.description}</p>
             )}
 
             {/* 变量输入 */}
             {displayVariables.length > 0 && (
               <div className="mb-3">
-                <p className="text-sm text-gray-500 mb-2">{t("promptTemplates.fillVariables")}</p>
+                <p className="text-sm text-zinc-500 mb-2">{t("promptTemplates.fillVariables")}</p>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {displayVariables.map(([varName, varType]) => (
                     <div key={varName}>
-                      <label className="text-xs text-gray-400 mb-0.5 block">
-                        {varName} <span className="text-gray-300">({String(varType)})</span>
+                      <label className="text-xs text-zinc-400 mb-0.5 block">
+                        {varName} <span className="text-zinc-300">({String(varType)})</span>
                       </label>
                       <Input
                         id="prompt-template-selector-input-28"
@@ -185,8 +185,8 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
 
             {/* 内容预览 */}
             <div>
-              <p className="text-sm text-gray-500 mb-1">{t("promptTemplates.preview")}</p>
-              <div className="bg-gray-50 border rounded p-2.5 text-sm whitespace-pre-wrap max-h-40 overflow-y-auto text-gray-600">
+              <p className="text-sm text-zinc-500 mb-1">{t("promptTemplates.preview")}</p>
+              <div className="bg-zinc-50 border rounded p-2.5 text-sm whitespace-pre-wrap max-h-40 overflow-y-auto text-zinc-600">
                 {selectedTemplate.content}
               </div>
             </div>
@@ -199,5 +199,5 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
 
 function parseVariables(content: string): string[] {
   const matches = content.match(/\{([^}]+)\}/g) || [];
-  return matches.map((m) => m.slice(1, -1)).filter((v, i, arr) => arr.indexOf(v) === i);
+  return [...new Set(matches.map((m) => m.slice(1, -1)))];
 }

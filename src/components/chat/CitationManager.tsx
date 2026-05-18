@@ -93,7 +93,7 @@ export function CitationManager({
             dataSource={citationsInReport}
             renderItem={(item) => (
               <List.Item
-                className={`cursor-pointer hover:bg-gray-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
+                className={`cursor-pointer hover:bg-zinc-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
                 onClick={() => handleSelect(item)}
                 actions={[
                   <Button
@@ -144,10 +144,11 @@ export function CitationManager({
             dataSource={citationsNotInReport}
             renderItem={(item) => (
               <List.Item
-                className={`cursor-pointer hover:bg-gray-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
+                className={`cursor-pointer hover:bg-zinc-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
                 onClick={() => handleSelect(item)}
                 actions={[
                   <Button
+                    key="toggle"
                     type="text"
                     size="small"
                     icon={<CheckCircleOutlined />}
@@ -158,6 +159,7 @@ export function CitationManager({
                     title={t("citationManager.addToReport")}
                   />,
                   <Button
+                    key="delete"
                     type="text"
                     size="small"
                     danger
@@ -195,7 +197,7 @@ export function CitationManager({
       )}
 
       {citations.length === 0 && (
-        <div className="text-center text-gray-400 py-8">
+        <div className="text-center text-zinc-400 py-8">
           {t("citationManager.empty")}
         </div>
       )}

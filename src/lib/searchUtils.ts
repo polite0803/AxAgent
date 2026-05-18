@@ -144,7 +144,7 @@ export function sortResultsByRelevance(
 ): SearchResultItem[] {
   const queryTerms = query.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
 
-  return [...results].sort((a, b) => {
+  return results.toSorted((a, b) => {
     const scoreA = computeRelevanceScore(a, queryTerms);
     const scoreB = computeRelevanceScore(b, queryTerms);
     return scoreB - scoreA;
@@ -158,8 +158,8 @@ function computeRelevanceScore(result: SearchResultItem, queryTerms: string[]): 
   let score = 0;
 
   for (const term of queryTerms) {
-    if (titleLower.includes(term)) { score += 3; }
-    if (contentLower.includes(term)) { score += 1; }
+    if (titleLower.indexOf(term) !== -1) { score += 3; }
+    if (contentLower.indexOf(term) !== -1) { score += 1; }
   }
 
   if (assessCredibility(result.url) === "high") { score += 2; }

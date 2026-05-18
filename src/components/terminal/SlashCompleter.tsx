@@ -242,7 +242,7 @@ export function SlashCompleterWidget({
             <div
               style={{
                 color: "#6c7086",
-                fontSize: 11,
+                fontSize: 12,
                 marginTop: 2,
               }}
             >

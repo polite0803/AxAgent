@@ -227,7 +227,7 @@ const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(({ data, 
 
   return (
     <div
-      className="rounded-md border px-2 py-1.5 bg-white dark:bg-gray-800 shadow-sm"
+      className="rounded-md border px-2 py-1.5 bg-white dark:bg-zinc-800 shadow-sm"
       style={{
         width: NODE_WIDTH,
         borderColor: selected ? "#1890ff" : color,
@@ -246,10 +246,10 @@ const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(({ data, 
           {data.stepId}
         </span>
       </div>
-      <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5 leading-tight">
+      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 leading-tight">
         {truncate(data.goal, 28)}
       </div>
-      <div className="text-[9px] text-gray-400 dark:text-gray-500 truncate">
+      <div className="text-[9px] text-zinc-400 dark:text-zinc-500 truncate">
         {data.agentRole}
       </div>
       <Handle type="source" position={Position.Bottom} style={{ visibility: "hidden" }} />
@@ -336,9 +336,17 @@ const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps
   const iconClass = step.status === "running" ? "animate-spin" : "";
 
   return (
-    <div className="border-b border-gray-100 dark:border-gray-800 last:border-b-0">
+    <div className="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0">
       <div
-        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
         onClick={onToggle}
       >
         <span style={{ color, display: "flex", alignItems: "center", flexShrink: 0 }}>
@@ -347,10 +355,10 @@ const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps
         <span className="text-xs font-mono font-medium shrink-0" style={{ color }}>
           {step.id}
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate flex-1">
           {step.goal}
         </span>
-        <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 shrink-0">
           {step.agent_role}
         </span>
         {step.attempts > 1 && (
@@ -368,25 +376,25 @@ const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps
       {expanded && (
         <div className="px-3 pb-2 text-xs space-y-1">
           <div className="flex gap-4">
-            <span className="text-gray-500">{t("chat.workflow.stepStatus")}</span>
+            <span className="text-zinc-500">{t("chat.workflow.stepStatus")}</span>
             <span style={{ color }}>{t(`chat.workflow.status.${step.status}`)}</span>
           </div>
           {step.needs.length > 0 && (
             <div className="flex gap-4">
-              <span className="text-gray-500">{t("chat.workflow.dependsOn")}</span>
+              <span className="text-zinc-500">{t("chat.workflow.dependsOn")}</span>
               <span>{step.needs.join(", ")}</span>
             </div>
           )}
           <div className="flex gap-4">
-            <span className="text-gray-500">{t("chat.workflow.retries")}</span>
+            <span className="text-zinc-500">{t("chat.workflow.retries")}</span>
             <span>
               {step.attempts}/{step.max_retries + 1}
             </span>
           </div>
           {step.result && (
             <div>
-              <span className="text-gray-500">{t("chat.workflow.result")}</span>
-              <pre className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs max-h-32 overflow-auto whitespace-pre-wrap">
+              <span className="text-zinc-500">{t("chat.workflow.result")}</span>
+              <pre className="mt-1 p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs max-h-32 overflow-auto whitespace-pre-wrap">
                 {truncate(step.result, 500)}
               </pre>
             </div>
@@ -573,7 +581,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
       <div className="mx-3 my-1.5 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/50 dark:bg-purple-900/10 p-4">
         <div className="flex items-center gap-2">
           <Spin size="small" />
-          <span className="text-sm text-gray-500">{t("chat.workflow.loading")}</span>
+          <span className="text-sm text-zinc-500">{t("chat.workflow.loading")}</span>
         </div>
       </div>
     );
@@ -608,18 +616,18 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
         <span className="text-xs font-medium" style={{ color: workflowColor }}>
           {workflow.name}
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {t(`chat.workflow.workflowStatus.${workflow.status}`)}
         </span>
 
         {/* Progress bar */}
-        <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden ml-2">
+        <div className="flex-1 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden ml-2">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{ width: `${progressPct}%`, backgroundColor: workflowColor }}
           />
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
           {doneCount}/{totalCount}
         </span>
 
@@ -654,7 +662,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
         <div className="border-b border-purple-200 dark:border-purple-800">
           <button
             onClick={() => setDagCollapsed(!dagCollapsed)}
-            className="flex items-center gap-1 w-full px-3 py-1 text-xs text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            className="flex items-center gap-1 w-full px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
           >
             {dagCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
             {t("chat.workflow.dagVisualization")}
@@ -662,14 +670,14 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
           {!dagCollapsed
             && (workflow.steps.length === 0
               ? (
-                <div className="px-3 py-4 text-xs text-gray-400 text-center">
+                <div className="px-3 py-4 text-xs text-zinc-400 text-center">
                   {t("chat.workflow.noSteps")}
                 </div>
               )
               : (
                 <div className="px-3 pb-2">
                   <div
-                    className="border border-gray-200 dark:border-gray-700 rounded overflow-hidden"
+                    className="border border-zinc-200 dark:border-zinc-700 rounded overflow-hidden"
                     style={{ height: DAG_HEIGHT }}
                   >
                     <ReactFlowProvider>
@@ -685,7 +693,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
       {!showDag
         && (workflow.steps.length === 0
           ? (
-            <div className="px-3 py-4 text-xs text-gray-400 text-center">
+            <div className="px-3 py-4 text-xs text-zinc-400 text-center">
               {t("chat.workflow.noSteps")}
             </div>
           )

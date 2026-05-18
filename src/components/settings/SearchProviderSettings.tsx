@@ -108,11 +108,16 @@ function SearchProviderList({
                 <div
                   key={p.id}
                   className="flex items-center cursor-pointer px-3 py-2.5 transition-colors"
+                  role="button"
+                  tabIndex={0}
                   style={{
                     borderRadius: token.borderRadius,
                     backgroundColor: isSelected ? token.colorPrimaryBg : undefined,
                   }}
                   onClick={() => onSelect(p.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { onSelect(p.id); }
+                  }}
                   onMouseEnter={(e) => {
                     if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
                   }}
@@ -127,7 +132,7 @@ function SearchProviderList({
                     <span className="truncate" style={{ color: isSelected ? token.colorPrimary : undefined }}>
                       {p.name}
                     </span>
-                    <Tag style={{ margin: 0, fontSize: 11 }}>
+                    <Tag style={{ margin: 0, fontSize: 12 }}>
                       {PROVIDER_LABEL_MAP[p.providerType] || p.providerType}
                     </Tag>
                   </div>

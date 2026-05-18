@@ -107,7 +107,7 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({ data, selected }
           <span style={{ fontSize: 14 }}>{getLanguageIcon(language)}</span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: getLanguageColor(language),
               fontWeight: 600,
             }}

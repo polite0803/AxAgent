@@ -107,10 +107,16 @@ function ChatViewInner({ onScrollToReady }: {
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
-  const [previewPayload, setPreviewPayload] = useState<CodeBlockPreviewPayload | null>(null);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [mermaidPreviewSvg, setMermaidPreviewSvg] = useState<string | null>(null);
-  const [mermaidPreviewOpen, setMermaidPreviewOpen] = useState(false);
+  // 合并 preview 模态框状态，避免级联 setState
+  const [previewState, setPreviewState] = useState<{ payload: CodeBlockPreviewPayload | null; open: boolean }>({
+    payload: null,
+    open: false,
+  });
+  // 合并 mermaid 预览模态框状态，避免级联 setState
+  const [mermaidState, setMermaidState] = useState<{ svg: string | null; open: boolean }>({
+    svg: null,
+    open: false,
+  });
 
   const [filePermDialogOpen, setFilePermDialogOpen] = useState(false);
   const [filePermRequest, setFilePermRequest] = useState<FilePermissionRequest | null>(null);
@@ -134,8 +140,7 @@ function ChatViewInner({ onScrollToReady }: {
 
   useEffect(() => {
     setCodeBlockPreviewHandler((payload: CodeBlockPreviewPayload) => {
-      setPreviewPayload(payload);
-      setPreviewModalOpen(true);
+      setPreviewState({ payload, open: true });
     });
     return () => {
       setCodeBlockPreviewHandler(null);
@@ -144,8 +149,7 @@ function ChatViewInner({ onScrollToReady }: {
 
   useEffect(() => {
     setMermaidOpenModalHandler((svgString: string | null) => {
-      setMermaidPreviewSvg(svgString);
-      setMermaidPreviewOpen(true);
+      setMermaidState({ svg: svgString, open: true });
     });
     return () => {
       setMermaidOpenModalHandler(null);
@@ -293,7 +297,10 @@ function ChatViewInner({ onScrollToReady }: {
     };
     let project_type: string | null = null;
     if (fileMatches.length > 0) {
-      const exts = fileMatches.map((f) => f.split(".").pop()?.toLowerCase() || "").filter(Boolean);
+      const exts = fileMatches.flatMap((f) => {
+        const r = f.split(".").pop()?.toLowerCase();
+        return r ? [r] : [];
+      });
       const counts = new Map<string, number>();
       for (const ext of exts) {
         counts.set(ext, (counts.get(ext) || 0) + 1);
@@ -826,27 +833,24 @@ function ChatViewInner({ onScrollToReady }: {
         />
       </Modal>
       <CodeBlockPreviewModal
-        payload={previewPayload}
-        open={previewModalOpen}
-        onClose={() => setPreviewModalOpen(false)}
+        payload={previewState.payload}
+        open={previewState.open}
+        onClose={() => setPreviewState({ payload: null, open: false })}
       />
       <Modal
         title={`Mermaid ${t("common.preview")}`}
-        open={mermaidPreviewOpen}
-        onCancel={() => {
-          setMermaidPreviewOpen(false);
-          setMermaidPreviewSvg(null);
-        }}
+        open={mermaidState.open}
+        onCancel={() => setMermaidState({ svg: null, open: false })}
         footer={null}
         width="80vw"
         style={{ top: 32 }}
         styles={{ body: { height: "calc(80vh - 55px)", overflow: "auto", padding: 16 } }}
         destroyOnHidden
       >
-        {mermaidPreviewSvg && (
+        {mermaidState.svg && (
           <div
             style={{ width: "100%", display: "flex", justifyContent: "center" }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(mermaidPreviewSvg) }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(mermaidState.svg) }}
           />
         )}
       </Modal>

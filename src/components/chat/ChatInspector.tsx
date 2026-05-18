@@ -58,8 +58,8 @@ export function ChatInspector({
 
   const toolCalls = useMemo(() => {
     return messages
-      .filter((m) => m.role === "assistant" && m.content)
       .flatMap((m) => {
+        if (m.role !== "assistant" || !m.content) { return []; }
         const calls: { name: string; messageId: string }[] = [];
         const regex = /tool_call|function_call|<tool>(.*?)<\/tool>/g;
         if (regex.test(m.content)) {

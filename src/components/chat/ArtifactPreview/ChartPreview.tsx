@@ -50,6 +50,7 @@ window.addEventListener('resize', function() { chart.resize(); });
     <iframe
       ref={iframeRef}
       sandbox="allow-scripts"
+      title="Chart Preview"
       style={{
         width: width || "100%",
         height: height || 400,

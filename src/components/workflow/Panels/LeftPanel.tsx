@@ -1,7 +1,7 @@
 import { useWorkflowEditorStore } from "@/stores";
 import { Input, Tabs, Tag } from "antd";
 import { FileText, Search } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type DragPayload, setDragPayload } from "../dndState";
 import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
@@ -11,9 +11,9 @@ export const LeftPanel: React.FC = () => {
   const [search, setSearch] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loadTemplate } = useWorkflowEditorStore();
-  const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<DragPayload | null>(null);
   const ghostRef = useRef<HTMLDivElement | null>(null);
+  const isDraggingRef = useRef(false);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent, nodeType: string, nodeLabel: string) => {
@@ -24,7 +24,7 @@ export const LeftPanel: React.FC = () => {
       const payload: DragPayload = { type: nodeType, label: nodeLabel };
       dragRef.current = payload;
       setDragPayload(payload);
-      setIsDragging(true);
+      isDraggingRef.current = true;
 
       // Create a ghost element that follows the cursor
       const ghost = document.createElement("div");
@@ -43,47 +43,42 @@ export const LeftPanel: React.FC = () => {
       ghost.style.top = `${event.clientY + 12}px`;
       document.body.appendChild(ghost);
       ghostRef.current = ghost;
+
+      const handleMouseMove = (e: MouseEvent) => {
+        if (ghostRef.current) {
+          ghostRef.current.style.left = `${e.clientX + 12}px`;
+          ghostRef.current.style.top = `${e.clientY + 12}px`;
+        }
+      };
+
+      const handleMouseUp = () => {
+        isDraggingRef.current = false;
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+        dragRef.current = null;
+        if (ghostRef.current) {
+          ghostRef.current.remove();
+          ghostRef.current = null;
+        }
+      };
+
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
     },
     [],
   );
 
-  useEffect(() => {
-    if (!isDragging) { return; }
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (ghostRef.current) {
-        ghostRef.current.style.left = `${e.clientX + 12}px`;
-        ghostRef.current.style.top = `${e.clientY + 12}px`;
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      dragRef.current = null;
-      if (ghostRef.current) {
-        ghostRef.current.remove();
-        ghostRef.current = null;
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging]);
-
   const filteredNodeTypes = Object.entries(NODE_TYPE_MAP)
-    .filter(([_, info]) => t(info.labelKey).toLowerCase().includes(search.toLowerCase()))
-    .filter(([type, _]) => !type.startsWith("_"))
-    .filter(([_, info]) => !t(info.labelKey).includes(t("workflow.leftPanel.legacySuffix")));
+    .filter(([type, info]) =>
+      t(info.labelKey).toLowerCase().includes(search.toLowerCase())
+      && !type.startsWith("_")
+      && !t(info.labelKey).includes(t("workflow.leftPanel.legacySuffix"))
+    );
 
-  const groupedNodeTypes = NODE_CATEGORIES.map((category) => ({
-    ...category,
-    items: filteredNodeTypes.filter(([_, info]) => info.category === category.id),
-  })).filter((category) => category.items.length > 0);
+  const groupedNodeTypes = NODE_CATEGORIES.flatMap((category) => {
+    const items = filteredNodeTypes.filter(([_, info]) => info.category === category.id);
+    return items.length > 0 ? [{ ...category, items }] : [];
+  });
 
   const handleTemplateClick = (templateId: string) => {
     loadTemplate(templateId);
@@ -135,7 +130,7 @@ export const LeftPanel: React.FC = () => {
                     <div key={category.id} style={{ marginBottom: 12 }}>
                       <div
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           color: "#666",
                           textTransform: "uppercase",
                           marginBottom: 6,
@@ -148,7 +143,18 @@ export const LeftPanel: React.FC = () => {
                         {category.items.map(([type, info]) => (
                           <div
                             key={type}
+                            role="button"
+                            tabIndex={0}
                             onMouseDown={(e) => handleMouseDown(e, type, t(info.labelKey))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                handleMouseDown(
+                                  e as unknown as React.MouseEvent,
+                                  type,
+                                  t(info.labelKey),
+                                );
+                              }
+                            }}
                             style={{
                               padding: "8px 6px",
                               background: "#1a1a1a",
@@ -156,7 +162,7 @@ export const LeftPanel: React.FC = () => {
                               borderRadius: 6,
                               cursor: "grab",
                               textAlign: "center",
-                              fontSize: 11,
+                              fontSize: 12,
                               color: "#ccc",
                               transition: "box-shadow 0.2s, transform 0.2s",
                               userSelect: "none",
@@ -201,7 +207,12 @@ export const LeftPanel: React.FC = () => {
                   {filteredTemplates.map((template) => (
                     <div
                       key={template.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleTemplateClick(template.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") { handleTemplateClick(template.id); }
+                      }}
                       style={{
                         padding: 10,
                         marginBottom: 6,
@@ -230,7 +241,7 @@ export const LeftPanel: React.FC = () => {
                         <div
                           style={{
                             color: "#666",
-                            fontSize: 11,
+                            fontSize: 12,
                             marginTop: 4,
                             marginLeft: 22,
                             overflow: "hidden",

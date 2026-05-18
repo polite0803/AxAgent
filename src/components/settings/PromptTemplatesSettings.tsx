@@ -102,7 +102,10 @@ export function PromptTemplatesSettings() {
     try {
       const values = await form.validateFields();
       const tagsArr = values.tags
-        ? values.tags.split(",").map((s: string) => s.trim()).filter(Boolean)
+        ? values.tags.split(",").flatMap((s: string) => {
+          const r = s.trim();
+          return r ? [r] : [];
+        })
         : undefined;
 
       if (editingTemplate) {
@@ -328,7 +331,7 @@ export function PromptTemplatesSettings() {
                   }
                   description={
                     <div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-zinc-500">
                         {tmpl.description || tmpl.content.slice(0, 80) + "..."}
                       </div>
                       {tmpl.tags && tmpl.tags.length > 0 && (
@@ -471,7 +474,7 @@ export function PromptTemplatesSettings() {
 
           {/* 版本内容查看 */}
           {viewingVersionContent && (
-            <div className="mt-4 p-3 bg-gray-50 rounded">
+            <div className="mt-4 p-3 bg-zinc-50 rounded">
               <Text strong>{t("promptTemplates.versionContent")}:</Text>
               <Paragraph className="mt-2">
                 <pre className="whitespace-pre-wrap text-sm font-mono bg-white p-2 rounded border">

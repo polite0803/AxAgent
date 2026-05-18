@@ -38,7 +38,12 @@ export function WikiSidebar({
               {notes.map((note) => (
                 <div
                   key={note.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onSelectNote(note.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { onSelectNote(note.id); }
+                  }}
                   className={`p-2 rounded cursor-pointer mb-1 transition-colors ${
                     selectedNoteId === note.id
                       ? "bg-black/10"

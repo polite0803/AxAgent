@@ -41,9 +41,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   const handleBatchDelete = useCallback(async () => {
     if (selectedRowKeys.length === 0) { return; }
     try {
-      for (const key of selectedRowKeys) {
-        await cleanupMissingEntry(key);
-      }
+      await Promise.all(selectedRowKeys.map((key) => cleanupMissingEntry(key)));
       setSelectedRowKeys([]);
       message.success(t("files.batchDeleteSuccess", { count: selectedRowKeys.length }));
       void loadCategory(activeCategory);

@@ -128,7 +128,7 @@ export function SkillDependencyCheck() {
                     >
                       {dep.skillName}
                     </Typography.Text>
-                    {dep.versionConstraint && <Tag style={{ fontSize: 11 }}>{dep.versionConstraint}</Tag>}
+                    {dep.versionConstraint && <Tag style={{ fontSize: 12 }}>{dep.versionConstraint}</Tag>}
                     <Badge
                       status={dep.installed ? "success" : "error"}
                       text={dep.installed

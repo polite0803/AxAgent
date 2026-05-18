@@ -138,6 +138,14 @@ export function ContextBar({
               : `${t("chat.context.tokenMax")}: ${tokenMax.toLocaleString()}`}
           >
             <div
+              role="button"
+              tabIndex={onTokenClick ? 0 : -1}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && onTokenClick) {
+                  e.preventDefault();
+                  onTokenClick();
+                }
+              }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -153,7 +161,7 @@ export function ContextBar({
               onClick={onTokenClick}
             >
               <Brain size={14} style={{ color: tokenColor ?? token.colorTextSecondary, flexShrink: 0 }} />
-              <span style={{ color: token.colorTextSecondary, fontSize: 11, flexShrink: 0 }}>
+              <span style={{ color: token.colorTextSecondary, fontSize: 12, flexShrink: 0 }}>
                 {formatTokenCount(tokenMax)}
               </span>
               {tokenUsed != null && (

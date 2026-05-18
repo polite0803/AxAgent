@@ -122,11 +122,10 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     await invoke("reorder_memory_namespaces", { namespaceIds });
     set((s) => {
       const ordered = namespaceIds
-        .map((id, i) => {
+        .flatMap((id, i) => {
           const n = s.namespaces.find((n) => n.id === id);
-          return n ? { ...n, sortOrder: i } : null;
-        })
-        .filter(Boolean) as MemoryNamespace[];
+          return n ? [{ ...n, sortOrder: i }] : [];
+        }) as MemoryNamespace[];
       return { namespaces: ordered };
     });
   },

@@ -32,13 +32,16 @@ export function BranchCompareDialog({
   const options = useMemo(
     () =>
       versions
-        .filter((v) => v.role === "assistant")
-        .map((v) => ({
-          label: `${v.model_id ?? t("chat.branch.unknownModel")} — v${v.version_index}${
-            v.is_active ? ` (${t("chat.branch.current")})` : ""
-          }`,
-          value: v.id,
-        })),
+        .flatMap((v) =>
+          v.role === "assistant"
+            ? [{
+              label: `${v.model_id ?? t("chat.branch.unknownModel")} — v${v.version_index}${
+                v.is_active ? ` (${t("chat.branch.current")})` : ""
+              }`,
+              value: v.id,
+            }]
+            : []
+        ),
     [versions, t],
   );
 

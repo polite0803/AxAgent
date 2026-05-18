@@ -35,8 +35,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
   const knowledgeBaseOptions = useMemo(
     () =>
       bases
-        .filter((b) => b.enabled)
-        .map((b) => ({ value: b.id, label: b.name })),
+        .flatMap((b) => b.enabled ? [{ value: b.id, label: b.name }] : []),
     [bases],
   );
 
@@ -47,7 +46,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.query")}
         </label>
         <Input.TextArea
@@ -61,7 +60,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.knowledgeBase")}
         </label>
         <Select
@@ -78,7 +77,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.topK")}
           </label>
           <InputNumber
@@ -92,7 +91,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.similarityThreshold")}
           </label>
           <InputNumber
@@ -110,7 +109,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
         <Input

@@ -32,7 +32,7 @@ export function ResearchSources({
         locale={{ emptyText: t("research.noSearchResults") }}
         renderItem={(item) => (
           <List.Item
-            className={`cursor-pointer hover:bg-gray-50 ${
+            className={`cursor-pointer hover:bg-zinc-50 ${
               selectedSourceId === item.id ? "bg-blue-50 border-l-4 border-blue-500" : ""
             }`}
             onClick={() => onSourceSelect?.(item)}
@@ -106,7 +106,7 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
   if (!source) {
     return (
       <Card size="small" className="h-full">
-        <div className="flex items-center justify-center h-full text-gray-400">
+        <div className="flex items-center justify-center h-full text-zinc-400">
           {t("research.selectSourceToView")}
         </div>
       </Card>

@@ -260,7 +260,6 @@ export function ShortcutSettings() {
                     <Input
                       id="shortcut-settings-input-173"
                       readOnly
-                      autoFocus={recordingAction === action}
                       value={displayValue}
                       status={conflictMap[action]?.length ? "error" : undefined}
                       onKeyDown={(event) => {

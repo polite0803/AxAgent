@@ -8,8 +8,7 @@ import type { Message } from "@/types";
 export function buildAssistantDisplayContent(message: Message, _messages: Message[]): string {
   if (message.blocks && message.blocks.length > 0) {
     const textBlocks = message.blocks
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { type: "text"; text: string }).text);
+      .flatMap((b) => b.type === "text" ? [(b as { type: "text"; text: string }).text] : []);
     if (textBlocks.length > 0) {
       return textBlocks.join("\n\n");
     }

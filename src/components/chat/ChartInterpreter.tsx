@@ -60,7 +60,7 @@ export function ChartInterpreter({
   if (loading) {
     return (
       <Card size="small">
-        <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
+        <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
           <Loader2 size={14} className="animate-spin" />
           <span>{t("chat.chart.analyzing")}</span>
         </div>
@@ -87,11 +87,11 @@ export function ChartInterpreter({
       </div>
 
       {imageUrl && (
-        <div className="mb-3 rounded overflow-hidden border border-gray-200 dark:border-gray-700 max-h-48">
+        <div className="mb-3 rounded overflow-hidden border border-zinc-200 dark:border-zinc-700 max-h-48">
           <img
             src={imageUrl}
             alt={t("chat.chart.chartImage")}
-            className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
+            className="w-full h-full object-contain bg-zinc-100 dark:bg-zinc-800"
           />
         </div>
       )}
@@ -149,7 +149,7 @@ export function ChartInterpreter({
                   <div className="max-h-48 overflow-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="text-gray-500 border-b border-gray-200 dark:border-gray-700">
+                        <tr className="text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
                           <th className="text-left py-1 pr-2">{t("chat.chart.label")}</th>
                           <th className="text-right py-1 pr-2">{t("chat.chart.value")}</th>
                           {chartData.series.length > 0 && <th className="text-left py-1">{t("chat.chart.series")}</th>}
@@ -157,10 +157,10 @@ export function ChartInterpreter({
                       </thead>
                       <tbody>
                         {chartData.data_points.map((dp, i) => (
-                          <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
-                            <td className="py-1 pr-2 text-gray-600 dark:text-gray-400">{dp.label}</td>
+                          <tr key={i} className="border-b border-zinc-100 dark:border-zinc-800">
+                            <td className="py-1 pr-2 text-zinc-600 dark:text-zinc-400">{dp.label}</td>
                             <td className="py-1 pr-2 text-right font-mono">{dp.value}</td>
-                            {chartData.series.length > 0 && <td className="py-1 text-gray-500">{dp.series || "-"}</td>}
+                            {chartData.series.length > 0 && <td className="py-1 text-zinc-500">{dp.series || "-"}</td>}
                           </tr>
                         ))}
                       </tbody>
@@ -181,7 +181,7 @@ export function ChartInterpreter({
       )}
 
       {!chartData && !rawAnalysis && !loading && !error && (
-        <div className="py-4 text-xs text-gray-400 text-center">
+        <div className="py-4 text-xs text-zinc-400 text-center">
           {t("chat.chart.noAnalysis")}
         </div>
       )}

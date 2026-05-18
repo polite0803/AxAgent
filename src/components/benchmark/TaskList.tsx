@@ -21,7 +21,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
         return (
           <div>
             <div className="font-medium">{_name}</div>
-            <div className="text-xs text-gray-500">{record.description}</div>
+            <div className="text-xs text-zinc-500">{record.description}</div>
           </div>
         );
       },
@@ -96,7 +96,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
         expandable={{
           expandedRowRender: (record) => {
             const result = results.find((r) => r.task_id === record.id);
-            if (!result) { return <div className="p-4 text-gray-500">{t("benchmark.noResult")}</div>; }
+            if (!result) { return <div className="p-4 text-zinc-500">{t("benchmark.noResult")}</div>; }
             return <TaskResultCard result={result} />;
           },
         }}

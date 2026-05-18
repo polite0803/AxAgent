@@ -9,13 +9,13 @@ function useEmbeddingModelOptions() {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
     return providers
-      .filter((p) => p.enabled)
-      .map((p) => {
+      .flatMap((p) => {
+        if (!p.enabled) { return []; }
         const embeddingModels = p.models.filter(
           (m) => m.enabled && m.model_type === "Embedding",
         );
-        if (embeddingModels.length === 0) { return null; }
-        return {
+        if (embeddingModels.length === 0) { return []; }
+        return [{
           label: (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <ModelIcon model={p.name} size={16} type="avatar" />
@@ -29,9 +29,8 @@ function useEmbeddingModelOptions() {
             model_id: m.model_id,
             providerName: p.name,
           })),
-        };
-      })
-      .filter((opt): opt is NonNullable<typeof opt> => opt !== null);
+        }];
+      });
   }, [providers]);
 }
 
@@ -78,7 +77,7 @@ export function EmbeddingModelSelect({
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <ModelIcon model={parsed.model_id} size={18} type="avatar" />
           {props.label}
-          <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
+          <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
             ({providerName})
           </span>
         </span>

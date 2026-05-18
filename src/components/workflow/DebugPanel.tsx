@@ -119,7 +119,7 @@ function getStatusIcon(status: NodeExecution["status"]) {
     case "running":
       return <LoadingOutlined className="text-blue-500" />;
     case "skipped":
-      return <PauseCircleOutlined className="text-gray-400" />;
+      return <PauseCircleOutlined className="text-zinc-400" />;
   }
 }
 
@@ -130,6 +130,9 @@ interface DebugPanelProps {
 export function DebugPanel({ trace }: DebugPanelProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [showVariables, setShowVariables] = useState(true);
+  const [showPerformance, setShowPerformance] = useState(true);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   if (!trace) {
     return (
@@ -138,9 +141,6 @@ export function DebugPanel({ trace }: DebugPanelProps) {
       </div>
     );
   }
-  const [showVariables, setShowVariables] = useState(true);
-  const [showPerformance, setShowPerformance] = useState(true);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   const metrics = useMemo(() => calculateMetrics(trace.nodeExecutions), [trace.nodeExecutions]);
 
@@ -282,7 +282,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
                     <Text type="secondary" className="text-xs">
                       {new Date(snapshot.timestamp).toLocaleTimeString()}
                     </Text>
-                    <pre className="text-xs bg-gray-50 p-2 rounded mt-1 overflow-x-auto">
+                    <pre className="text-xs bg-zinc-50 p-2 rounded mt-1 overflow-x-auto">
                       {JSON.stringify(snapshot.variables, null, 2)}
                     </pre>
                   </div>
@@ -352,14 +352,14 @@ export function DebugPanel({ trace }: DebugPanelProps) {
                   )}
                   <div>
                     <Text type="secondary">Input:</Text>
-                    <pre className="text-xs bg-gray-50 p-2 rounded mt-1">
+                    <pre className="text-xs bg-zinc-50 p-2 rounded mt-1">
                       {JSON.stringify(node.input, null, 2)}
                     </pre>
                   </div>
                   {node.output && (
                     <div>
                       <Text type="secondary">Output:</Text>
-                      <pre className="text-xs bg-gray-50 p-2 rounded mt-1">
+                      <pre className="text-xs bg-zinc-50 p-2 rounded mt-1">
                         {JSON.stringify(node.output, null, 2)}
                       </pre>
                     </div>

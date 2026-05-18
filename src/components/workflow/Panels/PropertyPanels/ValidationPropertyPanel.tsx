@@ -44,7 +44,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.assertions")}</label>
+          <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.assertions")}</label>
           <Button
             size="small"
             type="dashed"
@@ -114,7 +114,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
           ))}
 
           {(config.assertions || []).length === 0 && (
-            <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 8 }}>
+            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 8 }}>
               {t("workflow.props.clickToAddAssertion")}
             </div>
           )}
@@ -122,7 +122,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.failStrategy")}
         </label>
         <Select
@@ -140,7 +140,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
 
       {config.on_fail === "retry" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.maxRetries")}
           </label>
           <Input

@@ -358,7 +358,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           if (!m.enabled) { continue; }
           const modelLower = m.model_id.toLowerCase();
           const exact = modelLower === keyword;
-          const contains = modelLower.includes(keyword);
+          const contains = modelLower.indexOf(keyword) !== -1;
           if (!exact && !contains) { continue; }
           const sameProvider = p.id === conversation.provider_id;
           const score = exact ? (sameProvider ? 3 : 2) : (sameProvider ? 1 : 0);
@@ -461,10 +461,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
       enabledWikiIds: prefState.enabledWikiIds,
     });
-    // Sync preference state from the conversation (direct setState to avoid triggering persistence)
+    // 同步偏好状态到 preferenceStore（两个不同 store 的 setState，不能合并）
     usePreferenceStore.setState(prefState);
     // 保留尚未持久化的 temp- 消息，防止被服务端返回的列表覆盖丢失
-    const tempIds = get().messages.filter(m => m.id.startsWith("temp-")).map(m => m.id);
+    const tempIds = get().messages.flatMap(m => m.id.startsWith("temp-") ? [m.id] : []);
     get().fetchMessages(id, tempIds).then(() => {
       if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== id) {
         return;
@@ -1014,6 +1014,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         // 3. Potential invoke failures during active streaming
         // Just swap is_active flags in-memory; backend will be synced during cleanup.
         setUserManuallySelectedVersion(true);
+        // 多模型路径：仅在内存中切换 is_active（与下方正常路径 + catch 路径互斥）
         set((s) => {
           const targetExists = s.messages.some(
             (m) => m.id === messageId && m.parent_message_id === parentMessageId && m.role === "assistant",
@@ -1043,12 +1044,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // (multiModelResponseParents) which needs multiple versions visible.
       const versions = await get().listMessageVersions(conversationId, parentMessageId);
       if (versions.length > 0) {
+        // 正常路径：从 DB 获取版本更新 store（与上方多模型路径 + 下方 catch 路径互斥）
         set((s) => {
           const versionMap = new Map(versions.map(v => [v.id, v]));
           const existingIds = new Set(
             s.messages
-              .filter(m => m.parent_message_id === parentMessageId && m.role === "assistant")
-              .map(m => m.id),
+              .flatMap(m => m.parent_message_id === parentMessageId && m.role === "assistant" ? [m.id] : []),
           );
           // Update existing versions in-place
           const updatedMessages = s.messages.map((m) => {

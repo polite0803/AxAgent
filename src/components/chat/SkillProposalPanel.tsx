@@ -66,7 +66,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({ proposal, onCreat
                 borderRadius: 4,
                 marginTop: 8,
                 whiteSpace: "pre-wrap",
-                fontSize: 11,
+                fontSize: 12,
                 maxHeight: 200,
                 overflow: "auto",
               }}

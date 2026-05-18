@@ -61,7 +61,7 @@ export function StatusBarWidget({
   const { t } = useTranslation();
   const [status, setStatus] = useState<StatusBarInfo>({});
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [startTime] = useState(Date.now());
+  const [startTime] = useState(() => Date.now());
 
   useEffect(() => {
     if (!showTimer) { return; }
@@ -208,7 +208,7 @@ export function StatusBarWidget({
         padding: "4px 12px",
         background: "#181825",
         borderTop: "1px solid #333",
-        fontSize: 11,
+        fontSize: 12,
         fontFamily: "'JetBrains Mono', monospace",
         ...style,
       }}

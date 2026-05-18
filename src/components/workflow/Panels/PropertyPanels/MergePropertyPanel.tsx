@@ -25,7 +25,7 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.mergeType")}
         </label>
         <Select
@@ -42,10 +42,10 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.inputCount")} ({config.inputs?.length || 0})
         </label>
-        <div style={{ color: "#666", fontSize: 11 }}>
+        <div style={{ color: "#666", fontSize: 12 }}>
           {t("workflow.props.connectInputsHint")}
         </div>
       </div>

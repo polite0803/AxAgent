@@ -20,7 +20,7 @@ function LinkTypeBadge({ type }: { type: string }) {
     custom: t("link.typeCustom"),
   };
   return (
-    <span style={{ fontSize: 11, opacity: 0.6 }}>
+    <span style={{ fontSize: 12, opacity: 0.6 }}>
       {labelMap[type] ?? type}
     </span>
   );
@@ -97,12 +97,17 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
             <div
               key={link.id}
               className="flex items-center cursor-pointer px-3 py-2.5 transition-colors"
+              role="button"
+              tabIndex={0}
               style={{
                 borderRadius: token.borderRadius,
                 backgroundColor: isSelected ? token.colorPrimaryBg : undefined,
                 opacity: link.enabled ? 1 : 0.4,
               }}
               onClick={() => selectLink(link.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") { selectLink(link.id); }
+              }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
                   e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
@@ -138,7 +143,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
                 </div>
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     color: token.colorTextTertiary,
                     marginTop: 2,
                     paddingLeft: 16,

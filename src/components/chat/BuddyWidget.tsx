@@ -275,7 +275,7 @@ export function BuddyWidget() {
                 <div>
                   <Tag
                     color={rarityColors[buddy.rarity]}
-                    style={{ fontSize: 11, lineHeight: "18px", margin: 0 }}
+                    style={{ fontSize: 12, lineHeight: "18px", margin: 0 }}
                   >
                     {rarityLabels[buddy.rarity]}
                   </Tag>
@@ -327,7 +327,7 @@ export function BuddyWidget() {
                   showInfo={false}
                   style={{ flex: 1, margin: 0 }}
                 />
-                <Text style={{ fontSize: 11, color: "#999", width: 20, textAlign: "right" }}>
+                <Text style={{ fontSize: 12, color: "#999", width: 20, textAlign: "right" }}>
                   {buddy.attributes[key]}/10
                 </Text>
               </div>
@@ -441,8 +441,7 @@ export function BuddyWidget() {
             {buddy.emoji} {buddy.name} Lv.{buddy.level}
             {lastMessage && (
               <>
-                {" "}
-                —{" "}
+                {": "}
                 <Text style={{ fontSize: 12, color: "#999" }}>
                   "{lastMessage.text.slice(0, 20)}
                   {lastMessage.text.length > 20 ? "..." : ""}"

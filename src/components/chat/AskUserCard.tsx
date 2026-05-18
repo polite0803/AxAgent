@@ -123,7 +123,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
               border: `1px solid ${token.colorBorderSecondary}`,
             }}
           >
-            <Text type="secondary" style={{ fontSize: 11, display: "block", marginBottom: 8 }}>
+            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
               {isSingleChoice
                 ? t("agent.selectOneOption")
                 : t("agent.selectOptions")}
@@ -199,7 +199,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
                 <Text
                   type={isNearLimit ? "warning" : "secondary"}
-                  style={{ fontSize: 11 }}
+                  style={{ fontSize: 12 }}
                 >
                   {charCount}/{MAX_CHARS}
                 </Text>

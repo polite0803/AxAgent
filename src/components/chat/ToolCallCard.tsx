@@ -33,10 +33,8 @@ const toolIcons: Record<string, React.ReactNode> = {
 
 function getToolIcon(toolName: string): React.ReactNode {
   const lower = toolName.toLowerCase();
-  for (const [key, icon] of Object.entries(toolIcons)) {
-    if (lower.includes(key)) { return icon; }
-  }
-  return <Wrench size={14} />;
+  const entry = Object.entries(toolIcons).find(([key]) => lower.indexOf(key) !== -1);
+  return entry ? entry[1] : <Wrench size={14} />;
 }
 
 function getInputSummary(input: Record<string, unknown>): string {
@@ -70,7 +68,7 @@ export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: Tool
               style={{
                 margin: "4px 0 0",
                 padding: 8,
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "monospace",
                 backgroundColor: token.colorBgTextHover,
                 borderRadius: token.borderRadius,
@@ -97,7 +95,7 @@ export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: Tool
               style={{
                 margin: "4px 0 0",
                 padding: 8,
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "monospace",
                 backgroundColor: token.colorBgTextHover,
                 borderRadius: token.borderRadius,
@@ -114,7 +112,7 @@ export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: Tool
                     description={tc.output}
                     type="error"
                     showIcon
-                    style={{ margin: 0, fontSize: 11 }}
+                    style={{ margin: 0, fontSize: 12 }}
                     banner
                   />
                 )
@@ -186,8 +184,11 @@ export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: Tool
     () =>
       extractFileChanges(
         toolCalls
-          .filter((tc) => tc.executionStatus === "success")
-          .map((tc) => ({ toolName: tc.toolName, input: tc.input, output: tc.output })),
+          .flatMap((tc) =>
+            tc.executionStatus === "success"
+              ? [{ toolName: tc.toolName, input: tc.input, output: tc.output }]
+              : []
+          ),
       ),
     [toolCalls],
   );

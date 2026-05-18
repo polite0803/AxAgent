@@ -112,11 +112,10 @@ export const useProviderStore = create<ProviderState>((set) => ({
     } else {
       set((s) => {
         const ordered = providerIds
-          .map((id, i) => {
+          .flatMap((id, i) => {
             const p = s.providers.find((p) => p.id === id);
-            return p ? { ...p, sort_order: i } : null;
-          })
-          .filter(Boolean) as ProviderConfig[];
+            return p ? [{ ...p, sort_order: i }] : [];
+          }) as ProviderConfig[];
         return { providers: ordered };
       });
     }

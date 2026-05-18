@@ -285,7 +285,7 @@ export function PathCompleterWidget({
           style={{
             padding: "4px 12px",
             color: "#6c7086",
-            fontSize: 11,
+            fontSize: 12,
             borderTop: "1px solid #45475a",
           }}
         >

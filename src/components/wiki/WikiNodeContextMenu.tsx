@@ -56,6 +56,7 @@ export function WikiNodeContextMenu({
     <>
       {/* 遮罩层，点击关闭 */}
       <div
+        role="presentation"
         onClick={onClose}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -94,40 +95,60 @@ export function WikiNodeContextMenu({
         <Divider style={{ margin: "2px 0", borderColor: `${token.colorBorderSecondary}20` }} />
 
         <div
+          role="menuitem"
+          tabIndex={0}
           style={menuItemStyle}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onEdit(nodeId))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { handleClick(() => onEdit(nodeId)); }
+          }}
         >
           <PenLine size={14} />
           <span>{t("wiki.edit")}</span>
         </div>
 
         <div
+          role="menuitem"
+          tabIndex={0}
           style={menuItemStyle}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onViewBacklinks(nodeId))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { handleClick(() => onViewBacklinks(nodeId)); }
+          }}
         >
           <GitGraph size={14} />
           <span>{t("wiki.viewBacklinks")}</span>
         </div>
 
         <div
+          role="menuitem"
+          tabIndex={0}
           style={menuItemStyle}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onFocusLocal(nodeId))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { handleClick(() => onFocusLocal(nodeId)); }
+          }}
         >
           <Focus size={14} />
           <span>{t("wiki.focusLocal")}</span>
         </div>
 
         <div
+          role="menuitem"
+          tabIndex={0}
           style={menuItemStyle}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onCreateLinked(nodeId))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { handleClick(() => onCreateLinked(nodeId)); }
+          }}
         >
           <Link2 size={14} />
           <span>{t("wiki.createLinkedNote")}</span>

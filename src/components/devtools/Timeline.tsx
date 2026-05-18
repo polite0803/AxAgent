@@ -36,7 +36,7 @@ function formatDuration(ms?: number): string {
 
 export function Timeline({ spans }: TimelineProps) {
   const { t } = useTranslation();
-  const sortedSpans = [...spans].sort(
+  const sortedSpans = spans.toSorted(
     (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
   );
 
@@ -51,9 +51,10 @@ export function Timeline({ spans }: TimelineProps) {
   const getDepth = (span: Span): number => {
     let depth = 0;
     let current = span;
+    const spanMap = new Map(spans.map((s) => [s.id, s]));
     while (current.parent_span_id) {
       depth++;
-      current = spans.find((s) => s.id === current.parent_span_id) || current;
+      current = spanMap.get(current.parent_span_id) || current;
       if (depth > 20) { break; }
     }
     return depth;
@@ -61,11 +62,11 @@ export function Timeline({ spans }: TimelineProps) {
 
   return (
     <div className="p-4">
-      <div className="text-sm font-medium text-gray-600 mb-4">
+      <div className="text-sm font-medium text-zinc-600 mb-4">
         {t("devtools.timelineView", { count: spans.length })}
       </div>
       <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-300" />
+        <div className="absolute left-0 top-0 bottom-0 w-px bg-zinc-300" />
         {sortedSpans.map((span) => {
           const spanStart = new Date(span.start_time).getTime();
           const spanEnd = span.end_time ? new Date(span.end_time).getTime() : spanStart + (span.duration_ms || 0);
@@ -79,7 +80,7 @@ export function Timeline({ spans }: TimelineProps) {
               className="relative mb-2"
               style={{ paddingLeft: `${depth * 20 + 8}px` }}
             >
-              <div className="absolute w-2 h-2 rounded-full bg-gray-400 -left-1 top-2" />
+              <div className="absolute size-2 rounded-full bg-zinc-400 -left-1 top-2" />
               <Tooltip
                 title={
                   <div>
@@ -120,7 +121,7 @@ export function Timeline({ spans }: TimelineProps) {
           );
         })}
       </div>
-      <div className="flex justify-between text-xs text-gray-400 mt-4 px-2">
+      <div className="flex justify-between text-xs text-zinc-400 mt-4 px-2">
         <span>{dayjs(startTime).format("HH:mm:ss.SSS")}</span>
         <span>{dayjs(endTime).format("HH:mm:ss.SSS")}</span>
       </div>

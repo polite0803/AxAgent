@@ -100,40 +100,40 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   },
 
   approvePlan: async (conversationId, planId) => {
-    set((s) => ({
-      loading: { ...s.loading, [conversationId]: true },
-      errors: { ...s.errors, [conversationId]: null },
-    }));
-
     try {
       // Approve all pending steps before execution so plan_execute picks them up
       const plan = get().activePlans[conversationId];
       const pendingStepIds = plan?.steps
-        .filter((s) => s.status === "pending")
-        .map((s) => s.id) ?? [];
+        .flatMap((s) => s.status === "pending" ? [s.id] : []) ?? [];
 
-      for (const stepId of pendingStepIds) {
-        await invoke("plan_modify_step", {
-          request: { planId, stepId, approved: true },
-        });
-      }
+      await Promise.all(
+        pendingStepIds.map((stepId) => invoke("plan_modify_step", { request: { planId, stepId, approved: true } })),
+      );
 
-      // Update local plan steps to approved so the PlanCard reflects the change
-      if (plan && pendingStepIds.length > 0) {
-        set((s) => ({
-          activePlans: {
-            ...s.activePlans,
-            [conversationId]: {
-              ...plan,
-              steps: plan.steps.map((step) =>
-                pendingStepIds.includes(step.id)
-                  ? { ...step, status: "approved" as const }
-                  : step
-              ),
+      // 合并状态更新：清除 loading，若需要则同时更新 activePlans（单次 set 避免级联）
+      set((s) => {
+        const base = {
+          loading: { ...s.loading, [conversationId]: false },
+          errors: { ...s.errors, [conversationId]: null },
+        };
+        if (plan && pendingStepIds.length > 0) {
+          return {
+            ...base,
+            activePlans: {
+              ...s.activePlans,
+              [conversationId]: {
+                ...plan,
+                steps: plan.steps.map((step) =>
+                  pendingStepIds.includes(step.id)
+                    ? { ...step, status: "approved" as const }
+                    : step
+                ),
+              },
             },
-          },
-        }));
-      }
+          };
+        }
+        return base;
+      });
 
       const allStepIds = plan?.steps.map((s) => s.id);
       const request: PlanExecuteRequest = { conversationId, planId, stepIds: allStepIds };

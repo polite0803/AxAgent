@@ -33,14 +33,14 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      for (const action of SHORTCUT_ACTIONS) {
+      const matchedAction = SHORTCUT_ACTIONS.find((action) => {
         const binding = getShortcutBinding(settings, action);
-        if (!binding) { continue; }
-        if (!matchesShortcutEvent(e, binding)) { continue; }
-
+        return binding && matchesShortcutEvent(e, binding);
+      });
+      if (matchedAction) {
         console.info("[shortcut-local-hit]", {
-          action,
-          binding,
+          action: matchedAction,
+          binding: getShortcutBinding(settings, matchedAction),
           key: e.key,
           metaKey: e.metaKey,
           ctrlKey: e.ctrlKey,
@@ -48,7 +48,7 @@ export function useKeyboardShortcuts() {
           altKey: e.altKey,
         });
         e.preventDefault();
-        await executeShortcutAction(action as ShortcutAction);
+        await executeShortcutAction(matchedAction as ShortcutAction);
         return;
       }
 

@@ -319,7 +319,7 @@ const CustomNode = ({
           <div style={{ fontSize: 12, opacity: 0.8 }}>
             →{data.linkCount} outgoing / ←{data.backlinkCount} incoming
           </div>
-          <div style={{ fontSize: 11, opacity: 0.6 }}>{data.path}</div>
+          <div style={{ fontSize: 12, opacity: 0.6 }}>{data.path}</div>
         </div>
       }
     >
@@ -712,7 +712,8 @@ function GraphViewInner({
     <div
       ref={containerRef}
       tabIndex={0}
-      style={{ width: "100%", height: "100%", position: "relative", outline: "none" }}
+      className="outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+      style={{ width: "100%", height: "100%", position: "relative" }}
     >
       <ReactFlow
         nodes={nodes}
@@ -788,7 +789,7 @@ function GraphViewInner({
               />
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => (
-                  <Tag key={type} color={nodeColors[type]} style={{ fontSize: 11, margin: 0 }}>
+                  <Tag key={type} color={nodeColors[type]} style={{ fontSize: 12, margin: 0 }}>
                     {type}: {data.nodes.filter((n) =>
                       n.type === type
                     ).length}
@@ -824,7 +825,7 @@ function GraphViewInner({
             }}
           >
             <Space direction="vertical" size="small">
-              <Text type="secondary" style={{ fontSize: 11 }}>{t("wiki.graph.stats")}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>{t("wiki.graph.stats")}</Text>
               <Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.nodes")}: {filteredNodes.length} / {data.nodes.length}
               </Text>
@@ -832,10 +833,10 @@ function GraphViewInner({
                 {t("wiki.graph.edges")}: {filteredEdges.length} / {data.edges.length}
               </Text>
               {expandedNodeIds.size > 0 && (
-                <Text type="secondary" style={{ fontSize: 11 }}>Expanded: {expandedNodeIds.size}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>Expanded: {expandedNodeIds.size}</Text>
               )}
               {hasHighlights && (
-                <Text type="secondary" style={{ fontSize: 11 }}>Highlighted: {highlightedNodeIds!.size}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>Highlighted: {highlightedNodeIds!.size}</Text>
               )}
             </Space>
           </Card>

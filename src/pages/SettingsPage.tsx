@@ -191,6 +191,8 @@ export function SettingsPage() {
       </div>
       <div
         className="shrink-0 cursor-col-resize select-none"
+        role="separator"
+        tabIndex={0}
         style={{
           width: 5,
           borderRight: "1px solid var(--border-color)",

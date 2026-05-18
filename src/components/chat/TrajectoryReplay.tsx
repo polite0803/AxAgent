@@ -166,7 +166,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
               <option value="">{t("chat.agentPanel.selectTrajectory")}</option>
               {trajectories.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.topic || t.id.slice(0, 8)} — {t.outcome}
+                  {t.topic || t.id.slice(0, 8)}: {t.outcome}
                 </option>
               ))}
             </select>
@@ -191,7 +191,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                   alignItems: "center",
                   gap: 8,
                   padding: "4px 12px",
-                  fontSize: 11,
+                  fontSize: 12,
                   color: token.colorTextSecondary,
                 }}
               >
@@ -225,7 +225,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
               </div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: token.colorPrimary,
                   fontWeight: 600,
                   marginBottom: 4,
@@ -236,7 +236,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
               {step.reasoning && (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     color: token.colorTextSecondary,
                     fontStyle: "italic",
                     marginBottom: 6,
@@ -271,7 +271,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                         marginBottom: 4,
                         backgroundColor: token.colorFillQuaternary,
                         borderRadius: 4,
-                        fontSize: 11,
+                        fontSize: 12,
                       }}
                     >
                       <span style={{ color: token.colorWarning, fontWeight: 600 }}>
@@ -308,7 +308,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                           ? token.colorErrorBg
                           : token.colorSuccessBg,
                         borderRadius: 4,
-                        fontSize: 11,
+                        fontSize: 12,
                         color: tr.error ? token.colorError : token.colorTextSecondary,
                       }}
                     >
@@ -390,7 +390,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
               display: "flex",
               alignItems: "center",
               gap: 2,
-              fontSize: 11,
+              fontSize: 12,
             }}
           >
             {isPlaying ? <Pause size={14} /> : <Play size={14} />}
@@ -433,7 +433,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
 
           {/* 速度选择 */}
           <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: token.colorTextSecondary }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: token.colorTextSecondary }}>
             {t("chat.agentPanel.speed")}:
             {SPEED_OPTIONS.map((s) => (
               <button
@@ -456,7 +456,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
           </div>
 
           {/* 进度文本 */}
-          <span style={{ fontSize: 11, color: token.colorTextQuaternary, marginLeft: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: token.colorTextQuaternary, marginLeft: 8, flexShrink: 0 }}>
             {currentStep + 1}/{trajectory.steps.length}
           </span>
         </div>

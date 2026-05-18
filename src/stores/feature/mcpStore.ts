@@ -141,8 +141,7 @@ export const useMcpStore = create<McpState>((set, get) => ({
       const result = await invoke<{ ok: boolean; toolCount: number }>("hot_reload_mcp_server", {
         id: serverId,
       });
-      await get().discoverTools(serverId);
-      await get().loadServers();
+      await Promise.all([get().discoverTools(serverId), get().loadServers()]);
       return result;
     } catch (e) {
       set({ error: String(e) });

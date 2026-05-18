@@ -41,7 +41,7 @@ const Tab = memo(function Tab({
   const { t } = useTranslation();
 
   const handleClose = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
       onClose(tab.id);
     },
@@ -70,6 +70,14 @@ const Tab = memo(function Tab({
     >
       <div
         onClick={() => onSelect(tab.id)}
+        role="tab"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(tab.id);
+          }
+        }}
         className="chat-tab-item group"
         style={{
           display: "inline-flex",
@@ -148,6 +156,14 @@ const Tab = memo(function Tab({
         {/* Close button */}
         <span
           onClick={handleClose}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleClose(e);
+            }
+          }}
           className="chat-tab-close"
           style={{
             display: "inline-flex",
@@ -286,6 +302,14 @@ export function TabBar({ onNewConversation }: TabBarProps) {
         <Tooltip title={t("chat.newConversation")} mouseEnterDelay={0.4}>
           <div
             onClick={onNewConversation}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onNewConversation();
+              }
+            }}
             style={{
               display: "inline-flex",
               alignItems: "center",

@@ -82,7 +82,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({ data, selected }
           <span style={{ fontSize: 14 }}>{getLoopTypeIcon(loopType)}</span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: color,
               fontWeight: 600,
             }}

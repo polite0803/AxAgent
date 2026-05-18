@@ -107,7 +107,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
                   onChange({ ...action, args: JSON.parse(e.target.value) });
                 } catch { /* ignore */ }
               }}
-              style={{ fontFamily: "monospace", fontSize: 11 }}
+              style={{ fontFamily: "monospace", fontSize: 12 }}
             />
           </Form.Item>
         </>
@@ -145,7 +145,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
                   onChange({ ...action, payload: JSON.parse(e.target.value) });
                 } catch { /* ignore */ }
               }}
-              style={{ fontFamily: "monospace", fontSize: 11 }}
+              style={{ fontFamily: "monospace", fontSize: 12 }}
             />
           </Form.Item>
         </>
@@ -184,7 +184,7 @@ function DeclarativeEditor({ action, availableHandlers, onChange, t }: {
                   onChange({ ...action, payload: JSON.parse(e.target.value) });
                 } catch { /* ignore */ }
               }}
-              style={{ fontFamily: "monospace", fontSize: 11 }}
+              style={{ fontFamily: "monospace", fontSize: 12 }}
             />
           </Form.Item>
         </>

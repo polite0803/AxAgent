@@ -361,6 +361,8 @@ export function WikiGraphPage() {
             {/* 左拖曳手柄 */}
             <div
               className="shrink-0 cursor-col-resize select-none transition-all duration-300"
+              role="separator"
+              tabIndex={0}
               style={{
                 width: leftAtBoundary ? 5 : 3,
                 background: leftAtBoundary
@@ -429,6 +431,8 @@ export function WikiGraphPage() {
             {/* 右拖曳手柄 */}
             <div
               className="shrink-0 cursor-col-resize select-none transition-all duration-300"
+              role="separator"
+              tabIndex={0}
               style={{
                 width: rightAtBoundary ? 5 : 3,
                 background: rightAtBoundary
@@ -469,7 +473,7 @@ export function WikiGraphPage() {
         style={{
           borderTop: `1px solid ${token.colorBorderSecondary}20`,
           backgroundColor: `${token.colorBgContainer}dd`,
-          fontSize: 11,
+          fontSize: 12,
         }}
       >
         <Text type="secondary">

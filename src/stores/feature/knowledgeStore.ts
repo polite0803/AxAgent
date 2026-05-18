@@ -78,8 +78,10 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
   reorderBases: async (baseIds) => {
     const prev = get().bases;
     const reordered = baseIds
-      .map((id) => prev.find((b) => b.id === id))
-      .filter(Boolean) as KnowledgeBase[];
+      .flatMap((id) => {
+        const b = prev.find((b) => b.id === id);
+        return b ? [b] : [];
+      }) as KnowledgeBase[];
     set({ bases: reordered });
     try {
       await invoke("reorder_knowledge_bases", { baseIds });
@@ -123,44 +125,44 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
   },
 
   setupEventListeners: async () => {
-    const unlistenIndexed = await listen<DocumentIndexedEvent>(
-      "knowledge-document-indexed",
-      (event) => {
-        const { documentId, success, error } = event.payload;
-        set((state) => ({
-          documents: state.documents.map((doc) =>
-            doc.id === documentId
-              ? {
-                ...doc,
-                indexingStatus: success ? "ready" : "failed",
-                indexError: success ? undefined : error,
-              }
-              : doc
-          ),
-        }));
-      },
-    );
-
-    const unlistenReindexed = await listen<{ chunkId: string; success: boolean }>(
-      "knowledge-chunk-reindexed",
-      () => {
-        // Chunk reindexed — refresh documents if a base is selected
-        const selectedBaseId = get().selectedBaseId;
-        if (selectedBaseId) {
-          get().loadDocuments(selectedBaseId);
-        }
-      },
-    );
-
-    const unlistenRebuild = await listen<{ baseId: string }>(
-      "knowledge-rebuild-complete",
-      (event) => {
-        const selectedBaseId = get().selectedBaseId;
-        if (selectedBaseId === event.payload.baseId) {
-          get().loadDocuments(selectedBaseId);
-        }
-      },
-    );
+    const [unlistenIndexed, unlistenReindexed, unlistenRebuild] = await Promise.all([
+      listen<DocumentIndexedEvent>(
+        "knowledge-document-indexed",
+        (event) => {
+          const { documentId, success, error } = event.payload;
+          set((state) => ({
+            documents: state.documents.map((doc) =>
+              doc.id === documentId
+                ? {
+                  ...doc,
+                  indexingStatus: success ? "ready" : "failed",
+                  indexError: success ? undefined : error,
+                }
+                : doc
+            ),
+          }));
+        },
+      ),
+      listen<{ chunkId: string; success: boolean }>(
+        "knowledge-chunk-reindexed",
+        () => {
+          // Chunk reindexed — refresh documents if a base is selected
+          const selectedBaseId = get().selectedBaseId;
+          if (selectedBaseId) {
+            get().loadDocuments(selectedBaseId);
+          }
+        },
+      ),
+      listen<{ baseId: string }>(
+        "knowledge-rebuild-complete",
+        (event) => {
+          const selectedBaseId = get().selectedBaseId;
+          if (selectedBaseId === event.payload.baseId) {
+            get().loadDocuments(selectedBaseId);
+          }
+        },
+      ),
+    ]);
 
     // Return cleanup function
     return () => {

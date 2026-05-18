@@ -27,7 +27,7 @@ const DEFAULT_MANIFEST: Partial<SkillManifest> = {
 export function FrontendEditorModal({ open, skillName, currentManifest, onClose, onSaved }: FrontendEditorModalProps) {
   const { t } = useTranslation();
   const [editorTab, setEditorTab] = useState<"json" | "preview">("json");
-  const [jsonText, setJsonText] = useState(formatJson(DEFAULT_MANIFEST));
+  const [jsonText, setJsonText] = useState(() => formatJson(DEFAULT_MANIFEST));
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);

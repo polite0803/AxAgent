@@ -66,7 +66,12 @@ function McpServerList({
           borderRadius: token.borderRadius,
           backgroundColor: isSelected ? token.colorPrimaryBg : undefined,
         }}
+        role="button"
+        tabIndex={0}
         onClick={() => onSelect(s.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { onSelect(s.id); }
+        }}
         onMouseEnter={(e) => {
           if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
         }}
@@ -82,7 +87,7 @@ function McpServerList({
           {!isBuiltin && (
             <Tag
               color={s.transport === "stdio" ? "blue" : s.transport === "sse" ? "orange" : "green"}
-              style={{ margin: 0, fontSize: 11, display: "inline-flex", alignItems: "center", gap: 3 }}
+              style={{ margin: 0, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 3 }}
             >
               {s.transport === "sse"
                 ? <Radio size={11} />
@@ -135,7 +140,7 @@ function McpServerList({
                 <>
                   <Typography.Text
                     type="secondary"
-                    style={{ fontSize: 11, padding: "4px 12px", textTransform: "uppercase" }}
+                    style={{ fontSize: 12, padding: "4px 12px", textTransform: "uppercase" }}
                   >
                     {t("settings.mcpServers.builtin")}
                   </Typography.Text>
@@ -147,7 +152,7 @@ function McpServerList({
                 <>
                   <Typography.Text
                     type="secondary"
-                    style={{ fontSize: 11, padding: "4px 12px", textTransform: "uppercase" }}
+                    style={{ fontSize: 12, padding: "4px 12px", textTransform: "uppercase" }}
                   >
                     {t("settings.mcpServers.custom")}
                   </Typography.Text>
@@ -423,7 +428,7 @@ function McpServerDetail({
               value={localHeaders}
               onChange={(e) => setLocalHeaders(e.target.value)}
               onBlur={() => {
-                const lines = localHeaders.split("\n").filter((l) => l.includes("="));
+                const lines = localHeaders.split("\n").filter((l) => l.indexOf("=") !== -1);
                 const obj: Record<string, string> = {};
                 for (const line of lines) {
                   const idx = line.indexOf("=");
@@ -449,7 +454,7 @@ function McpServerDetail({
               value={localEnv}
               onChange={(e) => setLocalEnv(e.target.value)}
               onBlur={() => {
-                const lines = localEnv.split("\n").filter((l) => l.includes("="));
+                const lines = localEnv.split("\n").filter((l) => l.indexOf("=") !== -1);
                 const obj: Record<string, string> = {};
                 for (const line of lines) {
                   const idx = line.indexOf("=");
@@ -665,9 +670,7 @@ export function McpServerSettings() {
       setImportError(t("settings.mcpServers.importEmpty"));
       return;
     }
-    for (const input of inputs) {
-      await createServer(input);
-    }
+    await Promise.all(inputs.map((input) => createServer(input)));
     message.success(t("settings.mcpServers.importSuccess", { count: inputs.length }));
     setModalOpen(false);
     setImportJson("");

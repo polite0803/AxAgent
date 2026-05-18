@@ -149,6 +149,21 @@ export function ComputerControlPanel() {
               ref={imgRef}
               src={screenshot}
               onClick={handleImageClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (imgRef.current) {
+                    const rect = imgRef.current.getBoundingClientRect();
+                    const scaleX = nativeResolution.width / rect.width;
+                    const scaleY = nativeResolution.height / rect.height;
+                    const x = Math.round((rect.width / 2) * scaleX);
+                    const y = Math.round((rect.height / 2) * scaleY);
+                    setClickCoords({ x, y });
+                  }
+                }
+              }}
               style={{ width: "100%", display: "block" }}
               alt="screenshot"
             />
@@ -170,6 +185,18 @@ export function ComputerControlPanel() {
             {elements.map((el, i) => (
               <div
                 key={i}
+                role="button"
+                tabIndex={el.is_clickable ? 0 : -1}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && el.is_clickable) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    executeClick(
+                      el.bounds.x + el.bounds.width / 2,
+                      el.bounds.y + el.bounds.height / 2,
+                    );
+                  }
+                }}
                 style={{
                   position: "absolute",
                   left: `${(el.bounds.x / nativeResolution.width) * 100}%`,
@@ -228,6 +255,17 @@ export function ComputerControlPanel() {
             {elements.slice(0, 20).map((el, i) => (
               <div
                 key={i}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    executeClick(
+                      el.bounds.x + el.bounds.width / 2,
+                      el.bounds.y + el.bounds.height / 2,
+                    );
+                  }
+                }}
                 style={{
                   padding: "4px 8px",
                   cursor: "pointer",
@@ -239,7 +277,7 @@ export function ComputerControlPanel() {
                     el.bounds.y + el.bounds.height / 2,
                   )}
               >
-                <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   {el.role}
                 </Typography.Text>{" "}
                 <Typography.Text>{el.name || t("computerControl.unnamed")}</Typography.Text>

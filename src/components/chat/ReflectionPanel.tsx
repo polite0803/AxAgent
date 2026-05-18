@@ -307,7 +307,7 @@ export function ReflectionPanel({
   if (!reflection && !isRefecting) {
     return (
       <Card size="small" className="reflection-panel">
-        <div className="flex items-center justify-center h-32 text-gray-400">
+        <div className="flex items-center justify-center h-32 text-zinc-400">
           <Brain size={24} className="mr-2" />
           <Text type="secondary">{t("reflection.noReflection")}</Text>
         </div>

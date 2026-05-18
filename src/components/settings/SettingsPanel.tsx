@@ -500,7 +500,7 @@ function AgentsTab() {
                   {agent.tools.length > 0 && (
                     <Descriptions.Item label={t("settings.agent.toolsLabel")}>
                       <Space size={4} wrap>
-                        {agent.tools.map((tool) => <Tag key={tool} color="blue" style={{ fontSize: 11 }}>{tool}</Tag>)}
+                        {agent.tools.map((tool) => <Tag key={tool} color="blue" style={{ fontSize: 12 }}>{tool}</Tag>)}
                       </Space>
                     </Descriptions.Item>
                   )}
@@ -508,7 +508,7 @@ function AgentsTab() {
                     <Descriptions.Item label={t("settings.agent.capabilitiesLabel")}>
                       <Space size={4} wrap>
                         {agent.capabilities.map((cap) => (
-                          <Tag key={cap} color="purple" style={{ fontSize: 11 }}>{cap}</Tag>
+                          <Tag key={cap} color="purple" style={{ fontSize: 12 }}>{cap}</Tag>
                         ))}
                       </Space>
                     </Descriptions.Item>
@@ -598,7 +598,12 @@ function HooksTab() {
               <div
                 className="flex items-center justify-between cursor-pointer"
                 style={{ padding: "2px 0" }}
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleExpand(hook.event)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { toggleExpand(hook.event); }
+                }}
               >
                 <Space size={8}>
                   <span style={{ color: token.colorTextQuaternary }}>
@@ -606,7 +611,7 @@ function HooksTab() {
                   </span>
                   {meta?.icon}
                   <Text strong style={{ fontSize: 13 }}>{meta ? t(meta.labelKey) : hook.event}</Text>
-                  <Text type="secondary" style={{ fontSize: 11 }}>{hook.event}</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{hook.event}</Text>
                 </Space>
                 <Space size={8} onClick={(e) => e.stopPropagation()}>
                   {hook.commands.length > 0 && (
@@ -622,7 +627,7 @@ function HooksTab() {
               </div>
 
               {meta && (
-                <Text type="secondary" style={{ fontSize: 11, marginLeft: 28 }}>
+                <Text type="secondary" style={{ fontSize: 12, marginLeft: 28 }}>
                   {t(meta.descKey)}
                 </Text>
               )}

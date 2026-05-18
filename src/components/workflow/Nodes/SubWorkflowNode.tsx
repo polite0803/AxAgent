@@ -63,7 +63,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
           <span style={{ fontSize: 14 }}>📦</span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: color,
               fontWeight: 600,
             }}

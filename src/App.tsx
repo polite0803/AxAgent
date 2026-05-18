@@ -286,6 +286,7 @@ function AppRoot() {
 
   // Load persisted settings from backend on startup, then apply native settings
   useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
     const init = async () => {
       const t0 = performance.now();
 
@@ -293,7 +294,10 @@ function AppRoot() {
         const health = await checkIpcHealth();
         if (!health.ok) {
           console.warn(`[启动] IPC 健康检查失败: ${health.detail}`);
-          await new Promise((r) => setTimeout(r, 2000));
+          await new Promise((r) => {
+            const t = setTimeout(r, 2000);
+            timers.push(t);
+          });
           const retry = await checkIpcHealth();
           if (!retry.ok) {
             console.error(`[启动] IPC 重试仍失败: ${retry.detail}`);
@@ -347,6 +351,7 @@ function AppRoot() {
       await showWindow();
     };
     init();
+    return () => timers.forEach(clearTimeout);
   }, []);
 
   // Sync i18n language with settings store

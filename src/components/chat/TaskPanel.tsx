@@ -142,6 +142,14 @@ export function TaskPanel() {
                   cursor: "pointer",
                   backgroundColor: isExpanded ? "var(--color-fill-alter)" : "transparent",
                 }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpandedId(isExpanded ? null : task.id);
+                  }
+                }}
                 onClick={() => setExpandedId(isExpanded ? null : task.id)}
               >
                 <span style={{ color: `var(--color-${cfg.color})`, display: "flex" }}>
@@ -149,7 +157,7 @@ export function TaskPanel() {
                 </span>
                 <Text strong style={{ flex: 1, fontSize: 13 }}>{task.title}</Text>
                 <Tag color={cfg.color} style={{ margin: 0 }}>{cfg.label}</Tag>
-                <Tag style={{ margin: 0, fontSize: 11 }}>{task.task_type}</Tag>
+                <Tag style={{ margin: 0, fontSize: 12 }}>{task.task_type}</Tag>
                 {task.status === "running" && (
                   <Popconfirm
                     title={t("task.stopConfirm")}
@@ -180,12 +188,12 @@ export function TaskPanel() {
                     </Paragraph>
                   )}
                   {task.command && (
-                    <Text code style={{ fontSize: 11, display: "block", marginBottom: 8 }}>
+                    <Text code style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
                       $ {task.command}
                     </Text>
                   )}
                   {task.exit_code != null && (
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
                       {t("task.exitCode")}: {task.exit_code}
                     </Text>
                   )}
@@ -198,7 +206,7 @@ export function TaskPanel() {
                       maxHeight: 300,
                       overflow: "auto",
                       fontFamily: "monospace",
-                      fontSize: 11,
+                      fontSize: 12,
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-all",
                     }}

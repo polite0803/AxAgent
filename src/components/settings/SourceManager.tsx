@@ -123,7 +123,7 @@ function SourceConfigModal({
       title={
         <span>
           <Settings size={16} style={{ marginRight: token.marginXS, verticalAlign: "middle" }} />
-          {source?.name ?? ""} — {t("sourceManager.configTitle")}
+          {source?.name ?? ""}: {t("sourceManager.configTitle")}
         </span>
       }
     >
@@ -385,7 +385,7 @@ function SourceCard({
           <div className="flex items-center gap-2 mb-2">
             <TypeBadge containerType={source.containerType} />
             {source.embeddingProvider && (
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 {source.embeddingProvider}
                 {source.embeddingDimensions ? ` · ${source.embeddingDimensions}d` : ""}
               </Text>
@@ -862,10 +862,10 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
               <Tag color="blue" style={{ fontSize: 10 }}>v{wiki.schemaVersion}</Tag>
             </div>
             <div className="flex items-center gap-3 mb-2">
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 {wiki.noteCount ?? 0} {t("sourceManager.stats.notes")}
               </Text>
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 {wiki.sourceCount ?? 0} {t("sourceManager.stats.wikiSources")}
               </Text>
             </div>

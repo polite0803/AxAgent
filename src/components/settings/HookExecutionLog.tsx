@@ -112,7 +112,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       render: (event: string) => (
         <div className="flex items-center gap-1">
           <Play size={12} />
-          <Tag style={{ margin: 0, fontSize: 11 }}>{event}</Tag>
+          <Tag style={{ margin: 0, fontSize: 12 }}>{event}</Tag>
         </div>
       ),
     },
@@ -130,8 +130,8 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
             </div>
           )
           : (
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              —
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              -
             </Text>
           ),
     },
@@ -143,7 +143,7 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       render: (cmd: string) => (
         <div className="flex items-center gap-1">
           <Terminal size={12} />
-          <Text code style={{ fontSize: 11 }}>
+          <Text code style={{ fontSize: 12 }}>
             {cmd}
           </Text>
         </div>
@@ -157,12 +157,12 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       render: (status: string) =>
         status === "success"
           ? (
-            <Tag color="success" style={{ fontSize: 11 }}>
+            <Tag color="success" style={{ fontSize: 12 }}>
               {t("hookLog.success")}
             </Tag>
           )
           : (
-            <Tag color="error" style={{ fontSize: 11 }}>
+            <Tag color="error" style={{ fontSize: 12 }}>
               {t("hookLog.failed")}
             </Tag>
           ),
@@ -175,13 +175,13 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       render: (summary?: string) =>
         summary
           ? (
-            <Text style={{ fontSize: 11, maxWidth: 200 }} ellipsis>
+            <Text style={{ fontSize: 12, maxWidth: 200 }} ellipsis>
               {summary}
             </Text>
           )
           : (
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              —
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              -
             </Text>
           ),
     },

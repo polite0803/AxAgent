@@ -81,7 +81,7 @@ export const MermaidZoomControls: React.FC<Props> = ({ ctx }) => {
           onMouseEnter={() => setHoveredIdx(2)}
           onMouseLeave={() => setHoveredIdx(null)}
         >
-          <span style={{ fontSize: 11, fontWeight: 500 }}>{Math.round(ctx.zoom * 100)}%</span>
+          <span style={{ fontSize: 12, fontWeight: 500 }}>{Math.round(ctx.zoom * 100)}%</span>
         </button>
       </Tooltip>
     </div>

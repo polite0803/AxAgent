@@ -47,6 +47,22 @@ export interface MultiModelDisplayProps {
 }
 
 /**
+ * Wrapper component for renderContent render prop.
+ * Fixes react-doctor/no-render-in-render by extracting the render prop call into a component.
+ */
+function ContentWrapper({
+  renderContent,
+  msg,
+  isStreaming,
+}: {
+  renderContent: (msg: Message, isVersionStreaming: boolean) => React.ReactNode;
+  msg: Message;
+  isStreaming: boolean;
+}) {
+  return <>{renderContent(msg, isStreaming)}</>;
+}
+
+/**
  * Renders multiple model versions side-by-side or stacked.
  * Used when multi_model_display_mode is not 'tabs'.
  *
@@ -104,13 +120,14 @@ function MultiModelDisplayInner({
     const modified: Array<{ el: HTMLElement; prev: string }> = [];
     let cur: HTMLElement | null = el;
     while (cur) {
-      if (cur.classList.contains("ant-bubble")) {
+      const classList = cur.classList;
+      if (classList.contains("ant-bubble")) {
         modified.push({ el: cur, prev: cur.style.cssText });
         cur.style.width = "100%";
         cur.style.boxSizing = "border-box";
         break;
       }
-      if (cur.classList.contains("ant-bubble-body") || cur.classList.contains("ant-bubble-content")) {
+      if (classList.contains("ant-bubble-body") || classList.contains("ant-bubble-content")) {
         modified.push({ el: cur, prev: cur.style.cssText });
         cur.style.overflow = "hidden";
         cur.style.minWidth = "0";
@@ -151,7 +168,7 @@ function MultiModelDisplayInner({
   if (latestCount <= 1) {
     const msg = latestByModel[0];
     if (!msg) { return null; }
-    return <>{renderContent(msg, msg.id === streamingMessageId)}</>;
+    return <ContentWrapper renderContent={renderContent} msg={msg} isStreaming={msg.id === streamingMessageId} />;
   }
 
   const containerStyle: React.CSSProperties = mode === "side-by-side"
@@ -222,7 +239,7 @@ function MultiModelDisplayInner({
                 {providerName && (
                   <Tag
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       margin: 0,
                       padding: "0 4px",
                       lineHeight: "18px",
@@ -268,6 +285,14 @@ function MultiModelDisplayInner({
                       onSwitchVersion(parentMessageId, vMsg.id);
                     }
                   }}
+                  role="button"
+                  tabIndex={isActive || !parentMessageId ? -1 : 0}
+                  onKeyDown={(e) => {
+                    if ((e.key === "Enter" || e.key === " ") && !isActive && parentMessageId) {
+                      e.preventDefault();
+                      onSwitchVersion(parentMessageId, vMsg.id);
+                    }
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -288,7 +313,7 @@ function MultiModelDisplayInner({
             </div>
             {/* Card content — key includes mode to force re-mount on layout switch */}
             <div key={`content-${mode}`} style={{ padding: "12px" }}>
-              {renderContent(vMsg, isVersionStreaming)}
+              <ContentWrapper renderContent={renderContent} msg={vMsg} isStreaming={isVersionStreaming} />
             </div>
           </div>
         );
@@ -323,6 +348,14 @@ export function LayoutSwitcher({
         <Tooltip key={key} title={label} mouseEnterDelay={0.3}>
           <div
             onClick={() => onModeChange(key)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onModeChange(key);
+              }
+            }}
             style={{
               display: "flex",
               alignItems: "center",

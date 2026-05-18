@@ -77,7 +77,7 @@ export function StyleComparison({
       {title && (
         <div className="px-3 py-2 border-b border-border/50 flex items-center gap-2">
           <svg
-            className="w-4 h-4 text-muted-foreground"
+            className="size-4 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -139,11 +139,11 @@ export function StyleComparison({
 
       <div className="px-3 py-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-primary/40" />
+          <div className="size-3 rounded-full bg-primary/40" />
           <span>{t("style.sourceStyle")}</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-primary" />
+          <div className="size-3 rounded-full bg-primary" />
           <span>{t("style.targetStyle")}</span>
         </div>
       </div>

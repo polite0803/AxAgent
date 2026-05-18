@@ -200,15 +200,14 @@ export function HelpPanel() {
     if (!search.trim()) { return sections; }
     const q = search.toLowerCase();
     return sections
-      .map((s) => ({
-        ...s,
-        items: s.items.filter(
+      .flatMap((s) => {
+        const items = s.items.filter(
           (i) =>
             i.question.toLowerCase().includes(q)
             || i.answer.toLowerCase().includes(q),
-        ),
-      }))
-      .filter((s) => s.items.length > 0);
+        );
+        return items.length > 0 ? [{ ...s, items }] : [];
+      });
   }, [search, sections]);
 
   if (!open) { return null; }
@@ -216,7 +215,7 @@ export function HelpPanel() {
   return (
     <div className="help-panel" role="dialog" aria-label={t("help.title")}>
       {/* 遮罩 */}
-      <div className="help-panel__backdrop" onClick={closeHelp} />
+      <div className="help-panel__backdrop" role="presentation" onClick={closeHelp} />
 
       {/* 面板 */}
       <div className="help-panel__drawer">

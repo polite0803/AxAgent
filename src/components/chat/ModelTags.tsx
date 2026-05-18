@@ -47,10 +47,11 @@ export function ModelTags({
   const streamingModelIds = useMemo(() => {
     const ids = new Set<string>();
     if (!isMultiModelTarget) { return ids; }
+    const doneIdSet = new Set(multiModelDoneMessageIds);
     for (const cm of pendingCompanionModels) {
       if (modelGroups.has(cm.model_id)) {
         const versions = modelGroups.get(cm.model_id)!;
-        const isDone = versions.some((v) => multiModelDoneMessageIds.includes(v.id));
+        const isDone = versions.some((v) => doneIdSet.has(v.id));
         if (!isDone) { ids.add(cm.model_id); }
       }
     }
@@ -65,7 +66,7 @@ export function ModelTags({
     if (model_id === currentModelId || !msg.parent_message_id) { return; }
     const versions = modelGroups.get(model_id);
     if (!versions || versions.length === 0) { return; }
-    const sorted = [...versions].sort((a, b) => b.version_index - a.version_index);
+    const sorted = versions.toSorted((a, b) => b.version_index - a.version_index);
     switchMessageVersion(conversationId, msg.parent_message_id, sorted[0].id);
   };
 
@@ -79,6 +80,14 @@ export function ModelTags({
           <Tooltip key={model_id} title={modelName} mouseEnterDelay={0.3}>
             <div
               onClick={() => handleTagClick(model_id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleTagClick(model_id);
+                }
+              }}
               className={isStreaming ? "model-tag-streaming" : undefined}
               style={{
                 display: "flex",

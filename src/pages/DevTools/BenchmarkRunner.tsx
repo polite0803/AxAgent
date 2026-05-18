@@ -47,7 +47,7 @@ export function BenchmarkRunner() {
   return (
     <div className="h-full flex flex-col p-6 overflow-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold">{t("benchmark.title")}</h2>
+        <h2 className="text-xl font-semibold">{t("benchmark.title")}</h2>
         <Button
           type="primary"
           onClick={handleRunBenchmark}
@@ -77,7 +77,7 @@ export function BenchmarkRunner() {
       {currentResult && currentReport && <BenchmarkReportView report={currentReport} />}
 
       {!currentResult && !isLoading && (
-        <div className="text-center text-gray-400 py-20">
+        <div className="text-center text-zinc-400 py-20">
           {t("benchmark.empty")}
         </div>
       )}

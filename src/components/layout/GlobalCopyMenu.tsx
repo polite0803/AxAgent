@@ -276,6 +276,8 @@ export function GlobalCopyMenu() {
           )}
           <div
             className="flex items-center gap-2"
+            role="menuitem"
+            tabIndex={item.disabled ? -1 : 0}
             style={{
               padding: "6px 12px",
               borderRadius: 4,
@@ -285,6 +287,9 @@ export function GlobalCopyMenu() {
               transition: "background-color 0.15s",
             }}
             onClick={item.disabled ? undefined : item.onClick}
+            onKeyDown={item.disabled ? undefined : (e) => {
+              if (e.key === "Enter" || e.key === " ") { item.onClick(); }
+            }}
             onMouseEnter={(e) => {
               if (!item.disabled) { (e.currentTarget as HTMLElement).style.backgroundColor = token.colorFillSecondary; }
             }}

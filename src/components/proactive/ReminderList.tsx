@@ -154,7 +154,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
       <div className="bg-card border rounded-lg">
         <div className="px-4 py-3 border-b flex items-center justify-between">
           <h3 className="font-medium flex items-center gap-2">
-            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -171,7 +171,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
             title={t("proactive.addReminder")}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
           </button>
@@ -248,7 +248,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
           {isLoading
             ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             )
             : pendingReminders.length === 0 && completedReminders.length === 0
@@ -288,7 +288,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                         )}
                         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                           <svg
-                            className="w-3 h-3"
+                            className="size-3"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -311,7 +311,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                           title={t("proactive.complete")}
                         >
                           <svg
-                            className="w-4 h-4"
+                            className="size-4"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -326,7 +326,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                           title={t("proactive.delete")}
                         >
                           <svg
-                            className="w-4 h-4"
+                            className="size-4"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -368,7 +368,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                             className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                           >
                             <svg
-                              className="w-3 h-3"
+                              className="size-3"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"

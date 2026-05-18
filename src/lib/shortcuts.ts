@@ -161,9 +161,11 @@ function normalizeKeyToken(token: string): string {
 function tokenize(binding: string): string[] {
   return binding
     .split("+")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((token) => normalizeKeyToken(normalizeModifierToken(token)));
+    .flatMap((part) => {
+      const trimmed = part.trim();
+      const token = normalizeKeyToken(normalizeModifierToken(trimmed));
+      return trimmed ? [token] : [];
+    });
 }
 
 export function getShortcutBinding(settings: AppSettings, action: ShortcutAction): string {
@@ -298,10 +300,12 @@ const KNOWN_EXTERNAL_CONFLICTS: Array<{
  */
 export function findExternalConflict(accelerator: string): string | undefined {
   const lower = accelerator.toLowerCase();
+  // 预构建加速键→应用映射，避免在循环中调用 includes
+  const accMap = new Map<string, string>();
   for (const entry of KNOWN_EXTERNAL_CONFLICTS) {
-    if (entry.accelerators.includes(lower)) {
-      return entry.apps;
+    for (const acc of entry.accelerators) {
+      accMap.set(acc, entry.apps);
     }
   }
-  return undefined;
+  return accMap.get(lower);
 }

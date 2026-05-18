@@ -20,8 +20,10 @@ async function saveFile(
   filters: { name: string; extensions: string[] }[],
 ) {
   if (isTauri()) {
-    const { save } = await import("@tauri-apps/plugin-dialog");
-    const { writeTextFile, writeFile } = await import("@tauri-apps/plugin-fs");
+    const [{ save }, { writeTextFile, writeFile }] = await Promise.all([
+      import("@tauri-apps/plugin-dialog"),
+      import("@tauri-apps/plugin-fs"),
+    ]);
     const filePath = await save({ defaultPath: defaultName, filters });
     if (!filePath) { return false; }
     try {

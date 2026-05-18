@@ -35,7 +35,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
   if (!report) {
     return (
       <Card className="h-full">
-        <div className="flex items-center justify-center h-64 text-gray-400">
+        <div className="flex items-center justify-center h-64 text-zinc-400">
           <div className="text-center">
             <FileTextOutlined style={{ fontSize: 48 }} className="mb-4" />
             <div>{t("reportViewer.noReport")}</div>
@@ -85,53 +85,53 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
     </pre>
   );
 
-  const renderHtmlPreview = () => {
-    // 净化 LLM 生成的 HTML 内容，防止 XSS 攻击（如 <script>、onclick 等）
-    const sanitizedHtml = useMemo(() => {
-      const rawHtml = report.content
-        .replace(/#\s+(.+)/g, "<h1>$1</h1>")
-        .replace(/##\s+(.+)/g, "<h2>$1</h2>")
-        .replace(/\n/g, "<br/>");
-      return DOMPurify.sanitize(rawHtml, {
-        ALLOWED_TAGS: [
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "p",
-          "br",
-          "hr",
-          "ul",
-          "ol",
-          "li",
-          "strong",
-          "em",
-          "b",
-          "i",
-          "u",
-          "s",
-          "a",
-          "code",
-          "pre",
-          "blockquote",
-          "table",
-          "thead",
-          "tbody",
-          "tr",
-          "th",
-          "td",
-          "span",
-          "div",
-          "img",
-          "sub",
-          "sup",
-        ],
-        ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
-      });
-    }, [report.content]);
+  const sanitizedHtml = useMemo(() => {
+    if (!report) { return ""; }
+    const rawHtml = report.content
+      .replace(/#\s+(.+)/g, "<h1>$1</h1>")
+      .replace(/##\s+(.+)/g, "<h2>$1</h2>")
+      .replace(/\n/g, "<br/>");
+    return DOMPurify.sanitize(rawHtml, {
+      ALLOWED_TAGS: [
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "p",
+        "br",
+        "hr",
+        "ul",
+        "ol",
+        "li",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "u",
+        "s",
+        "a",
+        "code",
+        "pre",
+        "blockquote",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "span",
+        "div",
+        "img",
+        "sub",
+        "sup",
+      ],
+      ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
+    });
+  }, [report?.content]);
 
+  const renderHtmlPreview = () => {
     return (
       <div
         style={{
@@ -187,7 +187,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
       key: "summary",
       label: t("reportViewer.summary"),
       children: (
-        <Card className="bg-gray-50">
+        <Card className="bg-zinc-50">
           <Text>{report.summary || t("reportViewer.noSummary")}</Text>
         </Card>
       ),
@@ -275,7 +275,15 @@ export function ReportOutlineView({ outline, onSectionClick }: ReportOutlineView
         {outline.sections.map((section, index) => (
           <div
             key={section.id}
-            className="cursor-pointer hover:bg-gray-50 p-2 rounded"
+            className="cursor-pointer hover:bg-zinc-50 p-2 rounded"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSectionClick?.(section.id);
+              }
+            }}
             onClick={() => onSectionClick?.(section.id)}
           >
             <Text strong>

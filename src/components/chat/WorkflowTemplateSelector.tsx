@@ -979,7 +979,7 @@ export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> =
   if (expertCategory && !searchQuery.trim()) {
     const targetScenario = EXPERT_TO_SCENARIO[expertCategory];
     if (targetScenario) {
-      [...filteredTemplates].sort((a, b) => {
+      filteredTemplates.toSorted((a, b) => {
         const aMatch = a.scenarios?.includes(targetScenario) ? 1 : 0;
         const bMatch = b.scenarios?.includes(targetScenario) ? 1 : 0;
         return bMatch - aMatch;
@@ -1050,14 +1050,14 @@ export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> =
           style={{ borderStyle: "dashed" }}
         >
           <div className="flex items-start gap-3">
-            <div className="shrink-0 text-gray-400 mt-0.5">
+            <div className="shrink-0 text-zinc-400 mt-0.5">
               <MessageCircle size={20} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-gray-500">
+              <div className="font-medium text-sm text-zinc-500">
                 {t("chat.workflow.conversationMode")}
               </div>
-              <div className="text-xs text-gray-400 mt-1">
+              <div className="text-xs text-zinc-400 mt-1">
                 {t("chat.workflow.conversationModeDesc")}
               </div>
             </div>
@@ -1095,7 +1095,7 @@ export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> =
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm">{template.name}</div>
-                <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                <div className="text-xs text-zinc-500 mt-1 line-clamp-2">
                   {template.description}
                 </div>
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -1106,7 +1106,7 @@ export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> =
                   ))}
                 </div>
               </div>
-              <ArrowRight size={14} className="text-gray-400 shrink-0 mt-1" />
+              <ArrowRight size={14} className="text-zinc-400 shrink-0 mt-1" />
             </div>
           </Card>
         ))}

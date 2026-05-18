@@ -117,7 +117,12 @@ function SortableKnowledgeBaseItem({
       ref={setNodeRef}
       style={style}
       className="flex items-center cursor-pointer px-3 py-2.5 transition-colors"
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { onSelect(); }
+      }}
       onMouseEnter={(e) => {
         if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
       }}
@@ -129,7 +134,12 @@ function SortableKnowledgeBaseItem({
         {...attributes}
         {...listeners}
         className="flex items-center mr-2 cursor-grab"
+        role="button"
+        tabIndex={0}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+        }}
       >
         <GripVertical size={14} style={{ color: token.colorTextQuaternary }} />
       </div>
@@ -141,7 +151,7 @@ function SortableKnowledgeBaseItem({
       </div>
       <Tag
         color={kb.embeddingProvider ? "green" : "default"}
-        style={{ marginRight: 4, fontSize: 11 }}
+        style={{ marginRight: 4, fontSize: 12 }}
       >
         {kb.embeddingProvider ? t("settings.knowledge.vectorReady") : t("settings.knowledge.vectorNotConfigured")}
       </Tag>
@@ -505,12 +515,12 @@ function KnowledgeBaseDetail({
       });
       if (!selected) { return; }
       const paths = Array.isArray(selected) ? selected : [selected];
-      for (const filePath of paths) {
+      await Promise.all(paths.map(async (filePath) => {
         const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
         const mimeType = MIME_MAP[ext] ?? "application/octet-stream";
         const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
         await addDocument(base.id, fileName, filePath, mimeType);
-      }
+      }));
       loadDocuments(base.id);
     } catch {
       // user cancelled or error
@@ -526,7 +536,7 @@ function KnowledgeBaseDetail({
         query: searchQuery,
         topK: 5,
       });
-      setSearchResults([...results].sort((a, b) => a.score - b.score));
+      setSearchResults(results.toSorted((a, b) => a.score - b.score));
     } catch (e) {
       messageApi.error(String(e));
     } finally {
@@ -588,7 +598,7 @@ function KnowledgeBaseDetail({
       key: "docType",
       width: 80,
       render: (docType: string) => (
-        <Tag style={{ fontSize: 11 }}>
+        <Tag style={{ fontSize: 12 }}>
           {t(`settings.knowledge.docType${docType.charAt(0).toUpperCase() + docType.slice(1)}`, docType)}
         </Tag>
       ),
@@ -603,7 +613,7 @@ function KnowledgeBaseDetail({
         const tag = (
           <Tag
             color={cfg.color}
-            style={{ fontSize: 11, cursor: status === "failed" && record.indexError ? "pointer" : undefined }}
+            style={{ fontSize: 12, cursor: status === "failed" && record.indexError ? "pointer" : undefined }}
           >
             {status === "indexing" && <Spin size="small" style={{ marginRight: 4 }} />}
             {t(cfg.labelKey)}
@@ -684,7 +694,7 @@ function KnowledgeBaseDetail({
       dataIndex: "chunk_index",
       key: "chunk_index",
       width: 70,
-      render: (idx: number) => <Tag style={{ fontSize: 11 }}>#{idx}</Tag>,
+      render: (idx: number) => <Tag style={{ fontSize: 12 }}>#{idx}</Tag>,
     },
     {
       title: t("settings.knowledge.chunkContent"),
@@ -713,7 +723,7 @@ function KnowledgeBaseDetail({
       render: (_: unknown, record: VectorSearchResult) => {
         if (reindexingChunkIds.has(record.id)) {
           return (
-            <Tag color="processing" style={{ fontSize: 11 }}>
+            <Tag color="processing" style={{ fontSize: 12 }}>
               <Spin size="small" style={{ marginRight: 4 }} />
               {t("settings.knowledge.indexStatusIndexing")}
             </Tag>
@@ -721,13 +731,13 @@ function KnowledgeBaseDetail({
         }
         if (record.has_embedding) {
           return (
-            <Tag color="success" style={{ fontSize: 11 }}>
+            <Tag color="success" style={{ fontSize: 12 }}>
               {t("settings.knowledge.indexStatusReady")}
             </Tag>
           );
         }
         return (
-          <Tag color="default" style={{ fontSize: 11 }}>
+          <Tag color="default" style={{ fontSize: 12 }}>
             {t("settings.knowledge.indexStatusPending")}
           </Tag>
         );
@@ -1255,6 +1265,7 @@ function KnowledgeBaseDetail({
                     model.is_downloaded
                       ? (
                         <Popconfirm
+                          key="delete"
                           title={t("settings.rag.modelDelete")}
                           onConfirm={() => handleDeleteModel(model.name)}
                           okText={t("common.yes")}
@@ -1267,6 +1278,7 @@ function KnowledgeBaseDetail({
                       )
                       : (
                         <Button
+                          key="download"
                           size="small"
                           type="primary"
                           loading={downloading === model.name}
@@ -1393,7 +1405,7 @@ function KnowledgeBaseDetail({
                   dataIndex: "chunk_index",
                   key: "chunk_index",
                   width: 70,
-                  render: (idx: number) => <Tag style={{ fontSize: 11 }}>#{idx}</Tag>,
+                  render: (idx: number) => <Tag style={{ fontSize: 12 }}>#{idx}</Tag>,
                 },
                 {
                   title: t("settings.knowledge.docTitle"),
@@ -1434,7 +1446,7 @@ function KnowledgeBaseDetail({
                   defaultSortOrder: "ascend" as const,
                   sorter: (a: VectorSearchResult, b: VectorSearchResult) => a.score - b.score,
                   render: (score: number) => (
-                    <Tag color="blue" style={{ fontSize: 11 }}>{(1 / (1 + score)).toFixed(4)}</Tag>
+                    <Tag color="blue" style={{ fontSize: 12 }}>{(1 / (1 + score)).toFixed(4)}</Tag>
                   ),
                 },
               ]}

@@ -56,7 +56,7 @@ export function UISnapshotViewer({
   if (loading) {
     return (
       <Card size="small">
-        <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
+        <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
           <Loader2 size={14} className="animate-spin" />
           <span>{t("chat.vision.ui.analyzing")}</span>
         </div>
@@ -83,11 +83,11 @@ export function UISnapshotViewer({
       </div>
 
       {imageUrl && (
-        <div className="mb-3 rounded overflow-hidden border border-gray-200 dark:border-gray-700 max-h-48 relative">
+        <div className="mb-3 rounded overflow-hidden border border-zinc-200 dark:border-zinc-700 max-h-48 relative">
           <img
             src={imageUrl}
             alt={t("chat.vision.ui.screenshot")}
-            className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800"
+            className="w-full h-full object-contain bg-zinc-100 dark:bg-zinc-800"
           />
         </div>
       )}
@@ -120,10 +120,12 @@ export function UISnapshotViewer({
           {elements.map((el, i) => (
             <div
               key={i}
+              role="button"
+              tabIndex={0}
               className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer transition-colors ${
                 selectedIndex === i
                   ? "bg-green-50 dark:bg-green-900/20 ring-1 ring-green-300"
-                  : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
               }`}
               onClick={() => {
                 setSelectedIndex(i);
@@ -134,7 +136,7 @@ export function UISnapshotViewer({
                 {ELEMENT_ICONS[el.element_type] || <Eye size={12} />}
               </span>
               <span className="font-medium">{el.element_type}</span>
-              {el.label && <span className="text-gray-500 truncate flex-1">{el.label}</span>}
+              {el.label && <span className="text-zinc-500 truncate flex-1">{el.label}</span>}
               <Badge
                 status={el.actionable ? "success" : "default"}
                 text={
@@ -144,7 +146,7 @@ export function UISnapshotViewer({
                 }
               />
               {el.bounding_box && (
-                <span className="text-gray-400 font-mono">
+                <span className="text-zinc-400 font-mono">
                   {el.bounding_box.x},{el.bounding_box.y}
                 </span>
               )}
@@ -156,7 +158,7 @@ export function UISnapshotViewer({
       {rawDescription && (
         <div className="mt-3">
           <Text strong className="text-sm block mb-1">{t("chat.vision.ui.description")}</Text>
-          <Text className="text-sm text-gray-600 dark:text-gray-400">{rawDescription}</Text>
+          <Text className="text-sm text-zinc-600 dark:text-zinc-400">{rawDescription}</Text>
         </div>
       )}
     </Card>

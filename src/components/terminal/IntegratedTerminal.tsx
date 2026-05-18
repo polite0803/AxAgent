@@ -42,7 +42,7 @@ export function IntegratedTerminal({
   const xtermRef = useRef<any>(null);
   const fitAddonRef = useRef<any>(null);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [terminalReady, setTerminalReady] = useState(false);
+  const terminalReadyRef = useRef(false);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const activeOutput = activeSessionId ? outputBuffers[activeSessionId] ?? [] : [];
@@ -52,9 +52,11 @@ export function IntegratedTerminal({
     if (!terminalRef.current) { return; }
 
     try {
-      const { Terminal: XTerm } = await import("@xterm/xterm");
-      const { FitAddon } = await import("@xterm/addon-fit");
-      const { WebLinksAddon } = await import("@xterm/addon-web-links");
+      const [{ Terminal: XTerm }, { FitAddon }, { WebLinksAddon }] = await Promise.all([
+        import("@xterm/xterm"),
+        import("@xterm/addon-fit"),
+        import("@xterm/addon-web-links"),
+      ]);
 
       await import("@xterm/xterm/css/xterm.css");
 
@@ -87,7 +89,16 @@ export function IntegratedTerminal({
 
       xtermRef.current = xterm;
       fitAddonRef.current = fitAddon;
-      setTerminalReady(true);
+      terminalReadyRef.current = true;
+
+      // 写入初始化前的待处理输出
+      const lastLine = activeOutput[activeOutput.length - 1] ?? "";
+      if (lastLine) {
+        xterm.write(lastLine + "\r\n");
+        if (onOutput && activeSessionId) {
+          onOutput(activeSessionId, lastLine);
+        }
+      }
 
       xterm.onData((data: string) => {
         if (activeSessionId) {
@@ -113,13 +124,13 @@ export function IntegratedTerminal({
         xtermRef.current.dispose();
         xtermRef.current = null;
         fitAddonRef.current = null;
-        setTerminalReady(false);
+        terminalReadyRef.current = false;
       }
     };
   }, []);
 
   useEffect(() => {
-    if (!terminalReady || !xtermRef.current) { return; }
+    if (!terminalReadyRef.current || !xtermRef.current) { return; }
 
     const xterm = xtermRef.current;
     const lastLine = activeOutput[activeOutput.length - 1] ?? "";
@@ -129,7 +140,7 @@ export function IntegratedTerminal({
         onOutput(activeSessionId, lastLine);
       }
     }
-  }, [activeOutput, terminalReady, activeSessionId, onOutput]);
+  }, [activeOutput, activeSessionId, onOutput]);
 
   useEffect(() => {
     if (activeAnalysis?.has_errors && onError && activeSessionId) {
@@ -411,7 +422,7 @@ export function IntegratedTerminal({
             background: "#181825",
             borderTop: "1px solid #333",
             gap: 12,
-            fontSize: 11,
+            fontSize: 12,
             color: "#6c7086",
             flexShrink: 0,
           }}

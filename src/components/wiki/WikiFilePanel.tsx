@@ -82,7 +82,7 @@ export function WikiFilePanel({
           <Space size={4}>
             <FolderTree size={12} style={{ color: token.colorWarning }} />
             <Text style={{ fontSize: 13 }}>{key}</Text>
-            <Text type="secondary" style={{ fontSize: 11 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
               ({val.notes.length})
             </Text>
           </Space>
@@ -133,7 +133,7 @@ export function WikiFilePanel({
               <Space size={4}>
                 <FolderTree size={12} style={{ color: token.colorWarning }} />
                 <Text style={{ fontSize: 13 }}>/</Text>
-                <Text type="secondary" style={{ fontSize: 11 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
                   ({rootNotes.length})
                 </Text>
               </Space>
@@ -228,7 +228,7 @@ export function WikiFilePanel({
   const handleTagClick = (tag: string) => {
     if (!graphData) { return; }
     const ids = new Set(
-      graphData.nodes.filter((n) => n.tags.includes(tag)).map((n) => n.id),
+      graphData.nodes.flatMap((n) => n.tags.includes(tag) ? [n.id] : []),
     );
     onSearchHighlight(ids);
   };
@@ -287,7 +287,7 @@ export function WikiFilePanel({
 
       {/* 底部：标签云 + 类型统计 */}
       <div
-        className="shrink-0 px-3 py-3"
+        className="shrink-0 p-3"
         style={{ borderTop: `1px solid ${token.colorBorderSecondary}10` }}
       >
         <div className="flex items-center gap-1.5 mb-2.5">
@@ -307,6 +307,8 @@ export function WikiFilePanel({
               {allTags.slice(0, 20).map((tag) => (
                 <span
                   key={tag}
+                  role="button"
+                  tabIndex={0}
                   className="text-[11px] px-2 py-0.5 rounded-full cursor-pointer transition-all duration-200 hover:scale-105"
                   style={{
                     backgroundColor: `${token.colorPrimary}10`,
@@ -314,6 +316,9 @@ export function WikiFilePanel({
                     border: `1px solid ${token.colorPrimary}20`,
                   }}
                   onClick={() => handleTagClick(tag)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { handleTagClick(tag); }
+                  }}
                 >
                   {tag}
                 </span>
@@ -334,7 +339,7 @@ export function WikiFilePanel({
                 className="flex items-center gap-1 text-[10px]"
               >
                 <span
-                  className="w-2 h-2 rounded-full inline-block"
+                  className="size-2 rounded-full inline-block"
                   style={{ backgroundColor: getTypeColor(type) }}
                 />
                 <span style={{ color: token.colorTextSecondary }}>

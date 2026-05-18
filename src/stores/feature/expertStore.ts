@@ -27,7 +27,7 @@ function resolvePreset(
 // 用户可通过专家管理页"导入内置专家"按钮，一次性导入全部 12 个预设。
 // resolvePreset 调用 i18n.t()，必须在运行时延迟调用，不能在模块顶层执行。
 function getMinimalBuiltin(): AgentProfile[] {
-  return BUILTIN_EXPERT_PRESETS.filter((p) => p.id === "general-assistant").map(resolvePreset);
+  return BUILTIN_EXPERT_PRESETS.flatMap((p) => p.id === "general-assistant" ? [resolvePreset(p)] : []);
 }
 
 function loadBuiltinRoles(): AgentProfile[] {

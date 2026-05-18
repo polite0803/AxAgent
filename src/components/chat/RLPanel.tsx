@@ -72,8 +72,10 @@ export function RLPanel() {
       const data = await invoke<unknown[]>("rl_export_training_data", { minQuality: 0.3, limit: 20 });
       const json = JSON.stringify(data, null, 2);
       if (isTauri()) {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+        const [{ save }, { writeTextFile }] = await Promise.all([
+          import("@tauri-apps/plugin-dialog"),
+          import("@tauri-apps/plugin-fs"),
+        ]);
         const filePath = await save({
           defaultPath: "rl_training_data.json",
           filters: [{ name: "JSON", extensions: ["json"] }],
@@ -101,7 +103,7 @@ export function RLPanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -109,7 +111,7 @@ export function RLPanel() {
             />
           </svg>
           {t("chat.rlEngine")}
-          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
         </button>
       </div>
     );
@@ -120,12 +122,12 @@ export function RLPanel() {
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground/80">{t("chat.rlEngine")}</span>
         <div className="flex items-center gap-1">
-          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

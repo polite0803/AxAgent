@@ -290,6 +290,14 @@ export const PermissionModal: React.FC = () => {
         <div>
           <div
             onClick={() => setShowDetails(!showDetails)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowDetails(!showDetails);
+              }
+            }}
             style={{
               cursor: "pointer",
               display: "flex",

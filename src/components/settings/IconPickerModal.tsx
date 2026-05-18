@@ -81,11 +81,16 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
         {filteredIcons.map((icon) => (
           <div
             key={icon.id}
+            role="button"
+            tabIndex={0}
             className="icon-picker-item flex flex-col items-center gap-1 p-2 rounded-lg cursor-pointer transition-colors"
             style={{
               border: `1px solid ${token.colorBorderSecondary}`,
             }}
             onClick={() => handleSelect(icon.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") { handleSelect(icon.id); }
+            }}
             title={icon.fullTitle}
           >
             <DynamicLobeIcon

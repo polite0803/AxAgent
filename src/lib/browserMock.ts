@@ -448,8 +448,9 @@ function initProviders(): Record<string, unknown>[] {
   }
   // Restore missing models for built-in providers (e.g. after a bad fetch_remote_models wipe)
   let dirty = false;
+  const existingMap = new Map(existing.map((p) => [p.id, p]));
   for (const builtin of BUILT_IN_PROVIDERS) {
-    const stored = existing.find((p) => p.id === builtin.id) as
+    const stored = existingMap.get(builtin.id) as
       | (Provider & { models?: Array<{ model_id: string; name: string }> })
       | undefined;
     if (stored && (!stored.models || stored.models.length === 0)) {
@@ -558,8 +559,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const { providerIds } = args as { providerIds?: string[] };
       const providers = getStore<Provider[]>("providers", []);
       if (providerIds) {
+        const providerMap = new Map(providers.map((p) => [p.id, p]));
         for (let i = 0; i < providerIds.length; i++) {
-          const p = providers.find((p) => p.id === providerIds[i]);
+          const p = providerMap.get(providerIds[i]);
           if (p) { p.sort_order = i; }
         }
         providers.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
@@ -612,8 +614,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const { keyId, enabled } = args as { keyId?: string; enabled?: boolean };
       const providers = getStore<Provider[]>("providers", []);
       for (const p of providers) {
-        const key = p.keys.find((k) => k.id === keyId);
-        if (key) { key.enabled = enabled ?? true; }
+        for (const k of p.keys) {
+          if (k.id === keyId) { k.enabled = enabled ?? true; }
+        }
       }
       setStore("providers", providers);
       return undefined as T;
@@ -820,8 +823,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "reorder_conversation_categories": {
       const { categoryIds } = args as { categoryIds: string[] };
       const cats = getStore<ConversationCategory[]>("conversation_categories", []);
+      const catMap = new Map(cats.map((c) => [c.id, c]));
       for (let i = 0; i < categoryIds.length; i++) {
-        const c = cats.find((c) => c.id === categoryIds[i]);
+        const c = catMap.get(categoryIds[i]);
         if (c) { c.sort_order = i; }
       }
       cats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
@@ -932,8 +936,11 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const { query } = args as { query: string };
       const convs = getStore<Conversation[]>("conversations", []);
       const results = convs
-        .filter((c) => c.title.toLowerCase().includes(query.toLowerCase()))
-        .map((c) => ({ conversation_id: c.id, title: c.title, snippet: "" }));
+        .flatMap((c) =>
+          c.title.toLowerCase().includes(query.toLowerCase())
+            ? [{ conversation_id: c.id, title: c.title, snippet: "" }]
+            : []
+        );
       return results as T;
     }
     case "regenerate_message": {

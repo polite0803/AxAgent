@@ -159,11 +159,11 @@ export function TeammatePanel({
 
                 {/* 消息列表 */}
                 {tm.messages && tm.messages.length > 0 && (
-                  <div className="mt-1 max-h-40 overflow-y-auto rounded bg-gray-50 p-1">
+                  <div className="mt-1 max-h-40 overflow-y-auto rounded bg-zinc-50 p-1">
                     {tm.messages.map((msg, i) => (
                       <div
                         key={i}
-                        className="border-b border-gray-100 py-0.5"
+                        className="border-b border-zinc-100 py-0.5"
                         style={{ fontSize: 12, lineHeight: "18px" }}
                       >
                         {formatMessage(msg)}
@@ -175,7 +175,7 @@ export function TeammatePanel({
                 {/* 持续时长 */}
                 {tm.duration !== undefined && tm.status === "completed" && (
                   <div className="mt-1">
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
                       {t("teammatePanel.duration", { seconds: (tm.duration / 1000).toFixed(1) })}
                     </Text>
                   </div>

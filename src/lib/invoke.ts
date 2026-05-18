@@ -172,8 +172,7 @@ function percentile(sorted: number[], pct: number): number {
 export function getInvokeMetrics(): InvokeMetricsSnapshot {
   const byCommand = Array.from(_invokeCounts.entries()).map(([command, stats]) => {
     const durations = _invokeHistory
-      .filter((r) => r.command === command)
-      .map((r) => r.durationMs)
+      .flatMap((r) => r.command === command ? [r.durationMs] : [])
       .sort((a, b) => a - b);
     return {
       command,

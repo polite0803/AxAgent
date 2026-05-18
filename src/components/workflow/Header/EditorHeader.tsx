@@ -104,13 +104,17 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             onChange={(e) => handleNameChange(e.target.value)}
             onBlur={handleNameBlur}
             onKeyDown={handleNameKeyDown}
-            autoFocus
             style={{ width: 200 }}
           />
         )
         : (
           <span
+            role="button"
+            tabIndex={0}
             onClick={() => setIsEditing(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") { setIsEditing(true); }
+            }}
             style={{ color: token.colorText, cursor: "pointer", fontSize: 14 }}
           >
             {name}
@@ -166,7 +170,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{item.label}</span>
                   <kbd
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       padding: "1px 6px",
                       background: token.colorBgContainer,
                       border: `1px solid ${token.colorBorderSecondary}`,

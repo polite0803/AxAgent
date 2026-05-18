@@ -73,8 +73,10 @@ function ImageThumbnail({ record }: { record: FileRow }) {
   );
 }
 
+const EMPTY_ROWS: FileRow[] = [];
+const EMPTY_KEYS: string[] = [];
 export function FileList(
-  { rows = [], category, selectedRowKeys = [], onSelectionChange, onReveal, onDelete }: FileListProps,
+  { rows = EMPTY_ROWS, category, selectedRowKeys = EMPTY_KEYS, onSelectionChange, onReveal, onDelete }: FileListProps,
 ) {
   const { token } = theme.useToken();
   const { t } = useTranslation();

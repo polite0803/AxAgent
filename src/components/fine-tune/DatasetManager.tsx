@@ -67,7 +67,7 @@ export function DatasetManager() {
       >
         {datasets.length === 0
           ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-zinc-500">
               No datasets found. Create one to get started.
             </div>
           )

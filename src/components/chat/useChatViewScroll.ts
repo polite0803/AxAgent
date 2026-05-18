@@ -262,6 +262,7 @@ export function useChatViewScroll({
     if (streaming && !prevStreamingRef.current) {
       streamingTimerRef.current = setTimeout(() => {
         bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "smooth" });
+        // React 18 自动批处理两个独立 setState（均在 setTimeout 回调内）
         setShowScrollToBottom(false);
         setStickToBottom(true);
       }, 50);

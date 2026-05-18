@@ -178,7 +178,7 @@ function AssistantFooter({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              fontSize: 11,
+              fontSize: 12,
               color: token.colorTextDescription,
               lineHeight: "16px",
               marginTop: -6,
@@ -296,6 +296,14 @@ function AssistantFooter({
                   <Tooltip title={t("chat.branchConversation")}>
                     <span
                       className="axagent-action-item"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setBranchModalOpen(true);
+                        }
+                      }}
                       style={{ color: token.colorTextSecondary }}
                       onClick={() => setBranchModalOpen(true)}
                     >
@@ -311,6 +319,14 @@ function AssistantFooter({
                     <Tooltip title={t("chat.branch.compare")}>
                       <span
                         className="axagent-action-item"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setCompareOpen(true);
+                          }
+                        }}
                         style={{ color: token.colorTextSecondary }}
                         onClick={() => setCompareOpen(true)}
                       >
@@ -398,7 +414,6 @@ function AssistantFooter({
           value={branchTitle}
           onChange={(e) => setBranchTitle(e.target.value)}
           placeholder={t("chat.branchTitlePlaceholder")}
-          autoFocus
           onPressEnter={async () => {
             try {
               const title = branchTitle.trim() || currentConvTitle;
@@ -607,14 +622,14 @@ export function useChatViewMessages({
         ? buildAssistantDisplayContent(msg, deferredActiveMessages)
         : msg.content;
       if (shouldHideAssistantBubble(msg, aiContent)) { continue; }
-      if (msg.role === "assistant" && deferredThinkingIds.has(msg.id) && aiContent.includes("<think")) {
+      if (msg.role === "assistant" && deferredThinkingIds.has(msg.id) && aiContent.indexOf("<think") !== -1) {
         const lastOpen = aiContent.lastIndexOf("<think");
         const lastClose = aiContent.lastIndexOf("```");
         if (lastClose < lastOpen) {
           aiContent += THINKING_LOADING_MARKER + "\n```\n\n";
         }
       }
-      if (msg.role === "assistant" && !aiContent.includes('data-axagent="1"')) {
+      if (msg.role === "assistant" && aiContent.indexOf('data-axagent="1"') === -1) {
         const parentSearch = msg.parent_message_id
           ? deferredSearchContent.get(msg.parent_message_id)
           : undefined;
@@ -899,7 +914,7 @@ export function useChatViewMessages({
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Typography.Text style={{ fontSize: 13 }}>{profile.name || t("chat.you")}</Typography.Text>
             {msg && (
-              <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 {formatTime(msg.created_at)}
               </Typography.Text>
             )}
@@ -1244,7 +1259,7 @@ export function useChatViewMessages({
               {providerName && (
                 <Tag
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     margin: 0,
                     padding: "0 4px",
                     lineHeight: "18px",
@@ -1260,7 +1275,7 @@ export function useChatViewMessages({
                 {modelName}
               </Typography.Text>
               {msg && (
-                <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   {formatTime(msg.created_at)}
                 </Typography.Text>
               )}
@@ -1431,6 +1446,11 @@ export function useChatViewMessages({
             }}
           >
             <span
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); /* handler runs onClick */ }
+              }}
               style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
               onClick={async () => {
                 const convId = activeConversationId;

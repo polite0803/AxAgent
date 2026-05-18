@@ -220,9 +220,7 @@ export function WebDavSync() {
 
   const handleBatchDelete = async () => {
     try {
-      for (const fileName of selectedFileNames) {
-        await invoke("webdav_delete_backup", { fileName });
-      }
+      await Promise.all(selectedFileNames.map((fileName) => invoke("webdav_delete_backup", { fileName })));
       message.success(t("backup.deleteSuccess"));
       setSelectedFileNames([]);
       loadRemoteBackups();

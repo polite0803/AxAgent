@@ -24,8 +24,7 @@ function toTreeNode(
 ): DataNode {
   const isFork = item.isFork;
   const children = allItems
-    .filter((child) => child.dependsOn?.includes(item.id))
-    .map((child) => toTreeNode(child, allItems, t));
+    .flatMap((child) => child.dependsOn?.includes(item.id) ? [toTreeNode(child, allItems, t)] : []);
 
   return {
     key: item.id,
@@ -54,7 +53,7 @@ function toTreeNode(
             : item.status}
         </Tag>
         {item.agentType && item.agentType !== "general-purpose" && (
-          <Text type="secondary" style={{ fontSize: 11 }}>{item.agentType}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{item.agentType}</Text>
         )}
       </span>
     ),
@@ -83,7 +82,7 @@ export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
         <BranchesOutlined style={{ fontSize: 13, color: "#722ed1" }} />
         <Text style={{ fontSize: 12, fontWeight: 600 }}>{t("agentHierarchy.title")}</Text>
-        <Text type="secondary" style={{ fontSize: 11 }}>
+        <Text type="secondary" style={{ fontSize: 12 }}>
           {t("agentHierarchy.count", { count: pool.length })}
         </Text>
       </div>

@@ -76,13 +76,13 @@ function EngineStatusCard({ engine }: { engine: EvolutionEngineStatus }) {
         <Badge
           status={engine.running ? "success" : "default"}
           text={
-            <Text style={{ fontSize: 11, color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>
+            <Text style={{ fontSize: 12, color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>
               {engine.running ? t("evolution.running") : t("evolution.idle")}
             </Text>
           }
         />
       </div>
-      <Text type="secondary" style={{ fontSize: 11 }}>
+      <Text type="secondary" style={{ fontSize: 12 }}>
         {t("evolution.processed", { count: engine.items_processed })}
       </Text>
     </Card>

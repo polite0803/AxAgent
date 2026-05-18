@@ -22,7 +22,7 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({ node, onUpda
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
         <Input

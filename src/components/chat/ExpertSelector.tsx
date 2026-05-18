@@ -455,7 +455,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               <Text
                 type="secondary"
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 500,
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
@@ -517,7 +517,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                             <Text
                               type="secondary"
-                              style={{ fontSize: 11, display: "block", marginTop: 2, lineHeight: "1.4", flex: 1 }}
+                              style={{ fontSize: 12, display: "block", marginTop: 2, lineHeight: "1.4", flex: 1 }}
                               ellipsis
                             >
                               {role.description}

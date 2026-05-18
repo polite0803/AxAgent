@@ -171,7 +171,7 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           <label className="flex items-center gap-1 text-sm font-medium mb-2">
             <Route size={14} /> {t("chat.modelRoutingConfig.customRoutingRules")}
           </label>
-          <div className="text-xs text-gray-500 mb-2">
+          <div className="text-xs text-zinc-500 mb-2">
             {t("chat.modelRoutingConfig.customRoutingRulesDesc")}
           </div>
 
@@ -179,7 +179,7 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           {Object.entries(config.routingRules || {}).map(([pattern, model_id]) => (
             <div key={pattern} className="flex items-center gap-2 mb-1">
               <Tag color="blue">{pattern}</Tag>
-              <span className="text-xs text-gray-500">→</span>
+              <span className="text-xs text-zinc-500">→</span>
               <Tag color="green">
                 {allModels.find((m) =>
                   m.value === model_id

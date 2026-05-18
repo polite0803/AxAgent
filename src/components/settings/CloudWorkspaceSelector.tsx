@@ -462,7 +462,7 @@ export function CloudWorkspaceSelector() {
           {record.conflict && <AlertTriangle size={14} className="text-orange-500" />}
           {record.is_dir
             ? <FolderOpen size={14} className="text-blue-500" />
-            : <Globe size={14} className="text-gray-500" />}
+            : <Globe size={14} className="text-zinc-500" />}
           <span>{name}</span>
           {record.conflict && (
             <Tag color="orange" style={{ marginLeft: 8 }}>

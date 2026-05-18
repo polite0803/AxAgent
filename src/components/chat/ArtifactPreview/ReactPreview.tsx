@@ -81,6 +81,7 @@ try {
     <iframe
       ref={iframeRef}
       sandbox="allow-scripts"
+      title="React Preview"
       style={{
         width: "100%",
         height: "100%",

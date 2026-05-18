@@ -87,7 +87,7 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, sele
           <span style={{ fontSize: 14 }}>{getTriggerIcon(triggerType)}</span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: color,
               fontWeight: 600,
               textTransform: "uppercase",

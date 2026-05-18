@@ -171,7 +171,6 @@ export function CategoryEditModal({
           value={name}
           onChange={(e) => setName(e.target.value)}
           onPressEnter={handleOk}
-          autoFocus
           style={{ maxWidth: 340 }}
         />
 

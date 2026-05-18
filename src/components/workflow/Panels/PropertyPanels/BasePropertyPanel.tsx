@@ -14,7 +14,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.title")}
         </label>
         <Input
@@ -26,7 +26,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.description")}
         </label>
         <Input.TextArea
@@ -39,7 +39,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.enabled")}</label>
+        <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.enabled")}</label>
         <Switch
           size="small"
           checked={node.enabled}
@@ -50,7 +50,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.retryPolicy")}
         </label>
         <Switch
@@ -105,7 +105,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.timeoutSeconds")}
         </label>
         <InputNumber

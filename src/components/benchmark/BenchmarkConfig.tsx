@@ -9,7 +9,7 @@ export function BenchmarkConfig() {
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <label className="block text-sm text-gray-600 mb-2">
+        <label className="block text-sm text-zinc-600 mb-2">
           {t("benchmark.maxConcurrency", { value: config.max_concurrency })}
         </label>
         <Slider
@@ -22,7 +22,7 @@ export function BenchmarkConfig() {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-600 mb-2">
+        <label className="block text-sm text-zinc-600 mb-2">
           {t("benchmark.timeoutLabel", { seconds: config.timeout_ms / 1000 })}
         </label>
         <Slider
@@ -36,7 +36,7 @@ export function BenchmarkConfig() {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-600 mb-2">{t("benchmark.maxDifficulty")}</label>
+        <label className="block text-sm text-zinc-600 mb-2">{t("benchmark.maxDifficulty")}</label>
         <Select
           className="w-full"
           placeholder={t("benchmark.noLimit")}
@@ -53,7 +53,7 @@ export function BenchmarkConfig() {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-600 mb-2">
+        <label className="block text-sm text-zinc-600 mb-2">
           {t("benchmark.includeTraces")}
         </label>
         <Switch

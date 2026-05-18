@@ -85,7 +85,7 @@ export function StylePreviewPanel({
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
         <div className="flex items-center gap-2">
           <svg
-            className="w-4 h-4 text-muted-foreground"
+            className="size-4 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

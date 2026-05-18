@@ -140,7 +140,6 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t("agentGenerator.placeholder")}
               rows={4}
-              autoFocus
             />
             {error && (
               <Alert
@@ -179,7 +178,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
               showIcon
             />
 
-            <div className="flex flex-col gap-2 p-3 rounded bg-gray-50 dark:bg-gray-800">
+            <div className="flex flex-col gap-2 p-3 rounded bg-zinc-50 dark:bg-zinc-800">
               <div>
                 <Text strong>{t("agentGenerator.field.type")}：</Text>
                 <Text code>{result.agent_type}</Text>

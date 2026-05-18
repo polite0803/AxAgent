@@ -146,12 +146,12 @@ export function SessionSearchPanel({
               Session: {result.session_id.slice(0, 8)}...
             </Text>
             {result.agent_name && (
-              <Tag color="blue" style={{ fontSize: 11 }}>
+              <Tag color="blue" style={{ fontSize: 12 }}>
                 {result.agent_name}
               </Tag>
             )}
           </Space>
-          <Text type="secondary" style={{ fontSize: 11 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
             {result.timestamp}
           </Text>
         </div>
@@ -166,7 +166,7 @@ export function SessionSearchPanel({
           {highlightText(result.content, result.highlight_ranges)}
         </Paragraph>
         <div style={{ marginTop: 4 }}>
-          <Text type="secondary" style={{ fontSize: 11 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
             Score: {result.score.toFixed(2)} | Message #{result.message_index}
           </Text>
         </div>

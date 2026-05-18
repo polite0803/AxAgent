@@ -40,14 +40,19 @@ export const QuickCommandBar: React.FC = () => {
 
   const availableModels = useMemo(() => {
     return providers
-      .filter((p) => p.enabled)
       .flatMap((p) =>
-        p.models.filter((m) => m.enabled).map((m) => ({
-          key: `${p.id}:${m.model_id}`,
-          label: m.model_id,
-          provider: p.name || p.id,
-          onClick: () => handleModelSwitch(m.model_id),
-        }))
+        p.enabled
+          ? p.models.flatMap((m) =>
+            m.enabled
+              ? [{
+                key: `${p.id}:${m.model_id}`,
+                label: m.model_id,
+                provider: p.name || p.id,
+                onClick: () => handleModelSwitch(m.model_id),
+              }]
+              : []
+          )
+          : []
       );
   }, [providers, handleModelSwitch]);
 
@@ -65,7 +70,7 @@ export const QuickCommandBar: React.FC = () => {
     label: (
       <span>
         {m.label}
-        <span style={{ fontSize: 11, color: token.colorTextQuaternary, marginLeft: 8 }}>
+        <span style={{ fontSize: 12, color: token.colorTextQuaternary, marginLeft: 8 }}>
           {m.provider}
         </span>
       </span>

@@ -180,10 +180,15 @@ export function ToolSemanticCheck() {
               filteredTools.map(tool => (
                 <div
                   key={tool.name}
+                  role="button"
+                  tabIndex={0}
                   className={`px-3 py-2 cursor-pointer hover:bg-bg-container-hover border-b border-border/50 ${
                     selectedTool?.name === tool.name ? "bg-primary/10" : ""
                   }`}
                   onClick={() => setSelectedTool(tool)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { setSelectedTool(tool); }
+                  }}
                 >
                   <Text strong className="text-sm">{tool.name}</Text>
                   <Text type="secondary" className="block text-xs mt-0.5 line-clamp-2">{tool.description}</Text>
@@ -328,7 +333,7 @@ export function ToolSemanticCheck() {
             </div>
 
             <div className="flex justify-center my-4">
-              <ArrowRight size={24} className="text-gray-400" />
+              <ArrowRight size={24} className="text-zinc-400" />
             </div>
 
             <div className="mb-4">

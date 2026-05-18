@@ -173,15 +173,23 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
             <Card
               key={session.session_id}
               size="small"
-              className={session.is_active ? "border-blue-200" : "border-gray-200"}
+              className={session.is_active ? "border-blue-200" : "border-zinc-200"}
             >
               <div
                 className="flex items-center justify-between cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpanded(isExpanded ? null : session.session_id);
+                  }
+                }}
                 onClick={() => setExpanded(isExpanded ? null : session.session_id)}
               >
                 <Space>
                   <div
-                    className={`w-2 h-2 rounded-full ${session.is_active ? "bg-green-500" : "bg-gray-400"}`}
+                    className={`w-2 h-2 rounded-full ${session.is_active ? "bg-green-500" : "bg-zinc-400"}`}
                   />
                   <Text strong className="text-sm">
                     {t("chat.collaboration.session")} {session.session_id.slice(0, 8)}
@@ -212,7 +220,7 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
               </div>
 
               {isExpanded && (
-                <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-2">
+                <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
                   <div>
                     <Text type="secondary" className="text-xs block mb-1">
                       {t("chat.collaboration.participants")}
@@ -222,7 +230,7 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
                         key={p.user_id}
                         className="flex items-center gap-2 py-0.5"
                       >
-                        <UserPlus size={10} className="text-gray-400" />
+                        <UserPlus size={10} className="text-zinc-400" />
                         <Text className="text-xs">{p.display_name}</Text>
                         <Tag
                           color={p.role === "Owner"
@@ -234,7 +242,7 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
                         >
                           {p.role}
                         </Tag>
-                        <Clock size={10} className="text-gray-400 ml-auto" />
+                        <Clock size={10} className="text-zinc-400 ml-auto" />
                       </div>
                     ))}
                   </div>
@@ -246,7 +254,7 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
                       </Text>
                       {session.shared_resources.map((r, i) => (
                         <div key={i} className="flex items-center gap-2 py-0.5">
-                          <Link size={10} className="text-gray-400" />
+                          <Link size={10} className="text-zinc-400" />
                           <Text className="text-xs">{r.resource_type}</Text>
                           <Tag color="geekblue" className="text-xs">
                             {r.access_level}

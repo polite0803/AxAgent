@@ -207,7 +207,6 @@ export function GatewayKeys() {
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
               onPressEnter={handleCreate}
-              autoFocus
             />
           )}
       </Modal>

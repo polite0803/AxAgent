@@ -182,8 +182,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
                 }
 
                 const newVersions = versions
-                  .filter((v) => !existingIds.has(v.id))
-                  .map((v) => ({ ...v, is_active: false as const }));
+                  .flatMap((v) => !existingIds.has(v.id) ? [{ ...v, is_active: false as const }] : []);
                 let enriched = false;
                 const updatedMessages = s.messages.map((m) => {
                   if (resolvedFirstModelId && m.id === currentStreamingMessageId) {

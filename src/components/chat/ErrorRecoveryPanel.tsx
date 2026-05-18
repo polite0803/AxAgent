@@ -43,6 +43,8 @@ interface ErrorRecoveryPanelProps {
   initialResult?: RecoveryResult | null;
 }
 
+const EMPTY_ATTEMPTS: RecoveryAttempt[] = [];
+
 const errorTypeColors: Record<string, string> = {
   transient: "blue",
   recoverable: "orange",
@@ -100,7 +102,7 @@ function AttemptItem({ attempt }: { attempt: RecoveryAttempt }) {
               </Text>
             </span>
             {attempt.delay_ms && (
-              <span className="flex items-center gap-1 text-gray-400">
+              <span className="flex items-center gap-1 text-zinc-400">
                 <Clock size={12} />
                 <Text type="secondary" className="text-xs">
                   {formatDuration(attempt.delay_ms)}
@@ -142,7 +144,7 @@ export function ErrorRecoveryPanel({
   onRecoveryStart,
   onRecoveryComplete,
   isRecovering: initialIsRecovering = false,
-  initialAttempts = [],
+  initialAttempts = EMPTY_ATTEMPTS,
   initialResult = null,
 }: ErrorRecoveryPanelProps) {
   const { t } = useTranslation();
@@ -215,7 +217,7 @@ export function ErrorRecoveryPanel({
   if (!error && !result) {
     return (
       <Card size="small" className="error-recovery-panel">
-        <div className="flex items-center justify-center h-32 text-gray-400">
+        <div className="flex items-center justify-center h-32 text-zinc-400">
           <AlertCircle size={24} className="mr-2" />
           <Text type="secondary">{t("errorRecovery.noError")}</Text>
         </div>
@@ -272,7 +274,7 @@ export function ErrorRecoveryPanel({
           message="Recovery in Progress"
           description={
             <div>
-              <p>Attempting to recover from error...</p>
+              <p>Attempting to recover from error…</p>
               <Progress percent={currentAttempt * 20} size="small" />
             </div>
           }
@@ -342,7 +344,7 @@ export function ErrorRecoveryPanel({
       {isRecovering && (
         <div className="flex items-center justify-between mt-4">
           <Text type="secondary" className="text-sm">
-            Attempting recovery...
+            Attempting recovery…
           </Text>
           <Progress
             type="circle"

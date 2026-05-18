@@ -189,8 +189,8 @@ export function TitleBar() {
   const [lastLocalBackup, setLastLocalBackup] = useState<string | null>(null);
   const [lastWebDavSync, setLastWebDavSync] = useState<string | null>(null);
   // Timestamps (ms) for next scheduled backups
-  const [nextLocalTs, setNextLocalTs] = useState<number | null>(null);
-  const [nextWebDavTs, setNextWebDavTs] = useState<number | null>(null);
+  const nextLocalTsRef = useRef<number | null>(null);
+  const nextWebDavTsRef = useRef<number | null>(null);
   // Live countdown strings (updated every second)
   const [countdownText, setCountdownText] = useState<string | null>(null);
   const [popoverLocalCountdown, setPopoverLocalCountdown] = useState<string | null>(null);
@@ -242,7 +242,7 @@ export function TitleBar() {
   // Calculate next WebDAV sync timestamp (re-run when settings or lastWebDavSync change)
   useEffect(() => {
     if (!lastWebDavSync) {
-      setNextWebDavTs(null);
+      nextWebDavTsRef.current = null;
       return;
     }
     const d = new Date(lastWebDavSync);
@@ -255,16 +255,16 @@ export function TitleBar() {
       while (next < Date.now()) {
         next += intervalMs;
       }
-      setNextWebDavTs(next);
+      nextWebDavTsRef.current = next;
     } else {
-      setNextWebDavTs(null);
+      nextWebDavTsRef.current = null;
     }
   }, [settings.webdav_sync_enabled, settings.webdav_sync_interval_minutes, lastWebDavSync]);
 
   // Calculate next local backup timestamp from backup settings
   useEffect(() => {
     if (!backupSettings?.enabled) {
-      setNextLocalTs(null);
+      nextLocalTsRef.current = null;
       return;
     }
     const intervalMs = (backupSettings.intervalHours ?? 24) * 3600000;
@@ -276,12 +276,12 @@ export function TitleBar() {
         while (next < Date.now()) {
           next += intervalMs;
         }
-        setNextLocalTs(next);
+        nextLocalTsRef.current = next;
         return;
       }
     }
     // No previous backup — next backup at now + interval
-    setNextLocalTs(Date.now() + intervalMs);
+    nextLocalTsRef.current = Date.now() + intervalMs;
   }, [backupSettings, lastLocalBackup]);
 
   // Live countdown on button — tick every second while any backup is scheduled
@@ -289,11 +289,11 @@ export function TitleBar() {
     const tick = () => {
       const now = Date.now();
       let soonest: number | null = null;
-      if (nextLocalTs) {
-        if (!soonest || nextLocalTs < soonest) { soonest = nextLocalTs; }
+      if (nextLocalTsRef.current) {
+        if (!soonest || nextLocalTsRef.current < soonest) { soonest = nextLocalTsRef.current; }
       }
-      if (nextWebDavTs) {
-        if (!soonest || nextWebDavTs < soonest) { soonest = nextWebDavTs; }
+      if (nextWebDavTsRef.current) {
+        if (!soonest || nextWebDavTsRef.current < soonest) { soonest = nextWebDavTsRef.current; }
       }
       if (soonest) {
         setCountdownText(fmtCountdown(soonest - now));
@@ -305,20 +305,24 @@ export function TitleBar() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [nextLocalTs, nextWebDavTs]);
+  }, []);
 
   // Live countdown in popover — tick every second only when open
   useEffect(() => {
     if (!backupPopoverOpen) { return; }
     const tick = () => {
       const now = Date.now();
-      if (nextLocalTs && nextLocalTs > now) {
-        setPopoverLocalCountdown(`${new Date(nextLocalTs).toLocaleString()} (${fmtCountdown(nextLocalTs - now)})`);
+      if (nextLocalTsRef.current && nextLocalTsRef.current > now) {
+        setPopoverLocalCountdown(
+          `${new Date(nextLocalTsRef.current).toLocaleString()} (${fmtCountdown(nextLocalTsRef.current - now)})`,
+        );
       } else {
         setPopoverLocalCountdown(null);
       }
-      if (nextWebDavTs && nextWebDavTs > now) {
-        setPopoverWebDavCountdown(`${new Date(nextWebDavTs).toLocaleString()} (${fmtCountdown(nextWebDavTs - now)})`);
+      if (nextWebDavTsRef.current && nextWebDavTsRef.current > now) {
+        setPopoverWebDavCountdown(
+          `${new Date(nextWebDavTsRef.current).toLocaleString()} (${fmtCountdown(nextWebDavTsRef.current - now)})`,
+        );
       } else {
         setPopoverWebDavCountdown(null);
       }
@@ -326,7 +330,7 @@ export function TitleBar() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [backupPopoverOpen, nextLocalTs, nextWebDavTs]);
+  }, [backupPopoverOpen]);
 
   const handleQuickBackup = useCallback(async (type: "local" | "webdav") => {
     setBackingUp(type);
@@ -421,6 +425,8 @@ export function TitleBar() {
   return (
     <div
       className="title-bar-drag ax-titlebar-compact"
+      role="toolbar"
+      tabIndex={-1}
       {...(!IS_WINDOWS ? { "data-tauri-drag-region": true } : {})}
       onMouseDown={handleDragMouseDown}
       onDoubleClick={IS_WINDOWS ? handleTitleBarDoubleClick : undefined}
@@ -641,7 +647,7 @@ export function TitleBar() {
                   width: countdownText ? "auto" : 28,
                   paddingInline: countdownText ? 4 : 0,
                   gap: 2,
-                  fontSize: 11,
+                  fontSize: 12,
                 }}
               >
                 <CloudUpload size={12} color={TITLEBAR_ICON_COLORS.CloudUpload} />

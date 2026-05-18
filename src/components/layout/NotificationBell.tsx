@@ -66,7 +66,7 @@ export function NotificationBell() {
             {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.message}
           </Text>
           <div>
-            <Text type="secondary" style={{ fontSize: 11 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
               {new Date(n.time).toLocaleTimeString(i18n.language)}
             </Text>
           </div>

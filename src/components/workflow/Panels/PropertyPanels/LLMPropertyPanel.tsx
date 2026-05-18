@@ -78,7 +78,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
 
   const parseVariables = (content: string): string[] => {
     const matches = content.match(/\{([^}]+)\}/g) || [];
-    return matches.map((m) => m.slice(1, -1)).filter((v, i, arr) => arr.indexOf(v) === i);
+    return [...new Set(matches.map((m) => m.slice(1, -1)))];
   };
 
   const activeTemplates = templates.filter((t) => t.isActive);
@@ -86,7 +86,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.model")}
         </label>
         <ModelSelect
@@ -99,7 +99,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.prompt")}
         </label>
         <Input.TextArea
@@ -122,7 +122,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.temperature")}
           </label>
           <InputNumber
@@ -140,7 +140,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
           </div>
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.maxTokens")}
           </label>
           <InputNumber
@@ -213,7 +213,12 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
                   activeTemplates.map((template) => (
                     <div
                       key={template.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleSelectTemplate(template)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") { handleSelectTemplate(template); }
+                      }}
                       style={{
                         padding: "8px 12px",
                         cursor: "pointer",

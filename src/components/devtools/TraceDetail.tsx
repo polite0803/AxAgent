@@ -40,7 +40,7 @@ export function TraceDetail() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-zinc-200">
         <div className="flex justify-between items-center mb-4">
           <div>
             <Text strong className="text-lg">
@@ -131,7 +131,7 @@ export function TraceDetail() {
               <SpanTree spans={tree} />
             </div>
             {selectedSpan && (
-              <div className="w-96 border-l border-gray-200 pl-4 overflow-auto">
+              <div className="w-96 border-l border-zinc-200 pl-4 overflow-auto">
                 <SpanDetail span={selectedSpan} />
               </div>
             )}

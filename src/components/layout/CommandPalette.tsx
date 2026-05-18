@@ -206,7 +206,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const filtered = useMemo(() => {
     if (!query.trim()) {
       // 无搜索时按使用频率降序排列
-      return [...commands].sort((a, b) => {
+      return commands.toSorted((a, b) => {
         const ua = useCounts.get(a.id) ?? 0;
         const ub = useCounts.get(b.id) ?? 0;
         return ub - ua;
@@ -214,11 +214,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
     const q = query.trim();
     const scored = commands
-      .map((c) => ({
-        cmd: c,
-        score: fuzzyScore(c.label, q) + fuzzyScore(c.category, q) * 0.5,
-      }))
-      .filter((s) => s.score > 0)
+      .flatMap((c) => {
+        const score = fuzzyScore(c.label, q) + fuzzyScore(c.category, q) * 0.5;
+        return score > 0 ? [{ cmd: c, score }] : [];
+      })
       .sort((a, b) => b.score - a.score);
     return scored.map((s) => s.cmd);
   }, [commands, query, useCounts]);
@@ -311,7 +310,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       width={600}
       styles={{ body: { padding: 0 } }}
     >
-      <div onKeyDown={handleKeyDown}>
+      <div role="application" onKeyDown={handleKeyDown}>
         <Input
           id="command-palette-input-48"
           prefix={<Search size={16} color={CHAT_ICON_COLORS.Search} />}
@@ -320,7 +319,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           onChange={(e) => setQuery(e.target.value)}
           variant="borderless"
           size="large"
-          autoFocus
           style={{ padding: "12px 16px" }}
         />
         <div

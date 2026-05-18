@@ -44,13 +44,11 @@ async function executeHooks(
 ): Promise<void> {
   if (!actions || actions.length === 0) { return; }
   const router = getActionRouter();
-  for (const action of actions) {
-    try {
-      await router.execute(action, { skillName, permissions });
-    } catch (e) {
+  await Promise.all(actions.map((action) =>
+    router.execute(action, { skillName, permissions }).catch((e) => {
       console.error(`[Lifecycle] Hook execution failed for ${skillName}:`, e);
-    }
-  }
+    })
+  ));
 }
 
 export async function triggerOnInstall(skillName: string): Promise<void> {

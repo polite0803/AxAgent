@@ -64,19 +64,19 @@ export function TrainingJobList() {
           <div className="grid grid-cols-4 gap-4 mb-4">
             <Card size="small">
               <div className="text-2xl font-bold">{stats.total_jobs}</div>
-              <div className="text-gray-500">{t("trainingJob.totalJobs")}</div>
+              <div className="text-zinc-500">{t("trainingJob.totalJobs")}</div>
             </Card>
             <Card size="small">
               <div className="text-2xl font-bold">{stats.running_jobs}</div>
-              <div className="text-gray-500">{t("trainingJob.running")}</div>
+              <div className="text-zinc-500">{t("trainingJob.running")}</div>
             </Card>
             <Card size="small">
               <div className="text-2xl font-bold">{stats.completed_jobs}</div>
-              <div className="text-gray-500">{t("trainingJob.completed")}</div>
+              <div className="text-zinc-500">{t("trainingJob.completed")}</div>
             </Card>
             <Card size="small">
               <div className="text-2xl font-bold">{stats.failed_jobs}</div>
-              <div className="text-gray-500">{t("trainingJob.failed")}</div>
+              <div className="text-zinc-500">{t("trainingJob.failed")}</div>
             </Card>
           </div>
         )}

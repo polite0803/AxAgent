@@ -53,18 +53,31 @@ function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
     <div className="mb-1">
       <div
         className={`flex items-center p-2 rounded cursor-pointer transition-colors ${
-          isSelected ? "bg-blue-100" : "hover:bg-gray-50"
+          isSelected ? "bg-blue-100" : "hover:bg-zinc-50"
         }`}
+        role="button"
+        tabIndex={0}
         style={{ paddingLeft: `${level * 20 + 8}px` }}
         onClick={onSelect}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { onSelect(); }
+        }}
       >
         {hasChildren
           ? (
             <span
-              className="mr-1 cursor-pointer text-gray-400 hover:text-gray-600"
+              className="mr-1 cursor-pointer text-zinc-400 hover:text-zinc-600"
+              role="button"
+              tabIndex={0}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }
               }}
             >
               {isExpanded ? "▼" : "▶"}
@@ -110,7 +123,7 @@ export function SpanTree({ spans }: SpanTreeProps) {
 
   return (
     <div className="py-2">
-      <div className="text-sm font-medium text-gray-600 mb-2 px-2">
+      <div className="text-sm font-medium text-zinc-600 mb-2 px-2">
         {t("devtools.callChain", { count: spans.length })}
       </div>
       {spans.map((span) => (

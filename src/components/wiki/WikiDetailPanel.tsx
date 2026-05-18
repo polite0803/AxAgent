@@ -513,7 +513,7 @@ function BacklinkList({
         >
           <div className="flex items-start gap-3 w-full">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+              className="size-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
               style={{ backgroundColor: `${token.colorPrimary}10` }}
             >
               <Network size={14} style={{ color: token.colorPrimary }} />
@@ -579,7 +579,7 @@ function LinkList({
           >
             <div className="flex items-center gap-3 w-full">
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                className="size-8 rounded-lg flex items-center justify-center shrink-0"
                 style={{ backgroundColor: `${token.colorPrimary}10` }}
               >
                 <Network size={14} style={{ color: token.colorPrimary }} />

@@ -225,7 +225,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
             {status === "pending" && (
               <div style={{ display: "flex", alignItems: "center", gap: 4, color: token.colorTextSecondary }}>
                 <Clock size={12} />
-                <Text type="secondary" style={{ fontSize: 11 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("common.waitingForApproval")}
                 </Text>
               </div>
@@ -250,12 +250,12 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
 
           {affectedPaths.length > 0 && (
             <div>
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 {t("common.affectedPaths")}:
               </Text>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
                 {affectedPaths.map((p, i) => (
-                  <Tag key={i} style={{ fontSize: 11, fontFamily: "monospace" }}>
+                  <Tag key={i} style={{ fontSize: 12, fontFamily: "monospace" }}>
                     {p.length > 40 ? p.slice(0, 40) + "..." : p}
                   </Tag>
                 ))}
@@ -265,6 +265,14 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
 
           <div
             onClick={() => setExpanded(!expanded)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setExpanded(!expanded);
+              }
+            }}
             style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
           >
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -277,7 +285,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
               style={{
                 margin: 0,
                 padding: 10,
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "monospace",
                 backgroundColor: token.colorBgTextHover,
                 borderRadius: 6,

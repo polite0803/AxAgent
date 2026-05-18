@@ -65,7 +65,12 @@ function SortableProviderItem({
       ref={setNodeRef}
       style={style}
       className="flex items-center cursor-pointer px-3 py-2.5 transition-colors"
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { onSelect(); }
+      }}
       onMouseEnter={(e) => {
         if (!isSelected) {
           e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
@@ -82,7 +87,12 @@ function SortableProviderItem({
         {...listeners}
         className="flex items-center mr-2 cursor-grab"
         style={{ color: token.colorTextQuaternary }}
+        role="button"
+        tabIndex={0}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+        }}
       >
         <GripVertical size={14} />
       </div>
@@ -182,7 +192,7 @@ export function ProviderList() {
   };
 
   const sectionHeaderStyle: React.CSSProperties = {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 600,
     color: token.colorTextTertiary,
     textTransform: "uppercase",

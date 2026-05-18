@@ -173,7 +173,7 @@ export function WelcomeWizard() {
               <div style={{ marginTop: 8, paddingLeft: 24 }}>
                 {ollamaModels.slice(0, 5).map((m) => <Tag key={m.name} style={{ marginBottom: 4 }}>{m.name}</Tag>)}
                 {ollamaModels.length > 5 && (
-                  <Text type="secondary" style={{ fontSize: 11 }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
                     {t("onboarding.moreModels", { count: ollamaModels.length - 5 })}
                   </Text>
                 )}
@@ -239,7 +239,7 @@ export function WelcomeWizard() {
                   </div>
                   {selectedPreset === p.key && <CheckCircle2 size={18} style={{ color: p.color }} />}
                   {applying && selectedPreset === p.key && (
-                    <Text type="secondary" style={{ fontSize: 11 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
                       ...
                     </Text>
                   )}
@@ -311,7 +311,7 @@ export function WelcomeWizard() {
                 <br />
                 <Text strong style={{ fontSize: 13 }}>{f.title}</Text>
                 <br />
-                <Text type="secondary" style={{ fontSize: 11 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
                   {f.desc}
                 </Text>
               </Card>

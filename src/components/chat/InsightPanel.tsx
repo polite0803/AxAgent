@@ -67,7 +67,7 @@ export function InsightPanel() {
         >
           <Lightbulb size={14} />
           {t("chat.insightsMemory")} ({insights.length})
-          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
         </button>
       </div>
     );
@@ -78,7 +78,7 @@ export function InsightPanel() {
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground/80">{t("chat.learningInsights")}</span>
         <div className="flex items-center gap-1">
-          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
           <button
             onClick={() => {
               setExpanded(false);
@@ -86,7 +86,7 @@ export function InsightPanel() {
             }}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

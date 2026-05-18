@@ -53,7 +53,7 @@ export function DurationChart({ metrics }: DurationChartProps) {
       <Card title={t("devtools.performanceMetrics")} className="mt-4">
         <Row gutter={16}>
           <Col span={12}>
-            <div className="text-gray-500 mb-1">{t("devtools.errorRate")}</div>
+            <div className="text-zinc-500 mb-1">{t("devtools.errorRate")}</div>
             <div className="text-2xl">
               {metrics.spans_count > 0
                 ? `${((metrics.errors_count / metrics.spans_count) * 100).toFixed(1)}%`
@@ -61,7 +61,7 @@ export function DurationChart({ metrics }: DurationChartProps) {
             </div>
           </Col>
           <Col span={12}>
-            <div className="text-gray-500 mb-1">{t("devtools.errorCount")}</div>
+            <div className="text-zinc-500 mb-1">{t("devtools.errorCount")}</div>
             <div className="text-2xl text-red-500">{metrics.errors_count}</div>
           </Col>
         </Row>

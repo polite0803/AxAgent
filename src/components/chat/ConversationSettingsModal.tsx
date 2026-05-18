@@ -183,13 +183,13 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
           <div style={labelStyle}>{t("settings.systemPromptLabel")}</div>
           {conversation.expert_role_id && (
             <div style={{ marginBottom: 6 }}>
-              <Tag color="blue" style={{ fontSize: 11 }}>
+              <Tag color="blue" style={{ fontSize: 12 }}>
                 {(() => {
                   const role = useExpertStore.getState().getRoleById(conversation.expert_role_id!);
                   return role ? `${role.icon} ${role.name}` : conversation.expert_role_id;
                 })()}
               </Tag>
-              <span style={{ fontSize: 11, color: token.colorTextSecondary, marginLeft: 6 }}>
+              <span style={{ fontSize: 12, color: token.colorTextSecondary, marginLeft: 6 }}>
                 {t("settings.expertPromptNote") || "系统提示词已由专家角色预设"}
               </span>
             </div>

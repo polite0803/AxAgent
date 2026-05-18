@@ -96,12 +96,12 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
   // ── Handlers ──────────────────────────────────────────────────────
 
   const handleApproveAll = useCallback(async () => {
-    // Mark all pending steps as approved
-    for (const step of localSteps) {
-      if (step.status === "pending") {
-        await modifyStep(conversationId, plan.id, step.id, { approved: true });
-      }
-    }
+    // Mark all pending steps as approved in parallel
+    await Promise.all(
+      localSteps
+        .filter((step) => step.status === "pending")
+        .map((step) => modifyStep(conversationId, plan.id, step.id, { approved: true })),
+    );
     // Execute
     await approvePlan(conversationId, plan.id);
   }, [conversationId, plan.id, localSteps, modifyStep, approvePlan]);
@@ -165,7 +165,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
           </span>
           <Tag
             color={isReviewing ? "purple" : isExecuting ? "blue" : isCompleted ? "green" : "default"}
-            style={{ fontSize: 11, lineHeight: "18px" }}
+            style={{ fontSize: 12, lineHeight: "18px" }}
           >
             {isReviewing
               ? t("plan.status.reviewing")
@@ -242,6 +242,19 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
             <div
               key={step.id}
               className={`plan-step-item ${isExpanded ? "plan-step-item--expanded" : ""}`}
+              role="button"
+              tabIndex={step.description ? 0 : -1}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && step.description) {
+                  e.preventDefault();
+                  setExpandedSteps((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(step.id)) { next.delete(step.id); }
+                    else { next.add(step.id); }
+                    return next;
+                  });
+                }
+              }}
               style={{
                 padding: "8px 16px",
                 display: "flex",
@@ -317,7 +330,7 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                     {t(config.labelKey)}
                   </Tag>
                   {step.estimated_tools && step.estimated_tools.length > 0 && (
-                    <span style={{ fontSize: 11, color: token.colorTextQuaternary }}>
+                    <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>
                       {step.estimated_tools.join(", ")}
                     </span>
                   )}

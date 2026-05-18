@@ -140,6 +140,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const [fts5ResultIds, setFts5ResultIds] = useState<string[] | null>(null);
 
   useEffect(() => {
+    // 以下分支互斥：无搜索词直接返回 null，异步搜索后 then/catch 各自只有一次 setState
     if (!debouncedSearch) {
       setFts5ResultIds(null);
       return;
@@ -197,7 +198,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       if (lastConv) {
         setActiveConversation(lastConv.id);
       } else {
-        const sorted = [...conversations].sort((a, b) => {
+        const sorted = conversations.toSorted((a, b) => {
           if (a.is_pinned !== b.is_pinned) { return a.is_pinned ? -1 : 1; }
           return b.updated_at - a.updated_at;
         });
@@ -407,10 +408,8 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
         // Single archive
         await archiveToKnowledgeBase(archiveTargetId, selectedKbId);
       } else if (archiveTargetIds.length > 0) {
-        // Batch archive
-        for (const id of archiveTargetIds) {
-          await archiveToKnowledgeBase(id, selectedKbId);
-        }
+        // Batch archive — run in parallel
+        await Promise.all(archiveTargetIds.map((id) => archiveToKnowledgeBase(id, selectedKbId)));
         exitMultiSelect();
       }
       messageApi.success(t("chat.archivedSuccess", { count: archiveTargetId ? 1 : archiveTargetIds.length }));
@@ -623,6 +622,20 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     return next;
                   });
                 }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setExpandedParentIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(conv.id)) { next.delete(conv.id); }
+                      else { next.add(conv.id); }
+                      return next;
+                    });
+                  }
+                }}
                 style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}
               >
                 <ChevronRight
@@ -755,7 +768,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     if (segments.length === 2) { return segments.join("/"); }
     // Show last 2 segments, but if duplicate exists among all ws dirs, extend to 3
     const short2 = segments.slice(-2).join("/");
-    const wsPaths = Array.from(new Set(conversations.map((c) => c.workspace_dir).filter(Boolean) as string[]));
+    const wsPaths = Array.from(
+      new Set(conversations.flatMap((c) => {
+        const dir = c.workspace_dir;
+        return dir ? [dir] : [];
+      })),
+    );
     const hasConflict = wsPaths.some((p) => {
       const s = p.replace(/\\/g, "/").split("/").filter(Boolean);
       return s.length >= 2 && s.slice(-2).join("/") === short2 && p !== path;
@@ -825,6 +843,15 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                   onClick={(e) => {
                     e.stopPropagation();
                     void handleNewConversation();
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void handleNewConversation();
+                    }
                   }}
                   style={{
                     cursor: "pointer",
@@ -1014,11 +1041,14 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
 
       // Build "move to workspace" submenu
       const wsChildren = wsDirs
-        .filter((d) => d !== conv.workspace_dir)
-        .map((d) => ({
-          key: `move-ws:${d}`,
-          label: <span className="truncate" style={{ maxWidth: 180, display: "inline-block" }}>{d}</span>,
-        }));
+        .flatMap((d) =>
+          d !== conv.workspace_dir
+            ? [{
+              key: `move-ws:${d}`,
+              label: <span className="truncate" style={{ maxWidth: 180, display: "inline-block" }}>{d}</span>,
+            }]
+            : []
+        );
       if (conv.workspace_dir) {
         wsChildren.unshift({
           key: "remove-ws",
@@ -1203,11 +1233,14 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
     const parentId = conv.parent_conversation_id;
 
     const wsChildren = wsDirs
-      .filter((d) => d !== conv.workspace_dir)
-      .map((d) => ({
-        key: `move-ws:${d}`,
-        label: <span className="truncate" style={{ maxWidth: 180, display: "inline-block" }}>{d}</span>,
-      }));
+      .flatMap((d) =>
+        d !== conv.workspace_dir
+          ? [{
+            key: `move-ws:${d}`,
+            label: <span className="truncate" style={{ maxWidth: 180, display: "inline-block" }}>{d}</span>,
+          }]
+          : []
+      );
     if (conv.workspace_dir) {
       wsChildren.unshift({
         key: "remove-ws",
@@ -1632,7 +1665,6 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             onChange={(e) =>
               handleSearch(e.target.value)}
             size="small"
-            autoFocus
           />
         </div>
       )}
@@ -1647,6 +1679,19 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     <div
                       key={conv.id}
                       className="flex items-center gap-2 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          if (archivedMultiSelect) {
+                            toggleArchivedSelect(conv.id);
+                          } else {
+                            setActiveConversation(conv.id);
+                            setShowArchived(false);
+                          }
+                        }
+                      }}
                       style={{ padding: "8px 12px", borderRadius: 6, margin: "0 8px" }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = token.colorFillContent;

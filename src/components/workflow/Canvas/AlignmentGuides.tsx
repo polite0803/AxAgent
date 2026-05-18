@@ -18,7 +18,7 @@ const SNAP_THRESHOLD = 8;
 export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, children }) => {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [lines, setLines] = useState<AlignmentLine[]>([]);
-  const [draggedNode, setDraggedNode] = useState<string | null>(null);
+  const draggedNodeRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const calculateAlignmentLines = useCallback(
@@ -122,7 +122,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!draggedNode) { return; }
+      if (!draggedNodeRef.current) { return; }
 
       const bounds = containerRef.current?.getBoundingClientRect();
       if (!bounds) { return; }
@@ -132,15 +132,15 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
         y: e.clientY - bounds.top,
       });
 
-      calculateAlignmentLines(draggedNode, position);
+      calculateAlignmentLines(draggedNodeRef.current, position);
     };
 
     const handleMouseUp = () => {
-      setDraggedNode(null);
+      draggedNodeRef.current = null;
       setLines([]);
     };
 
-    if (draggedNode) {
+    if (draggedNodeRef.current) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     }
@@ -149,16 +149,16 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [draggedNode, screenToFlowPosition, calculateAlignmentLines]);
+  }, [screenToFlowPosition, calculateAlignmentLines]);
 
   useEffect(() => {
     const handleNodeDragStart = (_: MouseEvent, node: Node) => {
-      setDraggedNode(node.id);
+      draggedNodeRef.current = node.id;
     };
 
     const handlePaneClick = () => {
       setLines([]);
-      setDraggedNode(null);
+      draggedNodeRef.current = null;
     };
 
     const container = containerRef.current;

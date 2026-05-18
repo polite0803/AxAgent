@@ -162,11 +162,11 @@ export function GitCommitPanel({ repoPath, onCommitSuccess }: GitCommitPanelProp
               </div>
             </div>
 
-            <div className="max-h-40 overflow-auto mb-3 border border-gray-200 dark:border-gray-700 rounded">
+            <div className="max-h-40 overflow-auto mb-3 border border-zinc-200 dark:border-zinc-700 rounded">
               {diff.files.map((file) => (
                 <div
                   key={file.path}
-                  className="flex items-center justify-between px-2 py-1 text-xs border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                  className="flex items-center justify-between px-2 py-1 text-xs border-b border-zinc-100 dark:border-zinc-800 last:border-b-0"
                 >
                   <Space size="small">
                     {getStatusIcon(file.status)}
@@ -341,7 +341,7 @@ export function GitBranchPanel({ repoPath, baseBranch, headBranch }: GitBranchPa
           {prDescription && (
             <div className="mb-3">
               <Text type="secondary" className="text-xs block mb-1">{t("chat.git.prDescription")}:</Text>
-              <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <div className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded text-xs">
                 <Paragraph className="text-xs mb-0" ellipsis={{ rows: 4, expandable: true }}>
                   {prDescription}
                 </Paragraph>

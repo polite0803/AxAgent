@@ -25,7 +25,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
         </div>
         <div className="text-right">
           <div className="text-2xl font-bold">{formatScore(result.overall_score)}</div>
-          <div className="text-xs text-gray-500">{formatDuration(result.duration_ms)}</div>
+          <div className="text-xs text-zinc-500">{formatDuration(result.duration_ms)}</div>
         </div>
       </div>
 
@@ -50,7 +50,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
           {result.scores.map((score) => (
             <div
               key={score.criteria_name}
-              className="flex items-center justify-between p-2 bg-gray-50 rounded"
+              className="flex items-center justify-between p-2 bg-zinc-50 rounded"
             >
               <span className="text-sm">{score.criteria_name}</span>
               <div className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
           <Typography.Text strong className="mb-2 block">
             {t("benchmark.response")}
           </Typography.Text>
-          <pre className="block whitespace-pre-wrap bg-gray-50 p-2 rounded overflow-auto">{result.response}</pre>
+          <pre className="block whitespace-pre-wrap bg-zinc-50 p-2 rounded overflow-auto">{result.response}</pre>
         </div>
       )}
     </Card>

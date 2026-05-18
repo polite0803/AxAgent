@@ -124,8 +124,9 @@ export function ChatPage() {
 
   // 同步标签标题
   useEffect(() => {
+    const convMap = new Map(conversations.map((c) => [c.id, c]));
     for (const tab of tabs) {
-      const conv = conversations.find((c) => c.id === tab.conversationId);
+      const conv = convMap.get(tab.conversationId);
       if (conv && conv.title !== tab.title) {
         updateTabTitle(conv.id, conv.title);
       }
@@ -216,6 +217,12 @@ export function ChatPage() {
       {!sidebarCollapsed && (
         <div
           onMouseDown={handleLeftMouseDown}
+          role="separator"
+          aria-label="resize handle"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); }
+          }}
           style={{
             width: 4,
             cursor: "col-resize",
@@ -251,6 +258,12 @@ export function ChatPage() {
       {showRightPanel && !rightPanelCollapsed && (
         <div
           onMouseDown={handleRightMouseDown}
+          role="separator"
+          aria-label="resize handle"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); }
+          }}
           style={{
             width: 4,
             cursor: "col-resize",

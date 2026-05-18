@@ -38,7 +38,7 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.inputVariable")}
         </label>
         <Input
@@ -51,7 +51,7 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.parserType")}
         </label>
         <Select
@@ -64,7 +64,7 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
         <Input

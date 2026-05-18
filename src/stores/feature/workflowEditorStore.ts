@@ -351,8 +351,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
       try {
         await invoke<boolean>("update_workflow_template", { id, input });
-        await get().loadTemplates();
-        await get().loadTemplate(id);
+        await Promise.all([get().loadTemplates(), get().loadTemplate(id)]);
         set((state) => {
           state.isSaving = false;
           state.isDirty = false;

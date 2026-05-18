@@ -78,7 +78,7 @@ export function ToolRecommendationPanel() {
           {isLoading && (
             <div style={{ textAlign: "center", padding: "40px" }}>
               <Spin size="large" />
-              <Paragraph>Analyzing task and generating recommendations...</Paragraph>
+              <Paragraph>Analyzing task and generating recommendations…</Paragraph>
             </div>
           )}
 

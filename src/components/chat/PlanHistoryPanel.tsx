@@ -176,12 +176,12 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                       </div>
                     </div>
 
-                    <div style={{ fontSize: 11, color: token.colorTextQuaternary, marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, color: token.colorTextQuaternary, marginBottom: 4 }}>
                       {plan.steps.length} {t("plan.stepsApproved")} · {formatTime(plan.created_at)}
                     </div>
 
                     {plan.steps.length > 0 && (
-                      <div style={{ fontSize: 11, color: token.colorTextSecondary }}>
+                      <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
                         {plan.steps.slice(0, 3).map((step) => (
                           <div
                             key={step.id}

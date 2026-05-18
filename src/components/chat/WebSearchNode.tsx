@@ -122,6 +122,14 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
       {/* Header */}
       <div
         onClick={() => setExpanded(!expanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -163,7 +171,7 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
               alignItems: "center",
               gap: 4,
               padding: "2px 8px",
-              fontSize: 11,
+              fontSize: 12,
               borderRadius: 4,
               backgroundColor: token.colorFillSecondary,
               color: token.colorTextSecondary,

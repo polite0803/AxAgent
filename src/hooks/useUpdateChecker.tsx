@@ -84,6 +84,8 @@ export function useUpdateChecker() {
           try {
             let totalSize = 0;
             let downloaded = 0;
+            // Start the dynamic import in parallel with the download
+            const relaunchMod = import("@tauri-apps/plugin-process");
             await update.downloadAndInstall((event) => {
               if (event.event === "Started" && event.data.contentLength) {
                 totalSize = event.data.contentLength;
@@ -98,7 +100,7 @@ export function useUpdateChecker() {
                 progressModal.update({ content: renderContent(100, "success") });
               }
             });
-            const { relaunch } = await import("@tauri-apps/plugin-process");
+            const { relaunch } = await relaunchMod;
             await relaunch();
           } catch (e) {
             progressModal.destroy();

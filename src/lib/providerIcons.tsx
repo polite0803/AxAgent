@@ -18,7 +18,7 @@ const TYPE_TO_PROVIDER: Record<string, string> = {
 function findProviderKey(name: string): string | null {
   const lower = name.toLowerCase().replace(/\s+/g, "");
   for (const mapping of providerMappings) {
-    if (mapping.keywords.some((kw: string) => lower.includes(kw.toLowerCase()))) {
+    if (mapping.keywords.some((kw: string) => lower.indexOf(kw.toLowerCase()) !== -1)) {
       return mapping.keywords[0];
     }
   }
@@ -36,7 +36,7 @@ function findModelKey(name: string): string | null {
         try {
           return new RegExp(kw, "i").test(lower);
         } catch {
-          return lower.includes(kw.toLowerCase());
+          return lower.indexOf(kw.toLowerCase()) !== -1;
         }
       })
     ) {
@@ -75,9 +75,8 @@ export function resolveProviderIcon(provider: ProviderConfig): IconResult {
   if (modelKey) { return { type: "model", key: modelKey }; }
 
   const nameLower = provider.name.toLowerCase().replace(/\s+/g, "");
-  for (const [keyword, icon] of Object.entries(NAME_TO_PROVIDER)) {
-    if (nameLower.includes(keyword)) { return { type: "provider", key: icon }; }
-  }
+  const nameMatch = Object.entries(NAME_TO_PROVIDER).find(([keyword]) => nameLower.indexOf(keyword) !== -1);
+  if (nameMatch) { return { type: "provider", key: nameMatch[1] }; }
 
   return { type: "provider", key: TYPE_TO_PROVIDER[provider.provider_type] || "openai" };
 }

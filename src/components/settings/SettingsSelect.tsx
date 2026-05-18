@@ -104,7 +104,6 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 allowClear
-                autoFocus
                 style={{ borderRadius: 6 }}
               />
             </div>
@@ -112,7 +111,12 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
               {filteredOptions.map((opt) => (
                 <div
                   key={opt.value}
+                  role="option"
+                  tabIndex={0}
                   onClick={() => handleSelect(opt.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { handleSelect(opt.value); }
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",

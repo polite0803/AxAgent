@@ -17,24 +17,30 @@ export function useGroupedModelOptions() {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
     return providers
-      .filter((p) => p.enabled && p.models.some((m) => m.enabled))
-      .map((p) => ({
-        label: (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <SmartProviderIcon provider={p} size={16} type="avatar" />
-            {p.name}
-          </span>
-        ),
-        title: p.name,
-        options: p.models
-          .filter((m) => m.enabled)
-          .map((m) => ({
-            label: m.name,
-            value: `${p.id}::${m.model_id}`,
-            model_id: m.model_id,
-            providerName: p.name,
-          })),
-      }));
+      .flatMap((p) =>
+        p.enabled && p.models.some((m) => m.enabled)
+          ? [{
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <SmartProviderIcon provider={p} size={16} type="avatar" />
+                {p.name}
+              </span>
+            ),
+            title: p.name,
+            options: p.models
+              .flatMap((m) =>
+                m.enabled
+                  ? [{
+                    label: m.name,
+                    value: `${p.id}::${m.model_id}`,
+                    model_id: m.model_id,
+                    providerName: p.name,
+                  }]
+                  : []
+              ),
+          }]
+          : []
+      );
   }, [providers]);
 }
 
@@ -91,7 +97,7 @@ export function ModelSelect({
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <ModelIcon model={parsed.model_id} size={18} type="avatar" />
           {props.label}
-          <span style={{ fontSize: 11, color: token.colorTextSecondary }}>
+          <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
             ({providerName})
           </span>
         </span>

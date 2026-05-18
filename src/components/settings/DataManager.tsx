@@ -103,9 +103,7 @@ export function DataManager() {
   const handleClear = async () => {
     try {
       const conversations = useConversationStore.getState().conversations;
-      for (const conv of conversations) {
-        await useConversationStore.getState().deleteConversation(conv.id);
-      }
+      await Promise.all(conversations.map((conv) => useConversationStore.getState().deleteConversation(conv.id)));
       message.success(t("settings.clearSuccess"));
     } catch (e) {
       console.error("Clear failed:", e);

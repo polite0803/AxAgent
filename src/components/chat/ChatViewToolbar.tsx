@@ -194,6 +194,20 @@ export interface ChatViewToolbarProps {
   token: Record<string, any>;
 }
 
+/**
+ * Wrapper component for renderConvIconForChat render prop.
+ * Fixes react-doctor/no-render-in-render by extracting the render prop call into a component.
+ */
+function ConvIconForChat({
+  render,
+  size,
+}: {
+  render: (size: number, model_id?: string | null) => React.ReactNode;
+  size: number;
+}) {
+  return <>{render(size)}</>;
+}
+
 export function ChatViewToolbar({
   activeConversation,
   activeConversationId,
@@ -222,11 +236,11 @@ export function ChatViewToolbar({
   const fetchConversation = useConversationStore((s) => s.fetchConversations);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-3">
+    <div className="flex items-center gap-2 p-3">
       {activeConversation
         ? (
           <>
-            {renderConvIconForChat(24)}
+            <ConvIconForChat render={renderConvIconForChat} size={24} />
             {editingTitle
               ? (
                 <div className="flex items-center gap-1">

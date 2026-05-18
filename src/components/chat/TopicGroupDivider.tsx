@@ -55,6 +55,14 @@ export function TopicGroupDivider({ conversationId, group }: TopicGroupDividerPr
         <div
           className="topic-group-divider__bar"
           onClick={() => toggleCollapse(conversationId, group.id)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleCollapse(conversationId, group.id);
+            }
+          }}
           style={{
             display: "flex",
             alignItems: "center",
@@ -95,7 +103,7 @@ export function TopicGroupDivider({ conversationId, group }: TopicGroupDividerPr
                 {group.label}
               </span>
             )}
-          <span style={{ fontSize: 11, color: token.colorTextQuaternary }}>
+          <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>
             {group.messageIds.length}
           </span>
           {group.collapsed && (

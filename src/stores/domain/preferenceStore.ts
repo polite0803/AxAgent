@@ -190,8 +190,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     const conversationId = useConversationStore.getState().activeConversationId;
     if (conversationId) {
       const allBuiltinIds = useMcpStore.getState().servers
-        .filter((s) => s.source === "builtin" && s.enabled)
-        .map((s) => s.id);
+        .flatMap((s) => s.source === "builtin" && s.enabled ? [s.id] : []);
       if (mode === "auto") {
         set({ enabledMcpServerIds: allBuiltinIds });
         void persistConversationPreferences(

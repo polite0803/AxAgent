@@ -222,7 +222,7 @@ export function ImageAnalysisPanel() {
 
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <FileImage size={12} style={{ color: "#999" }} />
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 {t("chat.vision.model")}: {result.model}
                 {" · "}
                 {t("chat.vision.confidence")}: {(result.confidence * 100).toFixed(0)}%

@@ -567,7 +567,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     if (models.length === 0) { return; }
     setTestResults(new Map());
     setTestingModels(new Set(models.map((m) => m.model_id)));
-    for (const model of models) {
+    await Promise.all(models.map(async (model) => {
       try {
         const latencyMs = await testModel(providerId, model.model_id);
         setTestResults((prev) => new Map(prev).set(model.model_id, { latencyMs }));
@@ -580,7 +580,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           return next;
         });
       }
-    }
+    }));
   }, [provider?.models, providerId, testModel]);
 
   const handleAddModel = useCallback(async () => {
@@ -936,11 +936,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const flatModelRows = useMemo<ModelListRow[]>(() => {
     const rows: ModelListRow[] = [];
     const entries = Object.entries(groupedModels);
+    const expandedSet = new Set(expandedGroups);
     for (let i = 0; i < entries.length; i++) {
       const [group, models] = entries[i];
       if (i > 0) { rows.push({ type: "spacer", beforeGroup: group }); }
       rows.push({ type: "group", group, models });
-      if (expandedGroups.includes(group)) {
+      if (expandedSet.has(group)) {
         for (const model of models) {
           rows.push({ type: "model", model, group });
         }
@@ -1185,6 +1186,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       {/* Models List */}
       {modelListFullscreen && (
         <div
+          role="button"
+          tabIndex={0}
           style={{
             position: "fixed",
             top: 37,
@@ -1195,6 +1198,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             background: "rgba(0,0,1.0.0)",
           }}
           onClick={() => setModelListFullscreen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { setModelListFullscreen(false); }
+          }}
         />
       )}
       <Card
@@ -1383,7 +1389,6 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             allowClear
             size="small"
             style={{ marginBottom: 12 }}
-            autoFocus
           />
         )}
         <div
@@ -1432,6 +1437,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   >
                     <div
                       className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                      role="button"
+                      tabIndex={0}
                       style={{
                         cursor: "pointer",
                         userSelect: "none",
@@ -1443,6 +1450,16 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         } else {
                           if (isExpanded) { setExpandedGroups((prev) => prev.filter((k) => k !== group)); }
                           else { setExpandedGroups((prev) => [...prev, group]); }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          if (batchMode) {
+                            handleBatchToggleGroup(models);
+                          } else {
+                            if (isExpanded) { setExpandedGroups((prev) => prev.filter((k) => k !== group)); }
+                            else { setExpandedGroups((prev) => [...prev, group]); }
+                          }
                         }
                       }}
                     >
@@ -1457,7 +1474,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       <ModelIcon model={models[0]?.model_id ?? group} size={20} type="avatar" />
                       <Text style={{ fontWeight: 600 }}>{group}</Text>
-                      <Tag style={{ fontSize: 11, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                      <Tag style={{ fontSize: 12, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
                         {models.length}
                       </Tag>
                       <div style={{ flex: 1 }} />
@@ -1537,12 +1554,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 >
                   <div
                     className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                    role={batchMode ? "button" : undefined}
+                    tabIndex={batchMode ? 0 : undefined}
                     style={{
                       opacity: model.enabled ? 1 : (batchMode ? 0.7 : 0.45),
                       paddingLeft: batchMode ? 24 : 36,
                       cursor: batchMode ? "pointer" : undefined,
                     }}
                     onClick={batchMode ? () => handleBatchToggleModel(model.model_id) : undefined}
+                    onKeyDown={(e) => {
+                      if (batchMode && (e.key === "Enter" || e.key === " ")) { handleBatchToggleModel(model.model_id); }
+                    }}
                   >
                     {batchMode && (
                       <Checkbox
@@ -1558,7 +1580,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       <div className="flex items-center gap-1 flex-wrap">
                         <span>{model.name || model.model_id}</span>
                         {model.name && model.name !== model.model_id && (
-                          <Text type="secondary" style={{ fontSize: 11 }}>({model.model_id})</Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>({model.model_id})</Text>
                         )}
                         <Tag
                           color={MODEL_TYPE_CONFIG[model.model_type || "Chat"].color}
@@ -1601,7 +1623,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         const result = testResults.get(model.model_id)!;
                         if (result.latencyMs != null) {
                           return (
-                            <span style={{ fontSize: 11, color: token.colorSuccess }}>
+                            <span style={{ fontSize: 12, color: token.colorSuccess }}>
                               {(result.latencyMs / 1000).toFixed(1)}s
                             </span>
                           );
@@ -1612,7 +1634,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             title={t("common.errorDetail")}
                             trigger="click"
                           >
-                            <span style={{ fontSize: 11, color: token.colorError, cursor: "pointer" }}>
+                            <span style={{ fontSize: 12, color: token.colorError, cursor: "pointer" }}>
                               {t("common.failed")}
                             </span>
                           </Popover>
@@ -2442,7 +2464,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             {singleTestResult.latencyMs != null
               ? (
                 <span style={{ color: token.colorSuccess }}>
-                  ✓ {t("settings.testSuccess")} — {(singleTestResult.latencyMs / 1000).toFixed(2)}s
+                  ✓ {t("settings.testSuccess")}: {(singleTestResult.latencyMs / 1000).toFixed(2)}s
                 </span>
               )
               : (
@@ -2580,6 +2602,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         >
                           <div
                             className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                            role="button"
+                            tabIndex={0}
                             style={{
                               cursor: "pointer",
                               userSelect: "none",
@@ -2592,9 +2616,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                                 else { next.add(group); }
                                 return next;
                               })}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                setPickerCollapsed((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(group)) { next.delete(group); }
+                                  else { next.add(group); }
+                                  return next;
+                                });
+                              }
+                            }}
                           >
                             {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                            <div onClick={(e) => e.stopPropagation()}>
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+                              }}
+                            >
                               <Checkbox
                                 checked={allChecked}
                                 indeterminate={someChecked && !allChecked}
@@ -2612,7 +2653,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             </div>
                             <ModelIcon model={models[0]?.model_id ?? group} size={20} type="avatar" />
                             <Text style={{ fontWeight: 600 }}>{group}</Text>
-                            <Tag style={{ fontSize: 11, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                            <Tag style={{ fontSize: 12, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
                               {models.length}
                             </Tag>
                           </div>
@@ -2654,7 +2695,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             <div className="flex items-center gap-1 flex-wrap">
                               <span>{m.name || m.model_id}</span>
                               {m.name && m.name !== m.model_id && (
-                                <Text type="secondary" style={{ fontSize: 11 }}>({m.model_id})</Text>
+                                <Text type="secondary" style={{ fontSize: 12 }}>({m.model_id})</Text>
                               )}
                             </div>
                           </div>
@@ -2696,7 +2737,6 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               id="provider-detail-input-144"
               value={editProviderName}
               onChange={(e) => setEditProviderName(e.target.value)}
-              autoFocus
             />
           </Form.Item>
           <Form.Item label={t("settings.endpointFormat")} style={{ marginBottom: 0 }}>

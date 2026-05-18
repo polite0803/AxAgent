@@ -17,9 +17,10 @@ function buildBreadcrumbs(
 ): Conversation[] {
   const path: Conversation[] = [];
   let currentId: string | null = activeId;
+  const convMap = new Map(conversations.map((c) => [c.id, c]));
 
   while (currentId) {
-    const conv = conversations.find((c) => c.id === currentId);
+    const conv = convMap.get(currentId);
     if (!conv) { break; }
     path.unshift(conv);
     currentId = conv.parent_conversation_id;
@@ -41,7 +42,7 @@ export function BreadcrumbBar({
 
   return (
     <div
-      className="flex items-center gap-1 px-3 py-1.5 text-xs border-b border-gray-400/10"
+      className="flex items-center gap-1 px-3 py-1.5 text-xs border-b border-zinc-400/10"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background-base, #fff) 96%, transparent)",
         overflow: "hidden",
@@ -62,6 +63,14 @@ export function BreadcrumbBar({
             )}
             {index === 0 && <Home size={11} style={{ flexShrink: 0, opacity: 0.5 }} />}
             <span
+              role="button"
+              tabIndex={isClickable ? 0 : -1}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && isClickable) {
+                  e.preventDefault();
+                  setActiveConversation(conv.id);
+                }
+              }}
               onClick={isClickable ? () => setActiveConversation(conv.id) : undefined}
               className={isLast ? "truncate font-medium" : "truncate cursor-pointer hover:underline"}
               style={{

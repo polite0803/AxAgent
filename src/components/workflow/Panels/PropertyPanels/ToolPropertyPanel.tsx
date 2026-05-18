@@ -1,5 +1,5 @@
 import { useLocalToolStore } from "@/stores";
-import { Divider, Input, Select } from "antd";
+import { Button, Divider, Input, Select } from "antd";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ToolNode, WorkflowNode } from "../../types";
@@ -81,7 +81,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.tool")}
         </label>
         <Select
@@ -97,10 +97,10 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.inputMapping")}</label>
-          <a style={{ fontSize: 10 }} onClick={handleAddInputMapping}>
+          <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.inputMapping")}</label>
+          <Button type="link" size="small" onClick={handleAddInputMapping}>
             {t("workflow.props.addMapping")}
-          </a>
+          </Button>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -123,18 +123,20 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
                 placeholder={t("workflow.props.variable")}
                 style={{ flex: 1 }}
               />
-              <a
-                style={{ fontSize: 10, color: "#ff4d4f" }}
+              <Button
+                type="link"
+                size="small"
+                danger
                 onClick={() =>
                   handleDeleteInputMapping(key)}
               >
                 {t("workflow.props.delete")}
-              </a>
+              </Button>
             </div>
           ))}
 
           {Object.keys(config.input_mapping || {}).length === 0 && (
-            <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 8 }}>
+            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 8 }}>
               {t("workflow.props.clickToAddMapping")}
             </div>
           )}
@@ -142,7 +144,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
         <Input

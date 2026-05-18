@@ -71,7 +71,7 @@ const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({ data, selected
           <span style={{ fontSize: 14 }}>⏱️</span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: color,
               fontWeight: 600,
             }}

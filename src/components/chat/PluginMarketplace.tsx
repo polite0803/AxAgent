@@ -158,7 +158,7 @@ export function PluginMarketplace() {
         </div>
 
         {loading && plugins.length === 0 && (
-          <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
+          <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
             <Loader2 size={14} className="animate-spin" />
             <span>{t("chat.plugins.marketplace.loading")}</span>
           </div>

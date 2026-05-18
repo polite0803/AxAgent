@@ -12,8 +12,9 @@ export function mergePreservedMessages(
   }
 
   const merged = new Map(pageMessages.map((message) => [message.id, message]));
+  const currentMap = new Map(currentMessages.map((message) => [message.id, message]));
   for (const messageId of preserveMessageIds) {
-    const localMessage = currentMessages.find((message) => message.id === messageId);
+    const localMessage = currentMap.get(messageId);
     if (localMessage) {
       const dbMessage = merged.get(messageId);
       if (dbMessage) {

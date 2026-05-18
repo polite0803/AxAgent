@@ -25,7 +25,7 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
     if (att.data) { return `data:${att.file_type};base64,${att.data}`; }
     return null;
   });
-  const [failed, setFailed] = useState(false);
+  const failedRef = useRef(false);
   const [fileExists, setFileExists] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -46,9 +46,9 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
   }, [att.file_path]);
 
   useEffect(() => {
-    if (!isImage || src || failed) { return; }
+    if (!isImage || src || failedRef.current) { return; }
     if (!att.file_path || fileExists === false) {
-      setFailed(true);
+      failedRef.current = true;
       return;
     }
     if (fileExists === null) { return; }
@@ -57,9 +57,9 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
         if (mountedRef.current) { setSrc(dataUrl); }
       })
       .catch(() => {
-        if (mountedRef.current) { setFailed(true); }
+        if (mountedRef.current) { failedRef.current = true; }
       });
-  }, [isImage, att.file_path, src, failed, fileExists]);
+  }, [isImage, att.file_path, src, fileExists]);
 
   if (fileExists === false) {
     const showMissingModal = () => {

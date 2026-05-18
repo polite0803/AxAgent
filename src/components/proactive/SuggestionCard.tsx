@@ -23,12 +23,12 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
 
   const suggestionTypeIcons: Record<string, ReactNode> = {
     Completion: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
     Refactor: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -37,7 +37,7 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
       </svg>
     ),
     Documentation: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -46,7 +46,7 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
       </svg>
     ),
     Test: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -55,12 +55,12 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
       </svg>
     ),
     Optimization: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
     Learning: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -91,10 +91,15 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
   if (compact) {
     return (
       <div
+        role="button"
+        tabIndex={0}
         className={`shrink-0 w-64 p-3 rounded-lg border ${
           priorityColors[suggestion.priority]
         } transition-all hover:shadow-md cursor-pointer`}
         onClick={() => setIsExpanded(!isExpanded)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { setIsExpanded(!isExpanded); }
+        }}
       >
         <div className="flex items-start gap-2">
           <div className="text-primary mt-0.5">
@@ -111,7 +116,7 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
         </div>
 
         {isExpanded && (
-          <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+          <div className="mt-3 space-y-2" role="presentation" onClick={(e) => e.stopPropagation()}>
             <div className="text-xs text-muted-foreground">
               {suggestion.description}
             </div>

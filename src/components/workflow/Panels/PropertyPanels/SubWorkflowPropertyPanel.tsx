@@ -1,5 +1,5 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Divider, Input, Select, Switch } from "antd";
+import { Button, Divider, Input, Select, Switch } from "antd";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { SubWorkflowNode, WorkflowNode } from "../../types";
@@ -32,8 +32,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
   const workflowOptions = useMemo(
     () =>
       templates
-        .filter((t) => t.id !== currentTemplate?.id)
-        .map((t) => ({ value: t.id, label: t.name })),
+        .flatMap((t) => t.id !== currentTemplate?.id ? [{ value: t.id, label: t.name }] : []),
     [templates, currentTemplate?.id],
   );
 
@@ -79,8 +78,11 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>Sub Workflow</label>
+        <label htmlFor="sub-workflow-select" style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          Sub Workflow
+        </label>
         <Select
+          id="sub-workflow-select"
           value={config.sub_workflow_id || undefined}
           onChange={(value) => handleConfigChange("sub_workflow_id", value)}
           size="small"
@@ -93,7 +95,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.asyncExecution")}</label>
+        <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.asyncExecution")}</label>
         <Switch
           size="small"
           checked={config.is_async ?? false}
@@ -103,10 +105,10 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 11 }}>{t("workflow.props.inputMapping")}</label>
-          <a style={{ fontSize: 10 }} onClick={handleAddInputMapping}>
+          <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.inputMapping")}</label>
+          <Button type="link" size="small" onClick={handleAddInputMapping}>
             {t("workflow.props.addMapping")}
-          </a>
+          </Button>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -129,18 +131,20 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
                 placeholder={t("workflow.props.variable")}
                 style={{ flex: 1 }}
               />
-              <a
-                style={{ fontSize: 10, color: "#ff4d4f" }}
+              <Button
+                type="link"
+                size="small"
+                danger
                 onClick={() =>
                   handleDeleteInputMapping(key)}
               >
                 {t("workflow.props.delete")}
-              </a>
+              </Button>
             </div>
           ))}
 
           {Object.keys(config.input_mapping || {}).length === 0 && (
-            <div style={{ color: "#666", fontSize: 11, textAlign: "center", padding: 8 }}>
+            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 8 }}>
               {t("workflow.props.clickToAddMapping")}
             </div>
           )}
@@ -148,7 +152,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 11, marginBottom: 4 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
         <Input
