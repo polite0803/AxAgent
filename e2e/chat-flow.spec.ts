@@ -20,7 +20,7 @@ test.describe("Chat Flow (Hard Assertions)", () => {
   test("should show new conversation button", async ({ page }) => {
     const newConvBtn = page.locator('[data-testid="new-conversation-btn"]');
     const isVisible = await newConvBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    if (isVisible) await expect(newConvBtn).toBeVisible({ timeout: 10000 });
+    if (isVisible) { await expect(newConvBtn).toBeVisible({ timeout: 10000 }); }
   });
 
   test("should type message and click send", async ({ page }) => {
