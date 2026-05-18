@@ -514,11 +514,15 @@ interface GraphCanvasProps {
 function FitViewOnNodeChange({ nodeCount }: { nodeCount: number }) {
   const { fitView } = useReactFlow();
   const prevRef = React.useRef(nodeCount);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout>>();
   React.useEffect(() => {
     if (nodeCount !== prevRef.current) {
       prevRef.current = nodeCount;
-      setTimeout(() => fitView({ padding: 0.3 }), 50);
+      timerRef.current = setTimeout(() => fitView({ padding: 0.3 }), 50);
     }
+    return () => {
+      if (timerRef.current) { clearTimeout(timerRef.current); }
+    };
   }, [nodeCount, fitView]);
   return null;
 }

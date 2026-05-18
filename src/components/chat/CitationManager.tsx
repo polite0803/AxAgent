@@ -97,6 +97,7 @@ export function CitationManager({
                 onClick={() => handleSelect(item)}
                 actions={[
                   <Button
+                    key="remove"
                     type="text"
                     size="small"
                     danger

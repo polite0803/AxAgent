@@ -51,10 +51,11 @@ function SkillRoutePage() {
   const location = useLocation();
   const pages = useSkillExtensionStore((s) => s.pages);
   const { t } = useTranslation();
+  const pathname = location.pathname;
 
   const page = useMemo(() => {
-    return pages.find((p) => `/skill/${p.skillName}/${p.id}` === location.pathname);
-  }, [pages, location.pathname]);
+    return pages.find((p) => `/skill/${p.skillName}/${p.id}` === pathname);
+  }, [pages, pathname]);
 
   if (!page) {
     return (
