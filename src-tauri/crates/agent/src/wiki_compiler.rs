@@ -413,15 +413,17 @@ impl WikiCompiler {
             }
 
             chunks.push(content[start..chunk_end].to_string());
+
+            // 已到达内容末尾，直接退出
+            if chunk_end >= content.len() {
+                break;
+            }
+
             start = if chunk_end > overlap {
                 chunk_end - overlap
             } else {
                 chunk_end
             };
-
-            if start >= content.len() {
-                break;
-            }
         }
 
         chunks
