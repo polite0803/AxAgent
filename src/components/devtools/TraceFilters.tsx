@@ -41,11 +41,11 @@ export function TraceFilters() {
             className="w-full"
             showTime
             onChange={(dates) => {
-              if (dates && dates[0] && dates[1]) {
+              if (dates?.[0] && dates?.[1]) {
                 setLocalFilter((prev) => ({
                   ...prev,
-                  from_date: dates[0].toISOString(),
-                  to_date: dates[1].toISOString(),
+                  from_date: dates[0]!.toISOString(),
+                  to_date: dates[1]!.toISOString(),
                 }));
               } else {
                 setLocalFilter((prev) => ({
