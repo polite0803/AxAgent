@@ -4,6 +4,11 @@ test.describe("Chat Flow", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector('[data-testid="chat-view"]', { timeout: 60000 });
+    const prompt = page.locator(".ant-prompts-item").first();
+    if (await prompt.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await prompt.click();
+      await page.waitForSelector('[data-testid="message-input"]', { timeout: 15000 });
+    }
   });
 
   test("should display chat interface", async ({ page }) => {
