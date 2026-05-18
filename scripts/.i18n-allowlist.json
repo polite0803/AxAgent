@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-18",
-  "total_entries": 185,
+  "total_entries": 272,
   "total_files": 127,
   "entries": [
     {
@@ -1059,6 +1059,441 @@
       "file": "src/components/chat/UserProfilePanel.tsx",
       "lines": "197",
       "reason": "Placeholder: value"
+    },
+    {
+      "file": "src/components/chat/AgentExecutionPanel.tsx",
+      "lines": "188",
+      "reason": "{/* 头部摘要栏 */}"
+    },
+    {
+      "file": "src/components/chat/AgentExecutionPanel.tsx",
+      "lines": "216",
+      "reason": "{/* 进度条 */}"
+    },
+    {
+      "file": "src/components/chat/AgentExecutionPanel.tsx",
+      "lines": "256",
+      "reason": "{/* 标签页 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "205",
+      "reason": "{/* 头部 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "217",
+      "reason": "{/* 描述/摘要 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "224",
+      "reason": "{/* 错误 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "231",
+      "reason": "{/* 进度条 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "241",
+      "reason": "{/* 元信息 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "259",
+      "reason": "{/* Worker 消息日志 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "262",
+      "reason": "{/* 子会话跳转 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "320",
+      "reason": "/** 是否在 agent 模式下显示 */"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "134",
+      "reason": "{/* 左侧指示器 */}"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "137",
+      "reason": "{/* 工具名称 — 显示当前或最后已知的工具名称 */}"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "153",
+      "reason": "{/* 进度条 — 仅当有本对话的工具调用时显示 */}"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "167",
+      "reason": "{/* 耗时 — 仅当有本对话的工具调用时显示 */}"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "253",
+      "reason": "content.includes(\"error\") || content.includes(\"Error\") || content.includes(\"bug\") || content.includes(\"修复\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "254",
+      "reason": "|| content.includes(\"报错\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "259",
+      "reason": "content.includes(\"refactor\") || content.includes(\"优化\") || content.includes(\"重构\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "268",
+      "reason": "content.includes(\"document\") || content.includes(\"文档\") || content.includes(\"readme\") || content.includes(\"doc\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "274",
+      "reason": "const detected_errors = content.toLowerCase().includes(\"error\") || content.includes(\"报错\")"
+    },
+    {
+      "file": "src/components/chat/McpContainerNode.tsx",
+      "lines": "133",
+      "reason": "|| trimmed.startsWith(\"错误\")"
+    },
+    {
+      "file": "src/components/chat/StructuredThinking.tsx",
+      "lines": "230",
+      "reason": "analysis: \"分析现状\","
+    },
+    {
+      "file": "src/components/chat/StructuredThinking.tsx",
+      "lines": "231",
+      "reason": "planning: \"制定计划\","
+    },
+    {
+      "file": "src/components/chat/StructuredThinking.tsx",
+      "lines": "344",
+      "reason": "{blocks.length} 个阶段"
+    },
+    {
+      "file": "src/components/chat/SubAgentCard.tsx",
+      "lines": "107",
+      "reason": "查看子会话 <RightOutlined />"
+    },
+    {
+      "file": "src/components/help/HelpPanel.tsx",
+      "lines": "217",
+      "reason": "{/* 遮罩 */}"
+    },
+    {
+      "file": "src/components/help/HelpPanel.tsx",
+      "lines": "220",
+      "reason": "{/* 面板 */}"
+    },
+    {
+      "file": "src/components/help/HelpPanel.tsx",
+      "lines": "229",
+      "reason": "{/* 搜索框 */}"
+    },
+    {
+      "file": "src/components/help/HelpPanel.tsx",
+      "lines": "242",
+      "reason": "{/* 内容 */}"
+    },
+    {
+      "file": "src/components/layout/ContentArea.tsx",
+      "lines": "128",
+      "reason": "{/* 技能声明式动态路由 */}"
+    },
+    {
+      "file": "src/components/layout/ContentArea.tsx",
+      "lines": "131",
+      "reason": "{/* 技能 catch-all 路由 */}"
+    },
+    {
+      "file": "src/components/settings/KnowledgeSettings.tsx",
+      "lines": "1064",
+      "reason": "{/* 查询增强 */}"
+    },
+    {
+      "file": "src/components/settings/KnowledgeSettings.tsx",
+      "lines": "1113",
+      "reason": "{/* 重排序 */}"
+    },
+    {
+      "file": "src/components/settings/McpServerSettings.tsx",
+      "lines": "100",
+      "reason": "{/* 连接状态指示器 */}"
+    },
+    {
+      "file": "src/components/settings/PromptTemplatesSettings.tsx",
+      "lines": "227",
+      "reason": "{/* 工具栏 */}"
+    },
+    {
+      "file": "src/components/settings/PromptTemplatesSettings.tsx",
+      "lines": "255",
+      "reason": "{/* 搜索和筛选 */}"
+    },
+    {
+      "file": "src/components/settings/PromptTemplatesSettings.tsx",
+      "lines": "277",
+      "reason": "{/* 列表 */}"
+    },
+    {
+      "file": "src/components/settings/PromptTemplatesSettings.tsx",
+      "lines": "358",
+      "reason": "{/* 编辑弹窗 */}"
+    },
+    {
+      "file": "src/components/settings/PromptTemplatesSettings.tsx",
+      "lines": "413",
+      "reason": "{/* 版本历史弹窗 */}"
+    },
+    {
+      "file": "src/components/settings/PromptTemplatesSettings.tsx",
+      "lines": "475",
+      "reason": "{/* 版本内容查看 */}"
+    },
+    {
+      "file": "src/components/wiki/WikiNodeContextMenu.tsx",
+      "lines": "72",
+      "reason": "{/* 菜单 — 玻璃态 */}"
+    },
+    {
+      "file": "src/hooks/useGlobalShortcutManager.ts",
+      "lines": "205",
+      "reason": "reason = \"快捷键已被其他应用程序占用，请尝试更换快捷键\";"
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1148",
+      "reason": "groupName: \"文件读取\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1149",
+      "reason": "description: \"只读文件操作：读取、搜索、列出目录和文件信息\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1154",
+      "reason": "description: \"读取文件内容。支持文本文件（可指定行范围）、图片、PDF。\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1163",
+      "reason": "description: \"使用 glob 模式搜索文件。返回匹配的文件路径列表。\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1172",
+      "reason": "description: \"在文件中搜索匹配正则表达式的内容。\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1183",
+      "reason": "groupName: \"文件写入\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1184",
+      "reason": "description: \"写入文件操作：创建、编辑、删除、移动文件\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1189",
+      "reason": "description: \"创建新文件或完全覆盖已有文件（⚠️ 不可逆）。\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1198",
+      "reason": "description: \"精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1207",
+      "reason": "description: \"删除指定路径的文件。此操作不可逆。\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1218",
+      "reason": "groupName: \"Shell 命令\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1219",
+      "reason": "description: \"Shell 命令执行和代码 REPL\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1224",
+      "reason": "description: \"执行 shell 命令。适用：运行测试、构建、git 操作。危险命令需权限确认。\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1753",
+      "reason": "copyHint: \"添加到 Cursor User settings.json\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1764",
+      "reason": "copyHint: \"添加到 .continue/config.json 的 models 数组\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1774",
+      "reason": "copyHint: \"添加到环境变量或 .env 文件\","
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "1784",
+      "reason": "copyHint: \"适用于任何支持 OpenAI API 的客户端\","
+    },
+    {
+      "file": "src/lib/exportChat.ts",
+      "lines": "129",
+      "reason": "/** 构建 HTML 格式的对话抄本，带内联 CSS 样式保持聊天气泡外观 */"
+    },
+    {
+      "file": "src/lib/shortcuts.ts",
+      "lines": "285",
+      "reason": "apps: \"飞书/微信/企业微信/钉钉\","
+    },
+    {
+      "file": "src/lib/shortcuts.ts",
+      "lines": "289",
+      "reason": "apps: \"QQ/微信\","
+    },
+    {
+      "file": "src/lib/shortcuts.ts",
+      "lines": "293",
+      "reason": "apps: \"微信 (Windows)\","
+    },
+    {
+      "file": "src/lib/skillLifecycle.ts",
+      "lines": "82",
+      "reason": "/** 刷新技能扩展（技能文件变更时） */"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "202",
+      "reason": "{/* 左侧会话列表 */}"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "216",
+      "reason": "{/* 左侧拖拽手柄 */}"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "244",
+      "reason": "{/* 中间主区域 */}"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "257",
+      "reason": "{/* 右侧拖拽手柄 */}"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "285",
+      "reason": "{/* 右侧面板 */}"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "300",
+      "reason": "{/* 折叠/展开按钮 — 始终在 ChatPage 层级，覆盖在面板左上角 */}"
+    },
+    {
+      "file": "src/pages/ChatPage.tsx",
+      "lines": "327",
+      "reason": "{/* 始终渲染右侧面板，由 compactMode 控制内部展示 */}"
+    },
+    {
+      "file": "src/pages/WikiGraphPage.tsx",
+      "lines": "390",
+      "reason": "{/* 中央图谱 */}"
+    },
+    {
+      "file": "src/pages/WikiGraphPage.tsx",
+      "lines": "428",
+      "reason": "{/* 右侧详情面板 */}"
+    },
+    {
+      "file": "src/pages/WikiGraphPage.tsx",
+      "lines": "431",
+      "reason": "{/* 右拖曳手柄 */}"
+    },
+    {
+      "file": "src/pages/WikiGraphPage.tsx",
+      "lines": "470",
+      "reason": "{/* 底部状态栏 — 玻璃态 */}"
+    },
+    {
+      "file": "src/pages/WikiGraphPage.tsx",
+      "lines": "495",
+      "reason": "{/* 右键菜单 */}"
+    },
+    {
+      "file": "src/components/settings/McpServerSettings.tsx",
+      "lines": "387",
+      "reason": "placeholder=\"npx\""
+    },
+    {
+      "file": "src/components/settings/McpServerSettings.tsx",
+      "lines": "419",
+      "reason": "placeholder=\"http://localhost:3000\""
+    },
+    {
+      "file": "src/components/settings/McpServerSettings.tsx",
+      "lines": "792",
+      "reason": "<Input name=\"command\" placeholder=\"npx\" />"
+    },
+    {
+      "file": "src/components/settings/McpServerSettings.tsx",
+      "lines": "801",
+      "reason": "<Input name=\"endpoint\" placeholder=\"http://localhost:3000\" />"
+    },
+    {
+      "file": "src/components/settings/ProviderDetail.tsx",
+      "lines": "1805",
+      "reason": "placeholder=\"sk-...\""
+    },
+    {
+      "file": "src/components/settings/ProviderDetail.tsx",
+      "lines": "1839",
+      "reason": "placeholder=\"gpt-5.4-think\""
+    },
+    {
+      "file": "src/components/settings/ProviderList.tsx",
+      "lines": "312",
+      "reason": "<Input name=\"api_host\" placeholder=\"https://api.openai.com\" />"
+    },
+    {
+      "file": "src/components/settings/WebDavSync.tsx",
+      "lines": "411",
+      "reason": "<Input name=\"host\" placeholder=\"https://dav.example.com/dav/\" />"
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/SubWorkflowPropertyPanel.tsx",
+      "lines": "163",
+      "reason": "placeholder=\"subworkflow_output\""
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/ToolPropertyPanel.tsx",
+      "lines": "155",
+      "reason": "placeholder=\"tool_output\""
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/TriggerPropertyPanel.tsx",
+      "lines": "122",
+      "reason": "placeholder=\"message.created\""
     }
   ]
 }

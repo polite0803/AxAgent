@@ -32,6 +32,52 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
     t(`report.sourceType.${sourceType.toLowerCase()}`, sourceType);
   const [selectedFormat, setSelectedFormat] = useState<ReportFormat>("markdown");
 
+  const sanitizedHtml = useMemo(() => {
+    if (!report) { return ""; }
+    const rawHtml = report.content
+      .replace(/#\s+(.+)/g, "<h1>$1</h1>")
+      .replace(/##\s+(.+)/g, "<h2>$1</h2>")
+      .replace(/\n/g, "<br/>");
+    return DOMPurify.sanitize(rawHtml, {
+      ALLOWED_TAGS: [
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "p",
+        "br",
+        "hr",
+        "ul",
+        "ol",
+        "li",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "u",
+        "s",
+        "a",
+        "code",
+        "pre",
+        "blockquote",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "span",
+        "div",
+        "img",
+        "sub",
+        "sup",
+      ],
+      ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
+    });
+  }, [report?.content]);
+
   if (!report) {
     return (
       <Card className="h-full">
@@ -84,52 +130,6 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
       {report.content}
     </pre>
   );
-
-  const sanitizedHtml = useMemo(() => {
-    if (!report) { return ""; }
-    const rawHtml = report.content
-      .replace(/#\s+(.+)/g, "<h1>$1</h1>")
-      .replace(/##\s+(.+)/g, "<h2>$1</h2>")
-      .replace(/\n/g, "<br/>");
-    return DOMPurify.sanitize(rawHtml, {
-      ALLOWED_TAGS: [
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "p",
-        "br",
-        "hr",
-        "ul",
-        "ol",
-        "li",
-        "strong",
-        "em",
-        "b",
-        "i",
-        "u",
-        "s",
-        "a",
-        "code",
-        "pre",
-        "blockquote",
-        "table",
-        "thead",
-        "tbody",
-        "tr",
-        "th",
-        "td",
-        "span",
-        "div",
-        "img",
-        "sub",
-        "sup",
-      ],
-      ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
-    });
-  }, [report?.content]);
 
   const renderHtmlPreview = () => {
     return (

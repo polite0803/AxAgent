@@ -134,6 +134,17 @@ export function DebugPanel({ trace }: DebugPanelProps) {
   const [showPerformance, setShowPerformance] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
+  const metrics = useMemo(() => (trace ? calculateMetrics(trace.nodeExecutions) : {
+    totalDuration: 0,
+    nodeCount: 0,
+    successfulNodes: 0,
+    failedNodes: 0,
+    skippedNodes: 0,
+    avgNodeDuration: 0,
+    maxNodeDuration: { nodeName: "", duration: 0 },
+    minNodeDuration: { nodeName: "", duration: 0 },
+  } as PerformanceMetrics), [trace]);
+
   if (!trace) {
     return (
       <div className="h-full flex items-center justify-center" style={{ background: token.colorBgElevated }}>
@@ -141,8 +152,6 @@ export function DebugPanel({ trace }: DebugPanelProps) {
       </div>
     );
   }
-
-  const metrics = useMemo(() => calculateMetrics(trace.nodeExecutions), [trace.nodeExecutions]);
 
   const nodeColumns: ColumnsType<NodeExecution> = [
     {

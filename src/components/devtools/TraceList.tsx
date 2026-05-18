@@ -86,7 +86,7 @@ export function TraceList() {
         <Input.Search
           placeholder={t("devtools.searchTraceId")}
           onSearch={(value) => {
-            setFilter({ ...filter, trace_id: value || undefined });
+            setFilter((prev) => ({ ...prev, trace_id: value || undefined }));
             loadTraces({ ...filter, trace_id: value || undefined });
           }}
           allowClear

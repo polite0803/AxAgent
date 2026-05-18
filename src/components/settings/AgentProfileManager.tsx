@@ -467,13 +467,13 @@ export function AgentProfileManager() {
                   size="small"
                   value={form.recommendedTools?.join(", ") ?? ""}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
+                    setForm((prev) => ({
+                      ...prev,
                       recommendedTools: e.target.value.split(",").flatMap((s) => {
                         const r = s.trim();
                         return r ? [r] : [];
                       }),
-                    })}
+                    }))}
                 />
               </div>
               <div>
@@ -483,13 +483,13 @@ export function AgentProfileManager() {
                   size="small"
                   value={form.disallowedTools?.join(", ") ?? ""}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
+                    setForm((prev) => ({
+                      ...prev,
                       disallowedTools: e.target.value.split(",").flatMap((s) => {
                         const r = s.trim();
                         return r ? [r] : [];
                       }),
-                    })}
+                    }))}
                 />
               </div>
             </div>

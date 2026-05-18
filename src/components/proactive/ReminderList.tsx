@@ -194,7 +194,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                   <input
                     type="text"
                     value={newReminder.title}
-                    onChange={(e) => setNewReminder({ ...newReminder, title: e.target.value })}
+                    onChange={(e) => setNewReminder((prev) => ({ ...prev, title: e.target.value }))}
                     className="w-full px-2 py-1 text-sm bg-background border rounded"
                     placeholder={t("proactive.titlePlaceholder")}
                     required
@@ -206,7 +206,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                   </label>
                   <textarea
                     value={newReminder.description}
-                    onChange={(e) => setNewReminder({ ...newReminder, description: e.target.value })}
+                    onChange={(e) => setNewReminder((prev) => ({ ...prev, description: e.target.value }))}
                     className="w-full px-2 py-1 text-sm bg-background border rounded resize-none"
                     rows={2}
                     placeholder={t("proactive.descriptionPlaceholder")}
@@ -220,7 +220,7 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                     type="datetime-local"
                     value={newReminder.scheduled_at ? toLocalDatetimeValue(newReminder.scheduled_at) : ""}
                     onChange={(e) =>
-                      setNewReminder({ ...newReminder, scheduled_at: parseLocalDatetimeValue(e.target.value) })}
+                      setNewReminder((prev) => ({ ...prev, scheduled_at: parseLocalDatetimeValue(e.target.value) }))}
                     className="w-full px-2 py-1 text-sm bg-background border rounded"
                     required
                   />
