@@ -270,9 +270,10 @@ impl LspRegistry {
 
     /// Disconnect a server.
     pub async fn disconnect(&self, language: &str) -> Option<LspServerState> {
+        // hold the server state before stop_server removes it from the map
+        let server = self.get(language);
         let _ = self.stop_server(language).await;
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
-        inner.servers.remove(language)
+        server
     }
 
     #[must_use]
@@ -505,16 +506,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn dispatches_hover_action() {
+    async fn dispatches_hover_action_requires_process() {
         let registry = LspRegistry::new();
         registry.register("rust", LspServerStatus::Connected, None, vec![]);
 
-        let result = registry
-            .dispatch("hover", Some("src/main.rs"), Some(10), Some(5), None)
-            .await
-            .unwrap();
-        assert_eq!(result["action"], "hover");
-        assert_eq!(result["language"], "rust");
+        // dispatch of non-diagnostics actions requires a real LSP process;
+        // register() alone does not start one, so this must fail.
+        assert!(
+            registry
+                .dispatch("hover", Some("src/main.rs"), Some(10), Some(5), None)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]

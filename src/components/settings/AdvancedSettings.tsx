@@ -1,6 +1,7 @@
 import { useSettingsStore } from "@/stores";
 import { Divider, InputNumber, Select, Slider, Switch } from "antd";
 import { useTranslation } from "react-i18next";
+import { CacheConfigPanel } from "./CacheConfigPanel";
 import { SettingsGroup } from "./SettingsGroup";
 
 /** 类型安全地获取/设置扩展配置项（尚未加入 AppSettings 类型） */
@@ -593,6 +594,21 @@ export function AdvancedSettings() {
       <GreenContractSection />
       <DreamConsolidationSection />
       <LspDiagnosticsSection />
+      <CacheBreakpointSection />
     </div>
+  );
+}
+
+/** Cache 断点设置区段 — 嵌入 CacheConfigPanel */
+function CacheBreakpointSection() {
+  const [cacheBreakpoints, setCacheBreakpoints] = useExtSetting(
+    "enable_cache_breakpoints",
+    false,
+  );
+  return (
+    <CacheConfigPanel
+      enableCacheBreakpoints={cacheBreakpoints}
+      onToggleCacheBreakpoints={setCacheBreakpoints}
+    />
   );
 }

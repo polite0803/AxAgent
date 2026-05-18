@@ -30,14 +30,18 @@ import {
   WorkflowSettings,
 } from "@/components/settings";
 import { ConversationSettings } from "@/components/settings/ConversationSettings";
+import { CronManager } from "@/components/settings/CronManager";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
+import { ImageGenSettings } from "@/components/settings/ImageGenSettings";
+import { ThemeManager } from "@/components/settings/ThemeManager";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { WorkflowEditor } from "@/components/workflow";
+import { invoke } from "@/lib/invoke";
 import { SkillsPage } from "@/pages/SkillsPage";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { Button, Result, theme } from "antd";
+import { Button, message, Result, theme } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ReactFlowProvider } from "reactflow";
@@ -74,7 +78,114 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   promptTemplates: PromptTemplatesSettings,
   acp: AcpSettings,
   evolution: EvolutionSettings,
+  imageGen: () => <ImageGenSettings />,
+  theme: () => <ThemeManager />,
+  cron: CronManagerWrapper,
 };
+
+/** CronManager 包装组件 — 通过 invoke 桥接后端定时任务 API */
+function CronManagerWrapper() {
+  const { t } = useTranslation();
+  const [jobs, setJobs] = useState<
+    Array<{
+      id: string;
+      name: string;
+      schedule: string;
+      prompt: string;
+      platform: string | null;
+      enabled_toolsets: string[] | null;
+      enabled: boolean;
+      last_run_at: number | null;
+      next_run_at: number | null;
+    }>
+  >([]);
+
+  const loadJobs = useCallback(async () => {
+    try {
+      const tasks: any[] = await invoke("list_scheduled_tasks");
+      setJobs(
+        tasks.map((task: any) => ({
+          id: task.id,
+          name: task.name,
+          schedule: task.cron_expression ?? "",
+          prompt: task.description,
+          platform: task.task_type ?? null,
+          enabled_toolsets: null,
+          enabled: task.status === "active",
+          last_run_at: task.last_run_at ? Date.parse(task.last_run_at) : null,
+          next_run_at: task.next_run_at ? Date.parse(task.next_run_at) : null,
+        })),
+      );
+    } catch {
+      message.error(t("error.loadFailed"));
+    }
+  }, [t]);
+
+  useEffect(() => {
+    loadJobs();
+  }, [loadJobs]);
+
+  const handleAdd = useCallback(
+    async (job: {
+      name: string;
+      schedule: string;
+      prompt: string;
+      platform?: string;
+    }) => {
+      try {
+        await invoke("create_scheduled_task", {
+          name: job.name,
+          description: job.prompt,
+          cronExpression: job.schedule,
+          taskType: job.platform ?? "general",
+        });
+        message.success(t("common.success"));
+        loadJobs();
+      } catch {
+        message.error(t("error.saveFailed"));
+      }
+    },
+    [t, loadJobs],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        await invoke("delete_scheduled_task", { id });
+        message.success(t("common.success"));
+        loadJobs();
+      } catch {
+        message.error(t("error.deleteFailed"));
+      }
+    },
+    [t, loadJobs],
+  );
+
+  const handleToggle = useCallback(
+    async (id: string, enabled: boolean) => {
+      try {
+        if (enabled) {
+          await invoke("resume_scheduled_task", { id });
+        } else {
+          await invoke("pause_scheduled_task", { id });
+        }
+        loadJobs();
+      } catch {
+        message.error(t("error.saveFailed"));
+      }
+    },
+    [t, loadJobs],
+  );
+
+  return (
+    <CronManager
+      jobs={jobs}
+      onAdd={handleAdd}
+      onDelete={handleDelete}
+      onToggle={handleToggle}
+    />
+  );
+}
 
 /** 单个设置 section 的错误边界，防止一个 section 崩溃导致整页白屏 */
 function SectionErrorBoundary({

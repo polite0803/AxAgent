@@ -43,6 +43,7 @@ import {
 } from "./Nodes";
 import { LeftPanel } from "./Panels/LeftPanel";
 import { RightPanel } from "./Panels/RightPanel";
+import { SemanticCheckModal } from "./SemanticCheckModal";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
 import { type AgentNode as AgentNodeType, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
@@ -114,6 +115,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     canUndo,
     canRedo,
     addNode,
+    semanticCheckResult,
+    clearSemanticCheckResult,
+    applySkillReplacement,
   } = useWorkflowEditorStore();
 
   const [reactFlowNodes, setRNodes, onNodesChange] = useNodesState([]);
@@ -871,6 +875,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           loadTemplates();
         }}
         onImportedTemplate={handleImportedTemplate}
+      />
+
+      <SemanticCheckModal
+        open={semanticCheckResult !== null}
+        onClose={() => clearSemanticCheckResult()}
+        matches={semanticCheckResult?.matches ?? []}
+        onApplyReplacement={(nodeId, existingSkillId, action) => {
+          applySkillReplacement(nodeId, existingSkillId, action);
+        }}
       />
     </div>
   );

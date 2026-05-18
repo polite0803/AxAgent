@@ -727,6 +727,9 @@ export type SettingsSection =
   | "plugins"
   | "knowledgeSettings"
   | "notificationCenter"
+  | "imageGen"
+  | "theme"
+  | "cron"
   | string;
 
 // === Generated Tool ===

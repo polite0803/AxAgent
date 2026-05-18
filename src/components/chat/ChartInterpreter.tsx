@@ -1,3 +1,4 @@
+import { ChartRenderer } from "@/components/shared/ChartRenderer";
 import { Badge, Card, Collapse, Typography } from "antd";
 import { BarChart3, CheckCircle, Loader2, TrendingUp, XCircle } from "lucide-react";
 import React, { useMemo } from "react";
@@ -155,6 +156,32 @@ export function ChartInterpreter({
                   {t("chat.chart.avg")}
                 </Text>
               </Card>
+            </div>
+          )}
+
+          {chartData.data_points.length > 0 && (
+            <div className="mb-3" style={{ maxHeight: 300 }}>
+              <ChartRenderer
+                height={280}
+                option={{
+                  title: { text: chartData.title, left: "center", textStyle: { fontSize: 13 } },
+                  tooltip: {},
+                  xAxis: chartData.chart_type !== "pie"
+                    ? {
+                      type: "category",
+                      data: chartData.labels.length > 0 ? chartData.labels : chartData.data_points.map((d) => d.label),
+                    }
+                    : undefined,
+                  yAxis: chartData.chart_type !== "pie" ? { type: "value" } : undefined,
+                  series: [{
+                    type: chartData.chart_type || "bar",
+                    data: chartData.chart_type === "pie"
+                      ? chartData.data_points.map((d) => ({ name: d.label, value: d.value }))
+                      : chartData.data_points.map((d) => d.value),
+                    radius: chartData.chart_type === "pie" ? "60%" : undefined,
+                  }],
+                }}
+              />
             </div>
           )}
 

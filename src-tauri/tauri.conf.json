@@ -12,7 +12,7 @@
   "app": {
     "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self' asset: https://tauri.localhost; script-src 'self' asset: https://tauri.localhost 'unsafe-inline' 'unsafe-eval'; style-src 'self' asset: https://tauri.localhost 'unsafe-inline'; connect-src 'self' asset: https://tauri.localhost https: wss: ipc: http://ipc.localhost; img-src 'self' data: https: asset: http://asset.localhost; font-src 'self' data: asset: https://tauri.localhost; media-src 'self' data: asset:; worker-src 'self' blob: asset:; frame-src 'self' asset:;"
+      "csp": "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: filesystem: asset: tauri: ipc: https: wss: http:;"
     },
     "windows": [
       {

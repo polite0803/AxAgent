@@ -19,11 +19,13 @@ import {
   GitBranch,
   Globe,
   HardDrive,
+  Image,
   Info,
   LayoutDashboard,
   MessageSquare,
   Monitor,
   Network,
+  PaintBucket,
   Palette,
   Puzzle,
   Search,
@@ -31,6 +33,7 @@ import {
   Settings,
   ShoppingBag,
   SlidersHorizontal,
+  Timer,
   User,
   Wrench,
   Zap,
@@ -69,6 +72,9 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   appConfig: <Bot size={16} color={SETTINGS_ICON_COLORS.Bot} />,
   evolution: <Dna size={16} color={SETTINGS_ICON_COLORS.Palette} />,
   cloudWorkspace: <Cloud size={16} color={SETTINGS_ICON_COLORS.Cloud} />,
+  theme: <PaintBucket size={16} color={SETTINGS_ICON_COLORS.Palette} />,
+  imageGen: <Image size={16} color={SETTINGS_ICON_COLORS.Palette} />,
+  cron: <Timer size={16} color={SETTINGS_ICON_COLORS.Clock} />,
 };
 
 // 分组定义：tab key → 包含的 sections
@@ -80,7 +86,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "promptTemplates",
     "searchProviders",
   ],
-  appearance: ["general", "display", "shortcuts"],
+  appearance: ["general", "display", "theme", "shortcuts"],
   extensions: [
     "tools",
     "skillsHub",
@@ -90,6 +96,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "workflow",
     "appConfig",
     "userProfile",
+    "imageGen",
   ],
   network: ["proxy", "messageChannels", "webhooks", "acp"],
   data: [
@@ -98,6 +105,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "cloudWorkspace",
     "backup",
     "scheduler",
+    "cron",
     "notificationCenter",
   ],
   system: ["advanced", "evolution", "about"],

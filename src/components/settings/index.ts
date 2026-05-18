@@ -28,8 +28,12 @@ export { WebhookSettings } from "./WebhookSettings";
 
 export { PluginMarketplace } from "../chat/PluginMarketplace";
 export { BackupCenter } from "./BackupCenter";
+export { CacheConfigPanel } from "./CacheConfigPanel";
+export { CronManager } from "./CronManager";
+export { ImageGenSettings } from "./ImageGenSettings";
 export { PromptTemplatesSettings } from "./PromptTemplatesSettings";
 export { SchedulerSettings } from "./SchedulerSettings";
 export { StorageSpaceManager } from "./StorageSpaceManager";
+export { ThemeManager } from "./ThemeManager";
 export { UserProfileSettings } from "./UserProfileSettings";
 export { WorkflowSettings } from "./WorkflowSettings";

@@ -4,6 +4,8 @@ import { SkillProposalPanel } from "@/components/chat/SkillProposalPanel";
 import { CopyButton } from "@/components/common/CopyButton";
 import { DecompositionPreview } from "@/components/decomposition/DecompositionPreview";
 import { FrontendEditorModal } from "@/components/skill/FrontendEditorModal";
+import { SkillDependencyCheck } from "@/components/skill/SkillDependencyCheck";
+import { SkillStatsPanel } from "@/components/skill/SkillStatsPanel";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { invoke } from "@/lib/invoke";
 import { useSkillStore } from "@/stores";
@@ -31,6 +33,7 @@ import {
 } from "antd";
 import type { TFunction } from "i18next";
 import {
+  BarChart3,
   ChevronRight,
   Code,
   Cpu,
@@ -793,6 +796,7 @@ export function SkillsPage() {
             title={t("skill.proposal.title")}
           />
         </Space.Compact>
+        <SkillDependencyCheck />
         <Tabs
           size="small"
           activeKey={sourceFilter}
@@ -1226,6 +1230,26 @@ export function SkillsPage() {
                 </span>
               ),
               children: marketplaceContent,
+            },
+            {
+              key: "stats",
+              label: (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <BarChart3 size={14} color={CHAT_ICON_COLORS.Chart} />
+                  {t("skills.stats") || "Stats"}
+                </span>
+              ),
+              children: (
+                <div style={{ padding: "0 4px", overflow: "auto", height: "100%" }}>
+                  <SkillStatsPanel />
+                </div>
+              ),
             },
           ]}
         />

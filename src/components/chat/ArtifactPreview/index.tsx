@@ -1,6 +1,9 @@
 import { ArtifactRenderer } from "@/lib/artifactRenderer";
 import type { ArtifactFormat } from "@/types";
 import { useCallback, useEffect, useRef } from "react";
+import { MarkdownPreview } from "./MarkdownPreview";
+import { ReactPreview } from "./ReactPreview";
+import { SplitView } from "./SplitView";
 
 interface ArtifactPreviewProps {
   code: string;
@@ -10,7 +13,6 @@ interface ArtifactPreviewProps {
 export function ArtifactPreview({ code, format }: ArtifactPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-
   const renderPreview = useCallback(() => {
     if (!containerRef.current) {
       return;
@@ -58,6 +60,44 @@ export function ArtifactPreview({ code, format }: ArtifactPreviewProps) {
     };
   }, [renderPreview]);
 
+  // Use ReactPreview for code-based react artifacts
+  if (code.startsWith("import React") || code.includes("export default function")) {
+    return (
+      <div style={{ width: "100%", height: "100%", minHeight: 200 }}>
+        <ReactPreview code={code} />
+      </div>
+    );
+  }
+
+  // Use MarkdownPreview for content that looks like markdown
+  if (format === "text" && (code.startsWith("#") || code.includes("##") || code.startsWith(">"))) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          minHeight: 200,
+          overflow: "auto",
+          padding: 16,
+        }}
+      >
+        <MarkdownPreview content={code} />
+      </div>
+    );
+  }
+
+  // Use SplitView for html artifacts with code/preview toggle
+  if (format === "html") {
+    return (
+      <SplitView
+        code={code}
+        language="html"
+        showPreview
+      />
+    );
+  }
+
+  // Fallback: imperative render
   return (
     <div
       ref={containerRef}

@@ -2,19 +2,17 @@ import { useCitationStore } from "@/stores/feature/citationStore";
 import type { Citation } from "@/types";
 import {
   CheckCircleOutlined,
-  ClockCircleOutlined,
   FileTextOutlined,
-  LinkOutlined,
   PauseOutlined,
   PlayCircleOutlined,
   SearchOutlined,
-  StarOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import { Alert, Button, Card, Divider, Input, List, Progress, Space, Tag, Typography } from "antd";
-import React, { useCallback, useState } from "react";
+import { Alert, Button, Card, Divider, Input, List, Space, Tag, Typography } from "antd";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
+import { ResearchProgress } from "./ResearchProgress";
 import { ResearchSources } from "./ResearchSources";
 import { getSourceTypeName, type SearchResult } from "./researchUtils";
 
@@ -65,91 +63,6 @@ interface ResearchReport {
 
 interface ResearchPanelProps {
   className?: string;
-}
-
-const phaseSteps = (
-  t: (key: string) => string,
-): { key: ResearchPhase; label: string; icon: React.ReactNode }[] => [
-  {
-    key: "planning",
-    label: t("research.phasePlanning"),
-    icon: <ClockCircleOutlined />,
-  },
-  {
-    key: "searching",
-    label: t("research.phaseSearching"),
-    icon: <SearchOutlined />,
-  },
-  {
-    key: "extracting",
-    label: t("research.phaseExtracting"),
-    icon: <LinkOutlined />,
-  },
-  {
-    key: "analyzing",
-    label: t("research.phaseAnalyzing"),
-    icon: <StarOutlined />,
-  },
-  {
-    key: "synthesizing",
-    label: t("research.phaseSynthesizing"),
-    icon: <CheckCircleOutlined />,
-  },
-  {
-    key: "reporting",
-    label: t("research.phaseReporting"),
-    icon: <FileTextOutlined />,
-  },
-];
-
-function PhaseProgress({
-  currentPhase,
-  percentage,
-  t,
-}: {
-  currentPhase: ResearchPhase;
-  percentage: number;
-  t: (key: string) => string;
-}) {
-  const steps = phaseSteps(t);
-  const currentIndex = steps.findIndex((p) => p.key === currentPhase);
-
-  return (
-    <div className="phase-progress">
-      <div className="flex items-center justify-between mb-2">
-        {steps.map((step, index) => {
-          const isCompleted = index < currentIndex;
-          const isCurrent = index === currentIndex;
-          return (
-            <div
-              key={step.key}
-              className={`flex flex-col items-center ${
-                isCompleted
-                  ? "text-green-500"
-                  : isCurrent
-                  ? "text-blue-500"
-                  : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  isCompleted
-                    ? "bg-green-500 text-white"
-                    : isCurrent
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200"
-                }`}
-              >
-                {step.icon}
-              </div>
-              <Text className="text-xs mt-1">{step.label}</Text>
-            </div>
-          );
-        })}
-      </div>
-      <Progress percent={percentage} showInfo={false} strokeColor="#1890ff" />
-    </div>
-  );
 }
 
 export function ResearchPanel({ className }: ResearchPanelProps) {
@@ -463,10 +376,10 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           </div>
 
           {state.status !== "completed" && state.status !== "failed" && (
-            <PhaseProgress
+            <ResearchProgress
               currentPhase={state.currentPhase}
               percentage={state.progress.percentage}
-              t={t}
+              currentQuery={state.progress.currentQuery}
             />
           )}
 
