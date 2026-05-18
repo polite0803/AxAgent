@@ -32,7 +32,7 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({ node, onUpda
           size="small"
           placeholder={t("workflow.props.outputVarWorkflow")}
         />
-        <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
           {t("workflow.props.finalOutputHint")}
         </div>
       </div>

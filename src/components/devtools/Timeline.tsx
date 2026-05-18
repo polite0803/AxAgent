@@ -68,7 +68,9 @@ export function Timeline({ spans }: TimelineProps) {
       <div className="relative">
         <div className="absolute left-0 top-0 bottom-0 w-px bg-zinc-300" />
         {sortedSpans.map((span) => {
+          // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
           const spanStart = new Date(span.start_time).getTime();
+          // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
           const spanEnd = span.end_time ? new Date(span.end_time).getTime() : spanStart + (span.duration_ms || 0);
           const left = ((spanStart - startTime) / totalDuration) * 100;
           const width = ((spanEnd - spanStart) / totalDuration) * 100;

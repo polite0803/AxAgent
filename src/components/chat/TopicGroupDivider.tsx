@@ -107,7 +107,7 @@ export function TopicGroupDivider({ conversationId, group }: TopicGroupDividerPr
             {group.messageIds.length}
           </span>
           {group.collapsed && (
-            <span style={{ fontSize: 10, color: token.colorTextQuaternary }}>
+            <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>
               {t("topicGroup.collapsed")}
             </span>
           )}

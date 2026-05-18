@@ -192,7 +192,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
                 {selectedExpert.icon} {selectedExpert.name}
               </Tag>
               {selectedExpert.agentRole && (
-                <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>
+                <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
                   {t("workflow.props.roleTag", { role: selectedExpert.agentRole })}
                 </Tag>
               )}

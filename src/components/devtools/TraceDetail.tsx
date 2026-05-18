@@ -1,5 +1,6 @@
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Button, Card, Col, Descriptions, Row, Space, Tabs, Tag, Typography } from "antd";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CostChart } from "./CostChart";
 import { DurationChart } from "./DurationChart";
@@ -29,6 +30,13 @@ function formatTokens(tokens: number): string {
 export function TraceDetail() {
   const { t } = useTranslation();
   const { selectedTrace, selectedSpan, tree, metrics, exportTrace } = useTracerStore();
+
+  const [startedAtFormatted, setStartedAtFormatted] = useState("");
+  useEffect(() => {
+    if (selectedTrace) {
+      setStartedAtFormatted(new Date(selectedTrace.summary.started_at).toLocaleString());
+    }
+  }, [selectedTrace?.summary.started_at]);
 
   if (!selectedTrace) { return null; }
 
@@ -99,7 +107,7 @@ export function TraceDetail() {
                   {trace.metadata.agent_version}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.startedAt")}>
-                  {new Date(summary.started_at).toLocaleString()}
+                  {startedAtFormatted}
                 </Descriptions.Item>
               </Descriptions>
             </Card>

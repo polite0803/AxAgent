@@ -130,7 +130,7 @@ export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: Tool
           <div key="approval" style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
             <Tag
               color={tc.approvalStatus === "approved" ? "green" : tc.approvalStatus === "denied" ? "red" : "orange"}
-              style={{ fontSize: 10, padding: "2px 6px" }}
+              style={{ fontSize: 12, padding: "2px 6px" }}
             >
               {t(
                 `chat.inspector.approval${tc.approvalStatus.charAt(0).toUpperCase() + tc.approvalStatus.slice(1)}`,
@@ -150,7 +150,7 @@ export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: Tool
             {tc.approvalStatus && (
               <Tag
                 color={tc.approvalStatus === "approved" ? "green" : tc.approvalStatus === "denied" ? "red" : "orange"}
-                style={{ fontSize: 10, padding: "2px 4px" }}
+                style={{ fontSize: 12, padding: "2px 4px" }}
               >
                 {tc.approvalStatus}
               </Tag>

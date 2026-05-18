@@ -140,7 +140,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
           {data.systemPrompt && (
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: "#888",
                 marginBottom: 8,
                 overflow: "hidden",

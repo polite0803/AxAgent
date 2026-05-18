@@ -64,6 +64,7 @@ const NudgeCard: React.FC<{
             </button>
           )}
           <button
+            // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
             onClick={() => onSnooze(nudge.id, Date.now() + 30 * 60 * 1000)}
             className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 dark:text-blue-400"
             title={t("nudge.snooze30")}

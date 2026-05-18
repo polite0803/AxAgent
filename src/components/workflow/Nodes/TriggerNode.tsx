@@ -118,7 +118,7 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, sele
               color={color}
               style={{
                 margin: 0,
-                fontSize: 10,
+                fontSize: 12,
                 padding: "0 4px",
                 borderRadius: 4,
               }}
@@ -127,7 +127,7 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, sele
             </Tag>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: "#888",
                 overflow: "hidden",
                 textOverflow: "ellipsis",

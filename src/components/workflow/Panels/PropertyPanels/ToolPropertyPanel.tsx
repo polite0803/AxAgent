@@ -111,9 +111,9 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
                 value={key}
                 size="small"
                 disabled
-                style={{ width: 80, fontSize: 10 }}
+                style={{ width: 80, fontSize: 12 }}
               />
-              <span style={{ color: "#666", fontSize: 10 }}>←</span>
+              <span style={{ color: "#666", fontSize: 12 }}>←</span>
               <Input
                 id="tool-property-panel-input-111"
                 value={String(value)}

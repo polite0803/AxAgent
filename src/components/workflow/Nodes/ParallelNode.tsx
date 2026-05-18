@@ -100,7 +100,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
                   <div
                     key={branch.id || index}
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       color: "#aaa",
                       padding: "4px 8px",
                       background: "#252525",
@@ -150,7 +150,7 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
             : (
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: "#666",
                   textAlign: "center",
                   padding: 8,

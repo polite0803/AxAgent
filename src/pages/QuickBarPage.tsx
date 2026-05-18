@@ -763,6 +763,7 @@ function QuickBarResult({
                   setLoading(false);
                   return;
                 }
+                // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
                 const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
                 await invoke("llm_wiki_ingest", {
                   wikiId: selectedWikiId,

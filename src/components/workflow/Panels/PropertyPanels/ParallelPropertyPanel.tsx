@@ -94,7 +94,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
             })}
         />
       </div>
-      <div style={{ color: "#666", fontSize: 10 }}>
+      <div style={{ color: "#666", fontSize: 12 }}>
         {config.wait_for_all
           ? t("workflow.props.waitForAllHint")
           : t("workflow.props.waitForAnyHint")}
@@ -168,7 +168,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 20 }}>
-                  <label style={{ fontSize: 10, color: "#888" }}>{t("workflow.props.steps")}</label>
+                  <label style={{ fontSize: 12, color: "#888" }}>{t("workflow.props.steps")}</label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {branch.steps.map((stepId) => (
                       <Tag
@@ -182,7 +182,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                       </Tag>
                     ))}
                     {branch.steps.length === 0 && (
-                      <span style={{ fontSize: 10, color: "#666" }}>{t("workflow.props.noSteps")}</span>
+                      <span style={{ fontSize: 12, color: "#666" }}>{t("workflow.props.noSteps")}</span>
                     )}
                   </div>
                   {availableNodes.length > 0 && (

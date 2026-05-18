@@ -840,7 +840,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       if (batchMaxTokensEnabled) {
         updated.max_tokens = batchMaxTokens;
       }
-      const overrides: ModelParamOverrides = { ...(updated.param_overrides ?? {}) };
+      const overrides: ModelParamOverrides = { ...updated.param_overrides };
       if (batchTemperatureEnabled) { overrides.temperature = batchTemperature; }
       if (batchTopPEnabled) { overrides.top_p = batchTopP; }
       if (batchMaxTokensParamEnabled) { overrides.max_tokens = batchMaxTokensParam; }

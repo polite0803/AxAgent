@@ -232,7 +232,7 @@ export const LeftPanel: React.FC = () => {
                         <FileText size={14} style={{ color: "#1890ff" }} />
                         <span style={{ color: "#ccc", fontSize: 12 }}>{template.name}</span>
                         {template.is_preset && (
-                          <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>
+                          <Tag color="blue" style={{ fontSize: 12, margin: 0 }}>
                             {t("workflow.preset")}
                           </Tag>
                         )}

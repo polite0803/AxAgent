@@ -548,14 +548,12 @@ function ChatViewInner({ onScrollToReady }: {
         aria-live="polite"
         aria-atomic="false"
         aria-label={t("chat.messageArea")}
-        style={{
-          ...(messages.length > 50
-            ? {
-              contentVisibility: "auto",
-              containIntrinsicSize: "auto 5000px",
-            }
-            : {}),
-        }}
+        style={messages.length > 50
+          ? {
+            contentVisibility: "auto",
+            containIntrinsicSize: "auto 5000px",
+          }
+          : {}}
       >
         {messages.length === 0
           ? (

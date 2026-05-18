@@ -118,7 +118,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       </Tooltip>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Tag color="purple" style={{ margin: 0, fontSize: 10 }}>
+        <Tag color="purple" style={{ margin: 0, fontSize: 12 }}>
           {t("workflow.statusBar.dagEditor")}
         </Tag>
       </div>

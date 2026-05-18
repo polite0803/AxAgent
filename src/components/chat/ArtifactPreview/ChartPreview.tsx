@@ -25,7 +25,7 @@ export const ChartPreview = memo(function ChartPreview({
 <head>
 <meta charset="utf-8">
 <!-- TODO: Add SRI integrity hash for echarts CDN script -->
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <style>
   body { margin: 0; background: ${bgColor}; }
   #chart { width: 100%; height: 100%; }
@@ -40,7 +40,7 @@ option.color = option.color || ['#5470c6','#91cc75','#fac858','#ee6666','#73c0de
 if (!option.textStyle) option.textStyle = { color: '${textColor}' };
 chart.setOption(option);
 window.addEventListener('resize', function() { chart.resize(); });
-<\/script>
+</script>
 </body>
 </html>`;
     }

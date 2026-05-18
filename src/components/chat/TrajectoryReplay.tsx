@@ -211,7 +211,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
             <div style={{ flex: 1, overflow: "auto", padding: "4px 12px" }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: token.colorTextQuaternary,
                   marginBottom: 4,
                 }}
@@ -281,7 +281,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                         <pre
                           style={{
                             margin: "4px 0 0",
-                            fontSize: 10,
+                            fontSize: 12,
                             color: token.colorTextSecondary,
                             whiteSpace: "pre-wrap",
                             wordBreak: "break-all",
@@ -447,7 +447,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                   color: speed === s ? token.colorPrimary : token.colorTextSecondary,
                   padding: "1px 5px",
                   borderRadius: 3,
-                  fontSize: 10,
+                  fontSize: 12,
                 }}
               >
                 {s}x

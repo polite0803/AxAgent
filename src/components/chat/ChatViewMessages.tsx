@@ -1285,7 +1285,7 @@ export function useChatViewMessages({
                 && !(multiModelParentId && msg.parent_message_id === multiModelParentId) && (
                 <Tag
                   color="warning"
-                  style={{ fontSize: 10, margin: 0, padding: "0 4px", lineHeight: "16px", border: "none" }}
+                  style={{ fontSize: 12, margin: 0, padding: "0 4px", lineHeight: "16px", border: "none" }}
                 >
                   {t("chat.partial")}
                 </Tag>

@@ -1,7 +1,7 @@
 import { useArtifactStore, useConversationStore } from "@/stores";
 import { Descriptions, Empty, List, Tabs, Tag, theme, Typography } from "antd";
 import { FileText, Info, Paperclip, Search, Wrench } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface ChatInspectorProps {
@@ -32,6 +32,14 @@ export function ChatInspector({
       }
       : undefined;
   });
+
+  const [conversationCreatedFormatted, setConversationCreatedFormatted] = useState("");
+  useEffect(() => {
+    if (conversation?.created_at) {
+      setConversationCreatedFormatted(new Date(conversation.created_at).toLocaleString());
+    }
+  }, [conversation?.created_at]);
+
   const workspaceSnapshot = useConversationStore((s) => s.workspaceSnapshot);
   const messages = useConversationStore((s) => s.messages);
   const { artifacts } = useArtifactStore();
@@ -170,7 +178,7 @@ export function ChatInspector({
                 {conversation.model_id || "-"}
               </Descriptions.Item>
               <Descriptions.Item label={t("gateway.created")}>
-                {new Date(conversation.created_at).toLocaleString()}
+                {conversationCreatedFormatted}
               </Descriptions.Item>
               <Descriptions.Item label={t("chat.inspector.tools")}>
                 {conversation.message_count}

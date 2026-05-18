@@ -84,7 +84,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
           {data.description && (
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: "#666",
                 overflow: "hidden",
                 textOverflow: "ellipsis",

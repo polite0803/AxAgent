@@ -50,7 +50,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
             type="dashed"
             icon={<PlusOutlined />}
             onClick={handleAddAssertion}
-            style={{ fontSize: 10 }}
+            style={{ fontSize: 12 }}
           >
             {t("workflow.props.add")}
           </Button>

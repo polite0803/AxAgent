@@ -103,7 +103,7 @@ const SubWorkflowNodeComponent: React.FC<NodeProps<SubWorkflowNodeData>> = ({ da
 
           <div
             style={{
-              fontSize: 10,
+              fontSize: 12,
               color: color,
               marginBottom: 6,
               padding: "4px 6px",

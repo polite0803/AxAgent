@@ -102,7 +102,7 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
           <Tag
             style={{
               margin: 0,
-              fontSize: 10,
+              fontSize: 12,
               padding: "4px 8px",
               background: `${color}20`,
               border: `1px solid ${color}50`,
@@ -116,7 +116,7 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
           <div
             style={{
               marginTop: 6,
-              fontSize: 10,
+              fontSize: 12,
               color: "#888",
             }}
           >

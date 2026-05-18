@@ -103,7 +103,7 @@ const VectorRetrieveNodeComponent: React.FC<NodeProps<VectorRetrieveNodeData>> =
 
           <div
             style={{
-              fontSize: 10,
+              fontSize: 12,
               color: color,
               marginBottom: 6,
               padding: "4px 6px",

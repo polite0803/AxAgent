@@ -36,7 +36,7 @@ function DelayConfig({ config, handleConfigChange }: {
             size="small"
             style={{ width: "100%" }}
           />
-          <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
             {((config.seconds as number) || 5) >= 60
               ? `≈ ${Math.floor(((config.seconds as number) || 5) / 60)} ${t("workflow.props.minutes")}`
               : `${(config.seconds as number) || 5} ${t("workflow.props.seconds")}`}
@@ -93,7 +93,7 @@ function DelayConfig({ config, handleConfigChange }: {
             size="small"
             placeholder={t("workflow.props.delayUntilPlaceholder")}
           />
-          <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
             {t("workflow.props.delayUntilHint")}
           </div>
         </div>

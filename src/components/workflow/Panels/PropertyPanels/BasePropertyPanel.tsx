@@ -61,7 +61,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
         {node.retry.enabled && (
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.maxRetries")}</label>
+              <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.maxRetries")}</label>
               <InputNumber
                 id="base-property-panel-inputnumber-82"
                 value={node.retry.max_retries}
@@ -73,7 +73,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.backoffStrategy")}</label>
+              <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.backoffStrategy")}</label>
               <Select
                 value={node.retry.backoff_type}
                 onChange={(backoff_type) => onUpdate({ retry: { ...node.retry, backoff_type } })}
@@ -87,7 +87,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.baseDelayMs")}</label>
+              <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.baseDelayMs")}</label>
               <InputNumber
                 id="base-property-panel-inputnumber-83"
                 value={node.retry.base_delay_ms}

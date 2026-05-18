@@ -395,7 +395,7 @@ function FaqItem({ entry, isActive, token }: {
           onMouseLeave={() => setHovered(false)}
           style={getCardStyle()}
         >
-          <div style={{ fontSize: 10, color: isUser ? token.colorTextSecondary : token.colorPrimary }}>
+          <div style={{ fontSize: 12, color: isUser ? token.colorTextSecondary : token.colorPrimary }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
               {!isUser && entry.model_id && <ModelIcon model={entry.model_id} size={10} type="avatar" />}
               {isUser ? "Q" : <ModelName model_id={entry.model_id} providerId={entry.providerId} />}
@@ -404,7 +404,7 @@ function FaqItem({ entry, isActive, token }: {
           <Typography.Text
             type="secondary"
             ellipsis
-            style={{ fontSize: 10, display: "block", marginTop: 1 }}
+            style={{ fontSize: 12, display: "block", marginTop: 1 }}
           >
             {entry.summary}
           </Typography.Text>
@@ -566,7 +566,7 @@ function StickyDropdownItem({ entry, isActive, token }: {
           ? <UserAvatarIcon size={16} />
           : entry.model_id
           ? <ModelIcon model={entry.model_id} size={16} type="avatar" />
-          : <Avatar size={16} style={{ backgroundColor: token.colorPrimary, fontSize: 10 }}>AI</Avatar>}
+          : <Avatar size={16} style={{ backgroundColor: token.colorPrimary, fontSize: 12 }}>AI</Avatar>}
       </span>
       <Typography.Text
         ellipsis

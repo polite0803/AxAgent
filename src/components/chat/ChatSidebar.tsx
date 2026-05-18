@@ -828,7 +828,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                 <span className="truncate">{abbreviateWsPath(wsPath)}</span>
                 <span
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 400,
                     color: token.colorTextQuaternary,
                     flexShrink: 0,

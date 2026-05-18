@@ -2,7 +2,7 @@ import type { Citation } from "@/types";
 import { CheckCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined } from "@ant-design/icons";
 import { Button, Card, Divider, Select, Space, Tabs, Tag, Typography } from "antd";
 import DOMPurify from "dompurify";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
 
@@ -31,6 +31,13 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
   const getSourceTypeName = (sourceType: string): string =>
     t(`report.sourceType.${sourceType.toLowerCase()}`, sourceType);
   const [selectedFormat, setSelectedFormat] = useState<ReportFormat>("markdown");
+
+  const [createdAtFormatted, setCreatedAtFormatted] = useState("");
+  useEffect(() => {
+    if (report?.createdAt) {
+      setCreatedAtFormatted(new Date(report.createdAt).toLocaleString());
+    }
+  }, [report?.createdAt]);
 
   const sanitizedHtml = useMemo(() => {
     if (!report) { return ""; }
@@ -203,7 +210,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
           </Title>
           {report.createdAt && (
             <Text type="secondary" className="text-sm">
-              {t("reportViewer.generatedAt")} {new Date(report.createdAt).toLocaleString()}
+              {t("reportViewer.generatedAt")} {createdAtFormatted}
             </Text>
           )}
         </div>

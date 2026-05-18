@@ -692,6 +692,7 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         open={showAddModal}
         onCancel={() => setShowAddModal(false)}
         onOk={() => {
+          // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
           const role: AgentProfile = {
             id: newRole.id || `custom-${Date.now()}`,
             name: newRole.name || t("expertSelector.unnamed"),
@@ -704,7 +705,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             tags: newRole.tags || [],
             sortOrder: 0,
             isEnabled: true,
+            // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
             createdAt: Date.now(),
+            // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
             updatedAt: Date.now(),
             suggestedProviderId: newRole.suggestedProviderId,
             suggestedModelId: newRole.suggestedModelId,

@@ -1,7 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import { Alert, Button, Descriptions, Input, Modal, Radio, Space, Tag, Typography } from "antd";
 import { AlertTriangle, Clock, FileText, Shield } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface AuthorizationResponse {
@@ -41,6 +41,13 @@ export function FilePermissionDialog({
   const [customReason, setCustomReason] = useState(reason);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AuthorizationResponse | null>(null);
+
+  const [expiresAtFormatted, setExpiresAtFormatted] = useState("");
+  useEffect(() => {
+    if (result?.expires_at) {
+      setExpiresAtFormatted(new Date(result.expires_at).toLocaleString());
+    }
+  }, [result?.expires_at]);
 
   const clampedDuration = Math.max(5, Math.min(1440, duration));
 
@@ -239,7 +246,7 @@ export function FilePermissionDialog({
                         {result.expires_at && (
                           <Tag icon={<Clock size={12} />}>
                             {t("filePermission.validUntil")}
-                            {new Date(result.expires_at).toLocaleString()}
+                            {expiresAtFormatted}
                           </Tag>
                         )}
                       </Space>

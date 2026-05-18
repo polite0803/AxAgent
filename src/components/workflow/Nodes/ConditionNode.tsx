@@ -136,7 +136,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
                   <div
                     key={`${condition.var_path}-${condition.operator}-${String(condition.value)}`}
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       color: "#aaa",
                       padding: "4px 6px",
                       background: "#252525",
@@ -190,7 +190,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
             : (
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: "#666",
                   textAlign: "center",
                   padding: 8,

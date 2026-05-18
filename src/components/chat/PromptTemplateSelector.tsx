@@ -126,11 +126,11 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
                 <div className="flex flex-col w-full min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-sm font-medium truncate">{template.name}</span>
-                    <Tag className="shrink-0" color="blue" style={{ fontSize: 10, lineHeight: "16px" }}>
+                    <Tag className="shrink-0" color="blue" style={{ fontSize: 12, lineHeight: "16px" }}>
                       v{template.version}
                     </Tag>
                     {template.category && (
-                      <Tag className="shrink-0" style={{ fontSize: 10, lineHeight: "16px" }}>
+                      <Tag className="shrink-0" style={{ fontSize: 12, lineHeight: "16px" }}>
                         {template.category}
                       </Tag>
                     )}

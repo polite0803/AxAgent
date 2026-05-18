@@ -70,7 +70,7 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
     if (!newRulePattern || !newRuleModel) { return; }
     setConfig((prev) => ({
       ...prev,
-      routingRules: { ...(prev.routingRules || {}), [newRulePattern]: newRuleModel },
+      routingRules: { ...prev.routingRules, [newRulePattern]: newRuleModel },
     }));
     setNewRulePattern("");
     setNewRuleModel("");
@@ -78,7 +78,7 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
 
   const removeRoutingRule = (pattern: string) => {
     setConfig((prev) => {
-      const rules = { ...(prev.routingRules || {}) };
+      const rules = { ...prev.routingRules };
       delete rules[pattern];
       return { ...prev, routingRules: rules };
     });

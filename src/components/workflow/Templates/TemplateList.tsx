@@ -244,12 +244,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 })()}
               </span>
               {template.is_preset && (
-                <Tag color="gold" style={{ marginLeft: 4, fontSize: 10 }}>
+                <Tag color="gold" style={{ marginLeft: 4, fontSize: 12 }}>
                   {t("workflow.templateList.preset")}
                 </Tag>
               )}
               {!template.is_editable && (
-                <Tag color="default" style={{ fontSize: 10 }}>
+                <Tag color="default" style={{ fontSize: 12 }}>
                   {t("workflow.templateList.readonly")}
                 </Tag>
               )}
@@ -276,13 +276,13 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 <Tag
                   key={tag}
                   color={TAG_COLORS[tag] || "default"}
-                  style={{ fontSize: 10, margin: 0 }}
+                  style={{ fontSize: 12, margin: 0 }}
                 >
                   {tag}
                 </Tag>
               ))}
               {template.tags && template.tags.length > 4 && (
-                <Tag style={{ fontSize: 10, margin: 0 }}>+{template.tags.length - 4}</Tag>
+                <Tag style={{ fontSize: 12, margin: 0 }}>+{template.tags.length - 4}</Tag>
               )}
             </div>
           </div>

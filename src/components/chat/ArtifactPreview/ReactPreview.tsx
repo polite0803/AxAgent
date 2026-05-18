@@ -24,10 +24,10 @@ export const ReactPreview = memo(function ReactPreview({
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 16px; }
 ${css || ""}
 </style>
-<script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <!-- TODO: Add SRI integrity hashes for all unpkg scripts -->
-<script src="https://unpkg.com/@babel/standalone@7.25.0/babel.min.js"><\/script>
+<script src="https://unpkg.com/@babel/standalone@7.25.0/babel.min.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -54,7 +54,7 @@ try {
     window.parent.postMessage({ type: 'react-preview-error', message: e.message }, window.location.origin);
   }
 }
-<\/script>
+</script>
 </body>
 </html>`;
   }, [code, css]);

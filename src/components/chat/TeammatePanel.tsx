@@ -230,6 +230,7 @@ export function TeammatePanel({
           const teamName = data.teamName || t("teammatePanel.newTeam");
           for (const tm of data.teammates) {
             upsertPoolItem({
+              // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
               id: `${teamName}-${tm.name}-${Date.now()}`,
               conversationId,
               type: "worker",

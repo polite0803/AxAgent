@@ -63,7 +63,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              fontSize: 10,
+              fontSize: 12,
               color: "#999",
               background: "#1a1a1a",
               padding: "2px 6px",

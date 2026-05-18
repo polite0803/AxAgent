@@ -76,7 +76,7 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({ data, selected }) 
           {data.outputVar && (
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: "#888",
                 padding: "4px 6px",
                 background: "#252525",

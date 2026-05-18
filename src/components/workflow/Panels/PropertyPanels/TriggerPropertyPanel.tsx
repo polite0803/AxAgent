@@ -25,7 +25,7 @@ function TriggerConfig({ triggerConfig, handleConfigChange }: {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.cronExpression")}</label>
+            <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.cronExpression")}</label>
             <Input
               id="trigger-property-panel-input-113"
               value={(triggerConfig.config.cron as string) || ""}
@@ -35,7 +35,7 @@ function TriggerConfig({ triggerConfig, handleConfigChange }: {
             />
           </div>
           <div>
-            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.timezone")}</label>
+            <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.timezone")}</label>
             <Select
               value={(triggerConfig.config.timezone as string) || "UTC"}
               onChange={(value) => handleConfigChange("timezone", value)}
@@ -54,7 +54,7 @@ function TriggerConfig({ triggerConfig, handleConfigChange }: {
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.enabled")}</label>
+            <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.enabled")}</label>
             <Switch
               size="small"
               checked={(triggerConfig.config.enabled as boolean) ?? true}
@@ -68,7 +68,7 @@ function TriggerConfig({ triggerConfig, handleConfigChange }: {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.webhookPath")}</label>
+            <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.webhookPath")}</label>
             <Input
               id="trigger-property-panel-input-114"
               value={(triggerConfig.config.path as string) || ""}
@@ -78,7 +78,7 @@ function TriggerConfig({ triggerConfig, handleConfigChange }: {
             />
           </div>
           <div>
-            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.httpMethod")}</label>
+            <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.httpMethod")}</label>
             <Select
               value={(triggerConfig.config.method as string) || "GET"}
               onChange={(value) => handleConfigChange("method", value)}
@@ -93,7 +93,7 @@ function TriggerConfig({ triggerConfig, handleConfigChange }: {
             />
           </div>
           <div>
-            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.authType")}</label>
+            <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.authType")}</label>
             <Select
               value={(triggerConfig.config.auth_type as string) || "none"}
               onChange={(value) => handleConfigChange("auth_type", value)}
@@ -114,7 +114,7 @@ function TriggerConfig({ triggerConfig, handleConfigChange }: {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <label style={{ color: "#666", fontSize: 10 }}>{t("workflow.props.eventType")}</label>
+            <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.eventType")}</label>
             <Input
               id="trigger-property-panel-input-115"
               value={(triggerConfig.config.event_type as string) || ""}

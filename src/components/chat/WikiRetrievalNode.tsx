@@ -204,14 +204,14 @@ export function WikiRetrievalNode(props: NodeComponentProps<WikiRetrievalNodeDat
                     {item.document_name || item.document_id?.slice(0, 8) || "—"}
                   </span>
                   {item.id && (
-                    <span style={{ fontSize: 10, color: token.colorTextQuaternary }}>
+                    <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>
                       #{item.id.slice(0, 8)}
                     </span>
                   )}
                   <span
                     style={{
                       marginLeft: "auto",
-                      fontSize: 10,
+                      fontSize: 12,
                       color: token.colorTextQuaternary,
                     }}
                   >

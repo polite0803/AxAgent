@@ -117,7 +117,7 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({ data, selected }) 
           {data.prompt && (
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: "#888",
                 marginBottom: 8,
                 padding: 6,

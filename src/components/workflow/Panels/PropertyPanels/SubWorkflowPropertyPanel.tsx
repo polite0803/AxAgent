@@ -119,9 +119,9 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
                 value={key}
                 size="small"
                 disabled
-                style={{ width: 80, fontSize: 10 }}
+                style={{ width: 80, fontSize: 12 }}
               />
-              <span style={{ color: "#666", fontSize: 10 }}>←</span>
+              <span style={{ color: "#666", fontSize: 12 }}>←</span>
               <Input
                 id="sub-workflow-property-panel-input-108"
                 value={String(value)}
