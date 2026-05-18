@@ -45,9 +45,15 @@ interface SearchState {
   loadRecentSearches: () => void;
   loadProviders: () => Promise<void>;
   createProvider: (input: CreateSearchProviderInput) => Promise<void>;
-  updateProvider: (id: string, input: UpdateSearchProviderInput) => Promise<void>;
+  updateProvider: (
+    id: string,
+    input: UpdateSearchProviderInput,
+  ) => Promise<void>;
   deleteProvider: (id: string) => Promise<void>;
-  executeSearch: (providerId: string, query: string) => Promise<{ ok: boolean; results: SearchResultItem[] }>;
+  executeSearch: (
+    providerId: string,
+    query: string,
+  ) => Promise<{ ok: boolean; results: SearchResultItem[] }>;
 }
 
 export interface SearchOptions {
@@ -165,7 +171,9 @@ export const useSearchStore = create<SearchState>()(
 
       loadProviders: async () => {
         try {
-          const providers = await invoke<SearchProvider[]>("list_search_providers");
+          const providers = await invoke<SearchProvider[]>(
+            "list_search_providers",
+          );
           set({ providers });
         } catch (e) {
           console.error("Failed to load search providers:", e);
@@ -173,12 +181,18 @@ export const useSearchStore = create<SearchState>()(
       },
 
       createProvider: async (input: CreateSearchProviderInput) => {
-        const provider = await invoke<SearchProvider>("create_search_provider", { input });
+        const provider = await invoke<SearchProvider>(
+          "create_search_provider",
+          { input },
+        );
         set((state) => ({ providers: [...state.providers, provider] }));
       },
 
       updateProvider: async (id: string, input: UpdateSearchProviderInput) => {
-        const updated = await invoke<SearchProvider>("update_search_provider", { id, input });
+        const updated = await invoke<SearchProvider>("update_search_provider", {
+          id,
+          input,
+        });
         set((state) => ({
           providers: state.providers.map((p) => (p.id === id ? updated : p)),
         }));
@@ -192,7 +206,10 @@ export const useSearchStore = create<SearchState>()(
       },
 
       executeSearch: async (providerId: string, query: string) => {
-        const result = await invoke<{ ok: boolean; results: SearchResultItem[] }>("execute_search", {
+        const result = await invoke<{
+          ok: boolean;
+          results: SearchResultItem[];
+        }>("execute_search", {
           providerId,
           query,
         });

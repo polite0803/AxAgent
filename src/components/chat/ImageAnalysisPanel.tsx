@@ -24,11 +24,20 @@ interface VisionResult {
 }
 
 const VISION_TASKS = [
-  { value: "ImageDescription", labelKey: "chat.vision.taskLabels.ImageDescription" },
+  {
+    value: "ImageDescription",
+    labelKey: "chat.vision.taskLabels.ImageDescription",
+  },
   { value: "Ocr", labelKey: "chat.vision.taskLabels.Ocr" },
-  { value: "UiElementDetection", labelKey: "chat.vision.taskLabels.UiElementDetection" },
+  {
+    value: "UiElementDetection",
+    labelKey: "chat.vision.taskLabels.UiElementDetection",
+  },
   { value: "ChartAnalysis", labelKey: "chat.vision.taskLabels.ChartAnalysis" },
-  { value: "CodeScreenshotReading", labelKey: "chat.vision.taskLabels.CodeScreenshotReading" },
+  {
+    value: "CodeScreenshotReading",
+    labelKey: "chat.vision.taskLabels.CodeScreenshotReading",
+  },
 ];
 
 export function ImageAnalysisPanel() {
@@ -40,7 +49,9 @@ export function ImageAnalysisPanel() {
   const [result, setResult] = useState<VisionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
   const conversations = useConversationStore((s) => s.conversations);
   const activeConv = conversations.find((c) => c.id === activeConversationId);
   const providerId = activeConv?.provider_id ?? "";
@@ -85,10 +96,14 @@ export function ImageAnalysisPanel() {
   };
 
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <Camera size={16} style={{ color: "#722ed1" }} />
-        <Title level={5} style={{ margin: 0 }}>{t("chat.vision.imageAnalysis")}</Title>
+        <Title level={5} style={{ margin: 0 }}>
+          {t("chat.vision.imageAnalysis")}
+        </Title>
       </div>
 
       <Upload.Dragger
@@ -107,7 +122,14 @@ export function ImageAnalysisPanel() {
             />
           )
           : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
               <UploadCloud size={24} style={{ color: "#999" }} />
               <Text type="secondary">{t("chat.vision.uploadImage")}</Text>
             </div>
@@ -149,9 +171,18 @@ export function ImageAnalysisPanel() {
       )}
 
       {error && (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, color: "#ff4d4f" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+            color: "#ff4d4f",
+          }}
+        >
           <XCircle size={14} style={{ marginTop: 2 }} />
-          <Text type="danger" style={{ fontSize: 13 }}>{error}</Text>
+          <Text type="danger" style={{ fontSize: 13 }}>
+            {error}
+          </Text>
         </div>
       )}
 
@@ -163,7 +194,10 @@ export function ImageAnalysisPanel() {
             </Text>
 
             <div>
-              <Text strong style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+              <Text
+                strong
+                style={{ fontSize: 12, display: "block", marginBottom: 4 }}
+              >
                 {t("chat.vision.description")}
               </Text>
               <Text style={{ fontSize: 13 }}>{result.description}</Text>
@@ -171,7 +205,10 @@ export function ImageAnalysisPanel() {
 
             {result.text_content && (
               <div>
-                <Text strong style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+                <Text
+                  strong
+                  style={{ fontSize: 12, display: "block", marginBottom: 4 }}
+                >
                   {t("chat.vision.extractedText")}
                 </Text>
                 <pre
@@ -193,10 +230,15 @@ export function ImageAnalysisPanel() {
 
             {result.elements.length > 0 && (
               <div>
-                <Text strong style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+                <Text
+                  strong
+                  style={{ fontSize: 12, display: "block", marginBottom: 4 }}
+                >
                   {t("chat.vision.elements")} ({result.elements.length})
                 </Text>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 2 }}
+                >
                   {result.elements.map((el, _i) => (
                     <div
                       key={`${el.element_type}-${el.label || ""}-${el.bounding_box?.x || 0}-${el.bounding_box?.y || 0}`}
@@ -210,10 +252,26 @@ export function ImageAnalysisPanel() {
                       }}
                     >
                       {el.actionable
-                        ? <CheckCircle size={10} style={{ color: "#52c41a", flexShrink: 0 }} />
-                        : <ImageIcon size={10} style={{ color: "#999", flexShrink: 0 }} />}
-                      <Text strong style={{ fontSize: 12 }}>{el.element_type}</Text>
-                      {el.label && <Text type="secondary" style={{ fontSize: 12 }}>{el.label}</Text>}
+                        ? (
+                          <CheckCircle
+                            size={10}
+                            style={{ color: "#52c41a", flexShrink: 0 }}
+                          />
+                        )
+                        : (
+                          <ImageIcon
+                            size={10}
+                            style={{ color: "#999", flexShrink: 0 }}
+                          />
+                        )}
+                      <Text strong style={{ fontSize: 12 }}>
+                        {el.element_type}
+                      </Text>
+                      {el.label && (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {el.label}
+                        </Text>
+                      )}
                     </div>
                   ))}
                 </div>

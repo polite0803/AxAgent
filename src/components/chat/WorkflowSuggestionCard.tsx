@@ -63,11 +63,7 @@ export function WorkflowSuggestionCard({
             >
               {t("chat.workflow.switchToWorkflow")}
             </Button>
-            <Button
-              size="small"
-              icon={<X size={14} />}
-              onClick={onDismiss}
-            >
+            <Button size="small" icon={<X size={14} />} onClick={onDismiss}>
               {t("chat.workflow.dismiss")}
             </Button>
           </div>

@@ -38,7 +38,9 @@ const NudgeCard: React.FC<{
       className={`rounded-lg border-l-4 p-3 mb-2 transition-all ${urgencyColor[urgency] || urgencyColor.low}`}
     >
       <div className="flex items-start gap-2">
-        <div className={`size-2 rounded-full mt-1.5 shrink-0 ${urgencyDot[urgency] || urgencyDot.low}`} />
+        <div
+          className={`size-2 rounded-full mt-1.5 shrink-0 ${urgencyDot[urgency] || urgencyDot.low}`}
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
             <Lightbulb size={12} />
@@ -119,7 +121,9 @@ const ClosedLoopNudgeCard: React.FC<{
 /** NudgePanel — displays self-evolution learning suggestions */
 export const NudgePanel: React.FC = () => {
   const { t } = useTranslation();
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
   const pendingNudges = useNudgeStore((s) => s.pendingNudges);
   const closedLoopNudges = useNudgeStore((s) => s.closedLoopNudges);
   const stats = useNudgeStore((s) => s.stats);
@@ -129,7 +133,9 @@ export const NudgePanel: React.FC = () => {
   const dismissNudge = useNudgeStore((s) => s.dismissNudge);
   const snoozeNudge = useNudgeStore((s) => s.snoozeNudge);
   const executeNudge = useNudgeStore((s) => s.executeNudge);
-  const acknowledgeClosedLoopNudge = useNudgeStore((s) => s.acknowledgeClosedLoopNudge);
+  const acknowledgeClosedLoopNudge = useNudgeStore(
+    (s) => s.acknowledgeClosedLoopNudge,
+  );
 
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState(false);
@@ -143,7 +149,9 @@ export const NudgePanel: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     const load = async () => {
       try {
         if (activeConversationId) {
@@ -151,17 +159,29 @@ export const NudgePanel: React.FC = () => {
         }
         await fetchClosedLoopNudges();
         await fetchStats();
-        if (mountedRef.current) { setError(false); }
+        if (mountedRef.current) {
+          setError(false);
+        }
       } catch {
-        if (mountedRef.current) { setError(true); }
+        if (mountedRef.current) {
+          setError(true);
+        }
       }
     };
     load();
     const interval = setInterval(load, 60_000);
     return () => clearInterval(interval);
-  }, [expanded, activeConversationId, fetchPendingNudges, fetchClosedLoopNudges, fetchStats]);
+  }, [
+    expanded,
+    activeConversationId,
+    fetchPendingNudges,
+    fetchClosedLoopNudges,
+    fetchStats,
+  ]);
 
-  const unacknowledgedClosedLoop = closedLoopNudges.filter((n) => !n.acknowledged);
+  const unacknowledgedClosedLoop = closedLoopNudges.filter(
+    (n) => !n.acknowledged,
+  );
   const totalItems = pendingNudges.length + unacknowledgedClosedLoop.length;
 
   if (!expanded) {
@@ -173,7 +193,12 @@ export const NudgePanel: React.FC = () => {
         >
           <Bell size={14} className={totalItems > 0 ? "text-orange-500" : ""} />
           {t("nudge.learningSuggestions")} ({totalItems})
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
         </button>
       </div>
     );
@@ -182,9 +207,16 @@ export const NudgePanel: React.FC = () => {
   return (
     <div className="border-b border-border/50">
       <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs font-medium text-foreground/80">{t("nudge.learningSuggestions")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("nudge.learningSuggestions")}
+        </span>
         <div className="flex items-center gap-1">
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
           {totalItems > 0 && (
             <span className="bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
               {totalItems}
@@ -194,8 +226,18 @@ export const NudgePanel: React.FC = () => {
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="size-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -228,8 +270,8 @@ export const NudgePanel: React.FC = () => {
 
         {stats && stats.totalNudges > 0 && (
           <div className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-2 text-right">
-            {t("nudge.acceptanceRate")}:{" "}
-            {(stats.acceptanceRate * 100).toFixed(0)}% ({stats.addedToMemoryCount}/{stats.presentedCount})
+            {t("nudge.acceptanceRate")}: {(stats.acceptanceRate * 100).toFixed(0)}% (
+            {stats.addedToMemoryCount}/{stats.presentedCount})
           </div>
         )}
       </div>

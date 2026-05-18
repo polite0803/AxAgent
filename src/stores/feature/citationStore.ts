@@ -50,10 +50,13 @@ export const useCitationStore = create<CitationStore>((set, get) => ({
     const citations = get().citations;
     const total = citations.length;
     const inReport = citations.filter((c) => c.inReport).length;
-    const byType = citations.reduce<Partial<Record<string, number>>>((acc, c) => {
-      acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
-      return acc;
-    }, {});
+    const byType = citations.reduce<Partial<Record<string, number>>>(
+      (acc, c) => {
+        acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
     const avgCredibility = total > 0
       ? citations.reduce((sum, c) => sum + c.credibility, 0) / total
       : 0;

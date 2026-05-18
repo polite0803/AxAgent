@@ -14,14 +14,26 @@ export interface BaseNodeData {
   validationState?: "error" | "warning";
 }
 
-const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }) => {
+const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
-  const typeInfo = NODE_TYPE_MAP[data.nodeType] || { labelKey: "", color: "#999" };
+  const typeInfo = NODE_TYPE_MAP[data.nodeType] || {
+    labelKey: "",
+    color: "#999",
+  };
 
   const getBorderColor = () => {
-    if (data.validationState === "error") { return "#ff4d4f"; }
-    if (data.validationState === "warning") { return "#faad14"; }
-    if (selected) { return "#1890ff"; }
+    if (data.validationState === "error") {
+      return "#ff4d4f";
+    }
+    if (data.validationState === "warning") {
+      return "#faad14";
+    }
+    if (selected) {
+      return "#1890ff";
+    }
     return data.color;
   };
 

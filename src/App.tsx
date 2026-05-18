@@ -57,7 +57,8 @@ function AppInner() {
   const location = useLocation();
   const navigate = useNavigate();
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
-  const isInSettings = location.pathname === "/settings" || location.pathname.startsWith("/settings/");
+  const isInSettings = location.pathname === "/settings"
+    || location.pathname.startsWith("/settings/");
 
   // 同步检测 QuickBar 窗口（在首次渲染前），避免 ChatPage 先渲染导致崩溃
   const [isQuickBarWindow] = useState(() => {
@@ -73,14 +74,18 @@ function AppInner() {
       return;
     }
     if (isTauri()) {
-      import("@tauri-apps/api/webviewWindow").then(({ getCurrentWebviewWindow }) => {
-        try {
-          const label = getCurrentWebviewWindow().label;
-          if (label === "quickbar") {
-            navigate("/quickbar", { replace: true });
+      import("@tauri-apps/api/webviewWindow").then(
+        ({ getCurrentWebviewWindow }) => {
+          try {
+            const label = getCurrentWebviewWindow().label;
+            if (label === "quickbar") {
+              navigate("/quickbar", { replace: true });
+            }
+          } catch {
+            /* not a Tauri webview window */
           }
-        } catch { /* not a Tauri webview window */ }
-      });
+        },
+      );
     }
   }, [navigate]);
 
@@ -102,7 +107,9 @@ function AppInner() {
   }, [modal, t]);
 
   useEffect(() => {
-    if (!isTauri()) { return; }
+    if (!isTauri()) {
+      return;
+    }
     const unlisten = listen("app-close-requested", handleCloseRequested);
     return () => {
       unlisten.then((fn) => fn());
@@ -122,11 +129,16 @@ function AppInner() {
     // Markdown renderer (markstream-react) CSS variables
     root.style.setProperty("--table-border", token.colorBorderSecondary);
     root.style.setProperty("--hr-border-color", token.colorBorderSecondary);
-    root.style.setProperty("--blockquote-border-color", token.colorBorderSecondary);
+    root.style.setProperty(
+      "--blockquote-border-color",
+      token.colorBorderSecondary,
+    );
   }, [token]);
 
   // Global stream event listeners — persist across page navigation
-  const startStreamListening = useConversationStore((s) => s.startStreamListening);
+  const startStreamListening = useConversationStore(
+    (s) => s.startStreamListening,
+  );
   const stopStreamListening = useStreamStore((s) => s.stopStreamListening);
   useEffect(() => {
     startStreamListening();
@@ -149,11 +161,15 @@ function AppInner() {
 
   // Auto-check for updates on startup and periodically
   const { checkForUpdate } = useUpdateChecker();
-  const updateCheckInterval = useSettingsStore((s) => s.settings.update_check_interval ?? 60);
+  const updateCheckInterval = useSettingsStore(
+    (s) => s.settings.update_check_interval ?? 60,
+  );
   const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!isTauri()) { return; }
+    if (!isTauri()) {
+      return;
+    }
     // Initial check after 3s delay
     const timer = setTimeout(() => checkForUpdate({ silent: true }), 3000);
     return () => clearTimeout(timer);
@@ -161,25 +177,44 @@ function AppInner() {
   }, []);
 
   useEffect(() => {
-    if (!isTauri() || !updateCheckInterval) { return; }
-    if (updateIntervalRef.current) { clearInterval(updateIntervalRef.current); }
+    if (!isTauri() || !updateCheckInterval) {
+      return;
+    }
+    if (updateIntervalRef.current) {
+      clearInterval(updateIntervalRef.current);
+    }
     const intervalMs = Math.max(updateCheckInterval, 1) * 60 * 1000;
-    updateIntervalRef.current = setInterval(() => checkForUpdate({ silent: true }), intervalMs);
+    updateIntervalRef.current = setInterval(
+      () => checkForUpdate({ silent: true }),
+      intervalMs,
+    );
     return () => {
-      if (updateIntervalRef.current) { clearInterval(updateIntervalRef.current); }
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+      }
     };
   }, [updateCheckInterval, checkForUpdate]);
 
   return (
     <>
-      <div className="flex flex-col h-screen" style={{ backgroundColor: token.colorBgContainer }}>
+      <div
+        className="flex flex-col h-screen"
+        style={{ backgroundColor: token.colorBgContainer }}
+      >
         {isQuickBar
           ? (
             isQuickBarWindow && location.pathname !== "/quickbar"
               ? (
                 <Suspense
                   fallback={
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }} />
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: "100%",
+                      }}
+                    />
                   }
                 >
                   <PageErrorBoundary title="QuickBar">
@@ -216,7 +251,11 @@ function AppInner() {
                   </div>
                 )}
                 <Content className="overflow-hidden">
-                  <div className="ax-page-transition" style={{ height: "100%" }} key={location.key}>
+                  <div
+                    className="ax-page-transition"
+                    style={{ height: "100%" }}
+                    key={location.key}
+                  >
                     <ContentArea />
                   </div>
                 </Content>
@@ -236,7 +275,9 @@ function AppRoot() {
   const { i18n } = useTranslation();
   const themeMode = useSettingsStore((s) => s.settings.theme_mode);
   const primaryColor = useSettingsStore((s) => s.settings.primary_color);
-  const themePreset = useSettingsStore((s) => s.settings.theme_preset) as ThemePreset | undefined;
+  const themePreset = useSettingsStore((s) => s.settings.theme_preset) as
+    | ThemePreset
+    | undefined;
   const fontSize = useSettingsStore((s) => s.settings.font_size);
   const fontWeight = useSettingsStore((s) => s.settings.font_weight);
   const fontFamily = useSettingsStore((s) => s.settings.font_family);
@@ -245,16 +286,19 @@ function AppRoot() {
   const language = useSettingsStore((s) => s.settings.language);
   const isDark = useResolvedDarkMode(themeMode, themePreset);
 
-  const localeMap = useMemo<Record<string, string>>(() => ({
-    "zh-CN": "zh_CN",
-    "ja": "ja_JP",
-    "ko": "ko_KR",
-    "de": "de_DE",
-    "fr": "fr_FR",
-    "es": "es_ES",
-    "ru": "ru_RU",
-    "pt-BR": "pt_BR",
-  }), []);
+  const localeMap = useMemo<Record<string, string>>(
+    () => ({
+      "zh-CN": "zh_CN",
+      ja: "ja_JP",
+      ko: "ko_KR",
+      de: "de_DE",
+      fr: "fr_FR",
+      es: "es_ES",
+      ru: "ru_RU",
+      "pt-BR": "pt_BR",
+    }),
+    [],
+  );
 
   const [antdLocale, setAntdLocale] = useState<any>(null);
 
@@ -263,11 +307,15 @@ function AppRoot() {
     const localeCode = localeMap[language] || "en_US";
     import(`antd/locale/${localeCode}`)
       .then((mod) => {
-        if (!cancelled) { setAntdLocale(mod.default); }
+        if (!cancelled) {
+          setAntdLocale(mod.default);
+        }
       })
       .catch(() => {
         import("antd/locale/en_US").then((m) => {
-          if (!cancelled) { setAntdLocale(m.default); }
+          if (!cancelled) {
+            setAntdLocale(m.default);
+          }
         });
       });
     return () => {
@@ -310,7 +358,10 @@ function AppRoot() {
       try {
         await useSettingsStore.getState().fetchSettings();
       } catch (e) {
-        console.warn(`[启动] get_settings 失败 (${Math.round(performance.now() - t0)}ms):`, e);
+        console.warn(
+          `[启动] get_settings 失败 (${Math.round(performance.now() - t0)}ms):`,
+          e,
+        );
       }
 
       // 注意：预设工作流模板不再在启动时自动导入。
@@ -327,7 +378,10 @@ function AppRoot() {
           closeToTray: settings.minimize_to_tray ?? false,
         });
       } catch (e) {
-        console.warn(`[启动] apply_startup_settings 失败 (${Math.round(performance.now() - t0)}ms):`, e);
+        console.warn(
+          `[启动] apply_startup_settings 失败 (${Math.round(performance.now() - t0)}ms):`,
+          e,
+        );
       }
 
       // Autostart (skip in dev mode — exe path doesn't exist)
@@ -342,7 +396,9 @@ function AppRoot() {
         } catch (e) {
           const errorStr = String(e);
           if (errorStr.includes("os error 2")) {
-            console.debug("Autostart skipped: executable path not found (may occur in portable mode)");
+            console.debug(
+              "Autostart skipped: executable path not found (may occur in portable mode)",
+            );
           } else {
             console.warn("Failed to set autostart:", e);
           }
@@ -421,7 +477,10 @@ function AppRoot() {
         <ConfigProvider
           locale={antdLocale}
           theme={themeConfig}
-          modal={{ centered: true, styles: { mask: { backdropFilter: "blur(4px)" } } }}
+          modal={{
+            centered: true,
+            styles: { mask: { backdropFilter: "blur(4px)" } },
+          }}
         >
           <AntdApp>
             <AppInner />

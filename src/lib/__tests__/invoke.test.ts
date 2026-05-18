@@ -3,11 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ─── Mock 设置 ────────────────────────────────────────────────────
 // 必须在导入前 mock，因为 invoke.ts 顶层有 import
 
-const { mockTauriInvoke, mockHandleCommand, mockTauriListen } = vi.hoisted(() => ({
-  mockTauriInvoke: vi.fn(),
-  mockHandleCommand: vi.fn(),
-  mockTauriListen: vi.fn(),
-}));
+const { mockTauriInvoke, mockHandleCommand, mockTauriListen } = vi.hoisted(
+  () => ({
+    mockTauriInvoke: vi.fn(),
+    mockHandleCommand: vi.fn(),
+    mockTauriListen: vi.fn(),
+  }),
+);
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mockTauriInvoke,
@@ -77,9 +79,13 @@ describe("invoke.ts", () => {
     it("非 Tauri 环境应委托给 browserMock.handleCommand", async () => {
       mockHandleCommand.mockResolvedValueOnce({ data: "result" });
 
-      const result = await invoke<{ data: string }>("my_command", { key: "val" });
+      const result = await invoke<{ data: string }>("my_command", {
+        key: "val",
+      });
 
-      expect(mockHandleCommand).toHaveBeenCalledWith("my_command", { key: "val" });
+      expect(mockHandleCommand).toHaveBeenCalledWith("my_command", {
+        key: "val",
+      });
       expect(result).toEqual({ data: "result" });
     });
 
@@ -198,14 +204,18 @@ describe("invoke.ts", () => {
       enableTauriMode();
       mockTauriInvoke.mockRejectedValueOnce(new Error("Fetch error occurred"));
 
-      await expect(invoke("fetch_cmd")).rejects.toThrow("Backend connection failed");
+      await expect(invoke("fetch_cmd")).rejects.toThrow(
+        "Backend connection failed",
+      );
     });
 
     it("protocol 相关错误应转换为友好提示", async () => {
       enableTauriMode();
       mockTauriInvoke.mockRejectedValueOnce(new Error("Protocol error"));
 
-      await expect(invoke("proto_cmd")).rejects.toThrow("Backend connection failed");
+      await expect(invoke("proto_cmd")).rejects.toThrow(
+        "Backend connection failed",
+      );
     });
 
     it("普通业务错误不应被转换", async () => {

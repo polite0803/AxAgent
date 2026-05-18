@@ -50,7 +50,9 @@ interface WorkflowTemplate {
   scenarios?: string[];
 }
 
-const getWorkflowTemplates = (t: (key: string) => string): WorkflowTemplate[] => [
+const getWorkflowTemplates = (
+  t: (key: string) => string,
+): WorkflowTemplate[] => [
   {
     id: "code-review",
     name: t("chat.workflow.codeReview.name"),
@@ -70,7 +72,12 @@ Format findings by severity: 🔴 Critical → 🟠 High → 🟡 Medium → �
     permissionMode: "default",
     scenarios: ["coding"],
     steps: [
-      { id: "explore", goal: "Explore codebase structure and identify key files", role: "researcher", needs: [] },
+      {
+        id: "explore",
+        goal: "Explore codebase structure and identify key files",
+        role: "researcher",
+        needs: [],
+      },
       {
         id: "review",
         goal: "Review code for bugs, security issues, and best practices",
@@ -104,10 +111,30 @@ Always explain your reasoning at each step. Prefer minimal, targeted fixes over 
     permissionMode: "accept_edits",
     scenarios: ["coding"],
     steps: [
-      { id: "reproduce", goal: "Understand and reproduce the bug", role: "researcher", needs: [] },
-      { id: "diagnose", goal: "Identify root cause through analysis", role: "planner", needs: ["reproduce"] },
-      { id: "fix", goal: "Implement the minimal fix", role: "developer", needs: ["diagnose"] },
-      { id: "verify", goal: "Verify the fix and suggest regression tests", role: "reviewer", needs: ["fix"] },
+      {
+        id: "reproduce",
+        goal: "Understand and reproduce the bug",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "diagnose",
+        goal: "Identify root cause through analysis",
+        role: "planner",
+        needs: ["reproduce"],
+      },
+      {
+        id: "fix",
+        goal: "Implement the minimal fix",
+        role: "developer",
+        needs: ["diagnose"],
+      },
+      {
+        id: "verify",
+        goal: "Verify the fix and suggest regression tests",
+        role: "reviewer",
+        needs: ["fix"],
+      },
     ],
   },
   {
@@ -133,8 +160,18 @@ Use markdown formatting. Include code blocks with proper language tags.`,
         role: "researcher",
         needs: [],
       },
-      { id: "generate", goal: "Generate documentation content", role: "developer", needs: ["explore"] },
-      { id: "review", goal: "Review documentation quality and completeness", role: "reviewer", needs: ["generate"] },
+      {
+        id: "generate",
+        goal: "Generate documentation content",
+        role: "developer",
+        needs: ["explore"],
+      },
+      {
+        id: "review",
+        goal: "Review documentation quality and completeness",
+        role: "reviewer",
+        needs: ["generate"],
+      },
     ],
   },
   {
@@ -156,9 +193,24 @@ Use the project's existing test framework. Follow existing test patterns and nam
     permissionMode: "accept_edits",
     scenarios: ["coding"],
     steps: [
-      { id: "analyze", goal: "Analyze existing code and test patterns", role: "researcher", needs: [] },
-      { id: "generate", goal: "Generate comprehensive test suites", role: "developer", needs: ["analyze"] },
-      { id: "verify", goal: "Verify tests compile and cover edge cases", role: "reviewer", needs: ["generate"] },
+      {
+        id: "analyze",
+        goal: "Analyze existing code and test patterns",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "generate",
+        goal: "Generate comprehensive test suites",
+        role: "developer",
+        needs: ["analyze"],
+      },
+      {
+        id: "verify",
+        goal: "Verify tests compile and cover edge cases",
+        role: "reviewer",
+        needs: ["generate"],
+      },
     ],
   },
   {
@@ -179,15 +231,30 @@ Follow the "Strangler Fig" pattern for large refactors. Never change behavior an
     permissionMode: "accept_edits",
     scenarios: ["coding"],
     steps: [
-      { id: "analyze", goal: "Identify code smells and refactoring opportunities", role: "researcher", needs: [] },
+      {
+        id: "analyze",
+        goal: "Identify code smells and refactoring opportunities",
+        role: "researcher",
+        needs: [],
+      },
       {
         id: "plan",
         goal: "Create refactoring plan with safe transformation steps",
         role: "planner",
         needs: ["analyze"],
       },
-      { id: "execute", goal: "Apply refactoring transformations one at a time", role: "developer", needs: ["plan"] },
-      { id: "verify", goal: "Verify behavior is preserved after refactoring", role: "reviewer", needs: ["execute"] },
+      {
+        id: "execute",
+        goal: "Apply refactoring transformations one at a time",
+        role: "developer",
+        needs: ["plan"],
+      },
+      {
+        id: "verify",
+        goal: "Verify behavior is preserved after refactoring",
+        role: "reviewer",
+        needs: ["execute"],
+      },
     ],
   },
   {
@@ -209,9 +276,24 @@ Use diagrams (mermaid) when helpful. Explain in terms a new team member would un
     permissionMode: "default",
     scenarios: ["coding", "research"],
     steps: [
-      { id: "explore", goal: "Explore project structure and entry points", role: "researcher", needs: [] },
-      { id: "analyze", goal: "Analyze architecture and data flow", role: "planner", needs: ["explore"] },
-      { id: "document", goal: "Create comprehensive codebase overview", role: "synthesizer", needs: ["analyze"] },
+      {
+        id: "explore",
+        goal: "Explore project structure and entry points",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "analyze",
+        goal: "Analyze architecture and data flow",
+        role: "planner",
+        needs: ["explore"],
+      },
+      {
+        id: "document",
+        goal: "Create comprehensive codebase overview",
+        role: "synthesizer",
+        needs: ["analyze"],
+      },
     ],
   },
   // ============== New Templates ==============
@@ -234,10 +316,30 @@ Focus on high-impact, measurable improvements. Avoid premature optimization.`,
     permissionMode: "accept_edits",
     scenarios: ["coding"],
     steps: [
-      { id: "profile", goal: "Identify performance bottlenecks and hot paths", role: "researcher", needs: [] },
-      { id: "analyze", goal: "Analyze root causes of performance issues", role: "planner", needs: ["profile"] },
-      { id: "optimize", goal: "Apply targeted performance optimizations", role: "developer", needs: ["analyze"] },
-      { id: "verify", goal: "Verify performance improvements with benchmarks", role: "reviewer", needs: ["optimize"] },
+      {
+        id: "profile",
+        goal: "Identify performance bottlenecks and hot paths",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "analyze",
+        goal: "Analyze root causes of performance issues",
+        role: "planner",
+        needs: ["profile"],
+      },
+      {
+        id: "optimize",
+        goal: "Apply targeted performance optimizations",
+        role: "developer",
+        needs: ["analyze"],
+      },
+      {
+        id: "verify",
+        goal: "Verify performance improvements with benchmarks",
+        role: "reviewer",
+        needs: ["optimize"],
+      },
     ],
   },
   {
@@ -260,8 +362,18 @@ Provide severity ratings and remediation steps for each finding.`,
     permissionMode: "default",
     scenarios: ["coding", "analysis"],
     steps: [
-      { id: "scan", goal: "Scan for security vulnerabilities and entry points", role: "researcher", needs: [] },
-      { id: "analyze", goal: "Analyze security risks and OWASP compliance", role: "reviewer", needs: ["scan"] },
+      {
+        id: "scan",
+        goal: "Scan for security vulnerabilities and entry points",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "analyze",
+        goal: "Analyze security risks and OWASP compliance",
+        role: "reviewer",
+        needs: ["scan"],
+      },
       {
         id: "report",
         goal: "Generate security audit report with remediation",
@@ -289,10 +401,30 @@ Prioritize backward compatibility and provide fallback options.`,
     permissionMode: "accept_edits",
     scenarios: ["coding", "analysis"],
     steps: [
-      { id: "assess", goal: "Assess current state and migration requirements", role: "researcher", needs: [] },
-      { id: "plan", goal: "Create detailed migration plan with steps", role: "planner", needs: ["assess"] },
-      { id: "execute", goal: "Execute migration steps incrementally", role: "developer", needs: ["plan"] },
-      { id: "validate", goal: "Validate migration with tests and checks", role: "reviewer", needs: ["execute"] },
+      {
+        id: "assess",
+        goal: "Assess current state and migration requirements",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "plan",
+        goal: "Create detailed migration plan with steps",
+        role: "planner",
+        needs: ["assess"],
+      },
+      {
+        id: "execute",
+        goal: "Execute migration steps incrementally",
+        role: "developer",
+        needs: ["plan"],
+      },
+      {
+        id: "validate",
+        goal: "Validate migration with tests and checks",
+        role: "reviewer",
+        needs: ["execute"],
+      },
     ],
   },
   {
@@ -314,10 +446,30 @@ Ensure consistency, backward compatibility, and good developer experience.`,
     permissionMode: "accept_edits",
     scenarios: ["coding", "analysis"],
     steps: [
-      { id: "analyze", goal: "Analyze requirements and use cases", role: "researcher", needs: [] },
-      { id: "design", goal: "Design API endpoints and schemas", role: "planner", needs: ["analyze"] },
-      { id: "implement", goal: "Implement API endpoints", role: "developer", needs: ["design"] },
-      { id: "document", goal: "Generate API documentation", role: "synthesizer", needs: ["implement"] },
+      {
+        id: "analyze",
+        goal: "Analyze requirements and use cases",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "design",
+        goal: "Design API endpoints and schemas",
+        role: "planner",
+        needs: ["analyze"],
+      },
+      {
+        id: "implement",
+        goal: "Implement API endpoints",
+        role: "developer",
+        needs: ["design"],
+      },
+      {
+        id: "document",
+        goal: "Generate API documentation",
+        role: "synthesizer",
+        needs: ["implement"],
+      },
     ],
   },
   {
@@ -339,14 +491,24 @@ Focus on reproducibility and cross-platform compatibility.`,
     permissionMode: "default",
     scenarios: ["coding"],
     steps: [
-      { id: "diagnose", goal: "Diagnose environment issue from error messages", role: "researcher", needs: [] },
+      {
+        id: "diagnose",
+        goal: "Diagnose environment issue from error messages",
+        role: "researcher",
+        needs: [],
+      },
       {
         id: "investigate",
         goal: "Investigate root cause in config and environment",
         role: "planner",
         needs: ["diagnose"],
       },
-      { id: "fix", goal: "Provide solution and fix steps", role: "developer", needs: ["investigate"] },
+      {
+        id: "fix",
+        goal: "Provide solution and fix steps",
+        role: "developer",
+        needs: ["investigate"],
+      },
     ],
   },
   {
@@ -369,10 +531,30 @@ Follow TDD when appropriate. Ensure backward compatibility.`,
     permissionMode: "accept_edits",
     scenarios: ["coding"],
     steps: [
-      { id: "understand", goal: "Understand and clarify feature requirements", role: "researcher", needs: [] },
-      { id: "design", goal: "Create technical design and architecture", role: "planner", needs: ["understand"] },
-      { id: "implement", goal: "Implement feature with tests", role: "developer", needs: ["design"] },
-      { id: "review", goal: "Review implementation quality and completeness", role: "reviewer", needs: ["implement"] },
+      {
+        id: "understand",
+        goal: "Understand and clarify feature requirements",
+        role: "researcher",
+        needs: [],
+      },
+      {
+        id: "design",
+        goal: "Create technical design and architecture",
+        role: "planner",
+        needs: ["understand"],
+      },
+      {
+        id: "implement",
+        goal: "Implement feature with tests",
+        role: "developer",
+        needs: ["design"],
+      },
+      {
+        id: "review",
+        goal: "Review implementation quality and completeness",
+        role: "reviewer",
+        needs: ["implement"],
+      },
     ],
   },
   {
@@ -902,7 +1084,12 @@ explore(分析) → plan(设计) → build(实现) → review(验证)
     permissionMode: "accept_edits",
     scenarios: ["coding", "analysis", "research"],
     steps: [
-      { id: "analyze", goal: "Analyze the task and determine which experts are needed", role: "planner", needs: [] },
+      {
+        id: "analyze",
+        goal: "Analyze the task and determine which experts are needed",
+        role: "planner",
+        needs: [],
+      },
       {
         id: "execute",
         goal: "Launch expert sub-agents in parallel to execute their assigned tasks",
@@ -928,13 +1115,9 @@ interface WorkflowTemplateSelectorProps {
   expertCategory?: string | null;
 }
 
-export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
-  open,
-  onClose,
-  onSelect,
-  scenario,
-  expertCategory,
-}) => {
+export const WorkflowTemplateSelector: React.FC<
+  WorkflowTemplateSelectorProps
+> = ({ open, onClose, onSelect, scenario, expertCategory }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [creatingWorkflow, setCreatingWorkflow] = useState<string | null>(null);
@@ -944,7 +1127,9 @@ export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> =
   // 默认仅显示通用模板，开发场景工作流（代码审查/重构/调试等）需用户主动导入内置专家后解锁
   const hasFullPresets = (() => {
     try {
-      return localStorage.getItem("axagent_builtin_experts_imported") === "true";
+      return (
+        localStorage.getItem("axagent_builtin_experts_imported") === "true"
+      );
     } catch {
       return false;
     }
@@ -992,7 +1177,11 @@ export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> =
     if (template.steps && template.steps.length > 0) {
       setCreatingWorkflow(template.id);
       try {
-        const result = await invoke<{ workflowId: string; name: string; stepCount: number }>("workflow_create", {
+        const result = await invoke<{
+          workflowId: string;
+          name: string;
+          stepCount: number;
+        }>("workflow_create", {
           request: {
             name: template.name,
             steps: template.steps,
@@ -1000,7 +1189,10 @@ export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> =
         });
         onSelect(template, result.workflowId);
       } catch (e) {
-        console.error("[WorkflowTemplateSelector] Failed to create workflow:", e);
+        console.error(
+          "[WorkflowTemplateSelector] Failed to create workflow:",
+          e,
+        );
         // Fall back to non-workflow mode
         onSelect(template);
       } finally {

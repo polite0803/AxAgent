@@ -20,16 +20,25 @@ interface ConditionNodeData {
   validationState?: "error" | "warning";
 }
 
-const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, selected }) => {
+const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#fa8c16";
   const conditions = data.conditions || [];
   const logicalOp = data.logicalOp || "and";
 
   const getBorderColor = () => {
-    if (data.validationState === "error") { return "#ff4d4f"; }
-    if (data.validationState === "warning") { return "#faad14"; }
-    if (selected) { return "#1890ff"; }
+    if (data.validationState === "error") {
+      return "#ff4d4f";
+    }
+    if (data.validationState === "warning") {
+      return "#faad14";
+    }
+    if (selected) {
+      return "#1890ff";
+    }
     return color;
   };
 
@@ -55,9 +64,15 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
   };
 
   const formatValue = (value: unknown): string => {
-    if (value === null || value === undefined) { return ""; }
-    if (typeof value === "string") { return value.length > 10 ? `${value.slice(0, 10)}...` : value; }
-    if (typeof value === "number") { return String(value); }
+    if (value === null || value === undefined) {
+      return "";
+    }
+    if (typeof value === "string") {
+      return value.length > 10 ? `${value.slice(0, 10)}...` : value;
+    }
+    if (typeof value === "number") {
+      return String(value);
+    }
     return JSON.stringify(value).slice(0, 10);
   };
 
@@ -182,7 +197,9 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
                       textAlign: "center",
                     }}
                   >
-                    {t("workflow.conditionNode.moreConditions", { count: conditions.length - 3 })}
+                    {t("workflow.conditionNode.moreConditions", {
+                      count: conditions.length - 3,
+                    })}
                   </div>
                 )}
               </div>
@@ -241,7 +258,13 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
         }}
       />
 
-      <div style={{ display: "flex", justifyContent: "space-around", marginTop: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-around",
+          marginTop: 4,
+        }}
+      >
         <Tag color="green" style={{ margin: 0, fontSize: 9 }}>
           {t("workflow.conditionNode.true")}
         </Tag>

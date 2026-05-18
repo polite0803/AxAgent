@@ -11,7 +11,9 @@ interface SubWorkflowPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const SubWorkflowPropertyPanel: React.FC<
+  SubWorkflowPropertyPanelProps
+> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const subWorkflowNode = node as SubWorkflowNode;
   const config = subWorkflowNode.config || {
@@ -30,9 +32,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
   }, [templates.length, loadTemplates]);
 
   const workflowOptions = useMemo(
-    () =>
-      templates
-        .flatMap((t) => t.id !== currentTemplate?.id ? [{ value: t.id, label: t.name }] : []),
+    () => templates.flatMap((t) => t.id !== currentTemplate?.id ? [{ value: t.id, label: t.name }] : []),
     [templates, currentTemplate?.id],
   );
 
@@ -78,7 +78,15 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label htmlFor="sub-workflow-select" style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          htmlFor="sub-workflow-select"
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           Sub Workflow
         </label>
         <Select
@@ -94,8 +102,16 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
         />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.asyncExecution")}</label>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <label style={{ color: "#999", fontSize: 12 }}>
+          {t("workflow.props.asyncExecution")}
+        </label>
         <Switch
           size="small"
           checked={config.is_async ?? false}
@@ -104,8 +120,17 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
       </div>
 
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.inputMapping")}</label>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 4,
+          }}
+        >
+          <label style={{ color: "#999", fontSize: 12 }}>
+            {t("workflow.props.inputMapping")}
+          </label>
           <Button type="link" size="small" onClick={handleAddInputMapping}>
             {t("workflow.props.addMapping")}
           </Button>
@@ -113,7 +138,10 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {Object.entries(config.input_mapping || {}).map(([key, value]) => (
-            <div key={key} style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <div
+              key={key}
+              style={{ display: "flex", gap: 4, alignItems: "center" }}
+            >
               <Input
                 id="sub-workflow-property-panel-input-107"
                 value={key}
@@ -125,8 +153,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
               <Input
                 id="sub-workflow-property-panel-input-108"
                 value={String(value)}
-                onChange={(e) =>
-                  handleUpdateInputMapping(key, e.target.value)}
+                onChange={(e) => handleUpdateInputMapping(key, e.target.value)}
                 size="small"
                 placeholder={t("workflow.props.variable")}
                 style={{ flex: 1 }}
@@ -135,8 +162,7 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
                 type="link"
                 size="small"
                 danger
-                onClick={() =>
-                  handleDeleteInputMapping(key)}
+                onClick={() => handleDeleteInputMapping(key)}
               >
                 {t("workflow.props.delete")}
               </Button>
@@ -144,7 +170,14 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
           ))}
 
           {Object.keys(config.input_mapping || {}).length === 0 && (
-            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 8 }}>
+            <div
+              style={{
+                color: "#666",
+                fontSize: 12,
+                textAlign: "center",
+                padding: 8,
+              }}
+            >
               {t("workflow.props.clickToAddMapping")}
             </div>
           )}
@@ -152,7 +185,14 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -166,8 +206,14 @@ export const SubWorkflowPropertyPanel: React.FC<SubWorkflowPropertyPanelProps> =
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

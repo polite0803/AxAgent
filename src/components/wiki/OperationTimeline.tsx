@@ -76,10 +76,16 @@ const getTargetTypeLabel = (type: string, t: (key: string) => string) => {
 };
 
 const formatDuration = (start: number, end?: number) => {
-  if (!end) { return "-"; }
+  if (!end) {
+    return "-";
+  }
   const diff = end - start;
-  if (diff < 1000) { return `${diff}ms`; }
-  if (diff < 60000) { return `${(diff / 1000).toFixed(1)}s`; }
+  if (diff < 1000) {
+    return `${diff}ms`;
+  }
+  if (diff < 60000) {
+    return `${(diff / 1000).toFixed(1)}s`;
+  }
   return `${(diff / 60000).toFixed(1)}m`;
 };
 
@@ -92,14 +98,27 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
   const { t } = useTranslation();
 
   if (operations.length === 0) {
-    return <Empty description={t("wiki.operation.noOperations")} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    return (
+      <Empty
+        description={t("wiki.operation.noOperations")}
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+      />
+    );
   }
 
   return (
     <Timeline
       mode="left"
       items={operations.map((op) => ({
-        dot: <Badge status={getStatusColor(op.status) as "success" | "error" | "processing" | "default"} />,
+        dot: (
+          <Badge
+            status={getStatusColor(op.status) as
+              | "success"
+              | "error"
+              | "processing"
+              | "default"}
+          />
+        ),
         children: (
           <Card size="small" style={{ marginBottom: 8 }}>
             <Space direction="vertical" size="small" style={{ width: "100%" }}>
@@ -107,7 +126,9 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
                 <Tooltip title={formatDate(op.createdAt)}>
                   {getOperationIcon(op)}
                 </Tooltip>
-                <Tag color="blue">{getOperationTypeLabel(op.operationType, t)}</Tag>
+                <Tag color="blue">
+                  {getOperationTypeLabel(op.operationType, t)}
+                </Tag>
                 <Tag>{getTargetTypeLabel(op.targetType, t)}</Tag>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {op.targetId}
@@ -118,7 +139,11 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("wiki.operation.status")}:
                   <Tag
-                    color={op.status === "completed" ? "success" : op.status === "failed" ? "error" : "default"}
+                    color={op.status === "completed"
+                      ? "success"
+                      : op.status === "failed"
+                      ? "error"
+                      : "default"}
                     style={{ marginLeft: 4 }}
                   >
                     {op.status}
@@ -137,11 +162,13 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
 
               {op.detailsJson && (
                 <div style={{ fontSize: 12, color: "#8c8c8c" }}>
-                  {Object.entries(op.detailsJson).slice(0, 3).map(([key, value]) => (
-                    <div key={key}>
-                      {key}: {String(value)}
-                    </div>
-                  ))}
+                  {Object.entries(op.detailsJson)
+                    .slice(0, 3)
+                    .map(([key, value]) => (
+                      <div key={key}>
+                        {key}: {String(value)}
+                      </div>
+                    ))}
                 </div>
               )}
             </Space>

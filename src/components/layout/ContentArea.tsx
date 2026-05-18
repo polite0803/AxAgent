@@ -8,19 +8,31 @@ import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 const LazyChatPage = lazy(() => import("@/pages/ChatPage").then((m) => ({ default: m.ChatPage })));
 const LazyKnowledgeHubPage = lazy(() =>
-  import("@/pages/KnowledgeHubPage").then((m) => ({ default: m.KnowledgeHubPage }))
+  import("@/pages/KnowledgeHubPage").then((m) => ({
+    default: m.KnowledgeHubPage,
+  }))
 );
-const LazyGatewayLinkPage = lazy(() => import("@/pages/GatewayLinkPage").then((m) => ({ default: m.GatewayLinkPage })));
+const LazyGatewayLinkPage = lazy(() =>
+  import("@/pages/GatewayLinkPage").then((m) => ({
+    default: m.GatewayLinkPage,
+  }))
+);
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
 const LazyTraceExplorer = lazy(() =>
-  import("@/pages/DevTools/TraceExplorer").then((m) => ({ default: m.TraceExplorer }))
+  import("@/pages/DevTools/TraceExplorer").then((m) => ({
+    default: m.TraceExplorer,
+  }))
 );
 const LazyBenchmarkRunner = lazy(() =>
-  import("@/pages/DevTools/BenchmarkRunner").then((m) => ({ default: m.BenchmarkRunner }))
+  import("@/pages/DevTools/BenchmarkRunner").then((m) => ({
+    default: m.BenchmarkRunner,
+  }))
 );
 const LazyToolRecommender = lazy(() =>
-  import("@/pages/DevTools/ToolRecommender").then((m) => ({ default: m.ToolRecommender }))
+  import("@/pages/DevTools/ToolRecommender").then((m) => ({
+    default: m.ToolRecommender,
+  }))
 );
 const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.default })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
@@ -29,7 +41,10 @@ const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => (
 
 function PageLoader() {
   return (
-    <div className="flex items-center justify-center h-full w-full" style={{ minHeight: 200 }}>
+    <div
+      className="flex items-center justify-center h-full w-full"
+      style={{ minHeight: 200 }}
+    >
       <Spin size="large" />
     </div>
   );
@@ -59,7 +74,13 @@ function SkillRoutePage() {
 
   if (!page) {
     return (
-      <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
+      <div
+        style={{
+          padding: 24,
+          textAlign: "center",
+          color: "var(--color-text-secondary)",
+        }}
+      >
         <Spin size="large" style={{ marginBottom: 16 }} />
         <div>{t("skill.loadingPage")}</div>
       </div>
@@ -75,7 +96,9 @@ function SkillRoutePage() {
   );
 }
 
-const SkillPageByParam = lazy(() => import("@/components/skill/SkillPageByParam"));
+const SkillPageByParam = lazy(
+  () => import("@/components/skill/SkillPageByParam"),
+);
 
 function NotFoundRoute() {
   const { t } = useTranslation();
@@ -86,7 +109,11 @@ function NotFoundRoute() {
         status="404"
         title="404"
         subTitle={t("error.pageNotFound")}
-        extra={<Button type="primary" onClick={() => navigate("/")}>{t("common.back")}</Button>}
+        extra={
+          <Button type="primary" onClick={() => navigate("/")}>
+            {t("common.back")}
+          </Button>
+        }
       />
     </div>
   );
@@ -108,29 +135,80 @@ export function ContentArea() {
   return (
     <Routes>
       <Route path="/" element={<SafeLazyPage Page={LazyChatPage} />} />
-      <Route path="/knowledge" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
-      <Route path="/memory" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
-      <Route path="/link" element={<SafeLazyPage Page={LazyGatewayLinkPage} />} />
-      <Route path="/gateway" element={<SafeLazyPage Page={LazyGatewayLinkPage} />} />
-      <Route path="/settings/*" element={<SafeLazyPage Page={LazySettingsPage} />} />
-      <Route path="/workflow" element={<SafeLazyPage Page={LazyWorkflowPage} />} />
-      <Route path="/llm-wiki" element={<SafeLazyPage Page={LazyKnowledgeHubPage} />} />
-      <Route path="/llm-wiki/:wikiId/graph" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
-      <Route path="/llm-wiki/:wikiId/ingest" element={<SafeLazyPage Page={LazyIngestPage} />} />
+      <Route
+        path="/knowledge"
+        element={<SafeLazyPage Page={LazyKnowledgeHubPage} />}
+      />
+      <Route
+        path="/memory"
+        element={<SafeLazyPage Page={LazyKnowledgeHubPage} />}
+      />
+      <Route
+        path="/link"
+        element={<SafeLazyPage Page={LazyGatewayLinkPage} />}
+      />
+      <Route
+        path="/gateway"
+        element={<SafeLazyPage Page={LazyGatewayLinkPage} />}
+      />
+      <Route
+        path="/settings/*"
+        element={<SafeLazyPage Page={LazySettingsPage} />}
+      />
+      <Route
+        path="/workflow"
+        element={<SafeLazyPage Page={LazyWorkflowPage} />}
+      />
+      <Route
+        path="/llm-wiki"
+        element={<SafeLazyPage Page={LazyKnowledgeHubPage} />}
+      />
+      <Route
+        path="/llm-wiki/:wikiId/graph"
+        element={<SafeLazyPage Page={LazyWikiGraphPage} />}
+      />
+      <Route
+        path="/llm-wiki/:wikiId/ingest"
+        element={<SafeLazyPage Page={LazyIngestPage} />}
+      />
       <Route path="/wiki" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
-      <Route path="/wiki/:wikiId" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
-      <Route path="/quickbar" element={<SafeLazyPage Page={LazyQuickBarPage} />} />
-      <Route path="/devtools/trace-explorer" element={<SafeLazyPage Page={LazyTraceExplorer} />} />
-      <Route path="/devtools/benchmark" element={<SafeLazyPage Page={LazyBenchmarkRunner} />} />
-      <Route path="/devtools/tool-recommender" element={<SafeLazyPage Page={LazyToolRecommender} />} />
-      <Route path="/devtools/fine-tune" element={<SafeLazyPage Page={LazyFineTune} />} />
+      <Route
+        path="/wiki/:wikiId"
+        element={<SafeLazyPage Page={LazyWikiGraphPage} />}
+      />
+      <Route
+        path="/quickbar"
+        element={<SafeLazyPage Page={LazyQuickBarPage} />}
+      />
+      <Route
+        path="/devtools/trace-explorer"
+        element={<SafeLazyPage Page={LazyTraceExplorer} />}
+      />
+      <Route
+        path="/devtools/benchmark"
+        element={<SafeLazyPage Page={LazyBenchmarkRunner} />}
+      />
+      <Route
+        path="/devtools/tool-recommender"
+        element={<SafeLazyPage Page={LazyToolRecommender} />}
+      />
+      <Route
+        path="/devtools/fine-tune"
+        element={<SafeLazyPage Page={LazyFineTune} />}
+      />
 
       {/* 技能声明式动态路由 */}
       {pluginRoutes}
 
       {/* 技能 catch-all 路由 */}
-      <Route path="/skill/:skillName" element={<SafeLazyPage Page={SkillPageByParam} />} />
-      <Route path="/skill/:skillName/:pageId" element={<SafeLazyPage Page={SkillPageByParam} />} />
+      <Route
+        path="/skill/:skillName"
+        element={<SafeLazyPage Page={SkillPageByParam} />}
+      />
+      <Route
+        path="/skill/:skillName/:pageId"
+        element={<SafeLazyPage Page={SkillPageByParam} />}
+      />
       <Route path="*" element={<NotFoundRoute />} />
     </Routes>
   );

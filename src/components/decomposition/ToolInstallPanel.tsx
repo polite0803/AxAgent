@@ -12,7 +12,10 @@ interface ToolInstallPanelProps {
   onComplete?: () => void;
 }
 
-export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, onComplete }) => {
+export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
+  dependency,
+  onComplete,
+}) => {
   const { t } = useTranslation();
   const { generateMissingTool } = useDecompositionStore();
   const [installing, setInstalling] = useState(false);
@@ -48,12 +51,20 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({ dependency, 
   };
 
   if (installed) {
-    return <Alert type="success" message={t("decomposition.readyLabel", { name: dependency.name })} showIcon />;
+    return (
+      <Alert
+        type="success"
+        message={t("decomposition.readyLabel", { name: dependency.name })}
+        showIcon
+      />
+    );
   }
 
   return (
     <div style={{ padding: "12px 0" }}>
-      <Text strong style={{ display: "block", marginBottom: 8 }}>{dependency.name}</Text>
+      <Text strong style={{ display: "block", marginBottom: 8 }}>
+        {dependency.name}
+      </Text>
 
       {isAutoInstallable && (
         <Space direction="vertical" style={{ width: "100%" }}>

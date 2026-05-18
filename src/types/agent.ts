@@ -1,5 +1,10 @@
 export type AgentBehaviorMode = "default" | "accept_edits" | "full_access";
-export type AgentRuntimeStatus = "idle" | "running" | "waiting_approval" | "completed" | "error";
+export type AgentRuntimeStatus =
+  | "idle"
+  | "running"
+  | "waiting_approval"
+  | "completed"
+  | "error";
 export type ApprovalStatus = "pending" | "approved" | "denied";
 
 export interface AgentSession {
@@ -307,7 +312,12 @@ export interface AgentPoolSummary {
 
 // ── SubAgent 注册类型（对应后端 trajectory::SubAgent）──
 
-export type SubAgentStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+export type SubAgentStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export interface SubAgentMetadata {
   agent_type: string;

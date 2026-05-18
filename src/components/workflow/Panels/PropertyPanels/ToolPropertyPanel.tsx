@@ -11,7 +11,11 @@ interface ToolPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const toolNode = node as ToolNode;
   const config = toolNode.config || {
@@ -31,9 +35,14 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
   const toolOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [];
     for (const group of toolGroups) {
-      if (!group.enabled) { continue; }
+      if (!group.enabled) {
+        continue;
+      }
       for (const tool of group.tools) {
-        options.push({ value: tool.name, label: `${group.groupName} / ${tool.name}` });
+        options.push({
+          value: tool.name,
+          label: `${group.groupName} / ${tool.name}`,
+        });
       }
     }
     return options;
@@ -81,7 +90,14 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.tool")}
         </label>
         <Select
@@ -96,8 +112,17 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.inputMapping")}</label>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 4,
+          }}
+        >
+          <label style={{ color: "#999", fontSize: 12 }}>
+            {t("workflow.props.inputMapping")}
+          </label>
           <Button type="link" size="small" onClick={handleAddInputMapping}>
             {t("workflow.props.addMapping")}
           </Button>
@@ -105,7 +130,10 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {Object.entries(config.input_mapping || {}).map(([key, value]) => (
-            <div key={key} style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <div
+              key={key}
+              style={{ display: "flex", gap: 4, alignItems: "center" }}
+            >
               <Input
                 id="tool-property-panel-input-110"
                 value={key}
@@ -117,8 +145,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
               <Input
                 id="tool-property-panel-input-111"
                 value={String(value)}
-                onChange={(e) =>
-                  handleUpdateInputMapping(key, e.target.value)}
+                onChange={(e) => handleUpdateInputMapping(key, e.target.value)}
                 size="small"
                 placeholder={t("workflow.props.variable")}
                 style={{ flex: 1 }}
@@ -127,8 +154,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
                 type="link"
                 size="small"
                 danger
-                onClick={() =>
-                  handleDeleteInputMapping(key)}
+                onClick={() => handleDeleteInputMapping(key)}
               >
                 {t("workflow.props.delete")}
               </Button>
@@ -136,7 +162,14 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
           ))}
 
           {Object.keys(config.input_mapping || {}).length === 0 && (
-            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 8 }}>
+            <div
+              style={{
+                color: "#666",
+                fontSize: 12,
+                textAlign: "center",
+                padding: 8,
+              }}
+            >
               {t("workflow.props.clickToAddMapping")}
             </div>
           )}
@@ -144,7 +177,14 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -158,8 +198,14 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({ node, onUp
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

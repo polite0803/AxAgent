@@ -158,23 +158,39 @@ describe("GatewayTemplates", () => {
     expect(screen.getByText("gateway.cliConnectedHttp")).toBeInTheDocument();
     expect(screen.getByText("gateway.cliConnectedHttps")).toBeInTheDocument();
     expect(screen.getByText("gateway.cliNotConnected")).toBeInTheDocument();
-    expect(screen.getAllByText("gateway.cliNotInstalled").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("gateway.cliNotInstalled").length,
+    ).toBeGreaterThan(0);
 
     await selectProtocol("gateway.cliProtocolHttps");
 
     const codexCard = getToolCard("Codex");
-    expect(within(codexCard).getByRole("button", { name: "gateway.cliSwitchProtocolReconnect" })).toBeInTheDocument();
+    expect(
+      within(codexCard).getByRole("button", {
+        name: "gateway.cliSwitchProtocolReconnect",
+      }),
+    ).toBeInTheDocument();
 
     const openCodeCard = getToolCard("OpenCode");
-    expect(within(openCodeCard).getByRole("button", { name: "gateway.cliDisconnect" })).toBeInTheDocument();
+    expect(
+      within(openCodeCard).getByRole("button", {
+        name: "gateway.cliDisconnect",
+      }),
+    ).toBeInTheDocument();
 
     const claudeCard = getToolCard("Claude Code");
-    const quickConnectButton = within(claudeCard).getByRole("button", { name: "gateway.quickConnect" });
+    const quickConnectButton = within(claudeCard).getByRole("button", {
+      name: "gateway.quickConnect",
+    });
     await waitFor(() => expect(quickConnectButton).toBeEnabled());
     await userEvent.click(quickConnectButton);
 
     await waitFor(() => {
-      expect(connectCliTool).toHaveBeenCalledWith("claude_code", "key-1", "https");
+      expect(connectCliTool).toHaveBeenCalledWith(
+        "claude_code",
+        "key-1",
+        "https",
+      );
     });
   });
 
@@ -205,15 +221,23 @@ describe("GatewayTemplates", () => {
 
     const protocolSelect = await screen.findByTestId("gateway-protocol-select");
     expect(protocolSelect).toHaveClass("ant-select-disabled");
-    expect(within(protocolSelect).getByText("gateway.cliProtocolHttp")).toBeInTheDocument();
+    expect(
+      within(protocolSelect).getByText("gateway.cliProtocolHttp"),
+    ).toBeInTheDocument();
 
     const claudeCard = getToolCard("Claude Code");
-    const quickConnectButton = within(claudeCard).getByRole("button", { name: "gateway.quickConnect" });
+    const quickConnectButton = within(claudeCard).getByRole("button", {
+      name: "gateway.quickConnect",
+    });
     await waitFor(() => expect(quickConnectButton).toBeEnabled());
     await userEvent.click(quickConnectButton);
 
     await waitFor(() => {
-      expect(connectCliTool).toHaveBeenCalledWith("claude_code", "key-1", "http");
+      expect(connectCliTool).toHaveBeenCalledWith(
+        "claude_code",
+        "key-1",
+        "http",
+      );
     });
   });
 
@@ -234,11 +258,17 @@ describe("GatewayTemplates", () => {
 
     const protocolSelect = await screen.findByTestId("gateway-protocol-select");
     expect(protocolSelect).toHaveClass("ant-select-disabled");
-    expect(within(protocolSelect).getByText("gateway.cliProtocolHttps")).toBeInTheDocument();
+    expect(
+      within(protocolSelect).getByText("gateway.cliProtocolHttps"),
+    ).toBeInTheDocument();
 
     const codexCard = getToolCard("Codex");
-    expect(within(codexCard).getByText("gateway.cliConnectedHttp")).toBeInTheDocument();
-    const reconnectButton = within(codexCard).getByRole("button", { name: "gateway.cliSwitchProtocolReconnect" });
+    expect(
+      within(codexCard).getByText("gateway.cliConnectedHttp"),
+    ).toBeInTheDocument();
+    const reconnectButton = within(codexCard).getByRole("button", {
+      name: "gateway.cliSwitchProtocolReconnect",
+    });
     await waitFor(() => expect(reconnectButton).toBeEnabled());
     await userEvent.click(reconnectButton);
 
@@ -264,10 +294,20 @@ describe("GatewayTemplates", () => {
     renderWithApp();
 
     const codexCard = getToolCard("Codex");
-    expect(within(codexCard).getByText("gateway.cliNotConnected")).toBeInTheDocument();
-    expect(within(codexCard).queryByText("gateway.cliConnected")).not.toBeInTheDocument();
-    expect(within(codexCard).getByRole("button", { name: "gateway.quickConnect" })).toBeInTheDocument();
-    expect(within(codexCard).queryByRole("button", { name: "gateway.cliDisconnect" })).not.toBeInTheDocument();
+    expect(
+      within(codexCard).getByText("gateway.cliNotConnected"),
+    ).toBeInTheDocument();
+    expect(
+      within(codexCard).queryByText("gateway.cliConnected"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(codexCard).getByRole("button", { name: "gateway.quickConnect" }),
+    ).toBeInTheDocument();
+    expect(
+      within(codexCard).queryByRole("button", {
+        name: "gateway.cliDisconnect",
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a warning and disables quick connect actions while the gateway is stopped", async () => {
@@ -285,22 +325,34 @@ describe("GatewayTemplates", () => {
 
     renderWithApp();
 
-    expect(screen.getByText("gateway.cliStartGatewayFirst")).toBeInTheDocument();
+    expect(
+      screen.getByText("gateway.cliStartGatewayFirst"),
+    ).toBeInTheDocument();
 
     const claudeCard = getToolCard("Claude Code");
     await waitFor(() => {
-      expect(within(claudeCard).getByRole("button", { name: "gateway.quickConnect" })).toBeDisabled();
+      expect(
+        within(claudeCard).getByRole("button", {
+          name: "gateway.quickConnect",
+        }),
+      ).toBeDisabled();
     });
 
     await selectProtocol("gateway.cliProtocolHttps");
 
     const codexCard = getToolCard("Codex");
     await waitFor(() => {
-      expect(within(codexCard).getByRole("button", { name: "gateway.cliSwitchProtocolReconnect" })).toBeDisabled();
+      expect(
+        within(codexCard).getByRole("button", {
+          name: "gateway.cliSwitchProtocolReconnect",
+        }),
+      ).toBeDisabled();
     });
 
     const protocolSelect = screen.getByTestId("gateway-protocol-select");
     expect(protocolSelect).not.toHaveClass("ant-select-disabled");
-    expect(screen.getByText("Primary Gateway Key (aqb_123)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Primary Gateway Key (aqb_123)"),
+    ).toBeInTheDocument();
   });
 });

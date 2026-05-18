@@ -17,7 +17,9 @@ interface McpState {
   loadToolDescriptors: (serverId: string) => Promise<void>;
   discoverTools: (serverId: string) => Promise<ToolDescriptor[]>;
   loadToolExecutions: (conversationId: string) => Promise<void>;
-  hotReloadServer: (serverId: string) => Promise<{ ok: boolean; toolCount: number }>;
+  hotReloadServer: (
+    serverId: string,
+  ) => Promise<{ ok: boolean; toolCount: number }>;
   discoverAvailableServers: () => Promise<DiscoveredMcpServer[]>;
 }
 
@@ -60,7 +62,10 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   updateServer: async (id, input) => {
     try {
-      const updated = await invoke<McpServer>("update_mcp_server", { id, input });
+      const updated = await invoke<McpServer>("update_mcp_server", {
+        id,
+        input,
+      });
       set((s) => ({
         servers: s.servers.map((srv) => (srv.id === id ? updated : srv)),
         error: null,
@@ -101,7 +106,9 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   loadToolDescriptors: async (serverId) => {
     try {
-      const tools = await invoke<ToolDescriptor[]>("list_mcp_tools", { serverId });
+      const tools = await invoke<ToolDescriptor[]>("list_mcp_tools", {
+        serverId,
+      });
       set((s) => ({
         toolDescriptors: { ...s.toolDescriptors, [serverId]: tools },
         error: null,
@@ -113,7 +120,9 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   discoverTools: async (serverId) => {
     try {
-      const tools = await invoke<ToolDescriptor[]>("discover_mcp_tools", { id: serverId });
+      const tools = await invoke<ToolDescriptor[]>("discover_mcp_tools", {
+        id: serverId,
+      });
       set((s) => ({
         toolDescriptors: { ...s.toolDescriptors, [serverId]: tools },
         error: null,
@@ -138,9 +147,12 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   hotReloadServer: async (serverId) => {
     try {
-      const result = await invoke<{ ok: boolean; toolCount: number }>("hot_reload_mcp_server", {
-        id: serverId,
-      });
+      const result = await invoke<{ ok: boolean; toolCount: number }>(
+        "hot_reload_mcp_server",
+        {
+          id: serverId,
+        },
+      );
       await Promise.all([get().discoverTools(serverId), get().loadServers()]);
       return result;
     } catch (e) {
@@ -151,7 +163,9 @@ export const useMcpStore = create<McpState>((set, get) => ({
 
   discoverAvailableServers: async () => {
     try {
-      const servers = await invoke<DiscoveredMcpServer[]>("discover_available_mcp_servers");
+      const servers = await invoke<DiscoveredMcpServer[]>(
+        "discover_available_mcp_servers",
+      );
       return servers;
     } catch (e) {
       set({ error: String(e) });

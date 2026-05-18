@@ -55,7 +55,9 @@ describe("preloadChatRenderers", () => {
       throw new Error("Module not found");
     });
 
-    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
 
     const { preloadChatRenderers } = await import("../preloadChatRenderers");
 

@@ -12,9 +12,13 @@ const pageKeyToPath: Record<PageKey, string> = {
 };
 
 const pathToPageKey = (path: string): PageKey => {
-  if (path === "/" || path === "") { return "chat"; }
+  if (path === "/" || path === "") {
+    return "chat";
+  }
   const key = path.slice(1) as PageKey;
-  if (key in pageKeyToPath) { return key; }
+  if (key in pageKeyToPath) {
+    return key;
+  }
   return "chat";
 };
 

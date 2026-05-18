@@ -34,7 +34,9 @@ export function ChatPage() {
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const agentPanelEnabled = settings.agent_panel_enabled !== false;
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(settings.agent_panel_compact === true);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(
+    settings.agent_panel_compact === true,
+  );
   const [rightPanelWidth, setRightPanelWidth] = useState(RIGHT_PANEL_DEFAULT);
   const [rightDragging, setRightDragging] = useState(false);
 
@@ -59,7 +61,9 @@ export function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (!dragging) { return; }
+    if (!dragging) {
+      return;
+    }
     const prevUserSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
     const handleMouseMove = (e: MouseEvent) => {
@@ -82,12 +86,16 @@ export function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (!rightDragging) { return; }
+    if (!rightDragging) {
+      return;
+    }
     const prevUserSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
     const handleMouseMove = (e: MouseEvent) => {
       const newWidth = window.innerWidth - e.clientX;
-      setRightPanelWidth(Math.min(RIGHT_PANEL_MAX, Math.max(RIGHT_PANEL_MIN, newWidth)));
+      setRightPanelWidth(
+        Math.min(RIGHT_PANEL_MAX, Math.max(RIGHT_PANEL_MIN, newWidth)),
+      );
     };
     const handleMouseUp = () => setRightDragging(false);
     document.addEventListener("mousemove", handleMouseMove);
@@ -100,9 +108,15 @@ export function ChatPage() {
   }, [rightDragging]);
 
   const conversations = useConversationStore((s) => s.conversations);
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
-  const activeConversation = conversations.find((c) => c.id === activeConversationId);
-  const setActiveConversation = useConversationStore((s) => s.setActiveConversation);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId,
+  );
+  const setActiveConversation = useConversationStore(
+    (s) => s.setActiveConversation,
+  );
   const createConversation = useConversationStore((s) => s.createConversation);
   const providers = useProviderStore((s) => s.providers);
 
@@ -153,8 +167,12 @@ export function ChatPage() {
 
   // 当 activeConversationId 从外部变化时（如侧边栏点击），确保有对应 tab
   useEffect(() => {
-    if (!activeConversationId) { return; }
-    const existingTab = tabs.find((t) => t.conversationId === activeConversationId);
+    if (!activeConversationId) {
+      return;
+    }
+    const existingTab = tabs.find(
+      (t) => t.conversationId === activeConversationId,
+    );
     if (!existingTab) {
       const conv = conversations.find((c) => c.id === activeConversationId);
       if (conv) {
@@ -167,15 +185,15 @@ export function ChatPage() {
 
   // TabBar 新建对话
   const handleNewConversation = useCallback(async () => {
-    let provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
-    let model = provider?.models.find((m) => m.enabled);
-    if (!provider || !model) { return; }
-
-    const conv = await createConversation(
-      "",
-      model.model_id,
-      provider.id,
+    let provider = providers.find(
+      (p) => p.enabled && p.models.some((m) => m.enabled),
     );
+    let model = provider?.models.find((m) => m.enabled);
+    if (!provider || !model) {
+      return;
+    }
+
+    const conv = await createConversation("", model.model_id, provider.id);
     openTab(conv.id, conv.title);
   }, [providers, createConversation, openTab]);
 
@@ -187,7 +205,10 @@ export function ChatPage() {
   // 右侧面板内容（在 ScrollToMessageProvider 内部）
   const rightPanelContent = showRightPanel && scrollApi && activeConversationId
     ? (
-      <ScrollToMessageProvider scrollTo={scrollApi.scrollTo} scrollBoxRef={scrollApi.scrollBoxRef}>
+      <ScrollToMessageProvider
+        scrollTo={scrollApi.scrollTo}
+        scrollBoxRef={scrollApi.scrollBoxRef}
+      >
         <RightPanelContainer
           conversationId={activeConversationId}
           compactMode={rightPanelCollapsed}
@@ -198,7 +219,11 @@ export function ChatPage() {
     : null;
 
   return (
-    <div className="flex h-full" style={{ overflow: "hidden" }} data-testid="chat-view">
+    <div
+      className="flex h-full"
+      style={{ overflow: "hidden" }}
+      data-testid="chat-view"
+    >
       {/* 左侧会话列表 */}
       <div
         ref={sidebarRef}
@@ -221,7 +246,9 @@ export function ChatPage() {
           aria-label="resize handle"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); }
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+            }
           }}
           style={{
             width: 4,
@@ -262,13 +289,17 @@ export function ChatPage() {
           aria-label="resize handle"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); }
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+            }
           }}
           style={{
             width: 4,
             cursor: "col-resize",
             flexShrink: 0,
-            backgroundColor: rightDragging ? "var(--color-primary)" : "transparent",
+            backgroundColor: rightDragging
+              ? "var(--color-primary)"
+              : "transparent",
             transition: "background-color 0.15s",
             zIndex: 10,
           }}
@@ -301,7 +332,9 @@ export function ChatPage() {
           <button
             type="button"
             onClick={toggleRightPanel}
-            title={rightPanelCollapsed ? t("chat.agentPanel.expand") : t("chat.agentPanel.collapse")}
+            title={rightPanelCollapsed
+              ? t("chat.agentPanel.expand")
+              : t("chat.agentPanel.collapse")}
             style={{
               position: "absolute",
               top: 8,

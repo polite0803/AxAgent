@@ -18,7 +18,9 @@ function ChatScrollIndicatorInner() {
 
   const handleScroll = useCallback(() => {
     const el = elRef.current;
-    if (!el) { return; }
+    if (!el) {
+      return;
+    }
 
     const { scrollTop, scrollHeight, clientHeight } = el;
     if (scrollHeight <= clientHeight + 1) {
@@ -53,8 +55,12 @@ function ChatScrollIndicatorInner() {
 
   useEffect(() => {
     const attach = () => {
-      const el = document.querySelector<HTMLElement>(".ant-bubble-list-scroll-box");
-      if (!el || el === elRef.current) { return; }
+      const el = document.querySelector<HTMLElement>(
+        ".ant-bubble-list-scroll-box",
+      );
+      if (!el || el === elRef.current) {
+        return;
+      }
       elRef.current?.removeEventListener("scroll", handleScroll);
       elRef.current = el;
       el.addEventListener("scroll", handleScroll, { passive: true });

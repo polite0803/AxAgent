@@ -1,4 +1,9 @@
-export type ArtifactKind = "draft" | "note" | "report" | "snippet" | "checklist";
+export type ArtifactKind =
+  | "draft"
+  | "note"
+  | "report"
+  | "snippet"
+  | "checklist";
 export type ArtifactFormat =
   | "markdown"
   | "text"

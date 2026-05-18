@@ -19,7 +19,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
   const { token } = theme.useToken();
   const fetchList = useExecutionStore((s) => s.fetchTrajectoryList);
   const fetchDetail = useExecutionStore((s) => s.fetchTrajectoryDetail);
-  const trajectories = useExecutionStore((s) => s.trajectoriesByConversation[conversationId] || _EMPTY_TRAJECTORIES);
+  const trajectories = useExecutionStore(
+    (s) => s.trajectoriesByConversation[conversationId] || _EMPTY_TRAJECTORIES,
+  );
   const loadingList = useExecutionStore((s) => s.loadingTrajectories);
   const details = useExecutionStore((s) => s.trajectoryDetails);
 
@@ -51,28 +53,33 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
     }
   }, [conversationId]);
 
-  const handleSelectTrajectory = useCallback(async (id: string) => {
-    setSelectedId(id);
-    setCurrentStep(0);
-    setIsPlaying(false);
-    setLoadingDetail(true);
-    loadingIdRef.current = id;
-    try {
-      const detail = details[id] ?? await fetchDetail(id);
-      // 防止快速切换时旧结果覆盖新选择
-      if (loadingIdRef.current === id) {
-        setTrajectory(detail);
+  const handleSelectTrajectory = useCallback(
+    async (id: string) => {
+      setSelectedId(id);
+      setCurrentStep(0);
+      setIsPlaying(false);
+      setLoadingDetail(true);
+      loadingIdRef.current = id;
+      try {
+        const detail = details[id] ?? (await fetchDetail(id));
+        // 防止快速切换时旧结果覆盖新选择
+        if (loadingIdRef.current === id) {
+          setTrajectory(detail);
+        }
+      } finally {
+        if (loadingIdRef.current === id) {
+          setLoadingDetail(false);
+        }
       }
-    } finally {
-      if (loadingIdRef.current === id) {
-        setLoadingDetail(false);
-      }
-    }
-  }, [details, fetchDetail]);
+    },
+    [details, fetchDetail],
+  );
 
   // 播放动画
   const playFrame = useCallback(() => {
-    if (!trajectory || !mountedRef.current) { return; }
+    if (!trajectory || !mountedRef.current) {
+      return;
+    }
     const now = performance.now();
     const interval = 1000 / speed;
     if (now - lastStepTimeRef.current >= interval) {
@@ -104,7 +111,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
   }, [isPlaying, playFrame]);
 
   const handlePlayPause = () => {
-    if (!trajectory) { return; }
+    if (!trajectory) {
+      return;
+    }
     if (currentStep >= trajectory.steps.length - 1) {
       setCurrentStep(0);
       setIsPlaying(true);
@@ -115,7 +124,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
 
   const handlePrevStep = () => setCurrentStep((p) => Math.max(0, p - 1));
   const handleNextStep = () => {
-    if (!trajectory) { return; }
+    if (!trajectory) {
+      return;
+    }
     setCurrentStep((p) => Math.min(trajectory.steps.length - 1, p + 1));
   };
   const handleGoToStart = () => setCurrentStep(0);
@@ -130,7 +141,12 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
   return (
     <div
       className="trajectory-replay"
-      style={{ padding: "8px 0", display: "flex", flexDirection: "column", height: "100%" }}
+      style={{
+        padding: "8px 0",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+      }}
     >
       {/* 轨迹选择器 */}
       <div style={{ padding: "0 8px", flexShrink: 0 }}>
@@ -151,7 +167,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
             <select
               value={selectedId ?? ""}
               onChange={(e) => {
-                if (e.target.value) { handleSelectTrajectory(e.target.value); }
+                if (e.target.value) {
+                  handleSelectTrajectory(e.target.value);
+                }
               }}
               style={{
                 width: "100%",
@@ -176,13 +194,34 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
       {/* 回放区域 */}
       {loadingDetail
         ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Loader2 size={18} style={{ animation: "spin 1s linear infinite", color: token.colorTextQuaternary }} />
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Loader2
+              size={18}
+              style={{
+                animation: "spin 1s linear infinite",
+                color: token.colorTextQuaternary,
+              }}
+            />
           </div>
         )
         : trajectory && step
         ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", marginTop: 8 }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              marginTop: 8,
+            }}
+          >
             {/* 质量摘要 */}
             {trajectory.quality && (
               <div
@@ -274,7 +313,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                         fontSize: 12,
                       }}
                     >
-                      <span style={{ color: token.colorWarning, fontWeight: 600 }}>
+                      <span
+                        style={{ color: token.colorWarning, fontWeight: 600 }}
+                      >
                         🔧 {tc.name}
                       </span>
                       {tc.input && Object.keys(tc.input).length > 0 && (
@@ -287,7 +328,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                             wordBreak: "break-all",
                           }}
                         >
-                          {JSON.stringify(tc.input, null, 1)}
+                        {JSON.stringify(tc.input, null, 1)}
                         </pre>
                       )}
                     </div>
@@ -309,7 +350,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                           : token.colorSuccessBg,
                         borderRadius: 4,
                         fontSize: 12,
-                        color: tr.error ? token.colorError : token.colorTextSecondary,
+                        color: tr.error
+                          ? token.colorError
+                          : token.colorTextSecondary,
                       }}
                     >
                       {tr.error ? `❌ ${tr.error}` : tr.output?.slice(0, 300)}
@@ -321,9 +364,18 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
           </div>
         )
         : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>
-              {selectedId ? t("chat.agentPanel.unableToLoad") : t("chat.agentPanel.selectTrajectory")}
+              {selectedId
+                ? t("chat.agentPanel.unableToLoad")
+                : t("chat.agentPanel.selectTrajectory")}
             </span>
           </div>
         )}
@@ -433,7 +485,15 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
 
           {/* 速度选择 */}
           <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: token.colorTextSecondary }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 12,
+              color: token.colorTextSecondary,
+            }}
+          >
             {t("chat.agentPanel.speed")}:
             {SPEED_OPTIONS.map((s) => (
               <button
@@ -456,7 +516,14 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
           </div>
 
           {/* 进度文本 */}
-          <span style={{ fontSize: 12, color: token.colorTextQuaternary, marginLeft: 8, flexShrink: 0 }}>
+          <span
+            style={{
+              fontSize: 12,
+              color: token.colorTextQuaternary,
+              marginLeft: 8,
+              flexShrink: 0,
+            }}
+          >
             {currentStep + 1}/{trajectory.steps.length}
           </span>
         </div>

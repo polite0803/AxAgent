@@ -4,7 +4,11 @@ import { persist } from "zustand/middleware";
 
 export type AvatarType = "icon" | "emoji" | "url" | "file";
 
-export type NamingConvention = "camel_case" | "snake_case" | "pascal_case" | "kebab_case";
+export type NamingConvention =
+  | "camel_case"
+  | "snake_case"
+  | "pascal_case"
+  | "kebab_case";
 export type IndentationStyle = "spaces" | "tabs";
 export type CommentStyle = "minimal" | "documented" | "verbose";
 export type ModuleOrgStyle = "by_feature" | "by_type" | "by_layer" | "flat";
@@ -85,10 +89,18 @@ interface UserProfileState {
   updateProfile: (partial: Partial<UserProfile>) => void;
   saveAvatarFile: (dataUri: string) => Promise<void>;
   loadTrajectoryProfile: () => Promise<void>;
-  updateTrajectoryProfile: (updates: Partial<TrajectoryUserProfile>) => Promise<void>;
-  updateCodingStyle: (codingStyle: Partial<CodingStylePreferences>) => Promise<void>;
-  updateCommunicationPrefs: (commPrefs: Partial<CommunicationPreferences>) => Promise<void>;
-  updateWorkHabits: (workHabits: Partial<WorkHabitPreferences>) => Promise<void>;
+  updateTrajectoryProfile: (
+    updates: Partial<TrajectoryUserProfile>,
+  ) => Promise<void>;
+  updateCodingStyle: (
+    codingStyle: Partial<CodingStylePreferences>,
+  ) => Promise<void>;
+  updateCommunicationPrefs: (
+    commPrefs: Partial<CommunicationPreferences>,
+  ) => Promise<void>;
+  updateWorkHabits: (
+    workHabits: Partial<WorkHabitPreferences>,
+  ) => Promise<void>;
   clearTrajectoryData: () => Promise<void>;
 }
 
@@ -153,7 +165,9 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       saveAvatarFile: async (dataUri: string) => {
         const match = dataUri.match(/^data:([^;]+);base64,(.+)$/s);
-        if (!match) { throw new Error("Invalid data URI"); }
+        if (!match) {
+          throw new Error("Invalid data URI");
+        }
         const [, mimeType, data] = match;
         if (isTauri()) {
           const relativePath = await invoke<string>("save_avatar_file", {
@@ -179,7 +193,10 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       loadTrajectoryProfile: async () => {
         if (!isTauri()) {
-          set({ trajectoryProfile: defaultTrajectoryProfile, isLoading: false });
+          set({
+            trajectoryProfile: defaultTrajectoryProfile,
+            isLoading: false,
+          });
           return;
         }
         set({ isLoading: true, error: null });
@@ -201,7 +218,10 @@ export const useUserProfileStore = create<UserProfileState>()(
         }
         set({ isLoading: true, error: null });
         try {
-          const updated = await invoke<TrajectoryUserProfile>("update_user_profile", { updates });
+          const updated = await invoke<TrajectoryUserProfile>(
+            "update_user_profile",
+            { updates },
+          );
           set({ trajectoryProfile: updated, isLoading: false });
         } catch (err) {
           set({
@@ -212,21 +232,27 @@ export const useUserProfileStore = create<UserProfileState>()(
       },
       updateCodingStyle: async (codingStyle) => {
         const current = get().trajectoryProfile;
-        if (!current) { return; }
+        if (!current) {
+          return;
+        }
         await get().updateTrajectoryProfile({
           codingStyle: { ...current.codingStyle, ...codingStyle },
         });
       },
       updateCommunicationPrefs: async (commPrefs) => {
         const current = get().trajectoryProfile;
-        if (!current) { return; }
+        if (!current) {
+          return;
+        }
         await get().updateTrajectoryProfile({
           communication: { ...current.communication, ...commPrefs },
         });
       },
       updateWorkHabits: async (workHabits) => {
         const current = get().trajectoryProfile;
-        if (!current) { return; }
+        if (!current) {
+          return;
+        }
         await get().updateTrajectoryProfile({
           workHabits: { ...current.workHabits, ...workHabits },
         });
@@ -239,7 +265,10 @@ export const useUserProfileStore = create<UserProfileState>()(
         set({ isLoading: true, error: null });
         try {
           await invoke<void>("clear_user_profile_data");
-          set({ trajectoryProfile: defaultTrajectoryProfile, isLoading: false });
+          set({
+            trajectoryProfile: defaultTrajectoryProfile,
+            isLoading: false,
+          });
         } catch (err) {
           set({
             error: err instanceof Error ? err.message : "Failed to clear profile",

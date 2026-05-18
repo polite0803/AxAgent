@@ -52,7 +52,9 @@ describe("reviewApi", () => {
 
       await reviewApi.getReviews("mp-1");
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/marketplace/mp-1/reviews");
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/marketplace/mp-1/reviews",
+      );
     });
 
     it("成功时应返回 ReviewResponse 数组", async () => {
@@ -72,7 +74,9 @@ describe("reviewApi", () => {
         mockFetchResponse(500, { error: "Server error" }),
       );
 
-      await expect(reviewApi.getReviews("mp-1")).rejects.toThrow("Server error");
+      await expect(reviewApi.getReviews("mp-1")).rejects.toThrow(
+        "Server error",
+      );
     });
   });
 
@@ -87,7 +91,9 @@ describe("reviewApi", () => {
 
       await reviewApi.getMyReview("mp-1");
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/marketplace/mp-1/reviews/me");
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/marketplace/mp-1/reviews/me",
+      );
     });
 
     it("404 时应返回 null", async () => {
@@ -240,7 +246,9 @@ describe("reviewApi", () => {
         mockFetchResponse(403, { error: "Forbidden" }),
       );
 
-      await expect(reviewApi.deleteReview("rev-1")).rejects.toThrow("Forbidden");
+      await expect(reviewApi.deleteReview("rev-1")).rejects.toThrow(
+        "Forbidden",
+      );
     });
   });
 
@@ -263,7 +271,9 @@ describe("reviewApi", () => {
         new Error("Network error"),
       );
 
-      await expect(reviewApi.getReviews("mp-1")).rejects.toThrow("Network error");
+      await expect(reviewApi.getReviews("mp-1")).rejects.toThrow(
+        "Network error",
+      );
     });
   });
 });

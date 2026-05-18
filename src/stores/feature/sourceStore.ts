@@ -46,7 +46,10 @@ interface SourceState {
   error: string | null;
 
   fetchSources: (containerTypes?: string[]) => Promise<void>;
-  getSourceConfig: (containerType: string, containerId: string) => Promise<SourceConfig>;
+  getSourceConfig: (
+    containerType: string,
+    containerId: string,
+  ) => Promise<SourceConfig>;
   searchAllSources: (query: string, topK?: number) => Promise<RagContextResult>;
   getSourceName: (sourceRef: SourceRef) => string;
   getSourcesByType: (containerType: string) => UnifiedSource[];
@@ -75,11 +78,17 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   },
 
   getSourceConfig: async (containerType, containerId) => {
-    return invoke<SourceConfig>("get_source_config", { containerType, containerId });
+    return invoke<SourceConfig>("get_source_config", {
+      containerType,
+      containerId,
+    });
   },
 
   searchAllSources: async (query, topK) => {
-    return invoke<RagContextResult>("search_all_sources", { query, topK: topK ?? null });
+    return invoke<RagContextResult>("search_all_sources", {
+      query,
+      topK: topK ?? null,
+    });
   },
 
   getSourceName: (sourceRef) => {

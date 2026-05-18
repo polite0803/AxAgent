@@ -43,7 +43,10 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
 
   if (!policy) {
     return (
-      <Empty description={t("link.noPolicy")} image={Empty.PRESENTED_IMAGE_SIMPLE}>
+      <Empty
+        description={t("link.noPolicy")}
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+      >
         <Button type="primary" onClick={() => fetchPolicy(link.id)}>
           {t("link.loadPolicy")}
         </Button>
@@ -69,24 +72,47 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
         <Card size="small" title={t("link.routingPolicy")}>
           <Form.Item name="route_strategy" label={t("link.routeStrategy")}>
             <Select>
-              <Select.Option value="round_robin">{t("link.roundRobin")}</Select.Option>
-              <Select.Option value="least_latency">{t("link.leastLatency")}</Select.Option>
-              <Select.Option value="weighted">{t("link.weighted")}</Select.Option>
+              <Select.Option value="round_robin">
+                {t("link.roundRobin")}
+              </Select.Option>
+              <Select.Option value="least_latency">
+                {t("link.leastLatency")}
+              </Select.Option>
+              <Select.Option value="weighted">
+                {t("link.weighted")}
+              </Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="model_fallback_enabled" label={t("link.modelFallback")} valuePropName="checked">
+          <Form.Item
+            name="model_fallback_enabled"
+            label={t("link.modelFallback")}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
         </Card>
 
         <Card size="small" title={t("link.rateLimiting")}>
           <Form.Item name="global_rpm" label={t("link.globalRpm")}>
-            <InputNumber name="global_rpm" min={1} style={{ width: "100%" }} placeholder={t("link.unlimited")} />
+            <InputNumber
+              name="global_rpm"
+              min={1}
+              style={{ width: "100%" }}
+              placeholder={t("link.unlimited")}
+            />
           </Form.Item>
           <Form.Item name="per_model_rpm" label={t("link.perModelRpm")}>
-            <InputNumber name="per_model_rpm" min={1} style={{ width: "100%" }} placeholder={t("link.unlimited")} />
+            <InputNumber
+              name="per_model_rpm"
+              min={1}
+              style={{ width: "100%" }}
+              placeholder={t("link.unlimited")}
+            />
           </Form.Item>
-          <Form.Item name="token_limit_per_minute" label={t("link.tokenLimitPerMinute")}>
+          <Form.Item
+            name="token_limit_per_minute"
+            label={t("link.tokenLimitPerMinute")}
+          >
             <InputNumber
               name="token_limit_per_minute"
               min={1}
@@ -99,22 +125,24 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
         <Card size="small" title={t("link.keyManagement")}>
           <Form.Item name="key_rotation_strategy" label={t("link.keyRotation")}>
             <Select>
-              <Select.Option value="sequential">{t("link.sequential")}</Select.Option>
+              <Select.Option value="sequential">
+                {t("link.sequential")}
+              </Select.Option>
               <Select.Option value="random">{t("link.random")}</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="key_failover_enabled" label={t("link.keyFailover")} valuePropName="checked">
+          <Form.Item
+            name="key_failover_enabled"
+            label={t("link.keyFailover")}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
         </Card>
       </Form>
 
       <div className="flex justify-end">
-        <Button
-          type="primary"
-          icon={<Save size={14} />}
-          onClick={handleSave}
-        >
+        <Button type="primary" icon={<Save size={14} />} onClick={handleSave}>
           {t("link.savePolicy")}
         </Button>
       </div>

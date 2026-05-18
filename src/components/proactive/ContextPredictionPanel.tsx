@@ -5,19 +5,45 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from "react-i18next";
 
 const SEARCH_ICON: ReactNode = (
-  <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  <svg
+    className="size-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
   </svg>
 );
 
 const INTENT_ICONS: Record<PredictedIntent["type"], ReactNode> = {
   CodeCompletion: (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+      />
     </svg>
   ),
   Documentation: (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -27,7 +53,13 @@ const INTENT_ICONS: Record<PredictedIntent["type"], ReactNode> = {
   ),
   Search: SEARCH_ICON,
   Refactoring: (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -36,12 +68,28 @@ const INTENT_ICONS: Record<PredictedIntent["type"], ReactNode> = {
     </svg>
   ),
   Debug: (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </svg>
   ),
   TestGeneration: (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -50,7 +98,13 @@ const INTENT_ICONS: Record<PredictedIntent["type"], ReactNode> = {
     </svg>
   ),
   Unknown: (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -102,7 +156,10 @@ function formatConfidence(confidence: number): string {
   return `${Math.round(confidence * 100)}%`;
 }
 
-function getPredictionKey(prediction: ContextPrediction, index: number): string {
+function getPredictionKey(
+  prediction: ContextPrediction,
+  index: number,
+): string {
   return `${prediction.created_at}-${prediction.predicted_intent.type}-${index}`;
 }
 
@@ -113,7 +170,10 @@ interface ContextPredictionPanelProps {
 
 const DEBOUNCE_MS = 800;
 
-export function ContextPredictionPanel({ context, onApplyPrediction }: ContextPredictionPanelProps) {
+export function ContextPredictionPanel({
+  context,
+  onApplyPrediction,
+}: ContextPredictionPanelProps) {
   const { t } = useTranslation();
 
   const predictions = useProactiveStore((s) => s.predictions);
@@ -136,14 +196,20 @@ export function ContextPredictionPanel({ context, onApplyPrediction }: ContextPr
   }, []);
 
   useEffect(() => {
-    if (!context || Object.keys(context).length === 0) { return; }
-    if (!debouncedContextKey) { return; }
+    if (!context || Object.keys(context).length === 0) {
+      return;
+    }
+    if (!debouncedContextKey) {
+      return;
+    }
 
     fetchPredictions(context);
   }, [debouncedContextKey]);
 
   const handleRetry = useCallback(async () => {
-    if (!context || Object.keys(context).length === 0) { return; }
+    if (!context || Object.keys(context).length === 0) {
+      return;
+    }
     setRetrying(true);
     try {
       await fetchPredictions(context);
@@ -184,7 +250,13 @@ export function ContextPredictionPanel({ context, onApplyPrediction }: ContextPr
     <div className="bg-card border rounded-lg">
       <div className="px-4 py-3 border-b">
         <h3 className="font-medium flex items-center gap-2">
-          <svg className="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="size-4 text-primary"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -246,7 +318,8 @@ export function ContextPredictionPanel({ context, onApplyPrediction }: ContextPr
                   >
                     <div className="flex items-start gap-3">
                       <div className="text-primary mt-0.5 shrink-0">
-                        {INTENT_ICONS[prediction.predicted_intent.type] ?? INTENT_ICONS.Unknown}
+                        {INTENT_ICONS[prediction.predicted_intent.type]
+                          ?? INTENT_ICONS.Unknown}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
@@ -274,21 +347,25 @@ export function ContextPredictionPanel({ context, onApplyPrediction }: ContextPr
                           {t("proactive.suggestedActions")}:
                         </p>
                         <div className="flex flex-wrap gap-1">
-                          {prediction.suggested_actions.map((action, actionIndex) => (
-                            <span
-                              key={`${key}-action-${actionIndex}`}
-                              className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded"
-                            >
-                              {action.title}
-                            </span>
-                          ))}
+                          {prediction.suggested_actions.map(
+                            (action, actionIndex) => (
+                              <span
+                                key={`${key}-action-${actionIndex}`}
+                                className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded"
+                              >
+                                {action.title}
+                              </span>
+                            ),
+                          )}
                         </div>
                       </div>
                     )}
 
                     {isApplied && (
                       <div className="mt-2 text-xs text-primary font-medium">
-                        {onApplyPrediction ? t("proactive.applied") : t("proactive.copied")}
+                        {onApplyPrediction
+                          ? t("proactive.applied")
+                          : t("proactive.copied")}
                       </div>
                     )}
                   </button>

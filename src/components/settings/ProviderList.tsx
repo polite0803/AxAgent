@@ -69,7 +69,9 @@ function SortableProviderItem({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") { onSelect(); }
+        if (e.key === "Enter" || e.key === " ") {
+          onSelect();
+        }
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
@@ -91,7 +93,9 @@ function SortableProviderItem({
         tabIndex={0}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+          if (e.key === "Enter" || e.key === " ") {
+            e.stopPropagation();
+          }
         }}
       >
         <GripVertical size={14} />
@@ -101,7 +105,9 @@ function SortableProviderItem({
         style={{ opacity: disabled ? 0.4 : 1 }}
       >
         <SmartProviderIcon provider={provider} size={22} type="avatar" />
-        <span style={{ color: isSelected ? token.colorPrimary : undefined }}>{provider.name}</span>
+        <span style={{ color: isSelected ? token.colorPrimary : undefined }}>
+          {provider.name}
+        </span>
       </div>
       <Switch
         id="provider-list-switch-146"
@@ -154,14 +160,17 @@ export function ProviderList() {
       const provider = await createProvider({
         name: values.name,
         provider_type: values.provider_type,
-        api_host: values.api_host || DEFAULT_HOSTS[values.provider_type as ProviderType],
+        api_host: values.api_host
+          || DEFAULT_HOSTS[values.provider_type as ProviderType],
         enabled: false,
       });
       setSelectedProviderId(provider.id);
       setModalOpen(false);
       form.resetFields();
     } catch (e) {
-      if (e && typeof e === "object" && "errorFields" in e) { return; }
+      if (e && typeof e === "object" && "errorFields" in e) {
+        return;
+      }
       message.error(t("error.saveFailed"));
     }
   };
@@ -180,9 +189,11 @@ export function ProviderList() {
         const newIds = [...ids];
         newIds.splice(oldIndex, 1);
         newIds.splice(newIndex, 0, String(active.id));
-        const otherIds = (sectionProviders === enabledProviders ? disabledProviders : enabledProviders).map((p) =>
-          p.id
-        );
+        const otherIds = (
+          sectionProviders === enabledProviders
+            ? disabledProviders
+            : enabledProviders
+        ).map((p) => p.id);
         const fullIds = sectionProviders === enabledProviders
           ? [...newIds, ...otherIds]
           : [...otherIds, ...newIds];
@@ -222,7 +233,9 @@ export function ProviderList() {
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-0">
         {enabledProviders.length > 0 && (
           <>
-            <div style={sectionHeaderStyle}>{t("settings.enabledProviders")}</div>
+            <div style={sectionHeaderStyle}>
+              {t("settings.enabledProviders")}
+            </div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -253,7 +266,9 @@ export function ProviderList() {
 
         {disabledProviders.length > 0 && (
           <>
-            <div style={sectionHeaderStyle}>{t("settings.disabledProviders")}</div>
+            <div style={sectionHeaderStyle}>
+              {t("settings.disabledProviders")}
+            </div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -306,7 +321,10 @@ export function ProviderList() {
             label={t("settings.providerType")}
             rules={[{ required: true }]}
           >
-            <Select options={PROVIDER_TYPE_OPTIONS} onChange={handleTypeChange} />
+            <Select
+              options={PROVIDER_TYPE_OPTIONS}
+              onChange={handleTypeChange}
+            />
           </Form.Item>
           <Form.Item name="api_host" label={t("settings.apiHost")}>
             <Input name="api_host" placeholder="https://api.openai.com" />

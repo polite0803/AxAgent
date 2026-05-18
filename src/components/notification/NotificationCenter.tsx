@@ -40,7 +40,10 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("axagent-notifications", JSON.stringify(notifications));
+    localStorage.setItem(
+      "axagent-notifications",
+      JSON.stringify(notifications),
+    );
   }, [notifications]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -91,9 +94,15 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
     const now = Date.now();
     const diff = now - timestamp;
 
-    if (diff < 60000) { return t("notification.justNow"); }
-    if (diff < 3600000) { return `${Math.floor(diff / 60000)} ${t("notification.minutesAgo")}`; }
-    if (diff < 86400000) { return `${Math.floor(diff / 3600000)} ${t("notification.hoursAgo")}`; }
+    if (diff < 60000) {
+      return t("notification.justNow");
+    }
+    if (diff < 3600000) {
+      return `${Math.floor(diff / 60000)} ${t("notification.minutesAgo")}`;
+    }
+    if (diff < 86400000) {
+      return `${Math.floor(diff / 3600000)} ${t("notification.hoursAgo")}`;
+    }
     return new Date(timestamp).toLocaleDateString();
   };
 
@@ -151,7 +160,9 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
               <List.Item
                 style={{
                   padding: "12px 16px",
-                  background: notification.read ? "transparent" : "var(--surface-hover)",
+                  background: notification.read
+                    ? "transparent"
+                    : "var(--surface-hover)",
                   cursor: "pointer",
                   borderLeft: `3px solid ${getColor(notification.type)}`,
                 }}
@@ -237,7 +248,11 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
           <Button
             type="text"
             icon={<Bell size={18} />}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           />
         </Badge>
       )}
@@ -245,7 +260,9 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   );
 }
 
-export function addNotification(notification: Omit<Notification, "id" | "timestamp" | "read">) {
+export function addNotification(
+  notification: Omit<Notification, "id" | "timestamp" | "read">,
+) {
   const newNotification: Notification = {
     ...notification,
     id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

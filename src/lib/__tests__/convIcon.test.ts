@@ -57,7 +57,10 @@ describe("convIcon", () => {
     });
 
     it("应支持 url 类型的图标", () => {
-      const icon: ConvIcon = { type: "url", value: "https://example.com/icon.png" };
+      const icon: ConvIcon = {
+        type: "url",
+        value: "https://example.com/icon.png",
+      };
       localStorage.setItem(CONV_ICON_KEY("conv-3"), JSON.stringify(icon));
 
       const result = getConvIcon("conv-3");
@@ -83,7 +86,10 @@ describe("convIcon", () => {
     });
 
     it("有效 JSON 但类型不匹配也应正常返回", () => {
-      localStorage.setItem(CONV_ICON_KEY("conv-6"), JSON.stringify({ foo: "bar" }));
+      localStorage.setItem(
+        CONV_ICON_KEY("conv-6"),
+        JSON.stringify({ foo: "bar" }),
+      );
 
       const result = getConvIcon("conv-6");
 

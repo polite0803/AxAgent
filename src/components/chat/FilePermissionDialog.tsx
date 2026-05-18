@@ -99,14 +99,28 @@ export function FilePermissionDialog({
   };
 
   const levelLabels: Record<PermissionLevel, { label: string; desc: string }> = {
-    read: { label: t("filePermission.levelRead"), desc: t("filePermission.levelReadDesc") },
-    write: { label: t("filePermission.levelWrite"), desc: t("filePermission.levelWriteDesc") },
-    readwrite: { label: t("filePermission.levelReadWrite"), desc: t("filePermission.levelReadWriteDesc") },
-    temp: { label: t("filePermission.levelTemp"), desc: t("filePermission.levelTempDesc") },
+    read: {
+      label: t("filePermission.levelRead"),
+      desc: t("filePermission.levelReadDesc"),
+    },
+    write: {
+      label: t("filePermission.levelWrite"),
+      desc: t("filePermission.levelWriteDesc"),
+    },
+    readwrite: {
+      label: t("filePermission.levelReadWrite"),
+      desc: t("filePermission.levelReadWriteDesc"),
+    },
+    temp: {
+      label: t("filePermission.levelTemp"),
+      desc: t("filePermission.levelTempDesc"),
+    },
   };
 
   const onDurationChange = (value: number) => {
-    if (isNaN(value)) { return; }
+    if (isNaN(value)) {
+      return;
+    }
     setDuration(value);
   };
 
@@ -158,26 +172,37 @@ export function FilePermissionDialog({
             </Descriptions>
 
             <div>
-              <Typography.Text strong>{t("filePermission.authLevel")}</Typography.Text>
+              <Typography.Text strong>
+                {t("filePermission.authLevel")}
+              </Typography.Text>
               <Radio.Group
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
                 style={{ display: "block", marginTop: 8 }}
               >
                 {(Object.keys(levelLabels) as PermissionLevel[]).map((l) => (
-                  <Radio.Button key={l} value={l} style={{ width: "50%", textAlign: "center" }}>
+                  <Radio.Button
+                    key={l}
+                    value={l}
+                    style={{ width: "50%", textAlign: "center" }}
+                  >
                     {levelLabels[l].label}
                   </Radio.Button>
                 ))}
               </Radio.Group>
-              <Typography.Text type="secondary" style={{ display: "block", marginTop: 4 }}>
+              <Typography.Text
+                type="secondary"
+                style={{ display: "block", marginTop: 4 }}
+              >
                 {levelLabels[level].desc}
               </Typography.Text>
             </div>
 
             {level === "temp" && (
               <div>
-                <Typography.Text strong>{t("filePermission.authDuration")}</Typography.Text>
+                <Typography.Text strong>
+                  {t("filePermission.authDuration")}
+                </Typography.Text>
                 <Space style={{ marginTop: 8 }}>
                   <Input
                     type="number"
@@ -188,7 +213,9 @@ export function FilePermissionDialog({
                     min={5}
                     max={1440}
                   />
-                  <Typography.Text type="secondary">{t("filePermission.minutes")}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t("filePermission.minutes")}
+                  </Typography.Text>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     {t("filePermission.maxDuration")}
                   </Typography.Text>
@@ -201,7 +228,9 @@ export function FilePermissionDialog({
                   >
                     {t("filePermission.duration30min")}
                   </Typography.Text>
-                  <Typography.Text type="secondary" style={{ margin: "0 8px" }}>|</Typography.Text>
+                  <Typography.Text type="secondary" style={{ margin: "0 8px" }}>
+                    |
+                  </Typography.Text>
                   <Typography.Text
                     type="secondary"
                     style={{ fontSize: 12, cursor: "pointer" }}
@@ -209,7 +238,9 @@ export function FilePermissionDialog({
                   >
                     {t("filePermission.duration1hour")}
                   </Typography.Text>
-                  <Typography.Text type="secondary" style={{ margin: "0 8px" }}>|</Typography.Text>
+                  <Typography.Text type="secondary" style={{ margin: "0 8px" }}>
+                    |
+                  </Typography.Text>
                   <Typography.Text
                     type="secondary"
                     style={{ fontSize: 12, cursor: "pointer" }}
@@ -253,9 +284,15 @@ export function FilePermissionDialog({
                     }
                   />
                   <Descriptions column={1} size="small" bordered>
-                    <Descriptions.Item label={t("filePermission.authId")}>{result.auth_id}</Descriptions.Item>
-                    <Descriptions.Item label={t("filePermission.filePath")}>{result.path}</Descriptions.Item>
-                    <Descriptions.Item label={t("filePermission.authLevel")}>{result.level}</Descriptions.Item>
+                    <Descriptions.Item label={t("filePermission.authId")}>
+                      {result.auth_id}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("filePermission.filePath")}>
+                      {result.path}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t("filePermission.authLevel")}>
+                      {result.level}
+                    </Descriptions.Item>
                   </Descriptions>
                   <Space style={{ width: "100%", justifyContent: "flex-end" }}>
                     <Button onClick={handleRevoke} danger>
@@ -276,7 +313,9 @@ export function FilePermissionDialog({
                     description={result.message}
                   />
                   <Space style={{ width: "100%", justifyContent: "flex-end" }}>
-                    <Button onClick={handleClose}>{t("filePermission.close")}</Button>
+                    <Button onClick={handleClose}>
+                      {t("filePermission.close")}
+                    </Button>
                   </Space>
                 </>
               )}

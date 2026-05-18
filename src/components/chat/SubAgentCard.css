@@ -4,7 +4,9 @@
   border: 1px solid var(--border-weak, #e8e8e8);
   background: color-mix(in srgb, var(--background-base, #fff) 94%, transparent);
   margin: 8px 0;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
   max-width: 400px;
 }
 
@@ -18,16 +20,31 @@
 }
 
 .sub-agent-card--completed {
-  border-color: color-mix(in srgb, var(--ant-color-success, #52c41a) 19%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-success, #52c41a) 19%,
+    transparent
+  );
 }
 
 .sub-agent-card--failed {
-  border-color: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 19%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 19%,
+    transparent
+  );
 }
 
 @keyframes sub-agent-card-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ant-color-primary, #1890ff) 15%, transparent); }
-  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ant-color-primary, #1890ff) 5%, transparent); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--ant-color-primary, #1890ff) 15%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px
+      color-mix(in srgb, var(--ant-color-primary, #1890ff) 5%, transparent);
+  }
 }
 
 .sub-agent-card__header {

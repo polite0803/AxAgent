@@ -20,7 +20,9 @@ export const QuickCommandBar: React.FC = () => {
   const compressing = useCompressStore((s) => s.compressing);
   const switchModel = useConversationStore((s) => s.switchModel);
   const providers = useProviderStore((s) => s.providers);
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
   const conversations = useConversationStore((s) => s.conversations);
 
   const handleClear = useCallback(() => {
@@ -39,27 +41,32 @@ export const QuickCommandBar: React.FC = () => {
   );
 
   const availableModels = useMemo(() => {
-    return providers
-      .flatMap((p) =>
-        p.enabled
-          ? p.models.flatMap((m) =>
-            m.enabled
-              ? [{
+    return providers.flatMap((p) =>
+      p.enabled
+        ? p.models.flatMap((m) =>
+          m.enabled
+            ? [
+              {
                 key: `${p.id}:${m.model_id}`,
                 label: m.model_id,
                 provider: p.name || p.id,
                 onClick: () => handleModelSwitch(m.model_id),
-              }]
-              : []
-          )
-          : []
-      );
+              },
+            ]
+            : []
+        )
+        : []
+    );
   }, [providers, handleModelSwitch]);
 
   const currentModel = useMemo(() => {
-    if (!activeConversationId) { return null; }
+    if (!activeConversationId) {
+      return null;
+    }
     const conv = conversations.find((c) => c.id === activeConversationId);
-    if (!conv) { return null; }
+    if (!conv) {
+      return null;
+    }
     const provider = providers.find((p) => p.id === conv.provider_id);
     const modelId = conv.model_id || "";
     return { provider: provider?.name || conv.provider_id, model: modelId };
@@ -70,7 +77,13 @@ export const QuickCommandBar: React.FC = () => {
     label: (
       <span>
         {m.label}
-        <span style={{ fontSize: 12, color: token.colorTextQuaternary, marginLeft: 8 }}>
+        <span
+          style={{
+            fontSize: 12,
+            color: token.colorTextQuaternary,
+            marginLeft: 8,
+          }}
+        >
           {m.provider}
         </span>
       </span>
@@ -134,7 +147,11 @@ export const QuickCommandBar: React.FC = () => {
       ))}
 
       {availableModels.length > 0 && (
-        <Dropdown menu={{ items: modelMenuItems }} trigger={["click"]} placement="bottomLeft">
+        <Dropdown
+          menu={{ items: modelMenuItems }}
+          trigger={["click"]}
+          placement="bottomLeft"
+        >
           <Tooltip title={t("chat.switchModel")} placement="top">
             <Button
               size="small"

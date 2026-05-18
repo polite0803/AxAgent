@@ -26,14 +26,18 @@ import { useTranslation } from "react-i18next";
 const { Text } = Typography;
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) { return "0 B"; }
+  if (bytes === 0) {
+    return "0 B";
+  }
   const units = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
 function formatSyncTime(value: string | null): string | null {
-  if (!value) { return null; }
+  if (!value) {
+    return null;
+  }
 
   const numeric = Number(value);
   const date = Number.isNaN(numeric)
@@ -197,7 +201,9 @@ export function WebDavSync() {
   };
 
   const handleRestore = async () => {
-    if (!restoreTarget) { return; }
+    if (!restoreTarget) {
+      return;
+    }
     try {
       await invoke("webdav_restore", { fileName: restoreTarget });
       message.success(t("backup.restoreSuccess"));
@@ -220,7 +226,9 @@ export function WebDavSync() {
 
   const handleBatchDelete = async () => {
     try {
-      await Promise.all(selectedFileNames.map((fileName) => invoke("webdav_delete_backup", { fileName })));
+      await Promise.all(
+        selectedFileNames.map((fileName) => invoke("webdav_delete_backup", { fileName })),
+      );
       message.success(t("backup.deleteSuccess"));
       setSelectedFileNames([]);
       loadRemoteBackups();
@@ -294,7 +302,9 @@ export function WebDavSync() {
       <div className="flex items-center justify-between mb-4">
         <Space>
           <Popconfirm
-            title={t("backup.batchDeleteConfirm", { count: selectedFileNames.length })}
+            title={t("backup.batchDeleteConfirm", {
+              count: selectedFileNames.length,
+            })}
             onConfirm={handleBatchDelete}
             disabled={selectedFileNames.length === 0}
           >
@@ -437,23 +447,13 @@ export function WebDavSync() {
               valuePropName="checked"
               noStyle
             >
-              <Checkbox>
-                {t("backup.webdav.acceptInvalidCerts")}
-              </Checkbox>
+              <Checkbox>{t("backup.webdav.acceptInvalidCerts")}</Checkbox>
             </Form.Item>
             <Button onClick={handleTestConnection} loading={testing}>
               {t("backup.webdav.testConnection")}
             </Button>
-            {testResult === "success" && (
-              <Tag color="success">
-                {t("backup.webdav.testSuccess")}
-              </Tag>
-            )}
-            {testResult === "error" && (
-              <Tag color="error">
-                {t("backup.webdav.testFailed")}
-              </Tag>
-            )}
+            {testResult === "success" && <Tag color="success">{t("backup.webdav.testSuccess")}</Tag>}
+            {testResult === "error" && <Tag color="error">{t("backup.webdav.testFailed")}</Tag>}
           </div>
 
           <Divider />
@@ -518,9 +518,7 @@ export function WebDavSync() {
             </Form.Item>
           </div>
           <Form.Item name="includeDocuments" valuePropName="checked">
-            <Checkbox>
-              {t("backup.webdav.includeDocuments")}
-            </Checkbox>
+            <Checkbox>{t("backup.webdav.includeDocuments")}</Checkbox>
           </Form.Item>
         </Form>
       </Modal>

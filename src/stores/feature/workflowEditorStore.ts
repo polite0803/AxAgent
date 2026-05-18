@@ -90,12 +90,17 @@ interface WorkflowEditorState {
   loadTemplates: () => Promise<void>;
   loadTemplate: (id: string) => Promise<void>;
   createTemplate: (input: WorkflowTemplateInput) => Promise<string | null>;
-  updateTemplate: (id: string, input: WorkflowTemplateInput) => Promise<boolean>;
+  updateTemplate: (
+    id: string,
+    input: WorkflowTemplateInput,
+  ) => Promise<boolean>;
   deleteTemplate: (id: string) => Promise<boolean>;
   duplicateTemplate: (id: string) => Promise<string | null>;
   validateTemplate: () => Promise<ValidationResult | null>;
   exportTemplate: (id: string) => Promise<string | null>;
-  importTemplate: (jsonData: string) => Promise<{ id: string; warnings: string[]; errors: string[] } | null>;
+  importTemplate: (
+    jsonData: string,
+  ) => Promise<{ id: string; warnings: string[]; errors: string[] } | null>;
   loadTemplateVersions: (id: string) => Promise<number[]>;
   loadTemplateByVersion: (id: string, version: number) => Promise<void>;
 
@@ -156,22 +161,50 @@ interface WorkflowEditorState {
     workflowName: string,
     workflowDescription?: string,
   ) => Promise<string>;
-  setSimilarWorkflowsForReview: (workflows: SimilarWorkflow[], pendingData: PendingWorkflowData) => void;
+  setSimilarWorkflowsForReview: (
+    workflows: SimilarWorkflow[],
+    pendingData: PendingWorkflowData,
+  ) => void;
   clearSimilarWorkflowsForReview: () => void;
 
   generateWorkflowFromPrompt: (
     prompt: string,
-  ) => Promise<{ nodes: WorkflowNode[]; edges: WorkflowEdge[]; explanation?: string } | null>;
+  ) => Promise<
+    {
+      nodes: WorkflowNode[];
+      edges: WorkflowEdge[];
+      explanation?: string;
+    } | null
+  >;
   optimizeAgentPrompt: (prompt: string) => Promise<string | null>;
   recommendNodes: (
     context: string,
-  ) => Promise<Array<{ node_type: string; label: string; description: string; confidence: number }> | null>;
+  ) => Promise<
+    Array<{
+      node_type: string;
+      label: string;
+      description: string;
+      confidence: number;
+    }> | null
+  >;
 
   semanticCheckResult: SemanticCheckResult | null;
-  pendingReplacements: Map<string, { existingSkillId: string; action: SkillReplacementAction }>;
-  checkSkillSemanticMatches: (nodes: WorkflowNode[]) => Promise<SemanticCheckResult | null>;
-  applySkillReplacement: (nodeId: string, existingSkillId: string, action: SkillReplacementAction) => void;
-  applySemanticAction: (nodeId: string, action: "replace" | "keep" | "upgrade_existing") => void;
+  pendingReplacements: Map<
+    string,
+    { existingSkillId: string; action: SkillReplacementAction }
+  >;
+  checkSkillSemanticMatches: (
+    nodes: WorkflowNode[],
+  ) => Promise<SemanticCheckResult | null>;
+  applySkillReplacement: (
+    nodeId: string,
+    existingSkillId: string,
+    action: SkillReplacementAction,
+  ) => void;
+  applySemanticAction: (
+    nodeId: string,
+    action: "replace" | "keep" | "upgrade_existing",
+  ) => void;
   clearSemanticCheckResult: () => void;
 
   loadConversationWorkflowPreview: (conversationId: string) => Promise<void>;
@@ -184,7 +217,10 @@ interface ConversationWorkflowPreviewResponse {
   skill_count: number;
 }
 
-const createEmptyTemplate = (): Omit<WorkflowTemplateResponse, "id" | "created_at" | "updated_at"> => ({
+const createEmptyTemplate = (): Omit<
+  WorkflowTemplateResponse,
+  "id" | "created_at" | "updated_at"
+> => ({
   name: "Unnamed Workflow",
   description: "",
   icon: "Bot",
@@ -236,7 +272,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     undo: () => {
       const { past } = get();
-      if (past.length === 0) { return; }
+      if (past.length === 0) {
+        return;
+      }
 
       const previous = past[past.length - 1];
       set((state) => {
@@ -256,7 +294,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     redo: () => {
       const { future } = get();
-      if (future.length === 0) { return; }
+      if (future.length === 0) {
+        return;
+      }
 
       const next = future[future.length - 1];
       set((state) => {
@@ -286,7 +326,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const filter = get().filter;
         const is_preset = filter.is_preset;
         const params = is_preset !== undefined ? { is_preset } : {};
-        const templates = await invoke<WorkflowTemplateResponse[]>("list_workflow_templates", params);
+        const templates = await invoke<WorkflowTemplateResponse[]>(
+          "list_workflow_templates",
+          params,
+        );
         set((state) => {
           state.templates = Array.isArray(templates) ? templates : [];
           state.isLoading = false;
@@ -305,7 +348,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const template = await invoke<WorkflowTemplateResponse>("get_workflow_template", { id });
+        const template = await invoke<WorkflowTemplateResponse>(
+          "get_workflow_template",
+          { id },
+        );
         set((state) => {
           state.currentTemplate = template;
           state.nodes = template.nodes;
@@ -398,7 +444,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const newId = await invoke<string>("duplicate_workflow_template", { id });
+        const newId = await invoke<string>("duplicate_workflow_template", {
+          id,
+        });
         await get().loadTemplates();
         set((state) => {
           state.isSaving = false;
@@ -415,7 +463,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     validateTemplate: async () => {
       const { currentTemplate, nodes, edges } = get();
-      if (!currentTemplate) { return null; }
+      if (!currentTemplate) {
+        return null;
+      }
 
       const input: WorkflowTemplateInput = {
         name: currentTemplate.name,
@@ -432,7 +482,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       };
 
       try {
-        const result = await invoke<ValidationResult>("validate_workflow_template", { input });
+        const result = await invoke<ValidationResult>(
+          "validate_workflow_template",
+          { input },
+        );
         set((state) => {
           state.validationResult = result;
         });
@@ -463,7 +516,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const result = await invoke<{ id: string; warnings: string[]; errors: string[] }>("import_workflow_template", {
+        const result = await invoke<{
+          id: string;
+          warnings: string[];
+          errors: string[];
+        }>("import_workflow_template", {
           jsonData,
         });
         await get().loadTemplates();
@@ -482,7 +539,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     loadTemplateVersions: async (id: string) => {
       try {
-        const versions = await invoke<number[]>("get_template_versions", { id });
+        const versions = await invoke<number[]>("get_template_versions", {
+          id,
+        });
         return versions;
       } catch (error) {
         set((state) => {
@@ -498,7 +557,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const template = await invoke<WorkflowTemplateResponse | null>("get_template_by_version", { id, version });
+        const template = await invoke<WorkflowTemplateResponse | null>(
+          "get_template_by_version",
+          { id, version },
+        );
         if (template) {
           set((state) => {
             state.currentTemplate = template;
@@ -567,7 +629,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }
         const index = state.nodes.findIndex((n) => n.id === nodeId);
         if (index !== -1) {
-          state.nodes[index] = { ...state.nodes[index], ...updates } as WorkflowNode;
+          state.nodes[index] = {
+            ...state.nodes[index],
+            ...updates,
+          } as WorkflowNode;
           state.isDirty = true;
         }
       });
@@ -582,7 +647,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }
         state._lastUndoRecordTime = Date.now();
         state.nodes = state.nodes.filter((n) => n.id !== nodeId);
-        state.edges = state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId);
+        state.edges = state.edges.filter(
+          (e) => e.source !== nodeId && e.target !== nodeId,
+        );
         if (state.selectedNodeId === nodeId) {
           state.selectedNodeId = null;
         }
@@ -676,15 +743,33 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             }
             state._lastUndoRecordTime = now;
           }
-          if (metadata.name !== undefined) { state.currentTemplate.name = metadata.name; }
-          if (metadata.description !== undefined) { state.currentTemplate.description = metadata.description; }
-          if (metadata.icon !== undefined) { state.currentTemplate.icon = metadata.icon; }
-          if (metadata.tags !== undefined) { state.currentTemplate.tags = metadata.tags; }
-          if (metadata.triggerConfig !== undefined) { state.currentTemplate.trigger_config = metadata.triggerConfig; }
-          if (metadata.inputSchema !== undefined) { state.currentTemplate.input_schema = metadata.inputSchema; }
-          if (metadata.outputSchema !== undefined) { state.currentTemplate.output_schema = metadata.outputSchema; }
-          if (metadata.variables !== undefined) { state.currentTemplate.variables = metadata.variables; }
-          if (metadata.errorConfig !== undefined) { state.currentTemplate.error_config = metadata.errorConfig; }
+          if (metadata.name !== undefined) {
+            state.currentTemplate.name = metadata.name;
+          }
+          if (metadata.description !== undefined) {
+            state.currentTemplate.description = metadata.description;
+          }
+          if (metadata.icon !== undefined) {
+            state.currentTemplate.icon = metadata.icon;
+          }
+          if (metadata.tags !== undefined) {
+            state.currentTemplate.tags = metadata.tags;
+          }
+          if (metadata.triggerConfig !== undefined) {
+            state.currentTemplate.trigger_config = metadata.triggerConfig;
+          }
+          if (metadata.inputSchema !== undefined) {
+            state.currentTemplate.input_schema = metadata.inputSchema;
+          }
+          if (metadata.outputSchema !== undefined) {
+            state.currentTemplate.output_schema = metadata.outputSchema;
+          }
+          if (metadata.variables !== undefined) {
+            state.currentTemplate.variables = metadata.variables;
+          }
+          if (metadata.errorConfig !== undefined) {
+            state.currentTemplate.error_config = metadata.errorConfig;
+          }
           state.isDirty = true;
         }
       });
@@ -697,14 +782,18 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.currentTemplate = {
           ...empty,
           ...(importedData?.name && { name: importedData.name }),
-          ...(importedData?.description && { description: importedData.description }),
+          ...(importedData?.description && {
+            description: importedData.description,
+          }),
           id: "",
           created_at: Date.now(),
           updated_at: Date.now(),
         } as WorkflowTemplateResponse;
         state.nodes = importedData?.nodes || [];
         state.edges = importedData?.edges || [];
-        state.isDirty = !!(importedData?.nodes && importedData.nodes.length > 0);
+        state.isDirty = !!(
+          importedData?.nodes && importedData.nodes.length > 0
+        );
         state.isDecompositionTemplate = importedData?.isDecompositionWorkflow || false;
         state.pendingDecompositionSource = importedData?.decompositionSource || null;
         state.selectedNodeId = null;
@@ -732,7 +821,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
     },
 
-    saveDecompositionWorkflow: async (workflowName: string, workflowDescription?: string) => {
+    saveDecompositionWorkflow: async (
+      workflowName: string,
+      workflowDescription?: string,
+    ) => {
       const { isDecompositionTemplate, pendingDecompositionSource } = get();
       if (!isDecompositionTemplate || !pendingDecompositionSource) {
         throw new Error("Not a decomposition workflow or missing source data");
@@ -744,7 +836,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
 
       try {
-        const result = await invoke<{ workflow_id: string; saved_skills: number }>("confirm_decomposition", {
+        const result = await invoke<{
+          workflow_id: string;
+          saved_skills: number;
+        }>("confirm_decomposition", {
           request: {
             preview: {
               name: pendingDecompositionSource.market,
@@ -777,8 +872,16 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       }
     },
 
-    saveSkillWorkflowFromLlm: async (workflowName: string, workflowDescription?: string) => {
-      const { isDecompositionTemplate, pendingDecompositionSource, nodes, edges } = get();
+    saveSkillWorkflowFromLlm: async (
+      workflowName: string,
+      workflowDescription?: string,
+    ) => {
+      const {
+        isDecompositionTemplate,
+        pendingDecompositionSource,
+        nodes,
+        edges,
+      } = get();
       if (!isDecompositionTemplate || !pendingDecompositionSource) {
         throw new Error("Not a decomposition workflow or missing source data");
       }
@@ -789,16 +892,20 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
 
       try {
-        const response = await invoke<SaveSkillWorkflowResponse>("save_skill_workflow_from_llm", {
-          request: {
-            skill_id: pendingDecompositionSource.market,
-            skill_name: pendingDecompositionSource.repo || pendingDecompositionSource.market,
-            workflow_name: workflowName,
-            description: workflowDescription,
-            nodes,
-            edges,
+        const response = await invoke<SaveSkillWorkflowResponse>(
+          "save_skill_workflow_from_llm",
+          {
+            request: {
+              skill_id: pendingDecompositionSource.market,
+              skill_name: pendingDecompositionSource.repo
+                || pendingDecompositionSource.market,
+              workflow_name: workflowName,
+              description: workflowDescription,
+              nodes,
+              edges,
+            },
           },
-        });
+        );
 
         set((state) => {
           state.isSaving = false;
@@ -829,8 +936,17 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       }
     },
 
-    forceSaveSkillWorkflow: async (targetWorkflowId: string, workflowName: string, workflowDescription?: string) => {
-      const { isDecompositionTemplate, pendingDecompositionSource, nodes, edges } = get();
+    forceSaveSkillWorkflow: async (
+      targetWorkflowId: string,
+      workflowName: string,
+      workflowDescription?: string,
+    ) => {
+      const {
+        isDecompositionTemplate,
+        pendingDecompositionSource,
+        nodes,
+        edges,
+      } = get();
       if (!isDecompositionTemplate || !pendingDecompositionSource) {
         throw new Error("Not a decomposition workflow or missing source data");
       }
@@ -844,7 +960,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const workflowId = await invoke<string>("force_save_skill_workflow", {
           request: {
             skill_id: pendingDecompositionSource.market,
-            skill_name: pendingDecompositionSource.repo || pendingDecompositionSource.market,
+            skill_name: pendingDecompositionSource.repo
+              || pendingDecompositionSource.market,
             workflow_name: workflowName,
             description: workflowDescription,
             nodes,
@@ -905,17 +1022,22 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const result = await invoke<{ nodes: WorkflowNode[]; edges: WorkflowEdge[]; explanation?: string }>(
-          "generate_workflow_from_prompt",
-          { prompt },
-        );
+        const result = await invoke<{
+          nodes: WorkflowNode[];
+          edges: WorkflowEdge[];
+          explanation?: string;
+        }>("generate_workflow_from_prompt", { prompt });
         if (result) {
           set((state) => {
             state.nodes = result.nodes;
             state.edges = result.edges;
             state.isLoading = false;
           });
-          return { nodes: result.nodes, edges: result.edges, explanation: result.explanation };
+          return {
+            nodes: result.nodes,
+            edges: result.edges,
+            explanation: result.explanation,
+          };
         }
         return null;
       } catch (error) {
@@ -933,7 +1055,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.error = null;
       });
       try {
-        const result = await invoke<string>("optimize_agent_prompt", { prompt });
+        const result = await invoke<string>("optimize_agent_prompt", {
+          prompt,
+        });
         set((state) => {
           state.isLoading = false;
         });
@@ -954,11 +1078,13 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
       try {
         const result = await invoke<
-          Array<{ node_type: string; label: string; description: string; confidence: number }>
-        >(
-          "recommend_nodes",
-          { context },
-        );
+          Array<{
+            node_type: string;
+            label: string;
+            description: string;
+            confidence: number;
+          }>
+        >("recommend_nodes", { context });
         set((state) => {
           state.isLoading = false;
         });
@@ -980,20 +1106,35 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       return null;
     },
 
-    applySkillReplacement: (_nodeId: string, _existingSkillId: string, _action: SkillReplacementAction) => {
+    applySkillReplacement: (
+      _nodeId: string,
+      _existingSkillId: string,
+      _action: SkillReplacementAction,
+    ) => {
       // atomicSkill nodes removed — no replacement needed
     },
 
-    applySemanticAction: (nodeId: string, _action: "replace" | "keep" | "upgrade_existing") => {
+    applySemanticAction: (
+      nodeId: string,
+      _action: "replace" | "keep" | "upgrade_existing",
+    ) => {
       const { semanticCheckResult } = get();
-      if (!semanticCheckResult) { return; }
+      if (!semanticCheckResult) {
+        return;
+      }
 
-      const match = semanticCheckResult.matches.find((m) => m.node_id === nodeId);
-      if (!match || !match.matches || match.matches.length === 0) { return; }
+      const match = semanticCheckResult.matches.find(
+        (m) => m.node_id === nodeId,
+      );
+      if (!match || !match.matches || match.matches.length === 0) {
+        return;
+      }
 
       // atomicSkill removed — noop
       set((state) => {
-        const remainingMatches = state.semanticCheckResult?.matches.filter((m) => m.node_id !== nodeId) || [];
+        const remainingMatches = state.semanticCheckResult?.matches.filter(
+          (m) => m.node_id !== nodeId,
+        ) || [];
         if (remainingMatches.length === 0) {
           state.semanticCheckResult = null;
         } else if (state.semanticCheckResult) {
@@ -1017,12 +1158,18 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         );
 
         if (response.skill_count === 0) {
-          throw new Error("WORKFLOW_NO_SKILL_EXECUTIONS: No skill executions found in this conversation");
+          throw new Error(
+            "WORKFLOW_NO_SKILL_EXECUTIONS: No skill executions found in this conversation",
+          );
         }
 
         // D7: runtime validation — verify nodes have required 'type' and 'id' fields
-        const validNodes = response.nodes.filter((n: any) => n?.type && n?.id) as WorkflowNode[];
-        const validEdges = response.edges.filter((e: any) => e?.source && e?.target) as WorkflowEdge[];
+        const validNodes = response.nodes.filter(
+          (n: any) => n?.type && n?.id,
+        ) as WorkflowNode[];
+        const validEdges = response.edges.filter(
+          (e: any) => e?.source && e?.target,
+        ) as WorkflowEdge[];
         if (validNodes.length === 0) {
           throw new Error("Workflow preview contains no valid nodes");
         }

@@ -18,15 +18,25 @@ interface Props {
   onClose: () => void;
 }
 
-export const CodeBlockPreviewModal: React.FC<Props> = ({ payload, open, onClose }) => {
+export const CodeBlockPreviewModal: React.FC<Props> = ({
+  payload,
+  open,
+  onClose,
+}) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
   const srcdoc = useMemo(() => {
-    if (!payload) { return ""; }
+    if (!payload) {
+      return "";
+    }
     const base = payload.node?.code ?? payload.code ?? "";
     const lowered = base.trim().toLowerCase();
-    if (lowered.startsWith("<!doctype") || lowered.startsWith("<html") || lowered.startsWith("<body")) {
+    if (
+      lowered.startsWith("<!doctype")
+      || lowered.startsWith("<html")
+      || lowered.startsWith("<body")
+    ) {
       return base;
     }
 
@@ -58,10 +68,16 @@ export const CodeBlockPreviewModal: React.FC<Props> = ({ payload, open, onClose 
 
   const title = (() => {
     const raw = payload?.artifactTitle;
-    if (!raw) { return t("common.preview"); }
+    if (!raw) {
+      return t("common.preview");
+    }
     const type = payload?.artifactType;
-    if (type === "text/html") { return `HTML ${t("common.preview")}`; }
-    if (type === "image/svg+xml") { return `SVG ${t("common.preview")}`; }
+    if (type === "text/html") {
+      return `HTML ${t("common.preview")}`;
+    }
+    if (type === "image/svg+xml") {
+      return `SVG ${t("common.preview")}`;
+    }
     return raw;
   })();
 

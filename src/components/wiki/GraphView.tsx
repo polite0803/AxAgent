@@ -34,7 +34,12 @@ const { Text } = Typography;
 
 export type GraphNodeType = "note" | "concept" | "entity" | "source";
 
-export type GraphEdgeType = "link" | "backlink" | "reference" | "derived_from" | "contradicts";
+export type GraphEdgeType =
+  | "link"
+  | "backlink"
+  | "reference"
+  | "derived_from"
+  | "contradicts";
 
 export interface GraphNode {
   id: string;
@@ -76,7 +81,10 @@ export interface GraphViewProps {
     pathPrefix?: string;
     types?: GraphNodeType[];
   };
-  onFiltersChange?: (filters: { tags?: string[]; types?: GraphNodeType[] }) => void;
+  onFiltersChange?: (filters: {
+    tags?: string[];
+    types?: GraphNodeType[];
+  }) => void;
   showMinimap?: boolean;
   communities?: Map<string, number>;
 }
@@ -105,13 +113,43 @@ const communityPalette = [
 
 const edgeTypeStyles: Record<
   GraphEdgeType,
-  { stroke: string; strokeWidth: number; dashArray: string | undefined; animated: boolean }
+  {
+    stroke: string;
+    strokeWidth: number;
+    dashArray: string | undefined;
+    animated: boolean;
+  }
 > = {
-  link: { stroke: "#d9d9d9", strokeWidth: 1, dashArray: undefined, animated: false },
-  backlink: { stroke: "#1890ff", strokeWidth: 2, dashArray: undefined, animated: true },
-  reference: { stroke: "#52c41a", strokeWidth: 1.5, dashArray: "8,4", animated: false },
-  derived_from: { stroke: "#fa8c16", strokeWidth: 1.5, dashArray: "2,4", animated: false },
-  contradicts: { stroke: "#ff4d4f", strokeWidth: 2, dashArray: "4,4", animated: false },
+  link: {
+    stroke: "#d9d9d9",
+    strokeWidth: 1,
+    dashArray: undefined,
+    animated: false,
+  },
+  backlink: {
+    stroke: "#1890ff",
+    strokeWidth: 2,
+    dashArray: undefined,
+    animated: true,
+  },
+  reference: {
+    stroke: "#52c41a",
+    strokeWidth: 1.5,
+    dashArray: "8,4",
+    animated: false,
+  },
+  derived_from: {
+    stroke: "#fa8c16",
+    strokeWidth: 1.5,
+    dashArray: "2,4",
+    animated: false,
+  },
+  contradicts: {
+    stroke: "#ff4d4f",
+    strokeWidth: 2,
+    dashArray: "4,4",
+    animated: false,
+  },
 };
 
 const edgeTypeLabels: Record<GraphEdgeType, string> = {
@@ -122,7 +160,10 @@ const edgeTypeLabels: Record<GraphEdgeType, string> = {
   contradicts: "wiki.graph.edgeType.contradicts",
 };
 
-function getNodeColor(node: GraphNode, communities?: Map<string, number>): string {
+function getNodeColor(
+  node: GraphNode,
+  communities?: Map<string, number>,
+): string {
   if (communities && communities.has(node.id)) {
     const communityId = communities.get(node.id)!;
     return communityPalette[communityId % communityPalette.length];
@@ -161,16 +202,20 @@ function computeLayout(
     target: edge.target,
   }));
 
-  const simulation = forceSimulation<SimulationNodeDatum>(simNodes as SimulationNodeDatum[])
-    .force("collide", forceCollide(70));
+  const simulation = forceSimulation<SimulationNodeDatum>(
+    simNodes as SimulationNodeDatum[],
+  ).force("collide", forceCollide(70));
 
   if (mode === "force") {
     simulation
       .force(
         "link",
-        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
-          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
-        ).id((d: SimulationNodeDatum) => (d as SimNode).id).distance(120),
+        forceLink<
+          SimulationNodeDatum,
+          SimulationLinkDatum<SimulationNodeDatum>
+        >(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
+          .id((d: SimulationNodeDatum) => (d as SimNode).id)
+          .distance(120),
       )
       .force("charge", forceManyBody().strength(-250))
       .force("center", forceCenter(cx, cy));
@@ -178,19 +223,29 @@ function computeLayout(
     simulation
       .force(
         "link",
-        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
-          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
-        ).id((d: SimulationNodeDatum) => (d as SimNode).id).distance(80),
+        forceLink<
+          SimulationNodeDatum,
+          SimulationLinkDatum<SimulationNodeDatum>
+        >(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
+          .id((d: SimulationNodeDatum) => (d as SimNode).id)
+          .distance(80),
       )
-      .force("radial", forceRadial(Math.min(width, height) * 0.3, cx, cy).strength(0.8))
+      .force(
+        "radial",
+        forceRadial(Math.min(width, height) * 0.3, cx, cy).strength(0.8),
+      )
       .force("center", forceCenter(cx, cy));
   } else {
     simulation
       .force(
         "link",
-        forceLink<SimulationNodeDatum, SimulationLinkDatum<SimulationNodeDatum>>(
-          simLinks as SimulationLinkDatum<SimulationNodeDatum>[],
-        ).id((d: SimulationNodeDatum) => (d as SimNode).id).distance(100).strength(0.5),
+        forceLink<
+          SimulationNodeDatum,
+          SimulationLinkDatum<SimulationNodeDatum>
+        >(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
+          .id((d: SimulationNodeDatum) => (d as SimNode).id)
+          .distance(100)
+          .strength(0.5),
       )
       .force("charge", forceManyBody().strength(-400))
       .force("center", forceCenter(cx, cy));
@@ -262,7 +317,13 @@ function WikiEdgeComponent({
           strokeDasharray="5,5"
           opacity={0.6}
         >
-          <animate attributeName="stroke-dashoffset" from="0" to="10" dur="0.5s" repeatCount="indefinite" />
+          <animate
+            attributeName="stroke-dashoffset"
+            from="0"
+            to="10"
+            dur="0.5s"
+            repeatCount="indefinite"
+          />
         </path>
       )}
       {edgeType !== "link" && (
@@ -342,7 +403,9 @@ const CustomNode = ({
           cursor: "pointer",
           transition: "box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
           transform: entranceVisible
-            ? (isSelected ? "scale(1.05)" : "scale(1)")
+            ? isSelected
+              ? "scale(1.05)"
+              : "scale(1)"
             : "scale(0.3)",
           position: "relative",
           overflow: "hidden",
@@ -354,11 +417,15 @@ const CustomNode = ({
           e.currentTarget.style.borderColor = nodeColor;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.transform = isSelected ? "scale(1.05)" : "scale(1)";
+          e.currentTarget.style.transform = isSelected
+            ? "scale(1.05)"
+            : "scale(1)";
           e.currentTarget.style.boxShadow = isSelected
             ? `0 0 0 2px ${nodeColor}25, 0 0 20px ${nodeColor}15, 0 8px 32px rgba(0,0,0,0.1)`
             : `0 2px 8px rgba(0,0,0,0.04)`;
-          e.currentTarget.style.borderColor = isSelected ? nodeColor : `${token.colorBorderSecondary}40`;
+          e.currentTarget.style.borderColor = isSelected
+            ? nodeColor
+            : `${token.colorBorderSecondary}40`;
         }}
       >
         {isSelected && (
@@ -371,7 +438,14 @@ const CustomNode = ({
             }}
           />
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 4,
+          }}
+        >
           <div
             style={{
               width: 8,
@@ -382,7 +456,9 @@ const CustomNode = ({
               flexShrink: 0,
             }}
           />
-          <Text strong ellipsis style={{ fontSize: 13, flex: 1, minWidth: 0 }}>{data.title}</Text>
+          <Text strong ellipsis style={{ fontSize: 13, flex: 1, minWidth: 0 }}>
+            {data.title}
+          </Text>
         </div>
         {data.tags.length > 0 && (
           <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
@@ -460,7 +536,9 @@ function GraphViewInner({
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("force");
   const [entranceComplete, setEntranceComplete] = useState(false);
   const reactFlowInstance = useReactFlow();
@@ -496,7 +574,11 @@ function GraphViewInner({
       }
       if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
         const target = e.target as HTMLElement;
-        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        if (
+          target.tagName === "INPUT"
+          || target.tagName === "TEXTAREA"
+          || target.isContentEditable
+        ) {
           return;
         }
         onDeleteNode?.(selectedNodeId);
@@ -511,15 +593,22 @@ function GraphViewInner({
   const neighborMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
     for (const edge of data.edges) {
-      if (!map.has(edge.source)) { map.set(edge.source, new Set()); }
-      if (!map.has(edge.target)) { map.set(edge.target, new Set()); }
+      if (!map.has(edge.source)) {
+        map.set(edge.source, new Set());
+      }
+      if (!map.has(edge.target)) {
+        map.set(edge.target, new Set());
+      }
       map.get(edge.source)!.add(edge.target);
       map.get(edge.target)!.add(edge.source);
     }
     return map;
   }, [data.edges]);
 
-  const allNodeIds = useMemo(() => new Set(data.nodes.map((n) => n.id)), [data.nodes]);
+  const allNodeIds = useMemo(
+    () => new Set(data.nodes.map((n) => n.id)),
+    [data.nodes],
+  );
 
   const expandedNeighborIds = useMemo(() => {
     const ids = new Set<string>();
@@ -527,7 +616,9 @@ function GraphViewInner({
       const neighbors = neighborMap.get(expandedId);
       if (neighbors) {
         for (const nid of neighbors) {
-          if (!allNodeIds.has(nid)) { ids.add(nid); }
+          if (!allNodeIds.has(nid)) {
+            ids.add(nid);
+          }
         }
       }
     }
@@ -536,31 +627,53 @@ function GraphViewInner({
 
   const filteredNodes = useMemo(() => {
     return data.nodes.filter((node) => {
-      if (filters?.tags?.length && !node.tags.some((ft) => filters.tags!.includes(ft))) { return false; }
-      if (filters?.pathPrefix && !node.path.startsWith(filters.pathPrefix)) { return false; }
-      if (filters?.types?.length && !filters.types.includes(node.type)) { return false; }
+      if (
+        filters?.tags?.length
+        && !node.tags.some((ft) => filters.tags!.includes(ft))
+      ) {
+        return false;
+      }
+      if (filters?.pathPrefix && !node.path.startsWith(filters.pathPrefix)) {
+        return false;
+      }
+      if (filters?.types?.length && !filters.types.includes(node.type)) {
+        return false;
+      }
       return true;
     });
   }, [data.nodes, filters]);
 
   const visibleNodeIds = useMemo(() => {
     const ids = new Set(filteredNodes.map((n) => n.id));
-    for (const nid of expandedNeighborIds) { ids.add(nid); }
+    for (const nid of expandedNeighborIds) {
+      ids.add(nid);
+    }
     return ids;
   }, [filteredNodes, expandedNeighborIds]);
 
   const filteredEdges = useMemo(() => {
-    return data.edges.filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
+    return data.edges.filter(
+      (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target),
+    );
   }, [data.edges, visibleNodeIds]);
 
   const layoutPositions = useMemo(() => {
-    return computeLayout(filteredNodes, filteredEdges, layoutMode, dimensions.width, dimensions.height);
+    return computeLayout(
+      filteredNodes,
+      filteredEdges,
+      layoutMode,
+      dimensions.width,
+      dimensions.height,
+    );
   }, [filteredNodes, filteredEdges, layoutMode, dimensions]);
 
   const initialNodes: Node[] = useMemo(
     () =>
       filteredNodes.map((node) => {
-        const pos = layoutPositions.get(node.id) ?? { x: node.x ?? 0, y: node.y ?? 0 };
+        const pos = layoutPositions.get(node.id) ?? {
+          x: node.x ?? 0,
+          y: node.y ?? 0,
+        };
         return {
           id: node.id,
           type: "customNode",
@@ -603,7 +716,10 @@ function GraphViewInner({
             stroke: style.stroke,
             strokeWidth: style.strokeWidth,
             opacity: hasHighlights
-              ? (highlightedNodeIds?.has(edge.source) && highlightedNodeIds?.has(edge.target) ? 0.8 : 0.08)
+              ? highlightedNodeIds?.has(edge.source)
+                  && highlightedNodeIds?.has(edge.target)
+                ? 0.8
+                : 0.08
               : 0.6,
             transition: "opacity 0.4s ease",
           },
@@ -641,8 +757,11 @@ function GraphViewInner({
     (_: React.MouseEvent, node: Node) => {
       setExpandedNodeIds((prev) => {
         const next = new Set(prev);
-        if (next.has(node.id)) { next.delete(node.id); }
-        else { next.add(node.id); }
+        if (next.has(node.id)) {
+          next.delete(node.id);
+        } else {
+          next.add(node.id);
+        }
         return next;
       });
       onNodeDoubleClick?.(node.id);
@@ -702,7 +821,14 @@ function GraphViewInner({
 
   if (data.nodes.length === 0) {
     return (
-      <Card style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Card
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <Empty description={t("wiki.graph.empty")} />
       </Card>
     );
@@ -737,13 +863,19 @@ function GraphViewInner({
         style={{ background: token.colorBgLayout }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background gap={20} size={1} color={`${token.colorBorderSecondary}40`} />
+        <Background
+          gap={20}
+          size={1}
+          color={`${token.colorBorderSecondary}40`}
+        />
 
         {showMinimap && (
           <MiniMap
             nodeColor={(n) => {
               const graphNode = data.nodes.find((gn) => gn.id === n.id);
-              return graphNode ? getNodeColor(graphNode, communities) : nodeColors.note;
+              return graphNode
+                ? getNodeColor(graphNode, communities)
+                : nodeColors.note;
             }}
             maskColor={`${token.colorBgContainer}aa`}
             style={{ borderRadius: 8, overflow: "hidden" }}
@@ -764,8 +896,16 @@ function GraphViewInner({
             }}
           >
             <Space direction="vertical" size="small" style={{ width: "100%" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Text strong style={{ fontSize: 12 }}>{t("wiki.graph.filters")}</Text>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text strong style={{ fontSize: 12 }}>
+                  {t("wiki.graph.filters")}
+                </Text>
                 <Segmented
                   size="small"
                   value={layoutMode}
@@ -788,26 +928,44 @@ function GraphViewInner({
                 maxTagCount={3}
               />
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => (
-                  <Tag key={type} color={nodeColors[type]} style={{ fontSize: 12, margin: 0 }}>
-                    {type}: {data.nodes.filter((n) =>
-                      n.type === type
-                    ).length}
+                {(
+                  ["note", "concept", "entity", "source"] as GraphNodeType[]
+                ).map((type) => (
+                  <Tag
+                    key={type}
+                    color={nodeColors[type]}
+                    style={{ fontSize: 12, margin: 0 }}
+                  >
+                    {type}: {data.nodes.filter((n) => n.type === type).length}
                   </Tag>
                 ))}
               </div>
               {communities && communities.size > 0 && (
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 10, width: "100%" }}>{t("wiki.graph.communities")}</Text>
-                  {Array.from(new Set(communities.values())).slice(0, 8).map((cid) => (
-                    <Tag
-                      key={cid}
-                      color={communityPalette[cid % communityPalette.length]}
-                      style={{ fontSize: 10 }}
-                    >
-                      C{cid}
-                    </Tag>
-                  ))}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 4,
+                    flexWrap: "wrap",
+                    marginTop: 4,
+                  }}
+                >
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: 10, width: "100%" }}
+                  >
+                    {t("wiki.graph.communities")}
+                  </Text>
+                  {Array.from(new Set(communities.values()))
+                    .slice(0, 8)
+                    .map((cid) => (
+                      <Tag
+                        key={cid}
+                        color={communityPalette[cid % communityPalette.length]}
+                        style={{ fontSize: 10 }}
+                      >
+                        C{cid}
+                      </Tag>
+                    ))}
                 </div>
               )}
             </Space>
@@ -825,7 +983,9 @@ function GraphViewInner({
             }}
           >
             <Space direction="vertical" size="small">
-              <Text type="secondary" style={{ fontSize: 12 }}>{t("wiki.graph.stats")}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("wiki.graph.stats")}
+              </Text>
               <Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.nodes")}: {filteredNodes.length} / {data.nodes.length}
               </Text>
@@ -833,10 +993,14 @@ function GraphViewInner({
                 {t("wiki.graph.edges")}: {filteredEdges.length} / {data.edges.length}
               </Text>
               {expandedNodeIds.size > 0 && (
-                <Text type="secondary" style={{ fontSize: 12 }}>Expanded: {expandedNodeIds.size}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Expanded: {expandedNodeIds.size}
+                </Text>
               )}
               {hasHighlights && (
-                <Text type="secondary" style={{ fontSize: 12 }}>Highlighted: {highlightedNodeIds!.size}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Highlighted: {highlightedNodeIds!.size}
+                </Text>
               )}
             </Space>
           </Card>
@@ -854,11 +1018,21 @@ function GraphViewInner({
                 padding: "4px 8px",
               }}
             >
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  fontSize: 10,
+                }}
+              >
                 {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
                   const s = edgeTypeStyles[et];
                   return (
-                    <span key={et} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <span
+                      key={et}
+                      style={{ display: "flex", alignItems: "center", gap: 3 }}
+                    >
                       <svg width="20" height="6">
                         <line
                           x1="0"
@@ -870,7 +1044,9 @@ function GraphViewInner({
                           strokeDasharray={s.dashArray}
                         />
                       </svg>
-                      <span style={{ color: s.stroke }}>{t(edgeTypeLabels[et])}</span>
+                      <span style={{ color: s.stroke }}>
+                        {t(edgeTypeLabels[et])}
+                      </span>
                     </span>
                   );
                 })}

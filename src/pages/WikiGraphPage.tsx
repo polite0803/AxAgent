@@ -39,11 +39,15 @@ export function WikiGraphPage() {
   // 图谱数据
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [graphLoading, setGraphLoading] = useState(true);
-  const [communities, setCommunities] = useState<Map<string, number> | null>(null);
+  const [communities, setCommunities] = useState<Map<string, number> | null>(
+    null,
+  );
 
   // 选中和高亮
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
+  const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
 
   // 右键菜单
@@ -57,8 +61,12 @@ export function WikiGraphPage() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(240);
   const [rightPanelWidth, setRightPanelWidth] = useState(380);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
-  const [leftAtBoundary, setLeftAtBoundary] = useState<"min" | "max" | null>(null);
-  const [rightAtBoundary, setRightAtBoundary] = useState<"min" | "max" | null>(null);
+  const [leftAtBoundary, setLeftAtBoundary] = useState<"min" | "max" | null>(
+    null,
+  );
+  const [rightAtBoundary, setRightAtBoundary] = useState<"min" | "max" | null>(
+    null,
+  );
   const resizingRef = useRef<"left" | "right" | null>(null);
 
   // 搜索
@@ -74,8 +82,10 @@ export function WikiGraphPage() {
     try {
       const [data, communityResult] = await Promise.all([
         invoke<GraphData>("get_wiki_graph", { wikiId: wikiIdFromUrl }),
-        invoke<{ communities: Record<string, number> }>("wiki_graph_communities", { wikiId: wikiIdFromUrl })
-          .catch(() => null),
+        invoke<{ communities: Record<string, number> }>(
+          "wiki_graph_communities",
+          { wikiId: wikiIdFromUrl },
+        ).catch(() => null),
       ]);
       setGraphData(data);
       if (communityResult?.communities) {
@@ -104,16 +114,30 @@ export function WikiGraphPage() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (resizingRef.current === "left") {
-        const clamped = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_LEFT_PANEL, e.clientX));
+        const clamped = Math.max(
+          MIN_PANEL_WIDTH,
+          Math.min(MAX_LEFT_PANEL, e.clientX),
+        );
         setLeftPanelWidth(clamped);
         setLeftAtBoundary(
-          clamped <= MIN_PANEL_WIDTH ? "min" : clamped >= MAX_LEFT_PANEL ? "max" : null,
+          clamped <= MIN_PANEL_WIDTH
+            ? "min"
+            : clamped >= MAX_LEFT_PANEL
+            ? "max"
+            : null,
         );
       } else if (resizingRef.current === "right") {
-        const clamped = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_RIGHT_PANEL, window.innerWidth - e.clientX));
+        const clamped = Math.max(
+          MIN_PANEL_WIDTH,
+          Math.min(MAX_RIGHT_PANEL, window.innerWidth - e.clientX),
+        );
         setRightPanelWidth(clamped);
         setRightAtBoundary(
-          clamped <= MIN_PANEL_WIDTH ? "min" : clamped >= MAX_RIGHT_PANEL ? "max" : null,
+          clamped <= MIN_PANEL_WIDTH
+            ? "min"
+            : clamped >= MAX_RIGHT_PANEL
+            ? "max"
+            : null,
         );
       }
     };
@@ -162,13 +186,10 @@ export function WikiGraphPage() {
     setHighlightedNodeIds(nodeIds);
   }, []);
 
-  const handleNavigateToNote = useCallback(
-    (noteId: string) => {
-      setSelectedNodeId(noteId);
-      setDetailPanelOpen(true);
-    },
-    [],
-  );
+  const handleNavigateToNote = useCallback((noteId: string) => {
+    setSelectedNodeId(noteId);
+    setDetailPanelOpen(true);
+  }, []);
 
   const handleCreateNote = useCallback(async () => {
     const now = Date.now();
@@ -198,7 +219,9 @@ export function WikiGraphPage() {
         vaultId: wikiIdFromUrl,
         title,
         filePath: `/linked-note-${now}.md`,
-        content: sourceNode ? `${t("wiki.linkedRef")}: [[${sourceNode.title}]]` : "",
+        content: sourceNode
+          ? `${t("wiki.linkedRef")}: [[${sourceNode.title}]]`
+          : "",
         author: "user",
       });
       if (note) {
@@ -256,18 +279,29 @@ export function WikiGraphPage() {
 
   const selectedNode = graphData?.nodes.find((n) => n.id === selectedNodeId);
 
-  const contextMenuNode = graphData?.nodes.find((n) => n.id === contextMenu.nodeId);
+  const contextMenuNode = graphData?.nodes.find(
+    (n) => n.id === contextMenu.nodeId,
+  );
 
   // 统计
   const stats = useMemo(() => {
-    if (!graphData) { return { nodes: 0, edges: 0, tags: 0 }; }
+    if (!graphData) {
+      return { nodes: 0, edges: 0, tags: 0 };
+    }
     const tags = new Set<string>();
     graphData.nodes.forEach((n) => n.tags.forEach((t) => tags.add(t)));
-    return { nodes: graphData.nodes.length, edges: graphData.edges.length, tags: tags.size };
+    return {
+      nodes: graphData.nodes.length,
+      edges: graphData.edges.length,
+      tags: tags.size,
+    };
   }, [graphData]);
 
   return (
-    <div className="h-full flex flex-col" style={{ overflow: "hidden", backgroundColor: token.colorBgLayout }}>
+    <div
+      className="h-full flex flex-col"
+      style={{ overflow: "hidden", backgroundColor: token.colorBgLayout }}
+    >
       {/* 工具栏 — 玻璃态 */}
       <div
         className="flex items-center gap-2 px-4 py-2 shrink-0 backdrop-blur-lg z-10"
@@ -277,7 +311,9 @@ export function WikiGraphPage() {
           boxShadow: `0 1px 3px ${token.colorBgContainer}40`,
         }}
       >
-        <NodeIndexOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
+        <NodeIndexOutlined
+          style={{ color: token.colorPrimary, fontSize: 18 }}
+        />
         <Title level={5} style={{ margin: 0 }}>
           {t("wiki.graph.title")}
         </Title>
@@ -313,7 +349,9 @@ export function WikiGraphPage() {
           </Tag>
         </Space>
 
-        <Tooltip title={leftPanelVisible ? t("wiki.hidePanel") : t("wiki.showPanel")}>
+        <Tooltip
+          title={leftPanelVisible ? t("wiki.hidePanel") : t("wiki.showPanel")}
+        >
           <Button
             size="small"
             type="text"
@@ -334,11 +372,20 @@ export function WikiGraphPage() {
         )}
 
         <Tooltip title={t("wiki.newNote")}>
-          <Button size="small" icon={<FileAddOutlined />} onClick={handleCreateNote} />
+          <Button
+            size="small"
+            icon={<FileAddOutlined />}
+            onClick={handleCreateNote}
+          />
         </Tooltip>
 
         <Tooltip title={t("wiki.refresh")}>
-          <Button size="small" icon={<ReloadOutlined />} onClick={handleReload} loading={graphLoading} />
+          <Button
+            size="small"
+            icon={<ReloadOutlined />}
+            onClick={handleReload}
+            loading={graphLoading}
+          />
         </Tooltip>
       </div>
 
@@ -347,7 +394,13 @@ export function WikiGraphPage() {
         {/* 左侧面板 */}
         {leftPanelVisible && (
           <>
-            <div style={{ width: leftPanelWidth, flexShrink: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                width: leftPanelWidth,
+                flexShrink: 0,
+                overflow: "hidden",
+              }}
+            >
               <WikiFilePanel
                 notes={notes}
                 graphData={graphData}
@@ -454,7 +507,13 @@ export function WikiGraphPage() {
                 }
               }}
             />
-            <div style={{ width: rightPanelWidth, flexShrink: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                width: rightPanelWidth,
+                flexShrink: 0,
+                overflow: "hidden",
+              }}
+            >
               <WikiDetailPanel
                 noteId={selectedNodeId}
                 graphData={graphData}
@@ -482,7 +541,8 @@ export function WikiGraphPage() {
         {selectedNodeId && (
           <Text type="secondary">
             {t("wiki.selected")}: {selectedNode?.title || selectedNodeId}
-            {selectedNode && ` (→${selectedNode.linkCount} / ←${selectedNode.backlinkCount})`}
+            {selectedNode
+              && ` (→${selectedNode.linkCount} / ←${selectedNode.backlinkCount})`}
           </Text>
         )}
         <div className="flex-1" />
@@ -511,8 +571,12 @@ export function WikiGraphPage() {
           if (contextMenu.nodeId && graphData) {
             const neighborIds = new Set<string>();
             graphData.edges.forEach((e) => {
-              if (e.source === contextMenu.nodeId) { neighborIds.add(e.target); }
-              if (e.target === contextMenu.nodeId) { neighborIds.add(e.source); }
+              if (e.source === contextMenu.nodeId) {
+                neighborIds.add(e.target);
+              }
+              if (e.target === contextMenu.nodeId) {
+                neighborIds.add(e.source);
+              }
             });
             neighborIds.add(contextMenu.nodeId);
             setHighlightedNodeIds(neighborIds);

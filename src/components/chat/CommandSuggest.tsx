@@ -129,9 +129,10 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
       // @ mentions: tools and files
       const allTools = Object.values(mcpTools || {}).flat();
       const toolSuggestions: Suggestion[] = allTools
-        .filter((tool: any) =>
-          tool.name?.toLowerCase().includes(searchQuery)
-          || tool.description?.toLowerCase().includes(searchQuery)
+        .filter(
+          (tool: any) =>
+            tool.name?.toLowerCase().includes(searchQuery)
+            || tool.description?.toLowerCase().includes(searchQuery),
         )
         .slice(0, 10)
         .map((tool: any) => ({
@@ -159,46 +160,59 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
     setSelectedIndex(0);
   }, [value, cursorPosition, visible, mcpTools]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (suggestions.length === 0) { return false; }
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((i) => (i + 1) % suggestions.length);
-      return true;
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
-      return true;
-    }
-    if (e.key === "Enter" || e.key === "Tab") {
-      e.preventDefault();
-      const selected = suggestions[selectedIndex];
-      if (selected) {
-        onSelect(selected.replacement);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (suggestions.length === 0) {
+        return false;
       }
-      return true;
-    }
-    if (e.key === "Escape") {
-      setSuggestions([]);
-      return true;
-    }
-    return false;
-  }, [suggestions, selectedIndex, onSelect]);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((i) => (i + 1) % suggestions.length);
+        return true;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex(
+          (i) => (i - 1 + suggestions.length) % suggestions.length,
+        );
+        return true;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        const selected = suggestions[selectedIndex];
+        if (selected) {
+          onSelect(selected.replacement);
+        }
+        return true;
+      }
+      if (e.key === "Escape") {
+        setSuggestions([]);
+        return true;
+      }
+      return false;
+    },
+    [suggestions, selectedIndex, onSelect],
+  );
 
   // Expose key handler
   useEffect(() => {
-    (CommandSuggest as unknown as { _handleKeyDown: typeof handleKeyDown })._handleKeyDown = handleKeyDown;
+    (
+      CommandSuggest as unknown as { _handleKeyDown: typeof handleKeyDown }
+    )._handleKeyDown = handleKeyDown;
   }, [handleKeyDown]);
 
-  if (suggestions.length === 0 || !visible) { return null; }
+  if (suggestions.length === 0 || !visible) {
+    return null;
+  }
 
   return (
     <div className="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50">
       <div className="px-2 py-1 text-xs text-zinc-500 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-700">
-        {triggerType === "/" ? i18n.t("commandSuggest.commands") : i18n.t("commandSuggest.mentions")}:{" "}
-        {i18n.t("commandSuggest.filterHint")}
+        {triggerType === "/"
+          ? i18n.t("commandSuggest.commands")
+          : i18n.t("commandSuggest.mentions")}
+        : {i18n.t("commandSuggest.filterHint")}
       </div>
       {suggestions.map((suggestion, index) => (
         <button
@@ -213,7 +227,9 @@ export const CommandSuggest: React.FC<CommandSuggestProps> = ({
         >
           <span className="shrink-0 text-zinc-400">{suggestion.icon}</span>
           <span className="font-medium">{suggestion.label}</span>
-          <span className="text-xs text-zinc-400 dark:text-zinc-500 truncate">{suggestion.description}</span>
+          <span className="text-xs text-zinc-400 dark:text-zinc-500 truncate">
+            {suggestion.description}
+          </span>
         </button>
       ))}
     </div>

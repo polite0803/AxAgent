@@ -63,15 +63,40 @@ export interface PlatformMeta {
 }
 
 export const ALL_PLATFORMS: PlatformMeta[] = [
-  { name: "telegram", label: "Telegram", icon: "✈️", enabledKey: "telegram_enabled" },
-  { name: "discord", label: "Discord", icon: "💬", enabledKey: "discord_enabled" },
+  {
+    name: "telegram",
+    label: "Telegram",
+    icon: "✈️",
+    enabledKey: "telegram_enabled",
+  },
+  {
+    name: "discord",
+    label: "Discord",
+    icon: "💬",
+    enabledKey: "discord_enabled",
+  },
   { name: "slack", label: "Slack", icon: "💼", enabledKey: "slack_enabled" },
-  { name: "whatsapp", label: "WhatsApp", icon: "📱", enabledKey: "whatsapp_enabled" },
+  {
+    name: "whatsapp",
+    label: "WhatsApp",
+    icon: "📱",
+    enabledKey: "whatsapp_enabled",
+  },
   { name: "wechat", label: "WeChat", icon: "💚", enabledKey: "wechat_enabled" },
   { name: "feishu", label: "Feishu", icon: "🐦", enabledKey: "feishu_enabled" },
   { name: "qq", label: "QQ", icon: "🐧", enabledKey: "qq_enabled" },
-  { name: "dingtalk", label: "DingTalk", icon: "🔷", enabledKey: "dingtalk_enabled" },
-  { name: "api_server", label: "API Server", icon: "🔌", enabledKey: "api_server_enabled" },
+  {
+    name: "dingtalk",
+    label: "DingTalk",
+    icon: "🔷",
+    enabledKey: "dingtalk_enabled",
+  },
+  {
+    name: "api_server",
+    label: "API Server",
+    icon: "🔌",
+    enabledKey: "api_server_enabled",
+  },
 ];
 
 export interface PlatformStatus {

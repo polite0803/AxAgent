@@ -2,7 +2,11 @@
 
 export type NudgeUrgency = "low" | "medium" | "high";
 
-export type NudgeType = "LowActivity" | "BestPractice" | "Improvement" | "Reminder";
+export type NudgeType =
+  | "LowActivity"
+  | "BestPractice"
+  | "Improvement"
+  | "Reminder";
 
 export type NudgeAction = "AddedToMemory" | "Dismissed" | "Pending";
 
@@ -33,7 +37,11 @@ export interface NudgeStats {
 }
 
 // Closed-loop periodic nudge types
-export type ClosedLoopNudgeType = "memory_consolidation" | "skill_creation" | "pattern_learn" | "review_reminder";
+export type ClosedLoopNudgeType =
+  | "memory_consolidation"
+  | "skill_creation"
+  | "pattern_learn"
+  | "review_reminder";
 
 export interface PeriodicNudge {
   id: string;
@@ -49,7 +57,11 @@ export interface PeriodicNudge {
 
 // === Learning Insights (P3: Memory Flush) ===
 
-export type InsightCategory = "pattern" | "preference" | "improvement" | "warning";
+export type InsightCategory =
+  | "pattern"
+  | "preference"
+  | "improvement"
+  | "warning";
 
 export interface LearningInsight {
   id: string;

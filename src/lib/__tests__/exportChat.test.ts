@@ -117,7 +117,9 @@ describe("buildJsonTranscript", () => {
       content: "Result",
       thinking: "Let me think about this...",
     });
-    const result = buildJsonTranscript([msg], "Chat", { includeThinking: false });
+    const result = buildJsonTranscript([msg], "Chat", {
+      includeThinking: false,
+    });
     const parsed = JSON.parse(result);
     expect(parsed.messages[0].thinking).toBeUndefined();
   });

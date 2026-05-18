@@ -50,13 +50,21 @@ function McpServerList({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  const builtinServers = useMemo(() => servers.filter((s) => s.source === "builtin"), [servers]);
-  const customServers = useMemo(() => servers.filter((s) => s.source !== "builtin"), [servers]);
+  const builtinServers = useMemo(
+    () => servers.filter((s) => s.source === "builtin"),
+    [servers],
+  );
+  const customServers = useMemo(
+    () => servers.filter((s) => s.source !== "builtin"),
+    [servers],
+  );
 
   const renderServerItem = (s: McpServer) => {
     const isSelected = selectedId === s.id;
     const isBuiltin = s.source === "builtin";
-    const displayName = isBuiltin ? t(BUILTIN_DISPLAY_NAME_KEYS[s.name] ?? s.name, s.name) : s.name;
+    const displayName = isBuiltin
+      ? t(BUILTIN_DISPLAY_NAME_KEYS[s.name] ?? s.name, s.name)
+      : s.name;
 
     return (
       <div
@@ -70,24 +78,42 @@ function McpServerList({
         tabIndex={0}
         onClick={() => onSelect(s.id)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { onSelect(s.id); }
+          if (e.key === "Enter" || e.key === " ") {
+            onSelect(s.id);
+          }
         }}
         onMouseEnter={(e) => {
-          if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
+          if (!isSelected) {
+            e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
+          }
         }}
         onMouseLeave={(e) => {
-          if (!isSelected) { e.currentTarget.style.backgroundColor = ""; }
+          if (!isSelected) {
+            e.currentTarget.style.backgroundColor = "";
+          }
         }}
       >
         <span style={{ marginRight: 8, flexShrink: 0, display: "inline-flex" }}>
           <McpServerIcon server={s} size={isBuiltin ? 16 : 24} />
         </span>
         <div className="min-w-0 flex-1 flex items-center gap-2">
-          <span style={{ color: isSelected ? token.colorPrimary : undefined }}>{displayName}</span>
+          <span style={{ color: isSelected ? token.colorPrimary : undefined }}>
+            {displayName}
+          </span>
           {!isBuiltin && (
             <Tag
-              color={s.transport === "stdio" ? "blue" : s.transport === "sse" ? "orange" : "green"}
-              style={{ margin: 0, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 3 }}
+              color={s.transport === "stdio"
+                ? "blue"
+                : s.transport === "sse"
+                ? "orange"
+                : "green"}
+              style={{
+                margin: 0,
+                fontSize: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+              }}
             >
               {s.transport === "sse"
                 ? <Radio size={11} />
@@ -104,7 +130,9 @@ function McpServerList({
               width: 8,
               height: 8,
               borderRadius: "50%",
-              background: (s as { enabled?: boolean }).enabled !== false ? "#52c41a" : "#d9d9d9",
+              background: (s as { enabled?: boolean }).enabled !== false
+                ? "#52c41a"
+                : "#d9d9d9",
               flexShrink: 0,
             }}
             title={(s as { enabled?: boolean }).enabled !== false
@@ -131,7 +159,10 @@ function McpServerList({
         {servers.length === 0
           ? (
             <div className="flex-1 flex items-center justify-center">
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.mcpServers.empty")} />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t("settings.mcpServers.empty")}
+              />
             </div>
           )
           : (
@@ -140,7 +171,11 @@ function McpServerList({
                 <>
                   <Typography.Text
                     type="secondary"
-                    style={{ fontSize: 12, padding: "4px 12px", textTransform: "uppercase" }}
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 12px",
+                      textTransform: "uppercase",
+                    }}
                   >
                     {t("settings.mcpServers.builtin")}
                   </Typography.Text>
@@ -152,7 +187,11 @@ function McpServerList({
                 <>
                   <Typography.Text
                     type="secondary"
-                    style={{ fontSize: 12, padding: "4px 12px", textTransform: "uppercase" }}
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 12px",
+                      textTransform: "uppercase",
+                    }}
                   >
                     {t("settings.mcpServers.custom")}
                   </Typography.Text>
@@ -163,12 +202,7 @@ function McpServerList({
           )}
       </div>
       <div className="shrink-0 p-2 pt-0">
-        <Button
-          type="dashed"
-          block
-          icon={<Plus size={14} />}
-          onClick={onAdd}
-        >
+        <Button type="dashed" block icon={<Plus size={14} />} onClick={onAdd}>
           {t("settings.mcpServers.add")}
         </Button>
       </div>
@@ -190,7 +224,13 @@ function McpServerDetail({
   onToggle: (enable: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const { updateServer, deleteServer, toolDescriptors, loadToolDescriptors, discoverTools } = useMcpStore();
+  const {
+    updateServer,
+    deleteServer,
+    toolDescriptors,
+    loadToolDescriptors,
+    discoverTools,
+  } = useMcpStore();
   const [discovering, setDiscovering] = useState(false);
 
   // Local state for text inputs to avoid cursor-jump on every keystroke
@@ -206,8 +246,13 @@ function McpServerDetail({
   const [localEndpoint, setLocalEndpoint] = useState(server.endpoint ?? "");
   const [localHeaders, setLocalHeaders] = useState(() => {
     try {
-      const obj = JSON.parse(server.headersJson ?? "{}") as Record<string, string>;
-      return Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n");
+      const obj = JSON.parse(server.headersJson ?? "{}") as Record<
+        string,
+        string
+      >;
+      return Object.entries(obj)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("\n");
     } catch {
       return "";
     }
@@ -215,7 +260,9 @@ function McpServerDetail({
   const [localEnv, setLocalEnv] = useState(() => {
     try {
       const obj = JSON.parse(server.envJson ?? "{}") as Record<string, string>;
-      return Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n");
+      return Object.entries(obj)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("\n");
     } catch {
       return "";
     }
@@ -232,14 +279,25 @@ function McpServerDetail({
     }
     setLocalEndpoint(server.endpoint ?? "");
     try {
-      const obj = JSON.parse(server.headersJson ?? "{}") as Record<string, string>;
-      setLocalHeaders(Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n"));
+      const obj = JSON.parse(server.headersJson ?? "{}") as Record<
+        string,
+        string
+      >;
+      setLocalHeaders(
+        Object.entries(obj)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("\n"),
+      );
     } catch {
       setLocalHeaders("");
     }
     try {
       const obj = JSON.parse(server.envJson ?? "{}") as Record<string, string>;
-      setLocalEnv(Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n"));
+      setLocalEnv(
+        Object.entries(obj)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("\n"),
+      );
     } catch {
       setLocalEnv("");
     }
@@ -252,7 +310,9 @@ function McpServerDetail({
   const tools: ToolDescriptor[] = toolDescriptors[server.id] ?? [];
   const rowStyle = { padding: "4px 0" };
   const isBuiltin = server.source === "builtin";
-  const displayName = isBuiltin ? t(BUILTIN_DISPLAY_NAME_KEYS[server.name] ?? server.name, server.name) : server.name;
+  const displayName = isBuiltin
+    ? t(BUILTIN_DISPLAY_NAME_KEYS[server.name] ?? server.name, server.name)
+    : server.name;
 
   const handleFieldChange = async (field: string, value: unknown) => {
     await updateServer(server.id, { [field]: value });
@@ -296,7 +356,10 @@ function McpServerDetail({
               iconType={server.iconType}
               iconValue={server.iconValue}
               onChange={async (type, value) => {
-                await updateServer(server.id, { iconType: type ?? "", iconValue: value ?? "" });
+                await updateServer(server.id, {
+                  iconType: type ?? "",
+                  iconValue: value ?? "",
+                });
               }}
               size={36}
               defaultIcon={<McpServerIcon server={server} size={36} />}
@@ -304,7 +367,11 @@ function McpServerDetail({
             />
           )}
           <span style={{ fontWeight: 600, fontSize: 16 }}>{displayName}</span>
-          {isBuiltin && <Tag color="blue" style={{ margin: 0 }}>{t("settings.mcpServers.builtin")}</Tag>}
+          {isBuiltin && (
+            <Tag color="blue" style={{ margin: 0 }}>
+              {t("settings.mcpServers.builtin")}
+            </Tag>
+          )}
         </div>
         {!isBuiltin && (
           <Popconfirm
@@ -330,7 +397,9 @@ function McpServerDetail({
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
               onBlur={() => {
-                if (localName !== server.name) { handleFieldChange("name", localName); }
+                if (localName !== server.name) {
+                  handleFieldChange("name", localName);
+                }
               }}
               style={{ width: 280 }}
             />
@@ -347,7 +416,9 @@ function McpServerDetail({
                 {
                   value: "sse",
                   label: (
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
                       <Radio size={14} /> SSE
                     </span>
                   ),
@@ -355,7 +426,9 @@ function McpServerDetail({
                 {
                   value: "http",
                   label: (
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
                       <Globe size={14} /> StreamableHTTP
                     </span>
                   ),
@@ -363,7 +436,9 @@ function McpServerDetail({
                 {
                   value: "stdio",
                   label: (
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
                       <Terminal size={14} /> Stdio
                     </span>
                   ),
@@ -396,7 +471,9 @@ function McpServerDetail({
               value={localArgs}
               onChange={(e) => setLocalArgs(e.target.value)}
               onBlur={() => {
-                const arr = localArgs ? localArgs.split(/\s+/).filter(Boolean) : [];
+                const arr = localArgs
+                  ? localArgs.split(/\s+/).filter(Boolean)
+                  : [];
                 handleFieldChange("args", arr.length > 0 ? arr : null);
               }}
               placeholder="-y @modelcontextprotocol/server-name"
@@ -407,7 +484,8 @@ function McpServerDetail({
         </>
       )}
 
-      {(server.transport === "http" || server.transport === "sse") && !isBuiltin && (
+      {(server.transport === "http" || server.transport === "sse")
+        && !isBuiltin && (
         <>
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("settings.mcpServers.endpoint")}</span>
@@ -428,14 +506,23 @@ function McpServerDetail({
               value={localHeaders}
               onChange={(e) => setLocalHeaders(e.target.value)}
               onBlur={() => {
-                const lines = localHeaders.split("\n").filter((l) => l.includes("="));
+                const lines = localHeaders
+                  .split("\n")
+                  .filter((l) => l.includes("="));
                 const obj: Record<string, string> = {};
                 // js-set-map-lookups: indexOf 用于获取 = 位置，Set 无法替代
                 for (const line of lines) {
                   const eqIdx = line.indexOf("=");
-                  if (eqIdx > 0) { obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim(); }
+                  if (eqIdx > 0) {
+                    obj[line.slice(0, eqIdx).trim()] = line
+                      .slice(eqIdx + 1)
+                      .trim();
+                  }
                 }
-                handleFieldChange("headersJson", lines.length > 0 ? JSON.stringify(obj) : null);
+                handleFieldChange(
+                  "headersJson",
+                  lines.length > 0 ? JSON.stringify(obj) : null,
+                );
               }}
               placeholder={"Authorization=Bearer xxx\nX-Custom=value"}
               autoSize={{ minRows: 2, maxRows: 6 }}
@@ -455,14 +542,23 @@ function McpServerDetail({
               value={localEnv}
               onChange={(e) => setLocalEnv(e.target.value)}
               onBlur={() => {
-                const lines = localEnv.split("\n").filter((l) => l.includes("="));
+                const lines = localEnv
+                  .split("\n")
+                  .filter((l) => l.includes("="));
                 const obj: Record<string, string> = {};
                 // js-set-map-lookups: indexOf 用于获取 = 位置，Set 无法替代
                 for (const line of lines) {
                   const eqIdx = line.indexOf("=");
-                  if (eqIdx > 0) { obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim(); }
+                  if (eqIdx > 0) {
+                    obj[line.slice(0, eqIdx).trim()] = line
+                      .slice(eqIdx + 1)
+                      .trim();
+                  }
                 }
-                handleFieldChange("env", Object.keys(obj).length > 0 ? obj : null);
+                handleFieldChange(
+                  "env",
+                  Object.keys(obj).length > 0 ? obj : null,
+                );
               }}
               placeholder={t("settings.mcpServers.envVarsPlaceholder")}
               autoSize={{ minRows: 2, maxRows: 6 }}
@@ -520,7 +616,10 @@ function McpServerDetail({
 
       {/* Tool Descriptors */}
       <Divider />
-      <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ marginBottom: 12 }}
+      >
         <Typography.Title level={5} style={{ margin: 0 }}>
           {t("settings.mcpServers.tools")}
           {tools.length > 0 && <Tag style={{ marginLeft: 8, fontWeight: 400 }}>{tools.length}</Tag>}
@@ -528,7 +627,12 @@ function McpServerDetail({
         {!isBuiltin && (
           <Button
             size="small"
-            icon={<RefreshCw size={14} className={discovering ? "animate-spin" : ""} />}
+            icon={
+              <RefreshCw
+                size={14}
+                className={discovering ? "animate-spin" : ""}
+              />
+            }
             loading={discovering}
             disabled={!server.enabled}
             onClick={handleDiscoverTools}
@@ -538,14 +642,23 @@ function McpServerDetail({
         )}
       </div>
       {tools.length === 0
-        ? <Empty description={t("settings.mcpServers.noTools")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ? (
+          <Empty
+            description={t("settings.mcpServers.noTools")}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )
         : (
           <Collapse
             size="small"
             items={tools.map((tool) => ({
               key: tool.id,
               label: tool.name,
-              children: <Typography.Text type="secondary">{tool.description || "—"}</Typography.Text>,
+              children: (
+                <Typography.Text type="secondary">
+                  {tool.description || "—"}
+                </Typography.Text>
+              ),
             }))}
           />
         )}
@@ -557,18 +670,31 @@ function McpServerDetail({
 
 export function McpServerSettings() {
   const { t } = useTranslation();
-  const { servers, loadServers, createServer, updateServer, discoverTools, discoverAvailableServers } = useMcpStore();
+  const {
+    servers,
+    loadServers,
+    createServer,
+    updateServer,
+    discoverTools,
+    discoverAvailableServers,
+  } = useMcpStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<"form" | "import" | "discover">("form");
+  const [modalTab, setModalTab] = useState<"form" | "import" | "discover">(
+    "form",
+  );
   const [importJson, setImportJson] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
-  const [discoveredServers, setDiscoveredServers] = useState<DiscoveredMcpServer[]>([]);
+  const [discoveredServers, setDiscoveredServers] = useState<
+    DiscoveredMcpServer[]
+  >([]);
   const [discovering, setDiscovering] = useState(false);
   const [form] = Form.useForm();
   const transport = Form.useWatch("transport", form);
 
-  const [enablingServerIds, setEnablingServerIds] = useState<Set<string>>(new Set());
+  const [enablingServerIds, setEnablingServerIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const handleToggleEnabled = async (serverId: string, enable: boolean) => {
     if (!enable) {
@@ -633,7 +759,9 @@ export function McpServerSettings() {
       enabled: false,
     };
     await createServer(input);
-    message.success(t("settings.mcpServers.addedFromDiscovery", { name: discovered.name }));
+    message.success(
+      t("settings.mcpServers.addedFromDiscovery", { name: discovered.name }),
+    );
     await loadServers();
   };
 
@@ -644,15 +772,22 @@ export function McpServerSettings() {
     for (const [name, cfg] of Object.entries(serversObj)) {
       const c = cfg as Record<string, unknown>;
       let transport: "stdio" | "http" | "sse";
-      if (c.type === "streamable_http") { transport = "http"; }
-      else if (c.type === "sse") { transport = "sse"; }
-      else if (c.command) { transport = "stdio"; }
-      else { continue; }
+      if (c.type === "streamable_http") {
+        transport = "http";
+      } else if (c.type === "sse") {
+        transport = "sse";
+      } else if (c.command) {
+        transport = "stdio";
+      } else {
+        continue;
+      }
       results.push({
         name,
         transport,
         command: typeof c.command === "string" ? c.command : undefined,
-        args: Array.isArray(c.args) ? c.args.filter((a): a is string => typeof a === "string") : undefined,
+        args: Array.isArray(c.args)
+          ? c.args.filter((a): a is string => typeof a === "string")
+          : undefined,
         endpoint: typeof c.url === "string" ? c.url : undefined,
         enabled: false,
       });
@@ -673,7 +808,9 @@ export function McpServerSettings() {
       return;
     }
     await Promise.all(inputs.map((input) => createServer(input)));
-    message.success(t("settings.mcpServers.importSuccess", { count: inputs.length }));
+    message.success(
+      t("settings.mcpServers.importSuccess", { count: inputs.length }),
+    );
     setModalOpen(false);
     setImportJson("");
     setImportError(null);
@@ -686,7 +823,9 @@ export function McpServerSettings() {
         name: values.name,
         transport: values.transport,
         command: values.command,
-        args: values.args ? values.args.split(/\s+/).filter(Boolean) : undefined,
+        args: values.args
+          ? values.args.split(/\s+/).filter(Boolean)
+          : undefined,
         endpoint: values.endpoint,
         enabled: false,
       };
@@ -700,7 +839,10 @@ export function McpServerSettings() {
 
   return (
     <div className="flex h-full">
-      <div className="w-64 shrink-0 pt-2" style={{ borderRight: "1px solid var(--border-color)" }}>
+      <div
+        className="w-64 shrink-0 pt-2"
+        style={{ borderRight: "1px solid var(--border-color)" }}
+      >
         <McpServerList
           servers={servers}
           selectedId={selectedId}
@@ -754,17 +896,35 @@ export function McpServerSettings() {
               key: "form",
               label: t("settings.mcpServers.tabForm"),
               children: (
-                <Form form={form} layout="vertical" initialValues={{ transport: "stdio" }}>
-                  <Form.Item name="name" label={t("settings.mcpServers.name")} rules={[{ required: true }]}>
+                <Form
+                  form={form}
+                  layout="vertical"
+                  initialValues={{ transport: "stdio" }}
+                >
+                  <Form.Item
+                    name="name"
+                    label={t("settings.mcpServers.name")}
+                    rules={[{ required: true }]}
+                  >
                     <Input name="name" />
                   </Form.Item>
-                  <Form.Item name="transport" label={t("settings.mcpServers.transport")} rules={[{ required: true }]}>
+                  <Form.Item
+                    name="transport"
+                    label={t("settings.mcpServers.transport")}
+                    rules={[{ required: true }]}
+                  >
                     <Select
                       options={[
                         {
                           value: "sse",
                           label: (
-                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
                               <Radio size={14} /> SSE
                             </span>
                           ),
@@ -772,7 +932,13 @@ export function McpServerSettings() {
                         {
                           value: "http",
                           label: (
-                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
                               <Globe size={14} /> StreamableHTTP
                             </span>
                           ),
@@ -780,7 +946,13 @@ export function McpServerSettings() {
                         {
                           value: "stdio",
                           label: (
-                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
                               <Terminal size={14} /> Stdio
                             </span>
                           ),
@@ -790,17 +962,32 @@ export function McpServerSettings() {
                   </Form.Item>
                   {transport === "stdio" && (
                     <>
-                      <Form.Item name="command" label={t("settings.mcpServers.command")}>
+                      <Form.Item
+                        name="command"
+                        label={t("settings.mcpServers.command")}
+                      >
                         <Input name="command" placeholder="npx" />
                       </Form.Item>
-                      <Form.Item name="args" label={t("settings.mcpServers.args")}>
-                        <Input name="args" placeholder="-y @modelcontextprotocol/server-name" />
+                      <Form.Item
+                        name="args"
+                        label={t("settings.mcpServers.args")}
+                      >
+                        <Input
+                          name="args"
+                          placeholder="-y @modelcontextprotocol/server-name"
+                        />
                       </Form.Item>
                     </>
                   )}
                   {(transport === "http" || transport === "sse") && (
-                    <Form.Item name="endpoint" label={t("settings.mcpServers.endpoint")}>
-                      <Input name="endpoint" placeholder="http://localhost:3000" />
+                    <Form.Item
+                      name="endpoint"
+                      label={t("settings.mcpServers.endpoint")}
+                    >
+                      <Input
+                        name="endpoint"
+                        placeholder="http://localhost:3000"
+                      />
                     </Form.Item>
                   )}
                 </Form>
@@ -823,7 +1010,13 @@ export function McpServerSettings() {
                     status={importError ? "error" : undefined}
                     style={{ fontFamily: "monospace" }}
                   />
-                  {importError && <div style={{ color: "#d32029", fontSize: 12, marginTop: 4 }}>{importError}</div>}
+                  {importError && (
+                    <div
+                      style={{ color: "#d32029", fontSize: 12, marginTop: 4 }}
+                    >
+                      {importError}
+                    </div>
+                  )}
                 </div>
               ),
             },
@@ -835,15 +1028,23 @@ export function McpServerSettings() {
                   {discoveredServers.length === 0
                     ? (
                       <div style={{ textAlign: "center", padding: 20 }}>
-                        <Button onClick={handleDiscover} loading={discovering} icon={<RefreshCw size={14} />}>
+                        <Button
+                          onClick={handleDiscover}
+                          loading={discovering}
+                          icon={<RefreshCw size={14} />}
+                        >
                           {t("settings.mcpServers.discoverServers")}
                         </Button>
                       </div>
                     )
                     : (
                       <div>
-                        <div style={{ marginBottom: 8, fontSize: 12, color: "#666" }}>
-                          {t("settings.mcpServers.discoveredCount", { count: discoveredServers.length })}
+                        <div
+                          style={{ marginBottom: 8, fontSize: 12, color: "#666" }}
+                        >
+                          {t("settings.mcpServers.discoveredCount", {
+                            count: discoveredServers.length,
+                          })}
                         </div>
                         {discoveredServers.map((s) => (
                           <div
@@ -858,8 +1059,14 @@ export function McpServerSettings() {
                           >
                             <div>
                               <div style={{ fontWeight: 500 }}>{s.name}</div>
-                              <div style={{ fontSize: 12, color: "#666" }}>{s.packageName}</div>
-                              {s.description && <div style={{ fontSize: 12, color: "#999" }}>{s.description}</div>}
+                              <div style={{ fontSize: 12, color: "#666" }}>
+                                {s.packageName}
+                              </div>
+                              {s.description && (
+                                <div style={{ fontSize: 12, color: "#999" }}>
+                                  {s.description}
+                                </div>
+                              )}
                             </div>
                             <Button
                               size="small"

@@ -75,9 +75,14 @@ export function CreateTeamModal({
         <Form.Item
           name="teamName"
           label={t("createTeam.teamName")}
-          rules={[{ required: true, message: t("createTeam.teamNameRequired") }]}
+          rules={[
+            { required: true, message: t("createTeam.teamNameRequired") },
+          ]}
         >
-          <Input name="teamName" placeholder={t("createTeam.teamNamePlaceholder")} />
+          <Input
+            name="teamName"
+            placeholder={t("createTeam.teamNamePlaceholder")}
+          />
         </Form.Item>
 
         <Form.Item label={t("createTeam.memberList")}>
@@ -93,7 +98,12 @@ export function CreateTeamModal({
                     <Form.Item
                       {...rest}
                       name={[name, "name"]}
-                      rules={[{ required: true, message: t("createTeam.memberNameRequired") }]}
+                      rules={[
+                        {
+                          required: true,
+                          message: t("createTeam.memberNameRequired"),
+                        },
+                      ]}
                       style={{ marginBottom: 0 }}
                     >
                       <Input
@@ -106,15 +116,26 @@ export function CreateTeamModal({
                     <Form.Item
                       {...rest}
                       name={[name, "backendType"]}
-                      rules={[{ required: true, message: t("createTeam.backendTypeRequired") }]}
+                      rules={[
+                        {
+                          required: true,
+                          message: t("createTeam.backendTypeRequired"),
+                        },
+                      ]}
                       style={{ marginBottom: 0 }}
                     >
                       <Select
                         placeholder={t("createTeam.backendTypePlaceholder")}
                         style={{ width: 140 }}
                         options={[
-                          { label: t("createTeam.inProcess"), value: "InProcess" },
-                          { label: t("createTeam.subProcess"), value: "SubProcess" },
+                          {
+                            label: t("createTeam.inProcess"),
+                            value: "InProcess",
+                          },
+                          {
+                            label: t("createTeam.subProcess"),
+                            value: "SubProcess",
+                          },
                         ]}
                       />
                     </Form.Item>

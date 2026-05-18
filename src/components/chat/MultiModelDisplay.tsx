@@ -15,7 +15,10 @@ class MultiModelErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
   { hasError: boolean }
 > {
-  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+  constructor(props: {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
+  }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -24,7 +27,9 @@ class MultiModelErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? <Alert type="warning" message="Multi-model display error" showIcon />;
+      return (
+        this.props.fallback ?? <Alert type="warning" message="Multi-model display error" showIcon />
+      );
     }
     return this.props.children;
   }
@@ -69,7 +74,9 @@ function ContentWrapper({
  * NOTE: This is a thin wrapper that always renders MultiModelDisplayInner
  * to avoid Rules of Hooks violations (all hooks must be called on every render).
  */
-export const MultiModelDisplay = React.memo(function MultiModelDisplay(props: MultiModelDisplayProps) {
+export const MultiModelDisplay = React.memo(function MultiModelDisplay(
+  props: MultiModelDisplayProps,
+) {
   return (
     <MultiModelErrorBoundary>
       <MultiModelDisplayInner {...props} />
@@ -77,8 +84,11 @@ export const MultiModelDisplay = React.memo(function MultiModelDisplay(props: Mu
   );
 });
 
-interface MultiModelDisplayInnerProps
-  extends Omit<MultiModelDisplayProps, "multiModelDoneMessageIds" | "conversationId">
+interface MultiModelDisplayInnerProps extends
+  Omit<
+    MultiModelDisplayProps,
+    "multiModelDoneMessageIds" | "conversationId"
+  >
 {}
 
 function MultiModelDisplayInner({
@@ -113,9 +123,13 @@ function MultiModelDisplayInner({
   const latestCount = latestByModel.length;
 
   useLayoutEffect(() => {
-    if (!isSideBySide) { return; }
+    if (!isSideBySide) {
+      return;
+    }
     const el = scrollRef.current;
-    if (!el) { return; }
+    if (!el) {
+      return;
+    }
 
     const modified: Array<{ el: HTMLElement; prev: string }> = [];
     let cur: HTMLElement | null = el;
@@ -127,7 +141,10 @@ function MultiModelDisplayInner({
         cur.style.boxSizing = "border-box";
         break;
       }
-      if (classList.contains("ant-bubble-body") || classList.contains("ant-bubble-content")) {
+      if (
+        classList.contains("ant-bubble-body")
+        || classList.contains("ant-bubble-content")
+      ) {
         modified.push({ el: cur, prev: cur.style.cssText });
         cur.style.overflow = "hidden";
         cur.style.minWidth = "0";
@@ -144,9 +161,13 @@ function MultiModelDisplayInner({
   }, [isSideBySide]);
 
   useEffect(() => {
-    if (!isSideBySide) { return; }
+    if (!isSideBySide) {
+      return;
+    }
     const el = scrollRef.current;
-    if (!el) { return; }
+    if (!el) {
+      return;
+    }
 
     const inst = OverlayScrollbars(
       { target: el, elements: { viewport: el } },
@@ -163,12 +184,22 @@ function MultiModelDisplayInner({
     return () => inst.destroy();
   }, [isSideBySide]);
 
-  if (!versions || versions.length === 0) { return null; }
+  if (!versions || versions.length === 0) {
+    return null;
+  }
 
   if (latestCount <= 1) {
     const msg = latestByModel[0];
-    if (!msg) { return null; }
-    return <ContentWrapper renderContent={renderContent} msg={msg} isStreaming={msg.id === streamingMessageId} />;
+    if (!msg) {
+      return null;
+    }
+    return (
+      <ContentWrapper
+        renderContent={renderContent}
+        msg={msg}
+        isStreaming={msg.id === streamingMessageId}
+      />
+    );
   }
 
   const containerStyle: React.CSSProperties = mode === "side-by-side"
@@ -220,7 +251,9 @@ function MultiModelDisplayInner({
             key={vMsg.id}
             style={{
               ...cardStyle,
-              borderColor: isActive ? token.colorPrimary : token.colorBorderSecondary,
+              borderColor: isActive
+                ? token.colorPrimary
+                : token.colorBorderSecondary,
             }}
           >
             {/* Card header */}
@@ -235,7 +268,11 @@ function MultiModelDisplayInner({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <ModelIcon model={vMsg.model_id ?? ""} size={20} type="avatar" />
+                <ModelIcon
+                  model={vMsg.model_id ?? ""}
+                  size={20}
+                  type="avatar"
+                />
                 {providerName && (
                   <Tag
                     style={{
@@ -251,9 +288,15 @@ function MultiModelDisplayInner({
                     {providerName}
                   </Tag>
                 )}
-                <Typography.Text style={{ fontSize: 13 }}>{modelName}</Typography.Text>
+                <Typography.Text style={{ fontSize: 13 }}>
+                  {modelName}
+                </Typography.Text>
                 {isVersionStreaming && (
-                  <span className="axagent-streaming-dots" aria-hidden="true" style={{ marginLeft: 4 }}>
+                  <span
+                    className="axagent-streaming-dots"
+                    aria-hidden="true"
+                    style={{ marginLeft: 4 }}
+                  >
                     <span />
                     <span />
                     <span />
@@ -275,7 +318,12 @@ function MultiModelDisplayInner({
                     okText={t("common.confirm")}
                     cancelText={t("common.cancel")}
                   >
-                    <Button type="text" size="small" danger icon={<Trash2 size={13} />} />
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<Trash2 size={13} />}
+                    />
                   </Popconfirm>
                 )}
                 {/* Use as context button */}
@@ -288,7 +336,11 @@ function MultiModelDisplayInner({
                   role="button"
                   tabIndex={isActive || !parentMessageId ? -1 : 0}
                   onKeyDown={(e) => {
-                    if ((e.key === "Enter" || e.key === " ") && !isActive && parentMessageId) {
+                    if (
+                      (e.key === "Enter" || e.key === " ")
+                      && !isActive
+                      && parentMessageId
+                    ) {
                       e.preventDefault();
                       onSwitchVersion(parentMessageId, vMsg.id);
                     }
@@ -301,9 +353,13 @@ function MultiModelDisplayInner({
                     height: 24,
                     borderRadius: "50%",
                     cursor: isActive ? "default" : "pointer",
-                    backgroundColor: isActive ? token.colorPrimary : "transparent",
+                    backgroundColor: isActive
+                      ? token.colorPrimary
+                      : "transparent",
                     color: isActive ? "#fff" : token.colorTextSecondary,
-                    border: isActive ? "none" : `1px solid ${token.colorBorder}`,
+                    border: isActive
+                      ? "none"
+                      : `1px solid ${token.colorBorder}`,
                     transition: "box-shadow 0.2s, transform 0.2s",
                   }}
                 >
@@ -313,7 +369,11 @@ function MultiModelDisplayInner({
             </div>
             {/* Card content — key includes mode to force re-mount on layout switch */}
             <div key={`content-${mode}`} style={{ padding: "12px" }}>
-              <ContentWrapper renderContent={renderContent} msg={vMsg} isStreaming={isVersionStreaming} />
+              <ContentWrapper
+                renderContent={renderContent}
+                msg={vMsg}
+                isStreaming={isVersionStreaming}
+              />
             </div>
           </div>
         );
@@ -336,10 +396,26 @@ export function LayoutSwitcher({
   const { token } = theme.useToken();
   const { t } = useTranslation();
 
-  const modes: { key: MultiModelDisplayMode; icon: React.ReactNode; label: string }[] = [
-    { key: "tabs", icon: <LayoutList size={14} />, label: t("settings.multiModelDisplayModeTabs") },
-    { key: "side-by-side", icon: <Columns2 size={14} />, label: t("settings.multiModelDisplayModeSideBySide") },
-    { key: "stacked", icon: <Rows3 size={14} />, label: t("settings.multiModelDisplayModeStacked") },
+  const modes: {
+    key: MultiModelDisplayMode;
+    icon: React.ReactNode;
+    label: string;
+  }[] = [
+    {
+      key: "tabs",
+      icon: <LayoutList size={14} />,
+      label: t("settings.multiModelDisplayModeTabs"),
+    },
+    {
+      key: "side-by-side",
+      icon: <Columns2 size={14} />,
+      label: t("settings.multiModelDisplayModeSideBySide"),
+    },
+    {
+      key: "stacked",
+      icon: <Rows3 size={14} />,
+      label: t("settings.multiModelDisplayModeStacked"),
+    },
   ];
 
   return (
@@ -365,7 +441,9 @@ export function LayoutSwitcher({
               borderRadius: token.borderRadiusSM,
               cursor: currentMode === key ? "default" : "pointer",
               backgroundColor: currentMode === key ? token.colorPrimaryBg : "transparent",
-              color: currentMode === key ? token.colorPrimary : token.colorTextQuaternary,
+              color: currentMode === key
+                ? token.colorPrimary
+                : token.colorTextQuaternary,
               transition: "box-shadow 0.2s, transform 0.2s",
             }}
           >

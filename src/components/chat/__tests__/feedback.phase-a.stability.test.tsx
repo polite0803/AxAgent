@@ -31,26 +31,42 @@ describe("Phase A feedback regressions", () => {
 
     expect(inputAreaSource).toContain('className="axagent-input-textarea"');
     expect(cssSource).toContain(".axagent-input-textarea");
-    expect(cssSource).toMatch(/\.axagent-input-textarea[\s\S]*scrollbar-width:\s*thin/i);
+    expect(cssSource).toMatch(
+      /\.axagent-input-textarea[\s\S]*scrollbar-width:\s*thin/i,
+    );
   });
 
   it("keeps a null conversation max tokens override visually off instead of hydrating it from the global default", () => {
-    const modalSource = readSource("src/components/chat/ConversationSettingsModal.tsx");
+    const modalSource = readSource(
+      "src/components/chat/ConversationSettingsModal.tsx",
+    );
 
-    expect(modalSource).toContain("setMaxTokens(conversation.max_tokens ?? null)");
-    expect(modalSource).not.toContain("setMaxTokens(conversation.max_tokens ?? settings.default_max_tokens ?? 4096)");
+    expect(modalSource).toContain(
+      "setMaxTokens(conversation.max_tokens ?? null)",
+    );
+    expect(modalSource).not.toContain(
+      "setMaxTokens(conversation.max_tokens ?? settings.default_max_tokens ?? 4096)",
+    );
   });
 
   it("treats max tokens clearing as an explicit nullable contract from modal to TypeScript types to Rust persistence", () => {
-    const modalSource = readSource("src/components/chat/ConversationSettingsModal.tsx");
+    const modalSource = readSource(
+      "src/components/chat/ConversationSettingsModal.tsx",
+    );
     const typeSource = readSource("src/types/index.ts");
     const rustTypeSource = readSource("src-tauri/crates/core/src/types.rs");
-    const repoSource = readSource("src-tauri/crates/core/src/repo/conversation.rs");
+    const repoSource = readSource(
+      "src-tauri/crates/core/src/repo/conversation.rs",
+    );
 
     expect(modalSource).toContain("max_tokens: maxTokens,");
     expect(typeSource).toMatch(/max_tokens\?: number \| null;/);
-    expect(rustTypeSource).toMatch(/deserialize_double_option"\)\]\s*pub max_tokens: Option<Option<i64>>/);
-    expect(repoSource).toContain("if let Some(max_tokens) = input.max_tokens {");
+    expect(rustTypeSource).toMatch(
+      /deserialize_double_option"\)\]\s*pub max_tokens: Option<Option<i64>>/,
+    );
+    expect(repoSource).toContain(
+      "if let Some(max_tokens) = input.max_tokens {",
+    );
     expect(repoSource).toContain("am.max_tokens = Set(max_tokens);");
   });
 });

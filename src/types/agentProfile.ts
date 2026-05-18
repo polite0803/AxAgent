@@ -71,7 +71,10 @@ export interface UpdateAgentProfileInput {
 }
 
 /** 全局角色元数据：从 agent_roles 表同步，提供图标和 i18n key */
-export const AGENT_ROLE_META: Record<string, { icon: string; labelKey: string }> = {
+export const AGENT_ROLE_META: Record<
+  string,
+  { icon: string; labelKey: string }
+> = {
   coordinator: { icon: "🎯", labelKey: "agentRole.coordinator" },
   researcher: { icon: "🔍", labelKey: "agentRole.researcher" },
   planner: { icon: "📋", labelKey: "agentRole.planner" },
@@ -84,7 +87,9 @@ export const AGENT_ROLE_META: Record<string, { icon: string; labelKey: string }>
 
 /** 根据角色名获取图标，未知角色返回默认图标 */
 export function getAgentRoleIcon(role: string | null | undefined): string {
-  if (!role) { return "🤖"; }
+  if (!role) {
+    return "🤖";
+  }
   return AGENT_ROLE_META[role]?.icon ?? "🤖";
 }
 

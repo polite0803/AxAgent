@@ -88,7 +88,9 @@ describe("GatewayOverview", () => {
 
     render(<GatewayOverview />);
 
-    await userEvent.click(screen.getByRole("button", { name: "gateway.start" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "gateway.start" }),
+    );
 
     await waitFor(() => {
       expect(errorSpy).toHaveBeenCalled();
@@ -161,7 +163,9 @@ describe("GatewayOverview", () => {
     expect(screen.queryByText("/v1/test/11")).not.toBeInTheDocument();
     expect(screen.queryByText("/v1/test/12")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "gateway.viewMoreLogs" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "gateway.viewMoreLogs" }),
+    );
 
     expect(onViewMoreLogs).toHaveBeenCalledTimes(1);
   });
@@ -191,9 +195,13 @@ describe("GatewayOverview", () => {
     await waitFor(() => {
       expect(listRequestLogs).toHaveBeenCalledTimes(1);
     });
-    expect(setIntervalSpy.mock.calls.filter(([, delay]) => delay === 5000)).toHaveLength(1);
+    expect(
+      setIntervalSpy.mock.calls.filter(([, delay]) => delay === 5000),
+    ).toHaveLength(1);
 
-    await userEvent.click(screen.getByRole("button", { name: "common.refresh" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "common.refresh" }),
+    );
     expect(listRequestLogs).toHaveBeenCalledTimes(2);
     setIntervalSpy.mockRestore();
   });

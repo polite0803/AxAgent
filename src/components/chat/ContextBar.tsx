@@ -19,10 +19,19 @@ interface ContextBarProps {
   onTokenClick?: () => void;
 }
 
-function getTokenUsageColor(ratio: number, token: ReturnType<typeof theme.useToken>["token"]) {
-  if (ratio > 0.95) { return token.colorError; }
-  if (ratio > 0.8) { return token.colorWarning; }
-  if (ratio > 0.5) { return token.colorWarningText; }
+function getTokenUsageColor(
+  ratio: number,
+  token: ReturnType<typeof theme.useToken>["token"],
+) {
+  if (ratio > 0.95) {
+    return token.colorError;
+  }
+  if (ratio > 0.8) {
+    return token.colorWarning;
+  }
+  if (ratio > 0.5) {
+    return token.colorWarningText;
+  }
   return token.colorSuccess;
 }
 
@@ -47,7 +56,7 @@ export function ContextBar({
     [onChipClick],
   );
 
-  const tokenRatio = (tokenUsed != null && tokenMax != null && tokenMax > 0)
+  const tokenRatio = tokenUsed != null && tokenMax != null && tokenMax > 0
     ? tokenUsed / tokenMax
     : null;
   const tokenColor = tokenRatio != null ? getTokenUsageColor(tokenRatio, token) : undefined;
@@ -74,7 +83,9 @@ export function ContextBar({
       {
         key: "search",
         icon: <Search size={14} />,
-        label: searchEnabled ? t("chat.context.enabled") : t("chat.context.disabled"),
+        label: searchEnabled
+          ? t("chat.context.enabled")
+          : t("chat.context.disabled"),
         color: (searchEnabled ? "green" : "default") as string,
         tooltip: t("chat.context.search"),
       },
@@ -95,7 +106,9 @@ export function ContextBar({
       {
         key: "memory",
         icon: <Lightbulb size={14} />,
-        label: memoryEnabled ? t("chat.context.enabled") : t("chat.context.disabled"),
+        label: memoryEnabled
+          ? t("chat.context.enabled")
+          : t("chat.context.disabled"),
         color: (memoryEnabled ? "green" : "default") as string,
         tooltip: t("chat.context.memory"),
       },
@@ -133,7 +146,9 @@ export function ContextBar({
           <Tooltip
             title={tokenUsed != null
               ? `${tokenUsed.toLocaleString()} / ${tokenMax.toLocaleString()} tokens (${
-                (tokenRatio! * 100).toFixed(1)
+                (
+                  tokenRatio! * 100
+                ).toFixed(1)
               }%)`
               : `${t("chat.context.tokenMax")}: ${tokenMax.toLocaleString()}`}
           >
@@ -160,8 +175,20 @@ export function ContextBar({
               }}
               onClick={onTokenClick}
             >
-              <Brain size={14} style={{ color: tokenColor ?? token.colorTextSecondary, flexShrink: 0 }} />
-              <span style={{ color: token.colorTextSecondary, fontSize: 12, flexShrink: 0 }}>
+              <Brain
+                size={14}
+                style={{
+                  color: tokenColor ?? token.colorTextSecondary,
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  color: token.colorTextSecondary,
+                  fontSize: 12,
+                  flexShrink: 0,
+                }}
+              >
                 {formatTokenCount(tokenMax)}
               </span>
               {tokenUsed != null && (
@@ -181,7 +208,12 @@ export function ContextBar({
                 <div
                   style={{
                     width: `${
-                      Math.max(tokenPercent ?? 0, tokenRatio != null && tokenRatio > 0 && tokenRatio < 0.01 ? 1 : 0)
+                      Math.max(
+                        tokenPercent ?? 0,
+                        tokenRatio != null && tokenRatio > 0 && tokenRatio < 0.01
+                          ? 1
+                          : 0,
+                      )
                     }%`,
                     height: "100%",
                     borderRadius: 2,
@@ -198,7 +230,9 @@ export function ContextBar({
   );
 }
 
-export function estimateConversationTokens(messages: { role: string; content: string }[]): number {
+export function estimateConversationTokens(
+  messages: { role: string; content: string }[],
+): number {
   let total = 0;
   for (const msg of messages) {
     total += estimateMessageTokens(msg.role, msg.content);

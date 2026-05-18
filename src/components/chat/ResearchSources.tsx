@@ -33,7 +33,9 @@ export function ResearchSources({
         renderItem={(item) => (
           <List.Item
             className={`cursor-pointer hover:bg-zinc-50 ${
-              selectedSourceId === item.id ? "bg-blue-50 border-l-4 border-blue-500" : ""
+              selectedSourceId === item.id
+                ? "bg-blue-50 border-l-4 border-blue-500"
+                : ""
             }`}
             onClick={() => onSourceSelect?.(item)}
             aria-label={`${item.title} - ${getSourceTypeName(item.sourceType, t)}`}
@@ -53,7 +55,13 @@ export function ResearchSources({
                   <Tag color={getSourceTypeColor(item.sourceType)}>
                     {getSourceTypeName(item.sourceType, t)}
                   </Tag>
-                  <Tag color={item.relevanceScore > 0.7 ? "green" : item.relevanceScore > 0.4 ? "orange" : "red"}>
+                  <Tag
+                    color={item.relevanceScore > 0.7
+                      ? "green"
+                      : item.relevanceScore > 0.4
+                      ? "orange"
+                      : "red"}
+                  >
                     {item.relevanceScore > 0
                       ? `${t("research.relevance")}: ${Math.round(item.relevanceScore * 100)}%`
                       : t("research.notEvaluated")}
@@ -101,7 +109,10 @@ interface SourceDetailPanelProps {
   onAddToCitation?: (source: SearchResult) => void;
 }
 
-export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanelProps) {
+export function SourceDetailPanel({
+  source,
+  onAddToCitation,
+}: SourceDetailPanelProps) {
   const { t } = useTranslation();
   if (!source) {
     return (
@@ -125,7 +136,12 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             {t("research.sourceTitle")}
           </Text>
           <div>
-            <a href={source.url} target="_blank" rel="noopener noreferrer" aria-label={source.title}>
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={source.title}
+            >
               {source.title}
             </a>
           </div>
@@ -147,7 +163,12 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             URL
           </Text>
           <div className="truncate">
-            <a href={source.url} target="_blank" rel="noopener noreferrer" aria-label={`URL: ${source.url}`}>
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`URL: ${source.url}`}
+            >
               {source.url}
             </a>
           </div>
@@ -179,7 +200,9 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
           </Text>
           <div>
             <Text>
-              {source.relevanceScore > 0 ? `${Math.round(source.relevanceScore * 100)}%` : t("research.notEvaluated")}
+              {source.relevanceScore > 0
+                ? `${Math.round(source.relevanceScore * 100)}%`
+                : t("research.notEvaluated")}
             </Text>
           </div>
         </div>

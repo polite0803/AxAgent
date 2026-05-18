@@ -12,7 +12,9 @@ export function ArtifactPreview({ code, format }: ArtifactPreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const renderPreview = useCallback(() => {
-    if (!containerRef.current) { return; }
+    if (!containerRef.current) {
+      return;
+    }
 
     containerRef.current.innerHTML = "";
 
@@ -32,7 +34,9 @@ export function ArtifactPreview({ code, format }: ArtifactPreviewProps) {
         }
         break;
       case "html":
-        iframeRef.current = ArtifactRenderer.prototype.createSandbox(containerRef.current);
+        iframeRef.current = ArtifactRenderer.prototype.createSandbox(
+          containerRef.current,
+        );
         ArtifactRenderer.prototype.renderHtml({
           html: code,
           css: "",

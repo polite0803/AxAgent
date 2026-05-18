@@ -77,14 +77,23 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
 };
 
 /** 单个设置 section 的错误边界，防止一个 section 崩溃导致整页白屏 */
-function SectionErrorBoundary({ sectionKey, children }: { sectionKey: string; children: React.ReactNode }) {
+function SectionErrorBoundary({
+  sectionKey,
+  children,
+}: {
+  sectionKey: string;
+  children: React.ReactNode;
+}) {
   const { t } = useTranslation();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
 
   return (
     <ErrorBoundary
       fallback={
-        <div className="flex items-center justify-center" style={{ padding: 48, minHeight: 300 }}>
+        <div
+          className="flex items-center justify-center"
+          style={{ padding: 48, minHeight: 300 }}
+        >
           <Result
             status="error"
             title={`${t("error.page")}: ${sectionKey}`}
@@ -94,7 +103,10 @@ function SectionErrorBoundary({ sectionKey, children }: { sectionKey: string; ch
                 <Button onClick={() => window.location.reload()}>
                   {t("settingsPage.refreshPage")}
                 </Button>
-                <Button type="primary" onClick={() => setSettingsSection("general")}>
+                <Button
+                  type="primary"
+                  onClick={() => setSettingsSection("general")}
+                >
                   {t("settings.general.title")}
                 </Button>
               </span>
@@ -128,7 +140,9 @@ export function SettingsPage() {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!resizingRef.current) { return; }
+      if (!resizingRef.current) {
+        return;
+      }
       setSidebarWidth(Math.max(180, Math.min(500, e.clientX)));
     };
     const handleMouseUp = () => {
@@ -145,10 +159,14 @@ export function SettingsPage() {
   // 检查是否是技能设置段
   const isSkillSection = typeof settingsSection === "string" && settingsSection.startsWith("skill:");
   const skillSectionData = isSkillSection
-    ? skillSections.find((sec) => `skill:${sec.skillName}:${sec.id}` === settingsSection)
+    ? skillSections.find(
+      (sec) => `skill:${sec.skillName}:${sec.id}` === settingsSection,
+    )
     : null;
 
-  const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>(undefined);
+  const [editingTemplateId, setEditingTemplateId] = useState<
+    string | undefined
+  >(undefined);
 
   const handleOpenEditor = (templateId?: string) => {
     setEditingTemplateId(templateId);
@@ -169,7 +187,10 @@ export function SettingsPage() {
     if (workflowEditorOpen) {
       return (
         <ReactFlowProvider>
-          <WorkflowEditor templateId={editingTemplateId} onClose={handleCloseEditor} />
+          <WorkflowEditor
+            templateId={editingTemplateId}
+            onClose={handleCloseEditor}
+          />
         </ReactFlowProvider>
       );
     }
@@ -205,10 +226,16 @@ export function SettingsPage() {
       />
       <div
         className="min-w-0 flex-1 flex flex-col"
-        style={{ backgroundColor: token.colorBgElevated, overflowY: "auto", overflowX: "hidden" }}
+        style={{
+          backgroundColor: token.colorBgElevated,
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
       >
         {settingsSection === "workflow"
-          ? renderWorkflowContent()
+          ? (
+            renderWorkflowContent()
+          )
           : isSkillSection && skillSectionData
           ? (
             <SectionErrorBoundary sectionKey={settingsSection}>
@@ -226,7 +253,13 @@ export function SettingsPage() {
             </SectionErrorBoundary>
           )
           : (
-            <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
+            <div
+              style={{
+                padding: 24,
+                textAlign: "center",
+                color: "var(--color-text-secondary)",
+              }}
+            >
               Unknown settings section: {settingsSection}
             </div>
           )}

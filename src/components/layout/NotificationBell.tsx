@@ -18,7 +18,10 @@ interface NotificationItem {
 const globalNotifications: NotificationItem[] = [];
 let listeners: Array<() => void> = [];
 
-export function pushNotification(type: NotificationItem["type"], message: string) {
+export function pushNotification(
+  type: NotificationItem["type"],
+  message: string,
+) {
   const item: NotificationItem = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     type,
@@ -27,7 +30,9 @@ export function pushNotification(type: NotificationItem["type"], message: string
   };
   globalNotifications.unshift(item);
   // 保留最近 50 条
-  if (globalNotifications.length > 50) { globalNotifications.length = 50; }
+  if (globalNotifications.length > 50) {
+    globalNotifications.length = 50;
+  }
   listeners.forEach((fn) => fn());
 }
 
@@ -48,11 +53,18 @@ export function NotificationBell() {
   const unreadCount = globalNotifications.length;
 
   const items = globalNotifications.length === 0
-    ? [{
-      key: "empty",
-      label: <Empty description={t("notification.empty")} image={Empty.PRESENTED_IMAGE_SIMPLE} />,
-      disabled: true,
-    }]
+    ? [
+      {
+        key: "empty",
+        label: (
+          <Empty
+            description={t("notification.empty")}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        ),
+        disabled: true,
+      },
+    ]
     : globalNotifications.slice(0, 20).map((n) => ({
       key: n.id,
       label: (
@@ -60,7 +72,11 @@ export function NotificationBell() {
           <Text
             style={{
               fontSize: 12,
-              color: n.type === "error" ? "#ff4d4f" : n.type === "warning" ? "#faad14" : "#52c41a",
+              color: n.type === "error"
+                ? "#ff4d4f"
+                : n.type === "warning"
+                ? "#faad14"
+                : "#52c41a",
             }}
           >
             {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.message}
@@ -75,7 +91,13 @@ export function NotificationBell() {
     }));
 
   return (
-    <Dropdown menu={{ items }} open={open} onOpenChange={setOpen} trigger={["click"]} placement="bottomRight">
+    <Dropdown
+      menu={{ items }}
+      open={open}
+      onOpenChange={setOpen}
+      trigger={["click"]}
+      placement="bottomRight"
+    >
       <Badge count={unreadCount} size="small" offset={[-2, 2]}>
         <BellOutlined style={{ fontSize: 16, cursor: "pointer", padding: 4 }} />
       </Badge>

@@ -24,7 +24,16 @@ export interface CopyButtonProps {
 
 export const CopyButton = React.forwardRef<HTMLElement, CopyButtonProps>(
   function CopyButton(
-    { text, size = 14, timeout = 2000, successMessage, onSuccess, onError, style, className },
+    {
+      text,
+      size = 14,
+      timeout = 2000,
+      successMessage,
+      onSuccess,
+      onError,
+      style,
+      className,
+    },
     ref,
   ) {
     const { token } = theme.useToken();
@@ -35,7 +44,9 @@ export const CopyButton = React.forwardRef<HTMLElement, CopyButtonProps>(
         const value = typeof text === "function" ? await text() : text;
         const ok = await copy(value);
         if (ok) {
-          if (successMessage) { message.success(successMessage); }
+          if (successMessage) {
+            message.success(successMessage);
+          }
           onSuccess?.();
         }
       } catch (e) {

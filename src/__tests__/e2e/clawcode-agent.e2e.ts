@@ -19,31 +19,45 @@ test("ClawCode Agent End-to-End Test", async ({ page }) => {
   await page.waitForSelector('[data-testid="assistant-message"]');
 
   // Check if the response contains the correct answer
-  const assistantMessage = await page.textContent('[data-testid="assistant-message"]');
+  const assistantMessage = await page.textContent(
+    '[data-testid="assistant-message"]',
+  );
   expect(assistantMessage).toContain("579");
 
   // Test a more complex query that uses multiple tools
-  await page.fill('[data-testid="chat-input"]', 'Echo "Hello World" and then add 10 + 20');
+  await page.fill(
+    '[data-testid="chat-input"]',
+    'Echo "Hello World" and then add 10 + 20',
+  );
   await page.click('[data-testid="send-button"]');
 
   // Wait for the agent to respond
   await page.waitForSelector('[data-testid="assistant-message"]');
 
   // Check if the response contains both tool results
-  const assistantMessage2 = await page.textContent('[data-testid="assistant-message"]');
+  const assistantMessage2 = await page.textContent(
+    '[data-testid="assistant-message"]',
+  );
   expect(assistantMessage2).toContain("Hello World");
   expect(assistantMessage2).toContain("30");
 
   // Test streaming functionality
-  await page.fill('[data-testid="chat-input"]', "Write a short story about a robot");
+  await page.fill(
+    '[data-testid="chat-input"]',
+    "Write a short story about a robot",
+  );
   await page.click('[data-testid="send-button"]');
 
   // Wait for streaming to start and complete
   await page.waitForSelector('[data-testid="streaming-indicator"]');
-  await page.waitForSelector('[data-testid="streaming-indicator"]', { state: "hidden" });
+  await page.waitForSelector('[data-testid="streaming-indicator"]', {
+    state: "hidden",
+  });
 
   // Check if the story was generated
-  const storyMessage = await page.textContent('[data-testid="assistant-message"]');
+  const storyMessage = await page.textContent(
+    '[data-testid="assistant-message"]',
+  );
   expect(storyMessage).toContain("robot");
   expect(storyMessage?.length).toBeGreaterThan(100);
 });

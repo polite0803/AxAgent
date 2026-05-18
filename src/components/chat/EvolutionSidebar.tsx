@@ -22,7 +22,8 @@ export function EvolutionSidebar({ onClose }: EvolutionSidebarProps) {
   const fetchInsights = useNudgeStore((s) => s.fetchInsights);
   const fetchClosedLoopNudges = useNudgeStore((s) => s.fetchClosedLoopNudges);
 
-  const nudgeCount = pendingNudges.length + closedLoopNudges.filter((n) => !n.acknowledged).length;
+  const nudgeCount = pendingNudges.length
+    + closedLoopNudges.filter((n) => !n.acknowledged).length;
 
   useEffect(() => {
     fetchInsights();

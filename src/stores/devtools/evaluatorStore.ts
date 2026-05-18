@@ -106,9 +106,12 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const report = await invoke<BenchmarkReport>("evaluator_generate_report", {
-        result: currentResult,
-      });
+      const report = await invoke<BenchmarkReport>(
+        "evaluator_generate_report",
+        {
+          result: currentResult,
+        },
+      );
       set({ currentReport: report, isLoading: false });
     } catch (error) {
       set({

@@ -18,22 +18,36 @@ interface FileListProps {
 }
 
 function formatSize(bytes?: number): string {
-  if (bytes == null) { return "—"; }
-  if (bytes === 0) { return "0 B"; }
+  if (bytes == null) {
+    return "—";
+  }
+  if (bytes === 0) {
+    return "0 B";
+  }
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
 /** Load base64 data URL for an image thumbnail via Rust command. */
-function useThumbnailSrc(storagePath: string | undefined, missing: boolean | undefined): string | undefined {
+function useThumbnailSrc(
+  storagePath: string | undefined,
+  missing: boolean | undefined,
+): string | undefined {
   const [src, setSrc] = useState<string | undefined>(undefined);
   useEffect(() => {
-    if (!storagePath || missing) { return; }
+    if (!storagePath || missing) {
+      return;
+    }
     let cancelled = false;
     invoke<string>("read_attachment_preview", { filePath: storagePath })
       .then((dataUrl) => {
-        if (!cancelled) { setSrc(dataUrl); }
+        if (!cancelled) {
+          setSrc(dataUrl);
+        }
       })
       .catch((e: unknown) => {
         console.warn("[IPC]", e);
@@ -54,7 +68,9 @@ function ImageThumbnail({ record }: { record: FileRow }) {
       className="h-10 w-10 overflow-hidden rounded-md border flex items-center justify-center"
       style={{
         borderColor: token.colorBorderSecondary,
-        backgroundColor: src ? token.colorBgContainer : token.colorFillQuaternary,
+        backgroundColor: src
+          ? token.colorBgContainer
+          : token.colorFillQuaternary,
       }}
     >
       {src
@@ -75,9 +91,14 @@ function ImageThumbnail({ record }: { record: FileRow }) {
 
 const EMPTY_ROWS: FileRow[] = [];
 const EMPTY_KEYS: string[] = [];
-export function FileList(
-  { rows = EMPTY_ROWS, category, selectedRowKeys = EMPTY_KEYS, onSelectionChange, onReveal, onDelete }: FileListProps,
-) {
+export function FileList({
+  rows = EMPTY_ROWS,
+  category,
+  selectedRowKeys = EMPTY_KEYS,
+  onSelectionChange,
+  onReveal,
+  onDelete,
+}: FileListProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const showThumbnails = category === "images";
@@ -100,7 +121,11 @@ export function FileList(
       key: "name",
       sorter: { compare: (a, b) => a.name.localeCompare(b.name), multiple: 1 },
       ellipsis: true,
-      render: (name: string) => <span className="text-sm font-medium" title={name}>{name}</span>,
+      render: (name: string) => (
+        <span className="text-sm font-medium" title={name}>
+          {name}
+        </span>
+      ),
     },
     {
       title: t("files.columnSize"),
@@ -109,7 +134,9 @@ export function FileList(
       width: 100,
       sorter: { compare: (a, b) => (a.size ?? 0) - (b.size ?? 0), multiple: 2 },
       render: (size: number | undefined) => (
-        <span className="text-xs" style={{ color: token.colorTextSecondary }}>{formatSize(size)}</span>
+        <span className="text-xs" style={{ color: token.colorTextSecondary }}>
+          {formatSize(size)}
+        </span>
       ),
     },
     {
@@ -117,10 +144,15 @@ export function FileList(
       dataIndex: "createdAt",
       key: "createdAt",
       width: 180,
-      sorter: { compare: (a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""), multiple: 3 },
+      sorter: {
+        compare: (a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""),
+        multiple: 3,
+      },
       defaultSortOrder: "descend",
       render: (date: string | undefined) => (
-        <span className="text-xs" style={{ color: token.colorTextSecondary }}>{date ?? "—"}</span>
+        <span className="text-xs" style={{ color: token.colorTextSecondary }}>
+          {date ?? "—"}
+        </span>
       ),
     },
     {
@@ -131,7 +163,9 @@ export function FileList(
         if (record.missing) {
           return (
             <span className="flex items-center gap-1">
-              <Tag color="error" variant="filled">{t("files.missing")}</Tag>
+              <Tag color="error" variant="filled">
+                {t("files.missing")}
+              </Tag>
               {onDelete && (
                 <Popconfirm
                   title={t("files.deleteConfirm")}
@@ -213,7 +247,14 @@ export function FileList(
         pageSizeOptions: ["15", "30", "50"],
         showTotal: (total) => t("files.totalItems", { total }),
       }}
-      locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("files.empty")} /> }}
+      locale={{
+        emptyText: (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("files.empty")}
+          />
+        ),
+      }}
     />
   );
 }

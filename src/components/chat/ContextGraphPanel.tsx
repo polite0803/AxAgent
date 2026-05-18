@@ -25,7 +25,14 @@ import { useKnowledgeStore, useMcpStore, useMemoryStore, useSkillExtensionStore 
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-type ContextNodeType = "conversation" | "model" | "knowledge" | "memory" | "mcp" | "search" | "skill";
+type ContextNodeType =
+  | "conversation"
+  | "model"
+  | "knowledge"
+  | "memory"
+  | "mcp"
+  | "search"
+  | "skill";
 
 interface ContextGraphNode {
   id: string;
@@ -42,17 +49,52 @@ interface ContextGraphEdge {
 
 // ── Custom React Flow Node ───────────────────────────────────────────────
 
-const nodeTypeStyles: Record<ContextNodeType, { icon: React.ReactNode; bg: string; border: string }> = {
-  conversation: { icon: <GitBranch size={12} />, bg: "rgba(24,144,255,0.08)", border: "#1890ff" },
-  model: { icon: <Zap size={12} />, bg: "rgba(114,46,209,0.08)", border: "#722ed1" },
-  knowledge: { icon: <BookOpen size={12} />, bg: "rgba(82,196,26,0.08)", border: "#52c41a" },
-  memory: { icon: <Brain size={12} />, bg: "rgba(250,140,22,0.08)", border: "#fa8c16" },
-  mcp: { icon: <Wrench size={12} />, bg: "rgba(19,194,194,0.08)", border: "#13c2c2" },
-  search: { icon: <Search size={12} />, bg: "rgba(47,84,235,0.08)", border: "#2f54eb" },
-  skill: { icon: <Puzzle size={12} />, bg: "rgba(235,47,150,0.08)", border: "#eb2f96" },
+const nodeTypeStyles: Record<
+  ContextNodeType,
+  { icon: React.ReactNode; bg: string; border: string }
+> = {
+  conversation: {
+    icon: <GitBranch size={12} />,
+    bg: "rgba(24,144,255,0.08)",
+    border: "#1890ff",
+  },
+  model: {
+    icon: <Zap size={12} />,
+    bg: "rgba(114,46,209,0.08)",
+    border: "#722ed1",
+  },
+  knowledge: {
+    icon: <BookOpen size={12} />,
+    bg: "rgba(82,196,26,0.08)",
+    border: "#52c41a",
+  },
+  memory: {
+    icon: <Brain size={12} />,
+    bg: "rgba(250,140,22,0.08)",
+    border: "#fa8c16",
+  },
+  mcp: {
+    icon: <Wrench size={12} />,
+    bg: "rgba(19,194,194,0.08)",
+    border: "#13c2c2",
+  },
+  search: {
+    icon: <Search size={12} />,
+    bg: "rgba(47,84,235,0.08)",
+    border: "#2f54eb",
+  },
+  skill: {
+    icon: <Puzzle size={12} />,
+    bg: "rgba(235,47,150,0.08)",
+    border: "#eb2f96",
+  },
 };
 
-function ContextNode({ data }: { data: { label: string; detail?: string; nodeType: ContextNodeType } }) {
+function ContextNode({
+  data,
+}: {
+  data: { label: string; detail?: string; nodeType: ContextNodeType };
+}) {
   const { token } = theme.useToken();
   const style = nodeTypeStyles[data.nodeType] || nodeTypeStyles.conversation;
 
@@ -69,9 +111,15 @@ function ContextNode({ data }: { data: { label: string; detail?: string; nodeTyp
         cursor: "default",
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: style.border }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: style.border }}
+      />
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ color: style.border, display: "flex" }}>{style.icon}</span>
+        <span style={{ color: style.border, display: "flex" }}>
+          {style.icon}
+        </span>
         <Typography.Text strong style={{ fontSize: 12 }} ellipsis>
           {data.label}
         </Typography.Text>
@@ -81,7 +129,11 @@ function ContextNode({ data }: { data: { label: string; detail?: string; nodeTyp
           {data.detail}
         </Typography.Text>
       )}
-      <Handle type="source" position={Position.Bottom} style={{ background: style.border }} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: style.border }}
+      />
     </div>
   );
 }
@@ -90,7 +142,10 @@ const nodeTypes: NodeTypes = { contextNode: ContextNode };
 
 // ── Layout helper ────────────────────────────────────────────────────────
 
-function layoutGraph(nodes: ContextGraphNode[], edges: ContextGraphEdge[]): { nodes: Node[]; edges: Edge[] } {
+function layoutGraph(
+  nodes: ContextGraphNode[],
+  edges: ContextGraphEdge[],
+): { nodes: Node[]; edges: Edge[] } {
   const rfNodes: Node[] = [];
   const rfEdges: Edge[] = [];
 
@@ -106,7 +161,11 @@ function layoutGraph(nodes: ContextGraphNode[], edges: ContextGraphEdge[]): { no
       id: convNode.id,
       type: "contextNode",
       position: { x: centerX - 60, y: centerY - 30 },
-      data: { label: convNode.label, detail: convNode.detail, nodeType: convNode.type },
+      data: {
+        label: convNode.label,
+        detail: convNode.detail,
+        nodeType: convNode.type,
+      },
     });
   }
 
@@ -131,7 +190,12 @@ function layoutGraph(nodes: ContextGraphNode[], edges: ContextGraphEdge[]): { no
       type: "smoothstep",
       animated: true,
       style: { stroke: "#888", strokeWidth: 1 },
-      markerEnd: { type: MarkerType.ArrowClosed, width: 8, height: 8, color: "#888" },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 8,
+        height: 8,
+        color: "#888",
+      },
     });
   }
 
@@ -187,22 +251,39 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     const skillMap = new Map(installedSkills.map((s: any) => [s.id, s]));
 
     // Conversation node (center)
-    const convName = conversationTitle || conversationId?.slice(0, 8)
+    const convName = conversationTitle
+      || conversationId?.slice(0, 8)
       || t("chat.contextGraph.conversation");
-    nodes.push({ id: "conversation", type: "conversation", label: convName, detail: conversationId?.slice(0, 16) });
+    nodes.push({
+      id: "conversation",
+      type: "conversation",
+      label: convName,
+      detail: conversationId?.slice(0, 16),
+    });
 
     // Model node
     if (modelName) {
-      const modelLabel = providerName ? `${providerName} / ${modelName}` : modelName;
+      const modelLabel = providerName
+        ? `${providerName} / ${modelName}`
+        : modelName;
       nodes.push({ id: "model", type: "model", label: modelLabel });
-      edges.push({ source: "conversation", target: "model", label: t("chat.contextGraph.edges.uses") });
+      edges.push({
+        source: "conversation",
+        target: "model",
+        label: t("chat.contextGraph.edges.uses"),
+      });
     }
 
     // Knowledge bases
     for (const kbId of knowledgeBaseIds) {
       const kb = kbMap.get(kbId);
       const label = kb?.name || kbId.slice(0, 12);
-      nodes.push({ id: `kb:${kbId}`, type: "knowledge", label, detail: kb?.description });
+      nodes.push({
+        id: `kb:${kbId}`,
+        type: "knowledge",
+        label,
+        detail: kb?.description,
+      });
       edges.push({
         source: "conversation",
         target: `kb:${kbId}`,
@@ -227,13 +308,25 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
       const srv = srvMap.get(srvId);
       const label = srv?.name || srvId.slice(0, 12);
       nodes.push({ id: `mcp:${srvId}`, type: "mcp", label });
-      edges.push({ source: "conversation", target: `mcp:${srvId}`, label: t("chat.contextGraph.edges.calls") });
+      edges.push({
+        source: "conversation",
+        target: `mcp:${srvId}`,
+        label: t("chat.contextGraph.edges.calls"),
+      });
     }
 
     // Search
     if (searchEnabled) {
-      nodes.push({ id: "search", type: "search", label: t("chat.contextGraph.legend.search") });
-      edges.push({ source: "conversation", target: "search", label: t("chat.contextGraph.edges.searches") });
+      nodes.push({
+        id: "search",
+        type: "search",
+        label: t("chat.contextGraph.legend.search"),
+      });
+      edges.push({
+        source: "conversation",
+        target: "search",
+        label: t("chat.contextGraph.edges.searches"),
+      });
     }
 
     // Skills
@@ -275,29 +368,31 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState(layout.edges);
 
   // 根据 hiddenTypes 筛选可见节点和边
-  const visibleNodes = useMemo(
-    () => {
-      if (hiddenTypes.size === 0) { return rfNodes; }
-      return rfNodes.filter((n) => {
-        const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
-        const nt = nodeData?.nodeType;
-        if (!nt) { return true; }
-        return !hiddenTypes.has(nt);
-      });
-    },
-    [rfNodes, hiddenTypes],
-  );
+  const visibleNodes = useMemo(() => {
+    if (hiddenTypes.size === 0) {
+      return rfNodes;
+    }
+    return rfNodes.filter((n) => {
+      const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
+      const nt = nodeData?.nodeType;
+      if (!nt) {
+        return true;
+      }
+      return !hiddenTypes.has(nt);
+    });
+  }, [rfNodes, hiddenTypes]);
   const visibleNodeIds = useMemo(
     () => new Set(visibleNodes.map((n) => n.id)),
     [visibleNodes],
   );
-  const visibleEdges = useMemo(
-    () => {
-      if (hiddenTypes.size === 0) { return rfEdges; }
-      return rfEdges.filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
-    },
-    [rfEdges, visibleNodeIds, hiddenTypes],
-  );
+  const visibleEdges = useMemo(() => {
+    if (hiddenTypes.size === 0) {
+      return rfEdges;
+    }
+    return rfEdges.filter(
+      (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target),
+    );
+  }, [rfEdges, visibleNodeIds, hiddenTypes]);
 
   const toggleType = (type: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -323,8 +418,11 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
     }, 0);
   }
 
-  const totalSources = knowledgeBaseIds.length + memoryNamespaceIds.length + mcpServerIds.length
-    + (searchEnabled ? 1 : 0) + enabledSkillIds.length;
+  const totalSources = knowledgeBaseIds.length
+    + memoryNamespaceIds.length
+    + mcpServerIds.length
+    + (searchEnabled ? 1 : 0)
+    + enabledSkillIds.length;
 
   return (
     <div
@@ -352,7 +450,9 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
           justifyContent: "space-between",
           padding: "6px 12px",
           backgroundColor: token.colorFillQuaternary,
-          borderBottom: collapsed ? "none" : `1px solid ${token.colorBorderSecondary}`,
+          borderBottom: collapsed
+            ? "none"
+            : `1px solid ${token.colorBorderSecondary}`,
           cursor: "pointer",
           userSelect: "none",
         }}
@@ -368,36 +468,72 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
           {/* Inline source pills when collapsed — compact one-line overview */}
           {collapsed && totalSources > 0 && (
             <div
-              style={{ display: "flex", gap: 4, marginLeft: 4, flexWrap: "wrap", maxWidth: 260, overflow: "hidden" }}
+              style={{
+                display: "flex",
+                gap: 4,
+                marginLeft: 4,
+                flexWrap: "wrap",
+                maxWidth: 260,
+                overflow: "hidden",
+              }}
             >
               {(() => {
                 const pills: { label: string; color: string }[] = [];
                 // 预构建查找映射，避免在循环中调用 find
-                const kbMap = new Map(knowledgeBases.map((k: any) => [k.id, k]));
-                const nsMap = new Map(memoryNamespaces.map((n: any) => [n.id, n]));
+                const kbMap = new Map(
+                  knowledgeBases.map((k: any) => [k.id, k]),
+                );
+                const nsMap = new Map(
+                  memoryNamespaces.map((n: any) => [n.id, n]),
+                );
                 const srvMap = new Map(mcpServers.map((s: any) => [s.id, s]));
-                const skillMap = new Map(installedSkills.map((s: any) => [s.id, s]));
-                if (modelName) { pills.push({ label: modelName.slice(0, 12), color: nodeTypeStyles.model.border }); }
+                const skillMap = new Map(
+                  installedSkills.map((s: any) => [s.id, s]),
+                );
+                if (modelName) {
+                  pills.push({
+                    label: modelName.slice(0, 12),
+                    color: nodeTypeStyles.model.border,
+                  });
+                }
                 for (const kbId of knowledgeBaseIds.slice(0, 2)) {
                   const kb = kbMap.get(kbId);
-                  pills.push({ label: (kb?.name || kbId).slice(0, 10), color: nodeTypeStyles.knowledge.border });
+                  pills.push({
+                    label: (kb?.name || kbId).slice(0, 10),
+                    color: nodeTypeStyles.knowledge.border,
+                  });
                 }
                 if (knowledgeBaseIds.length > 2) {
-                  pills.push({ label: `+${knowledgeBaseIds.length - 2}`, color: nodeTypeStyles.knowledge.border });
+                  pills.push({
+                    label: `+${knowledgeBaseIds.length - 2}`,
+                    color: nodeTypeStyles.knowledge.border,
+                  });
                 }
                 for (const nsId of memoryNamespaceIds.slice(0, 1)) {
                   const ns = nsMap.get(nsId);
-                  pills.push({ label: (ns?.name || nsId).slice(0, 10), color: nodeTypeStyles.memory.border });
+                  pills.push({
+                    label: (ns?.name || nsId).slice(0, 10),
+                    color: nodeTypeStyles.memory.border,
+                  });
                 }
                 if (memoryNamespaceIds.length > 1) {
-                  pills.push({ label: `+${memoryNamespaceIds.length - 1}`, color: nodeTypeStyles.memory.border });
+                  pills.push({
+                    label: `+${memoryNamespaceIds.length - 1}`,
+                    color: nodeTypeStyles.memory.border,
+                  });
                 }
                 for (const srvId of mcpServerIds.slice(0, 1)) {
                   const srv = srvMap.get(srvId);
-                  pills.push({ label: (srv?.name || srvId).slice(0, 10), color: nodeTypeStyles.mcp.border });
+                  pills.push({
+                    label: (srv?.name || srvId).slice(0, 10),
+                    color: nodeTypeStyles.mcp.border,
+                  });
                 }
                 if (mcpServerIds.length > 1) {
-                  pills.push({ label: `+${mcpServerIds.length - 1}`, color: nodeTypeStyles.mcp.border });
+                  pills.push({
+                    label: `+${mcpServerIds.length - 1}`,
+                    color: nodeTypeStyles.mcp.border,
+                  });
                 }
                 if (searchEnabled) {
                   pills.push({
@@ -407,10 +543,16 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                 }
                 for (const skillId of enabledSkillIds.slice(0, 1)) {
                   const sk = skillMap.get(skillId);
-                  pills.push({ label: (sk?.name || skillId).slice(0, 10), color: nodeTypeStyles.skill.border });
+                  pills.push({
+                    label: (sk?.name || skillId).slice(0, 10),
+                    color: nodeTypeStyles.skill.border,
+                  });
                 }
                 if (enabledSkillIds.length > 1) {
-                  pills.push({ label: `+${enabledSkillIds.length - 1}`, color: nodeTypeStyles.skill.border });
+                  pills.push({
+                    label: `+${enabledSkillIds.length - 1}`,
+                    color: nodeTypeStyles.skill.border,
+                  });
                 }
                 return pills.map((p, _i) => (
                   <span
@@ -468,7 +610,9 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                       alignItems: "center",
                       gap: 3,
                       fontSize: 10,
-                      color: isHidden ? token.colorTextQuaternary : style.border,
+                      color: isHidden
+                        ? token.colorTextQuaternary
+                        : style.border,
                       cursor: "pointer",
                       opacity: isHidden ? 0.4 : 1,
                       padding: "1px 4px",
@@ -487,7 +631,12 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
             </div>
           )}
           {collapsed
-            ? <ChevronDown size={14} style={{ color: token.colorTextSecondary }} />
+            ? (
+              <ChevronDown
+                size={14}
+                style={{ color: token.colorTextSecondary }}
+              />
+            )
             : <ChevronUp size={14} style={{ color: token.colorTextSecondary }} />}
         </div>
       </div>
@@ -541,20 +690,31 @@ interface GraphCanvasProps {
 function FitViewOnNodeChange({ nodeCount }: { nodeCount: number }) {
   const { fitView } = useReactFlow();
   const prevRef = React.useRef(nodeCount);
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   React.useEffect(() => {
     if (nodeCount !== prevRef.current) {
       prevRef.current = nodeCount;
       timerRef.current = setTimeout(() => fitView({ padding: 0.3 }), 50);
     }
     return () => {
-      if (timerRef.current) { clearTimeout(timerRef.current); }
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, [nodeCount, fitView]);
   return null;
 }
 
-function GraphCanvas({ nodes, edges, nodeTypes, onNodesChange, onEdgesChange, token }: GraphCanvasProps) {
+function GraphCanvas({
+  nodes,
+  edges,
+  nodeTypes,
+  onNodesChange,
+  onEdgesChange,
+  token,
+}: GraphCanvasProps) {
   return (
     <ReactFlow
       nodes={nodes}
@@ -576,7 +736,9 @@ function GraphCanvas({ nodes, edges, nodeTypes, onNodesChange, onEdgesChange, to
         style={{ height: 60 }}
         nodeColor={(n: Node) => {
           const nodeData = n.data as { nodeType?: ContextNodeType } | undefined;
-          const style = nodeData?.nodeType ? nodeTypeStyles[nodeData.nodeType] : undefined;
+          const style = nodeData?.nodeType
+            ? nodeTypeStyles[nodeData.nodeType]
+            : undefined;
           return style?.border || "#ddd";
         }}
       />

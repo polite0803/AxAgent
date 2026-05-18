@@ -6,7 +6,18 @@ const enFilePath = "./locales/en-US.json";
 const enContent = JSON.parse(fs.readFileSync(enFilePath, "utf8"));
 
 // 要检查的语言文件
-const languages = ["zh-CN", "zh-TW", "ar", "de", "es", "fr", "hi", "ja", "ko", "ru"];
+const languages = [
+  "zh-CN",
+  "zh-TW",
+  "ar",
+  "de",
+  "es",
+  "fr",
+  "hi",
+  "ja",
+  "ko",
+  "ru",
+];
 
 // 递归获取所有键
 function getAllKeys(obj, prefix = "") {
@@ -31,13 +42,13 @@ function getValueByKey(obj, key) {
 function findMissingKeys(baseObj, targetObj) {
   const baseKeys = getAllKeys(baseObj);
   const targetKeys = getAllKeys(targetObj);
-  return baseKeys.filter(key => !targetKeys.includes(key));
+  return baseKeys.filter((key) => !targetKeys.includes(key));
 }
 
 // 生成缺失的文案
 function generateMissingTranslations(baseObj, missingKeys, lang) {
   const missing = {};
-  missingKeys.forEach(key => {
+  missingKeys.forEach((key) => {
     const value = getValueByKey(baseObj, key);
     // 简单的翻译逻辑，实际项目中可能需要使用专业的翻译API
     let translatedValue = value;
@@ -95,7 +106,11 @@ function generateMissingTranslations(baseObj, missingKeys, lang) {
 function mergeObjects(target, source) {
   for (const [key, value] of Object.entries(source)) {
     if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      if (!target[key] || typeof target[key] !== "object" || Array.isArray(target[key])) {
+      if (
+        !target[key]
+        || typeof target[key] !== "object"
+        || Array.isArray(target[key])
+      ) {
         target[key] = {};
       }
       mergeObjects(target[key], value);
@@ -107,7 +122,7 @@ function mergeObjects(target, source) {
 }
 
 // 处理每个语言文件
-languages.forEach(lang => {
+languages.forEach((lang) => {
   // 保持语言代码的正确大小写，特别是zh-CN和zh-TW
   let filename = lang;
   // 对于zh-CN和zh-TW，保持大写的国家代码
@@ -128,12 +143,18 @@ languages.forEach(lang => {
     console.log("");
 
     if (missingKeys.length > 0) {
-      const missingTranslations = generateMissingTranslations(enContent, missingKeys, lang);
+      const missingTranslations = generateMissingTranslations(
+        enContent,
+        missingKeys,
+        lang,
+      );
       const mergedContent = mergeObjects(langContent, missingTranslations);
 
       // 写入更新后的文件
       fs.writeFileSync(langFilePath, JSON.stringify(mergedContent, null, 2));
-      console.log(`Updated ${lang} file with ${missingKeys.length} missing translations`);
+      console.log(
+        `Updated ${lang} file with ${missingKeys.length} missing translations`,
+      );
     }
   } else {
     console.log(`Language file not found: ${langFilePath}`);

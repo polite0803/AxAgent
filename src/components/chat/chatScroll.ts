@@ -31,8 +31,10 @@ export function hasScrollLayoutMetricsChanged(
   next: ScrollLayoutMetrics,
   threshold = 1,
 ) {
-  return Math.abs(next.scrollHeight - previous.scrollHeight) > threshold
-    || Math.abs(next.clientHeight - previous.clientHeight) > threshold;
+  return (
+    Math.abs(next.scrollHeight - previous.scrollHeight) > threshold
+    || Math.abs(next.clientHeight - previous.clientHeight) > threshold
+  );
 }
 
 export function shouldStickToBottomOnLayoutChange(
@@ -41,7 +43,10 @@ export function shouldStickToBottomOnLayoutChange(
   wasStickingToBottom: boolean,
   threshold = 1,
 ) {
-  return wasStickingToBottom && hasScrollLayoutMetricsChanged(previous, next, threshold);
+  return (
+    wasStickingToBottom
+    && hasScrollLayoutMetricsChanged(previous, next, threshold)
+  );
 }
 
 export function shouldIgnoreScrollDepartureFromBottom(

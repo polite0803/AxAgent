@@ -14,30 +14,53 @@ export function VersionPagination({
   allVersions: Message[];
 }) {
   const { token } = theme.useToken();
-  const switchMessageVersion = useConversationStore((s) => s.switchMessageVersion);
+  const switchMessageVersion = useConversationStore(
+    (s) => s.switchMessageVersion,
+  );
 
   const currentModelId = msg.model_id;
-  const modelVersions = allVersions.filter((v) => v.model_id === currentModelId);
+  const modelVersions = allVersions.filter(
+    (v) => v.model_id === currentModelId,
+  );
 
-  if (modelVersions.length <= 1) { return null; }
+  if (modelVersions.length <= 1) {
+    return null;
+  }
 
-  const sorted = modelVersions.toSorted((a, b) => a.version_index - b.version_index);
+  const sorted = modelVersions.toSorted(
+    (a, b) => a.version_index - b.version_index,
+  );
   const currentIdx = sorted.findIndex((v) => v.id === msg.id);
   const current = currentIdx >= 0 ? currentIdx : sorted.findIndex((v) => v.is_active);
 
   const handlePrev = () => {
     if (current > 0 && msg.parent_message_id) {
-      switchMessageVersion(conversationId, msg.parent_message_id, sorted[current - 1].id);
+      switchMessageVersion(
+        conversationId,
+        msg.parent_message_id,
+        sorted[current - 1].id,
+      );
     }
   };
   const handleNext = () => {
     if (current < sorted.length - 1 && msg.parent_message_id) {
-      switchMessageVersion(conversationId, msg.parent_message_id, sorted[current + 1].id);
+      switchMessageVersion(
+        conversationId,
+        msg.parent_message_id,
+        sorted[current + 1].id,
+      );
     }
   };
 
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, marginRight: 8 }}>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
+        marginRight: 8,
+      }}
+    >
       <Button
         type="text"
         size="small"
@@ -46,7 +69,9 @@ export function VersionPagination({
         onClick={handlePrev}
         style={{ minWidth: 20, padding: "0 2px" }}
       />
-      <Typography.Text style={{ fontSize: 12, color: token.colorTextSecondary }}>
+      <Typography.Text
+        style={{ fontSize: 12, color: token.colorTextSecondary }}
+      >
         {current + 1}/{sorted.length}
       </Typography.Text>
       <Button

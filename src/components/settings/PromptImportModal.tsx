@@ -36,7 +36,9 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
       if (res) {
         setResult(res);
         if (res.imported.length > 0) {
-          messageApi.success(t("promptTemplates.importSuccess", { count: res.imported.length }));
+          messageApi.success(
+            t("promptTemplates.importSuccess", { count: res.imported.length }),
+          );
         } else {
           messageApi.warning(t("promptTemplates.importEmpty"));
         }
@@ -61,9 +63,9 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
           const parsed = JSON.parse(text);
           inputs = Array.isArray(parsed)
             ? parsed.map((p: Record<string, unknown>) => ({
-              name: p.name as string || "未命名",
+              name: (p.name as string) || "未命名",
               description: p.description as string | undefined,
-              content: p.content as string || "",
+              content: (p.content as string) || "",
               variablesSchema: p.variablesSchema as string | undefined,
               category: p.category as string | undefined,
               tags: p.tags as string[] | undefined,
@@ -99,7 +101,9 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
           setResult(res);
           if (res.imported.length > 0) {
             messageApi.success(
-              t("promptTemplates.importSuccess", { count: res.imported.length }),
+              t("promptTemplates.importSuccess", {
+                count: res.imported.length,
+              }),
             );
           }
         }
@@ -116,9 +120,14 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
 
   const handleFolderImport = useCallback(async () => {
     try {
-      const selected = await openDialog({ directory: true, multiple: false, title: t("promptTemplates.selectFolder") });
-      if (!selected) { return; // 用户取消
-       }
+      const selected = await openDialog({
+        directory: true,
+        multiple: false,
+        title: t("promptTemplates.selectFolder"),
+      });
+      if (!selected) {
+        return; // 用户取消
+      }
 
       const folderPath = selected as string;
       setImporting(true);
@@ -127,7 +136,9 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
       if (res) {
         setResult(res);
         if (res.imported.length > 0) {
-          messageApi.success(t("promptTemplates.importSuccess", { count: res.imported.length }));
+          messageApi.success(
+            t("promptTemplates.importSuccess", { count: res.imported.length }),
+          );
         } else {
           messageApi.warning(t("promptTemplates.importEmpty"));
         }
@@ -170,7 +181,12 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
                   <Form.Item
                     name="url"
                     label={t("promptTemplates.repoUrl")}
-                    rules={[{ required: true, message: t("promptTemplates.urlRequired") }]}
+                    rules={[
+                      {
+                        required: true,
+                        message: t("promptTemplates.urlRequired"),
+                      },
+                    ]}
                     extra={
                       <Text type="secondary">
                         {t("promptTemplates.urlHint")}
@@ -183,10 +199,15 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
                       placeholder="https://github.com/yaojingang/yao-open-prompts"
                     />
                   </Form.Item>
-                  <Form.Item name="categoryFilter" label={t("promptTemplates.categoryFilter")}>
+                  <Form.Item
+                    name="categoryFilter"
+                    label={t("promptTemplates.categoryFilter")}
+                  >
                     <Input
                       name="categoryFilter"
-                      placeholder={t("promptTemplates.categoryFilterPlaceholder")}
+                      placeholder={t(
+                        "promptTemplates.categoryFilterPlaceholder",
+                      )}
                       allowClear
                     />
                   </Form.Item>
@@ -296,7 +317,9 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
             )}
             {result.skipped.length > 0 && (
               <div>
-                <Text type="secondary">{t("promptTemplates.skippedList")}:</Text>
+                <Text type="secondary">
+                  {t("promptTemplates.skippedList")}:
+                </Text>
                 <Paragraph
                   type="secondary"
                   ellipsis={{ rows: 2, expandable: true }}

@@ -28,11 +28,17 @@ export interface HostRpcBridge {
   /** 发送消息到 Skill 沙箱 */
   sendMessage(message: HostToSkillMessage): void;
   /** 调用 Skill 内注册的 RPC 方法 */
-  callSkillMethod(method: string, args?: Record<string, unknown>): Promise<unknown>;
+  callSkillMethod(
+    method: string,
+    args?: Record<string, unknown>,
+  ): Promise<unknown>;
   /** 发送事件到 Skill 沙箱 */
   emitEvent(event: string, payload?: unknown): void;
   /** 通知 Skill 沙箱生命周期 */
-  sendLifecycle(phase: "mount" | "unmount", props?: Record<string, unknown>): void;
+  sendLifecycle(
+    phase: "mount" | "unmount",
+    props?: Record<string, unknown>,
+  ): void;
   /** 销毁桥接 */
   destroy(): void;
 }
@@ -49,22 +55,31 @@ export function createHostRpcBridge(
   origin?: string,
 ): HostRpcBridge {
   const resolvedOrigin = origin ?? defaultAllowedOrigin();
-  const pendingCalls = new Map<string, {
-    resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-    timer: ReturnType<typeof setTimeout>;
-  }>();
+  const pendingCalls = new Map<
+    string,
+    {
+      resolve: (value: unknown) => void;
+      reject: (error: Error) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
   let callIdCounter = 0;
   let destroyed = false;
 
   function handleMessage(event: MessageEvent<SkillToHostMessage>) {
-    if (destroyed) { return; }
+    if (destroyed) {
+      return;
+    }
 
     const msg = event.data;
-    if (!msg || typeof msg.type !== "string") { return; }
+    if (!msg || typeof msg.type !== "string") {
+      return;
+    }
 
     if (msg.type === "skill:ready") {
-      if (import.meta.env.DEV) { console.log("[HostRpcBridge] Skill sandbox is ready"); }
+      if (import.meta.env.DEV) {
+        console.log("[HostRpcBridge] Skill sandbox is ready");
+      }
     } else if (msg.type === "skill:error") {
       console.error("[HostRpcBridge] Skill error:", msg.error);
     }
@@ -77,7 +92,9 @@ export function createHostRpcBridge(
 
   return {
     sendMessage(message: HostToSkillMessage): void {
-      if (destroyed || !contentWindow) { return; }
+      if (destroyed || !contentWindow) {
+        return;
+      }
       try {
         contentWindow.postMessage(message, resolvedOrigin);
       } catch (e) {
@@ -89,15 +106,23 @@ export function createHostRpcBridge(
       method: string,
       args?: Record<string, unknown>,
     ): Promise<unknown> {
-      if (destroyed) { throw new Error("Bridge is destroyed"); }
-      if (!contentWindow) { throw new Error("No content window"); }
+      if (destroyed) {
+        throw new Error("Bridge is destroyed");
+      }
+      if (!contentWindow) {
+        throw new Error("No content window");
+      }
 
       const callId = `host_${++callIdCounter}_${Date.now()}`;
 
       return new Promise<unknown>((resolve, reject) => {
         const timer = setTimeout(() => {
           pendingCalls.delete(callId);
-          reject(new Error(`RPC call "${method}" timed out after ${RPC_TIMEOUT_MS}ms`));
+          reject(
+            new Error(
+              `RPC call "${method}" timed out after ${RPC_TIMEOUT_MS}ms`,
+            ),
+          );
         }, RPC_TIMEOUT_MS);
 
         pendingCalls.set(callId, { resolve, reject, timer });
@@ -107,7 +132,9 @@ export function createHostRpcBridge(
           if (msg?.type === "rpc:response" && msg.callId === callId) {
             window.removeEventListener("message", responseHandler);
             const pending = pendingCalls.get(callId);
-            if (!pending) { return; }
+            if (!pending) {
+              return;
+            }
             clearTimeout(pending.timer);
             pendingCalls.delete(callId);
             if (msg.error) {
@@ -203,15 +230,28 @@ export interface HostApiBridgeOptions {
 /**
  * 创建宿主 API 桥接（Skill 侧调用宿主方法）
  */
-export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridge {
+export function createHostApiBridge(
+  options: HostApiBridgeOptions,
+): HostApiBridge {
   const { api, ui, store, permissions, contentWindow } = options;
   const resolvedOrigin = options.allowedOrigin ?? defaultAllowedOrigin();
   let destroyed = false;
 
-  function sendResponse(callId: string, result?: unknown, error?: string): void {
-    if (destroyed || !contentWindow) { return; }
+  function sendResponse(
+    callId: string,
+    result?: unknown,
+    error?: string,
+  ): void {
+    if (destroyed || !contentWindow) {
+      return;
+    }
     contentWindow.postMessage(
-      { type: "rpc:response", callId, result, error } satisfies HostToSkillMessage,
+      {
+        type: "rpc:response",
+        callId,
+        result,
+        error,
+      } satisfies HostToSkillMessage,
       resolvedOrigin,
     );
   }
@@ -229,26 +269,42 @@ export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridg
   }
 
   function checkStoreWrite(storeName: string, selector?: string): boolean {
-    return isStoreWriteCovered(storeName, selector, permissions.storeWrite ?? []);
+    return isStoreWriteCovered(
+      storeName,
+      selector,
+      permissions.storeWrite ?? [],
+    );
   }
 
   function checkNavigate(path: string): boolean {
     return isWildcardMatch(path, permissions.navigate ?? []);
   }
 
-  const rpcHandlers: Record<string, (args?: Record<string, unknown>) => Promise<unknown>> = {
+  const rpcHandlers: Record<
+    string,
+    (args?: Record<string, unknown>) => Promise<unknown>
+  > = {
     // ctx.api
     "api.invoke": async (args) => {
       const command = args?.command as string;
-      if (!command) { throw new Error("Command name is required"); }
-      if (!checkCommand(command)) {
-        throw new Error(`Permission denied: command "${command}" is not allowed`);
+      if (!command) {
+        throw new Error("Command name is required");
       }
-      return api.invoke(command, args?.args as Record<string, unknown> | undefined);
+      if (!checkCommand(command)) {
+        throw new Error(
+          `Permission denied: command "${command}" is not allowed`,
+        );
+      }
+      return api.invoke(
+        command,
+        args?.args as Record<string, unknown> | undefined,
+      );
     },
     "api.emit": async (args) => {
       const event = args?.event as string;
-      if (!event) { throw new Error("Event name is required"); }
+      if (!event) {
+        throw new Error("Event name is required");
+      }
       if (!checkEvent(event)) {
         throw new Error(`Permission denied: event "${event}" is not allowed`);
       }
@@ -259,7 +315,9 @@ export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridg
     // ctx.ui
     "ui.navigate": async (args) => {
       const path = args?.path as string;
-      if (!path) { throw new Error("Path is required"); }
+      if (!path) {
+        throw new Error("Path is required");
+      }
       if (!checkNavigate(path)) {
         throw new Error(`Permission denied: navigate "${path}" is not allowed`);
       }
@@ -283,7 +341,9 @@ export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridg
     // ctx.store
     "store.read": async (args) => {
       const storeName = args?.storeName as string;
-      if (!storeName) { throw new Error("Store name is required"); }
+      if (!storeName) {
+        throw new Error("Store name is required");
+      }
       const selector = args?.selector as string | undefined;
       if (!checkStoreRead(storeName, selector)) {
         const hint = selector
@@ -295,7 +355,9 @@ export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridg
     },
     "store.write": async (args) => {
       const storeName = args?.storeName as string;
-      if (!storeName) { throw new Error("Store name is required"); }
+      if (!storeName) {
+        throw new Error("Store name is required");
+      }
       const selector = args?.selector as string | undefined;
       if (!checkStoreWrite(storeName, selector)) {
         const hint = selector
@@ -310,9 +372,13 @@ export function createHostApiBridge(options: HostApiBridgeOptions): HostApiBridg
 
   return {
     handleRpcRequest(msg: SkillToHostMessage): void {
-      if (destroyed) { return; }
+      if (destroyed) {
+        return;
+      }
       // 类型收窄：只处理 rpc:request 消息
-      if (msg.type !== "rpc:request") { return; }
+      if (msg.type !== "rpc:request") {
+        return;
+      }
       const handler = rpcHandlers[msg.method];
       if (!handler) {
         sendResponse(msg.callId, undefined, `Unknown method: ${msg.method}`);

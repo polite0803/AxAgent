@@ -18,7 +18,14 @@ interface SettingsSelectProps {
   searchable?: boolean;
 }
 
-export function SettingsSelect({ value, onChange, options, style, disabled, searchable }: SettingsSelectProps) {
+export function SettingsSelect({
+  value,
+  onChange,
+  options,
+  style,
+  disabled,
+  searchable,
+}: SettingsSelectProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [hovered, setHovered] = useState(false);
@@ -28,7 +35,9 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
   const currentLabel = options.find((o) => o.value === value)?.label ?? value;
 
   const filteredOptions = useMemo(() => {
-    if (!searchable || !search) { return options; }
+    if (!searchable || !search) {
+      return options;
+    }
     const q = search.toLowerCase();
     return options.filter((o) => {
       const text = typeof o.label === "string" ? o.label : o.value;
@@ -36,11 +45,14 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
     });
   }, [options, search, searchable]);
 
-  const handleSelect = useCallback((val: string) => {
-    onChange?.(val);
-    setOpen(false);
-    setSearch("");
-  }, [onChange]);
+  const handleSelect = useCallback(
+    (val: string) => {
+      onChange?.(val);
+      setOpen(false);
+      setSearch("");
+    },
+    [onChange],
+  );
 
   const trigger = (
     <div
@@ -64,7 +76,14 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
         ...style,
       }}
     >
-      <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span
+        style={{
+          maxWidth: 180,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
         {currentLabel}
       </span>
       <ChevronsUpDown size={12} style={{ opacity: 0.4 }} />
@@ -77,7 +96,9 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
         open={open}
         onOpenChange={(v) => {
           setOpen(v);
-          if (!v) { setSearch(""); }
+          if (!v) {
+            setSearch("");
+          }
         }}
         trigger={["click"]}
         disabled={disabled}
@@ -116,7 +137,9 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
                   tabIndex={0}
                   onClick={() => handleSelect(opt.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { handleSelect(opt.value); }
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleSelect(opt.value);
+                    }
                   }}
                   style={{
                     display: "flex",
@@ -128,27 +151,45 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
                     cursor: "pointer",
                     fontSize: 13,
                     color: token.colorText,
-                    background: opt.value === value ? token.colorFillTertiary : "transparent",
+                    background: opt.value === value
+                      ? token.colorFillTertiary
+                      : "transparent",
                     minWidth: 140,
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = token.colorFillSecondary;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = opt.value === value ? token.colorFillTertiary : "transparent";
+                    e.currentTarget.style.background = opt.value === value
+                      ? token.colorFillTertiary
+                      : "transparent";
                   }}
                 >
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {opt.label}
                   </span>
                   {opt.value === value && (
-                    <Check size={15} style={{ color: token.colorTextSecondary, flexShrink: 0 }} />
+                    <Check
+                      size={15}
+                      style={{ color: token.colorTextSecondary, flexShrink: 0 }}
+                    />
                   )}
                 </div>
               ))}
               {filteredOptions.length === 0 && (
                 <div
-                  style={{ padding: "8px 12px", color: token.colorTextDescription, fontSize: 12, textAlign: "center" }}
+                  style={{
+                    padding: "8px 12px",
+                    color: token.colorTextDescription,
+                    fontSize: 12,
+                    textAlign: "center",
+                  }}
                 >
                   No results
                 </div>
@@ -169,7 +210,13 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
           key: opt.value,
           label: (
             <div
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, minWidth: 140 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                minWidth: 140,
+              }}
             >
               <span>{opt.label}</span>
               {opt.value === value && <Check size={15} style={{ color: token.colorTextSecondary }} />}

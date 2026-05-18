@@ -23,12 +23,21 @@ async function persistConversationPreferences(
 ) {
   const requestSeq = nextConversationPreferenceSaveSeq(conversationId);
   try {
-    const updated = await invoke<Conversation>("update_conversation", { id: conversationId, input });
-    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) { return; }
+    const updated = await invoke<Conversation>("update_conversation", {
+      id: conversationId,
+      input,
+    });
+    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) {
+      return;
+    }
 
     const convState = useConversationStore.getState();
     useConversationStore.setState((state) => ({
-      ...mergeConversationCollections(state.conversations, state.archivedConversations, updated),
+      ...mergeConversationCollections(
+        state.conversations,
+        state.archivedConversations,
+        updated,
+      ),
       ...(state.activeConversationId === conversationId
         ? {} // preferenceStore will handle its own state
         : {}),
@@ -37,25 +46,32 @@ async function persistConversationPreferences(
 
     // Update preferenceStore state
     if (convState.activeConversationId === conversationId) {
-      usePreferenceStore.setState(conversationPreferenceStateFromConversation(updated));
+      usePreferenceStore.setState(
+        conversationPreferenceStateFromConversation(updated),
+      );
     }
   } catch (error) {
-    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) { return; }
+    if (!isLatestConversationPreferenceSave(conversationId, requestSeq)) {
+      return;
+    }
 
     const prefState = usePreferenceStore.getState();
     const convState = useConversationStore.getState();
     if (
       convState.activeConversationId !== conversationId
-      || !preferenceStateMatches({
-        searchEnabled: prefState.searchEnabled,
-        searchProviderId: prefState.searchProviderId,
-        thinkingBudget: prefState.thinkingBudget,
-        mcpMode: prefState.mcpMode,
-        enabledMcpServerIds: prefState.enabledMcpServerIds,
-        enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
-        activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
-        enabledWikiIds: prefState.enabledWikiIds,
-      }, optimisticState)
+      || !preferenceStateMatches(
+        {
+          searchEnabled: prefState.searchEnabled,
+          searchProviderId: prefState.searchProviderId,
+          thinkingBudget: prefState.thinkingBudget,
+          mcpMode: prefState.mcpMode,
+          enabledMcpServerIds: prefState.enabledMcpServerIds,
+          enabledKnowledgeBaseIds: prefState.enabledKnowledgeBaseIds,
+          activeMemoryNamespaceId: prefState.activeMemoryNamespaceId,
+          enabledWikiIds: prefState.enabledWikiIds,
+        },
+        optimisticState,
+      )
     ) {
       useConversationStore.setState({ error: String(error) });
       return;
@@ -66,16 +82,30 @@ async function persistConversationPreferences(
   }
 }
 
-export function getEffectiveThinkingBudget(conversationId: string): number | undefined {
+export function getEffectiveThinkingBudget(
+  conversationId: string,
+): number | undefined {
   const thinkingBudget = usePreferenceStore.getState().thinkingBudget;
-  if (thinkingBudget === null) { return undefined; }
+  if (thinkingBudget === null) {
+    return undefined;
+  }
 
-  const conversation = useConversationStore.getState().conversations.find((item) => item.id === conversationId);
-  if (!conversation) { return thinkingBudget; }
+  const conversation = useConversationStore
+    .getState()
+    .conversations.find((item) => item.id === conversationId);
+  if (!conversation) {
+    return thinkingBudget;
+  }
 
   const providers = useProviderStore.getState().providers;
-  const model = findModelByIds(providers, conversation.provider_id, conversation.model_id);
-  if (!model) { return thinkingBudget; }
+  const model = findModelByIds(
+    providers,
+    conversation.provider_id,
+    conversation.model_id,
+  );
+  if (!model) {
+    return thinkingBudget;
+  }
   return supportsReasoning(model) ? thinkingBudget : undefined;
 }
 
@@ -189,8 +219,9 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     set({ mcpMode: mode });
     const conversationId = useConversationStore.getState().activeConversationId;
     if (conversationId) {
-      const allBuiltinIds = useMcpStore.getState().servers
-        .flatMap((s) => s.source === "builtin" && s.enabled ? [s.id] : []);
+      const allBuiltinIds = useMcpStore
+        .getState()
+        .servers.flatMap((s) => s.source === "builtin" && s.enabled ? [s.id] : []);
       if (mode === "auto") {
         set({ enabledMcpServerIds: allBuiltinIds });
         void persistConversationPreferences(

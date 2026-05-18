@@ -11,7 +11,10 @@ interface BackupState {
 
   loadBackups: () => Promise<void>;
   createBackup: (format?: string) => Promise<BackupManifest | null>;
-  restoreBackup: (backupId: string, strategy?: RestoreStrategy) => Promise<RestoreReport | void>;
+  restoreBackup: (
+    backupId: string,
+    strategy?: RestoreStrategy,
+  ) => Promise<RestoreReport | void>;
   deleteBackup: (id: string) => Promise<void>;
   batchDeleteBackups: (ids: string[]) => Promise<void>;
   setSelectedIds: (ids: string[]) => void;
@@ -51,10 +54,13 @@ export const useBackupStore = create<BackupState>((set, get) => ({
   restoreBackup: async (backupId: string, strategy?: RestoreStrategy) => {
     set({ loading: true, error: null });
     try {
-      const result = await invoke<{ restarted?: boolean } | RestoreReport>("restore_backup", {
-        backupId,
-        strategy: strategy ?? null,
-      });
+      const result = await invoke<{ restarted?: boolean } | RestoreReport>(
+        "restore_backup",
+        {
+          backupId,
+          strategy: strategy ?? null,
+        },
+      );
       set({ loading: false });
       return result as RestoreReport | void;
     } catch (e) {

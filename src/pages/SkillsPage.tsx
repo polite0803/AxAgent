@@ -103,7 +103,13 @@ const openExternalUrl = (url: string) => {
 const { Text, Paragraph } = Typography;
 
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
-  axagent: <img src={appLogo} alt="" style={{ width: 14, height: 14, verticalAlign: "middle" }} />,
+  axagent: (
+    <img
+      src={appLogo}
+      alt=""
+      style={{ width: 14, height: 14, verticalAlign: "middle" }}
+    />
+  ),
   claude: <Claude.Color size={14} />,
   agents: <Radio size={14} color={CHAT_ICON_COLORS.Route} />,
   builtin: <Cpu size={14} />,
@@ -127,10 +133,14 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 const getSourceLabel = (source: string | undefined, t: TFunction) => {
-  if (!source) { return ""; }
+  if (!source) {
+    return "";
+  }
 
   const labelOrKey = SOURCE_LABELS[source];
-  if (!labelOrKey) { return source; }
+  if (!labelOrKey) {
+    return source;
+  }
 
   return labelOrKey.startsWith("skills.source.") ? t(labelOrKey) : labelOrKey;
 };
@@ -156,7 +166,7 @@ function SkillCard({
   onExport?: (name: string) => void;
   t: TFunction;
 }) {
-  const hasManifest = !!(skill.manifest?.capabilities?.length);
+  const hasManifest = !!skill.manifest?.capabilities?.length;
   return (
     <Card
       size="small"
@@ -166,7 +176,14 @@ function SkillCard({
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
             <Text
               strong
               className="skill-card-title"
@@ -177,13 +194,23 @@ function SkillCard({
             </Text>
             <CopyButton text={skill.name} size={12} />
             <Tag>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
                 {SOURCE_ICONS[skill.source] ?? <Radio size={14} />}
                 {t(SOURCE_LABELS[skill.source] ?? skill.source)}
               </span>
             </Tag>
-            {skill.version && <Text type="secondary" style={{ fontSize: 12 }}>v{skill.version}</Text>}
-            {hasManifest && <Tag color="blue" style={{ margin: 0 }}>{t("skill.hasUI")}</Tag>}
+            {skill.version && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                v{skill.version}
+              </Text>
+            )}
+            {hasManifest && (
+              <Tag color="blue" style={{ margin: 0 }}>
+                {t("skill.hasUI")}
+              </Tag>
+            )}
           </div>
           <Paragraph
             type="secondary"
@@ -193,9 +220,20 @@ function SkillCard({
           >
             {skill.description}
           </Paragraph>
-          {skill.author && <Text type="secondary" style={{ fontSize: 12 }}>{skill.author}</Text>}
+          {skill.author && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {skill.author}
+            </Text>
+          )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexShrink: 0,
+          }}
+        >
           <Switch
             size="small"
             checked={skill.enabled}
@@ -212,9 +250,7 @@ function SkillCard({
             size="small"
             icon={<LayoutPanelTop size={14} color={CHAT_ICON_COLORS.Trash2} />}
             onClick={() => onEditFrontend(skill.name)}
-            title={hasManifest
-              ? t("skill.editFrontend")
-              : t("skill.addFrontend")}
+            title={hasManifest ? t("skill.editFrontend") : t("skill.addFrontend")}
           />
           {onExport && (
             <Button
@@ -272,7 +308,14 @@ function MarketplaceCard({
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
             <Text
               strong
               className="skill-card-title"
@@ -284,12 +327,28 @@ function MarketplaceCard({
             <CopyButton text={skill.name} size={12} />
             {source === "github"
               ? (
-                <Text type="secondary" style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                <Text
+                  type="secondary"
+                  style={{
+                    fontSize: 12,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
                   <Star size={12} style={{ color: "#faad14" }} /> {skill.stars.toLocaleString()}
                 </Text>
               )
               : (
-                <Text type="secondary" style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                <Text
+                  type="secondary"
+                  style={{
+                    fontSize: 12,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
                   <Download size={12} /> {skill.installs.toLocaleString()}
                 </Text>
               )}
@@ -298,14 +357,21 @@ function MarketplaceCard({
             ? (
               <Text
                 type="secondary"
-                style={{ fontSize: 12, display: "block", marginBottom: 2, cursor: "pointer" }}
+                style={{
+                  fontSize: 12,
+                  display: "block",
+                  marginBottom: 2,
+                  cursor: "pointer",
+                }}
                 onClick={() => onDetail(skill.repo)}
               >
                 {skill.description}
               </Text>
             )
             : null}
-          <Text type="secondary" style={{ fontSize: 12 }}>{skill.repo}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {skill.repo}
+          </Text>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <Button
@@ -379,16 +445,24 @@ export function SkillsPage() {
   const [installUrl, setInstallUrl] = useState("");
   const [installing, setInstalling] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [marketplaceSource, setMarketplaceSource] = useState<"skillhub" | "github">("skillhub");
+  const [marketplaceSource, setMarketplaceSource] = useState<
+    "skillhub" | "github"
+  >("skillhub");
   const marketplaceQueryRef = useRef("");
   const marketplaceLoaded = useRef(false);
   const [marketplaceDetailOpen, setMarketplaceDetailOpen] = useState(false);
   const [marketplaceDetailContent, setMarketplaceDetailContent] = useState<
-    { name: string; repo: string; content: string } | null
+    {
+      name: string;
+      repo: string;
+      content: string;
+    } | null
   >(null);
   const [marketplaceDetailLoading, setMarketplaceDetailLoading] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<"popular" | "latest" | "stars">("popular");
+  const [sortOrder, setSortOrder] = useState<"popular" | "latest" | "stars">(
+    "popular",
+  );
   const [decomposePreviewOpen, setDecomposePreviewOpen] = useState(false);
   const [decomposeRequest, setDecomposeRequest] = useState<
     {
@@ -403,7 +477,12 @@ export function SkillsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [_atomicSkillEditVisible, _setAtomicSkillEditVisible] = useState(false);
-  const [_editingAtomicSkill, _setEditingAtomicSkill] = useState<{ id: string; name: string } | null>(null);
+  const [_editingAtomicSkill, _setEditingAtomicSkill] = useState<
+    {
+      id: string;
+      name: string;
+    } | null
+  >(null);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
 
   useEffect(() => {
@@ -413,116 +492,167 @@ export function SkillsPage() {
   // Re-search when source changes (if marketplace was already searched)
   useEffect(() => {
     if (marketplaceLoaded.current) {
-      searchMarketplace(marketplaceQueryRef.current, marketplaceSource, sortOrder);
+      searchMarketplace(
+        marketplaceQueryRef.current,
+        marketplaceSource,
+        sortOrder,
+      );
     }
   }, [marketplaceSource]);
 
   // Re-search when sort order changes
   useEffect(() => {
     if (marketplaceLoaded.current) {
-      searchMarketplace(marketplaceQueryRef.current, marketplaceSource, sortOrder);
+      searchMarketplace(
+        marketplaceQueryRef.current,
+        marketplaceSource,
+        sortOrder,
+      );
     }
   }, [sortOrder]);
 
-  const handleTabChange = useCallback((key: string) => {
-    if (key === "marketplace" && !marketplaceLoaded.current) {
-      marketplaceLoaded.current = true;
-      searchMarketplace("", marketplaceSource, sortOrder);
-    }
-  }, [searchMarketplace, marketplaceSource, sortOrder]);
-
-  const handleInstallFromUrl = useCallback(async (target: string) => {
-    if (!installUrl.trim()) { return; }
-    setInstalling(installUrl);
-    try {
-      const name = await installSkill(installUrl.trim(), target);
-      messageApi.success(t("skills.installSuccess", { name }));
-      setInstallUrl("");
-    } catch (e) {
-      messageApi.error(String(e));
-    } finally {
-      setInstalling(null);
-    }
-  }, [installUrl, installSkill, messageApi, t]);
-
-  const handleInstallFromMarketplace = useCallback(async (repo: string, target: string) => {
-    setInstalling(repo);
-    try {
-      const name = await installSkill(repo, target);
-      messageApi.success(t("skills.installSuccess", { name }));
-    } catch (e) {
-      messageApi.error(String(e));
-    } finally {
-      setInstalling(null);
-    }
-  }, [installSkill, messageApi, t]);
-
-  const handleToggle = useCallback((name: string, enabled: boolean) => {
-    toggleSkill(name, enabled);
-  }, [toggleSkill]);
-
-  const handleDetail = useCallback(async (name: string) => {
-    await getSkill(name);
-    setDetailOpen(true);
-  }, [getSkill]);
-
-  const handleEditFrontend = useCallback((name: string) => {
-    const skill = skills.find((s) => s.name === name);
-    if (skill) {
-      setEditingFrontendSkill(skill);
-    }
-  }, [skills]);
-
-  const handleExport = useCallback(async (name: string) => {
-    try {
-      const result = await invoke<{ hermes_json: string; skill_name: string; version: string }>(
-        "skills_hub_export",
-        { skill_name: name },
-      );
-      // 下载为 JSON 文件
-      const blob = new Blob([result.hermes_json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${result.skill_name}-v${result.version}-export.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      messageApi.success(t("skill.exported"));
-    } catch (e) {
-      messageApi.error(t("skill.exportFailed"));
-    }
-  }, [messageApi]);
-
-  const handleMarketplaceDetail = useCallback(async (repo: string) => {
-    const skill = marketplaceSkills.find(s => s.repo === repo);
-    if (!skill) { return; }
-    setMarketplaceDetailOpen(true);
-    setMarketplaceDetailLoading(true);
-    setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: "" });
-    try {
-      const result = await invoke<{ content: string; file_name: string; found: boolean; error: string | null }>(
-        "get_marketplace_skill_content",
-        { repo },
-      );
-      if (result.found && result.content.trim()) {
-        setMarketplaceDetailContent({ name: skill.name, repo: skill.repo, content: result.content });
-      } else {
-        setMarketplaceDetailContent({
-          name: skill.name,
-          repo: skill.repo,
-          content: `(${result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found"})`,
-        });
+  const handleTabChange = useCallback(
+    (key: string) => {
+      if (key === "marketplace" && !marketplaceLoaded.current) {
+        marketplaceLoaded.current = true;
+        searchMarketplace("", marketplaceSource, sortOrder);
       }
-    } catch {
+    },
+    [searchMarketplace, marketplaceSource, sortOrder],
+  );
+
+  const handleInstallFromUrl = useCallback(
+    async (target: string) => {
+      if (!installUrl.trim()) {
+        return;
+      }
+      setInstalling(installUrl);
+      try {
+        const name = await installSkill(installUrl.trim(), target);
+        messageApi.success(t("skills.installSuccess", { name }));
+        setInstallUrl("");
+      } catch (e) {
+        messageApi.error(String(e));
+      } finally {
+        setInstalling(null);
+      }
+    },
+    [installUrl, installSkill, messageApi, t],
+  );
+
+  const handleInstallFromMarketplace = useCallback(
+    async (repo: string, target: string) => {
+      setInstalling(repo);
+      try {
+        const name = await installSkill(repo, target);
+        messageApi.success(t("skills.installSuccess", { name }));
+      } catch (e) {
+        messageApi.error(String(e));
+      } finally {
+        setInstalling(null);
+      }
+    },
+    [installSkill, messageApi, t],
+  );
+
+  const handleToggle = useCallback(
+    (name: string, enabled: boolean) => {
+      toggleSkill(name, enabled);
+    },
+    [toggleSkill],
+  );
+
+  const handleDetail = useCallback(
+    async (name: string) => {
+      await getSkill(name);
+      setDetailOpen(true);
+    },
+    [getSkill],
+  );
+
+  const handleEditFrontend = useCallback(
+    (name: string) => {
+      const skill = skills.find((s) => s.name === name);
+      if (skill) {
+        setEditingFrontendSkill(skill);
+      }
+    },
+    [skills],
+  );
+
+  const handleExport = useCallback(
+    async (name: string) => {
+      try {
+        const result = await invoke<{
+          hermes_json: string;
+          skill_name: string;
+          version: string;
+        }>("skills_hub_export", { skill_name: name });
+        // 下载为 JSON 文件
+        const blob = new Blob([result.hermes_json], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${result.skill_name}-v${result.version}-export.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        messageApi.success(t("skill.exported"));
+      } catch (e) {
+        messageApi.error(t("skill.exportFailed"));
+      }
+    },
+    [messageApi],
+  );
+
+  const handleMarketplaceDetail = useCallback(
+    async (repo: string) => {
+      const skill = marketplaceSkills.find((s) => s.repo === repo);
+      if (!skill) {
+        return;
+      }
+      setMarketplaceDetailOpen(true);
+      setMarketplaceDetailLoading(true);
       setMarketplaceDetailContent({
         name: skill.name,
         repo: skill.repo,
-        content: `(${t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content"})`,
+        content: "",
       });
-    } finally {
-      setMarketplaceDetailLoading(false);
-    }
-  }, [marketplaceSkills, t]);
+      try {
+        const result = await invoke<{
+          content: string;
+          file_name: string;
+          found: boolean;
+          error: string | null;
+        }>("get_marketplace_skill_content", { repo });
+        if (result.found && result.content.trim()) {
+          setMarketplaceDetailContent({
+            name: skill.name,
+            repo: skill.repo,
+            content: result.content,
+          });
+        } else {
+          setMarketplaceDetailContent({
+            name: skill.name,
+            repo: skill.repo,
+            content: `(${
+              result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found"
+            })`,
+          });
+        }
+      } catch {
+        setMarketplaceDetailContent({
+          name: skill.name,
+          repo: skill.repo,
+          content: `(${t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content"})`,
+        });
+      } finally {
+        setMarketplaceDetailLoading(false);
+      }
+    },
+    [marketplaceSkills, t],
+  );
 
   const handleDecomposeComplete = useCallback(() => {
     setDecomposePreviewOpen(false);
@@ -531,41 +661,55 @@ export function SkillsPage() {
     messageApi.success(t("skills.decomposeSuccess"));
   }, [loadSkills, messageApi, t]);
 
-  const handleUninstall = useCallback(async (name: string) => {
-    try {
-      await uninstallSkill(name);
-      messageApi.success(t("skills.uninstallSuccess", { name }));
-    } catch (e) {
-      messageApi.error(String(e));
-    }
-  }, [uninstallSkill, messageApi, t]);
+  const handleUninstall = useCallback(
+    async (name: string) => {
+      try {
+        await uninstallSkill(name);
+        messageApi.success(t("skills.uninstallSuccess", { name }));
+      } catch (e) {
+        messageApi.error(String(e));
+      }
+    },
+    [uninstallSkill, messageApi, t],
+  );
 
-  const handleOpenSkillDir = useCallback(async (path: string) => {
-    try {
-      await openSkillDir(path);
-    } catch (e) {
-      messageApi.error(String(e));
-    }
-  }, [openSkillDir, messageApi]);
+  const handleOpenSkillDir = useCallback(
+    async (path: string) => {
+      try {
+        await openSkillDir(path);
+      } catch (e) {
+        messageApi.error(String(e));
+      }
+    },
+    [openSkillDir, messageApi],
+  );
 
-  const handleGroupToggle = useCallback((groupSkills: Skill[], enabled: boolean) => {
-    for (const skill of groupSkills) {
-      toggleSkill(skill.name, enabled);
-    }
-  }, [toggleSkill]);
+  const handleGroupToggle = useCallback(
+    (groupSkills: Skill[], enabled: boolean) => {
+      for (const skill of groupSkills) {
+        toggleSkill(skill.name, enabled);
+      }
+    },
+    [toggleSkill],
+  );
 
-  const handleUninstallGroup = useCallback(async (group: string) => {
-    try {
-      await uninstallSkillGroup(group);
-      messageApi.success(t("skills.uninstallSuccess", { name: group }));
-    } catch (e) {
-      messageApi.error(String(e));
-    }
-  }, [uninstallSkillGroup, messageApi, t]);
+  const handleUninstallGroup = useCallback(
+    async (group: string) => {
+      try {
+        await uninstallSkillGroup(group);
+        messageApi.success(t("skills.uninstallSuccess", { name: group }));
+      } catch (e) {
+        messageApi.error(String(e));
+      }
+    },
+    [uninstallSkillGroup, messageApi, t],
+  );
 
   const filteredSkills = useMemo(() => {
-    if (sourceFilter === "all") { return skills; }
-    return skills.filter(s => s.source === sourceFilter);
+    if (sourceFilter === "all") {
+      return skills;
+    }
+    return skills.filter((s) => s.source === sourceFilter);
   }, [skills, sourceFilter]);
 
   const groupedSkills = useMemo(() => {
@@ -583,21 +727,24 @@ export function SkillsPage() {
     return { groups, ungrouped };
   }, [filteredSkills]);
 
-  const handleOpenGroupDir = useCallback(async (group: string) => {
-    // Find the first skill in the group and open its parent's parent dir
-    const groupSkills = groupedSkills.groups.get(group);
-    if (groupSkills && groupSkills.length > 0) {
-      const firstSkillPath = groupSkills[0].sourcePath;
-      // sourcePath points to SKILL.md; go up two levels to the group dir
-      const parts = firstSkillPath.split("/");
-      const groupDir = parts.slice(0, -2).join("/");
-      try {
-        await openSkillDir(groupDir || firstSkillPath);
-      } catch (e) {
-        messageApi.error(String(e));
+  const handleOpenGroupDir = useCallback(
+    async (group: string) => {
+      // Find the first skill in the group and open its parent's parent dir
+      const groupSkills = groupedSkills.groups.get(group);
+      if (groupSkills && groupSkills.length > 0) {
+        const firstSkillPath = groupSkills[0].sourcePath;
+        // sourcePath points to SKILL.md; go up two levels to the group dir
+        const parts = firstSkillPath.split("/");
+        const groupDir = parts.slice(0, -2).join("/");
+        try {
+          await openSkillDir(groupDir || firstSkillPath);
+        } catch (e) {
+          messageApi.error(String(e));
+        }
       }
-    }
-  }, [groupedSkills.groups, openSkillDir, messageApi]);
+    },
+    [groupedSkills.groups, openSkillDir, messageApi],
+  );
 
   const mySkillsContent = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -608,7 +755,10 @@ export function SkillsPage() {
             placeholder={t("skills.installUrlPlaceholder")}
             value={installUrl}
             onChange={(e) => setInstallUrl(e.target.value)}
-            onPressEnter={() => handleInstallFromUrl(sourceFilter === "all" ? "axagent" : sourceFilter)}
+            onPressEnter={() =>
+              handleInstallFromUrl(
+                sourceFilter === "all" ? "axagent" : sourceFilter,
+              )}
           />
           <Dropdown
             menu={{
@@ -634,9 +784,7 @@ export function SkillsPage() {
             icon={<RefreshCw size={14} color={CHAT_ICON_COLORS.RefreshCw} />}
             onClick={() => loadSkills()}
           />
-          <Button
-            onClick={() => setCreateModalOpen(true)}
-          >
+          <Button onClick={() => setCreateModalOpen(true)}>
             {t("skill.create")}
           </Button>
           <Button
@@ -656,15 +804,26 @@ export function SkillsPage() {
               sourceCounts.set(s.source, (sourceCounts.get(s.source) ?? 0) + 1);
             }
             // 来源 Tab，始终显示（即使 count=0），与 INSTALL_TARGETS 保持一致
-            const standardSources = INSTALL_TARGETS.map(t => t.key);
+            const standardSources = INSTALL_TARGETS.map((t) => t.key);
             const tabs: TabsProps["items"] = [
               {
                 key: "all",
                 label: (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
                     {ALL_SOURCE_ICON}
                     {t("skills.sourceAll")}
-                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 12 }}>
+                    <span
+                      style={{
+                        color: "var(--color-text-quaternary)",
+                        fontSize: 12,
+                      }}
+                    >
                       ({skills.length})
                     </span>
                   </span>
@@ -676,10 +835,21 @@ export function SkillsPage() {
               tabs.push({
                 key: src,
                 label: (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
                     {SOURCE_ICONS[src] ?? <Radio size={14} />}
                     {SOURCE_LABELS[src] ?? src}
-                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 12 }}>
+                    <span
+                      style={{
+                        color: "var(--color-text-quaternary)",
+                        fontSize: 12,
+                      }}
+                    >
                       ({count})
                     </span>
                   </span>
@@ -689,14 +859,27 @@ export function SkillsPage() {
             // 动态添加其他来源 Tab
             const standardSourceSet = new Set<string>(standardSources);
             for (const [src, count] of sourceCounts) {
-              if (standardSourceSet.has(src)) { continue; }
+              if (standardSourceSet.has(src)) {
+                continue;
+              }
               tabs.push({
                 key: src,
                 label: (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
                     {SOURCE_ICONS[src] ?? <Radio size={14} />}
                     {SOURCE_LABELS[src] ?? src}
-                    <span style={{ color: "var(--color-text-quaternary)", fontSize: 12 }}>
+                    <span
+                      style={{
+                        color: "var(--color-text-quaternary)",
+                        fontSize: 12,
+                      }}
+                    >
                       ({count})
                     </span>
                   </span>
@@ -721,9 +904,12 @@ export function SkillsPage() {
               borderRadius: 6,
             }}
           >
-            <FolderOpen size={14} style={{ color: token.colorTextSecondary, flexShrink: 0 }} />
+            <FolderOpen
+              size={14}
+              style={{ color: token.colorTextSecondary, flexShrink: 0 }}
+            />
             <Text type="secondary" style={{ fontSize: 12, flex: 1 }} ellipsis>
-              {INSTALL_TARGETS.find(t => t.key === sourceFilter)?.label}
+              {INSTALL_TARGETS.find((t) => t.key === sourceFilter)?.label}
             </Text>
             <Button
               type="text"
@@ -731,14 +917,23 @@ export function SkillsPage() {
               icon={<FolderOpen size={14} />}
               onClick={async () => {
                 try {
-                  const target = INSTALL_TARGETS.find(t => t.key === sourceFilter);
-                  if (!target) { return; }
+                  const target = INSTALL_TARGETS.find(
+                    (t) => t.key === sourceFilter,
+                  );
+                  if (!target) {
+                    return;
+                  }
                   const { homeDir } = await import("@tauri-apps/api/path");
                   const home = await homeDir();
-                  const fullPath = target.label.replace("~/", home.endsWith("/") ? home : home + "/");
+                  const fullPath = target.label.replace(
+                    "~/",
+                    home.endsWith("/") ? home : home + "/",
+                  );
                   const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
                   await revealItemInDir(fullPath);
-                } catch { /* ignore */ }
+                } catch {
+                  /* ignore */
+                }
               }}
             >
               {t("skills.openDir")}
@@ -758,7 +953,9 @@ export function SkillsPage() {
               description={
                 <div>
                   <div>{t("skills.empty")}</div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>{t("skills.emptyDesc")}</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {t("skills.emptyDesc")}
+                  </Text>
                 </div>
               }
             />
@@ -778,93 +975,123 @@ export function SkillsPage() {
                   t={t}
                 />
               ))}
-              {Array.from(groupedSkills.groups.entries()).map(([group, groupSkills]) => {
-                const allEnabled = groupSkills.every((s) => s.enabled);
-                const someEnabled = groupSkills.some((s) => s.enabled);
-                return (
-                  <Collapse
-                    key={group}
-                    defaultActiveKey={[]}
-                    style={{ marginTop: 8 }}
-                    expandIcon={({ isActive }) => (
-                      <ChevronRight
-                        size={14}
-                        style={{
-                          transform: isActive ? "rotate(90deg)" : "rotate(0deg)",
-                          transition: "transform 0.2s",
-                        }}
-                      />
-                    )}
-                    items={[{
-                      key: group,
-                      label: (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, lineHeight: 1 }}>
-                          <Text strong style={{ lineHeight: "22px" }}>{group}</Text>
-                          <Tag style={{ margin: 0 }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                              {SOURCE_ICONS[groupSkills[0]?.source]}
-                              {getSourceLabel(groupSkills[0]?.source, t)}
-                            </span>
-                          </Tag>
-                          <Tag style={{ margin: 0 }}>{t("skills.groupSkillCount", { count: groupSkills.length })}</Tag>
-                        </div>
-                      ),
-                      extra: (
-                        <Space size={4} onClick={(e) => e.stopPropagation()}>
-                          <Switch
-                            size="small"
-                            checked={allEnabled}
-                            style={someEnabled && !allEnabled ? { backgroundColor: "#faad14" } : undefined}
-                            onChange={(checked) => {
-                              handleGroupToggle(groupSkills, checked);
-                            }}
-                          />
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<FolderOpen size={14} />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenGroupDir(group);
-                            }}
-                          />
-                          <Popconfirm
-                            title={t("skills.uninstallGroupConfirm", { name: group })}
-                            onConfirm={() => handleUninstallGroup(group)}
-                            okText={t("skills.uninstall")}
-                            cancelText={t("common.cancel")}
-                          >
-                            <Button
-                              type="text"
-                              size="small"
-                              danger
-                              icon={<Trash2 size={14} />}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </Popconfirm>
-                        </Space>
-                      ),
-                      children: (
-                        <div style={{ padding: "4px 0" }}>
-                          {groupSkills.map((skill) => (
-                            <SkillCard
-                              key={`${skill.name}-${skill.source}`}
-                              skill={skill}
-                              onToggle={handleToggle}
-                              onDetail={handleDetail}
-                              onUninstall={handleUninstall}
-                              onOpenDir={handleOpenSkillDir}
-                              onEditFrontend={handleEditFrontend}
-                              onExport={handleExport}
-                              t={t}
-                            />
-                          ))}
-                        </div>
-                      ),
-                    }]}
-                  />
-                );
-              })}
+              {Array.from(groupedSkills.groups.entries()).map(
+                ([group, groupSkills]) => {
+                  const allEnabled = groupSkills.every((s) => s.enabled);
+                  const someEnabled = groupSkills.some((s) => s.enabled);
+                  return (
+                    <Collapse
+                      key={group}
+                      defaultActiveKey={[]}
+                      style={{ marginTop: 8 }}
+                      expandIcon={({ isActive }) => (
+                        <ChevronRight
+                          size={14}
+                          style={{
+                            transform: isActive
+                              ? "rotate(90deg)"
+                              : "rotate(0deg)",
+                            transition: "transform 0.2s",
+                          }}
+                        />
+                      )}
+                      items={[
+                        {
+                          key: group,
+                          label: (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                flex: 1,
+                                lineHeight: 1,
+                              }}
+                            >
+                              <Text strong style={{ lineHeight: "22px" }}>
+                                {group}
+                              </Text>
+                              <Tag style={{ margin: 0 }}>
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                  }}
+                                >
+                                  {SOURCE_ICONS[groupSkills[0]?.source]}
+                                  {getSourceLabel(groupSkills[0]?.source, t)}
+                                </span>
+                              </Tag>
+                              <Tag style={{ margin: 0 }}>
+                                {t("skills.groupSkillCount", {
+                                  count: groupSkills.length,
+                                })}
+                              </Tag>
+                            </div>
+                          ),
+                          extra: (
+                            <Space size={4} onClick={(e) => e.stopPropagation()}>
+                              <Switch
+                                size="small"
+                                checked={allEnabled}
+                                style={someEnabled && !allEnabled
+                                  ? { backgroundColor: "#faad14" }
+                                  : undefined}
+                                onChange={(checked) => {
+                                  handleGroupToggle(groupSkills, checked);
+                                }}
+                              />
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<FolderOpen size={14} />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenGroupDir(group);
+                                }}
+                              />
+                              <Popconfirm
+                                title={t("skills.uninstallGroupConfirm", {
+                                  name: group,
+                                })}
+                                onConfirm={() => handleUninstallGroup(group)}
+                                okText={t("skills.uninstall")}
+                                cancelText={t("common.cancel")}
+                              >
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<Trash2 size={14} />}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </Popconfirm>
+                            </Space>
+                          ),
+                          children: (
+                            <div style={{ padding: "4px 0" }}>
+                              {groupSkills.map((skill) => (
+                                <SkillCard
+                                  key={`${skill.name}-${skill.source}`}
+                                  skill={skill}
+                                  onToggle={handleToggle}
+                                  onDetail={handleDetail}
+                                  onUninstall={handleUninstall}
+                                  onOpenDir={handleOpenSkillDir}
+                                  onEditFrontend={handleEditFrontend}
+                                  onExport={handleExport}
+                                  t={t}
+                                />
+                              ))}
+                            </div>
+                          ),
+                        },
+                      ]}
+                    />
+                  );
+                },
+              )}
             </>
           )}
       </div>
@@ -935,7 +1162,10 @@ export function SkillsPage() {
               ))}
               {marketplaceHasMore && (
                 <div style={{ textAlign: "center", padding: "16px 0" }}>
-                  <Button onClick={loadMoreMarketplace} loading={marketplaceLoading}>
+                  <Button
+                    onClick={loadMoreMarketplace}
+                    loading={marketplaceLoading}
+                  >
                     {t("skills.loadMore")}
                   </Button>
                 </div>
@@ -949,18 +1179,32 @@ export function SkillsPage() {
   return (
     <>
       {contextHolder}
-      <div className="h-full flex flex-col" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>
+      <div
+        className="h-full flex flex-col"
+        style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}
+      >
         <Tabs
           className="skills-page-tabs"
           defaultActiveKey="my"
           onChange={handleTabChange}
-          style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+          }}
           tabBarStyle={{ padding: "0 16px", flexShrink: 0 }}
           items={[
             {
               key: "my",
               label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
                   <Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} />
                   {t("skills.mySkills")}
                 </span>
@@ -970,7 +1214,13 @@ export function SkillsPage() {
             {
               key: "marketplace",
               label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
                   <Store size={14} color={CHAT_ICON_COLORS.Cloud} />
                   {t("skills.marketplace.title")}
                 </span>
@@ -1024,25 +1274,48 @@ export function SkillsPage() {
       >
         {selectedSkill && (
           <div style={{ userSelect: "text" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <Typography.Title level={4} style={{ margin: 0 }}>{selectedSkill.info.name}</Typography.Title>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
+              <Typography.Title level={4} style={{ margin: 0 }}>
+                {selectedSkill.info.name}
+              </Typography.Title>
               <CopyButton text={selectedSkill.info.name} size={14} />
               <Tag>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
                   {SOURCE_ICONS[selectedSkill.info.source]}
                   {getSourceLabel(selectedSkill.info.source, t)}
                 </span>
               </Tag>
             </div>
-            <Paragraph type="secondary">{selectedSkill.info.description}</Paragraph>
+            <Paragraph type="secondary">
+              {selectedSkill.info.description}
+            </Paragraph>
             {selectedSkill.manifest && (
               <div style={{ marginBottom: 12 }}>
                 {selectedSkill.manifest.sourceRef && (
-                  <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: 12, display: "block" }}
+                  >
                     Source: {selectedSkill.manifest.sourceRef}
                   </Text>
                 )}
-                <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                <Text
+                  type="secondary"
+                  style={{ fontSize: 12, display: "block" }}
+                >
                   Installed: {selectedSkill.manifest.installedAt}
                 </Text>
               </div>
@@ -1092,11 +1365,23 @@ export function SkillsPage() {
       >
         {marketplaceDetailContent && (
           <div style={{ userSelect: "text" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <Typography.Title level={4} style={{ margin: 0 }}>{marketplaceDetailContent.name}</Typography.Title>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
+              <Typography.Title level={4} style={{ margin: 0 }}>
+                {marketplaceDetailContent.name}
+              </Typography.Title>
               <CopyButton text={marketplaceDetailContent.name} size={14} />
             </div>
-            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 12 }}>
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, display: "block", marginBottom: 12 }}
+            >
               {marketplaceDetailContent.repo}
             </Text>
             {marketplaceDetailLoading

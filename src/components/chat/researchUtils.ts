@@ -21,7 +21,10 @@ export function getSourceTypeColor(sourceType: string): string {
   return colorMap[sourceType.toLowerCase()] || "default";
 }
 
-export function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
+export function getSourceTypeName(
+  sourceType: string,
+  t: (key: string) => string,
+): string {
   const nameMap: Record<string, string> = {
     web: t("research.sourceTypeWeb"),
     academic: t("research.sourceTypeAcademic"),

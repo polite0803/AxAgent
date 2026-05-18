@@ -29,7 +29,10 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
 
   toggleGroup: async (groupId: string) => {
     try {
-      const updatedGroup = await invoke<LocalToolGroupInfo>("toggle_local_tool_group", { groupId });
+      const updatedGroup = await invoke<LocalToolGroupInfo>(
+        "toggle_local_tool_group",
+        { groupId },
+      );
       set((s) => ({
         groups: s.groups.map((g) => (g.groupId === groupId ? updatedGroup : g)),
         error: null,
@@ -41,7 +44,10 @@ export const useLocalToolStore = create<LocalToolState>((set) => ({
 
   toggleTool: async (toolName: string) => {
     try {
-      const updatedGroups = await invoke<LocalToolGroupInfo[]>("toggle_single_tool", { toolName });
+      const updatedGroups = await invoke<LocalToolGroupInfo[]>(
+        "toggle_single_tool",
+        { toolName },
+      );
       set({ groups: updatedGroups, error: null });
     } catch (e) {
       set({ error: String(e) });

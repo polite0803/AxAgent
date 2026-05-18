@@ -7,7 +7,10 @@ import { useTranslation } from "react-i18next";
 const { Text } = Typography;
 
 // 心情 → 背景色映射
-const moodColors: Record<BuddyMessageType["mood"], { bg: string; border: string }> = {
+const moodColors: Record<
+  BuddyMessageType["mood"],
+  { bg: string; border: string }
+> = {
   happy: { bg: "#f6ffed", border: "#b7eb8f" },
   proud: { bg: "#e6f7ff", border: "#91d5ff" },
   curious: { bg: "#fff7e6", border: "#ffd591" },
@@ -33,7 +36,11 @@ interface BuddyMessageBubbleProps {
 }
 
 export const BuddyMessageBubble = React.memo(
-  function BuddyMessageBubble({ message, buddyEmoji, buddyName }: BuddyMessageBubbleProps) {
+  function BuddyMessageBubble({
+    message,
+    buddyEmoji,
+    buddyName,
+  }: BuddyMessageBubbleProps) {
     const { t } = useTranslation();
     const colors = useMemo(() => moodColors[message.mood], [message.mood]);
     const moodLabel = t(moodLabelKeys[message.mood]);
@@ -82,10 +89,12 @@ export const BuddyMessageBubble = React.memo(
     );
   },
   (prevProps, nextProps) => {
-    return prevProps.message.text === nextProps.message.text
+    return (
+      prevProps.message.text === nextProps.message.text
       && prevProps.message.mood === nextProps.message.mood
       && prevProps.message.timestamp === nextProps.message.timestamp
       && prevProps.buddyEmoji === nextProps.buddyEmoji
-      && prevProps.buddyName === nextProps.buddyName;
+      && prevProps.buddyName === nextProps.buddyName
+    );
   },
 );

@@ -27,7 +27,12 @@ export function TraceExplorer() {
           )
           : selectedTrace
           ? <TraceDetail />
-          : <Empty description={t("traceExplorer.selectTrace")} className="mt-20" />}
+          : (
+            <Empty
+              description={t("traceExplorer.selectTrace")}
+              className="mt-20"
+            />
+          )}
       </div>
     </div>
   );

@@ -79,14 +79,22 @@ describe("GatewayDiagnostics", () => {
 
     render(<GatewayDiagnostics />);
 
-    expect(screen.getAllByText("gateway.logRequestTokens").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("gateway.logResponseTokens").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("gateway.totalTokens").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("gateway.logRequestTokens").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("gateway.logResponseTokens").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("gateway.totalTokens").length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getAllByText("1.2k").length).toBeGreaterThan(0);
     expect(screen.getAllByText("2.3k").length).toBeGreaterThan(0);
     expect(screen.getAllByText("3.5k").length).toBeGreaterThan(0);
 
-    const errorText = screen.getByText("Upstream timeout waiting for provider response.");
+    const errorText = screen.getByText(
+      "Upstream timeout waiting for provider response.",
+    );
     expect(errorText.closest("button")).not.toBeNull();
     expect(errorText).toHaveStyle({
       color: "#ff4d4f",
@@ -97,6 +105,9 @@ describe("GatewayDiagnostics", () => {
     await user.click(errorText);
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getAllByText("Upstream timeout waiting for provider response.").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("Upstream timeout waiting for provider response.")
+        .length,
+    ).toBeGreaterThan(0);
   });
 });

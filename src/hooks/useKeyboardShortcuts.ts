@@ -17,16 +17,22 @@ export function useKeyboardShortcuts() {
         || e.target instanceof HTMLTextAreaElement
         || e.target instanceof HTMLSelectElement;
       const isWorkflowCanvas = (e.target as HTMLElement)?.closest?.(".react-flow") != null;
-      if (isInputField || isWorkflowCanvas) { return; }
+      if (isInputField || isWorkflowCanvas) {
+        return;
+      }
 
       // ── Tab navigation shortcuts (Ctrl+Tab / Ctrl+Shift+Tab) ──
       const isMod = e.metaKey || e.ctrlKey;
       if (isMod && e.key === "Tab") {
         e.preventDefault();
         const { tabs, activeTabId, setActiveTab } = useTabStore.getState();
-        if (tabs.length <= 1) { return; }
+        if (tabs.length <= 1) {
+          return;
+        }
         const currentIdx = tabs.findIndex((t) => t.id === activeTabId);
-        if (currentIdx === -1) { return; }
+        if (currentIdx === -1) {
+          return;
+        }
         const direction = e.shiftKey ? -1 : 1;
         const nextIdx = (currentIdx + direction + tabs.length) % tabs.length;
         setActiveTab(tabs[nextIdx].id);
@@ -52,14 +58,18 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      if (!isMod) { return; }
+      if (!isMod) {
+        return;
+      }
 
       switch (e.key.toLowerCase()) {
         case "f":
           e.preventDefault();
           navigate("/");
           setTimeout(() => {
-            const searchInput = document.querySelector<HTMLInputElement>(".chat-sidebar-search input");
+            const searchInput = document.querySelector<HTMLInputElement>(
+              ".chat-sidebar-search input",
+            );
             searchInput?.focus();
           }, 50);
           return;
@@ -82,15 +92,21 @@ export function useKeyboardShortcuts() {
     [navigate, settings],
   );
 
-  const handleKeyDownEsc = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      if (window.location.pathname === "/settings" || window.location.pathname.startsWith("/settings/")) {
-        navigate("/");
-        return;
+  const handleKeyDownEsc = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (
+          window.location.pathname === "/settings"
+          || window.location.pathname.startsWith("/settings/")
+        ) {
+          navigate("/");
+          return;
+        }
+        window.dispatchEvent(new CustomEvent("axagent:escape"));
       }
-      window.dispatchEvent(new CustomEvent("axagent:escape"));
-    }
-  }, [navigate]);
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);

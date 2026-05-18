@@ -15,7 +15,11 @@ interface SshConfigModalProps {
   }) => void;
 }
 
-export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps) {
+export function SshConfigModal({
+  open,
+  onClose,
+  onConnect,
+}: SshConfigModalProps) {
   const { t } = useTranslation();
   const [host, setHost] = useState("");
   const [port, setPort] = useState(22);
@@ -23,8 +27,15 @@ export function SshConfigModal({ open, onClose, onConnect }: SshConfigModalProps
   const [keyPath, setKeyPath] = useState("");
 
   const handleConnect = () => {
-    if (!host.trim()) { return; }
-    onConnect({ host: host.trim(), port, username: username.trim(), keyPath: keyPath.trim() });
+    if (!host.trim()) {
+      return;
+    }
+    onConnect({
+      host: host.trim(),
+      port,
+      username: username.trim(),
+      keyPath: keyPath.trim(),
+    });
     onClose();
   };
 

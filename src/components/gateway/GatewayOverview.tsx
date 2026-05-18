@@ -101,7 +101,9 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
       key: "statusCode",
       width: 90,
       render: (code: number) => (
-        <Tag color={code >= 200 && code < 300 ? "green" : code >= 400 ? "red" : "orange"}>
+        <Tag
+          color={code >= 200 && code < 300 ? "green" : code >= 400 ? "red" : "orange"}
+        >
           {code}
         </Tag>
       ),
@@ -111,7 +113,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
       dataIndex: "durationMs",
       key: "durationMs",
       width: 110,
-      render: (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`),
+      render: (ms: number) => ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`,
     },
     {
       title: t("gateway.logRequestTokens"),
@@ -192,7 +194,9 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
             <Router size={24} />
             <div>
               <Tag color={status.is_running ? "green" : "default"}>
-                {status.is_running ? t("gateway.running") : t("gateway.stopped")}
+                {status.is_running
+                  ? t("gateway.running")
+                  : t("gateway.stopped")}
               </Tag>
               {status.is_running && (
                 <div className="text-xs flex flex-col gap-0.5 mt-1">
@@ -263,7 +267,10 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
         <Col span={6}>
           <Card size="small">
             <div style={metricCardContentStyle}>
-              <Statistic title={t("gateway.todayRequests")} value={metrics?.today_requests ?? 0} />
+              <Statistic
+                title={t("gateway.todayRequests")}
+                value={metrics?.today_requests ?? 0}
+              />
             </div>
           </Card>
         </Col>
@@ -303,7 +310,10 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
         <Col span={6}>
           <Card size="small">
             <div style={metricCardContentStyle}>
-              <Statistic title={t("gateway.totalRequests")} value={metrics?.total_requests ?? 0} />
+              <Statistic
+                title={t("gateway.totalRequests")}
+                value={metrics?.total_requests ?? 0}
+              />
             </div>
           </Card>
         </Col>
@@ -357,7 +367,12 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
         }
       >
         {recentLogs.length === 0 && !recentLogsLoading
-          ? <Empty description={t("gateway.noLogs")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ? (
+            <Empty
+              description={t("gateway.noLogs")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )
           : (
             <Table
               dataSource={recentLogs}
@@ -369,7 +384,9 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
               scroll={{ x: 1080 }}
             />
           )}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}
+        >
           <Button type="link" onClick={handleViewMoreLogs}>
             {t("gateway.viewMoreLogs")}
           </Button>

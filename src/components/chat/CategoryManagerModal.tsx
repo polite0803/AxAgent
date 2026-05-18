@@ -13,7 +13,10 @@ interface CategoryManagerModalProps {
 
 type EditTarget = { id: string } & CategoryEditFormData;
 
-export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProps) {
+export function CategoryManagerModal({
+  open,
+  onClose,
+}: CategoryManagerModalProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const {
@@ -26,7 +29,9 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
   } = useCategoryStore();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<EditTarget | null>(null);
+  const [editingCategory, setEditingCategory] = useState<EditTarget | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -35,55 +40,66 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
     }
   }, [open, fetchCategories]);
 
-  const handleCreate = useCallback(async (data: CategoryEditFormData) => {
-    setSaving(true);
-    try {
-      await createCategory({
-        name: data.name,
-        icon_type: data.icon_type,
-        icon_value: data.icon_value,
-        system_prompt: data.system_prompt,
-        default_provider_id: data.default_provider_id,
-        default_model_id: data.default_model_id,
-        default_temperature: data.default_temperature,
-        default_max_tokens: data.default_max_tokens,
-        default_top_p: data.default_top_p,
-        default_frequency_penalty: data.default_frequency_penalty,
-      });
-      setCreateModalOpen(false);
-      message.success(t("chat.createCategory") + " " + t("common.success"));
-    } finally {
-      setSaving(false);
-    }
-  }, [createCategory, t]);
+  const handleCreate = useCallback(
+    async (data: CategoryEditFormData) => {
+      setSaving(true);
+      try {
+        await createCategory({
+          name: data.name,
+          icon_type: data.icon_type,
+          icon_value: data.icon_value,
+          system_prompt: data.system_prompt,
+          default_provider_id: data.default_provider_id,
+          default_model_id: data.default_model_id,
+          default_temperature: data.default_temperature,
+          default_max_tokens: data.default_max_tokens,
+          default_top_p: data.default_top_p,
+          default_frequency_penalty: data.default_frequency_penalty,
+        });
+        setCreateModalOpen(false);
+        message.success(t("chat.createCategory") + " " + t("common.success"));
+      } finally {
+        setSaving(false);
+      }
+    },
+    [createCategory, t],
+  );
 
-  const handleEdit = useCallback(async (data: CategoryEditFormData) => {
-    if (!editingCategory) { return; }
-    setSaving(true);
-    try {
-      await updateCategory(editingCategory.id, {
-        name: data.name,
-        icon_type: data.icon_type,
-        icon_value: data.icon_value,
-        system_prompt: data.system_prompt,
-        default_provider_id: data.default_provider_id,
-        default_model_id: data.default_model_id,
-        default_temperature: data.default_temperature,
-        default_max_tokens: data.default_max_tokens,
-        default_top_p: data.default_top_p,
-        default_frequency_penalty: data.default_frequency_penalty,
-      });
-      setEditingCategory(null);
-      message.success(t("chat.editCategory") + " " + t("common.success"));
-    } finally {
-      setSaving(false);
-    }
-  }, [editingCategory, updateCategory, t]);
+  const handleEdit = useCallback(
+    async (data: CategoryEditFormData) => {
+      if (!editingCategory) {
+        return;
+      }
+      setSaving(true);
+      try {
+        await updateCategory(editingCategory.id, {
+          name: data.name,
+          icon_type: data.icon_type,
+          icon_value: data.icon_value,
+          system_prompt: data.system_prompt,
+          default_provider_id: data.default_provider_id,
+          default_model_id: data.default_model_id,
+          default_temperature: data.default_temperature,
+          default_max_tokens: data.default_max_tokens,
+          default_top_p: data.default_top_p,
+          default_frequency_penalty: data.default_frequency_penalty,
+        });
+        setEditingCategory(null);
+        message.success(t("chat.editCategory") + " " + t("common.success"));
+      } finally {
+        setSaving(false);
+      }
+    },
+    [editingCategory, updateCategory, t],
+  );
 
-  const handleDelete = useCallback(async (category: ConversationCategory) => {
-    await deleteCategory(category.id);
-    message.success(t("chat.deleteCategory") + " " + t("common.success"));
-  }, [deleteCategory, t]);
+  const handleDelete = useCallback(
+    async (category: ConversationCategory) => {
+      await deleteCategory(category.id);
+      message.success(t("chat.deleteCategory") + " " + t("common.success"));
+    },
+    [deleteCategory, t],
+  );
 
   const openEdit = useCallback((category: ConversationCategory) => {
     setEditingCategory({
@@ -112,7 +128,13 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
         mask={{ enabled: true, blur: true }}
         destroyOnHidden
       >
-        <div style={{ marginBottom: 12, display: "flex", justifyContent: "flex-end" }}>
+        <div
+          style={{
+            marginBottom: 12,
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
           <Button
             type="primary"
             icon={<Plus size={14} />}
@@ -135,7 +157,12 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
             </div>
           )
           : categories.length === 0
-          ? <Empty description={t("chat.noCategories")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ? (
+            <Empty
+              description={t("chat.noCategories")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )
           : (
             <List
               dataSource={categories}
@@ -172,7 +199,10 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
                       <Avatar
                         size={28}
                         icon={<FolderOpen size={14} />}
-                        style={{ backgroundColor: token.colorFillSecondary, color: token.colorTextSecondary }}
+                        style={{
+                          backgroundColor: token.colorFillSecondary,
+                          color: token.colorTextSecondary,
+                        }}
                       />
                     }
                     title={category.name}

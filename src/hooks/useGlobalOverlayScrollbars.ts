@@ -12,10 +12,7 @@ import { useEffect, useRef } from "react";
  * reversed scroll containers, so the chat area uses a separate lightweight
  * scroll indicator (`ChatScrollIndicator`) instead.
  */
-const SCROLLABLE_SELECTORS = [
-  ".overflow-y-auto",
-  "[data-os-scrollbar]",
-];
+const SCROLLABLE_SELECTORS = [".overflow-y-auto", "[data-os-scrollbar]"];
 
 const OS_OPTIONS: Parameters<typeof OverlayScrollbars>[1] = {
   scrollbars: {
@@ -40,14 +37,20 @@ const OS_OPTIONS: Parameters<typeof OverlayScrollbars>[1] = {
  * restructuring.
  */
 export function useGlobalOverlayScrollbars() {
-  const instancesRef = useRef(new Map<Element, ReturnType<typeof OverlayScrollbars>>());
+  const instancesRef = useRef(
+    new Map<Element, ReturnType<typeof OverlayScrollbars>>(),
+  );
 
   useEffect(() => {
     const instances = instancesRef.current;
 
     function initElement(el: HTMLElement) {
-      if (instances.has(el)) { return; }
-      if (OverlayScrollbars.valid(el)) { return; }
+      if (instances.has(el)) {
+        return;
+      }
+      if (OverlayScrollbars.valid(el)) {
+        return;
+      }
 
       try {
         const inst = OverlayScrollbars(

@@ -11,7 +11,10 @@ interface KnowledgeBaseIconProps {
 }
 
 export function KnowledgeBaseIcon({ kb, size = 16 }: KnowledgeBaseIconProps) {
-  const resolvedSrc = useResolvedAvatarSrc((kb.iconType as AvatarType) ?? "icon", kb.iconValue ?? "");
+  const resolvedSrc = useResolvedAvatarSrc(
+    (kb.iconType as AvatarType) ?? "icon",
+    kb.iconValue ?? "",
+  );
   const { token } = theme.useToken();
 
   if (kb.iconType === "emoji" && kb.iconValue) {
@@ -38,5 +41,10 @@ export function KnowledgeBaseIcon({ kb, size = 16 }: KnowledgeBaseIconProps) {
     const src = kb.iconType === "file" ? resolvedSrc : kb.iconValue;
     return <Avatar size={size} src={src} style={{ flexShrink: 0 }} />;
   }
-  return <BookOpen size={size} style={{ flexShrink: 0, color: CHAT_ICON_COLORS.BookOpen }} />;
+  return (
+    <BookOpen
+      size={size}
+      style={{ flexShrink: 0, color: CHAT_ICON_COLORS.BookOpen }}
+    />
+  );
 }

@@ -23,19 +23,35 @@ export function GlobalCopyMenu() {
   const [isTextInput, setIsTextInput] = useState(false);
   const selectedTextRef = useRef("");
   const menuRef = useRef<HTMLDivElement>(null);
-  const targetInputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
-  const selectionRangeRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const targetInputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(
+    null,
+  );
+  const selectionRangeRef = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
   const isDev = import.meta.env.DEV;
 
   useEffect(() => {
     // Save textarea selection before Chromium's auto word-selection on right-click
-    const savedSelRef = { start: -1, end: -1, el: null as HTMLTextAreaElement | HTMLInputElement | null };
+    const savedSelRef = {
+      start: -1,
+      end: -1,
+      el: null as HTMLTextAreaElement | HTMLInputElement | null,
+    };
 
     const saveSelectionOnRightClick = (e: MouseEvent) => {
-      if (e.button !== 2) { return; }
+      if (e.button !== 2) {
+        return;
+      }
       const t = e.target as HTMLElement;
-      if (t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && (t as HTMLInputElement).type === "text")) {
+      if (
+        t.tagName === "TEXTAREA"
+        || (t.tagName === "INPUT" && (t as HTMLInputElement).type === "text")
+      ) {
         const input = t as HTMLTextAreaElement | HTMLInputElement;
         savedSelRef.start = input.selectionStart ?? 0;
         savedSelRef.end = input.selectionEnd ?? 0;
@@ -46,21 +62,30 @@ export function GlobalCopyMenu() {
     };
 
     const handler = (e: MouseEvent) => {
-      if (e.defaultPrevented) { return; }
-      if (menuRef.current?.contains(e.target as Node)) { return; }
+      if (e.defaultPrevented) {
+        return;
+      }
+      if (menuRef.current?.contains(e.target as Node)) {
+        return;
+      }
       e.preventDefault();
 
       const targetEl = e.target as HTMLElement;
       const isInput = targetEl.tagName === "TEXTAREA"
-        || (targetEl.tagName === "INPUT" && (targetEl as HTMLInputElement).type === "text");
+        || (targetEl.tagName === "INPUT"
+          && (targetEl as HTMLInputElement).type === "text");
 
       if (isInput) {
         const inputEl = targetEl as HTMLTextAreaElement | HTMLInputElement;
         targetInputRef.current = inputEl;
 
         // Use saved selection (before auto word-select) if available
-        const start = savedSelRef.el === inputEl ? savedSelRef.start : (inputEl.selectionStart ?? 0);
-        const end = savedSelRef.el === inputEl ? savedSelRef.end : (inputEl.selectionEnd ?? 0);
+        const start = savedSelRef.el === inputEl
+          ? savedSelRef.start
+          : (inputEl.selectionStart ?? 0);
+        const end = savedSelRef.el === inputEl
+          ? savedSelRef.end
+          : (inputEl.selectionEnd ?? 0);
         selectionRangeRef.current = { start, end };
 
         // Restore original selection to undo Chromium's auto word-select (deferred)
@@ -85,7 +110,9 @@ export function GlobalCopyMenu() {
       selectedTextRef.current = sel;
 
       // "Fill to input" only when right-clicking inside chat message area
-      const inMessageArea = !!(e.target as HTMLElement).closest?.("[data-message-area]");
+      const inMessageArea = !!(e.target as HTMLElement).closest?.(
+        "[data-message-area]",
+      );
       setInChatMessages(inMessageArea);
 
       if (sel) {
@@ -106,7 +133,11 @@ export function GlobalCopyMenu() {
     document.addEventListener("click", dismissHandler);
     document.addEventListener("scroll", dismissHandler, true);
     return () => {
-      document.removeEventListener("mousedown", saveSelectionOnRightClick, true);
+      document.removeEventListener(
+        "mousedown",
+        saveSelectionOnRightClick,
+        true,
+      );
       document.removeEventListener("contextmenu", handler);
       document.removeEventListener("click", dismissHandler);
       document.removeEventListener("scroll", dismissHandler, true);
@@ -171,7 +202,9 @@ export function GlobalCopyMenu() {
   const handleFillInput = useCallback(() => {
     const text = selectedTextRef.current;
     if (text) {
-      window.dispatchEvent(new CustomEvent("axagent:fill-input", { detail: text }));
+      window.dispatchEvent(
+        new CustomEvent("axagent:fill-input", { detail: text }),
+      );
     }
     setMenuPos(null);
   }, []);
@@ -183,7 +216,9 @@ export function GlobalCopyMenu() {
 
   // Clamp menu position to stay within viewport
   useLayoutEffect(() => {
-    if (!menuRef.current || !menuPos) { return; }
+    if (!menuRef.current || !menuPos) {
+      return;
+    }
     const el = menuRef.current;
     const rect = el.getBoundingClientRect();
     const vw = window.innerWidth;
@@ -192,16 +227,26 @@ export function GlobalCopyMenu() {
     let x = menuPos.x;
     let y = menuPos.y;
 
-    if (x + rect.width > vw) { x = vw - rect.width - 4; }
-    if (y + rect.height > vh) { y = vh - rect.height - 4; }
-    if (x < 4) { x = 4; }
-    if (y < 4) { y = 4; }
+    if (x + rect.width > vw) {
+      x = vw - rect.width - 4;
+    }
+    if (y + rect.height > vh) {
+      y = vh - rect.height - 4;
+    }
+    if (x < 4) {
+      x = 4;
+    }
+    if (y < 4) {
+      y = 4;
+    }
 
     el.style.left = x + "px";
     el.style.top = y + "px";
   }, [menuPos, isTextInput, hasSelection]);
 
-  if (!menuPos) { return null; }
+  if (!menuPos) {
+    return null;
+  }
 
   interface MenuItem {
     key: string;
@@ -216,9 +261,26 @@ export function GlobalCopyMenu() {
 
   if (isTextInput) {
     items.push(
-      { key: "cut", icon: <Scissors size={14} />, label: t("common.cut"), onClick: handleCut, disabled: !hasSelection },
-      { key: "copy", icon: <Copy size={14} />, label: t("common.copy"), onClick: handleCopy, disabled: !hasSelection },
-      { key: "paste", icon: <ClipboardPaste size={14} />, label: t("common.paste"), onClick: handlePaste },
+      {
+        key: "cut",
+        icon: <Scissors size={14} />,
+        label: t("common.cut"),
+        onClick: handleCut,
+        disabled: !hasSelection,
+      },
+      {
+        key: "copy",
+        icon: <Copy size={14} />,
+        label: t("common.copy"),
+        onClick: handleCopy,
+        disabled: !hasSelection,
+      },
+      {
+        key: "paste",
+        icon: <ClipboardPaste size={14} />,
+        label: t("common.paste"),
+        onClick: handlePaste,
+      },
       {
         key: "selectAll",
         icon: <BoxSelect size={14} />,
@@ -229,9 +291,12 @@ export function GlobalCopyMenu() {
     );
   } else {
     if (hasSelection) {
-      items.push(
-        { key: "copy", icon: <Copy size={14} />, label: t("common.copy"), onClick: handleCopy },
-      );
+      items.push({
+        key: "copy",
+        icon: <Copy size={14} />,
+        label: t("common.copy"),
+        onClick: handleCopy,
+      });
       if (activeConversationId && inChatMessages) {
         items.push({
           key: "fill",
@@ -271,7 +336,11 @@ export function GlobalCopyMenu() {
         <div key={item.key}>
           {item.divider && (
             <div
-              style={{ height: 1, backgroundColor: token.colorBorderSecondary, margin: "4px 8px" }}
+              style={{
+                height: 1,
+                backgroundColor: token.colorBorderSecondary,
+                margin: "4px 8px",
+              }}
             />
           )}
           <div
@@ -287,11 +356,17 @@ export function GlobalCopyMenu() {
               transition: "background-color 0.15s",
             }}
             onClick={item.disabled ? undefined : item.onClick}
-            onKeyDown={item.disabled ? undefined : (e) => {
-              if (e.key === "Enter" || e.key === " ") { item.onClick(); }
-            }}
+            onKeyDown={item.disabled
+              ? undefined
+              : (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  item.onClick();
+                }
+              }}
             onMouseEnter={(e) => {
-              if (!item.disabled) { (e.currentTarget as HTMLElement).style.backgroundColor = token.colorFillSecondary; }
+              if (!item.disabled) {
+                (e.currentTarget as HTMLElement).style.backgroundColor = token.colorFillSecondary;
+              }
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";

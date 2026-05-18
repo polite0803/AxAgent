@@ -283,11 +283,20 @@ export interface SkillLifecycleHooks {
 export type HostToSkillMessage =
   | { type: "rpc:response"; callId: string; result?: unknown; error?: string }
   | { type: "host:event"; event: string; payload?: unknown }
-  | { type: "host:lifecycle"; phase: "mount" | "unmount"; props?: Record<string, unknown> };
+  | {
+    type: "host:lifecycle";
+    phase: "mount" | "unmount";
+    props?: Record<string, unknown>;
+  };
 
 /** Skill → 宿主（请求或事件） */
 export type SkillToHostMessage =
-  | { type: "rpc:request"; callId: string; method: string; args?: Record<string, unknown> }
+  | {
+    type: "rpc:request";
+    callId: string;
+    method: string;
+    args?: Record<string, unknown>;
+  }
   | { type: "skill:ready" }
   | { type: "skill:error"; error: string };
 
@@ -296,7 +305,10 @@ export type SkillToHostMessage =
 /** ctx.api — 后端通信 */
 export interface SkillHostApi {
   /** 调用 Tauri 后端命令 */
-  invoke<T = unknown>(command: string, args?: Record<string, unknown>): Promise<T>;
+  invoke<T = unknown>(
+    command: string,
+    args?: Record<string, unknown>,
+  ): Promise<T>;
   /** 发送事件 */
   emit(event: string, payload?: unknown): void;
 }
@@ -306,7 +318,10 @@ export interface SkillHostUi {
   /** 路由导航 */
   navigate(path: string): void;
   /** 显示通知 */
-  notify(message: string, type?: "info" | "success" | "warning" | "error"): void;
+  notify(
+    message: string,
+    type?: "info" | "success" | "warning" | "error",
+  ): void;
   /** 获取当前主题模式 */
   getTheme(): "light" | "dark";
   /** 获取当前语言 */

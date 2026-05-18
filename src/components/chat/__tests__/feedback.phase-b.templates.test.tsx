@@ -10,7 +10,9 @@ describe("Phase B category template regressions", () => {
   it("extends category contracts with default model and parameter template fields", () => {
     const typeSource = readSource("src/types/index.ts");
     const rustTypeSource = readSource("src-tauri/crates/core/src/types.rs");
-    const entitySource = readSource("src-tauri/crates/core/src/entity/conversation_categories.rs");
+    const entitySource = readSource(
+      "src-tauri/crates/core/src/entity/conversation_categories.rs",
+    );
 
     expect(typeSource).toMatch(/default_provider_id: string \| null;/);
     expect(typeSource).toMatch(/default_model_id: string \| null;/);
@@ -24,7 +26,9 @@ describe("Phase B category template regressions", () => {
     expect(rustTypeSource).toMatch(/pub default_temperature: Option<f64>/);
     expect(rustTypeSource).toMatch(/pub default_max_tokens: Option<i64>/);
     expect(rustTypeSource).toMatch(/pub default_top_p: Option<f64>/);
-    expect(rustTypeSource).toMatch(/pub default_frequency_penalty: Option<f64>/);
+    expect(rustTypeSource).toMatch(
+      /pub default_frequency_penalty: Option<f64>/,
+    );
 
     expect(entitySource).toMatch(/pub default_provider_id: Option<String>/);
     expect(entitySource).toMatch(/pub default_model_id: Option<String>/);

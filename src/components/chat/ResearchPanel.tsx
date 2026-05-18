@@ -21,8 +21,19 @@ import { getSourceTypeName, type SearchResult } from "./researchUtils";
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-type ResearchPhase = "planning" | "searching" | "extracting" | "analyzing" | "synthesizing" | "reporting";
-type ResearchStatus = "pending" | "in_progress" | "paused" | "completed" | "failed";
+type ResearchPhase =
+  | "planning"
+  | "searching"
+  | "extracting"
+  | "analyzing"
+  | "synthesizing"
+  | "reporting";
+type ResearchStatus =
+  | "pending"
+  | "in_progress"
+  | "paused"
+  | "completed"
+  | "failed";
 
 interface ResearchProgress {
   phase: ResearchPhase;
@@ -56,18 +67,50 @@ interface ResearchPanelProps {
   className?: string;
 }
 
-const phaseSteps = (t: (key: string) => string): { key: ResearchPhase; label: string; icon: React.ReactNode }[] => [
-  { key: "planning", label: t("research.phasePlanning"), icon: <ClockCircleOutlined /> },
-  { key: "searching", label: t("research.phaseSearching"), icon: <SearchOutlined /> },
-  { key: "extracting", label: t("research.phaseExtracting"), icon: <LinkOutlined /> },
-  { key: "analyzing", label: t("research.phaseAnalyzing"), icon: <StarOutlined /> },
-  { key: "synthesizing", label: t("research.phaseSynthesizing"), icon: <CheckCircleOutlined /> },
-  { key: "reporting", label: t("research.phaseReporting"), icon: <FileTextOutlined /> },
+const phaseSteps = (
+  t: (key: string) => string,
+): { key: ResearchPhase; label: string; icon: React.ReactNode }[] => [
+  {
+    key: "planning",
+    label: t("research.phasePlanning"),
+    icon: <ClockCircleOutlined />,
+  },
+  {
+    key: "searching",
+    label: t("research.phaseSearching"),
+    icon: <SearchOutlined />,
+  },
+  {
+    key: "extracting",
+    label: t("research.phaseExtracting"),
+    icon: <LinkOutlined />,
+  },
+  {
+    key: "analyzing",
+    label: t("research.phaseAnalyzing"),
+    icon: <StarOutlined />,
+  },
+  {
+    key: "synthesizing",
+    label: t("research.phaseSynthesizing"),
+    icon: <CheckCircleOutlined />,
+  },
+  {
+    key: "reporting",
+    label: t("research.phaseReporting"),
+    icon: <FileTextOutlined />,
+  },
 ];
 
-function PhaseProgress(
-  { currentPhase, percentage, t }: { currentPhase: ResearchPhase; percentage: number; t: (key: string) => string },
-) {
+function PhaseProgress({
+  currentPhase,
+  percentage,
+  t,
+}: {
+  currentPhase: ResearchPhase;
+  percentage: number;
+  t: (key: string) => string;
+}) {
   const steps = phaseSteps(t);
   const currentIndex = steps.findIndex((p) => p.key === currentPhase);
 
@@ -81,12 +124,20 @@ function PhaseProgress(
             <div
               key={step.key}
               className={`flex flex-col items-center ${
-                isCompleted ? "text-green-500" : isCurrent ? "text-blue-500" : "text-gray-400"
+                isCompleted
+                  ? "text-green-500"
+                  : isCurrent
+                  ? "text-blue-500"
+                  : "text-gray-400"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  isCompleted ? "bg-green-500 text-white" : isCurrent ? "bg-blue-500 text-white" : "bg-gray-200"
+                  isCompleted
+                    ? "bg-green-500 text-white"
+                    : isCurrent
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200"
                 }`}
               >
                 {step.icon}
@@ -113,7 +164,9 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
   const syncCitations = useCitationStore((s) => s.setCitations);
 
   const startResearch = useCallback(async () => {
-    if (!topic.trim()) { return; }
+    if (!topic.trim()) {
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -145,7 +198,11 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           ? {
             ...prev,
             currentPhase: "searching",
-            progress: { ...prev.progress, phase: "searching", percentage: 30 },
+            progress: {
+              ...prev.progress,
+              phase: "searching",
+              percentage: 30,
+            },
           }
           : null
       );
@@ -200,7 +257,11 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           ? {
             ...prev,
             currentPhase: "extracting",
-            progress: { ...prev.progress, phase: "extracting", percentage: 50 },
+            progress: {
+              ...prev.progress,
+              phase: "extracting",
+              percentage: 50,
+            },
           }
           : null
       );
@@ -221,7 +282,10 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           ? {
             ...prev,
             citations: mockCitations,
-            progress: { ...prev.progress, citationsAdded: mockCitations.length },
+            progress: {
+              ...prev.progress,
+              citationsAdded: mockCitations.length,
+            },
           }
           : null
       );
@@ -233,7 +297,11 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           ? {
             ...prev,
             currentPhase: "analyzing",
-            progress: { ...prev.progress, phase: "analyzing", percentage: 70 },
+            progress: {
+              ...prev.progress,
+              phase: "analyzing",
+              percentage: 70,
+            },
           }
           : null
       );
@@ -245,7 +313,11 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           ? {
             ...prev,
             currentPhase: "synthesizing",
-            progress: { ...prev.progress, phase: "synthesizing", percentage: 85 },
+            progress: {
+              ...prev.progress,
+              phase: "synthesizing",
+              percentage: 85,
+            },
           }
           : null
       );
@@ -257,7 +329,11 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           ? {
             ...prev,
             currentPhase: "reporting",
-            progress: { ...prev.progress, phase: "reporting", percentage: 95 },
+            progress: {
+              ...prev.progress,
+              phase: "reporting",
+              percentage: 95,
+            },
           }
           : null
       );
@@ -267,13 +343,22 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
       const mockReport: ResearchReport = {
         id: crypto.randomUUID(),
         topic,
-        summary: t("research.mockSummary", { count: mockCitations.length, topic }),
+        summary: t("research.mockSummary", {
+          count: mockCitations.length,
+          topic,
+        }),
         content: t("research.mockContent", {
           count: mockCitations.length,
           topic,
-          findings: mockResults.map((r, idx) =>
-            t("research.mockFinding", { num: idx + 1, title: r.title, snippet: r.snippet })
-          ).join("\n"),
+          findings: mockResults
+            .map((r, idx) =>
+              t("research.mockFinding", {
+                num: idx + 1,
+                title: r.title,
+                snippet: r.snippet,
+              })
+            )
+            .join("\n"),
         }),
         citations: mockCitations,
       };
@@ -290,8 +375,10 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           : null
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("research.errorOccurred"));
-      setState((prev) => prev ? { ...prev, status: "failed" } : null);
+      setError(
+        err instanceof Error ? err.message : t("research.errorOccurred"),
+      );
+      setState((prev) => (prev ? { ...prev, status: "failed" } : null));
     } finally {
       setLoading(false);
     }
@@ -299,18 +386,18 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
 
   const pauseResearch = useCallback(() => {
     setIsPaused(true);
-    setState((prev) => prev ? { ...prev, status: "paused" } : null);
+    setState((prev) => (prev ? { ...prev, status: "paused" } : null));
   }, []);
 
   const resumeResearch = useCallback(() => {
     setIsPaused(false);
-    setState((prev) => prev ? { ...prev, status: "in_progress" } : null);
+    setState((prev) => (prev ? { ...prev, status: "in_progress" } : null));
   }, []);
 
   const stopResearch = useCallback(() => {
     setIsResearching(false);
     setIsPaused(false);
-    setState((prev) => prev ? { ...prev, status: "failed" } : null);
+    setState((prev) => (prev ? { ...prev, status: "failed" } : null));
   }, []);
 
   const resetResearch = useCallback(() => {
@@ -423,7 +510,9 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
 
           {state.searchResults.length > 0 && (
             <div className="sources-section mb-4">
-              <Title level={5}>{t("research.searchResults")} ({state.searchResults.length})</Title>
+              <Title level={5}>
+                {t("research.searchResults")} ({state.searchResults.length})
+              </Title>
               <ResearchSources sources={state.searchResults} />
             </div>
           )}
@@ -439,7 +528,9 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
                 renderItem={(item) => (
                   <List.Item>
                     <Space>
-                      <CheckCircleOutlined style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }} />
+                      <CheckCircleOutlined
+                        style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
+                      />
                       <Text>{item.sourceTitle}</Text>
                       <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
                       <CredibilityBadge score={item.credibility} />
@@ -468,7 +559,13 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           </div>
 
           <Card className="report-preview" style={{ background: "#fafafa" }}>
-            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: "14px" }}>
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                fontFamily: "inherit",
+                fontSize: "14px",
+              }}
+            >
               {report.content}
             </pre>
           </Card>

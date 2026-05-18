@@ -26,13 +26,22 @@ vi.mock("zustand/middleware/immer", () => ({
     ),
 }));
 
-function makeMockWorkflowNode(id: string, _nodeType: string = "trigger"): WorkflowNode {
+function makeMockWorkflowNode(
+  id: string,
+  _nodeType: string = "trigger",
+): WorkflowNode {
   const base = {
     id,
     title: `Node ${id}`,
     description: `Description for ${id}`,
     position: { x: 0, y: 0 },
-    retry: { enabled: false, max_retries: 0, backoff_type: "Fixed" as const, base_delay_ms: 0, max_delay_ms: 0 },
+    retry: {
+      enabled: false,
+      max_retries: 0,
+      backoff_type: "Fixed" as const,
+      base_delay_ms: 0,
+      max_delay_ms: 0,
+    },
     enabled: true,
   };
   return {
@@ -42,7 +51,11 @@ function makeMockWorkflowNode(id: string, _nodeType: string = "trigger"): Workfl
   } as unknown as WorkflowNode;
 }
 
-function makeMockWorkflowEdge(id: string, source: string, target: string): WorkflowEdge {
+function makeMockWorkflowEdge(
+  id: string,
+  source: string,
+  target: string,
+): WorkflowEdge {
   return {
     id,
     source,
@@ -51,7 +64,10 @@ function makeMockWorkflowEdge(id: string, source: string, target: string): Workf
   };
 }
 
-function makeMockTemplate(id: string, overrides: Partial<WorkflowTemplateResponse> = {}): WorkflowTemplateResponse {
+function makeMockTemplate(
+  id: string,
+  overrides: Partial<WorkflowTemplateResponse> = {},
+): WorkflowTemplateResponse {
   return {
     id,
     name: `Template ${id}`,
@@ -148,7 +164,9 @@ describe("WorkflowEditorStore", () => {
       });
 
       const state = useWorkflowEditorStore.getState();
-      const updatedNode = state.nodes.find((n: WorkflowNode) => n.id === "node-1");
+      const updatedNode = state.nodes.find(
+        (n: WorkflowNode) => n.id === "node-1",
+      );
       expect(updatedNode?.title).toBe("Updated Node");
     });
 
@@ -163,7 +181,9 @@ describe("WorkflowEditorStore", () => {
       store.deleteNode("node-1");
 
       const state = useWorkflowEditorStore.getState();
-      expect(state.nodes.find((n: WorkflowNode) => n.id === "node-1")).toBeUndefined();
+      expect(
+        state.nodes.find((n: WorkflowNode) => n.id === "node-1"),
+      ).toBeUndefined();
     });
 
     it("should select a node", async () => {
@@ -211,7 +231,9 @@ describe("WorkflowEditorStore", () => {
       store.updateEdge("edge-1", { label: "Updated Edge" });
 
       const state = useWorkflowEditorStore.getState();
-      const updatedEdge = state.edges.find((e: WorkflowEdge) => e.id === "edge-1");
+      const updatedEdge = state.edges.find(
+        (e: WorkflowEdge) => e.id === "edge-1",
+      );
       expect(updatedEdge?.label).toBe("Updated Edge");
     });
 
@@ -226,7 +248,9 @@ describe("WorkflowEditorStore", () => {
       store.deleteEdge("edge-1");
 
       const state = useWorkflowEditorStore.getState();
-      expect(state.edges.find((e: WorkflowEdge) => e.id === "edge-1")).toBeUndefined();
+      expect(
+        state.edges.find((e: WorkflowEdge) => e.id === "edge-1"),
+      ).toBeUndefined();
     });
 
     it("should select an edge", async () => {
@@ -254,7 +278,9 @@ describe("WorkflowEditorStore", () => {
 
       await store.loadTemplates();
 
-      expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", { is_preset: undefined });
+      expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", {
+        is_preset: undefined,
+      });
       const state = useWorkflowEditorStore.getState();
       expect(state.templates).toEqual(mockTemplates);
       expect(state.isLoading).toBe(false);
@@ -269,7 +295,9 @@ describe("WorkflowEditorStore", () => {
 
       await store.loadTemplate("template-1");
 
-      expect(invokeMock).toHaveBeenCalledWith("get_workflow_template", { id: "template-1" });
+      expect(invokeMock).toHaveBeenCalledWith("get_workflow_template", {
+        id: "template-1",
+      });
       const state = useWorkflowEditorStore.getState();
       expect(state.currentTemplate).toEqual(mockTemplate);
       expect(state.nodes).toEqual(mockTemplate.nodes);
@@ -300,12 +328,16 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.createTemplate(input);
 
-      expect(invokeMock).toHaveBeenCalledWith("create_workflow_template", { input });
+      expect(invokeMock).toHaveBeenCalledWith("create_workflow_template", {
+        input,
+      });
       expect(result).toBe("new-template-id");
     });
 
     it("should update an existing template", async () => {
-      const updatedTemplate = makeMockTemplate("template-1", { name: "Updated Template" });
+      const updatedTemplate = makeMockTemplate("template-1", {
+        name: "Updated Template",
+      });
       invokeMock
         .mockResolvedValueOnce(true) // update_workflow_template
         .mockResolvedValueOnce([]) // loadTemplates → list_workflow_templates
@@ -330,7 +362,10 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.updateTemplate("template-1", input);
 
-      expect(invokeMock).toHaveBeenCalledWith("update_workflow_template", { id: "template-1", input });
+      expect(invokeMock).toHaveBeenCalledWith("update_workflow_template", {
+        id: "template-1",
+        input,
+      });
       expect(result).toBe(true);
     });
 
@@ -342,7 +377,9 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.deleteTemplate("template-1");
 
-      expect(invokeMock).toHaveBeenCalledWith("delete_workflow_template", { id: "template-1" });
+      expect(invokeMock).toHaveBeenCalledWith("delete_workflow_template", {
+        id: "template-1",
+      });
       expect(result).toBe(true);
     });
 
@@ -356,7 +393,9 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.duplicateTemplate("template-1");
 
-      expect(invokeMock).toHaveBeenCalledWith("duplicate_workflow_template", { id: "template-1" });
+      expect(invokeMock).toHaveBeenCalledWith("duplicate_workflow_template", {
+        id: "template-1",
+      });
       expect(result).toBe("duplicated-template-id");
     });
 
@@ -369,13 +408,19 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.exportTemplate("template-1");
 
-      expect(invokeMock).toHaveBeenCalledWith("export_workflow_template", { id: "template-1" });
+      expect(invokeMock).toHaveBeenCalledWith("export_workflow_template", {
+        id: "template-1",
+      });
       expect(result).toBe(mockJson);
     });
 
     it("should import a template from JSON", async () => {
       invokeMock
-        .mockResolvedValueOnce({ id: "imported-template-id", warnings: [], errors: [] }) // import_workflow_template
+        .mockResolvedValueOnce({
+          id: "imported-template-id",
+          warnings: [],
+          errors: [],
+        }) // import_workflow_template
         .mockResolvedValueOnce([]); // loadTemplates → list_workflow_templates
       const jsonData = JSON.stringify(makeMockTemplate("imported"));
 
@@ -384,8 +429,14 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.importTemplate(jsonData);
 
-      expect(invokeMock).toHaveBeenCalledWith("import_workflow_template", { jsonData });
-      expect(result).toEqual({ id: "imported-template-id", warnings: [], errors: [] });
+      expect(invokeMock).toHaveBeenCalledWith("import_workflow_template", {
+        jsonData,
+      });
+      expect(result).toEqual({
+        id: "imported-template-id",
+        warnings: [],
+        errors: [],
+      });
     });
   });
 
@@ -452,7 +503,9 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.generateWorkflowFromPrompt("Create a workflow");
 
-      expect(invokeMock).toHaveBeenCalledWith("generate_workflow_from_prompt", { prompt: "Create a workflow" });
+      expect(invokeMock).toHaveBeenCalledWith("generate_workflow_from_prompt", {
+        prompt: "Create a workflow",
+      });
       expect(result).toEqual({
         nodes: mockResult.nodes,
         edges: mockResult.edges,
@@ -469,14 +522,26 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.optimizeAgentPrompt("Original prompt");
 
-      expect(invokeMock).toHaveBeenCalledWith("optimize_agent_prompt", { prompt: "Original prompt" });
+      expect(invokeMock).toHaveBeenCalledWith("optimize_agent_prompt", {
+        prompt: "Original prompt",
+      });
       expect(result).toBe(mockOptimized);
     });
 
     it("should recommend nodes based on context", async () => {
       const mockRecommendations = [
-        { node_type: "agent", label: "Agent 节点", description: "AI Agent", confidence: 0.9 },
-        { node_type: "llm", label: "LLM 节点", description: "LLM", confidence: 0.85 },
+        {
+          node_type: "agent",
+          label: "Agent 节点",
+          description: "AI Agent",
+          confidence: 0.9,
+        },
+        {
+          node_type: "llm",
+          label: "LLM 节点",
+          description: "LLM",
+          confidence: 0.85,
+        },
       ];
       invokeMock.mockResolvedValueOnce(mockRecommendations);
 
@@ -485,7 +550,9 @@ describe("WorkflowEditorStore", () => {
 
       const result = await store.recommendNodes("I need an AI workflow");
 
-      expect(invokeMock).toHaveBeenCalledWith("recommend_nodes", { context: "I need an AI workflow" });
+      expect(invokeMock).toHaveBeenCalledWith("recommend_nodes", {
+        context: "I need an AI workflow",
+      });
       expect(result).toEqual(mockRecommendations);
     });
   });

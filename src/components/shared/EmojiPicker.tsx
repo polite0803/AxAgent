@@ -9,7 +9,10 @@ declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "emoji-picker": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { class?: string; ref?: React.Ref<HTMLElement> },
+        React.HTMLAttributes<HTMLElement> & {
+          class?: string;
+          ref?: React.Ref<HTMLElement>;
+        },
         HTMLElement
       >;
     }
@@ -28,7 +31,11 @@ interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
 }
 
-export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) {
+export function EmojiPicker({
+  open,
+  onClose,
+  onEmojiSelect,
+}: EmojiPickerProps) {
   const pickerRef = useRef<EmojiPickerElement | null>(null);
   const { token } = theme.useToken();
   const { t, i18n } = useTranslation();
@@ -49,22 +56,27 @@ export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) 
   }, []);
 
   // Use callback ref to attach event listener when the element is available
-  const setPickerRef = useCallback((node: HTMLElement | null) => {
-    // Detach from old node
-    if (pickerRef.current) {
-      pickerRef.current.removeEventListener("emoji-click", handleClick);
-    }
-    pickerRef.current = node as EmojiPickerElement | null;
-    // Attach to new node
-    if (node) {
-      node.addEventListener("emoji-click", handleClick);
-    }
-  }, [handleClick]);
+  const setPickerRef = useCallback(
+    (node: HTMLElement | null) => {
+      // Detach from old node
+      if (pickerRef.current) {
+        pickerRef.current.removeEventListener("emoji-click", handleClick);
+      }
+      pickerRef.current = node as EmojiPickerElement | null;
+      // Attach to new node
+      if (node) {
+        node.addEventListener("emoji-click", handleClick);
+      }
+    },
+    [handleClick],
+  );
 
   // Sync locale + i18n translations
   useEffect(() => {
     const picker = pickerRef.current;
-    if (!picker) { return; }
+    if (!picker) {
+      return;
+    }
     const lang = i18n.language;
     if (lang.startsWith("zh")) {
       import("emoji-picker-element/i18n/zh_CN").then((mod) => {
@@ -104,7 +116,9 @@ export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) 
             "--num-columns": "8",
             "--emoji-padding": "0.25rem",
             "--border-radius": `${token.borderRadius}px`,
-            "--background": isDark ? token.colorBgElevated : token.colorBgContainer,
+            "--background": isDark
+              ? token.colorBgElevated
+              : token.colorBgContainer,
             "--border-color": "transparent",
             "--indicator-color": token.colorPrimary,
             "--input-border-color": token.colorBorder,

@@ -19,7 +19,9 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
-type ShortcutSettingsUpdate = Partial<Record<ShortcutSettingKey | "global_shortcut", string>>;
+type ShortcutSettingsUpdate = Partial<
+  Record<ShortcutSettingKey | "global_shortcut", string>
+>;
 
 export function ShortcutSettings() {
   const { t } = useTranslation();
@@ -27,15 +29,20 @@ export function ShortcutSettings() {
   const settings = useSettingsStore((s) => s.settings);
   const globalShortcutStatus = useSettingsStore((s) => s.globalShortcutStatus);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
-  const [recordingAction, setRecordingAction] = useState<ShortcutAction | null>(null);
-  const [draftBindings, setDraftBindings] = useState<Partial<Record<ShortcutAction, string>>>({});
+  const [recordingAction, setRecordingAction] = useState<ShortcutAction | null>(
+    null,
+  );
+  const [draftBindings, setDraftBindings] = useState<
+    Partial<Record<ShortcutAction, string>>
+  >({});
 
   const rows = useMemo(() => SHORTCUT_DESCRIPTORS, []);
 
   const effectiveBindings = useMemo(() => {
     const result: Partial<Record<ShortcutAction, string>> = {};
     for (const action of SHORTCUT_ACTIONS) {
-      result[action] = draftBindings[action] || getShortcutBindingByKey(settings, SHORTCUT_SETTING_KEYS[action]);
+      result[action] = draftBindings[action]
+        || getShortcutBindingByKey(settings, SHORTCUT_SETTING_KEYS[action]);
     }
     return result;
   }, [draftBindings, settings]);
@@ -52,47 +59,62 @@ export function ShortcutSettings() {
     return map;
   }, [globalShortcutStatus.failed]);
 
-  const valueForAction = useCallback((action: ShortcutAction): string => {
-    const draft = draftBindings[action];
-    if (draft) { return draft; }
-    return getShortcutBindingByKey(settings, SHORTCUT_SETTING_KEYS[action]);
-  }, [draftBindings, settings]);
+  const valueForAction = useCallback(
+    (action: ShortcutAction): string => {
+      const draft = draftBindings[action];
+      if (draft) {
+        return draft;
+      }
+      return getShortcutBindingByKey(settings, SHORTCUT_SETTING_KEYS[action]);
+    },
+    [draftBindings, settings],
+  );
 
-  const persistBinding = useCallback(async (action: ShortcutAction, binding: string) => {
-    const key = SHORTCUT_SETTING_KEYS[action];
-    const update: ShortcutSettingsUpdate = {
-      [key]: binding,
-    };
-    if (action === "toggleCurrentWindow") {
-      update.global_shortcut = binding;
-    }
-    await saveSettings(update);
-  }, [saveSettings, settings]);
+  const persistBinding = useCallback(
+    async (action: ShortcutAction, binding: string) => {
+      const key = SHORTCUT_SETTING_KEYS[action];
+      const update: ShortcutSettingsUpdate = {
+        [key]: binding,
+      };
+      if (action === "toggleCurrentWindow") {
+        update.global_shortcut = binding;
+      }
+      await saveSettings(update);
+    },
+    [saveSettings, settings],
+  );
 
   const startRecording = useCallback((action: ShortcutAction) => {
     setRecordingAction(action);
     setDraftBindings((prev) => ({ ...prev, [action]: "" }));
   }, []);
 
-  const resetSingleShortcut = useCallback(async (action: ShortcutAction) => {
-    const key = SHORTCUT_SETTING_KEYS[action];
-    const value = DEFAULT_SHORTCUT_BINDINGS[action];
-    const update: ShortcutSettingsUpdate = { [key]: value };
-    if (action === "toggleCurrentWindow") {
-      update.global_shortcut = value;
-    }
-    setDraftBindings((prev) => ({ ...prev, [action]: "" }));
-    setRecordingAction((prev) => (prev === action ? null : prev));
-    await saveSettings(update);
-  }, [saveSettings, settings]);
+  const resetSingleShortcut = useCallback(
+    async (action: ShortcutAction) => {
+      const key = SHORTCUT_SETTING_KEYS[action];
+      const value = DEFAULT_SHORTCUT_BINDINGS[action];
+      const update: ShortcutSettingsUpdate = { [key]: value };
+      if (action === "toggleCurrentWindow") {
+        update.global_shortcut = value;
+      }
+      setDraftBindings((prev) => ({ ...prev, [action]: "" }));
+      setRecordingAction((prev) => (prev === action ? null : prev));
+      await saveSettings(update);
+    },
+    [saveSettings, settings],
+  );
 
   const onCaptureKeyDown = useCallback(
     async (action: ShortcutAction, e: React.KeyboardEvent) => {
-      if (recordingAction !== action) { return; }
+      if (recordingAction !== action) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       const normalized = normalizeShortcutFromKeyboardEvent(e.nativeEvent);
-      if (!normalized) { return; }
+      if (!normalized) {
+        return;
+      }
       setDraftBindings((prev) => ({ ...prev, [action]: normalized }));
       setRecordingAction(null);
       await persistBinding(action, normalized);
@@ -115,7 +137,10 @@ export function ShortcutSettings() {
   return (
     <div className="p-6 pb-12">
       <SettingsGroup title={t("settings.groupShortcuts")}>
-        <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "4px 0" }}
+          className="flex items-center justify-between"
+        >
           <span>{t("settings.enableGlobalShortcuts")}</span>
           <Switch
             id="shortcut-settings-switch-170"
@@ -126,18 +151,26 @@ export function ShortcutSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "4px 0" }}
+          className="flex items-center justify-between"
+        >
           <span>{t("settings.enableShortcutRegistrationLogs")}</span>
           <Switch
             id="shortcut-settings-switch-171"
             checked={settings.shortcut_registration_logs_enabled ?? false}
             onChange={(checked) => {
-              void saveSettings({ shortcut_registration_logs_enabled: checked });
+              void saveSettings({
+                shortcut_registration_logs_enabled: checked,
+              });
             }}
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "4px 0" }}
+          className="flex items-center justify-between"
+        >
           <span>{t("settings.enableShortcutTriggerToast")}</span>
           <Switch
             id="shortcut-settings-switch-172"
@@ -147,12 +180,13 @@ export function ShortcutSettings() {
             }}
           />
         </div>
-        {settings.global_shortcuts_enabled && globalShortcutStatus.failed.length > 0 && (
+        {settings.global_shortcuts_enabled
+          && globalShortcutStatus.failed.length > 0 && (
           <div style={{ marginTop: 6, fontSize: 12, color: "#d32029" }}>
             {t("settings.globalShortcutRegisterFailedList", {
-              shortcuts: globalShortcutStatus.failed.map((item) =>
-                item.shortcut
-              ).join(" / "),
+              shortcuts: globalShortcutStatus.failed
+                .map((item) => item.shortcut)
+                .join(" / "),
             })}
           </div>
         )}
@@ -179,14 +213,19 @@ export function ShortcutSettings() {
                   key={`${item.timestamp}-${item.phase}-${item.message}-${item.shortcut ?? ""}-${item.action ?? ""}`}
                   style={{
                     marginBottom: 6,
-                    color: item.level === "error" ? "#d32029" : item.level === "warn" ? "#d89614" : "inherit",
+                    color: item.level === "error"
+                      ? "#d32029"
+                      : item.level === "warn"
+                      ? "#d89614"
+                      : "inherit",
                     lineHeight: 1.4,
                     userSelect: "text",
                     WebkitUserSelect: "text",
                   }}
                 >
                   <span style={{ opacity: 0.7 }}>
-                    [{new Date(item.timestamp).toLocaleTimeString()}] [{item.phase}] [{item.level}]
+                    [{new Date(item.timestamp).toLocaleTimeString()}] [
+                    {item.phase}] [{item.level}]
                   </span>{" "}
                   {item.message}
                   {item.action ? ` (${item.action})` : ""}
@@ -220,7 +259,8 @@ export function ShortcutSettings() {
             const binding = valueForAction(action);
             const accelerator = toTauriAccelerator(binding);
             const failedReason = settings.global_shortcuts_enabled && descriptor.supportsGlobal
-              ? failedGlobalShortcutReasonMap.get(accelerator) ?? failedGlobalShortcutReasonMap.get("*")
+              ? (failedGlobalShortcutReasonMap.get(accelerator)
+                ?? failedGlobalShortcutReasonMap.get("*"))
               : undefined;
             const externalConflict = descriptor.supportsGlobal
               ? findExternalConflict(accelerator)
@@ -236,24 +276,42 @@ export function ShortcutSettings() {
                     <span>{t(descriptor.labelKey)}</span>
                     {descriptor.supportsGlobal
                       ? (
-                        <span style={{ fontSize: 12, color: token.colorTextDescription }}>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: token.colorTextDescription,
+                          }}
+                        >
                           {t("settings.shortcutGlobalAndLocal")}
                         </span>
                       )
                       : (
-                        <span style={{ fontSize: 12, color: token.colorTextDescription }}>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: token.colorTextDescription,
+                          }}
+                        >
                           {t("settings.shortcutLocalOnly")}
                         </span>
                       )}
                   </div>
                   <Space>
                     {failedReason && externalConflict && (
-                      <Tooltip title={t("settings.shortcutExternalConflictTip", { apps: externalConflict })}>
+                      <Tooltip
+                        title={t("settings.shortcutExternalConflictTip", {
+                          apps: externalConflict,
+                        })}
+                      >
                         <AlertTriangle size={16} color="#d89614" />
                       </Tooltip>
                     )}
                     {failedReason && !externalConflict && (
-                      <Tooltip title={t("settings.shortcutGlobalRegisterFailedTip", { reason: failedReason })}>
+                      <Tooltip
+                        title={t("settings.shortcutGlobalRegisterFailedTip", {
+                          reason: failedReason,
+                        })}
+                      >
                         <AlertTriangle size={16} color="#d89614" />
                       </Tooltip>
                     )}
@@ -287,10 +345,22 @@ export function ShortcutSettings() {
                 </div>
                 {conflictMap[action]?.length
                   ? (
-                    <div style={{ marginTop: -6, marginBottom: 8, fontSize: 12, color: "#d32029" }}>
+                    <div
+                      style={{
+                        marginTop: -6,
+                        marginBottom: 8,
+                        fontSize: 12,
+                        color: "#d32029",
+                      }}
+                    >
                       {t("settings.shortcutConflictWith", {
                         targets: conflictMap[action]
-                          ?.map((item) => t(rows.find((row) => row.action === item)?.labelKey ?? ""))
+                          ?.map((item) =>
+                            t(
+                              rows.find((row) => row.action === item)?.labelKey
+                                ?? "",
+                            )
+                          )
                           .join(" / "),
                       })}
                     </div>

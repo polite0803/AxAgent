@@ -19,11 +19,13 @@ export function PlatformStatusCard() {
     return () => clearInterval(interval);
   }, [loadStatuses]);
 
-  const metaMap = new Map(ALL_PLATFORMS.map(p => [p.name, p]));
+  const metaMap = new Map(ALL_PLATFORMS.map((p) => [p.name, p]));
 
   if (initialLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+      <div
+        style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}
+      >
         <Spin />
       </div>
     );
@@ -31,7 +33,9 @@ export function PlatformStatusCard() {
 
   if (statuses.length === 0) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+      <div
+        style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}
+      >
         <Empty description={t("settings.platform.noStatuses")} />
       </div>
     );
@@ -42,12 +46,20 @@ export function PlatformStatusCard() {
       {statuses.map((s) => {
         const meta = metaMap.get(s.name);
         return (
-          <Card key={s.name} size="small" title={`${meta?.icon ?? "?"} ${meta?.label ?? s.name}`}>
+          <Card
+            key={s.name}
+            size="small"
+            title={`${meta?.icon ?? "?"} ${meta?.label ?? s.name}`}
+          >
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="flex items-center justify-between">
                 <Text type="secondary">{t("settings.platform.status")}</Text>
                 {!s.enabled
-                  ? <Tag color="default">{t("settings.platform.statusDisabled")}</Tag>
+                  ? (
+                    <Tag color="default">
+                      {t("settings.platform.statusDisabled")}
+                    </Tag>
+                  )
                   : s.connected
                   ? (
                     <Tag icon={<CheckCircle size={14} />} color="success">
@@ -55,20 +67,27 @@ export function PlatformStatusCard() {
                     </Tag>
                   )
                   : (
-                    <Tag icon={<Loader2 size={14} className="animate-spin" />} color="processing">
+                    <Tag
+                      icon={<Loader2 size={14} className="animate-spin" />}
+                      color="processing"
+                    >
                       {t("settings.platform.statusConnecting")}
                     </Tag>
                   )}
               </div>
               {s.last_activity && (
                 <div className="flex items-center justify-between">
-                  <Text type="secondary">{t("settings.platform.lastActivity")}</Text>
+                  <Text type="secondary">
+                    {t("settings.platform.lastActivity")}
+                  </Text>
                   <Text>{new Date(s.last_activity).toLocaleString()}</Text>
                 </div>
               )}
               {s.enabled && (
                 <div className="flex items-center justify-between">
-                  <Text type="secondary">{t("settings.platform.activeSessions")}</Text>
+                  <Text type="secondary">
+                    {t("settings.platform.activeSessions")}
+                  </Text>
                   <Text>{s.active_sessions}</Text>
                 </div>
               )}

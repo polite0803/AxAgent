@@ -18,7 +18,10 @@ export function ProviderSettings() {
 
   return (
     <div className="flex h-full">
-      <div className="w-64 shrink-0 pt-2" style={{ borderRight: "1px solid var(--border-color)" }}>
+      <div
+        className="w-64 shrink-0 pt-2"
+        style={{ borderRight: "1px solid var(--border-color)" }}
+      >
         <ProviderList />
       </div>
       <div className="min-w-0 flex-1 overflow-y-auto p-4 pt-4">
@@ -35,7 +38,10 @@ export function ProviderSettings() {
             </Suspense>
           )
           : (
-            <div className="flex h-full items-center justify-center" style={{ color: token.colorTextSecondary }}>
+            <div
+              className="flex h-full items-center justify-center"
+              style={{ color: token.colorTextSecondary }}
+            >
               <p>{t("settings.selectProvider")}</p>
             </div>
           )}

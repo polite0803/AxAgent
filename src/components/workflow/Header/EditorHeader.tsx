@@ -60,14 +60,17 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     }
   }, [name, templateName, onNameChange]);
 
-  const handleNameKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      setIsEditing(false);
-      if (onNameChange && name !== templateName) {
-        onNameChange(name);
+  const handleNameKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        setIsEditing(false);
+        if (onNameChange && name !== templateName) {
+          onNameChange(name);
+        }
       }
-    }
-  }, [name, templateName, onNameChange]);
+    },
+    [name, templateName, onNameChange],
+  );
 
   const handleSave = useCallback(() => {
     onSave();
@@ -113,7 +116,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             tabIndex={0}
             onClick={() => setIsEditing(true)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") { setIsEditing(true); }
+              if (e.key === "Enter" || e.key === " ") {
+                setIsEditing(true);
+              }
             }}
             style={{ color: token.colorText, cursor: "pointer", fontSize: 14 }}
           >
@@ -132,7 +137,11 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               icon={<Undo2 size={18} />}
               onClick={onUndo}
               disabled={!canUndo}
-              style={{ color: canUndo ? token.colorTextSecondary : token.colorTextQuaternary }}
+              style={{
+                color: canUndo
+                  ? token.colorTextSecondary
+                  : token.colorTextQuaternary,
+              }}
             />
           </Tooltip>
         )}
@@ -144,7 +153,11 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               icon={<Redo2 size={18} />}
               onClick={onRedo}
               disabled={!canRedo}
-              style={{ color: canRedo ? token.colorTextSecondary : token.colorTextQuaternary }}
+              style={{
+                color: canRedo
+                  ? token.colorTextSecondary
+                  : token.colorTextQuaternary,
+              }}
             />
           </Tooltip>
         )}
@@ -152,22 +165,44 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         <Popover
           content={
             <div style={{ minWidth: 220 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: token.colorText, marginBottom: 8 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: token.colorText,
+                  marginBottom: 8,
+                }}
+              >
                 {t("workflow.shortcuts.title")}
               </div>
               {[
                 { keys: "Ctrl+Z", label: t("workflow.shortcuts.undo") },
-                { keys: "Ctrl+Shift+Z / Ctrl+Y", label: t("workflow.shortcuts.redo") },
+                {
+                  keys: "Ctrl+Shift+Z / Ctrl+Y",
+                  label: t("workflow.shortcuts.redo"),
+                },
                 { keys: "Ctrl+C", label: t("workflow.shortcuts.copy") },
                 { keys: "Ctrl+V", label: t("workflow.shortcuts.paste") },
-                { keys: "Delete / Backspace", label: t("workflow.shortcuts.delete") },
+                {
+                  keys: "Delete / Backspace",
+                  label: t("workflow.shortcuts.delete"),
+                },
                 { keys: "Ctrl+S", label: t("workflow.shortcuts.save") },
               ].map((item) => (
                 <div
                   key={item.keys}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "4px 0",
+                  }}
                 >
-                  <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{item.label}</span>
+                  <span
+                    style={{ fontSize: 12, color: token.colorTextSecondary }}
+                  >
+                    {item.label}
+                  </span>
                   <kbd
                     style={{
                       fontSize: 12,
@@ -201,7 +236,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               data-testid="workflow-ai-panel-btn"
               icon={<Sparkles size={18} />}
               onClick={onToggleAIPanel}
-              style={{ color: aiPanelVisible ? "#1890ff" : token.colorTextSecondary }}
+              style={{
+                color: aiPanelVisible ? "#1890ff" : token.colorTextSecondary,
+              }}
             />
           </Tooltip>
         )}
@@ -212,7 +249,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
               type="text"
               icon={<Bug size={18} />}
               onClick={onToggleDebugPanel}
-              style={{ color: debugPanelVisible ? "#1890ff" : token.colorTextSecondary }}
+              style={{
+                color: debugPanelVisible ? "#1890ff" : token.colorTextSecondary,
+              }}
             />
           </Tooltip>
         )}
@@ -230,11 +269,21 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         )}
 
         <Tooltip title={t("workflow.preview")}>
-          <Button type="text" icon={<Eye size={18} />} disabled style={{ color: token.colorTextSecondary }} />
+          <Button
+            type="text"
+            icon={<Eye size={18} />}
+            disabled
+            style={{ color: token.colorTextSecondary }}
+          />
         </Tooltip>
 
         <Tooltip title={t("workflow.publish")}>
-          <Button type="text" icon={<Share2 size={18} />} disabled style={{ color: token.colorTextSecondary }} />
+          <Button
+            type="text"
+            icon={<Share2 size={18} />}
+            disabled
+            style={{ color: token.colorTextSecondary }}
+          />
         </Tooltip>
 
         <Button

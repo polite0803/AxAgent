@@ -17,7 +17,9 @@ export function CodeStyleSample({
 }: CodeStyleSampleProps) {
   const { t } = useTranslation();
   const [expandedTemplate, setExpandedTemplate] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"templates" | "patterns">("templates");
+  const [activeTab, setActiveTab] = useState<"templates" | "patterns">(
+    "templates",
+  );
 
   const getLanguageLabel = (lang: string): string => {
     const labels: Record<string, string> = {
@@ -118,7 +120,9 @@ export function CodeStyleSample({
                       className="w-full px-3 py-2 flex items-center justify-between hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{template.name}</span>
+                        <span className="text-sm font-medium">
+                          {template.name}
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {template.templates.length} {t("style.variants")}
                         </span>
@@ -165,7 +169,9 @@ export function CodeStyleSample({
 
             {templates.length > maxDisplayed && (
               <button className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {t("style.showMoreTemplates", { count: templates.length - maxDisplayed })}
+                {t("style.showMoreTemplates", {
+                  count: templates.length - maxDisplayed,
+                })}
               </button>
             )}
           </div>
@@ -236,7 +242,9 @@ export function CodeStyleSample({
 
             {patterns.length > maxDisplayed && (
               <button className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {t("style.showMorePatterns", { count: patterns.length - maxDisplayed })}
+                {t("style.showMorePatterns", {
+                  count: patterns.length - maxDisplayed,
+                })}
               </button>
             )}
           </div>

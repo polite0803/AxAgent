@@ -113,7 +113,11 @@ export function LoRAConfig() {
             label={t("loraConfig.rank")}
             extra="Higher rank = more parameters, better quality, slower training"
           >
-            <Slider min={2} max={64} marks={{ 2: "2", 8: "8", 16: "16", 32: "32", 64: "64" }} />
+            <Slider
+              min={2}
+              max={64}
+              marks={{ 2: "2", 8: "8", 16: "16", 32: "32", 64: "64" }}
+            />
           </Form.Item>
 
           <Form.Item
@@ -121,13 +125,14 @@ export function LoRAConfig() {
             label={t("loraConfig.alpha")}
             extra="Scaling factor for LoRA weights"
           >
-            <Slider min={1} max={128} marks={{ 1: "1", 16: "16", 32: "32", 64: "64", 128: "128" }} />
+            <Slider
+              min={1}
+              max={128}
+              marks={{ 1: "1", 16: "16", 32: "32", 64: "64", 128: "128" }}
+            />
           </Form.Item>
 
-          <Form.Item
-            name="learningRate"
-            label={t("loraConfig.learningRate")}
-          >
+          <Form.Item name="learningRate" label={t("loraConfig.learningRate")}>
             <Slider
               min={0.00001}
               max={0.001}
@@ -141,10 +146,7 @@ export function LoRAConfig() {
             />
           </Form.Item>
 
-          <Form.Item
-            name="batchSize"
-            label={t("loraConfig.batchSize")}
-          >
+          <Form.Item name="batchSize" label={t("loraConfig.batchSize")}>
             <Slider
               min={1}
               max={16}
@@ -152,10 +154,7 @@ export function LoRAConfig() {
             />
           </Form.Item>
 
-          <Form.Item
-            name="epochs"
-            label={t("loraConfig.epochs")}
-          >
+          <Form.Item name="epochs" label={t("loraConfig.epochs")}>
             <Slider
               min={1}
               max={10}
@@ -175,7 +174,9 @@ export function LoRAConfig() {
               >
                 Create Training Job
               </Button>
-              <Button onClick={() => form.resetFields()}>{t("loraConfig.reset")}</Button>
+              <Button onClick={() => form.resetFields()}>
+                {t("loraConfig.reset")}
+              </Button>
             </Space>
           </Form.Item>
         </Form>

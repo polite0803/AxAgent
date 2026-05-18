@@ -8,7 +8,10 @@ interface SkillCreateModalProps {
   onClose: () => void;
 }
 
-export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({ open, onClose }) => {
+export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
+  open,
+  onClose,
+}) => {
   const { t } = useTranslation();
   const createSkill = useSkillStore((s) => s.createSkill);
   const [form] = Form.useForm();
@@ -18,7 +21,11 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({ open, onClos
     try {
       const values = await form.validateFields();
       setLoading(true);
-      const result = await createSkill(values.name, values.description || "", values.content);
+      const result = await createSkill(
+        values.name,
+        values.description || "",
+        values.content,
+      );
       message.success(result.message);
       form.resetFields();
       onClose();
@@ -49,18 +56,22 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({ open, onClos
         >
           <Input name="name" placeholder={t("skill.namePlaceholder")} />
         </Form.Item>
-        <Form.Item
-          name="description"
-          label={t("skill.description")}
-        >
-          <Input name="description" placeholder={t("skill.descriptionPlaceholder")} />
+        <Form.Item name="description" label={t("skill.description")}>
+          <Input
+            name="description"
+            placeholder={t("skill.descriptionPlaceholder")}
+          />
         </Form.Item>
         <Form.Item
           name="content"
           label={t("skill.content")}
           rules={[{ required: true, message: t("skill.contentRequired") }]}
         >
-          <Input.TextArea name="content" rows={12} placeholder={t("skill.contentPlaceholder")} />
+          <Input.TextArea
+            name="content"
+            rows={12}
+            placeholder={t("skill.contentPlaceholder")}
+          />
         </Form.Item>
       </Form>
     </Modal>
@@ -93,7 +104,9 @@ export const SkillEditModal: React.FC<SkillEditModalProps> = ({
   }, [initialContent]);
 
   const handleOk = async () => {
-    if (!content.trim()) { return; }
+    if (!content.trim()) {
+      return;
+    }
     setLoading(true);
     try {
       const result = mode === "patch"

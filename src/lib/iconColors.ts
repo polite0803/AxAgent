@@ -213,11 +213,20 @@ export const CHAT_ICON_COLORS: Record<string, string> = {
  * Get the semantic color for a given icon name.
  * Falls back to `undefined` (which means the icon uses its inherited CSS color).
  */
-export function getIconColor(iconName: string, context?: "nav" | "settings" | "titlebar"): string | undefined {
+export function getIconColor(
+  iconName: string,
+  context?: "nav" | "settings" | "titlebar",
+): string | undefined {
   // Try context-specific mapping first
-  if (context === "nav") { return NAV_ICON_COLORS[iconName]; }
-  if (context === "settings") { return SETTINGS_ICON_COLORS[iconName]; }
-  if (context === "titlebar") { return TITLEBAR_ICON_COLORS[iconName]; }
+  if (context === "nav") {
+    return NAV_ICON_COLORS[iconName];
+  }
+  if (context === "settings") {
+    return SETTINGS_ICON_COLORS[iconName];
+  }
+  if (context === "titlebar") {
+    return TITLEBAR_ICON_COLORS[iconName];
+  }
   // Fall back to the general chat/common mapping
   return CHAT_ICON_COLORS[iconName];
 }

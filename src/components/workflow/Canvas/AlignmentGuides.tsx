@@ -15,7 +15,10 @@ interface AlignmentGuidesProps {
 
 const SNAP_THRESHOLD = 8;
 
-export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, children }) => {
+export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({
+  nodes,
+  children,
+}) => {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [lines, setLines] = useState<AlignmentLine[]>([]);
   const draggedNodeRef = useRef<string | null>(null);
@@ -24,7 +27,9 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
   const calculateAlignmentLines = useCallback(
     (draggingNodeId: string, position: { x: number; y: number }) => {
       const draggingNode = nodes.find((n) => n.id === draggingNodeId);
-      if (!draggingNode) { return; }
+      if (!draggingNode) {
+        return;
+      }
 
       const newLines: AlignmentLine[] = [];
       const draggingBounds = {
@@ -37,7 +42,9 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
       };
 
       nodes.forEach((node) => {
-        if (node.id === draggingNodeId) { return; }
+        if (node.id === draggingNodeId) {
+          return;
+        }
 
         const nodeBounds = {
           left: node.position.x,
@@ -50,7 +57,10 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
 
         if (Math.abs(draggingBounds.left - nodeBounds.left) < SNAP_THRESHOLD) {
           const screenStart = flowToScreenPosition({ x: nodeBounds.top, y: 0 });
-          const screenEnd = flowToScreenPosition({ x: nodeBounds.bottom, y: 0 });
+          const screenEnd = flowToScreenPosition({
+            x: nodeBounds.bottom,
+            y: 0,
+          });
           newLines.push({
             position: screenStart.x,
             orientation: "vertical",
@@ -59,9 +69,14 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           });
         }
 
-        if (Math.abs(draggingBounds.right - nodeBounds.right) < SNAP_THRESHOLD) {
+        if (
+          Math.abs(draggingBounds.right - nodeBounds.right) < SNAP_THRESHOLD
+        ) {
           const screenStart = flowToScreenPosition({ x: nodeBounds.top, y: 0 });
-          const screenEnd = flowToScreenPosition({ x: nodeBounds.bottom, y: 0 });
+          const screenEnd = flowToScreenPosition({
+            x: nodeBounds.bottom,
+            y: 0,
+          });
           newLines.push({
             position: screenStart.x,
             orientation: "vertical",
@@ -70,9 +85,14 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           });
         }
 
-        if (Math.abs(draggingBounds.centerX - nodeBounds.centerX) < SNAP_THRESHOLD) {
+        if (
+          Math.abs(draggingBounds.centerX - nodeBounds.centerX) < SNAP_THRESHOLD
+        ) {
           const screenStart = flowToScreenPosition({ x: nodeBounds.top, y: 0 });
-          const screenEnd = flowToScreenPosition({ x: nodeBounds.bottom, y: 0 });
+          const screenEnd = flowToScreenPosition({
+            x: nodeBounds.bottom,
+            y: 0,
+          });
           newLines.push({
             position: screenStart.x,
             orientation: "vertical",
@@ -92,8 +112,13 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           });
         }
 
-        if (Math.abs(draggingBounds.bottom - nodeBounds.bottom) < SNAP_THRESHOLD) {
-          const screenStart = flowToScreenPosition({ x: 0, y: nodeBounds.bottom });
+        if (
+          Math.abs(draggingBounds.bottom - nodeBounds.bottom) < SNAP_THRESHOLD
+        ) {
+          const screenStart = flowToScreenPosition({
+            x: 0,
+            y: nodeBounds.bottom,
+          });
           const screenEnd = flowToScreenPosition({ x: nodeBounds.right, y: 0 });
           newLines.push({
             position: screenStart.y,
@@ -103,8 +128,13 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           });
         }
 
-        if (Math.abs(draggingBounds.centerY - nodeBounds.centerY) < SNAP_THRESHOLD) {
-          const screenStart = flowToScreenPosition({ x: 0, y: nodeBounds.centerY });
+        if (
+          Math.abs(draggingBounds.centerY - nodeBounds.centerY) < SNAP_THRESHOLD
+        ) {
+          const screenStart = flowToScreenPosition({
+            x: 0,
+            y: nodeBounds.centerY,
+          });
           const screenEnd = flowToScreenPosition({ x: nodeBounds.right, y: 0 });
           newLines.push({
             position: screenStart.y,
@@ -122,10 +152,14 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!draggedNodeRef.current) { return; }
+      if (!draggedNodeRef.current) {
+        return;
+      }
 
       const bounds = containerRef.current?.getBoundingClientRect();
-      if (!bounds) { return; }
+      if (!bounds) {
+        return;
+      }
 
       const position = screenToFlowPosition({
         x: e.clientX - bounds.left,
@@ -163,20 +197,29 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
 
     const container = containerRef.current;
     if (container) {
-      container.addEventListener("nodeDragStart", handleNodeDragStart as EventListener);
+      container.addEventListener(
+        "nodeDragStart",
+        handleNodeDragStart as EventListener,
+      );
       container.addEventListener("pane-click", handlePaneClick);
     }
 
     return () => {
       if (container) {
-        container.removeEventListener("nodeDragStart", handleNodeDragStart as EventListener);
+        container.removeEventListener(
+          "nodeDragStart",
+          handleNodeDragStart as EventListener,
+        );
         container.removeEventListener("pane-click", handlePaneClick);
       }
     };
   }, [nodes]);
 
   return (
-    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div
+      ref={containerRef}
+      style={{ position: "relative", width: "100%", height: "100%" }}
+    >
       {children}
 
       <svg
@@ -191,7 +234,12 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
         }}
       >
         <defs>
-          <pattern id="gridPattern" width="16" height="16" patternUnits="userSpaceOnUse">
+          <pattern
+            id="gridPattern"
+            width="16"
+            height="16"
+            patternUnits="userSpaceOnUse"
+          >
             <circle cx="1" cy="1" r="0.5" fill="#333" />
           </pattern>
         </defs>

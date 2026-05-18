@@ -24,7 +24,14 @@ import { usePlanStore } from "../feature/planStore";
 // ── Derived execution state (lightweight snapshot per conversation) ──
 
 export interface ExecutionState {
-  phase: "idle" | "planning" | "executing" | "waiting_permission" | "completed" | "failed" | "cancelled";
+  phase:
+    | "idle"
+    | "planning"
+    | "executing"
+    | "waiting_permission"
+    | "completed"
+    | "failed"
+    | "cancelled";
   currentToolCallToolName: string | null;
   currentToolCallToolUseId: string | null;
   statusMessage: string | null;
@@ -78,7 +85,10 @@ interface AgentDomainStore {
 
   // ── Execution actions ──
 
-  updateExecutionState: (conversationId: string, state: Partial<ExecutionState>) => void;
+  updateExecutionState: (
+    conversationId: string,
+    state: Partial<ExecutionState>,
+  ) => void;
 
   // ── Plan actions ──
 
@@ -87,7 +97,10 @@ interface AgentDomainStore {
   // ── Tool call actions ──
 
   upsertToolCall: (toolUseId: string, toolCall: ToolCallState) => void;
-  updateToolCallStatus: (toolUseId: string, status: ToolCallState["executionStatus"]) => void;
+  updateToolCallStatus: (
+    toolUseId: string,
+    status: ToolCallState["executionStatus"],
+  ) => void;
 
   // ── Permission actions ──
 
@@ -142,7 +155,12 @@ interface AgentDomainStore {
     pausedConversations: Set<string>;
     agentPool: Record<string, AgentPoolItem[]>;
     subAgentCards: Record<string, SubAgentCardData>;
-    currentToolCall: { toolName: string; toolUseId: string; conversationId: string; startedAt: number } | null;
+    currentToolCall: {
+      toolName: string;
+      toolUseId: string;
+      conversationId: string;
+      startedAt: number;
+    } | null;
     isExecuting: Record<string, boolean>;
     executingConversationIds: string[];
   }) => void;
@@ -161,7 +179,9 @@ interface AgentDomainStore {
 
 // ── Helper: derive ExecutionState from executionStore ──
 
-function deriveExecutionStateFromExecutionStore(conversationId: string): ExecutionState {
+function deriveExecutionStateFromExecutionStore(
+  conversationId: string,
+): ExecutionState {
   const execStore = useExecutionStore.getState();
   const phase = execStore.phases[conversationId] || "idle";
   const currentToolCall = execStore.currentToolCall;
@@ -203,9 +223,15 @@ function derivePlanStateFromPlanStore(conversationId: string): PlanState {
  * Zustand persist serializes Set<string> to {}, so on restore it's a plain object.
  */
 function toPausedSet(v: unknown): Set<string> {
-  if (v instanceof Set) { return v; }
-  if (Array.isArray(v)) { return new Set(v); }
-  if (v && typeof v === "object") { return new Set(Object.keys(v)); }
+  if (v instanceof Set) {
+    return v;
+  }
+  if (Array.isArray(v)) {
+    return new Set(v);
+  }
+  if (v && typeof v === "object") {
+    return new Set(Object.keys(v));
+  }
   return new Set<string>();
 }
 
@@ -235,7 +261,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
 
       fetchSession: async (conversationId) => {
         try {
-          const session = await invoke<AgentSession | null>("agent_get_session", { conversationId });
+          const session = await invoke<AgentSession | null>(
+            "agent_get_session",
+            { conversationId },
+          );
           if (session) {
             get().updateSession(conversationId, session);
           }
@@ -319,7 +348,9 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       updateToolCallStatus: (toolUseId, status) => {
         set((s) => {
           const existing = s.toolCalls[toolUseId];
-          if (!existing) { return {}; }
+          if (!existing) {
+            return {};
+          }
           return {
             toolCalls: {
               ...s.toolCalls,
@@ -352,7 +383,9 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
               expiredKeys.add(id);
             }
           }
-          if (expiredKeys.size === 0) { return {}; }
+          if (expiredKeys.size === 0) {
+            return {};
+          }
 
           const permissions: Record<string, PermissionRequestEvent> = {};
           for (const [id, pr] of Object.entries(s.permissions)) {
@@ -364,7 +397,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           const toolCalls: Record<string, ToolCallState> = { ...s.toolCalls };
           for (const id of expiredKeys) {
             if (toolCalls[id]) {
-              toolCalls[id] = { ...toolCalls[id], approvalStatus: "denied" as const };
+              toolCalls[id] = {
+                ...toolCalls[id],
+                approvalStatus: "denied" as const,
+              };
             }
           }
 
@@ -450,7 +486,14 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
         const pool = get().agentPool[conversationId] || [];
         const total = pool.length;
         if (total === 0) {
-          return { total: 0, completed: 0, running: 0, pending: 0, failed: 0, pctComplete: 0 };
+          return {
+            total: 0,
+            completed: 0,
+            running: 0,
+            pending: 0,
+            failed: 0,
+            pctComplete: 0,
+          };
         }
         const completed = pool.filter((p) => p.status === "completed").length;
         const running = pool.filter((p) => p.status === "running").length;
@@ -492,7 +535,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
 
           const idMap = { ...s.sdkIdToExecId };
           if (event.executionId) {
-            updates[event.executionId] = { ...toolCall, toolUseId: event.executionId };
+            updates[event.executionId] = {
+              ...toolCall,
+              toolUseId: event.executionId,
+            };
             idMap[event.toolUseId] = event.executionId;
           }
 
@@ -506,7 +552,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           return {
             toolCalls: { ...s.toolCalls, ...updates },
             sdkIdToExecId: idMap,
-            executionState: { ...s.executionState, [event.conversationId]: execState },
+            executionState: {
+              ...s.executionState,
+              [event.conversationId]: execState,
+            },
           };
         });
       },
@@ -539,9 +588,13 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       handleToolResult: (event) => {
         set((s) => {
           const existing = s.toolCalls[event.toolUseId];
-          if (!existing) { return {}; }
+          if (!existing) {
+            return {};
+          }
 
-          const newStatus: ToolCallState["executionStatus"] = event.isError ? "failed" : "success";
+          const newStatus: ToolCallState["executionStatus"] = event.isError
+            ? "failed"
+            : "success";
           const updated: ToolCallState = {
             ...existing,
             executionStatus: newStatus,
@@ -559,8 +612,8 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             updates[execId] = { ...updated, toolUseId: execId };
           }
 
-          const isCurrentlyExecuting =
-            s.executionState[event.conversationId]?.currentToolCallToolUseId === event.toolUseId;
+          const isCurrentlyExecuting = s.executionState[event.conversationId]?.currentToolCallToolUseId
+            === event.toolUseId;
 
           let executionState = s.executionState;
           if (isCurrentlyExecuting) {
@@ -587,13 +640,17 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
         get().removePermission(toolUseId);
         set((s) => {
           const existing = s.toolCalls[toolUseId];
-          if (!existing) { return {}; }
+          if (!existing) {
+            return {};
+          }
           return {
             toolCalls: {
               ...s.toolCalls,
               [toolUseId]: {
                 ...existing,
-                approvalStatus: decision === "deny" ? "denied" as const : "approved" as const,
+                approvalStatus: decision === "deny"
+                  ? ("denied" as const)
+                  : ("approved" as const),
               },
             },
           };
@@ -627,7 +684,11 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           conversationId: event.conversationId,
           type: "sub_agent",
           name: event.agentName || event.agentType,
-          status: event.status === "failed" ? "failed" : event.status === "completed" ? "completed" : "running",
+          status: event.status === "failed"
+            ? "failed"
+            : event.status === "completed"
+            ? "completed"
+            : "running",
           agentType: event.agentType,
           childConversationId: event.childConversationId,
           childSessionId: event.childSessionId,
@@ -705,14 +766,20 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
 
           const toolCalls: Record<string, ToolCallState> = {};
           for (const [id, tc] of Object.entries(s.toolCalls)) {
-            if (!removedPermToolUseIds.has(id) && !removedPermToolUseIds.has(tc.toolUseId)) {
+            if (
+              !removedPermToolUseIds.has(id)
+              && !removedPermToolUseIds.has(tc.toolUseId)
+            ) {
               toolCalls[id] = tc;
             }
           }
 
           const sdkIdToExecId: Record<string, string> = {};
           for (const [sdkId, execId] of Object.entries(s.sdkIdToExecId)) {
-            if (!removedPermToolUseIds.has(sdkId) && !removedPermToolUseIds.has(execId)) {
+            if (
+              !removedPermToolUseIds.has(sdkId)
+              && !removedPermToolUseIds.has(execId)
+            ) {
               sdkIdToExecId[sdkId] = execId;
             }
           }
@@ -774,7 +841,10 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             toolCalls: { ...s.toolCalls, ...data.toolCalls },
             permissions: { ...s.permissions, ...data.pendingPermissions },
             askUser: { ...s.askUser, ...data.pendingAskUser },
-            pausedConversations: new Set([...toPausedSet(s.pausedConversations), ...pausedConvs]),
+            pausedConversations: new Set([
+              ...toPausedSet(s.pausedConversations),
+              ...pausedConvs,
+            ]),
             agentPool: { ...s.agentPool, ...data.agentPool },
             subAgentCards: { ...s.subAgentCards, ...data.subAgentCards },
             executionState,
@@ -787,7 +857,9 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       getActiveToolCall: (conversationId) => {
         const state = get();
         const currentToolUseId = state.executionState[conversationId]?.currentToolCallToolUseId;
-        if (!currentToolUseId) { return null; }
+        if (!currentToolUseId) {
+          return null;
+        }
         return state.toolCalls[currentToolUseId] || null;
       },
 
@@ -796,7 +868,8 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
         const session = state.agentSession[conversationId] || null;
         const execState = state.executionState[conversationId]
           || deriveExecutionStateFromExecutionStore(conversationId);
-        const planSt = state.planState[conversationId] || derivePlanStateFromPlanStore(conversationId);
+        const planSt = state.planState[conversationId]
+          || derivePlanStateFromPlanStore(conversationId);
 
         const permissionCount = Object.values(state.permissions).filter(
           (p) => p.conversationId === conversationId,
@@ -809,8 +882,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
         const toolCallEntries = Object.values(state.toolCalls);
         const relatedToolCalls = toolCallEntries.filter((tc) => {
           const execId = state.sdkIdToExecId[tc.toolUseId];
-          return tc.assistantMessageId === session?.id
-            || execId !== undefined;
+          return tc.assistantMessageId === session?.id || execId !== undefined;
         });
 
         const activeToolCalls = relatedToolCalls.filter(
@@ -844,7 +916,11 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
       isConversationExecuting: (conversationId) => {
         const state = get();
         const execState = state.executionState[conversationId];
-        if (execState && (execState.phase === "executing" || execState.phase === "waiting_permission")) {
+        if (
+          execState
+          && (execState.phase === "executing"
+            || execState.phase === "waiting_permission")
+        ) {
           return true;
         }
         return Object.values(state.toolCalls).some(
@@ -857,16 +933,26 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
         const executingIds = new Set<string>();
 
         for (const [convId, execSt] of Object.entries(state.executionState)) {
-          if (execSt.phase === "executing" || execSt.phase === "waiting_permission") {
+          if (
+            execSt.phase === "executing"
+            || execSt.phase === "waiting_permission"
+          ) {
             executingIds.add(convId);
           }
         }
 
         for (const [_, tc] of Object.entries(state.toolCalls)) {
-          if (tc.executionStatus === "running" || tc.executionStatus === "queued") {
+          if (
+            tc.executionStatus === "running"
+            || tc.executionStatus === "queued"
+          ) {
             const execId = state.sdkIdToExecId[tc.toolUseId];
             if (execId) {
-              for (const [convId, execSt] of Object.entries(state.executionState)) {
+              for (
+                const [convId, execSt] of Object.entries(
+                  state.executionState,
+                )
+              ) {
                 if (
                   execSt.currentToolCallToolUseId === tc.toolUseId
                   || execSt.currentToolCallToolUseId === execId
@@ -992,7 +1078,13 @@ export function getDomainStoreAsExecutionStoreSnapshot() {
 
   const phases: Record<
     string,
-    "idle" | "planning" | "executing" | "waiting_permission" | "completed" | "failed" | "cancelled"
+    | "idle"
+    | "planning"
+    | "executing"
+    | "waiting_permission"
+    | "completed"
+    | "failed"
+    | "cancelled"
   > = {};
   const agentStatus: Record<string, string> = {};
   const currentToolCall = domain.toolCalls
@@ -1049,7 +1141,9 @@ export function getDomainStoreAsPlanStoreSnapshot() {
 let _domainListenersSetup = false;
 
 export function setupAgentDomainEventListeners(): () => void {
-  if (_domainListenersSetup) { return () => {}; }
+  if (_domainListenersSetup) {
+    return () => {};
+  }
   _domainListenersSetup = true;
 
   const unlisteners: Promise<UnlistenFn>[] = [];

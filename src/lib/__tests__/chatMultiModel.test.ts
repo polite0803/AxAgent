@@ -32,9 +32,7 @@ describe("hasMultipleModelVersions", () => {
   });
 
   it("单个消息应返回 false", () => {
-    expect(
-      hasMultipleModelVersions([msg({ model_id: "gpt-4" })]),
-    ).toBe(false);
+    expect(hasMultipleModelVersions([msg({ model_id: "gpt-4" })])).toBe(false);
   });
 
   it("多个消息但 model_id 都相同时应返回 false", () => {

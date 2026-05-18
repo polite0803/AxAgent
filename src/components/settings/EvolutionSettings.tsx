@@ -40,7 +40,7 @@ const ENGINE_ICONS: Record<string, React.ReactNode> = {
   "TextGrad Engine": <Brain size={16} />,
   "Dream Consolidator": <Lightbulb size={16} />,
   "Intrinsic Motivation": <Sparkles size={16} />,
-  "Coevolution": <Dna size={16} />,
+  Coevolution: <Dna size={16} />,
 };
 
 const ENGINE_NAME_KEY_MAP: Record<string, string> = {
@@ -51,7 +51,7 @@ const ENGINE_NAME_KEY_MAP: Record<string, string> = {
   "TextGrad Engine": "evolution.engineNames.textGradEngine",
   "Dream Consolidator": "evolution.engineNames.dreamConsolidator",
   "Intrinsic Motivation": "evolution.engineNames.intrinsicMotivation",
-  "Coevolution": "evolution.engineNames.coevolution",
+  Coevolution: "evolution.engineNames.coevolution",
 };
 
 function EngineStatusCard({ engine }: { engine: EvolutionEngineStatus }) {
@@ -65,18 +65,42 @@ function EngineStatusCard({ engine }: { engine: EvolutionEngineStatus }) {
       style={{
         borderRadius: 8,
         border: `1px solid ${engine.running ? token.colorSuccessBorder : token.colorBorderSecondary}`,
-        backgroundColor: engine.running ? token.colorSuccessBg : token.colorBgContainer,
+        backgroundColor: engine.running
+          ? token.colorSuccessBg
+          : token.colorBgContainer,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <span style={{ color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>{icon}</span>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 4,
+        }}
+      >
+        <span
+          style={{
+            color: engine.running
+              ? token.colorSuccess
+              : token.colorTextQuaternary,
+          }}
+        >
+          {icon}
+        </span>
         <Text strong style={{ fontSize: 13, flex: 1 }}>
           {t(ENGINE_NAME_KEY_MAP[engine.name] ?? engine.name, engine.name)}
         </Text>
         <Badge
           status={engine.running ? "success" : "default"}
           text={
-            <Text style={{ fontSize: 12, color: engine.running ? token.colorSuccess : token.colorTextQuaternary }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: engine.running
+                  ? token.colorSuccess
+                  : token.colorTextQuaternary,
+              }}
+            >
               {engine.running ? t("evolution.running") : t("evolution.idle")}
             </Text>
           }
@@ -189,12 +213,18 @@ function MetricsOverview({ stats }: { stats: EvolutionStats }) {
 function AutoToolPatterns({ patterns }: { patterns: string[] }) {
   const { t } = useTranslation();
 
-  if (patterns.length === 0) { return null; }
+  if (patterns.length === 0) {
+    return null;
+  }
 
   return (
     <SettingsGroup title={t("evolution.frequentPatterns")}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {patterns.map((p) => <Tag key={p} style={{ borderRadius: 6, margin: 0 }}>{p}</Tag>)}
+        {patterns.map((p) => (
+          <Tag key={p} style={{ borderRadius: 6, margin: 0 }}>
+            {p}
+          </Tag>
+        ))}
       </div>
     </SettingsGroup>
   );
@@ -236,7 +266,14 @@ export function EvolutionSettings() {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 16,
+        }}
+      >
         <div>
           <Text strong style={{ fontSize: 16 }}>
             {t("evolution.title")}
@@ -260,8 +297,13 @@ export function EvolutionSettings() {
       </div>
 
       {error && (
-        <Card size="small" style={{ marginBottom: 12, borderColor: token.colorErrorBorder }}>
-          <Text type="danger" style={{ fontSize: 12 }}>{error}</Text>
+        <Card
+          size="small"
+          style={{ marginBottom: 12, borderColor: token.colorErrorBorder }}
+        >
+          <Text type="danger" style={{ fontSize: 12 }}>
+            {error}
+          </Text>
         </Card>
       )}
 
@@ -292,7 +334,11 @@ export function EvolutionSettings() {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Shield
                 size={16}
-                style={{ color: stats.constitution_rules > 0 ? token.colorSuccess : token.colorTextQuaternary }}
+                style={{
+                  color: stats.constitution_rules > 0
+                    ? token.colorSuccess
+                    : token.colorTextQuaternary,
+                }}
               />
               <Text style={{ fontSize: 13 }}>
                 {stats.constitution_rules > 0

@@ -26,7 +26,9 @@ export function ProfileManager() {
   }, []);
 
   const handleCreate = async () => {
-    if (!newName.trim()) { return; }
+    if (!newName.trim()) {
+      return;
+    }
     await invoke("profile_create", {
       name: newName,
       displayName: newDisplayName || newName,

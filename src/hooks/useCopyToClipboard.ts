@@ -25,7 +25,9 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
       try {
         await writeToClipboard(text);
         setCopiedValue(text);
-        if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         timeoutRef.current = setTimeout(() => setCopiedValue(null), timeout);
         return true;
       } catch (e) {
@@ -38,7 +40,9 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 
@@ -46,6 +50,9 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
     copy,
     copiedValue,
     isCopied: copiedValue !== null,
-    isCopiedFor: useCallback((text: string) => copiedValue === text, [copiedValue]),
+    isCopiedFor: useCallback(
+      (text: string) => copiedValue === text,
+      [copiedValue],
+    ),
   };
 }

@@ -3,12 +3,15 @@
 }
 
 .plan-card:hover {
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--ant-color-bg-mask, #000) 4%, transparent);
+  box-shadow: 0 1px 3px
+    color-mix(in srgb, var(--ant-color-bg-mask, #000) 4%, transparent);
 }
 
 .plan-step-item {
   border-left: 2px solid transparent;
-  transition: border-color 0.2s, background-color 0.15s;
+  transition:
+    border-color 0.2s,
+    background-color 0.15s;
 }
 
 .plan-step-item:hover {
@@ -25,8 +28,13 @@
 
 /* Animation for running steps */
 @keyframes plan-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .plan-step-item--running .plan-step-dot {

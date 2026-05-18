@@ -11,13 +11,17 @@ describe("Phase D reasoning control regressions", () => {
     const source = readSource("src-tauri/crates/providers/src/gemini.rs");
     const normalized = source.replace(/\s+/g, "");
 
-    expect(normalized).toContain("request.thinking_budget.map(|b|GeminiThinkingConfig{thinking_budget:b}");
+    expect(normalized).toContain(
+      "request.thinking_budget.map(|b|GeminiThinkingConfig{thinking_budget:b}",
+    );
   });
 
   it("suppresses returned thinking blocks when the user explicitly disables reasoning", () => {
     const source = readSource("src-tauri/src/commands/conversations.rs");
 
-    expect(source).toContain("let suppress_thinking = thinking_budget == Some(0);");
+    expect(source).toContain(
+      "let suppress_thinking = thinking_budget == Some(0);",
+    );
     expect(source).toContain("strip_disabled_thinking_delta");
     expect(source).toContain("strip_disabled_thinking_content");
     expect(source).toContain("suppress_thinking,");

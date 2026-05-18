@@ -10,7 +10,11 @@ interface MergePropertyPanelProps {
   onDelete: () => void;
 }
 
-export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const mergeNode = node as MergeNode;
   const config = mergeNode.config || {
@@ -25,7 +29,14 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.mergeType")}
         </label>
         <Select
@@ -42,7 +53,14 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.inputCount")} ({config.inputs?.length || 0})
         </label>
         <div style={{ color: "#666", fontSize: 12 }}>
@@ -52,8 +70,14 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({ node, on
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

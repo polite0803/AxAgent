@@ -33,7 +33,9 @@ export function ClosedLoopPanel() {
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     const fetch = async () => {
       try {
         const s = await invoke<ClosedLoopStatus>("closed_loop_status");
@@ -43,7 +45,9 @@ export function ClosedLoopPanel() {
         }
       } catch (e) {
         console.warn("[closedLoop] Failed to fetch status:", e);
-        if (mountedRef.current) { setError(true); }
+        if (mountedRef.current) {
+          setError(true);
+        }
       }
     };
     fetch();
@@ -58,7 +62,13 @@ export function ClosedLoopPanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="size-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -66,7 +76,12 @@ export function ClosedLoopPanel() {
             />
           </svg>
           {t("chat.closedLoop")}
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
         </button>
       </div>
     );
@@ -79,37 +94,70 @@ export function ClosedLoopPanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t("chat.closedLoopLearning")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("chat.closedLoopLearning")}
+        </span>
         <div className="flex items-center gap-1">
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="size-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
       </div>
 
-      {error && !status && <div className="text-[10px] text-muted-foreground/60">{t("chat.loadError")}</div>}
+      {error && !status && (
+        <div className="text-[10px] text-muted-foreground/60">
+          {t("chat.loadError")}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-1.5">
         <div className="text-xs p-1.5 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.trajectories")}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.trajectories")}
+          </div>
           <div className="text-sm font-medium">{trajCount}</div>
         </div>
         <div className="text-xs p-1.5 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.successRate")}</div>
-          <div className="text-sm font-medium">{(successRate * 100).toFixed(0)}%</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.successRate")}
+          </div>
+          <div className="text-sm font-medium">
+            {(successRate * 100).toFixed(0)}%
+          </div>
         </div>
         <div className="text-xs p-1.5 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.insights")}</div>
-          <div className="text-sm font-medium">{status?.insight_count ?? 0}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.insights")}
+          </div>
+          <div className="text-sm font-medium">
+            {status?.insight_count ?? 0}
+          </div>
         </div>
         <div className="text-xs p-1.5 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.patterns")}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.patterns")}
+          </div>
           <div className="text-sm font-medium">{patternCount}</div>
         </div>
       </div>
@@ -121,9 +169,13 @@ export function ClosedLoopPanel() {
               status?.is_running ? "bg-green-500" : "bg-muted-foreground/30"
             }`}
           />
-          ClosedLoop: {status?.is_running ? t("chat.closedLoopRunning") : t("chat.closedLoopStopped")}
+          ClosedLoop: {status?.is_running
+            ? t("chat.closedLoopRunning")
+            : t("chat.closedLoopStopped")}
         </div>
-        <div>{t("chat.nudgesPending")}: {status?.nudge_count ?? 0}</div>
+        <div>
+          {t("chat.nudgesPending")}: {status?.nudge_count ?? 0}
+        </div>
         <div className="text-muted-foreground/60 mt-1">
           {t("chat.pipeline")}
         </div>

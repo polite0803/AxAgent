@@ -37,7 +37,13 @@ export type ExecutionPhase =
 const PHASE_TRANSITIONS: Record<ExecutionPhase, ExecutionPhase[]> = {
   idle: ["planning", "executing", "completed", "failed", "cancelled"],
   planning: ["executing", "failed", "cancelled"],
-  executing: ["executing", "waiting_permission", "completed", "failed", "cancelled"],
+  executing: [
+    "executing",
+    "waiting_permission",
+    "completed",
+    "failed",
+    "cancelled",
+  ],
   waiting_permission: ["executing", "cancelled"],
   completed: ["idle", "executing"],
   failed: ["idle", "executing"],
@@ -127,7 +133,9 @@ interface ExecutionStore {
 
   // === 轨迹 Actions ===
   fetchTrajectoryList: (conversationId: string) => Promise<void>;
-  fetchTrajectoryDetail: (trajectoryId: string) => Promise<TrajectoryDetail | null>;
+  fetchTrajectoryDetail: (
+    trajectoryId: string,
+  ) => Promise<TrajectoryDetail | null>;
 
   // === 清理 ===
   clearConversation: (conversationId: string) => void;
@@ -158,10 +166,17 @@ const initialState = {
  * 1. currentToolCall 属于当前完成事件的会话（直接匹配）
  * 2. currentToolCall 所属会话的状态已是终端态（跨对话残留检测）
  */
-function shouldClearToolCall(s: ExecutionStore, doneConversationId: string): boolean {
-  if (!s.currentToolCall) { return false; }
+function shouldClearToolCall(
+  s: ExecutionStore,
+  doneConversationId: string,
+): boolean {
+  if (!s.currentToolCall) {
+    return false;
+  }
   // 直接匹配：属于同一会话
-  if (s.currentToolCall.conversationId === doneConversationId) { return true; }
+  if (s.currentToolCall.conversationId === doneConversationId) {
+    return true;
+  }
   // 跨对话残留：currentToolCall 所属会话已非活跃态
   const ownerPhase = s.phases[s.currentToolCall.conversationId] || "idle";
   return !ACTIVE_PHASES.has(ownerPhase);
@@ -178,7 +193,9 @@ export const useExecutionStore = create<ExecutionStore>()(
         set(
           (s) => {
             const from = s.phases[conversationId] || "idle";
-            if (from === to) { return {}; }
+            if (from === to) {
+              return {};
+            }
             const allowed = PHASE_TRANSITIONS[from] || [];
             if (!allowed.includes(to)) {
               console.warn(
@@ -204,8 +221,7 @@ export const useExecutionStore = create<ExecutionStore>()(
       },
 
       getActiveConversations: () => {
-        return Object.entries(get().phases)
-          .flatMap(([id, p]) => ACTIVE_PHASES.has(p) ? [id] : []);
+        return Object.entries(get().phases).flatMap(([id, p]) => ACTIVE_PHASES.has(p) ? [id] : []);
       },
 
       // ── 进度 ──
@@ -216,7 +232,9 @@ export const useExecutionStore = create<ExecutionStore>()(
 
       setAgentStatus: (conversationId, message) => {
         set(
-          (s) => ({ agentStatus: { ...s.agentStatus, [conversationId]: message } }),
+          (s) => ({
+            agentStatus: { ...s.agentStatus, [conversationId]: message },
+          }),
           false,
           { type: "agent-status", conversationId },
         );
@@ -245,7 +263,9 @@ export const useExecutionStore = create<ExecutionStore>()(
             } else {
               pool.push(item);
             }
-            return { agentPool: { ...s.agentPool, [item.conversationId]: pool } };
+            return {
+              agentPool: { ...s.agentPool, [item.conversationId]: pool },
+            };
           },
           false,
           { type: "upsert-pool-item", item },
@@ -271,12 +291,28 @@ export const useExecutionStore = create<ExecutionStore>()(
       getPoolSummary: (conversationId) => {
         const pool = get().agentPool[conversationId] || [];
         const total = pool.length;
-        if (total === 0) { return { total: 0, completed: 0, running: 0, pending: 0, failed: 0, pctComplete: 0 }; }
+        if (total === 0) {
+          return {
+            total: 0,
+            completed: 0,
+            running: 0,
+            pending: 0,
+            failed: 0,
+            pctComplete: 0,
+          };
+        }
         const completed = pool.filter((i) => i.status === "completed").length;
         const running = pool.filter((i) => i.status === "running").length;
         const pending = pool.filter((i) => i.status === "pending").length;
         const failed = pool.filter((i) => i.status === "failed").length;
-        return { total, completed, running, pending, failed, pctComplete: Math.round((completed / total) * 100) };
+        return {
+          total,
+          completed,
+          running,
+          pending,
+          failed,
+          pctComplete: Math.round((completed / total) * 100),
+        };
       },
 
       // ── 工具调用 ──
@@ -294,10 +330,15 @@ export const useExecutionStore = create<ExecutionStore>()(
               assistantMessageId: event.assistantMessageId,
               executionStatus: "queued",
             };
-            const updates: Record<string, ToolCallState> = { [event.toolUseId]: tc };
+            const updates: Record<string, ToolCallState> = {
+              [event.toolUseId]: tc,
+            };
             const idMap = { ...s.sdkIdToExecId };
             if (event.executionId) {
-              updates[event.executionId] = { ...tc, toolUseId: event.executionId };
+              updates[event.executionId] = {
+                ...tc,
+                toolUseId: event.executionId,
+              };
               idMap[event.toolUseId] = event.executionId;
             }
             const currentToolCall: CurrentToolCall = {
@@ -313,7 +354,11 @@ export const useExecutionStore = create<ExecutionStore>()(
             };
           },
           false,
-          { type: "tool-use", toolName: event.toolName, conversationId: event.conversationId },
+          {
+            type: "tool-use",
+            toolName: event.toolName,
+            conversationId: event.conversationId,
+          },
         );
         // 自动进入 executing 阶段（避免重复转换造成 warn）
         const current = get().phases[event.conversationId];
@@ -328,13 +373,12 @@ export const useExecutionStore = create<ExecutionStore>()(
             const existing = s.toolCalls[event.toolUseId];
             const updates: Record<string, ToolCallState> = {
               [event.toolUseId]: {
-                ...(existing
-                  || {
-                    toolUseId: event.toolUseId,
-                    toolName: event.toolName,
-                    input: event.input ?? {},
-                    assistantMessageId: event.assistantMessageId || "",
-                  }),
+                ...(existing || {
+                  toolUseId: event.toolUseId,
+                  toolName: event.toolName,
+                  input: event.input ?? {},
+                  assistantMessageId: event.assistantMessageId || "",
+                }),
                 executionStatus: "running",
               },
             };
@@ -349,7 +393,9 @@ export const useExecutionStore = create<ExecutionStore>()(
         set(
           (s) => {
             const existing = s.toolCalls[event.toolUseId];
-            if (!existing) { return {}; }
+            if (!existing) {
+              return {};
+            }
             const updates: Record<string, ToolCallState> = {
               [event.toolUseId]: {
                 ...existing,
@@ -358,8 +404,13 @@ export const useExecutionStore = create<ExecutionStore>()(
                 isError: event.isError,
               },
             };
-            const currentToolCall = s.currentToolCall?.toolUseId === event.toolUseId ? null : s.currentToolCall;
-            return { toolCalls: { ...s.toolCalls, ...updates }, currentToolCall };
+            const currentToolCall = s.currentToolCall?.toolUseId === event.toolUseId
+              ? null
+              : s.currentToolCall;
+            return {
+              toolCalls: { ...s.toolCalls, ...updates },
+              currentToolCall,
+            };
           },
           false,
           { type: "tool-result", toolUseId: event.toolUseId },
@@ -373,7 +424,8 @@ export const useExecutionStore = create<ExecutionStore>()(
         const msg: WorkerMessage = {
           workerId: event.workerId,
           taskId: event.taskId,
-          messageType: (event.messageType || "progress") as WorkerMessage["messageType"],
+          messageType: (event.messageType
+            || "progress") as WorkerMessage["messageType"],
           content: event.content,
           timestamp: Date.now(),
         };
@@ -387,16 +439,24 @@ export const useExecutionStore = create<ExecutionStore>()(
               completion: "completed",
               error: "failed",
             };
-            const newStatus = (event.status || statusMap[event.messageType] || "running") as AgentPoolItem["status"];
+            const newStatus = (event.status
+              || statusMap[event.messageType]
+              || "running") as AgentPoolItem["status"];
             if (idx >= 0) {
               const existing = pool[idx];
               pool[idx] = {
                 ...existing,
                 status: newStatus,
-                summary: event.messageType === "progress" ? event.content : existing.summary,
-                error: event.messageType === "error" ? event.content : existing.error,
+                summary: event.messageType === "progress"
+                  ? event.content
+                  : existing.summary,
+                error: event.messageType === "error"
+                  ? event.content
+                  : existing.error,
                 messages: [...(existing.messages || []), msg],
-                duration: existing.startedAt ? Date.now() - existing.startedAt : undefined,
+                duration: existing.startedAt
+                  ? Date.now() - existing.startedAt
+                  : undefined,
               };
             } else {
               pool.push({
@@ -411,7 +471,9 @@ export const useExecutionStore = create<ExecutionStore>()(
                 messageId: _latestMessageIdByConv[event.conversationId],
               });
             }
-            return { agentPool: { ...s.agentPool, [event.conversationId]: pool } };
+            return {
+              agentPool: { ...s.agentPool, [event.conversationId]: pool },
+            };
           },
           false,
           { type: "worker-event", workerId: event.workerId },
@@ -432,7 +494,11 @@ export const useExecutionStore = create<ExecutionStore>()(
               conversationId: event.conversationId,
               type: "sub_agent",
               name: event.agentName || event.agentType,
-              status: event.status === "running" ? "running" : event.status === "failed" ? "failed" : "completed",
+              status: event.status === "running"
+                ? "running"
+                : event.status === "failed"
+                ? "failed"
+                : "completed",
               agentType: event.agentType,
               childConversationId: event.childConversationId,
               childSessionId: event.childSessionId,
@@ -441,9 +507,14 @@ export const useExecutionStore = create<ExecutionStore>()(
               startedAt: Date.now(),
               messageId: _latestMessageIdByConv[event.conversationId],
             };
-            if (idx >= 0) { pool[idx] = { ...pool[idx], ...item }; }
-            else { pool.push(item); }
-            return { agentPool: { ...s.agentPool, [event.conversationId]: pool } };
+            if (idx >= 0) {
+              pool[idx] = { ...pool[idx], ...item };
+            } else {
+              pool.push(item);
+            }
+            return {
+              agentPool: { ...s.agentPool, [event.conversationId]: pool },
+            };
           },
           false,
           { type: "sub-agent-card", conversationId: event.conversationId },
@@ -452,11 +523,15 @@ export const useExecutionStore = create<ExecutionStore>()(
 
       handleDone: (event) => {
         const current = get().phases[event.conversationId];
-        if (current && TERMINAL_PHASES.has(current as ExecutionPhase)) { return; }
+        if (current && TERMINAL_PHASES.has(current as ExecutionPhase)) {
+          return;
+        }
         get().transition(event.conversationId, "completed");
         set(
           (s) => ({
-            currentToolCall: shouldClearToolCall(s, event.conversationId) ? null : s.currentToolCall,
+            currentToolCall: shouldClearToolCall(s, event.conversationId)
+              ? null
+              : s.currentToolCall,
             agentStatus: { ...s.agentStatus, [event.conversationId]: "" },
           }),
           false,
@@ -466,12 +541,19 @@ export const useExecutionStore = create<ExecutionStore>()(
 
       handleError: (event) => {
         const current = get().phases[event.conversationId];
-        if (current && TERMINAL_PHASES.has(current as ExecutionPhase)) { return; }
+        if (current && TERMINAL_PHASES.has(current as ExecutionPhase)) {
+          return;
+        }
         get().transition(event.conversationId, "failed");
         set(
           (s) => ({
-            currentToolCall: shouldClearToolCall(s, event.conversationId) ? null : s.currentToolCall,
-            agentStatus: { ...s.agentStatus, [event.conversationId]: event.message || "Unknown error" },
+            currentToolCall: shouldClearToolCall(s, event.conversationId)
+              ? null
+              : s.currentToolCall,
+            agentStatus: {
+              ...s.agentStatus,
+              [event.conversationId]: event.message || "Unknown error",
+            },
           }),
           false,
           { type: "agent-error", conversationId: event.conversationId },
@@ -493,22 +575,39 @@ export const useExecutionStore = create<ExecutionStore>()(
       // ── 轨迹 ──
 
       fetchTrajectoryList: async (conversationId: string) => {
-        if (get().trajectoriesByConversation[conversationId]) { return; }
-        set({ loadingTrajectories: true }, false, { type: "fetch-trajectory-list/start", conversationId });
+        if (get().trajectoriesByConversation[conversationId]) {
+          return;
+        }
+        set({ loadingTrajectories: true }, false, {
+          type: "fetch-trajectory-list/start",
+          conversationId,
+        });
         try {
           const result = await invoke<TrajectorySummary[]>("trajectory_list", {
             sessionId: conversationId,
             limit: 20,
           });
           set(
-            (s) => ({ trajectoriesByConversation: { ...s.trajectoriesByConversation, [conversationId]: result } }),
+            (s) => ({
+              trajectoriesByConversation: {
+                ...s.trajectoriesByConversation,
+                [conversationId]: result,
+              },
+            }),
             false,
-            { type: "fetch-trajectory-list/done", conversationId, count: result.length },
+            {
+              type: "fetch-trajectory-list/done",
+              conversationId,
+              count: result.length,
+            },
           );
         } catch {
           // 轨迹服务可能未初始化
         } finally {
-          set({ loadingTrajectories: false }, false, { type: "fetch-trajectory-list/end", conversationId });
+          set({ loadingTrajectories: false }, false, {
+            type: "fetch-trajectory-list/end",
+            conversationId,
+          });
         }
       },
 
@@ -517,28 +616,51 @@ export const useExecutionStore = create<ExecutionStore>()(
           return get().trajectoryDetails[trajectoryId];
         }
         set(
-          (s) => ({ loadingTrajectoryDetail: { ...s.loadingTrajectoryDetail, [trajectoryId]: true } }),
+          (s) => ({
+            loadingTrajectoryDetail: {
+              ...s.loadingTrajectoryDetail,
+              [trajectoryId]: true,
+            },
+          }),
           false,
           { type: "fetch-trajectory-detail/start", trajectoryId },
         );
         try {
-          const result = await invoke<TrajectoryDetail>("get_trajectory_detail", { trajectoryId });
+          const result = await invoke<TrajectoryDetail>(
+            "get_trajectory_detail",
+            { trajectoryId },
+          );
           set(
-            (s) => ({ trajectoryDetails: { ...s.trajectoryDetails, [trajectoryId]: result } }),
+            (s) => ({
+              trajectoryDetails: {
+                ...s.trajectoryDetails,
+                [trajectoryId]: result,
+              },
+            }),
             false,
             { type: "fetch-trajectory-detail/done", trajectoryId },
           );
           return result;
         } catch {
           set(
-            (s) => ({ trajectoryDetails: { ...s.trajectoryDetails, [trajectoryId]: null } }),
+            (s) => ({
+              trajectoryDetails: {
+                ...s.trajectoryDetails,
+                [trajectoryId]: null,
+              },
+            }),
             false,
             { type: "fetch-trajectory-detail/error", trajectoryId },
           );
           return null;
         } finally {
           set(
-            (s) => ({ loadingTrajectoryDetail: { ...s.loadingTrajectoryDetail, [trajectoryId]: false } }),
+            (s) => ({
+              loadingTrajectoryDetail: {
+                ...s.loadingTrajectoryDetail,
+                [trajectoryId]: false,
+              },
+            }),
             false,
             { type: "fetch-trajectory-detail/end", trajectoryId },
           );
@@ -550,10 +672,7 @@ export const useExecutionStore = create<ExecutionStore>()(
       clearConversation: (conversationId) => {
         set(
           (s) => {
-            const {
-              [conversationId]: _p,
-              ...restPhases
-            } = s.phases;
+            const { [conversationId]: _p, ...restPhases } = s.phases;
             const { [conversationId]: _a, ...restStatus } = s.agentStatus;
             const { [conversationId]: _pool, ...restPool } = s.agentPool;
             const { [conversationId]: _traj, ...restTraj } = s.trajectoriesByConversation;
@@ -564,7 +683,9 @@ export const useExecutionStore = create<ExecutionStore>()(
               agentStatus: restStatus,
               agentPool: restPool,
               trajectoriesByConversation: restTraj,
-              currentToolCall: s.currentToolCall?.conversationId === conversationId ? null : s.currentToolCall,
+              currentToolCall: s.currentToolCall?.conversationId === conversationId
+                ? null
+                : s.currentToolCall,
             };
           },
           false,
@@ -581,25 +702,41 @@ export const useExecutionStore = create<ExecutionStore>()(
 let _listenersSetup = false;
 
 export function setupExecutionEventListeners(): () => void {
-  if (_listenersSetup) { return () => {}; }
+  if (_listenersSetup) {
+    return () => {};
+  }
   _listenersSetup = true;
 
   const unlisteners: Promise<UnlistenFn>[] = [];
   const store = useExecutionStore.getState();
 
-  unlisteners.push(listen<ToolUseEvent>("agent-tool-use", (e) => store.handleToolUse(e.payload)));
-  unlisteners.push(listen<ToolStartEvent>("agent-tool-start", (e) => store.handleToolStart(e.payload)));
-  unlisteners.push(listen<ToolResultEvent>("agent-tool-result", (e) => store.handleToolResult(e.payload)));
+  unlisteners.push(
+    listen<ToolUseEvent>("agent-tool-use", (e) => store.handleToolUse(e.payload)),
+  );
+  unlisteners.push(
+    listen<ToolStartEvent>("agent-tool-start", (e) => store.handleToolStart(e.payload)),
+  );
+  unlisteners.push(
+    listen<ToolResultEvent>("agent-tool-result", (e) => store.handleToolResult(e.payload)),
+  );
   unlisteners.push(
     listen<AgentStatusEvent>("agent-status", (e) => store.setAgentStatus(e.payload.conversationId, e.payload.message)),
   );
-  unlisteners.push(listen<AgentDoneEvent>("agent-done", (e) => {
-    store.clearAgentStatus(e.payload.conversationId);
-    store.handleDone(e.payload);
-  }));
-  unlisteners.push(listen<AgentErrorEvent>("agent-error", (e) => store.handleError(e.payload)));
-  unlisteners.push(listen<AgentCancelledEvent>("agent-cancelled", (e) => store.handleCancelled(e.payload)));
-  unlisteners.push(listen<SubAgentCardEvent>("agent-subagent-card", (e) => store.handleSubAgentCard(e.payload)));
+  unlisteners.push(
+    listen<AgentDoneEvent>("agent-done", (e) => {
+      store.clearAgentStatus(e.payload.conversationId);
+      store.handleDone(e.payload);
+    }),
+  );
+  unlisteners.push(
+    listen<AgentErrorEvent>("agent-error", (e) => store.handleError(e.payload)),
+  );
+  unlisteners.push(
+    listen<AgentCancelledEvent>("agent-cancelled", (e) => store.handleCancelled(e.payload)),
+  );
+  unlisteners.push(
+    listen<SubAgentCardEvent>("agent-subagent-card", (e) => store.handleSubAgentCard(e.payload)),
+  );
 
   // Worker 事件
   const workerPayload = {} as {
@@ -611,73 +748,85 @@ export function setupExecutionEventListeners(): () => void {
     status?: string;
   };
   unlisteners.push(
-    listen<typeof workerPayload>(
-      "worker-created",
-      (e) =>
-        store.handleWorkerEvent({
-          ...e.payload,
-          messageType: "progress",
-          content: i18n.t("executionStore.workerCreated"),
-        }),
-    ),
-  );
-  unlisteners.push(listen<typeof workerPayload>("worker-progress", (e) => store.handleWorkerEvent(e.payload)));
-  unlisteners.push(
-    listen<typeof workerPayload>(
-      "worker-completed",
-      (e) => store.handleWorkerEvent({ ...e.payload, messageType: "completion", status: "completed" }),
-    ),
+    listen<typeof workerPayload>("worker-created", (e) =>
+      store.handleWorkerEvent({
+        ...e.payload,
+        messageType: "progress",
+        content: i18n.t("executionStore.workerCreated"),
+      })),
   );
   unlisteners.push(
-    listen<typeof workerPayload>(
-      "worker-failed",
-      (e) => store.handleWorkerEvent({ ...e.payload, messageType: "error", status: "failed" }),
-    ),
+    listen<typeof workerPayload>("worker-progress", (e) => store.handleWorkerEvent(e.payload)),
+  );
+  unlisteners.push(
+    listen<typeof workerPayload>("worker-completed", (e) =>
+      store.handleWorkerEvent({
+        ...e.payload,
+        messageType: "completion",
+        status: "completed",
+      })),
+  );
+  unlisteners.push(
+    listen<typeof workerPayload>("worker-failed", (e) =>
+      store.handleWorkerEvent({
+        ...e.payload,
+        messageType: "error",
+        status: "failed",
+      })),
   );
 
   // Workflow 步骤事件
   unlisteners.push(
-    listen<{ conversationId: string; stepId: string; stepGoal: string; agentRole: string }>(
-      "workflow-step-start",
-      (e) => {
-        store.upsertPoolItem({
-          id: e.payload.stepId,
-          conversationId: e.payload.conversationId,
-          type: "workflow_step",
-          name: e.payload.stepGoal,
-          status: "running",
-          agentRole: e.payload.agentRole,
-          startedAt: Date.now(),
-          messageId: _latestMessageIdByConv[e.payload.conversationId],
-        });
-      },
-    ),
+    listen<{
+      conversationId: string;
+      stepId: string;
+      stepGoal: string;
+      agentRole: string;
+    }>("workflow-step-start", (e) => {
+      store.upsertPoolItem({
+        id: e.payload.stepId,
+        conversationId: e.payload.conversationId,
+        type: "workflow_step",
+        name: e.payload.stepGoal,
+        status: "running",
+        agentRole: e.payload.agentRole,
+        startedAt: Date.now(),
+        messageId: _latestMessageIdByConv[e.payload.conversationId],
+      });
+    }),
   );
   unlisteners.push(
-    listen<{ conversationId: string; stepId: string; stepGoal: string; result: string }>(
-      "workflow-step-complete",
+    listen<{
+      conversationId: string;
+      stepId: string;
+      stepGoal: string;
+      result: string;
+    }>("workflow-step-complete", (e) => {
+      store.upsertPoolItem({
+        id: e.payload.stepId,
+        conversationId: e.payload.conversationId,
+        type: "workflow_step",
+        name: e.payload.stepGoal,
+        status: "completed",
+        summary: e.payload.result,
+      });
+    }),
+  );
+  unlisteners.push(
+    listen<{ conversationId: string; stepId: string; error: string }>(
+      "workflow-step-error",
       (e) => {
         store.upsertPoolItem({
           id: e.payload.stepId,
           conversationId: e.payload.conversationId,
           type: "workflow_step",
-          name: e.payload.stepGoal,
-          status: "completed",
-          summary: e.payload.result,
+          name: e.payload.stepId,
+          status: "failed",
+          error: e.payload.error,
         });
       },
     ),
   );
-  unlisteners.push(listen<{ conversationId: string; stepId: string; error: string }>("workflow-step-error", (e) => {
-    store.upsertPoolItem({
-      id: e.payload.stepId,
-      conversationId: e.payload.conversationId,
-      type: "workflow_step",
-      name: e.payload.stepId,
-      status: "failed",
-      error: e.payload.error,
-    });
-  }));
 
   return () => {
     _listenersSetup = false;

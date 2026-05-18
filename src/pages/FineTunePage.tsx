@@ -43,7 +43,9 @@ export default function FineTunePage() {
 
   return (
     <div style={{ padding: "16px 24px", maxWidth: 1200, margin: "0 auto" }}>
-      <h2 style={{ margin: "0 0 16px", fontSize: 20, fontWeight: 600 }}>{t("fineTune.title")}</h2>
+      <h2 style={{ margin: "0 0 16px", fontSize: 20, fontWeight: 600 }}>
+        {t("fineTune.title")}
+      </h2>
       {stats && (
         <div
           style={{

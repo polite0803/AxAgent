@@ -24,14 +24,24 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold">{formatScore(result.overall_score)}</div>
-          <div className="text-xs text-zinc-500">{formatDuration(result.duration_ms)}</div>
+          <div className="text-2xl font-bold">
+            {formatScore(result.overall_score)}
+          </div>
+          <div className="text-xs text-zinc-500">
+            {formatDuration(result.duration_ms)}
+          </div>
         </div>
       </div>
 
       <Descriptions size="small" className="mb-4">
-        <Descriptions.Item label={t("benchmark.taskId")}>{result.task_id}</Descriptions.Item>
-        {result.trace_id && <Descriptions.Item label={t("benchmark.traceId")}>{result.trace_id}</Descriptions.Item>}
+        <Descriptions.Item label={t("benchmark.taskId")}>
+          {result.task_id}
+        </Descriptions.Item>
+        {result.trace_id && (
+          <Descriptions.Item label={t("benchmark.traceId")}>
+            {result.trace_id}
+          </Descriptions.Item>
+        )}
       </Descriptions>
 
       {result.error && (
@@ -69,7 +79,9 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
           <Typography.Text strong className="mb-2 block">
             {t("benchmark.response")}
           </Typography.Text>
-          <pre className="block whitespace-pre-wrap bg-zinc-50 p-2 rounded overflow-auto">{result.response}</pre>
+          <pre className="block whitespace-pre-wrap bg-zinc-50 p-2 rounded overflow-auto">
+            {result.response}
+          </pre>
         </div>
       )}
     </Card>

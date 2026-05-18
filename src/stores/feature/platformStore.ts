@@ -10,12 +10,18 @@ interface PlatformState {
   error: string | null;
 
   loadConfig: () => Promise<void>;
-  saveConfig: (config: Partial<PlatformConfig>) => Promise<PlatformReconcileReport>;
+  saveConfig: (
+    config: Partial<PlatformConfig>,
+  ) => Promise<PlatformReconcileReport>;
   loadStatuses: () => Promise<void>;
   loadSessions: () => Promise<void>;
   reconcile: () => Promise<PlatformReconcileReport>;
   deactivateSession: (sessionId: string) => Promise<void>;
-  sendMessage: (platform: string, chatId: string, text: string) => Promise<void>;
+  sendMessage: (
+    platform: string,
+    chatId: string,
+    text: string,
+  ) => Promise<void>;
 }
 
 const defaultConfig: PlatformConfig = {
@@ -88,9 +94,12 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
     try {
       const current = await invoke<PlatformConfig>("get_platform_config");
       const merged: PlatformConfig = { ...current, ...partial };
-      const report = await invoke<PlatformReconcileReport>("update_platform_config", {
-        config: merged,
-      });
+      const report = await invoke<PlatformReconcileReport>(
+        "update_platform_config",
+        {
+          config: merged,
+        },
+      );
       set({ config: merged, loading: false, error: null });
       return report;
     } catch (e) {
@@ -119,7 +128,9 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
 
   reconcile: async () => {
     try {
-      const report = await invoke<PlatformReconcileReport>("reconcile_platforms");
+      const report = await invoke<PlatformReconcileReport>(
+        "reconcile_platforms",
+      );
       await get().loadStatuses();
       return report;
     } catch (e) {
@@ -144,7 +155,10 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
   },
 
   createSession: async (platform: string, chatId: string) => {
-    const session = await invoke<PlatformSession>("create_platform_session", { platform, chatId });
+    const session = await invoke<PlatformSession>("create_platform_session", {
+      platform,
+      chatId,
+    });
     set((s) => ({ sessions: [...s.sessions, session] }));
     return session;
   },

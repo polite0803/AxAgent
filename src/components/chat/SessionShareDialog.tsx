@@ -27,7 +27,7 @@ function generateInviteCode(sessionId: string): string {
   const base = sessionId.replace(/-/g, "");
   for (let i = 0; i < base.length; i++) {
     const char = base.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash |= 0;
   }
   const ts = Date.now().toString(16).slice(-4).toUpperCase();
@@ -79,23 +79,32 @@ export function SessionShareDialog({
       () => {
         setCopied(true);
         clearTimeout(copiedTimerRef.current);
-        copiedTimerRef.current = window.setTimeout(() => setCopied(false), 2000);
+        copiedTimerRef.current = window.setTimeout(
+          () => setCopied(false),
+          2000,
+        );
       },
       () => {
-        message.error(t("chat.collaboration.sessionShare.copyFailed") || "Copy failed");
+        message.error(
+          t("chat.collaboration.sessionShare.copyFailed") || "Copy failed",
+        );
       },
     );
   }, [inviteCode, t]);
 
   const handleJoin = useCallback(async () => {
     const trimmed = joinCode.trim();
-    if (!trimmed || !onJoinSession) { return; }
+    if (!trimmed || !onJoinSession) {
+      return;
+    }
     setJoining(true);
     try {
       await onJoinSession(trimmed);
       setJoinCode("");
     } catch {
-      message.error(t("chat.collaboration.sessionShare.joinFailed") || "Join failed");
+      message.error(
+        t("chat.collaboration.sessionShare.joinFailed") || "Join failed",
+      );
     } finally {
       setJoining(false);
     }
@@ -246,7 +255,9 @@ export function SessionShareDialog({
                 <Input
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value)}
-                  placeholder={t("chat.collaboration.sessionShare.codePlaceholder")}
+                  placeholder={t(
+                    "chat.collaboration.sessionShare.codePlaceholder",
+                  )}
                   size="middle"
                   onPressEnter={handleJoin}
                 />

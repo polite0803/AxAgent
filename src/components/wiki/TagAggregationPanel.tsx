@@ -12,7 +12,9 @@ interface TagAggregationPanelProps {
 function extractTagsFromFrontmatter(content: string): string[] {
   const tags: string[] = [];
   const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (!fmMatch) { return tags; }
+  if (!fmMatch) {
+    return tags;
+  }
   const fm = fmMatch[1];
   for (const line of fm.split("\n")) {
     const trimmed = line.trim();
@@ -22,15 +24,22 @@ function extractTagsFromFrontmatter(content: string): string[] {
         const inner = rest.slice(1, -1);
         for (const t of inner.split(",")) {
           const cleaned = t.trim().replace(/^["']|["']$/g, "");
-          if (cleaned) { tags.push(cleaned); }
+          if (cleaned) {
+            tags.push(cleaned);
+          }
         }
       }
       continue;
     }
     if (tags.length > 0 || trimmed.startsWith("- ")) {
       if (trimmed.startsWith("- ")) {
-        const val = trimmed.slice(2).trim().replace(/^["']|["']$/g, "");
-        if (val) { tags.push(val); }
+        const val = trimmed
+          .slice(2)
+          .trim()
+          .replace(/^["']|["']$/g, "");
+        if (val) {
+          tags.push(val);
+        }
       }
     }
   }
@@ -51,7 +60,11 @@ function extractTagsFromContent(content: string): string[] {
   return tags;
 }
 
-export function TagAggregationPanel({ notes, onTagClick, activeTag }: TagAggregationPanelProps) {
+export function TagAggregationPanel({
+  notes,
+  onTagClick,
+  activeTag,
+}: TagAggregationPanelProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
 
@@ -63,15 +76,22 @@ export function TagAggregationPanel({ notes, onTagClick, activeTag }: TagAggrega
         freq.set(tag, (freq.get(tag) || 0) + 1);
       }
     }
-    return Array.from(freq.entries())
-      .sort((a, b) => b[1] - a[1]);
+    return Array.from(freq.entries()).sort((a, b) => b[1] - a[1]);
   }, [notes]);
 
-  if (tagData.length === 0) { return null; }
+  if (tagData.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="px-3 py-2 border-b" style={{ borderColor: token.colorBorderSecondary }}>
-      <div className="text-xs font-medium mb-1.5" style={{ color: token.colorTextSecondary }}>
+    <div
+      className="px-3 py-2 border-b"
+      style={{ borderColor: token.colorBorderSecondary }}
+    >
+      <div
+        className="text-xs font-medium mb-1.5"
+        style={{ color: token.colorTextSecondary }}
+      >
         {t("wiki.tags")}
       </div>
       <div className="flex flex-wrap gap-1">
@@ -81,7 +101,11 @@ export function TagAggregationPanel({ notes, onTagClick, activeTag }: TagAggrega
             color={activeTag === tag ? token.colorPrimary : undefined}
             style={activeTag === tag
               ? { cursor: "pointer" }
-              : { cursor: "pointer", borderColor: token.colorBorder, background: "transparent" }}
+              : {
+                cursor: "pointer",
+                borderColor: token.colorBorder,
+                background: "transparent",
+              }}
             onClick={() => onTagClick(tag)}
           >
             {tag} <span style={{ opacity: 0.6, fontSize: 10 }}>{count}</span>

@@ -10,7 +10,11 @@ interface DockerConfigModalProps {
   onConnect: (config: { socketPath: string }) => void;
 }
 
-export function DockerConfigModal({ open, onClose, onConnect }: DockerConfigModalProps) {
+export function DockerConfigModal({
+  open,
+  onClose,
+  onConnect,
+}: DockerConfigModalProps) {
   const { t } = useTranslation();
   const [socketPath, setSocketPath] = useState("");
 

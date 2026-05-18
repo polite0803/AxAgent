@@ -102,7 +102,7 @@ vi.mock("react-i18next", () => ({
       };
       const fallbackStr = typeof options === "object" && options !== null
         ? ((options as Record<string, unknown>).defaultValue as string)
-        : options as string | undefined;
+        : (options as string | undefined);
       return translations[key] ?? fallbackStr ?? key;
     },
   }),
@@ -136,7 +136,12 @@ const {
   }
 
   const ref = createStoreMock();
-  return { mockStoreState: state, subscribeMock: sub, setStateMock: ss, storeMockRef: ref };
+  return {
+    mockStoreState: state,
+    subscribeMock: sub,
+    setStateMock: ss,
+    storeMockRef: ref,
+  };
 });
 
 vi.mock("@/stores", () => ({
@@ -211,7 +216,9 @@ describe("AIPanel Component", () => {
     fireEvent.click(generateButton);
 
     await waitFor(() => {
-      expect(mockOnGenerateWorkflow).toHaveBeenCalledWith("Create a test workflow");
+      expect(mockOnGenerateWorkflow).toHaveBeenCalledWith(
+        "Create a test workflow",
+      );
     });
   });
 

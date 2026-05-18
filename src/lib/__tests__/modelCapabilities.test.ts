@@ -23,14 +23,19 @@ const mockModel = (overrides: Partial<Model> = {}): Model => ({
   ...overrides,
 });
 
-const mockProvider = (overrides: Partial<ProviderConfig> = {}): ProviderConfig => ({
+const mockProvider = (
+  overrides: Partial<ProviderConfig> = {},
+): ProviderConfig => ({
   id: "p-1",
   name: "OpenAI",
   provider_type: "openai",
   api_host: "https://api.openai.com",
   api_path: null,
   enabled: true,
-  models: [mockModel(), mockModel({ model_id: "gpt-3.5", capabilities: ["FunctionCalling"] })],
+  models: [
+    mockModel(),
+    mockModel({ model_id: "gpt-3.5", capabilities: ["FunctionCalling"] }),
+  ],
   keys: [],
   proxy_config: null,
   custom_headers: null,
@@ -63,7 +68,10 @@ describe("getEditableCapabilities", () => {
 
 describe("sanitizeModelCapabilities", () => {
   it("filters out capabilities not in the allowed set", () => {
-    const result = sanitizeModelCapabilities("Chat", ["Vision", "Unknown" as any]);
+    const result = sanitizeModelCapabilities("Chat", [
+      "Vision",
+      "Unknown" as any,
+    ]);
     expect(result).toEqual(["Vision"]);
   });
 
@@ -73,20 +81,30 @@ describe("sanitizeModelCapabilities", () => {
   });
 
   it("keeps all valid capabilities", () => {
-    const result = sanitizeModelCapabilities("Chat", ["Vision", "FunctionCalling", "Reasoning"]);
+    const result = sanitizeModelCapabilities("Chat", [
+      "Vision",
+      "FunctionCalling",
+      "Reasoning",
+    ]);
     expect(result).toHaveLength(3);
   });
 });
 
 describe("getVisibleModelCapabilities", () => {
   it("returns sanitized capabilities for a chat model", () => {
-    const model = mockModel({ model_type: "Chat", capabilities: ["Vision", "Reasoning"] });
+    const model = mockModel({
+      model_type: "Chat",
+      capabilities: ["Vision", "Reasoning"],
+    });
     const result = getVisibleModelCapabilities(model);
     expect(result).toEqual(["Vision", "Reasoning"]);
   });
 
   it("returns empty for a non-Chat model", () => {
-    const model = mockModel({ model_type: "Embedding", capabilities: ["Vision"] });
+    const model = mockModel({
+      model_type: "Embedding",
+      capabilities: ["Vision"],
+    });
     const result = getVisibleModelCapabilities(model);
     expect(result).toEqual([]);
   });
@@ -112,11 +130,15 @@ describe("modelHasCapability", () => {
 
 describe("supportsReasoning", () => {
   it("returns true when model has Reasoning capability", () => {
-    expect(supportsReasoning(mockModel({ capabilities: ["Reasoning"] }))).toBe(true);
+    expect(supportsReasoning(mockModel({ capabilities: ["Reasoning"] }))).toBe(
+      true,
+    );
   });
 
   it("returns false when model lacks Reasoning", () => {
-    expect(supportsReasoning(mockModel({ capabilities: ["Vision"] }))).toBe(false);
+    expect(supportsReasoning(mockModel({ capabilities: ["Vision"] }))).toBe(
+      false,
+    );
   });
 
   it("returns false for null model", () => {

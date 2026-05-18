@@ -37,7 +37,15 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
       width={400}
       destroyOnHidden
     >
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "16px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 16,
+          padding: "16px 0",
+        }}
+      >
         <IconEditor
           iconType={avatarType}
           iconValue={avatarValue}

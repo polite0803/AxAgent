@@ -24,7 +24,13 @@ const DEFAULT_MANIFEST: Partial<SkillManifest> = {
   permissions: { commands: [], events: [] },
 };
 
-export function FrontendEditorModal({ open, skillName, currentManifest, onClose, onSaved }: FrontendEditorModalProps) {
+export function FrontendEditorModal({
+  open,
+  skillName,
+  currentManifest,
+  onClose,
+  onSaved,
+}: FrontendEditorModalProps) {
   const { t } = useTranslation();
   const [editorTab, setEditorTab] = useState<"json" | "preview">("json");
   const [jsonText, setJsonText] = useState(() => formatJson(DEFAULT_MANIFEST));
@@ -40,7 +46,9 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
 
   useEffect(() => {
     if (open) {
-      const d = currentManifest ? structuredClone(currentManifest) : structuredClone(DEFAULT_MANIFEST);
+      const d = currentManifest
+        ? structuredClone(currentManifest)
+        : structuredClone(DEFAULT_MANIFEST);
       setJsonText(formatJson(d));
       setJsonError(null);
       setEditorTab("json");
@@ -50,7 +58,9 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
   const handleAnalyze = useCallback(async () => {
     setAnalyzing(true);
     try {
-      const result = await invoke<SkillManifest>("skill_analyze_frontend", { name: skillName });
+      const result = await invoke<SkillManifest>("skill_analyze_frontend", {
+        name: skillName,
+      });
       setJsonText(formatJson(result));
       message.success(t("skill.analyzeSuccess"));
     } catch (e) {
@@ -74,7 +84,10 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
     try {
       setSaving(true);
       const finalData = JSON.parse(jsonText);
-      await invoke("skill_set_manifest", { name: skillName, manifest: finalData });
+      await invoke("skill_set_manifest", {
+        name: skillName,
+        manifest: finalData,
+      });
       message.success(t("skillEditor.manifestSaved"));
       onClose();
       onSaved();
@@ -117,7 +130,10 @@ export function FrontendEditorModal({ open, skillName, currentManifest, onClose,
             label: t("skillEditor.jsonTab"),
             children: (
               <div>
-                <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: "block" }}>
+                <Text
+                  type="secondary"
+                  style={{ fontSize: 12, marginBottom: 8, display: "block" }}
+                >
                   {t("skillEditor.manifestHint")}
                 </Text>
                 <Input.TextArea

@@ -15,7 +15,10 @@ interface MergeNodeData {
   inputs?: string[];
 }
 
-const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({ data, selected }) => {
+const MergeNodeComponent: React.FC<NodeProps<MergeNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#fa8c16";
   const mergeType = data.mergeType || "all";

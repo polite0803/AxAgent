@@ -58,7 +58,9 @@ export function BenchmarkPanel() {
       const data = await invoke<BenchSuiteInfo[]>(
         "benchmark_list_suites",
       ).catch((e) => {
-        if (import.meta.env.DEV) { console.warn("Failed to fetch benchmark suites:", e); }
+        if (import.meta.env.DEV) {
+          console.warn("Failed to fetch benchmark suites:", e);
+        }
         return [];
       });
       setSuites(data);
@@ -178,7 +180,9 @@ export function BenchmarkPanel() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setExpandedResult(expandedResult === result.run_id ? null : result.run_id);
+                    setExpandedResult(
+                      expandedResult === result.run_id ? null : result.run_id,
+                    );
                   }
                 }}
                 onClick={() =>
@@ -191,18 +195,28 @@ export function BenchmarkPanel() {
                   <Text strong className="text-sm">
                     {result.benchmark_id}
                   </Text>
-                  <Tag color={result.summary.pass_rate > 0.8 ? "success" : "warning"}>
+                  <Tag
+                    color={result.summary.pass_rate > 0.8 ? "success" : "warning"}
+                  >
                     {Math.round(result.summary.pass_rate * 100)}%
                   </Tag>
                 </Space>
                 <Space size="small">
                   <Badge
                     status="success"
-                    text={<Text type="secondary" className="text-xs">{result.summary.passed}</Text>}
+                    text={
+                      <Text type="secondary" className="text-xs">
+                        {result.summary.passed}
+                      </Text>
+                    }
                   />
                   <Badge
                     status="error"
-                    text={<Text type="secondary" className="text-xs">{result.summary.failed}</Text>}
+                    text={
+                      <Text type="secondary" className="text-xs">
+                        {result.summary.failed}
+                      </Text>
+                    }
                   />
                 </Space>
               </div>
@@ -210,17 +224,27 @@ export function BenchmarkPanel() {
               {expandedResult === result.run_id && (
                 <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                   <div className="grid grid-cols-2 gap-2 mb-2">
-                    <Card size="small" className="bg-green-50 dark:bg-green-900/10 text-center">
+                    <Card
+                      size="small"
+                      className="bg-green-50 dark:bg-green-900/10 text-center"
+                    >
                       <Text className="text-lg font-bold text-green-600 block">
                         {result.summary.passed}
                       </Text>
-                      <Text type="secondary" className="text-xs">{t("chat.benchmarks.passed")}</Text>
+                      <Text type="secondary" className="text-xs">
+                        {t("chat.benchmarks.passed")}
+                      </Text>
                     </Card>
-                    <Card size="small" className="bg-red-50 dark:bg-red-900/10 text-center">
+                    <Card
+                      size="small"
+                      className="bg-red-50 dark:bg-red-900/10 text-center"
+                    >
                       <Text className="text-lg font-bold text-red-600 block">
                         {result.summary.failed}
                       </Text>
-                      <Text type="secondary" className="text-xs">{t("chat.benchmarks.failed")}</Text>
+                      <Text type="secondary" className="text-xs">
+                        {t("chat.benchmarks.failed")}
+                      </Text>
                     </Card>
                   </div>
 
@@ -237,14 +261,23 @@ export function BenchmarkPanel() {
                         className="flex items-center gap-2 px-2 py-1 rounded text-xs"
                       >
                         {task.status === "success"
-                          ? <CheckCircle size={10} className="text-green-500 shrink-0" />
-                          : task.status === "failed" || task.status === "timeout"
-                          ? <XCircle size={10} className="text-red-500 shrink-0" />
+                          ? (
+                            <CheckCircle
+                              size={10}
+                              className="text-green-500 shrink-0"
+                            />
+                          )
+                          : task.status === "failed"
+                              || task.status === "timeout"
+                          ? (
+                            <XCircle
+                              size={10}
+                              className="text-red-500 shrink-0"
+                            />
+                          )
                           : <Clock size={10} className="text-zinc-400 shrink-0" />}
                         <Text className="flex-1 truncate">{task.task_id}</Text>
-                        <Text type="secondary">
-                          {task.steps_taken}s
-                        </Text>
+                        <Text type="secondary">{task.steps_taken}s</Text>
                         <Tag
                           color={task.score > 0.8
                             ? "success"

@@ -6,7 +6,11 @@ import { useTranslation } from "react-i18next";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-export type ThinkingPhase = "analysis" | "planning" | "execution" | "verification";
+export type ThinkingPhase =
+  | "analysis"
+  | "planning"
+  | "execution"
+  | "verification";
 
 interface ThinkingBlock {
   phase: ThinkingPhase;
@@ -160,7 +164,10 @@ function detectPhase(line: string): ThinkingPhase | null {
   return null;
 }
 
-function parseThinkingBlocks(thinking: string, t: (key: string) => string): ThinkingBlock[] {
+function parseThinkingBlocks(
+  thinking: string,
+  t: (key: string) => string,
+): ThinkingBlock[] {
   const lines = thinking.split("\n");
   const blocks: ThinkingBlock[] = [];
   let currentPhase: ThinkingPhase | null = null;
@@ -182,7 +189,10 @@ function parseThinkingBlocks(thinking: string, t: (key: string) => string): Thin
 
       // Start new block
       currentPhase = detected;
-      currentTitle = line.trim().replace(/^[#*\-\d.]+\s*/, "").slice(0, 60);
+      currentTitle = line
+        .trim()
+        .replace(/^[#*\-\d.]+\s*/, "")
+        .slice(0, 60);
       currentLines = [line];
     } else {
       if (!currentPhase) {
@@ -226,7 +236,10 @@ function parseThinkingBlocks(thinking: string, t: (key: string) => string): Thin
   return merged;
 }
 
-function getDefaultTitle(phase: ThinkingPhase, t: (key: string) => string): string {
+function getDefaultTitle(
+  phase: ThinkingPhase,
+  t: (key: string) => string,
+): string {
   const titles: Record<ThinkingPhase, string> = {
     analysis: t("thinking.phase.analysis"),
     planning: t("thinking.phase.planning"),
@@ -243,11 +256,18 @@ const phaseIcons: Record<ThinkingPhase, React.ReactNode> = {
   verification: <CheckCircle2 size={14} />,
 };
 
-const phaseColors: Record<ThinkingPhase, { bg: string; border: string; text: string }> = {
+const phaseColors: Record<
+  ThinkingPhase,
+  { bg: string; border: string; text: string }
+> = {
   analysis: { bg: "rgba(24,144,255,0.06)", border: "#1890ff", text: "#1890ff" },
   planning: { bg: "rgba(250,173,20,0.06)", border: "#faad14", text: "#d48806" },
   execution: { bg: "rgba(82,196,26,0.06)", border: "#52c41a", text: "#389e0d" },
-  verification: { bg: "rgba(114,46,209,0.06)", border: "#722ed1", text: "#722ed1" },
+  verification: {
+    bg: "rgba(114,46,209,0.06)",
+    border: "#722ed1",
+    text: "#722ed1",
+  },
 };
 
 // ── Component ────────────────────────────────────────────────────────────
@@ -285,8 +305,11 @@ export const StructuredThinking = React.memo(function StructuredThinking({
   const toggleBlock = (idx: number) => {
     setExpandedBlocks((prev) => {
       const next = new Set(prev);
-      if (next.has(idx)) { next.delete(idx); }
-      else { next.add(idx); }
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
       return next;
     });
   };
@@ -327,17 +350,21 @@ export const StructuredThinking = React.memo(function StructuredThinking({
           cursor: "pointer",
           userSelect: "none",
           backgroundColor: token.colorFillQuaternary,
-          borderBottom: expanded ? `1px solid ${token.colorBorderSecondary}` : "none",
+          borderBottom: expanded
+            ? `1px solid ${token.colorBorderSecondary}`
+            : "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Brain size={14} style={{ color: token.colorPrimary }} />
-          <span style={{ fontSize: 13, fontWeight: 500 }}>
-            {title}
-          </span>
+          <span style={{ fontSize: 13, fontWeight: 500 }}>{title}</span>
           {isStreaming && (
             <SyncOutlined
-              style={{ fontSize: 12, color: token.colorPrimary, animation: "axagent-think-spin 1s linear infinite" }}
+              style={{
+                fontSize: 12,
+                color: token.colorPrimary,
+                animation: "axagent-think-spin 1s linear infinite",
+              }}
             />
           )}
           {!isStreaming && blocks.length > 0 && (
@@ -390,19 +417,26 @@ export const StructuredThinking = React.memo(function StructuredThinking({
                     userSelect: "none",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <span style={{ color: colors.text, display: "flex" }}>
                       {phaseIcons[block.phase]}
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: colors.text }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: colors.text,
+                      }}
+                    >
                       {block.title}
                     </span>
                   </div>
-                  {blocks.length > 1 && (
-                    isBlockExpanded
+                  {blocks.length > 1
+                    && (isBlockExpanded
                       ? <ChevronDown size={12} style={{ color: colors.text }} />
-                      : <ChevronRight size={12} style={{ color: colors.text }} />
-                  )}
+                      : <ChevronRight size={12} style={{ color: colors.text }} />)}
                 </div>
                 {isBlockExpanded && (
                   <div

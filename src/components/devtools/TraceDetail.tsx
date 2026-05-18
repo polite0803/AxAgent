@@ -11,9 +11,15 @@ import { Timeline } from "./Timeline";
 const { Text } = Typography;
 
 function formatDuration(ms?: number): string {
-  if (!ms) { return "-"; }
-  if (ms < 1000) { return `${ms}ms`; }
-  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
+  if (!ms) {
+    return "-";
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -22,8 +28,12 @@ function formatCost(cost: number): string {
 }
 
 function formatTokens(tokens: number): string {
-  if (tokens < 1000) { return `${tokens}`; }
-  if (tokens < 1000000) { return `${(tokens / 1000).toFixed(1)}K`; }
+  if (tokens < 1000) {
+    return `${tokens}`;
+  }
+  if (tokens < 1000000) {
+    return `${(tokens / 1000).toFixed(1)}K`;
+  }
   return `${(tokens / 1000000).toFixed(1)}M`;
 }
 
@@ -34,11 +44,15 @@ export function TraceDetail() {
   const [startedAtFormatted, setStartedAtFormatted] = useState("");
   useEffect(() => {
     if (selectedTrace) {
-      setStartedAtFormatted(new Date(selectedTrace.summary.started_at).toLocaleString());
+      setStartedAtFormatted(
+        new Date(selectedTrace.summary.started_at).toLocaleString(),
+      );
     }
   }, [selectedTrace?.summary.started_at]);
 
-  if (!selectedTrace) { return null; }
+  if (!selectedTrace) {
+    return null;
+  }
 
   const { trace, summary } = selectedTrace;
 
@@ -59,8 +73,12 @@ export function TraceDetail() {
             </Text>
           </div>
           <Space>
-            <Button onClick={() => handleExport("json")}>{t("devtools.exportJson")}</Button>
-            <Button onClick={() => handleExport("csv")}>{t("devtools.exportCsv")}</Button>
+            <Button onClick={() => handleExport("json")}>
+              {t("devtools.exportJson")}
+            </Button>
+            <Button onClick={() => handleExport("csv")}>
+              {t("devtools.exportCsv")}
+            </Button>
           </Space>
         </div>
 

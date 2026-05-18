@@ -10,9 +10,13 @@ declare module "markstream-react" {
 
   // Extend InfographicBlockNodeProps to include custom render props
   interface InfographicBlockNodeProps {
-    renderHeaderActions?: (ctx: InfographicBlockActionContext) => React.ReactNode;
+    renderHeaderActions?: (
+      ctx: InfographicBlockActionContext,
+    ) => React.ReactNode;
     renderModeToggle?: (ctx: InfographicBlockActionContext) => React.ReactNode;
-    renderZoomControls?: (ctx: InfographicBlockActionContext) => React.ReactNode;
+    renderZoomControls?: (
+      ctx: InfographicBlockActionContext,
+    ) => React.ReactNode;
   }
 
   // Custom action context types (not exported by markstream-react)

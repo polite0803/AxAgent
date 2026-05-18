@@ -77,7 +77,10 @@ export function LinkModels({ link }: LinkModelsProps) {
       key: "sync_status",
       width: 120,
       render: (status: string) => {
-        const mapped = SYNC_STATUS_MAP[status] ?? { color: "default", label: status };
+        const mapped = SYNC_STATUS_MAP[status] ?? {
+          color: "default",
+          label: status,
+        };
         return <Tag color={mapped.color}>{mapped.label}</Tag>;
       },
     },
@@ -152,7 +155,12 @@ export function LinkModels({ link }: LinkModelsProps) {
 
       <Card size="small">
         {modelSyncs.length === 0
-          ? <Empty description={t("link.noModels")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ? (
+            <Empty
+              description={t("link.noModels")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )
           : (
             <Table
               dataSource={modelSyncs}

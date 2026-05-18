@@ -13,7 +13,10 @@ interface ErrorBoundaryProps {
   onReset?: () => void;
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -41,7 +44,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         <Result
           status="error"
           title={i18next.t("errorBoundary.title")}
-          subTitle={this.state.error?.message || i18next.t("errorBoundary.unexpectedError")}
+          subTitle={this.state.error?.message
+            || i18next.t("errorBoundary.unexpectedError")}
           extra={
             <Button type="primary" onClick={this.handleReset}>
               {i18next.t("errorBoundary.tryAgain")}
@@ -60,7 +64,10 @@ interface PageErrorBoundaryProps {
   title?: string;
 }
 
-export function PageErrorBoundary({ children, title = "Page Error" }: PageErrorBoundaryProps) {
+export function PageErrorBoundary({
+  children,
+  title = "Page Error",
+}: PageErrorBoundaryProps) {
   return (
     <ErrorBoundary
       fallback={

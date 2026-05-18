@@ -168,7 +168,9 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/stores", () => ({
-  useConversationStore: (selector: (state: typeof conversationState) => unknown) => {
+  useConversationStore: (
+    selector: (state: typeof conversationState) => unknown,
+  ) => {
     if (typeof selector === "function") {
       return selector(conversationState);
     }
@@ -240,7 +242,9 @@ vi.mock("@/stores", () => ({
     }
     return expertState;
   },
-  useGatewayLinkStore: (selector: (state: typeof gatewayLinkState) => unknown) => {
+  useGatewayLinkStore: (
+    selector: (state: typeof gatewayLinkState) => unknown,
+  ) => {
     if (typeof selector === "function") {
       return selector(gatewayLinkState);
     }
@@ -264,7 +268,9 @@ vi.mock("@/stores", () => ({
     }
     return llmWikiState;
   },
-  usePromptTemplateStore: (selector: (state: typeof promptTemplateState) => unknown) => {
+  usePromptTemplateStore: (
+    selector: (state: typeof promptTemplateState) => unknown,
+  ) => {
     if (typeof selector === "function") {
       return selector(promptTemplateState);
     }
@@ -408,7 +414,9 @@ describe("InputArea", () => {
       </ConfigProvider>,
     );
 
-    const textarea = screen.getByPlaceholderText("chat.inputPlaceholder") as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText(
+      "chat.inputPlaceholder",
+    ) as HTMLTextAreaElement;
     await userEvent.type(textarea, "search me");
 
     expect(textarea.value).toBe("search me");

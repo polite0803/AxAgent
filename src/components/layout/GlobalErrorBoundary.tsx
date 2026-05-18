@@ -58,7 +58,10 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
           >
             💥
           </div>
-          <Text strong style={{ fontSize: 24, display: "block", marginBottom: 8 }}>
+          <Text
+            strong
+            style={{ fontSize: 24, display: "block", marginBottom: 8 }}
+          >
             {i18next.t("errorBoundary.somethingWentWrong")}
           </Text>
           <Text type="secondary">
@@ -67,7 +70,12 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
         </div>
 
         <Space size="middle" style={{ marginBottom: 32 }}>
-          <Button type="primary" icon={<ReloadOutlined />} onClick={onRetry} size="large">
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            onClick={onRetry}
+            size="large"
+          >
             {i18next.t("errorBoundary.retry")}
           </Button>
           <Button
@@ -75,7 +83,9 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
             onClick={handleCopy}
             size="large"
           >
-            {copied ? i18next.t("errorBoundary.copied") : i18next.t("errorBoundary.copyError")}
+            {copied
+              ? i18next.t("errorBoundary.copied")
+              : i18next.t("errorBoundary.copyError")}
           </Button>
         </Space>
 
@@ -88,7 +98,10 @@ function ErrorFallback({ error, errorInfo, onRetry }: ErrorFallbackProps) {
             textAlign: "left",
           }}
         >
-          <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, display: "block", marginBottom: 8 }}
+          >
             {i18next.t("errorBoundary.errorDetails")}
           </Text>
           <Paragraph
@@ -136,7 +149,9 @@ class GlobalErrorBoundary extends React.Component<
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<GlobalErrorBoundaryState> {
+  static getDerivedStateFromError(
+    error: Error,
+  ): Partial<GlobalErrorBoundaryState> {
     return { hasError: true, error };
   }
 
@@ -167,7 +182,13 @@ class GlobalErrorBoundary extends React.Component<
 
     if (hasError && error) {
       const Fallback = FallbackComponent || ErrorFallback;
-      return <Fallback error={error} errorInfo={errorInfo ?? undefined} onRetry={this.handleRetry} />;
+      return (
+        <Fallback
+          error={error}
+          errorInfo={errorInfo ?? undefined}
+          onRetry={this.handleRetry}
+        />
+      );
     }
 
     return <React.Fragment key={retryKey}>{children}</React.Fragment>;

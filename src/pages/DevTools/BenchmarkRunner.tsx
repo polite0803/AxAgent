@@ -63,7 +63,11 @@ export function BenchmarkRunner() {
         <Card size="small" title={t("benchmark.selectTitle")}>
           <BenchmarkSelector />
         </Card>
-        <Card size="small" title={t("benchmark.configTitle")} className="col-span-3">
+        <Card
+          size="small"
+          title={t("benchmark.configTitle")}
+          className="col-span-3"
+        >
           <BenchmarkConfig />
         </Card>
       </div>

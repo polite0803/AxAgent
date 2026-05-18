@@ -85,7 +85,9 @@ interface ModelSelectorProps {
   /** Enable multi-select mode (checkboxes + confirm button) */
   multiSelect?: boolean;
   /** Callback for multi-select mode. Returns array of selected models. */
-  onMultiSelect?: (models: Array<{ providerId: string; model_id: string }>) => void;
+  onMultiSelect?: (
+    models: Array<{ providerId: string; model_id: string }>,
+  ) => void;
   /** Pre-selected models for multi-select mode */
   defaultSelectedModels?: Array<{ providerId: string; model_id: string }>;
   /** Model keys to exclude from the list (format: "providerId::model_id") */
@@ -134,7 +136,9 @@ function ModelItemCard({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const key = `${providerId}::${model_id}`;
-  const isActive = multiSelect ? multiSelectedKeys.has(key) : currentValue === key;
+  const isActive = multiSelect
+    ? multiSelectedKeys.has(key)
+    : currentValue === key;
   const isHovered = hoveredKey === key || isKeyboardActive;
   const visibleCaps = model ? getVisibleModelCapabilities(model) : [];
 
@@ -150,7 +154,11 @@ function ModelItemCard({
         }
       }}
       style={{
-        backgroundColor: isActive ? token.colorPrimaryBg : isHovered ? token.colorFillSecondary : undefined,
+        backgroundColor: isActive
+          ? token.colorPrimaryBg
+          : isHovered
+          ? token.colorFillSecondary
+          : undefined,
         borderRadius: 6,
         margin: "0 6px",
         padding: "5px 10px",
@@ -163,12 +171,7 @@ function ModelItemCard({
       }}
       onMouseLeave={() => onHoveredKeyChange(null)}
     >
-      {multiSelect && (
-        <Checkbox
-          checked={isActive}
-          style={{ pointerEvents: "none" }}
-        />
-      )}
+      {multiSelect && <Checkbox checked={isActive} style={{ pointerEvents: "none" }} />}
       <ModelIcon model={model_id} size={20} type="avatar" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
@@ -204,7 +207,12 @@ function ModelItemCard({
               <Tag
                 color={CAPABILITY_COLORS[cap]}
                 variant="filled"
-                style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+                style={{
+                  fontSize: 10,
+                  lineHeight: "16px",
+                  padding: "0 4px",
+                  margin: 0,
+                }}
               >
                 {CAPABILITY_ICONS[cap]}
               </Tag>
@@ -214,7 +222,12 @@ function ModelItemCard({
             <Tag
               variant="filled"
               color="default"
-              style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+              style={{
+                fontSize: 10,
+                lineHeight: "16px",
+                padding: "0 4px",
+                margin: 0,
+              }}
             >
               {formatTokenCount(model.max_tokens)}
             </Tag>
@@ -252,20 +265,18 @@ function ModelItemCard({
   );
 }
 
-export function ModelSelector(
-  {
-    style,
-    onSelect,
-    overrideCurrentModel,
-    children,
-    open: controlledOpen,
-    onOpenChange,
-    multiSelect,
-    onMultiSelect,
-    defaultSelectedModels,
-    excludeModelKeys,
-  }: ModelSelectorProps,
-) {
+export function ModelSelector({
+  style,
+  onSelect,
+  overrideCurrentModel,
+  children,
+  open: controlledOpen,
+  onOpenChange,
+  multiSelect,
+  onMultiSelect,
+  defaultSelectedModels,
+  excludeModelKeys,
+}: ModelSelectorProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { providers } = useProviderStore();
@@ -276,10 +287,17 @@ export function ModelSelector(
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
-  const setOpen = useCallback((v: boolean) => {
-    if (onOpenChange) { onOpenChange(v); }
-    if (!isControlled) { setInternalOpen(v); }
-  }, [isControlled, onOpenChange]);
+  const setOpen = useCallback(
+    (v: boolean) => {
+      if (onOpenChange) {
+        onOpenChange(v);
+      }
+      if (!isControlled) {
+        setInternalOpen(v);
+      }
+    },
+    [isControlled, onOpenChange],
+  );
   const [search, setSearch] = useState("");
   const [pinnedModels, setPinnedModels] = useState<string[]>(loadPinnedModels);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
@@ -291,13 +309,17 @@ export function ModelSelector(
   const setSelectedProviderId = useUIStore((s) => s.setSelectedProviderId);
 
   // Multi-select state
-  const [multiSelectedKeys, setMultiSelectedKeys] = useState<Set<string>>(new Set());
+  const [multiSelectedKeys, setMultiSelectedKeys] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Reset multi-select state when modal opens with default selections
   useEffect(() => {
     if (open && multiSelect) {
       const initial = new Set(
-        (defaultSelectedModels ?? []).map((m) => `${m.providerId}::${m.model_id}`),
+        (defaultSelectedModels ?? []).map(
+          (m) => `${m.providerId}::${m.model_id}`,
+        ),
       );
       setMultiSelectedKeys(initial);
     }
@@ -319,7 +341,9 @@ export function ModelSelector(
       mid = settings.default_model_id;
     } else {
       for (const p of providers) {
-        if (!p.enabled) { continue; }
+        if (!p.enabled) {
+          continue;
+        }
         for (const model of p.models) {
           if (model.enabled) {
             pid = p.id;
@@ -327,14 +351,28 @@ export function ModelSelector(
             break;
           }
         }
-        if (pid) { break; }
+        if (pid) {
+          break;
+        }
       }
     }
-    if (!pid || !mid) { return null; }
+    if (!pid || !mid) {
+      return null;
+    }
     const provider = providers.find((p) => p.id === pid);
     const model = provider?.models.find((m) => m.model_id === mid);
-    return { pid, mid, name: model?.name ?? mid, providerName: provider?.name ?? "" };
-  }, [activeConversation, settings.default_provider_id, settings.default_model_id, providers]);
+    return {
+      pid,
+      mid,
+      name: model?.name ?? mid,
+      providerName: provider?.name ?? "",
+    };
+  }, [
+    activeConversation,
+    settings.default_provider_id,
+    settings.default_model_id,
+    providers,
+  ]);
 
   const currentValue = overrideCurrentModel
     ? `${overrideCurrentModel.providerId}::${overrideCurrentModel.model_id}`
@@ -344,15 +382,33 @@ export function ModelSelector(
 
   // All enabled models flat list (for pinned section)
   const allEnabledModels = useMemo(() => {
-    const result: { pid: string; mid: string; name: string; providerName: string; model: Model }[] = [];
+    const result: {
+      pid: string;
+      mid: string;
+      name: string;
+      providerName: string;
+      model: Model;
+    }[] = [];
     const excludeSet = new Set(excludeModelKeys);
     for (const p of providers) {
-      if (!p.enabled) { continue; }
+      if (!p.enabled) {
+        continue;
+      }
       for (const m of p.models) {
-        if (!m.enabled) { continue; }
+        if (!m.enabled) {
+          continue;
+        }
         const key = `${p.id}::${m.model_id}`;
-        if (excludeSet.has(key)) { continue; }
-        result.push({ pid: p.id, mid: m.model_id, name: m.name, providerName: p.name, model: m });
+        if (excludeSet.has(key)) {
+          continue;
+        }
+        result.push({
+          pid: p.id,
+          mid: m.model_id,
+          name: m.name,
+          providerName: p.name,
+          model: m,
+        });
       }
     }
     return result;
@@ -361,33 +417,48 @@ export function ModelSelector(
   // Pinned models resolved with search filter
   const pinnedItems = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return pinnedModels
-      .flatMap((key) => {
-        const model = allEnabledModels.find((m) => `${m.pid}::${m.mid}` === key);
-        if (!model) { return []; }
-        const item = { ...model, key };
-        if (q && !item.name.toLowerCase().includes(q) && !item.mid.toLowerCase().includes(q)) { return []; }
-        return [item];
-      });
+    return pinnedModels.flatMap((key) => {
+      const model = allEnabledModels.find((m) => `${m.pid}::${m.mid}` === key);
+      if (!model) {
+        return [];
+      }
+      const item = { ...model, key };
+      if (
+        q
+        && !item.name.toLowerCase().includes(q)
+        && !item.mid.toLowerCase().includes(q)
+      ) {
+        return [];
+      }
+      return [item];
+    });
   }, [pinnedModels, allEnabledModels, search]);
 
   // Filtered providers and models (excluding search)
   const filteredProviders = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return providers
-      .flatMap((p) => {
-        if (!p.enabled) { return []; }
-        const models = p.models.filter(
-          (m) => {
-            if (!m.enabled) { return false; }
-            if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) { return false; }
-            if (!q) { return true; }
-            return m.name.toLowerCase().includes(q) || m.model_id.toLowerCase().includes(q)
-              || p.name.toLowerCase().includes(q);
-          },
+    return providers.flatMap((p) => {
+      if (!p.enabled) {
+        return [];
+      }
+      const models = p.models.filter((m) => {
+        if (!m.enabled) {
+          return false;
+        }
+        if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) {
+          return false;
+        }
+        if (!q) {
+          return true;
+        }
+        return (
+          m.name.toLowerCase().includes(q)
+          || m.model_id.toLowerCase().includes(q)
+          || p.name.toLowerCase().includes(q)
         );
-        return models.length > 0 ? [{ ...p, models }] : [];
       });
+      return models.length > 0 ? [{ ...p, models }] : [];
+    });
   }, [providers, search, excludeModelKeys]);
 
   const handleSelect = useCallback(
@@ -396,8 +467,11 @@ export function ModelSelector(
         const key = `${providerId}::${model_id}`;
         setMultiSelectedKeys((prev) => {
           const next = new Set(prev);
-          if (next.has(key)) { next.delete(key); }
-          else { next.add(key); }
+          if (next.has(key)) {
+            next.delete(key);
+          } else {
+            next.add(key);
+          }
           return next;
         });
         return;
@@ -411,23 +485,38 @@ export function ModelSelector(
             model_id: model_id,
           });
         } catch (e) {
-          if (String(e).includes("Conversation") && String(e).includes("not found")) {
+          if (
+            String(e).includes("Conversation")
+            && String(e).includes("not found")
+          ) {
             useConversationStore.getState().setActiveConversation(null);
           } else {
             throw e;
           }
         }
       } else {
-        saveSettings({ default_provider_id: providerId, default_model_id: model_id });
+        saveSettings({
+          default_provider_id: providerId,
+          default_model_id: model_id,
+        });
       }
       setOpen(false);
       setSearch("");
     },
-    [activeConversationId, updateConversation, saveSettings, onSelect, setOpen, multiSelect],
+    [
+      activeConversationId,
+      updateConversation,
+      saveSettings,
+      onSelect,
+      setOpen,
+      multiSelect,
+    ],
   );
 
   const handleMultiConfirm = useCallback(() => {
-    if (!onMultiSelect) { return; }
+    if (!onMultiSelect) {
+      return;
+    }
     const models = Array.from(multiSelectedKeys).map((key) => {
       const [providerId, model_id] = key.split("::");
       return { providerId, model_id };
@@ -439,7 +528,9 @@ export function ModelSelector(
 
   const togglePin = useCallback((key: string) => {
     setPinnedModels((prev) => {
-      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      const next = prev.includes(key)
+        ? prev.filter((k) => k !== key)
+        : [...prev, key];
       savePinnedModels(next);
       return next;
     });
@@ -448,7 +539,9 @@ export function ModelSelector(
   useEffect(() => {
     // Only the standalone header ModelSelector responds to the shortcut.
     // Bubble-action instances (onSelect) and multi-select (multiSelect) should not.
-    if (multiSelect || onSelect) { return; }
+    if (multiSelect || onSelect) {
+      return;
+    }
     const onToggle = () => setOpen(!open);
     window.addEventListener("axagent:toggle-model-selector", onToggle);
     return () => {
@@ -457,34 +550,49 @@ export function ModelSelector(
   }, [open, setOpen, multiSelect, onSelect]);
 
   // Auto-expand all groups when providers change or modal opens
-  const providerIds = useMemo(() => filteredProviders.map((p) => p.id), [filteredProviders]);
+  const providerIds = useMemo(
+    () => filteredProviders.map((p) => p.id),
+    [filteredProviders],
+  );
   useEffect(() => {
-    if (open) { setExpandedGroups(providerIds); }
+    if (open) {
+      setExpandedGroups(providerIds);
+    }
   }, [open, providerIds]);
 
   const allGroupsExpanded = expandedGroups.length >= providerIds.length;
 
   const toggleGroupExpand = useCallback((providerId: string) => {
     setExpandedGroups((prev) =>
-      prev.includes(providerId) ? prev.filter((id) => id !== providerId) : [...prev, providerId]
+      prev.includes(providerId)
+        ? prev.filter((id) => id !== providerId)
+        : [...prev, providerId]
     );
   }, []);
 
   const toggleAllGroups = useCallback(() => {
-    setExpandedGroups((prev) => (prev.length >= providerIds.length ? [] : [...providerIds]));
+    setExpandedGroups((prev) => prev.length >= providerIds.length ? [] : [...providerIds]);
     listParentRef.current?.scrollTo({ top: 0 });
   }, [providerIds]);
 
   // Flatten into virtualizable rows
   type ListRow =
     | { type: "pinned-header" }
-    | { type: "pinned-model"; pid: string; mid: string; name: string; providerName: string; key: string; model: Model }
+    | {
+      type: "pinned-model";
+      pid: string;
+      mid: string;
+      name: string;
+      providerName: string;
+      key: string;
+      model: Model;
+    }
     | { type: "pinned-divider" }
-    | { type: "group"; provider: typeof filteredProviders[number] }
+    | { type: "group"; provider: (typeof filteredProviders)[number] }
     | {
       type: "model";
       providerId: string;
-      model: typeof filteredProviders[number]["models"][number];
+      model: (typeof filteredProviders)[number]["models"][number];
       providerName: string;
     };
 
@@ -504,7 +612,12 @@ export function ModelSelector(
       // When searching, always expand all groups to avoid timing issues with expandedGroups state
       if (hasSearchQuery || expandedSet.has(provider.id)) {
         for (const model of provider.models) {
-          rows.push({ type: "model", providerId: provider.id, model, providerName: provider.name });
+          rows.push({
+            type: "model",
+            providerId: provider.id,
+            model,
+            providerName: provider.name,
+          });
         }
       }
     }
@@ -516,9 +629,15 @@ export function ModelSelector(
     getScrollElement: () => listParentRef.current,
     estimateSize: (index) => {
       const row = flatRows[index];
-      if (row.type === "pinned-divider") { return 12; }
-      if (row.type === "pinned-header") { return 32; }
-      if (row.type === "group") { return 40; }
+      if (row.type === "pinned-divider") {
+        return 12;
+      }
+      if (row.type === "pinned-header") {
+        return 32;
+      }
+      if (row.type === "group") {
+        return 40;
+      }
       return 36;
     },
     getItemKey: (index) => {
@@ -550,7 +669,9 @@ export function ModelSelector(
   const selectableIndices = useMemo(
     () =>
       flatRows.reduce<number[]>((acc, row, i) => {
-        if (row.type === "model" || row.type === "pinned-model") { acc.push(i); }
+        if (row.type === "model" || row.type === "pinned-model") {
+          acc.push(i);
+        }
         return acc;
       }, []),
     [flatRows],
@@ -563,25 +684,34 @@ export function ModelSelector(
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (selectableIndices.length === 0) { return; }
+      if (selectableIndices.length === 0) {
+        return;
+      }
       const curPos = selectableIndices.indexOf(activeIndex);
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        const next = curPos < selectableIndices.length - 1 ? selectableIndices[curPos + 1] : selectableIndices[0];
+        const next = curPos < selectableIndices.length - 1
+          ? selectableIndices[curPos + 1]
+          : selectableIndices[0];
         setActiveIndex(next);
         virtualizer.scrollToIndex(next, { align: "auto" });
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        const prev = curPos > 0 ? selectableIndices[curPos - 1] : selectableIndices[selectableIndices.length - 1];
+        const prev = curPos > 0
+          ? selectableIndices[curPos - 1]
+          : selectableIndices[selectableIndices.length - 1];
         setActiveIndex(prev);
         virtualizer.scrollToIndex(prev, { align: "auto" });
       } else if (e.key === "Enter") {
         e.preventDefault();
         if (activeIndex >= 0 && activeIndex < flatRows.length) {
           const row = flatRows[activeIndex];
-          if (row.type === "model") { handleSelect(row.providerId, row.model.model_id); }
-          else if (row.type === "pinned-model") { handleSelect(row.pid, row.mid); }
+          if (row.type === "model") {
+            handleSelect(row.providerId, row.model.model_id);
+          } else if (row.type === "pinned-model") {
+            handleSelect(row.pid, row.mid);
+          }
         }
       }
     },
@@ -609,7 +739,9 @@ export function ModelSelector(
         : (
           <Tooltip
             title={`${t("chat.switchModel")} (${
-              formatShortcutForDisplay(getShortcutBinding(settings, "toggleModelSelector"))
+              formatShortcutForDisplay(
+                getShortcutBinding(settings, "toggleModelSelector"),
+              )
             })`}
             placement="bottom"
           >
@@ -661,9 +793,15 @@ export function ModelSelector(
         mask={{ enabled: true, blur: true }}
         footer={multiSelect
           ? (
-            <div className="flex items-center justify-between" style={{ padding: "8px 12px" }}>
+            <div
+              className="flex items-center justify-between"
+              style={{ padding: "8px 12px" }}
+            >
               <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
-                {t("chat.multiModel.selectedCount").replace("{{count}}", String(multiSelectedKeys.size))}
+                {t("chat.multiModel.selectedCount").replace(
+                  "{{count}}",
+                  String(multiSelectedKeys.size),
+                )}
               </span>
               <Button type="primary" size="small" onClick={handleMultiConfirm}>
                 {t("common.confirm")}
@@ -673,7 +811,15 @@ export function ModelSelector(
           : null}
         title={multiSelect
           ? (
-            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, paddingLeft: 4 }}>
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 14,
+                paddingLeft: 4,
+              }}
+            >
               <GitCompareArrows size={16} />
               {t("chat.multiModel.selectTitle")}
             </span>
@@ -682,13 +828,21 @@ export function ModelSelector(
         closable={false}
         width={420}
         styles={{
-          body: { padding: 0, maxHeight: "60vh", display: "flex", flexDirection: "column" },
+          body: {
+            padding: 0,
+            maxHeight: "60vh",
+            display: "flex",
+            flexDirection: "column",
+          },
         }}
         rootClassName="model-selector-modal"
         style={{ borderRadius: 12 }}
       >
         {/* Search + Expand/Collapse */}
-        <div className="flex items-center gap-2" style={{ padding: "8px 8px 4px" }}>
+        <div
+          className="flex items-center gap-2"
+          style={{ padding: "8px 8px 4px" }}
+        >
           <Input
             id="model-selector-input-26"
             prefix={<Search size={14} style={{ color: token.colorTextSecondary }} />}
@@ -703,7 +857,11 @@ export function ModelSelector(
               backgroundColor: token.colorFillTertiary,
             }}
           />
-          <Tooltip title={allGroupsExpanded ? t("common.collapseAll") : t("common.expandAll")}>
+          <Tooltip
+            title={allGroupsExpanded
+              ? t("common.collapseAll")
+              : t("common.expandAll")}
+          >
             <span
               role="button"
               tabIndex={0}
@@ -734,7 +892,9 @@ export function ModelSelector(
           data-os-scrollbar
           style={{ overflowY: "auto", flex: 1, padding: "2px 0 4px" }}
         >
-          <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+          <div
+            style={{ height: virtualizer.getTotalSize(), position: "relative" }}
+          >
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const row = flatRows[virtualRow.index];
 
@@ -813,7 +973,11 @@ export function ModelSelector(
                       padding: "4px 14px",
                     }}
                   >
-                    <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }} />
+                    <div
+                      style={{
+                        borderTop: `1px solid ${token.colorBorderSecondary}`,
+                      }}
+                    />
                   </div>
                 );
               }
@@ -844,19 +1008,38 @@ export function ModelSelector(
                           toggleGroupExpand(row.provider.id);
                         }
                       }}
-                      style={{ userSelect: "none", background: "var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))" }}
+                      style={{
+                        userSelect: "none",
+                        background: "var(--ant-color-fill-quaternary, rgba(0,0,0,0.02))",
+                      }}
                       onClick={() => toggleGroupExpand(row.provider.id)}
                     >
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      <SmartProviderIcon provider={row.provider} size={20} type="avatar" />
-                      <span style={{ fontWeight: 600, fontSize: 13 }}>{row.provider.name}</span>
-                      <Tag style={{ fontSize: 12, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                      <SmartProviderIcon
+                        provider={row.provider}
+                        size={20}
+                        type="avatar"
+                      />
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>
+                        {row.provider.name}
+                      </span>
+                      <Tag
+                        style={{
+                          fontSize: 12,
+                          lineHeight: "18px",
+                          padding: "0 6px",
+                          margin: 0,
+                        }}
+                      >
                         {row.provider.models.length}
                       </Tag>
                       <div style={{ flex: 1 }} />
                       <Settings
                         size={14}
-                        style={{ cursor: "pointer", color: token.colorTextQuaternary }}
+                        style={{
+                          cursor: "pointer",
+                          color: token.colorTextQuaternary,
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpen(false);
@@ -872,7 +1055,9 @@ export function ModelSelector(
               }
 
               // type === 'model'
-              const isPinned = pinnedModels.includes(`${row.providerId}::${row.model.model_id}`);
+              const isPinned = pinnedModels.includes(
+                `${row.providerId}::${row.model.model_id}`,
+              );
               return (
                 <div
                   key={virtualRow.key}

@@ -33,14 +33,38 @@ function providerSelectOptions(t: (key: string, fallback?: string) => string) {
         </span>
       ),
     },
-    { value: "serpapi", label: <span className="flex items-center gap-2">🔍 SerpAPI</span> },
-    { value: "brave", label: <span className="flex items-center gap-2">🦁 Brave Search</span> },
-    { value: "bing", label: <span className="flex items-center gap-2">🔷 Bing Search</span> },
-    { value: "google_pse", label: <span className="flex items-center gap-2">🔴 Google PSE</span> },
-    { value: "duckduckgo", label: <span className="flex items-center gap-2">🦆 DuckDuckGo</span> },
-    { value: "searxng", label: <span className="flex items-center gap-2">🔎 SearXNG</span> },
-    { value: "perplexity", label: <span className="flex items-center gap-2">🧠 Perplexity</span> },
-    { value: "exa", label: <span className="flex items-center gap-2">⚡ Exa</span> },
+    {
+      value: "serpapi",
+      label: <span className="flex items-center gap-2">🔍 SerpAPI</span>,
+    },
+    {
+      value: "brave",
+      label: <span className="flex items-center gap-2">🦁 Brave Search</span>,
+    },
+    {
+      value: "bing",
+      label: <span className="flex items-center gap-2">🔷 Bing Search</span>,
+    },
+    {
+      value: "google_pse",
+      label: <span className="flex items-center gap-2">🔴 Google PSE</span>,
+    },
+    {
+      value: "duckduckgo",
+      label: <span className="flex items-center gap-2">🦆 DuckDuckGo</span>,
+    },
+    {
+      value: "searxng",
+      label: <span className="flex items-center gap-2">🔎 SearXNG</span>,
+    },
+    {
+      value: "perplexity",
+      label: <span className="flex items-center gap-2">🧠 Perplexity</span>,
+    },
+    {
+      value: "exa",
+      label: <span className="flex items-center gap-2">⚡ Exa</span>,
+    },
     {
       value: "zhipu",
       label: (
@@ -53,7 +77,12 @@ function providerSelectOptions(t: (key: string, fallback?: string) => string) {
       value: "bocha",
       label: (
         <span className="flex items-center gap-2">
-          <img src="/icons/bocha.ico" alt="" style={{ width: 16, height: 16 }} /> {t("settings.searchProviders.bocha")}
+          <img
+            src="/icons/bocha.ico"
+            alt=""
+            style={{ width: 16, height: 16 }}
+          />{" "}
+          {t("settings.searchProviders.bocha")}
         </span>
       ),
     },
@@ -98,7 +127,10 @@ function SearchProviderList({
         {providers.length === 0
           ? (
             <div className="flex-1 flex items-center justify-center">
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.searchProviders.empty")} />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t("settings.searchProviders.empty")}
+              />
             </div>
           )
           : (
@@ -112,24 +144,44 @@ function SearchProviderList({
                   tabIndex={0}
                   style={{
                     borderRadius: token.borderRadius,
-                    backgroundColor: isSelected ? token.colorPrimaryBg : undefined,
+                    backgroundColor: isSelected
+                      ? token.colorPrimaryBg
+                      : undefined,
                   }}
                   onClick={() => onSelect(p.id)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { onSelect(p.id); }
+                    if (e.key === "Enter" || e.key === " ") {
+                      onSelect(p.id);
+                    }
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    if (!isSelected) { e.currentTarget.style.backgroundColor = ""; }
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = "";
+                    }
                   }}
                 >
-                  <div style={{ marginRight: 8, flexShrink: 0, display: "flex", alignItems: "center" }}>
+                  <div
+                    style={{
+                      marginRight: 8,
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
                     <SearchProviderTypeIcon type={p.providerType} size={20} />
                   </div>
                   <div className="min-w-0 flex-1 flex items-center gap-2">
-                    <span className="truncate" style={{ color: isSelected ? token.colorPrimary : undefined }}>
+                    <span
+                      className="truncate"
+                      style={{
+                        color: isSelected ? token.colorPrimary : undefined,
+                      }}
+                    >
                       {p.name}
                     </span>
                     <Tag style={{ margin: 0, fontSize: 12 }}>
@@ -141,7 +193,10 @@ function SearchProviderList({
                     size="small"
                     checked={p.enabled}
                     onClick={(_, e) => e.stopPropagation()}
-                    onChange={() => useSearchStore.getState().updateProvider(p.id, { enabled: !p.enabled })}
+                    onChange={() =>
+                      useSearchStore
+                        .getState()
+                        .updateProvider(p.id, { enabled: !p.enabled })}
                   />
                 </div>
               );
@@ -149,12 +204,7 @@ function SearchProviderList({
           )}
       </div>
       <div className="shrink-0 p-2 pt-0">
-        <Button
-          type="dashed"
-          block
-          icon={<Plus size={14} />}
-          onClick={onAdd}
-        >
+        <Button type="dashed" block icon={<Plus size={14} />} onClick={onAdd}>
           {t("settings.searchProviders.add")}
         </Button>
       </div>
@@ -187,7 +237,10 @@ function SearchProviderDetail({
   const handleFieldChange = async (field: string, value: unknown) => {
     if (field === "providerType") {
       const defaultEndpoint = DEFAULT_ENDPOINTS[value as string] ?? "";
-      await updateProvider(provider.id, { providerType: value as SearchProviderType, endpoint: defaultEndpoint });
+      await updateProvider(provider.id, {
+        providerType: value as SearchProviderType,
+        endpoint: defaultEndpoint,
+      });
     } else {
       await updateProvider(provider.id, { [field]: value });
     }
@@ -204,21 +257,27 @@ function SearchProviderDetail({
   const handleTestConnection = async () => {
     setTesting(true);
     try {
-      const result = await invoke<{ ok: boolean; latencyMs?: number; resultCount?: number; error?: string }>(
-        "test_search_provider",
-        { id: provider.id },
-      );
+      const result = await invoke<{
+        ok: boolean;
+        latencyMs?: number;
+        resultCount?: number;
+        error?: string;
+      }>("test_search_provider", { id: provider.id });
       if (result.ok) {
         const latencyPart = `${result.latencyMs}ms`;
         const countPart = (result.resultCount ?? 0) > 0
           ? `, ${result.resultCount} ${t("settings.searchProviders.results")}`
           : "";
-        message.success(`${t("settings.searchProviders.testSuccess")} (${latencyPart}${countPart})`);
+        message.success(
+          `${t("settings.searchProviders.testSuccess")} (${latencyPart}${countPart})`,
+        );
       } else {
         message.error(result.error || t("settings.searchProviders.testFailed"));
       }
     } catch (err: any) {
-      message.error(err?.toString() || t("settings.searchProviders.testFailed"));
+      message.error(
+        err?.toString() || t("settings.searchProviders.testFailed"),
+      );
     } finally {
       setTesting(false);
     }
@@ -234,11 +293,7 @@ function SearchProviderDetail({
       <div className="flex items-center justify-between mb-4">
         <span style={{ fontWeight: 600, fontSize: 16 }}>{provider.name}</span>
         <div className="flex items-center gap-2">
-          <Button
-            size="small"
-            loading={testing}
-            onClick={handleTestConnection}
-          >
+          <Button size="small" loading={testing} onClick={handleTestConnection}>
             {t("settings.searchProviders.testConnection")}
           </Button>
           <Popconfirm
@@ -272,7 +327,7 @@ function SearchProviderDetail({
           value={provider.providerType}
           onChange={(val) => handleFieldChange("providerType", val)}
           style={{ width: 280 }}
-          options={providerSelectOptions((key, fallback) => (fallback ? t(key, fallback) : t(key)))}
+          options={providerSelectOptions((key, fallback) => fallback ? t(key, fallback) : t(key))}
           disabled
         />
       </div>
@@ -388,7 +443,10 @@ export function SearchProviderSettings() {
 
   return (
     <div className="flex h-full">
-      <div className="w-64 shrink-0 pt-2" style={{ borderRight: "1px solid var(--border-color)" }}>
+      <div
+        className="w-64 shrink-0 pt-2"
+        style={{ borderRight: "1px solid var(--border-color)" }}
+      >
         <SearchProviderList
           providers={providers}
           selectedId={selectedId}
@@ -439,20 +497,36 @@ export function SearchProviderSettings() {
             rules={[{ required: true }]}
           >
             <Select
-              options={providerSelectOptions((key, fallback) => (fallback ? t(key, fallback) : t(key)))}
+              options={providerSelectOptions((key, fallback) => fallback ? t(key, fallback) : t(key))}
             />
           </Form.Item>
           <Form.Item
             name="api_key"
             label="API Key"
-            rules={[{ required: true, message: t("settings.searchProviders.apiKeyPlaceholder") }]}
+            rules={[
+              {
+                required: true,
+                message: t("settings.searchProviders.apiKeyPlaceholder"),
+              },
+            ]}
           >
-            <Input.Password name="api_key" placeholder={t("settings.searchProviders.apiKeyPlaceholder")} />
+            <Input.Password
+              name="api_key"
+              placeholder={t("settings.searchProviders.apiKeyPlaceholder")}
+            />
           </Form.Item>
-          <Form.Item name="result_limit" label={t("settings.searchProviders.resultLimit")} initialValue={10}>
+          <Form.Item
+            name="result_limit"
+            label={t("settings.searchProviders.resultLimit")}
+            initialValue={10}
+          >
             <InputNumber name="result_limit" min={1} max={50} />
           </Form.Item>
-          <Form.Item name="timeout_ms" label={t("settings.searchProviders.timeout")} initialValue={5000}>
+          <Form.Item
+            name="timeout_ms"
+            label={t("settings.searchProviders.timeout")}
+            initialValue={5000}
+          >
             <InputNumber name="timeout_ms" min={1000} max={30000} step={1000} />
           </Form.Item>
         </Form>

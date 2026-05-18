@@ -19,7 +19,9 @@ export function DatasetManager() {
 
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [addSampleModalVisible, setAddSampleModalVisible] = useState(false);
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(
+    null,
+  );
   const [form] = Form.useForm();
   const [sampleForm] = Form.useForm();
 
@@ -27,7 +29,10 @@ export function DatasetManager() {
     fetchDatasets();
   }, [fetchDatasets]);
 
-  const handleCreateDataset = async (values: { name: string; description: string }) => {
+  const handleCreateDataset = async (values: {
+    name: string;
+    description: string;
+  }) => {
     const dataset = await createDataset(values.name, values.description);
     if (dataset) {
       message.success("Dataset created successfully");
@@ -41,9 +46,18 @@ export function DatasetManager() {
     message.success("Dataset deleted");
   };
 
-  const handleAddSample = async (values: { input: string; output: string; systemPrompt?: string }) => {
+  const handleAddSample = async (values: {
+    input: string;
+    output: string;
+    systemPrompt?: string;
+  }) => {
     if (selectedDatasetId) {
-      await addSample(selectedDatasetId, values.input, values.output, values.systemPrompt);
+      await addSample(
+        selectedDatasetId,
+        values.input,
+        values.output,
+        values.systemPrompt,
+      );
       message.success("Sample added successfully");
       setAddSampleModalVisible(false);
       sampleForm.resetFields();
@@ -60,7 +74,11 @@ export function DatasetManager() {
       <Card
         title={t("datasetManager.title")}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateModalVisible(true)}
+          >
             Create Dataset
           </Button>
         }
@@ -78,9 +96,22 @@ export function DatasetManager() {
               loading={isLoading}
               pagination={false}
             >
-              <Column title={t("datasetManager.name")} dataIndex="name" key="name" />
-              <Column title={t("datasetManager.description")} dataIndex="description" key="description" ellipsis />
-              <Column title={t("datasetManager.samples")} dataIndex="num_samples" key="num_samples" />
+              <Column
+                title={t("datasetManager.name")}
+                dataIndex="name"
+                key="name"
+              />
+              <Column
+                title={t("datasetManager.description")}
+                dataIndex="description"
+                key="description"
+                ellipsis
+              />
+              <Column
+                title={t("datasetManager.samples")}
+                dataIndex="num_samples"
+                key="num_samples"
+              />
               <Column
                 title={t("datasetManager.created")}
                 dataIndex="created_at"
@@ -128,21 +159,30 @@ export function DatasetManager() {
             label={t("devtools.fineTune.datasetName")}
             rules={[{ required: true, message: "Please input dataset name" }]}
           >
-            <Input name="name" placeholder={t("devtools.fineTune.datasetNamePlaceholder")} />
+            <Input
+              name="name"
+              placeholder={t("devtools.fineTune.datasetNamePlaceholder")}
+            />
           </Form.Item>
           <Form.Item
             name="description"
             label={t("devtools.fineTune.description")}
             rules={[{ required: true, message: "Please input description" }]}
           >
-            <Input.TextArea name="description" placeholder={t("devtools.fineTune.datasetDescPlaceholder")} rows={3} />
+            <Input.TextArea
+              name="description"
+              placeholder={t("devtools.fineTune.datasetDescPlaceholder")}
+              rows={3}
+            />
           </Form.Item>
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit">
                 {t("common.create")}
               </Button>
-              <Button onClick={() => setCreateModalVisible(false)}>{t("common.cancel")}</Button>
+              <Button onClick={() => setCreateModalVisible(false)}>
+                {t("common.cancel")}
+              </Button>
             </Space>
           </Form.Item>
         </Form>
@@ -158,26 +198,47 @@ export function DatasetManager() {
           <Form.Item
             name="input"
             label={t("devtools.fineTune.input")}
-            rules={[{ required: true, message: "Please input the sample input" }]}
+            rules={[
+              { required: true, message: "Please input the sample input" },
+            ]}
           >
-            <Input.TextArea name="input" placeholder={t("devtools.fineTune.inputPlaceholder")} rows={3} />
+            <Input.TextArea
+              name="input"
+              placeholder={t("devtools.fineTune.inputPlaceholder")}
+              rows={3}
+            />
           </Form.Item>
           <Form.Item
             name="output"
             label={t("devtools.fineTune.output")}
-            rules={[{ required: true, message: "Please input the sample output" }]}
+            rules={[
+              { required: true, message: "Please input the sample output" },
+            ]}
           >
-            <Input.TextArea name="output" placeholder={t("devtools.fineTune.outputPlaceholder")} rows={3} />
+            <Input.TextArea
+              name="output"
+              placeholder={t("devtools.fineTune.outputPlaceholder")}
+              rows={3}
+            />
           </Form.Item>
-          <Form.Item name="systemPrompt" label={t("devtools.fineTune.systemPromptOptional")}>
-            <Input.TextArea name="systemPrompt" placeholder={t("devtools.fineTune.systemPromptPlaceholder")} rows={2} />
+          <Form.Item
+            name="systemPrompt"
+            label={t("devtools.fineTune.systemPromptOptional")}
+          >
+            <Input.TextArea
+              name="systemPrompt"
+              placeholder={t("devtools.fineTune.systemPromptPlaceholder")}
+              rows={2}
+            />
           </Form.Item>
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit">
                 Add Sample
               </Button>
-              <Button onClick={() => setAddSampleModalVisible(false)}>{t("datasetManager.cancel")}</Button>
+              <Button onClick={() => setAddSampleModalVisible(false)}>
+                {t("datasetManager.cancel")}
+              </Button>
             </Space>
           </Form.Item>
         </Form>

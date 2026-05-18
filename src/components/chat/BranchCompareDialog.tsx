@@ -31,22 +31,25 @@ export function BranchCompareDialog({
 
   const options = useMemo(
     () =>
-      versions
-        .flatMap((v) =>
-          v.role === "assistant"
-            ? [{
+      versions.flatMap((v) =>
+        v.role === "assistant"
+          ? [
+            {
               label: `${v.model_id ?? t("chat.branch.unknownModel")} — v${v.version_index}${
                 v.is_active ? ` (${t("chat.branch.current")})` : ""
               }`,
               value: v.id,
-            }]
-            : []
-        ),
+            },
+          ]
+          : []
+      ),
     [versions, t],
   );
 
   const [leftId, setLeftId] = useState<string | undefined>(options[0]?.value);
-  const [rightId, setRightId] = useState<string | undefined>(options[1]?.value ?? options[0]?.value);
+  const [rightId, setRightId] = useState<string | undefined>(
+    options[1]?.value ?? options[0]?.value,
+  );
 
   useEffect(() => {
     if (open) {
@@ -68,7 +71,9 @@ export function BranchCompareDialog({
     onClose();
   }, [onClose]);
 
-  if (versions.length < 1) { return null; }
+  if (versions.length < 1) {
+    return null;
+  }
 
   return (
     <Modal
@@ -78,12 +83,17 @@ export function BranchCompareDialog({
       footer={null}
       width="90vw"
       style={{ maxWidth: 1400, top: 24 }}
-      styles={{ body: { padding: "16px 24px", height: "70vh", overflow: "auto" } }}
+      styles={{
+        body: { padding: "16px 24px", height: "70vh", overflow: "auto" },
+      }}
       destroyOnClose
     >
       <Space style={{ marginBottom: 16, width: "100%" }} size={12}>
         <div style={{ flex: 1 }}>
-          <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 12, display: "block", marginBottom: 4 }}
+          >
             {t("chat.branch.left")}
           </Typography.Text>
           <Select
@@ -95,7 +105,10 @@ export function BranchCompareDialog({
           />
         </div>
         <div style={{ flex: 1 }}>
-          <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 12, display: "block", marginBottom: 4 }}
+          >
             {t("chat.branch.right")}
           </Typography.Text>
           <Select

@@ -12,25 +12,23 @@ import ru from "./locales/ru.json";
 import zhCN from "./locales/zh-CN.json";
 import zhTW from "./locales/zh-TW.json";
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources: {
-      "zh-CN": { translation: zhCN },
-      "zh-TW": { translation: zhTW },
-      "en-US": { translation: enUS },
-      ja: { translation: ja },
-      ko: { translation: ko },
-      fr: { translation: fr },
-      de: { translation: de },
-      es: { translation: es },
-      ru: { translation: ru },
-      hi: { translation: hi },
-      ar: { translation: ar },
-    },
-    lng: "zh-CN",
-    fallbackLng: "en-US",
-    interpolation: { escapeValue: false },
-  });
+i18n.use(initReactI18next).init({
+  resources: {
+    "zh-CN": { translation: zhCN },
+    "zh-TW": { translation: zhTW },
+    "en-US": { translation: enUS },
+    ja: { translation: ja },
+    ko: { translation: ko },
+    fr: { translation: fr },
+    de: { translation: de },
+    es: { translation: es },
+    ru: { translation: ru },
+    hi: { translation: hi },
+    ar: { translation: ar },
+  },
+  lng: "zh-CN",
+  fallbackLng: "en-US",
+  interpolation: { escapeValue: false },
+});
 
 export default i18n;

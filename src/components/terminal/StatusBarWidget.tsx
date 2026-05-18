@@ -64,7 +64,9 @@ export function StatusBarWidget({
   const [startTime] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!showTimer) { return; }
+    if (!showTimer) {
+      return;
+    }
 
     const interval = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
@@ -77,11 +79,17 @@ export function StatusBarWidget({
     const fetchStatus = async () => {
       try {
         const [gitBranch, sessionStatus, systemInfo] = await Promise.all([
-          showGit ? invoke<string | null>("git_get_branch").catch(() => null) : Promise.resolve(null),
+          showGit
+            ? invoke<string | null>("git_get_branch").catch(() => null)
+            : Promise.resolve(null),
           sessionId
-            ? invoke<StatusBarInfo>("session_get_status", { sessionId }).catch(() => ({}))
+            ? invoke<StatusBarInfo>("session_get_status", { sessionId }).catch(
+              () => ({}),
+            )
             : Promise.resolve({}),
-          showSystem ? invoke<StatusBarInfo>("system_get_info").catch(() => ({})) : Promise.resolve({}),
+          showSystem
+            ? invoke<StatusBarInfo>("system_get_info").catch(() => ({}))
+            : Promise.resolve({}),
         ]);
 
         setStatus((prev) => ({
@@ -134,7 +142,10 @@ export function StatusBarWidget({
           color="#89b4fa"
         />,
       );
-    } else if (status.inputTokens !== undefined || status.outputTokens !== undefined) {
+    } else if (
+      status.inputTokens !== undefined
+      || status.outputTokens !== undefined
+    ) {
       const inTokens = status.inputTokens || 0;
       const outTokens = status.outputTokens || 0;
       statusItems.push(
@@ -176,7 +187,9 @@ export function StatusBarWidget({
         <StatusBarItem
           key="network"
           icon={status.networkStatus === "connected" ? <Wifi size={12} /> : <WifiOff size={12} />}
-          label={status.networkStatus === "connected" ? t("terminal.online") : t("terminal.offline")}
+          label={status.networkStatus === "connected"
+            ? t("terminal.online")
+            : t("terminal.offline")}
           color={status.networkStatus === "connected" ? "#a6e3a1" : "#f38ba8"}
         />,
       );
@@ -225,7 +238,12 @@ interface StatusBarItemProps {
   tooltip?: string;
 }
 
-export function StatusBarItem({ icon, label, color, tooltip }: StatusBarItemProps) {
+export function StatusBarItem({
+  icon,
+  label,
+  color,
+  tooltip,
+}: StatusBarItemProps) {
   return (
     <div
       style={{
@@ -301,7 +319,9 @@ export function useSessionTimer() {
   }, []);
 
   useEffect(() => {
-    if (!isRunning || !startTime) { return; }
+    if (!isRunning || !startTime) {
+      return;
+    }
 
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTime) / 1000));
@@ -310,5 +330,12 @@ export function useSessionTimer() {
     return () => clearInterval(interval);
   }, [isRunning, startTime]);
 
-  return { elapsed, isRunning, start, pause, reset, formatted: formatDuration(elapsed) };
+  return {
+    elapsed,
+    isRunning,
+    start,
+    pause,
+    reset,
+    formatted: formatDuration(elapsed),
+  };
 }

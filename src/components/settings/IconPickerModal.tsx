@@ -12,14 +12,21 @@ interface IconPickerModalProps {
   defaultTab?: "model" | "provider";
 }
 
-export default function IconPickerModal({ open, onClose, onSelect, defaultTab = "model" }: IconPickerModalProps) {
+export default function IconPickerModal({
+  open,
+  onClose,
+  onSelect,
+  defaultTab = "model",
+}: IconPickerModalProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
 
   useEffect(() => {
-    if (open) { setActiveTab(defaultTab); }
+    if (open) {
+      setActiveTab(defaultTab);
+    }
   }, [open, defaultTab]);
 
   const filteredIcons = useMemo(() => {
@@ -27,7 +34,8 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
     return toc.filter(
       (icon) =>
         icon.group === activeTab
-        && (icon.title.toLowerCase().includes(s) || icon.fullTitle.toLowerCase().includes(s)),
+        && (icon.title.toLowerCase().includes(s)
+          || icon.fullTitle.toLowerCase().includes(s)),
     );
   }, [search, activeTab]);
 
@@ -65,7 +73,10 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
         onChange={setActiveTab}
         size="small"
         items={[
-          { key: "model", label: `${t("settings.iconGroupModel")} (${toc.filter((i) => i.group === "model").length})` },
+          {
+            key: "model",
+            label: `${t("settings.iconGroupModel")} (${toc.filter((i) => i.group === "model").length})`,
+          },
           {
             key: "provider",
             label: `${t("settings.iconGroupProvider")} (${toc.filter((i) => i.group === "provider").length})`,
@@ -89,7 +100,9 @@ export default function IconPickerModal({ open, onClose, onSelect, defaultTab = 
             }}
             onClick={() => handleSelect(icon.id)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") { handleSelect(icon.id); }
+              if (e.key === "Enter" || e.key === " ") {
+                handleSelect(icon.id);
+              }
             }}
             title={icon.fullTitle}
           >

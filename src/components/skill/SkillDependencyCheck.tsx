@@ -39,14 +39,18 @@ export function SkillDependencyCheck() {
 
       for (const skill of skills) {
         const deps = skill.manifest?.dependencies;
-        if (!deps) { continue; }
+        if (!deps) {
+          continue;
+        }
 
         const depInfo: DependencyInfo[] = [];
         let allSatisfied = true;
 
         for (const [depName, versionConstraint] of Object.entries(deps)) {
           const installed = installedNames.has(depName);
-          if (!installed) { allSatisfied = false; }
+          if (!installed) {
+            allSatisfied = false;
+          }
           depInfo.push({
             skillName: depName,
             required: true,
@@ -88,10 +92,13 @@ export function SkillDependencyCheck() {
   return (
     <div style={{ marginBottom: 16 }}>
       <Space style={{ marginBottom: 12 }}>
-        <Typography.Text strong>
-          {t("skill.deps.title")}
-        </Typography.Text>
-        <Button size="small" icon={<RefreshCw size={12} />} loading={loading} onClick={analyzeDependencies}>
+        <Typography.Text strong>{t("skill.deps.title")}</Typography.Text>
+        <Button
+          size="small"
+          icon={<RefreshCw size={12} />}
+          loading={loading}
+          onClick={analyzeDependencies}
+        >
           {t("skill.deps.refresh")}
         </Button>
       </Space>
@@ -121,14 +128,30 @@ export function SkillDependencyCheck() {
                 <List.Item style={{ padding: "2px 0", border: "none" }}>
                   <Space size={4}>
                     {dep.installed
-                      ? <CheckCircle size={12} style={{ color: "var(--color-success)" }} />
-                      : <XCircle size={12} style={{ color: "var(--color-error)" }} />}
+                      ? (
+                        <CheckCircle
+                          size={12}
+                          style={{ color: "var(--color-success)" }}
+                        />
+                      )
+                      : (
+                        <XCircle
+                          size={12}
+                          style={{ color: "var(--color-error)" }}
+                        />
+                      )}
                     <Typography.Text
-                      style={{ color: dep.installed ? undefined : "var(--color-error)" }}
+                      style={{
+                        color: dep.installed ? undefined : "var(--color-error)",
+                      }}
                     >
                       {dep.skillName}
                     </Typography.Text>
-                    {dep.versionConstraint && <Tag style={{ fontSize: 12 }}>{dep.versionConstraint}</Tag>}
+                    {dep.versionConstraint && (
+                      <Tag style={{ fontSize: 12 }}>
+                        {dep.versionConstraint}
+                      </Tag>
+                    )}
                     <Badge
                       status={dep.installed ? "success" : "error"}
                       text={dep.installed

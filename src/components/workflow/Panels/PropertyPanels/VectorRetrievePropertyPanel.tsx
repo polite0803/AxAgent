@@ -11,9 +11,9 @@ interface VectorRetrievePropertyPanelProps {
   onDelete: () => void;
 }
 
-export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelProps> = (
-  { node, onUpdate, onDelete },
-) => {
+export const VectorRetrievePropertyPanel: React.FC<
+  VectorRetrievePropertyPanelProps
+> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const vectorRetrieveNode = node as VectorRetrieveNode;
   const config = vectorRetrieveNode.config || {
@@ -33,9 +33,7 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
   }, [bases.length, loadBases]);
 
   const knowledgeBaseOptions = useMemo(
-    () =>
-      bases
-        .flatMap((b) => b.enabled ? [{ value: b.id, label: b.name }] : []),
+    () => bases.flatMap((b) => (b.enabled ? [{ value: b.id, label: b.name }] : [])),
     [bases],
   );
 
@@ -46,7 +44,14 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.query")}
         </label>
         <Input.TextArea
@@ -60,7 +65,14 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.knowledgeBase")}
         </label>
         <Select
@@ -77,7 +89,14 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.topK")}
           </label>
           <InputNumber
@@ -91,13 +110,26 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.similarityThreshold")}
           </label>
           <InputNumber
             id="vector-retrieve-property-panel-inputnumber-122"
-            value={config.similarity_threshold !== undefined ? Math.round(config.similarity_threshold * 100) : 70}
-            onChange={(value) => handleConfigChange("similarity_threshold", (value != null ? value : 70) / 100)}
+            value={config.similarity_threshold !== undefined
+              ? Math.round(config.similarity_threshold * 100)
+              : 70}
+            onChange={(value) =>
+              handleConfigChange(
+                "similarity_threshold",
+                (value != null ? value : 70) / 100,
+              )}
             min={0}
             max={100}
             size="small"
@@ -109,7 +141,14 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -123,8 +162,14 @@ export const VectorRetrievePropertyPanel: React.FC<VectorRetrievePropertyPanelPr
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

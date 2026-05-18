@@ -29,7 +29,10 @@ export function doneAsync(set: SetFn): void {
   set({ loading: false });
 }
 
-export async function withAsync(set: SetFn, fn: () => Promise<void>): Promise<void> {
+export async function withAsync(
+  set: SetFn,
+  fn: () => Promise<void>,
+): Promise<void> {
   startAsync(set);
   try {
     await fn();

@@ -16,7 +16,9 @@ interface DocumentParserNodeData {
   outputVar?: string;
 }
 
-const DocumentParserNodeComponent: React.FC<NodeProps<DocumentParserNodeData>> = ({ data, selected }) => {
+const DocumentParserNodeComponent: React.FC<
+  NodeProps<DocumentParserNodeData>
+> = ({ data, selected }) => {
   const { t } = useTranslation();
   const color = "#eb2f96";
   const inputVar = data.inputVar || t("workflow.documentParserNode.notSet");
@@ -92,7 +94,14 @@ const DocumentParserNodeComponent: React.FC<NodeProps<DocumentParserNodeData>> =
             {data.title}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 6 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              marginBottom: 6,
+            }}
+          >
             <div
               style={{
                 fontSize: 12,

@@ -62,7 +62,10 @@ describe("estimateMessageTokens", () => {
 
   it("correctly sums role and content token estimates", () => {
     const tokens1 = estimateMessageTokens("assistant", "OK");
-    const tokens2 = estimateMessageTokens("system", "Long system prompt with instructions");
+    const tokens2 = estimateMessageTokens(
+      "system",
+      "Long system prompt with instructions",
+    );
     expect(tokens1).toBeGreaterThan(4);
     expect(tokens2).toBeGreaterThan(tokens1);
   });

@@ -57,9 +57,15 @@ describe("GatewayMetrics", () => {
   it("renders split request and response token columns for aggregate tables", () => {
     render(<GatewayMetrics />);
 
-    expect(screen.getAllByText("gateway.logRequestTokens").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("gateway.logResponseTokens").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("gateway.totalTokens").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("gateway.logRequestTokens").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("gateway.logResponseTokens").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("gateway.totalTokens").length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getAllByText("1.2k").length).toBeGreaterThan(0);
     expect(screen.getAllByText("2.3k").length).toBeGreaterThan(0);
     expect(screen.getAllByText("3.5k").length).toBeGreaterThan(0);

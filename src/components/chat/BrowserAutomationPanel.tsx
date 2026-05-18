@@ -24,16 +24,21 @@ interface ExtractedElement {
 export function BrowserAutomationPanel() {
   const { t } = useTranslation();
   const mountedRef = useRef(true);
-  useEffect(() => () => {
-    mountedRef.current = false;
-  }, []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
   const [url, setUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
   const [title, setTitle] = useState("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [elements, setElements] = useState<ExtractedElement[]>([]);
-  const [selector, setSelector] = useState("a, button, input, select, textarea");
+  const [selector, setSelector] = useState(
+    "a, button, input, select, textarea",
+  );
 
   const handleNavigate = async () => {
     if (!url.trim()) {
@@ -42,7 +47,9 @@ export function BrowserAutomationPanel() {
     }
     setLoading(true);
     try {
-      const result = await invoke<NavigateResult>("browser_navigate", { url: url.trim() });
+      const result = await invoke<NavigateResult>("browser_navigate", {
+        url: url.trim(),
+      });
       setCurrentUrl(result.url);
       setTitle(result.title);
       message.success(t("browser.navigateSuccess"));
@@ -56,7 +63,9 @@ export function BrowserAutomationPanel() {
   const handleScreenshot = async (fullPage?: boolean) => {
     setLoading(true);
     try {
-      const result = await invoke<ScreenshotResult>("browser_screenshot", { fullPage });
+      const result = await invoke<ScreenshotResult>("browser_screenshot", {
+        fullPage,
+      });
       setScreenshot(`data:image/png;base64,${result.image_base64}`);
       message.success(t("browser.screenshotSuccess"));
     } catch (e) {
@@ -73,7 +82,9 @@ export function BrowserAutomationPanel() {
     }
     setLoading(true);
     try {
-      const result = await invoke<ExtractedElement[]>("browser_extract_all", { selector });
+      const result = await invoke<ExtractedElement[]>("browser_extract_all", {
+        selector,
+      });
       setElements(result);
       message.success(t("browser.elementsFound", { count: result.length }));
     } catch (e) {
@@ -88,7 +99,9 @@ export function BrowserAutomationPanel() {
       await invoke("browser_click", { selector: sel });
       message.success(t("browser.clickSuccess"));
       setTimeout(() => {
-        if (mountedRef.current) { handleScreenshot(); }
+        if (mountedRef.current) {
+          handleScreenshot();
+        }
       }, 500);
     } catch (e) {
       message.error(String(e));
@@ -125,7 +138,9 @@ export function BrowserAutomationPanel() {
   ];
 
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
+    >
       <Card size="small" title={t("browser.control")}>
         <Space direction="vertical" style={{ width: "100%" }}>
           <Space>
@@ -145,7 +160,11 @@ export function BrowserAutomationPanel() {
             >
               {t("browser.navigate")}
             </Button>
-            <Button icon={<Image size={14} />} onClick={() => handleScreenshot()} loading={loading}>
+            <Button
+              icon={<Image size={14} />}
+              onClick={() => handleScreenshot()}
+              loading={loading}
+            >
               {t("browser.screenshot")}
             </Button>
             <Button icon={<X size={14} />} onClick={handleClose} danger>
@@ -163,7 +182,11 @@ export function BrowserAutomationPanel() {
 
       {screenshot && (
         <Card size="small" bodyStyle={{ padding: 0 }}>
-          <img src={screenshot} alt="browser screenshot" style={{ width: "100%", display: "block" }} />
+          <img
+            src={screenshot}
+            alt="browser screenshot"
+            style={{ width: "100%", display: "block" }}
+          />
         </Card>
       )}
 
@@ -177,7 +200,11 @@ export function BrowserAutomationPanel() {
               onChange={(e) => setSelector(e.target.value)}
               style={{ width: 250 }}
             />
-            <Button icon={<Search size={14} />} onClick={handleExtractElements} loading={loading}>
+            <Button
+              icon={<Search size={14} />}
+              onClick={handleExtractElements}
+              loading={loading}
+            >
               {t("browser.extractElements")}
             </Button>
           </Space>
@@ -190,7 +217,10 @@ export function BrowserAutomationPanel() {
               pagination={{ pageSize: 10 }}
               scroll={{ y: 200 }}
               onRow={(record) => ({
-                onClick: () => record.tag === "a" || record.tag === "button" ? handleClick(`css_selector_here`) : null,
+                onClick: () =>
+                  record.tag === "a" || record.tag === "button"
+                    ? handleClick(`css_selector_here`)
+                    : null,
                 style: { cursor: "pointer" },
               })}
             />
@@ -200,10 +230,18 @@ export function BrowserAutomationPanel() {
 
       <Card size="small" title={t("browser.quickActions")}>
         <Space wrap>
-          <Button size="small" icon={<MousePointer size={12} />} onClick={() => handleClick("body")}>
+          <Button
+            size="small"
+            icon={<MousePointer size={12} />}
+            onClick={() => handleClick("body")}
+          >
             {t("browser.clickBody")}
           </Button>
-          <Button size="small" icon={<Keyboard size={12} />} onClick={() => handleFill("input[type='text']", "test")}>
+          <Button
+            size="small"
+            icon={<Keyboard size={12} />}
+            onClick={() => handleFill("input[type='text']", "test")}
+          >
             {t("browser.fillText")}
           </Button>
         </Space>

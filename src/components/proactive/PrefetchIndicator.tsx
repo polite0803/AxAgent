@@ -5,17 +5,46 @@ import { useTranslation } from "react-i18next";
 
 const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
   codeCompletion: (
-    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    <svg
+      className="size-3"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+      />
     </svg>
   ),
   searchResults: (
-    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    <svg
+      className="size-3"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
     </svg>
   ),
   documentation: (
-    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg
+      className="size-3"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -24,7 +53,14 @@ const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
     </svg>
   ),
   contextAnalysis: (
-    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg
+      className="size-3"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -33,7 +69,14 @@ const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
     </svg>
   ),
   toolCache: (
-    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg
+      className="size-3"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -44,7 +87,14 @@ const TYPE_ICONS: Record<PrefetchType, React.JSX.Element> = {
 };
 
 const CHECK_ICON = (
-  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+  <svg
+    className="size-3"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    aria-hidden="true"
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
 );
@@ -80,7 +130,9 @@ export function PrefetchIndicator() {
     // Deliberately use resultsHash to react to content changes, not just length
   }, [isActive, resultsHash]);
 
-  if (!mounted) { return null; }
+  if (!mounted) {
+    return null;
+  }
 
   const readyCount = results.filter((r) => r.ready).length;
   const totalCount = results.length;
@@ -95,9 +147,7 @@ export function PrefetchIndicator() {
       <div
         role="status"
         aria-live="polite"
-        aria-label={isActive
-          ? t("proactive.prefetching")
-          : t("proactive.prefetchReady")}
+        aria-label={isActive ? t("proactive.prefetching") : t("proactive.prefetchReady")}
         className={`fixed bottom-4 right-4 z-50 transition-all duration-300 ${
           visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
@@ -107,11 +157,15 @@ export function PrefetchIndicator() {
             <div className="flex items-center gap-2">
               <span
                 className={`size-2 rounded-full ${isActive ? "bg-yellow-500" : "bg-green-500"}`}
-                style={isActive ? { animation: "prefetch-pulse 1s ease-in-out infinite" } : undefined}
+                style={isActive
+                  ? { animation: "prefetch-pulse 1s ease-in-out infinite" }
+                  : undefined}
                 aria-hidden="true"
               />
               <span className="text-sm font-medium">
-                {isActive ? t("proactive.prefetching") : t("proactive.prefetchReady")}
+                {isActive
+                  ? t("proactive.prefetching")
+                  : t("proactive.prefetchReady")}
               </span>
             </div>
             <span className="text-xs text-muted-foreground" aria-hidden="true">
@@ -135,14 +189,24 @@ export function PrefetchIndicator() {
             </div>
 
             {displayedResults.length > 0 && (
-              <ul className="space-y-2" aria-label={t("proactive.prefetchReady")}>
+              <ul
+                className="space-y-2"
+                aria-label={t("proactive.prefetchReady")}
+              >
                 {displayedResults.map((result) => (
-                  <li key={result.resource_id} className="flex items-center gap-2">
+                  <li
+                    key={result.resource_id}
+                    className="flex items-center gap-2"
+                  >
                     <span
-                      className={result.ready ? "text-green-500" : "text-muted-foreground"}
+                      className={result.ready
+                        ? "text-green-500"
+                        : "text-muted-foreground"}
                       aria-hidden="true"
                     >
-                      {result.ready ? CHECK_ICON : TYPE_ICONS[result.prefetch_type]}
+                      {result.ready
+                        ? CHECK_ICON
+                        : TYPE_ICONS[result.prefetch_type]}
                     </span>
                     <span className="text-xs text-muted-foreground flex-1 truncate">
                       {result.prefetch_type}
@@ -163,7 +227,13 @@ export function PrefetchIndicator() {
             {allReady && results.length > 0 && (
               <div className="mt-3 pt-2 border-t flex items-center justify-between text-xs text-muted-foreground">
                 <span>{t("proactive.estimatedTime")}</span>
-                <span>{results.reduce((sum, r) => sum + r.estimated_prepare_time_ms, 0)}ms</span>
+                <span>
+                  {results.reduce(
+                    (sum, r) => sum + r.estimated_prepare_time_ms,
+                    0,
+                  )}
+                  ms
+                </span>
               </div>
             )}
           </div>

@@ -8,9 +8,15 @@ import { useTranslation } from "react-i18next";
 const { Text } = Typography;
 
 function formatDuration(ms?: number): string {
-  if (!ms) { return "-"; }
-  if (ms < 1000) { return `${ms}ms`; }
-  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
+  if (!ms) {
+    return "-";
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -19,7 +25,9 @@ function formatCost(cost: number): string {
 }
 
 function getStatusColor(errorCount: number): "green" | "red" | "default" {
-  if (errorCount > 0) { return "red"; }
+  if (errorCount > 0) {
+    return "red";
+  }
   return "green";
 }
 
@@ -56,10 +64,14 @@ function TraceItem({ trace, isSelected, onClick }: TraceItemProps) {
           <span className="font-medium">{trace.span_count}</span> spans
         </Text>
         <Text type="secondary" className="text-xs">
-          <span className="font-medium">{formatDuration(trace.duration_ms)}</span>
+          <span className="font-medium">
+            {formatDuration(trace.duration_ms)}
+          </span>
         </Text>
         <Text type="secondary" className="text-xs">
-          <span className="font-medium">{formatCost(trace.total_cost_usd)}</span>
+          <span className="font-medium">
+            {formatCost(trace.total_cost_usd)}
+          </span>
         </Text>
       </div>
     </Card>

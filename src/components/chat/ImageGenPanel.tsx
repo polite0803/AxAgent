@@ -85,8 +85,17 @@ export function ImageGenPanel({
   };
 
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+    <div
+      style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 4,
+        }}
+      >
         <Sparkles size={18} style={{ color: "#722ed1" }} />
         <Typography.Text strong>{t("imageGen.title")}</Typography.Text>
       </div>
@@ -123,7 +132,9 @@ export function ImageGenPanel({
 
       {provider === "flux" && (
         <div>
-          <Typography.Text type="secondary">{t("imageGen.inferenceSteps")}: {steps}</Typography.Text>
+          <Typography.Text type="secondary">
+            {t("imageGen.inferenceSteps")}: {steps}
+          </Typography.Text>
           <Slider min={1} max={50} value={steps} onChange={setSteps} />
         </div>
       )}
@@ -141,10 +152,12 @@ export function ImageGenPanel({
       {result && (
         <div>
           <Typography.Text type="secondary">
-            {t("imageGen.model")}: {result.model_used} | {t("imageGen.elapsed")}:{" "}
-            {(result.elapsed_ms / 1000).toFixed(1)}s
+            {t("imageGen.model")}: {result.model_used} | {t("imageGen.elapsed")}
+            : {(result.elapsed_ms / 1000).toFixed(1)}s
           </Typography.Text>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+          <div
+            style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}
+          >
             {result.images.map((img, i) => (
               <Image
                 key={img.url || (img.base64 ? img.base64.slice(0, 20) : `img-${i}`)}

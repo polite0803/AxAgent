@@ -458,7 +458,9 @@ function initProviders(): Record<string, unknown>[] {
       dirty = true;
     }
   }
-  if (dirty) { setStore("providers", existing); }
+  if (dirty) {
+    setStore("providers", existing);
+  }
   return existing;
 }
 
@@ -495,7 +497,10 @@ const DEFAULT_SETTINGS = {
 
 // ── Command Handler ─────────────────────────────────────────────────────
 
-export async function handleCommand<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+export async function handleCommand<T>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   await new Promise((r) => setTimeout(r, 5));
 
   switch (cmd) {
@@ -504,7 +509,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return getStore("settings", DEFAULT_SETTINGS) as T;
     case "save_settings": {
       const settings = (args as { settings?: Partial<Settings> }).settings ?? {};
-      const current = getStore<Settings>("settings", DEFAULT_SETTINGS as Settings);
+      const current = getStore<Settings>(
+        "settings",
+        DEFAULT_SETTINGS as Settings,
+      );
       const merged = { ...current, ...settings };
       setStore("settings", merged);
       return merged as T;
@@ -514,7 +522,8 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "list_providers":
       return initProviders() as T;
     case "create_provider": {
-      const input = (args as { input?: Partial<Provider> }).input ?? {} as Partial<Provider>;
+      const input = (args as { input?: Partial<Provider> }).input
+        ?? ({} as Partial<Provider>);
       const id = genId();
       const now = nowTs();
       const provider: Provider = {
@@ -538,20 +547,36 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const { id, input } = args as { id?: string; input?: Partial<Provider> };
       const providers = getStore<Provider[]>("providers", []);
       const idx = providers.findIndex((p) => p.id === id);
-      if (idx === -1) { throw new Error("Provider not found"); }
-      if (input?.name !== undefined) { providers[idx].name = input.name; }
-      if (input?.provider_type !== undefined) { providers[idx].provider_type = input.provider_type; }
-      if (input?.api_host !== undefined) { providers[idx].api_host = input.api_host; }
-      if (input?.enabled !== undefined) { providers[idx].enabled = input.enabled; }
-      if (input?.api_path !== undefined) { providers[idx].api_path = input.api_path; }
-      if (input?.sort_order !== undefined) { providers[idx].sort_order = input.sort_order; }
+      if (idx === -1) {
+        throw new Error("Provider not found");
+      }
+      if (input?.name !== undefined) {
+        providers[idx].name = input.name;
+      }
+      if (input?.provider_type !== undefined) {
+        providers[idx].provider_type = input.provider_type;
+      }
+      if (input?.api_host !== undefined) {
+        providers[idx].api_host = input.api_host;
+      }
+      if (input?.enabled !== undefined) {
+        providers[idx].enabled = input.enabled;
+      }
+      if (input?.api_path !== undefined) {
+        providers[idx].api_path = input.api_path;
+      }
+      if (input?.sort_order !== undefined) {
+        providers[idx].sort_order = input.sort_order;
+      }
       providers[idx].updated_at = nowTs();
       setStore("providers", providers);
       return providers[idx] as T;
     }
     case "delete_provider": {
       const { id } = args as { id?: string };
-      const providers = getStore<Provider[]>("providers", []).filter((p) => p.id !== id);
+      const providers = getStore<Provider[]>("providers", []).filter(
+        (p) => p.id !== id,
+      );
       setStore("providers", providers);
       return undefined as T;
     }
@@ -562,7 +587,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
         const providerMap = new Map(providers.map((p) => [p.id, p]));
         for (let i = 0; i < providerIds.length; i++) {
           const p = providerMap.get(providerIds[i]);
-          if (p) { p.sort_order = i; }
+          if (p) {
+            p.sort_order = i;
+          }
         }
         providers.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
         setStore("providers", providers);
@@ -581,7 +608,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "add_provider_key": {
-      const { providerId, rawKey } = args as { providerId?: string; rawKey?: string };
+      const { providerId, rawKey } = args as {
+        providerId?: string;
+        rawKey?: string;
+      };
       const key: ProviderKey = {
         id: genId(),
         provider_id: providerId ?? "",
@@ -615,7 +645,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const providers = getStore<Provider[]>("providers", []);
       for (const p of providers) {
         for (const k of p.keys) {
-          if (k.id === keyId) { k.enabled = enabled ?? true; }
+          if (k.id === keyId) {
+            k.enabled = enabled ?? true;
+          }
         }
       }
       setStore("providers", providers);
@@ -626,7 +658,12 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "save_models": {
       const { providerId, models } = args as {
         providerId?: string;
-        models?: Array<{ model_id: string; name: string; mode?: string; enabled?: boolean }>;
+        models?: Array<{
+          model_id: string;
+          name: string;
+          mode?: string;
+          enabled?: boolean;
+        }>;
       };
       const providers = getStore<Provider[]>("providers", []);
       const idx = providers.findIndex((p) => p.id === providerId);
@@ -637,11 +674,17 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "toggle_model": {
-      const { providerId, modelId, enabled } = args as { providerId?: string; modelId?: string; enabled?: boolean };
+      const { providerId, modelId, enabled } = args as {
+        providerId?: string;
+        modelId?: string;
+        enabled?: boolean;
+      };
       const providers = getStore<Provider[]>("providers", []);
       const pIdx = providers.findIndex((p) => p.id === providerId);
       if (pIdx !== -1) {
-        const model = providers[pIdx].models.find((m) => m.model_id === modelId);
+        const model = providers[pIdx].models.find(
+          (m) => m.model_id === modelId,
+        );
         if (model) {
           model.enabled = enabled;
           setStore("providers", providers);
@@ -659,7 +702,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const providers = getStore<Provider[]>("providers", []);
       const pIdx = providers.findIndex((p) => p.id === providerId);
       if (pIdx !== -1) {
-        const model = providers[pIdx].models.find((m) => m.model_id === modelId);
+        const model = providers[pIdx].models.find(
+          (m) => m.model_id === modelId,
+        );
         if (model) {
           (model as Record<string, unknown>).param_overrides = overrides;
           setStore("providers", providers);
@@ -670,17 +715,26 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "fetch_remote_models": {
       const providers = getStore<Provider[]>("providers", []);
-      const target = providers.find((p) => p.id === (args as { providerId?: string }).providerId);
+      const target = providers.find(
+        (p) => p.id === (args as { providerId?: string }).providerId,
+      );
       return (target?.models ?? []) as T;
     }
 
     // ── Conversations ─────────────────────────────────────────────────
     case "list_conversations":
-      return getStore<Conversation[]>("conversations", []).filter((c) => !c.is_archived) as T;
+      return getStore<Conversation[]>("conversations", []).filter(
+        (c) => !c.is_archived,
+      ) as T;
     case "list_archived_conversations":
-      return getStore<Conversation[]>("conversations", []).filter((c) => c.is_archived) as T;
+      return getStore<Conversation[]>("conversations", []).filter(
+        (c) => c.is_archived,
+      ) as T;
     case "create_conversation": {
-      const { title, modelId, providerId, systemPrompt } = args as Record<string, unknown>;
+      const { title, modelId, providerId, systemPrompt } = args as Record<
+        string,
+        unknown
+      >;
       const conv = {
         id: genId(),
         title,
@@ -709,18 +763,37 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return conv as T;
     }
     case "update_conversation": {
-      const { id, input } = args as { id?: string; input?: Partial<Conversation> };
+      const { id, input } = args as {
+        id?: string;
+        input?: Partial<Conversation>;
+      };
       const convs = getStore<Conversation[]>("conversations", []);
       const idx = convs.findIndex((c) => c.id === id);
       if (idx !== -1 && input) {
-        if (input.title !== undefined) { convs[idx].title = input.title; }
-        if (input.category_id !== undefined) { convs[idx].category_id = input.category_id; }
-        if (input.provider_id !== undefined) { convs[idx].provider_id = input.provider_id; }
-        if (input.model_id !== undefined) { convs[idx].model_id = input.model_id; }
-        if (input.temperature !== undefined) { convs[idx].temperature = input.temperature; }
-        if (input.max_tokens !== undefined) { convs[idx].max_tokens = input.max_tokens; }
-        if (input.top_p !== undefined) { convs[idx].top_p = input.top_p; }
-        if (input.frequency_penalty !== undefined) { convs[idx].frequency_penalty = input.frequency_penalty; }
+        if (input.title !== undefined) {
+          convs[idx].title = input.title;
+        }
+        if (input.category_id !== undefined) {
+          convs[idx].category_id = input.category_id;
+        }
+        if (input.provider_id !== undefined) {
+          convs[idx].provider_id = input.provider_id;
+        }
+        if (input.model_id !== undefined) {
+          convs[idx].model_id = input.model_id;
+        }
+        if (input.temperature !== undefined) {
+          convs[idx].temperature = input.temperature;
+        }
+        if (input.max_tokens !== undefined) {
+          convs[idx].max_tokens = input.max_tokens;
+        }
+        if (input.top_p !== undefined) {
+          convs[idx].top_p = input.top_p;
+        }
+        if (input.frequency_penalty !== undefined) {
+          convs[idx].frequency_penalty = input.frequency_penalty;
+        }
         convs[idx].updated_at = nowTs();
         setStore("conversations", convs);
         return convs[idx] as T;
@@ -729,9 +802,13 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_conversation": {
       const { id } = args as { id?: string };
-      const convs = getStore<Conversation[]>("conversations", []).filter((c) => c.id !== id);
+      const convs = getStore<Conversation[]>("conversations", []).filter(
+        (c) => c.id !== id,
+      );
       setStore("conversations", convs);
-      const msgs = getStore<Message[]>("messages", []).filter((m) => m.conversation_id !== id);
+      const msgs = getStore<Message[]>("messages", []).filter(
+        (m) => m.conversation_id !== id,
+      );
       setStore("messages", msgs);
       return undefined as T;
     }
@@ -760,11 +837,20 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       throw new Error("Conversation not found");
     }
     case "list_conversation_categories":
-      return getStore<ConversationCategory[]>("conversation_categories", []) as T;
+      return getStore<ConversationCategory[]>(
+        "conversation_categories",
+        [],
+      ) as T;
     case "create_conversation_category": {
       const { input } = args as { input: ConversationCategory };
-      const cats = getStore<ConversationCategory[]>("conversation_categories", []);
-      const maxOrder = cats.reduce((m: number, c) => Math.max(m, c.sort_order ?? 0), -1);
+      const cats = getStore<ConversationCategory[]>(
+        "conversation_categories",
+        [],
+      );
+      const maxOrder = cats.reduce(
+        (m: number, c) => Math.max(m, c.sort_order ?? 0),
+        -1,
+      );
       const cat: ConversationCategory = {
         id: genId(),
         name: input.name,
@@ -787,19 +873,43 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return cat as T;
     }
     case "update_conversation_category": {
-      const { id, input } = args as { id: string; input: Partial<ConversationCategory> };
-      const cats = getStore<ConversationCategory[]>("conversation_categories", []);
+      const { id, input } = args as {
+        id: string;
+        input: Partial<ConversationCategory>;
+      };
+      const cats = getStore<ConversationCategory[]>(
+        "conversation_categories",
+        [],
+      );
       const idx = cats.findIndex((c) => c.id === id);
       if (idx !== -1) {
-        if (input.name !== undefined) { cats[idx].name = input.name; }
-        if (input.icon_type !== undefined) { cats[idx].icon_type = input.icon_type; }
-        if (input.icon_value !== undefined) { cats[idx].icon_value = input.icon_value; }
-        if (input.system_prompt !== undefined) { cats[idx].system_prompt = input.system_prompt; }
-        if (input.default_provider_id !== undefined) { cats[idx].default_provider_id = input.default_provider_id; }
-        if (input.default_model_id !== undefined) { cats[idx].default_model_id = input.default_model_id; }
-        if (input.default_temperature !== undefined) { cats[idx].default_temperature = input.default_temperature; }
-        if (input.default_max_tokens !== undefined) { cats[idx].default_max_tokens = input.default_max_tokens; }
-        if (input.default_top_p !== undefined) { cats[idx].default_top_p = input.default_top_p; }
+        if (input.name !== undefined) {
+          cats[idx].name = input.name;
+        }
+        if (input.icon_type !== undefined) {
+          cats[idx].icon_type = input.icon_type;
+        }
+        if (input.icon_value !== undefined) {
+          cats[idx].icon_value = input.icon_value;
+        }
+        if (input.system_prompt !== undefined) {
+          cats[idx].system_prompt = input.system_prompt;
+        }
+        if (input.default_provider_id !== undefined) {
+          cats[idx].default_provider_id = input.default_provider_id;
+        }
+        if (input.default_model_id !== undefined) {
+          cats[idx].default_model_id = input.default_model_id;
+        }
+        if (input.default_temperature !== undefined) {
+          cats[idx].default_temperature = input.default_temperature;
+        }
+        if (input.default_max_tokens !== undefined) {
+          cats[idx].default_max_tokens = input.default_max_tokens;
+        }
+        if (input.default_top_p !== undefined) {
+          cats[idx].default_top_p = input.default_top_p;
+        }
         if (input.default_frequency_penalty !== undefined) {
           cats[idx].default_frequency_penalty = input.default_frequency_penalty;
         }
@@ -811,22 +921,32 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_conversation_category": {
       const { id } = args as { id: string };
-      const cats = getStore<ConversationCategory[]>("conversation_categories", []).filter((c) => c.id !== id);
+      const cats = getStore<ConversationCategory[]>(
+        "conversation_categories",
+        [],
+      ).filter((c) => c.id !== id);
       setStore("conversation_categories", cats);
       const convs = getStore<Conversation[]>("conversations", []);
       convs.forEach((c) => {
-        if (c.category_id === id) { c.category_id = null; }
+        if (c.category_id === id) {
+          c.category_id = null;
+        }
       });
       setStore("conversations", convs);
       return undefined as T;
     }
     case "reorder_conversation_categories": {
       const { categoryIds } = args as { categoryIds: string[] };
-      const cats = getStore<ConversationCategory[]>("conversation_categories", []);
+      const cats = getStore<ConversationCategory[]>(
+        "conversation_categories",
+        [],
+      );
       const catMap = new Map(cats.map((c) => [c.id, c]));
       for (let i = 0; i < categoryIds.length; i++) {
         const c = catMap.get(categoryIds[i]);
-        if (c) { c.sort_order = i; }
+        if (c) {
+          c.sort_order = i;
+        }
       }
       cats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
       setStore("conversation_categories", cats);
@@ -834,7 +954,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "set_conversation_category_collapsed": {
       const { id, collapsed } = args as { id?: string; collapsed?: boolean };
-      const cats = getStore<ConversationCategory[]>("conversation_categories", []);
+      const cats = getStore<ConversationCategory[]>(
+        "conversation_categories",
+        [],
+      );
       const idx = cats.findIndex((c) => c.id === id);
       if (idx !== -1) {
         cats[idx].is_collapsed = collapsed ?? false;
@@ -912,7 +1035,11 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return msgs as T;
     }
     case "list_messages_page": {
-      const { conversationId, limit = 10, beforeMessageId = null } = args as {
+      const {
+        conversationId,
+        limit = 10,
+        beforeMessageId = null,
+      } = args as {
         conversationId: string;
         limit?: number;
         beforeMessageId?: string | null;
@@ -935,18 +1062,21 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "search_conversations": {
       const { query } = args as { query: string };
       const convs = getStore<Conversation[]>("conversations", []);
-      const results = convs
-        .flatMap((c) =>
-          c.title.toLowerCase().includes(query.toLowerCase())
-            ? [{ conversation_id: c.id, title: c.title, snippet: "" }]
-            : []
-        );
+      const results = convs.flatMap((c) =>
+        c.title.toLowerCase().includes(query.toLowerCase())
+          ? [{ conversation_id: c.id, title: c.title, snippet: "" }]
+          : []
+      );
       return results as T;
     }
     case "regenerate_message": {
-      const { conversationId: regenConvId } = args as { conversationId?: string };
+      const { conversationId: regenConvId } = args as {
+        conversationId?: string;
+      };
       const regenMsgs = getStore<Message[]>("messages", []);
-      const convMsgs = regenMsgs.filter((m) => m.conversation_id === regenConvId);
+      const convMsgs = regenMsgs.filter(
+        (m) => m.conversation_id === regenConvId,
+      );
       let lastUserMsg: Message | null = null;
       for (let i = convMsgs.length - 1; i >= 0; i--) {
         if (convMsgs[i].role === "user") {
@@ -960,7 +1090,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
         );
         const nextVersion = existingVersions.length;
         for (const m of regenMsgs) {
-          if (m.parent_message_id === lastUserMsg!.id && m.role === "assistant") {
+          if (
+            m.parent_message_id === lastUserMsg!.id
+            && m.role === "assistant"
+          ) {
             m.is_active = false;
           }
         }
@@ -991,7 +1124,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "list_message_versions": {
       const { parentMessageId } = args as { parentMessageId?: string };
       const allMsgs = getStore<Message[]>("messages", []);
-      return allMsgs.filter((m) => m.parent_message_id === parentMessageId) as T;
+      return allMsgs.filter(
+        (m) => m.parent_message_id === parentMessageId,
+      ) as T;
     }
     case "switch_message_version": {
       const { parentMessageId: switchParent, messageId: switchTarget } = args as {
@@ -1035,11 +1170,16 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const keys = getStore<GatewayKey[]>("gateway_keys", []);
       keys.push(key);
       setStore("gateway_keys", keys);
-      return { gateway_key: key, plain_key: `sk-mock-plain-key-${genId().substring(0, 8)}` } as T;
+      return {
+        gateway_key: key,
+        plain_key: `sk-mock-plain-key-${genId().substring(0, 8)}`,
+      } as T;
     }
     case "delete_gateway_key": {
       const { id } = args as { id?: string };
-      const keys = getStore<GatewayKey[]>("gateway_keys", []).filter((k) => k.id !== id);
+      const keys = getStore<GatewayKey[]>("gateway_keys", []).filter(
+        (k) => k.id !== id,
+      );
       setStore("gateway_keys", keys);
       return undefined as T;
     }
@@ -1097,7 +1237,8 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return getStore("search_providers", []) as T;
     case "create_search_provider": {
       const sps = getStore<SearchProvider[]>("search_providers", []);
-      const spInput = (args as { input?: CreateSearchProviderInput }).input ?? ({} as CreateSearchProviderInput);
+      const spInput = (args as { input?: CreateSearchProviderInput }).input
+        ?? ({} as CreateSearchProviderInput);
       const sp: SearchProvider = {
         id: genId(),
         name: spInput.name,
@@ -1116,17 +1257,35 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const sps2 = getStore<SearchProvider[]>("search_providers", []);
       const spUpdateId = (args as { id?: string }).id;
       const spInput = (args as { input?: Partial<CreateSearchProviderInput> }).input ?? {};
-      const spi = sps2.findIndex(s => s.id === spUpdateId);
+      const spi = sps2.findIndex((s) => s.id === spUpdateId);
       if (spi >= 0) {
-        if (spInput.name !== undefined) { sps2[spi].name = spInput.name; }
-        if (spInput.endpoint !== undefined) { sps2[spi].endpoint = spInput.endpoint; }
-        if (spInput.enabled !== undefined) { sps2[spi].enabled = spInput.enabled; }
-        if (spInput.region !== undefined) { sps2[spi].region = spInput.region; }
-        if (spInput.language !== undefined) { sps2[spi].language = spInput.language; }
-        if (spInput.safeSearch !== undefined) { sps2[spi].safeSearch = spInput.safeSearch; }
-        if (spInput.resultLimit !== undefined) { sps2[spi].resultLimit = spInput.resultLimit; }
-        if (spInput.timeoutMs !== undefined) { sps2[spi].timeoutMs = spInput.timeoutMs; }
-        if (spInput.apiKey !== undefined) { sps2[spi].hasApiKey = !!spInput.apiKey; }
+        if (spInput.name !== undefined) {
+          sps2[spi].name = spInput.name;
+        }
+        if (spInput.endpoint !== undefined) {
+          sps2[spi].endpoint = spInput.endpoint;
+        }
+        if (spInput.enabled !== undefined) {
+          sps2[spi].enabled = spInput.enabled;
+        }
+        if (spInput.region !== undefined) {
+          sps2[spi].region = spInput.region;
+        }
+        if (spInput.language !== undefined) {
+          sps2[spi].language = spInput.language;
+        }
+        if (spInput.safeSearch !== undefined) {
+          sps2[spi].safeSearch = spInput.safeSearch;
+        }
+        if (spInput.resultLimit !== undefined) {
+          sps2[spi].resultLimit = spInput.resultLimit;
+        }
+        if (spInput.timeoutMs !== undefined) {
+          sps2[spi].timeoutMs = spInput.timeoutMs;
+        }
+        if (spInput.apiKey !== undefined) {
+          sps2[spi].hasApiKey = !!spInput.apiKey;
+        }
         setStore("search_providers", sps2);
         return sps2[spi] as T;
       }
@@ -1134,7 +1293,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_search_provider": {
       const sps3 = getStore<SearchProvider[]>("search_providers", []);
-      setStore("search_providers", sps3.filter(s => s.id !== (args as { id?: string })?.id));
+      setStore(
+        "search_providers",
+        sps3.filter((s) => s.id !== (args as { id?: string })?.id),
+      );
       return undefined as T;
     }
     case "test_search_provider":
@@ -1258,7 +1420,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "update_mcp_server": {
       const mcps2 = getStore<Record<string, unknown>[]>("mcp_servers", []);
-      const mi = mcps2.findIndex(m => m.id === (args as Record<string, unknown>)?.id);
+      const mi = mcps2.findIndex(
+        (m) => m.id === (args as Record<string, unknown>)?.id,
+      );
       if (mi >= 0) {
         Object.assign(mcps2[mi], args, { updated_at: nowTs() });
         setStore("mcp_servers", mcps2);
@@ -1268,7 +1432,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_mcp_server": {
       const mcps3 = getStore<Record<string, unknown>[]>("mcp_servers", []);
-      setStore("mcp_servers", mcps3.filter(m => m.id !== (args as Record<string, unknown>)?.id));
+      setStore(
+        "mcp_servers",
+        mcps3.filter((m) => m.id !== (args as Record<string, unknown>)?.id),
+      );
       return undefined as T;
     }
     case "connect_mcp_server":
@@ -1278,7 +1445,11 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "list_mcp_tools":
       return [
         { name: "web_search", description: "Search the web", parameters: {} },
-        { name: "calculator", description: "Evaluate math expressions", parameters: {} },
+        {
+          name: "calculator",
+          description: "Evaluate math expressions",
+          parameters: {},
+        },
       ] as T;
     case "execute_tool":
       return {
@@ -1294,9 +1465,14 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "list_knowledge_bases":
       return getStore<KnowledgeBase[]>("knowledge_bases", []) as T;
     case "create_knowledge_base": {
-      const input = (args as { input?: CreateKnowledgeBaseInput }).input ?? ({} as CreateKnowledgeBaseInput);
+      const input = (args as { input?: CreateKnowledgeBaseInput }).input
+        ?? ({} as CreateKnowledgeBaseInput);
       const kbs = getStore<KnowledgeBase[]>("knowledge_bases", []);
-      const kb: KnowledgeBase & { documents: KnowledgeDocument[]; created_at: number; updated_at: number } = {
+      const kb: KnowledgeBase & {
+        documents: KnowledgeDocument[];
+        created_at: number;
+        updated_at: number;
+      } = {
         id: genId(),
         name: input.name,
         description: input.description,
@@ -1313,12 +1489,21 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "update_knowledge_base": {
       const kbs2 = getStore<KnowledgeBase[]>("knowledge_bases", []);
-      const { id, input } = args as { id: string; input?: Partial<KnowledgeBase> };
-      const ki = kbs2.findIndex(k => k.id === id);
+      const { id, input } = args as {
+        id: string;
+        input?: Partial<KnowledgeBase>;
+      };
+      const ki = kbs2.findIndex((k) => k.id === id);
       if (ki >= 0) {
-        if (input?.name !== undefined) { kbs2[ki].name = input.name; }
-        if (input?.description !== undefined) { kbs2[ki].description = input.description; }
-        if (input?.enabled !== undefined) { kbs2[ki].enabled = input.enabled; }
+        if (input?.name !== undefined) {
+          kbs2[ki].name = input.name;
+        }
+        if (input?.description !== undefined) {
+          kbs2[ki].description = input.description;
+        }
+        if (input?.enabled !== undefined) {
+          kbs2[ki].enabled = input.enabled;
+        }
         setStore("knowledge_bases", kbs2);
         return kbs2[ki] as T;
       }
@@ -1326,16 +1511,25 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_knowledge_base": {
       const kbs3 = getStore<KnowledgeBase[]>("knowledge_bases", []);
-      setStore("knowledge_bases", kbs3.filter(k => k.id !== (args as { id?: string })?.id));
+      setStore(
+        "knowledge_bases",
+        kbs3.filter((k) => k.id !== (args as { id?: string })?.id),
+      );
       return undefined as T;
     }
     case "add_knowledge_document": {
-      const kbs4 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>(
-        "knowledge_bases",
-        [],
-      );
-      const { baseId, ...docInput } = args as { baseId?: string; title?: string; sourcePath?: string };
-      const kbi = kbs4.findIndex(k => k.id === baseId);
+      const kbs4 = getStore<
+        (KnowledgeBase & {
+          documents: KnowledgeDocument[];
+          updated_at: number;
+        })[]
+      >("knowledge_bases", []);
+      const { baseId, ...docInput } = args as {
+        baseId?: string;
+        title?: string;
+        sourcePath?: string;
+      };
+      const kbi = kbs4.findIndex((k) => k.id === baseId);
       if (kbi >= 0) {
         const doc: KnowledgeDocument = {
           id: genId(),
@@ -1355,18 +1549,24 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "list_knowledge_documents": {
-      const kbs5 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>(
-        "knowledge_bases",
-        [],
+      const kbs5 = getStore<
+        (KnowledgeBase & {
+          documents: KnowledgeDocument[];
+          updated_at: number;
+        })[]
+      >("knowledge_bases", []);
+      const target = kbs5.find(
+        (k) => k.id === (args as { baseId?: string })?.baseId,
       );
-      const target = kbs5.find(k => k.id === (args as { baseId?: string })?.baseId);
       return (target?.documents ?? []) as T;
     }
     case "delete_knowledge_document": {
-      const kbs6 = getStore<(KnowledgeBase & { documents: KnowledgeDocument[]; updated_at: number })[]>(
-        "knowledge_bases",
-        [],
-      );
+      const kbs6 = getStore<
+        (KnowledgeBase & {
+          documents: KnowledgeDocument[];
+          updated_at: number;
+        })[]
+      >("knowledge_bases", []);
       const delDocId = (args as { id?: string })?.id;
       for (const kb of kbs6) {
         const docs = kb.documents || [];
@@ -1391,9 +1591,14 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "list_memory_namespaces":
       return getStore<MemoryNamespace[]>("memory_namespaces", []) as T;
     case "create_memory_namespace": {
-      const input = (args as { input?: CreateMemoryNamespaceInput }).input ?? ({} as CreateMemoryNamespaceInput);
+      const input = (args as { input?: CreateMemoryNamespaceInput }).input
+        ?? ({} as CreateMemoryNamespaceInput);
       const mns = getStore<MemoryNamespace[]>("memory_namespaces", []);
-      const mn: MemoryNamespace & { items: MemoryItem[]; created_at: number; updated_at: number } = {
+      const mn: MemoryNamespace & {
+        items: MemoryItem[];
+        created_at: number;
+        updated_at: number;
+      } = {
         id: genId(),
         name: input.name,
         scope: input.scope ?? "global",
@@ -1409,13 +1614,19 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_memory_namespace": {
       const mns2 = getStore<MemoryNamespace[]>("memory_namespaces", []);
-      setStore("memory_namespaces", mns2.filter(n => n.id !== (args as { id?: string })?.id));
+      setStore(
+        "memory_namespaces",
+        mns2.filter((n) => n.id !== (args as { id?: string })?.id),
+      );
       return undefined as T;
     }
     case "add_memory_item": {
-      const mns3 = getStore<(MemoryNamespace & { items: MemoryItem[]; updated_at: number })[]>("memory_namespaces", []);
-      const inputMem = (args as { input?: CreateMemoryItemInput }).input ?? ({} as CreateMemoryItemInput);
-      const mni = mns3.findIndex(n => n.id === inputMem?.namespaceId);
+      const mns3 = getStore<
+        (MemoryNamespace & { items: MemoryItem[]; updated_at: number })[]
+      >("memory_namespaces", []);
+      const inputMem = (args as { input?: CreateMemoryItemInput }).input
+        ?? ({} as CreateMemoryItemInput);
+      const mni = mns3.findIndex((n) => n.id === inputMem?.namespaceId);
       if (mni >= 0) {
         const item: MemoryItem = {
           id: genId(),
@@ -1439,12 +1650,19 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "list_memory_items": {
-      const mns4 = getStore<(MemoryNamespace & { items: MemoryItem[] })[]>("memory_namespaces", []);
-      const ns = mns4.find(n => n.id === (args as { namespaceId?: string })?.namespaceId);
+      const mns4 = getStore<(MemoryNamespace & { items: MemoryItem[] })[]>(
+        "memory_namespaces",
+        [],
+      );
+      const ns = mns4.find(
+        (n) => n.id === (args as { namespaceId?: string })?.namespaceId,
+      );
       return (ns?.items ?? []) as T;
     }
     case "delete_memory_item": {
-      const mns5 = getStore<(MemoryNamespace & { items: MemoryItem[]; updated_at: number })[]>("memory_namespaces", []);
+      const mns5 = getStore<
+        (MemoryNamespace & { items: MemoryItem[]; updated_at: number })[]
+      >("memory_namespaces", []);
       const delItemId = (args as { id?: string })?.id;
       for (const mns of mns5) {
         const items = mns.items || [];
@@ -1469,7 +1687,11 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "list_artifacts": {
       const allArtifacts = getStore<Artifact[]>("artifacts", []);
       const convId = (args as { conversationId?: string })?.conversationId;
-      return (convId ? allArtifacts.filter((a) => a.conversationId === convId) : allArtifacts) as T;
+      return (
+        convId
+          ? allArtifacts.filter((a) => a.conversationId === convId)
+          : allArtifacts
+      ) as T;
     }
     case "create_artifact": {
       const input = (args as { input?: Partial<Artifact> }).input ?? {};
@@ -1493,15 +1715,28 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "update_artifact": {
       const arts2 = getStore<Artifact[]>("artifacts", []);
-      const artInput = (args as { id?: string; input?: Partial<Artifact> }).input;
-      const ai = arts2.findIndex(a => a.id === (args as { id?: string }).id);
+      const artInput = (args as { id?: string; input?: Partial<Artifact> })
+        .input;
+      const ai = arts2.findIndex((a) => a.id === (args as { id?: string }).id);
       if (ai >= 0 && artInput) {
-        if (artInput.title !== undefined) { arts2[ai].title = artInput.title; }
-        if (artInput.content !== undefined) { arts2[ai].content = artInput.content; }
-        if (artInput.format !== undefined) { arts2[ai].format = artInput.format; }
-        if (artInput.language !== undefined) { arts2[ai].language = artInput.language; }
-        if (artInput.previewMode !== undefined) { arts2[ai].previewMode = artInput.previewMode; }
-        if (artInput.pinned !== undefined) { arts2[ai].pinned = artInput.pinned; }
+        if (artInput.title !== undefined) {
+          arts2[ai].title = artInput.title;
+        }
+        if (artInput.content !== undefined) {
+          arts2[ai].content = artInput.content;
+        }
+        if (artInput.format !== undefined) {
+          arts2[ai].format = artInput.format;
+        }
+        if (artInput.language !== undefined) {
+          arts2[ai].language = artInput.language;
+        }
+        if (artInput.previewMode !== undefined) {
+          arts2[ai].previewMode = artInput.previewMode;
+        }
+        if (artInput.pinned !== undefined) {
+          arts2[ai].pinned = artInput.pinned;
+        }
         arts2[ai].updatedAt = new Date().toISOString();
         setStore("artifacts", arts2);
         return arts2[ai] as T;
@@ -1510,20 +1745,26 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_artifact": {
       const arts3 = getStore<Artifact[]>("artifacts", []);
-      setStore("artifacts", arts3.filter(a => a.id !== (args as { id?: string })?.id));
+      setStore(
+        "artifacts",
+        arts3.filter((a) => a.id !== (args as { id?: string })?.id),
+      );
       return undefined as T;
     }
 
     // ── Phase 2: Conversation Branching ───────────────────────────────
     case "fork_conversation": {
       const convs = getStore<Record<string, unknown>[]>("conversations", []);
-      const source = convs.find(c => c.id === (args as Record<string, unknown>)?.conversationId);
+      const source = convs.find(
+        (c) => c.id === (args as Record<string, unknown>)?.conversationId,
+      );
       if (source) {
         const forked = {
           ...JSON.parse(JSON.stringify(source)),
           id: genId(),
           parent_id: source.id,
-          title: (args as Record<string, unknown>)?.title ?? `Fork of ${source.title}`,
+          title: (args as Record<string, unknown>)?.title
+            ?? `Fork of ${source.title}`,
           created_at: nowTs(),
           updated_at: nowTs(),
         };
@@ -1536,7 +1777,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "list_branches": {
       const convs2 = getStore<Record<string, unknown>[]>("conversations", []);
       const parentId = (args as Record<string, unknown>)?.conversationId;
-      return convs2.filter(c => c.parent_id === parentId || c.id === parentId) as T;
+      return convs2.filter(
+        (c) => c.parent_id === parentId || c.id === parentId,
+      ) as T;
     }
     case "compare_branches": {
       const brA = (args as Record<string, unknown>)?.branchA;
@@ -1562,12 +1805,17 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "remove_context_source": {
       const css2 = getStore<Record<string, unknown>[]>("context_sources", []);
-      setStore("context_sources", css2.filter(c => c.id !== (args as Record<string, unknown>)?.id));
+      setStore(
+        "context_sources",
+        css2.filter((c) => c.id !== (args as Record<string, unknown>)?.id),
+      );
       return undefined as T;
     }
     case "toggle_context_source": {
       const css3 = getStore<Record<string, unknown>[]>("context_sources", []);
-      const csi = css3.findIndex(c => c.id === (args as Record<string, unknown>)?.id);
+      const csi = css3.findIndex(
+        (c) => c.id === (args as Record<string, unknown>)?.id,
+      );
       if (csi >= 0) {
         css3[csi].enabled = !css3[csi].enabled;
         css3[csi].updated_at = nowTs();
@@ -1600,19 +1848,30 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "delete_backup": {
       const backups = getStore<BackupManifest[]>("backups", []);
       const bkpId = (args as { backupId?: string })?.backupId;
-      setStore("backups", backups.filter((b) => b.id !== bkpId));
+      setStore(
+        "backups",
+        backups.filter((b) => b.id !== bkpId),
+      );
       return undefined as T;
     }
     case "batch_delete_backups": {
       const allBkps = getStore<BackupManifest[]>("backups", []);
       const idsToDelete = (args as { backupIds?: string[] })?.backupIds || [];
-      setStore("backups", allBkps.filter((b) => !idsToDelete.includes(b.id)));
+      setStore(
+        "backups",
+        allBkps.filter((b) => !idsToDelete.includes(b.id)),
+      );
       return undefined as T;
     }
     case "restore_backup":
       return undefined as T;
     case "get_backup_settings":
-      return { enabled: false, intervalHours: 24, maxCount: 10, backupDir: "/mock/backups" } as T;
+      return {
+        enabled: false,
+        intervalHours: 24,
+        maxCount: 10,
+        backupDir: "/mock/backups",
+      } as T;
     case "update_backup_settings":
       return undefined as T;
 
@@ -1623,7 +1882,8 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
         const backups = getStore<BackupManifest[]>("backups", []);
         return backups.map((backup) => ({
           id: `backup_manifest::${backup.id}`,
-          name: backup.filePath?.split("/").pop() || `backup-${backup.createdAt}.${backup.version}`,
+          name: backup.filePath?.split("/").pop()
+            || `backup-${backup.createdAt}.${backup.version}`,
           path: backup.filePath || "",
           size: backup.fileSize,
           createdAt: backup.createdAt,
@@ -1642,7 +1902,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       if (entryId?.startsWith("backup_manifest::")) {
         const backupId = entryId.slice("backup_manifest::".length);
         const backups = getStore<BackupManifest[]>("backups", []);
-        setStore("backups", backups.filter((b) => b.id !== backupId));
+        setStore(
+          "backups",
+          backups.filter((b) => b.id !== backupId),
+        );
       }
       return undefined as T;
     }
@@ -1654,12 +1917,17 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return getStore<ProgramPolicy[]>("program_policies", []) as T;
     case "save_program_policy": {
       const sppList = getStore<ProgramPolicy[]>("program_policies", []);
-      const sppInput = (args as { input?: SaveProgramPolicyInput }).input ?? ({} as SaveProgramPolicyInput);
-      const sppIdx = sppList.findIndex(p => p.programName === sppInput.programName);
+      const sppInput = (args as { input?: SaveProgramPolicyInput }).input
+        ?? ({} as SaveProgramPolicyInput);
+      const sppIdx = sppList.findIndex(
+        (p) => p.programName === sppInput.programName,
+      );
       if (sppIdx >= 0) {
         sppList[sppIdx] = {
           ...sppList[sppIdx],
-          allowedProviderIdsJson: JSON.stringify(sppInput.allowedProviderIds ?? []),
+          allowedProviderIdsJson: JSON.stringify(
+            sppInput.allowedProviderIds ?? [],
+          ),
           allowedModelIdsJson: JSON.stringify(sppInput.allowedModelIds ?? []),
           defaultProviderId: sppInput.defaultProviderId,
           defaultModelId: sppInput.defaultModelId,
@@ -1671,7 +1939,9 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const sppNew: ProgramPolicy = {
         id: genId(),
         programName: sppInput.programName,
-        allowedProviderIdsJson: JSON.stringify(sppInput.allowedProviderIds ?? []),
+        allowedProviderIdsJson: JSON.stringify(
+          sppInput.allowedProviderIds ?? [],
+        ),
         allowedModelIdsJson: JSON.stringify(sppInput.allowedModelIds ?? []),
         defaultProviderId: sppInput.defaultProviderId,
         defaultModelId: sppInput.defaultModelId,
@@ -1683,11 +1953,17 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "create_program_policy": {
       const pps = getStore<ProgramPolicy[]>("program_policies", []);
-      const ppInput = args as { programName?: string; allowedProviderIds?: string[]; allowedModelIds?: string[] };
+      const ppInput = args as {
+        programName?: string;
+        allowedProviderIds?: string[];
+        allowedModelIds?: string[];
+      };
       const pp: ProgramPolicy = {
         id: genId(),
         programName: ppInput.programName ?? "",
-        allowedProviderIdsJson: JSON.stringify(ppInput.allowedProviderIds ?? []),
+        allowedProviderIdsJson: JSON.stringify(
+          ppInput.allowedProviderIds ?? [],
+        ),
         allowedModelIdsJson: JSON.stringify(ppInput.allowedModelIds ?? []),
       };
       pps.push(pp);
@@ -1705,18 +1981,30 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
         defaultModelId?: string;
         rateLimitPerMinute?: number;
       };
-      const ppi = pps2.findIndex(p => p.id === id);
+      const ppi = pps2.findIndex((p) => p.id === id);
       if (ppi >= 0) {
-        if (ppInput.programName !== undefined) { pps2[ppi].programName = ppInput.programName; }
+        if (ppInput.programName !== undefined) {
+          pps2[ppi].programName = ppInput.programName;
+        }
         if (ppInput.allowedProviderIds !== undefined) {
-          pps2[ppi].allowedProviderIdsJson = JSON.stringify(ppInput.allowedProviderIds);
+          pps2[ppi].allowedProviderIdsJson = JSON.stringify(
+            ppInput.allowedProviderIds,
+          );
         }
         if (ppInput.allowedModelIds !== undefined) {
-          pps2[ppi].allowedModelIdsJson = JSON.stringify(ppInput.allowedModelIds);
+          pps2[ppi].allowedModelIdsJson = JSON.stringify(
+            ppInput.allowedModelIds,
+          );
         }
-        if (ppInput.defaultProviderId !== undefined) { pps2[ppi].defaultProviderId = ppInput.defaultProviderId; }
-        if (ppInput.defaultModelId !== undefined) { pps2[ppi].defaultModelId = ppInput.defaultModelId; }
-        if (ppInput.rateLimitPerMinute !== undefined) { pps2[ppi].rateLimitPerMinute = ppInput.rateLimitPerMinute; }
+        if (ppInput.defaultProviderId !== undefined) {
+          pps2[ppi].defaultProviderId = ppInput.defaultProviderId;
+        }
+        if (ppInput.defaultModelId !== undefined) {
+          pps2[ppi].defaultModelId = ppInput.defaultModelId;
+        }
+        if (ppInput.rateLimitPerMinute !== undefined) {
+          pps2[ppi].rateLimitPerMinute = ppInput.rateLimitPerMinute;
+        }
         setStore("program_policies", pps2);
         return pps2[ppi] as T;
       }
@@ -1724,16 +2012,37 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "delete_program_policy": {
       const pps3 = getStore<ProgramPolicy[]>("program_policies", []);
-      setStore("program_policies", pps3.filter(p => p.id !== (args as { id?: string })?.id));
+      setStore(
+        "program_policies",
+        pps3.filter((p) => p.id !== (args as { id?: string })?.id),
+      );
       return undefined as T;
     }
 
     // ── Phase 2: Gateway Diagnostics & Templates ──────────────────────
     case "get_gateway_diagnostics":
       return [
-        { id: "1", category: "port", status: "ok", message: "Gateway port is available", createdAt: nowTs() },
-        { id: "2", category: "auth", status: "ok", message: "Authentication configured", createdAt: nowTs() },
-        { id: "3", category: "proxy", status: "ok", message: "Proxy settings valid", createdAt: nowTs() },
+        {
+          id: "1",
+          category: "port",
+          status: "ok",
+          message: "Gateway port is available",
+          createdAt: nowTs(),
+        },
+        {
+          id: "2",
+          category: "auth",
+          status: "ok",
+          message: "Authentication configured",
+          createdAt: nowTs(),
+        },
+        {
+          id: "3",
+          category: "proxy",
+          status: "ok",
+          message: "Proxy settings valid",
+          createdAt: nowTs(),
+        },
         {
           id: "4",
           category: "provider_latency",
@@ -1788,20 +2097,34 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       ]) as T;
     case "create_gateway_template": {
       const gts = getStore<Record<string, unknown>[]>("gateway_templates", []);
-      const gt = { id: genId(), ...(args as Record<string, unknown>), created_at: nowTs(), updated_at: nowTs() };
+      const gt = {
+        id: genId(),
+        ...(args as Record<string, unknown>),
+        created_at: nowTs(),
+        updated_at: nowTs(),
+      };
       gts.push(gt);
       setStore("gateway_templates", gts);
       return gt as T;
     }
     case "delete_gateway_template": {
       const gts2 = getStore<Record<string, unknown>[]>("gateway_templates", []);
-      setStore("gateway_templates", gts2.filter(g => g.id !== (args as Record<string, unknown>)?.id));
+      setStore(
+        "gateway_templates",
+        gts2.filter((g) => g.id !== (args as Record<string, unknown>)?.id),
+      );
       return undefined as T;
     }
     case "copy_gateway_template": {
-      const cgtList = getStore<Record<string, unknown>[]>("gateway_templates", []);
-      const cgtMatch = cgtList.find(t => t.id === (args as Record<string, unknown>)?.templateId);
-      return (cgtMatch?.content ?? "# Gateway Template Configuration\n\nNo template found.") as T;
+      const cgtList = getStore<Record<string, unknown>[]>(
+        "gateway_templates",
+        [],
+      );
+      const cgtMatch = cgtList.find(
+        (t) => t.id === (args as Record<string, unknown>)?.templateId,
+      );
+      return (cgtMatch?.content
+        ?? "# Gateway Template Configuration\n\nNo template found.") as T;
     }
     case "apply_gateway_template":
       return { success: true, applied_at: nowTs() } as T;
@@ -1823,7 +2146,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
         fullscreen: false,
       } as T;
     case "send_desktop_notification": {
-      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      if (
+        typeof Notification !== "undefined"
+        && Notification.permission === "granted"
+      ) {
         new Notification((args as { title?: string })?.title ?? "AxAgent", {
           body: (args as { body?: string })?.body ?? "",
         });
@@ -1831,10 +2157,16 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "set_always_on_top":
-      console.log("[Mock] set_always_on_top:", (args as Record<string, unknown>)?.enabled);
+      console.log(
+        "[Mock] set_always_on_top:",
+        (args as Record<string, unknown>)?.enabled,
+      );
       return undefined as T;
     case "set_close_to_tray":
-      console.log("[Mock] set_close_to_tray:", (args as Record<string, unknown>)?.enabled);
+      console.log(
+        "[Mock] set_close_to_tray:",
+        (args as Record<string, unknown>)?.enabled,
+      );
       return undefined as T;
     case "apply_startup_settings":
       console.log("[Mock] apply_startup_settings:", args);
@@ -1846,16 +2178,26 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
 
     // ── Phase 2: Workspace Snapshot ────────────────────────────────────
     case "get_workspace_snapshot":
-      return { conversations: [], providers: [], settings: {}, captured_at: nowTs() } as T;
+      return {
+        conversations: [],
+        providers: [],
+        settings: {},
+        captured_at: nowTs(),
+      } as T;
     case "update_workspace_snapshot":
       return undefined as T;
 
     // ── Proxy Test ────────────────────────────────────────────────────────
     case "test_proxy": {
       const addr = (args as Record<string, unknown>)?.proxyAddress;
-      if (!addr) { return { ok: false, error: "No address" } as T; }
-      await new Promise(r => setTimeout(r, 500));
-      return { ok: true, latency_ms: 120 + Math.floor(Math.random() * 200) } as T;
+      if (!addr) {
+        return { ok: false, error: "No address" } as T;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+      return {
+        ok: true,
+        latency_ms: 120 + Math.floor(Math.random() * 200),
+      } as T;
     }
 
     // ── Skills ────────────────────────────────────────────────────────
@@ -1944,7 +2286,8 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
 
     case "install_skill":
-      return ((args as Record<string, unknown>)?.source || "installed-skill") as T;
+      return ((args as Record<string, unknown>)?.source
+        || "installed-skill") as T;
 
     case "uninstall_skill":
       return undefined as T;
@@ -1972,7 +2315,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
 
     // ── Workflow Templates ────────────────────────────────────────────
     case "seed_preset_templates": {
-      const existingTemplates = getStore<Record<string, unknown>[]>("workflow_templates", []);
+      const existingTemplates = getStore<Record<string, unknown>[]>(
+        "workflow_templates",
+        [],
+      );
       if (existingTemplates.length > 0) {
         return existingTemplates.length as T;
       }
@@ -2251,11 +2597,21 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       const templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
       const idx = templates.findIndex((t) => t.id === updateId);
       if (idx >= 0) {
-        if (updateInput.name !== undefined) { templates[idx].name = updateInput.name; }
-        if (updateInput.description !== undefined) { templates[idx].description = updateInput.description; }
-        if (updateInput.tags !== undefined) { templates[idx].tags = updateInput.tags; }
-        if (updateInput.nodes !== undefined) { templates[idx].nodes = updateInput.nodes; }
-        if (updateInput.edges !== undefined) { templates[idx].edges = updateInput.edges; }
+        if (updateInput.name !== undefined) {
+          templates[idx].name = updateInput.name;
+        }
+        if (updateInput.description !== undefined) {
+          templates[idx].description = updateInput.description;
+        }
+        if (updateInput.tags !== undefined) {
+          templates[idx].tags = updateInput.tags;
+        }
+        if (updateInput.nodes !== undefined) {
+          templates[idx].nodes = updateInput.nodes;
+        }
+        if (updateInput.edges !== undefined) {
+          templates[idx].edges = updateInput.edges;
+        }
         templates[idx].updated_at = nowTs();
         setStore("workflow_templates", templates);
       }
@@ -2264,7 +2620,10 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     case "delete_workflow_template": {
       const deleteId = (args as { id?: string }).id;
       const templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
-      setStore("workflow_templates", templates.filter((t) => t.id !== deleteId));
+      setStore(
+        "workflow_templates",
+        templates.filter((t) => t.id !== deleteId),
+      );
       return undefined as T;
     }
 
@@ -2320,14 +2679,17 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
     }
     case "update_platform_config": {
       const input = args as Partial<PlatformConfig>;
-      const existing = getStore<PlatformConfig | null>("platform_config", null) ?? {} as PlatformConfig;
+      const existing = getStore<PlatformConfig | null>("platform_config", null)
+        ?? ({} as PlatformConfig);
       const merged = { ...existing, ...input };
       setStore("platform_config", merged);
       return undefined as T;
     }
     case "get_platform_statuses": {
       const config = getStore<PlatformConfig | null>("platform_config", null);
-      if (!config) { return [] as T; }
+      if (!config) {
+        return [] as T;
+      }
       const keys: { key: keyof PlatformConfig; name: string }[] = [
         { key: "telegram_enabled", name: "Telegram" },
         { key: "discord_enabled", name: "Discord" },
@@ -2350,7 +2712,7 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return { started: [], stopped: [], errors: [] } as T;
     }
     case "get_active_sessions": {
-      return (getStore<PlatformSession[]>("platform_sessions", [])) as T;
+      return getStore<PlatformSession[]>("platform_sessions", []) as T;
     }
     case "create_platform_session": {
       const input = args as { platform: string; chat_id: string };
@@ -2433,15 +2795,25 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
         skill_names: [],
       });
       setStore("plugins", plugins);
-      return { plugin_id: id, version: "0.0.0", install_path: `/mock/plugins/${id}` } as T;
+      return {
+        plugin_id: id,
+        version: "0.0.0",
+        install_path: `/mock/plugins/${id}`,
+      } as T;
     }
     case "plugin_enable":
     case "plugin_disable": {
-      const allPlugins = getStore<Array<Record<string, unknown>>>("plugins", []);
+      const allPlugins = getStore<Array<Record<string, unknown>>>(
+        "plugins",
+        [],
+      );
       const pluginId = (args?.pluginId as string) || "";
       const idx = allPlugins.findIndex((p) => p.id === pluginId);
       if (idx !== -1) {
-        allPlugins[idx] = { ...allPlugins[idx], enabled: cmd === "plugin_enable" };
+        allPlugins[idx] = {
+          ...allPlugins[idx],
+          enabled: cmd === "plugin_enable",
+        };
         setStore("plugins", allPlugins);
       }
       return undefined as T;
@@ -2454,7 +2826,11 @@ export async function handleCommand<T>(cmd: string, args?: Record<string, unknow
       return undefined as T;
     }
     case "plugin_update": {
-      return { plugin_id: (args?.pluginId as string) || "", version: "0.0.0", install_path: "" } as T;
+      return {
+        plugin_id: (args?.pluginId as string) || "",
+        version: "0.0.0",
+        install_path: "",
+      } as T;
     }
 
     default:

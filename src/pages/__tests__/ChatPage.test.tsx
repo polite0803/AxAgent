@@ -52,7 +52,9 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/stores", () => ({
-  useConversationStore: (selector: (state: typeof conversationState) => unknown) => selector(conversationState),
+  useConversationStore: (
+    selector: (state: typeof conversationState) => unknown,
+  ) => selector(conversationState),
   useProviderStore: (selector: (state: typeof providerState) => unknown) => selector(providerState),
   useSettingsStore: (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
   useTabStore: (selector: (state: typeof tabState) => unknown) => selector(tabState),

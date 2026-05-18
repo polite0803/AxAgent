@@ -100,17 +100,29 @@ export function getNatureLabel(nature: MemoryNature): string {
  * 调用方需用 t() 包装后显示。
  */
 export function formatImportance(importance: number): string {
-  if (importance >= 0.9) { return "memoryLabels.importance.critical"; }
-  if (importance >= 0.7) { return "memoryLabels.importance.important"; }
-  if (importance >= 0.5) { return "memoryLabels.importance.normal"; }
-  if (importance >= 0.3) { return "memoryLabels.importance.minor"; }
+  if (importance >= 0.9) {
+    return "memoryLabels.importance.critical";
+  }
+  if (importance >= 0.7) {
+    return "memoryLabels.importance.important";
+  }
+  if (importance >= 0.5) {
+    return "memoryLabels.importance.normal";
+  }
+  if (importance >= 0.3) {
+    return "memoryLabels.importance.minor";
+  }
   return "memoryLabels.importance.low";
 }
 
 export function isExpired(entry: MemoryEntry): boolean {
-  if (entry.expires_at == null) { return false; }
+  if (entry.expires_at == null) {
+    return false;
+  }
   let expiresAt = entry.expires_at;
-  if (expiresAt > 1e12) { expiresAt = expiresAt / 1000; }
+  if (expiresAt > 1e12) {
+    expiresAt = expiresAt / 1000;
+  }
   return Date.now() / 1000 > expiresAt;
 }
 
@@ -119,7 +131,8 @@ export function effectiveScore(entry: MemoryEntry): number {
   const hoursElapsed = Math.max(0, now - entry.last_accessed) / 3600;
   const timeDecay = Math.exp(-entry.decay_rate * hoursElapsed);
   const accessBoost = 1.0 + Math.log(1.0 + entry.access_count);
-  const tierBonus = { short_term: 0.1, working: 0.2, long_term: 0.3, core: 0.4 }[entry.tier] ?? 0.2;
+  const tierBonus = { short_term: 0.1, working: 0.2, long_term: 0.3, core: 0.4 }[entry.tier]
+    ?? 0.2;
   return entry.importance * timeDecay * accessBoost + tierBonus;
 }
 

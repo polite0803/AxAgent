@@ -6,9 +6,13 @@ import { useCallback, useMemo } from "react";
 
 /** Parse a combined `providerId::model_id` value. */
 export function parseModelValue(value: string | undefined) {
-  if (!value) { return null; }
+  if (!value) {
+    return null;
+  }
   const idx = value.indexOf("::");
-  if (idx < 0) { return null; }
+  if (idx < 0) {
+    return null;
+  }
   return { providerId: value.slice(0, idx), model_id: value.slice(idx + 2) };
 }
 
@@ -16,31 +20,39 @@ export function parseModelValue(value: string | undefined) {
 export function useGroupedModelOptions() {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
-    return providers
-      .flatMap((p) =>
-        p.enabled && p.models.some((m) => m.enabled)
-          ? [{
+    return providers.flatMap((p) =>
+      p.enabled && p.models.some((m) => m.enabled)
+        ? [
+          {
             label: (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
                 <SmartProviderIcon provider={p} size={16} type="avatar" />
                 {p.name}
               </span>
             ),
             title: p.name,
-            options: p.models
-              .flatMap((m) =>
-                m.enabled
-                  ? [{
+            options: p.models.flatMap((m) =>
+              m.enabled
+                ? [
+                  {
                     label: m.name,
                     value: `${p.id}::${m.model_id}`,
                     model_id: m.model_id,
                     providerName: p.name,
-                  }]
-                  : []
-              ),
-          }]
-          : []
-      );
+                  },
+                ]
+                : []
+            ),
+          },
+        ]
+        : []
+    );
   }, [providers]);
 }
 
@@ -76,7 +88,10 @@ export function ModelSelect({
   const providerNameMap = useProviderNameMap();
 
   const optionRender = useCallback(
-    (oriOption: { label?: React.ReactNode; value?: string | number }, _info: { index: number }) => {
+    (
+      oriOption: { label?: React.ReactNode; value?: string | number },
+      _info: { index: number },
+    ) => {
       const model_id = String(oriOption.value ?? "").split("::")[1] ?? "";
       return (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -91,7 +106,9 @@ export function ModelSelect({
   const labelRender = useCallback(
     (props: { label?: React.ReactNode; value?: string | number }) => {
       const parsed = parseModelValue(String(props.value ?? ""));
-      if (!parsed) { return <span>{props.label}</span>; }
+      if (!parsed) {
+        return <span>{props.label}</span>;
+      }
       const providerName = providerNameMap.get(parsed.providerId) ?? "";
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>

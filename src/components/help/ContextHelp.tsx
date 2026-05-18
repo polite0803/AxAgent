@@ -20,7 +20,9 @@ export function ContextHelp({
   const openSection = useHelpStore((s) => s.openSection);
 
   const summary = t(`help.${helpKey}.summary`, "");
-  if (!summary) { return null; }
+  if (!summary) {
+    return null;
+  }
 
   return (
     <Tooltip title={summary} placement={placement}>

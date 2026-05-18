@@ -88,7 +88,9 @@ function StatusTag({
   connectedProtocol?: QuickConnectProtocol | null;
 }) {
   const { t } = useTranslation();
-  const displayStatus = status === "connected" && connectedProtocol == null ? "not_connected" : status;
+  const displayStatus = status === "connected" && connectedProtocol == null
+    ? "not_connected"
+    : status;
   switch (displayStatus) {
     case "connected":
       return (
@@ -133,7 +135,9 @@ function ToolCard({
 
   const status = toolInfo?.status ?? "not_installed";
   const connectedProtocol = toolInfo?.connectedProtocol ?? null;
-  const displayStatus = status === "connected" && connectedProtocol == null ? "not_connected" : status;
+  const displayStatus = status === "connected" && connectedProtocol == null
+    ? "not_connected"
+    : status;
   const isConnecting = connecting === item.key;
   const isNotInstalled = displayStatus === "not_installed";
   const isConnected = displayStatus === "connected";
@@ -173,16 +177,23 @@ function ToolCard({
   }, [item.key, toolInfo, onDisconnect, modal, t]);
 
   return (
-    <Card key={item.key} size="small" hoverable className="gateway-quick-connect-card">
+    <Card
+      key={item.key}
+      size="small"
+      hoverable
+      className="gateway-quick-connect-card"
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ flexShrink: 0 }}>
-          {item.avatar(40)}
-        </div>
+        <div style={{ flexShrink: 0 }}>{item.avatar(40)}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Title level={5} style={{ margin: 0 }}>{item.name}</Title>
+            <Title level={5} style={{ margin: 0 }}>
+              {item.name}
+            </Title>
             {toolInfo?.version && !isNotInstalled && (
-              <Text type="secondary" style={{ fontSize: 12 }}>v{toolInfo.version.replace(/^[^\d]*/, "")}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                v{toolInfo.version.replace(/^[^\d]*/, "")}
+              </Text>
             )}
             <StatusTag status={status} connectedProtocol={connectedProtocol} />
           </div>
@@ -219,7 +230,9 @@ function ToolCard({
                 disabled={quickConnectBlocked || !selectedKeyId || !selectedProtocol}
                 loading={isConnecting}
               >
-                {needsReconnect ? t("gateway.cliSwitchProtocolReconnect") : t("gateway.quickConnect")}
+                {needsReconnect
+                  ? t("gateway.cliSwitchProtocolReconnect")
+                  : t("gateway.quickConnect")}
               </Button>
             )}
         </div>
@@ -245,7 +258,9 @@ export function GatewayTemplates() {
   const [connecting, setConnecting] = useState<string | null>(null);
   const enabledKeys = keys.filter((k) => k.enabled && k.has_encrypted_key);
   const quickConnectBlocked = !status.is_running;
-  const [selectedKeyId, setSelectedKeyId] = useState<string | undefined>(undefined);
+  const [selectedKeyId, setSelectedKeyId] = useState<string | undefined>(
+    undefined,
+  );
   const availableProtocols = useMemo<QuickConnectProtocol[]>(() => {
     const protocols: QuickConnectProtocol[] = [];
 
@@ -262,7 +277,9 @@ export function GatewayTemplates() {
 
     return status.force_ssl ? ["https"] : ["http"];
   }, [status.force_ssl, status.https_port]);
-  const [selectedProtocol, setSelectedProtocol] = useState<QuickConnectProtocol | undefined>(undefined);
+  const [selectedProtocol, setSelectedProtocol] = useState<
+    QuickConnectProtocol | undefined
+  >(undefined);
 
   useEffect(() => {
     fetchStatus();
@@ -283,7 +300,10 @@ export function GatewayTemplates() {
       return;
     }
 
-    if (availableProtocols.length === 1 && selectedProtocol !== availableProtocols[0]) {
+    if (
+      availableProtocols.length === 1
+      && selectedProtocol !== availableProtocols[0]
+    ) {
       setSelectedProtocol(availableProtocols[0]);
     }
   }, [availableProtocols, selectedProtocol]);
@@ -295,7 +315,9 @@ export function GatewayTemplates() {
 
   const handleConnect = useCallback(
     async (toolId: string) => {
-      if (!selectedKeyId || !selectedProtocol) { return; }
+      if (!selectedKeyId || !selectedProtocol) {
+        return;
+      }
       setConnecting(toolId);
       try {
         await connectCliTool(toolId, selectedKeyId, selectedProtocol);
@@ -328,7 +350,14 @@ export function GatewayTemplates() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 4,
+        }}
+      >
         <Button
           icon={<RefreshCw size={14} />}
           onClick={handleRefresh}
@@ -356,7 +385,9 @@ export function GatewayTemplates() {
             disabled={availableProtocols.length <= 1}
             options={availableProtocols.map((protocol) => ({
               value: protocol,
-              label: protocol === "https" ? t("gateway.cliProtocolHttps") : t("gateway.cliProtocolHttp"),
+              label: protocol === "https"
+                ? t("gateway.cliProtocolHttps")
+                : t("gateway.cliProtocolHttp"),
             }))}
           />
         </div>
@@ -373,7 +404,10 @@ export function GatewayTemplates() {
             marginBottom: 4,
           }}
         >
-          <AlertCircle size={16} style={{ color: "var(--ant-color-warning)" }} />
+          <AlertCircle
+            size={16}
+            style={{ color: "var(--ant-color-warning)" }}
+          />
           <Text type="secondary" style={{ fontSize: 13 }}>
             {t("gateway.cliStartGatewayFirst")}
           </Text>
@@ -391,7 +425,10 @@ export function GatewayTemplates() {
             marginBottom: 4,
           }}
         >
-          <AlertCircle size={16} style={{ color: "var(--ant-color-warning)" }} />
+          <AlertCircle
+            size={16}
+            style={{ color: "var(--ant-color-warning)" }}
+          />
           <Text type="secondary" style={{ fontSize: 13 }}>
             {t("gateway.cliNoKeys")}
           </Text>

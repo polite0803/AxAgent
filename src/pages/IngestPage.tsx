@@ -31,7 +31,9 @@ export function IngestPage() {
   } = useLlmWikiStore();
 
   const [activeTab, setActiveTab] = useState("upload");
-  const [selectedWikiIdState, setSelectedWikiIdState] = useState<string | null>(null);
+  const [selectedWikiIdState, setSelectedWikiIdState] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     loadWikis();

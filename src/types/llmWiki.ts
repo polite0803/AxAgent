@@ -115,7 +115,11 @@ export type ValidationReport = {
 export type ValidationIssue = {
   noteId: string;
   title: string;
-  issueType: "HashMismatch" | "MissingInDatabase" | "MissingInFilesystem" | "OrphanInVectorStore";
+  issueType:
+    | "HashMismatch"
+    | "MissingInDatabase"
+    | "MissingInFilesystem"
+    | "OrphanInVectorStore";
   message: string;
 };
 

@@ -127,7 +127,9 @@ export function TeammatePanel({
         <span className="flex items-center gap-2">
           <TeamOutlined />
           <span>{teamName}</span>
-          <Tag>{t("teammatePanel.memberCount", { count: teammates.length })}</Tag>
+          <Tag>
+            {t("teammatePanel.memberCount", { count: teammates.length })}
+          </Tag>
         </span>
       ),
       children: (
@@ -153,7 +155,9 @@ export function TeammatePanel({
                 {/* 当前任务 */}
                 <div className="mb-1">
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    {tm.currentTask || tm.taskDescription || t("teammatePanel.idle")}
+                    {tm.currentTask
+                      || tm.taskDescription
+                      || t("teammatePanel.idle")}
                   </Text>
                 </div>
 
@@ -176,7 +180,9 @@ export function TeammatePanel({
                 {tm.duration !== undefined && tm.status === "completed" && (
                   <div className="mt-1">
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      {t("teammatePanel.duration", { seconds: (tm.duration / 1000).toFixed(1) })}
+                      {t("teammatePanel.duration", {
+                        seconds: (tm.duration / 1000).toFixed(1),
+                      })}
                     </Text>
                   </div>
                 )}
@@ -191,7 +197,10 @@ export function TeammatePanel({
   return (
     <div
       className="mb-2 rounded border"
-      style={{ borderColor: token.colorBorderSecondary, backgroundColor: token.colorBgContainer }}
+      style={{
+        borderColor: token.colorBorderSecondary,
+        backgroundColor: token.colorBgContainer,
+      }}
     >
       <div
         className="border-b px-3 py-2 flex items-center justify-between"
@@ -199,7 +208,8 @@ export function TeammatePanel({
       >
         <Text strong style={{ fontSize: 13 }}>
           <TeamOutlined className="mr-1" />
-          {t("teammatePanel.title")} ({teamNames.reduce((acc, t) => acc + grouped[t].length, 0)})
+          {t("teammatePanel.title")} (
+          {teamNames.reduce((acc, t) => acc + grouped[t].length, 0)})
         </Text>
         <Button
           size="small"
@@ -241,7 +251,12 @@ export function TeammatePanel({
               currentTask: t("teammatePanel.waitingForTask"),
             });
           }
-          message.success(t("teammatePanel.teamCreated", { name: teamName, count: data.teammates.length }));
+          message.success(
+            t("teammatePanel.teamCreated", {
+              name: teamName,
+              count: data.teammates.length,
+            }),
+          );
           setCreatingTeam(false);
           setTeamModalOpen(false);
         }}

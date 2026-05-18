@@ -71,7 +71,10 @@ export function ImageGenSettings() {
       }
     >
       <Form form={form} layout="vertical" initialValues={DEFAULT_CONFIG}>
-        <Form.Item name="default_provider" label={t("imageGen.defaultProvider")}>
+        <Form.Item
+          name="default_provider"
+          label={t("imageGen.defaultProvider")}
+        >
           <Select
             options={[
               { value: "flux", label: t("imageGen.providerFlux") },
@@ -80,19 +83,38 @@ export function ImageGenSettings() {
           />
         </Form.Item>
 
-        <Form.Item name="flux_api_token" label={t("imageGen.replicateApiToken")}>
-          <Input.Password name="flux_api_token" placeholder={t("imageGen.replicateApiTokenPlaceholder")} />
+        <Form.Item
+          name="flux_api_token"
+          label={t("imageGen.replicateApiToken")}
+        >
+          <Input.Password
+            name="flux_api_token"
+            placeholder={t("imageGen.replicateApiTokenPlaceholder")}
+          />
         </Form.Item>
 
-        <Form.Item name="openai_api_key" label={t("imageGen.openaiApiKeyDalle")}>
-          <Input.Password name="openai_api_key" placeholder={t("imageGen.openaiApiKeyPlaceholder")} />
+        <Form.Item
+          name="openai_api_key"
+          label={t("imageGen.openaiApiKeyDalle")}
+        >
+          <Input.Password
+            name="openai_api_key"
+            placeholder={t("imageGen.openaiApiKeyPlaceholder")}
+          />
         </Form.Item>
 
         <Form.Item name="openai_base_url" label={t("imageGen.openaiBaseUrl")}>
-          <Input name="openai_base_url" placeholder={t("imageGen.openaiBaseUrlPlaceholder")} />
+          <Input
+            name="openai_base_url"
+            placeholder={t("imageGen.openaiBaseUrlPlaceholder")}
+          />
         </Form.Item>
 
-        <Form.Item name="save_to_artifact" label={t("imageGen.autoSaveArtifact")} valuePropName="checked">
+        <Form.Item
+          name="save_to_artifact"
+          label={t("imageGen.autoSaveArtifact")}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
       </Form>

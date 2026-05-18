@@ -15,7 +15,9 @@ interface BacklinkPanelProps {
 function highlightWikilink(snippet: string, linkText: string) {
   const linkPattern = `[[${linkText}]]`;
   const parts = snippet.split(linkPattern);
-  if (parts.length === 1) { return <span>{snippet}</span>; }
+  if (parts.length === 1) {
+    return <span>{snippet}</span>;
+  }
 
   return (
     <span>
@@ -41,7 +43,10 @@ function highlightWikilink(snippet: string, linkText: string) {
   );
 }
 
-export function BacklinkPanel({ noteId, onNavigateToNote }: BacklinkPanelProps) {
+export function BacklinkPanel({
+  noteId,
+  onNavigateToNote,
+}: BacklinkPanelProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const { getNoteBacklinks, getNote } = useWikiStore();
@@ -52,14 +57,18 @@ export function BacklinkPanel({ noteId, onNavigateToNote }: BacklinkPanelProps) 
   const [collapsed, setCollapsed] = useState(false);
 
   const loadBacklinks = useCallback(async () => {
-    if (!noteId) { return; }
+    if (!noteId) {
+      return;
+    }
     setLoading(true);
     const [bl, note] = await Promise.all([
       getNoteBacklinks(noteId),
       getNote(noteId),
     ]);
     setBacklinks(bl);
-    if (note) { setNoteTitle(note.title); }
+    if (note) {
+      setNoteTitle(note.title);
+    }
     setLoading(false);
   }, [noteId, getNoteBacklinks, getNote]);
 
@@ -105,14 +114,14 @@ export function BacklinkPanel({ noteId, onNavigateToNote }: BacklinkPanelProps) 
         style={{ color: token.colorTextSecondary }}
         onClick={() => setCollapsed(!collapsed)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { setCollapsed(!collapsed); }
+          if (e.key === "Enter" || e.key === " ") {
+            setCollapsed(!collapsed);
+          }
         }}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
         <ArrowLeftRight size={12} />
-        <span className="text-xs font-medium">
-          {t("wiki.backlinks")}
-        </span>
+        <span className="text-xs font-medium">{t("wiki.backlinks")}</span>
         <span
           className="text-[10px] px-1.5 py-0.5 rounded-full"
           style={{
@@ -143,7 +152,9 @@ export function BacklinkPanel({ noteId, onNavigateToNote }: BacklinkPanelProps) 
                 tabIndex={0}
                 onClick={() => onNavigateToNote(bl.noteId)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { onNavigateToNote(bl.noteId); }
+                  if (e.key === "Enter" || e.key === " ") {
+                    onNavigateToNote(bl.noteId);
+                  }
                 }}
               >
                 <Text

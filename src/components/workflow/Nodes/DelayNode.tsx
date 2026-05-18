@@ -16,7 +16,10 @@ interface DelayNodeData {
   until?: string;
 }
 
-const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({ data, selected }) => {
+const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#fa8c16";
   const delayType = data.delayType || "seconds";

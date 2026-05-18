@@ -8,7 +8,11 @@ interface SemanticCheckModalProps {
   open: boolean;
   onClose: () => void;
   matches: NodeSkillMatch[];
-  onApplyReplacement: (nodeId: string, existingSkillId: string, action: SkillReplacementAction) => void;
+  onApplyReplacement: (
+    nodeId: string,
+    existingSkillId: string,
+    action: SkillReplacementAction,
+  ) => void;
 }
 
 export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
@@ -28,7 +32,11 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
     onClose();
   };
 
-  const handleSelectAction = (nodeId: string, skillId: string, action: SkillReplacementAction) => {
+  const handleSelectAction = (
+    nodeId: string,
+    skillId: string,
+    action: SkillReplacementAction,
+  ) => {
     setSelectedActions((prev) => ({
       ...prev,
       [nodeId]: { skillId, action },
@@ -47,7 +55,8 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
     const currentSelection = selectedActions[nodeId];
     const isReplaceSelected = currentSelection?.skillId === match.existing_skill.id
       && currentSelection?.action === "replace";
-    const isKeepSelected = currentSelection?.skillId === match.existing_skill.id && currentSelection?.action === "keep";
+    const isKeepSelected = currentSelection?.skillId === match.existing_skill.id
+      && currentSelection?.action === "keep";
 
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
@@ -71,7 +80,11 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
 
   const renderMatchCard = (match: SkillMatchResult, nodeId: string) => {
     const similarityPercent = Math.round(match.similarity_score * 100);
-    const similarityColor = similarityPercent >= 80 ? "green" : similarityPercent >= 60 ? "orange" : "red";
+    const similarityColor = similarityPercent >= 80
+      ? "green"
+      : similarityPercent >= 60
+      ? "orange"
+      : "red";
 
     return (
       <div
@@ -84,25 +97,36 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
           backgroundColor: "#fafafa",
         }}
       >
-        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 8 }}>
+        <Space
+          style={{
+            width: "100%",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
           <Descriptions column={1} size="small" style={{ flex: 1 }}>
             <Descriptions.Item label={t("workflow.existingSkill")}>
               <strong>{match.existing_skill.name}</strong>
             </Descriptions.Item>
           </Descriptions>
-          <Tag color={similarityColor} style={{ fontSize: 16, padding: "4px 12px" }}>
+          <Tag
+            color={similarityColor}
+            style={{ fontSize: 16, padding: "4px 12px" }}
+          >
             {similarityPercent}%
           </Tag>
         </Space>
         <div style={{ marginBottom: 8 }}>
           <strong>{t("workflow.matchReasons")}:</strong>
           <div style={{ marginTop: 4 }}>
-            {match.match_reasons.map((reason, _i) => <Tag key={reason} color="cyan">{reason}</Tag>)}
+            {match.match_reasons.map((reason, _i) => (
+              <Tag key={reason} color="cyan">
+                {reason}
+              </Tag>
+            ))}
           </div>
         </div>
-        <div style={{ marginTop: 12 }}>
-          {getActionButton(match, nodeId)}
-        </div>
+        <div style={{ marginTop: 12 }}>{getActionButton(match, nodeId)}</div>
       </div>
     );
   };

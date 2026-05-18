@@ -1,8 +1,18 @@
-export type CapabilityType = "ContextPrediction" | "ProactiveSuggestion" | "TaskPrefetch" | "RoutineReminder";
+export type CapabilityType =
+  | "ContextPrediction"
+  | "ProactiveSuggestion"
+  | "TaskPrefetch"
+  | "RoutineReminder";
 
 export type Priority = "low" | "medium" | "high" | "critical";
 
-export type SuggestionType = "Completion" | "Refactor" | "Documentation" | "Test" | "Optimization" | "Learning";
+export type SuggestionType =
+  | "Completion"
+  | "Refactor"
+  | "Documentation"
+  | "Test"
+  | "Optimization"
+  | "Learning";
 
 export type PredictedIntent =
   | { type: "CodeCompletion"; language: string; context: string }
@@ -137,7 +147,12 @@ export interface PredictionResult {
   top_prediction?: ContextPrediction;
 }
 
-export type PrefetchType = "codeCompletion" | "searchResults" | "documentation" | "contextAnalysis" | "toolCache";
+export type PrefetchType =
+  | "codeCompletion"
+  | "searchResults"
+  | "documentation"
+  | "contextAnalysis"
+  | "toolCache";
 
 export interface PrefetchResult {
   prefetch_type: PrefetchType;

@@ -3,10 +3,16 @@ import { getActionRouter } from "./actionRouter";
 
 // ── 自定义函数注册表（供 "function" 类型声明式 action 使用）─
 
-type CustomHandler = (data: Record<string, unknown>, skillName: string) => Promise<void>;
+type CustomHandler = (
+  data: Record<string, unknown>,
+  skillName: string,
+) => Promise<void>;
 const customHandlers = new Map<string, CustomHandler>();
 
-export function registerCustomHandler(handlerId: string, handler: CustomHandler) {
+export function registerCustomHandler(
+  handlerId: string,
+  handler: CustomHandler,
+) {
   customHandlers.set(handlerId, handler);
 }
 
@@ -38,5 +44,7 @@ export async function executeActionChain(
   actions: SkillCommandAction[],
   navigate: (path: string) => void,
 ): Promise<void> {
-  await Promise.all(actions.map((action) => executeSkillAction(action, navigate)));
+  await Promise.all(
+    actions.map((action) => executeSkillAction(action, navigate)),
+  );
 }

@@ -39,10 +39,7 @@ const session = await client.createSession({
 });
 
 // 发送 prompt
-const result = await client.sendPrompt(
-  session.sessionId,
-  "分析项目结构"
-);
+const result = await client.sendPrompt(session.sessionId, "分析项目结构");
 console.log(result.content);
 
 // 关闭会话
@@ -96,16 +93,16 @@ with AxAgentSession(client, "/path/to/project") as session:
 
 ## API 参考
 
-| 方法 | 说明 |
-|------|------|
-| `create_session(work_dir, ...)` | 创建新会话 |
-| `get_session(session_id)` | 获取会话状态 |
-| `list_sessions()` | 列出所有会话 |
-| `send_prompt(session_id, prompt)` | 发送 prompt 并获取响应 |
-| `interrupt(session_id)` | 中断执行 |
-| `close_session(session_id)` | 关闭会话 |
-| `register_hook(session_id, event, callback_url)` | 注册 hook 回调 |
-| `health_check()` | 健康检查 |
+| 方法                                             | 说明                   |
+| ------------------------------------------------ | ---------------------- |
+| `create_session(work_dir, ...)`                  | 创建新会话             |
+| `get_session(session_id)`                        | 获取会话状态           |
+| `list_sessions()`                                | 列出所有会话           |
+| `send_prompt(session_id, prompt)`                | 发送 prompt 并获取响应 |
+| `interrupt(session_id)`                          | 中断执行               |
+| `close_session(session_id)`                      | 关闭会话               |
+| `register_hook(session_id, event, callback_url)` | 注册 hook 回调         |
+| `health_check()`                                 | 健康检查               |
 
 ## 依赖
 

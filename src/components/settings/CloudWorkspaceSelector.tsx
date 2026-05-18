@@ -101,7 +101,9 @@ export function CloudWorkspaceSelector() {
   const [conflictStrategy, setConflictStrategy] = useState("latest_wins");
   const [syncResult, setSyncResult] = useState<CloudSyncResponse | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<"unknown" | "success" | "failed">("unknown");
+  const [connectionStatus, setConnectionStatus] = useState<
+    "unknown" | "success" | "failed"
+  >("unknown");
 
   useEffect(() => {
     const loadPresets = async () => {
@@ -194,7 +196,9 @@ export function CloudWorkspaceSelector() {
         config.path = (values.webdavPath as string) || "/";
       }
 
-      const result = await invoke<boolean>("check_cloud_connection", { config });
+      const result = await invoke<boolean>("check_cloud_connection", {
+        config,
+      });
       setConnectionStatus(result ? "success" : "failed");
 
       if (result) {
@@ -251,15 +255,12 @@ export function CloudWorkspaceSelector() {
 
     try {
       setBrowsing(true);
-      const response = await invoke<CloudListResponse>(
-        "list_cloud_directory",
-        {
-          request: {
-            workspaceUri: uri,
-            dirPath,
-          },
+      const response = await invoke<CloudListResponse>("list_cloud_directory", {
+        request: {
+          workspaceUri: uri,
+          dirPath,
         },
-      );
+      });
       setDirEntries(response.entries);
     } catch (e) {
       message.error(t("cloudWorkspace.listFailed", { error: String(e) }));
@@ -314,7 +315,9 @@ export function CloudWorkspaceSelector() {
       setConflictStrategy(response.strategy);
       setConflictsModalOpen(true);
     } catch (e) {
-      message.error(t("cloudWorkspace.loadConflictsFailed", { error: String(e) }));
+      message.error(
+        t("cloudWorkspace.loadConflictsFailed", { error: String(e) }),
+      );
     } finally {
       setConflictsLoading(false);
     }
@@ -322,7 +325,9 @@ export function CloudWorkspaceSelector() {
 
   const handleResolveConflict = async (key: string, resolution: string) => {
     const uri = settings.workspace_uri;
-    if (!uri) { return; }
+    if (!uri) {
+      return;
+    }
 
     try {
       await invoke("resolve_cloud_conflict", {
@@ -344,33 +349,38 @@ export function CloudWorkspaceSelector() {
 
     try {
       setSyncing(true);
-      const response = await invoke<CloudSyncResponse>(
-        "sync_cloud_workspace",
-        {
-          request: { workspaceUri: uri },
-        },
-      );
+      const response = await invoke<CloudSyncResponse>("sync_cloud_workspace", {
+        request: { workspaceUri: uri },
+      });
 
       setSyncResult(response);
 
       const parts = [];
       if (response.downloaded > 0) {
-        parts.push(t("cloudWorkspace.downloaded", { count: response.downloaded }));
+        parts.push(
+          t("cloudWorkspace.downloaded", { count: response.downloaded }),
+        );
       }
       if (response.uploaded > 0) {
         parts.push(t("cloudWorkspace.uploaded", { count: response.uploaded }));
       }
       if (response.conflicts_detected > 0) {
-        parts.push(t("cloudWorkspace.conflicts", { count: response.conflicts_detected }));
+        parts.push(
+          t("cloudWorkspace.conflicts", { count: response.conflicts_detected }),
+        );
       }
 
-      const summary = parts.length > 0 ? parts.join("，") : t("cloudWorkspace.syncedUpToDate");
+      const summary = parts.length > 0
+        ? parts.join("，")
+        : t("cloudWorkspace.syncedUpToDate");
 
       message.success(summary);
 
       if (response.pending_conflicts > 0) {
         message.warning(
-          t("cloudWorkspace.pendingConflicts", { count: response.pending_conflicts }),
+          t("cloudWorkspace.pendingConflicts", {
+            count: response.pending_conflicts,
+          }),
         );
       }
     } catch (e) {
@@ -478,9 +488,15 @@ export function CloudWorkspaceSelector() {
       key: "size",
       width: 100,
       render: (size: number, record) => {
-        if (record.is_dir) { return "-"; }
-        if (size < 1024) { return `${size} B`; }
-        if (size < 1024 * 1024) { return `${(size / 1024).toFixed(1)} KB`; }
+        if (record.is_dir) {
+          return "-";
+        }
+        if (size < 1024) {
+          return `${size} B`;
+        }
+        if (size < 1024 * 1024) {
+          return `${(size / 1024).toFixed(1)} KB`;
+        }
         return `${(size / (1024 * 1024)).toFixed(1)} MB`;
       },
     },
@@ -497,11 +513,10 @@ export function CloudWorkspaceSelector() {
           {t("cloudWorkspace.title")}
         </Title>
         <Space>
-          <Button
-            icon={<Settings2 size={14} />}
-            onClick={openConfigModal}
-          >
-            {isConfigured ? t("cloudWorkspace.configure") : t("cloudWorkspace.configureFirst")}
+          <Button icon={<Settings2 size={14} />} onClick={openConfigModal}>
+            {isConfigured
+              ? t("cloudWorkspace.configure")
+              : t("cloudWorkspace.configureFirst")}
           </Button>
           {isConfigured && (
             <>
@@ -525,7 +540,9 @@ export function CloudWorkspaceSelector() {
                   danger
                   onClick={loadConflicts}
                 >
-                  {t("cloudWorkspace.viewConflicts", { count: conflicts.length })}
+                  {t("cloudWorkspace.viewConflicts", {
+                    count: conflicts.length,
+                  })}
                 </Button>
               )}
             </>
@@ -538,11 +555,17 @@ export function CloudWorkspaceSelector() {
           <Card>
             <div className="text-center py-8">
               <Cloud size={48} className="mx-auto mb-4 opacity-40" />
-              <Title level={5} type="secondary">{t("cloudWorkspace.notConfigured")}</Title>
+              <Title level={5} type="secondary">
+                {t("cloudWorkspace.notConfigured")}
+              </Title>
               <Text type="secondary" className="block mb-4">
                 {t("cloudWorkspace.notConfiguredDesc")}
               </Text>
-              <Button type="primary" icon={<Settings2 size={14} />} onClick={openConfigModal}>
+              <Button
+                type="primary"
+                icon={<Settings2 size={14} />}
+                onClick={openConfigModal}
+              >
                 {t("cloudWorkspace.configureFirst")}
               </Button>
             </div>
@@ -557,7 +580,9 @@ export function CloudWorkspaceSelector() {
                     <Tag icon={<Cloud size={12} />} color="blue">
                       {settings.workspace_uri}
                     </Tag>
-                    <Tag color={settings.cloud_backend === "webdav" ? "green" : "purple"}>
+                    <Tag
+                      color={settings.cloud_backend === "webdav" ? "green" : "purple"}
+                    >
                       {backendLabel}
                     </Tag>
                     <Tag icon={<CheckCircle size={12} />} color="success">
@@ -593,7 +618,9 @@ export function CloudWorkspaceSelector() {
                 <Space size="large">
                   <span>
                     <Link size={14} className="mr-1" />
-                    {t("cloudWorkspace.downloaded", { count: syncResult.downloaded })}
+                    {t("cloudWorkspace.downloaded", {
+                      count: syncResult.downloaded,
+                    })}
                   </span>
                   <span>
                     <Upload size={14} className="mr-1" />
@@ -602,7 +629,9 @@ export function CloudWorkspaceSelector() {
                   {syncResult.conflicts_detected > 0 && (
                     <span>
                       <AlertTriangle size={14} className="mr-1 text-orange-500" />
-                      {t("cloudWorkspace.conflicts", { count: syncResult.conflicts_detected })}
+                      {t("cloudWorkspace.conflicts", {
+                        count: syncResult.conflicts_detected,
+                      })}
                     </span>
                   )}
                 </Space>
@@ -635,10 +664,7 @@ export function CloudWorkspaceSelector() {
                 >
                   {t("cloudWorkspace.viewConflicts", { count: conflicts.length })}
                 </Button>
-                <Button
-                  icon={<Settings2 size={14} />}
-                  onClick={openConfigModal}
-                >
+                <Button icon={<Settings2 size={14} />} onClick={openConfigModal}>
                   {t("cloudWorkspace.configure")}
                 </Button>
               </Space>
@@ -657,7 +683,13 @@ export function CloudWorkspaceSelector() {
         onCancel={() => setConfigModalOpen(false)}
         width={600}
         footer={
-          <Space style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+          <Space
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
             <Button
               icon={connectionStatus === "success" ? <Wifi size={14} /> : <WifiOff size={14} />}
               loading={testingConnection}
@@ -727,7 +759,10 @@ export function CloudWorkspaceSelector() {
                 name="s3Endpoint"
                 label={t("cloudWorkspace.s3Endpoint")}
                 rules={[
-                  { required: true, message: t("cloudWorkspace.endpointRequired") },
+                  {
+                    required: true,
+                    message: t("cloudWorkspace.endpointRequired"),
+                  },
                 ]}
               >
                 <Input
@@ -740,28 +775,47 @@ export function CloudWorkspaceSelector() {
                 name="s3AccessKey"
                 label={t("cloudWorkspace.s3AccessKey")}
                 rules={[
-                  { required: true, message: t("cloudWorkspace.accessKeyRequired") },
+                  {
+                    required: true,
+                    message: t("cloudWorkspace.accessKeyRequired"),
+                  },
                 ]}
               >
-                <Input name="s3AccessKey" onChange={() => setConnectionStatus("unknown")} />
+                <Input
+                  name="s3AccessKey"
+                  onChange={() => setConnectionStatus("unknown")}
+                />
               </Form.Item>
               <Form.Item
                 name="s3SecretKey"
                 label={t("cloudWorkspace.s3SecretKey")}
                 rules={[
-                  { required: true, message: t("cloudWorkspace.secretKeyRequired") },
+                  {
+                    required: true,
+                    message: t("cloudWorkspace.secretKeyRequired"),
+                  },
                 ]}
               >
-                <Input.Password name="s3SecretKey" onChange={() => setConnectionStatus("unknown")} />
+                <Input.Password
+                  name="s3SecretKey"
+                  onChange={() => setConnectionStatus("unknown")}
+                />
               </Form.Item>
               <Form.Item name="s3Region" label={t("cloudWorkspace.s3Region")}>
-                <Input name="s3Region" placeholder="auto" onChange={() => setConnectionStatus("unknown")} />
+                <Input
+                  name="s3Region"
+                  placeholder="auto"
+                  onChange={() => setConnectionStatus("unknown")}
+                />
               </Form.Item>
               <Form.Item
                 name="s3Bucket"
                 label={t("cloudWorkspace.s3Bucket")}
                 rules={[
-                  { required: true, message: t("cloudWorkspace.bucketRequired") },
+                  {
+                    required: true,
+                    message: t("cloudWorkspace.bucketRequired"),
+                  },
                 ]}
               >
                 <Input
@@ -771,7 +825,11 @@ export function CloudWorkspaceSelector() {
                 />
               </Form.Item>
               <Form.Item name="s3Root" label={t("cloudWorkspace.s3Root")}>
-                <Input name="s3Root" placeholder="/" onChange={() => setConnectionStatus("unknown")} />
+                <Input
+                  name="s3Root"
+                  placeholder="/"
+                  onChange={() => setConnectionStatus("unknown")}
+                />
               </Form.Item>
             </>
           )}
@@ -782,7 +840,10 @@ export function CloudWorkspaceSelector() {
                 name="webdavUrl"
                 label={t("cloudWorkspace.webdavUrl")}
                 rules={[
-                  { required: true, message: t("cloudWorkspace.webdavUrlRequired") },
+                  {
+                    required: true,
+                    message: t("cloudWorkspace.webdavUrlRequired"),
+                  },
                 ]}
               >
                 <Input
@@ -795,25 +856,41 @@ export function CloudWorkspaceSelector() {
                 name="webdavUsername"
                 label={t("cloudWorkspace.webdavUsername")}
                 rules={[
-                  { required: true, message: t("cloudWorkspace.usernameRequired") },
+                  {
+                    required: true,
+                    message: t("cloudWorkspace.usernameRequired"),
+                  },
                 ]}
               >
-                <Input name="webdavUsername" onChange={() => setConnectionStatus("unknown")} />
+                <Input
+                  name="webdavUsername"
+                  onChange={() => setConnectionStatus("unknown")}
+                />
               </Form.Item>
               <Form.Item
                 name="webdavPassword"
                 label={t("cloudWorkspace.webdavPassword")}
                 rules={[
-                  { required: true, message: t("cloudWorkspace.passwordRequired") },
+                  {
+                    required: true,
+                    message: t("cloudWorkspace.passwordRequired"),
+                  },
                 ]}
               >
-                <Input.Password name="webdavPassword" onChange={() => setConnectionStatus("unknown")} />
+                <Input.Password
+                  name="webdavPassword"
+                  onChange={() => setConnectionStatus("unknown")}
+                />
               </Form.Item>
               <Form.Item
                 name="webdavPath"
                 label={t("cloudWorkspace.webdavPath")}
               >
-                <Input name="webdavPath" placeholder="/" onChange={() => setConnectionStatus("unknown")} />
+                <Input
+                  name="webdavPath"
+                  placeholder="/"
+                  onChange={() => setConnectionStatus("unknown")}
+                />
               </Form.Item>
             </>
           )}
@@ -893,7 +970,9 @@ export function CloudWorkspaceSelector() {
       >
         <div className="mb-4">
           <Text type="secondary">
-            {t("cloudWorkspace.conflictStrategy", { strategy: conflictStrategy })}
+            {t("cloudWorkspace.conflictStrategy", {
+              strategy: conflictStrategy,
+            })}
           </Text>
         </div>
         <Table

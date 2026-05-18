@@ -31,13 +31,19 @@ class ModuleErrorBoundary extends React.Component<
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ModuleErrorBoundaryState> {
+  static getDerivedStateFromError(
+    error: Error,
+  ): Partial<ModuleErrorBoundaryState> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     if (import.meta.env.DEV) {
-      console.error(`ModuleErrorBoundary (${this.props.moduleName}) caught an error:`, error, errorInfo);
+      console.error(
+        `ModuleErrorBoundary (${this.props.moduleName}) caught an error:`,
+        error,
+        errorInfo,
+      );
     }
   }
 
@@ -59,7 +65,11 @@ class ModuleErrorBoundary extends React.Component<
       }
 
       return (
-        <DefaultModuleFallback moduleName={moduleName} error={showDetails ? error : null} onRetry={this.handleRetry} />
+        <DefaultModuleFallback
+          moduleName={moduleName}
+          error={showDetails ? error : null}
+          onRetry={this.handleRetry}
+        />
       );
     }
 
@@ -73,7 +83,11 @@ interface DefaultModuleFallbackProps {
   onRetry: () => void;
 }
 
-function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFallbackProps) {
+function DefaultModuleFallback({
+  moduleName,
+  error,
+  onRetry,
+}: DefaultModuleFallbackProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
 
@@ -91,7 +105,9 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
         minHeight: 120,
       }}
     >
-      <WarningOutlined style={{ fontSize: 24, color: token.colorWarning, marginBottom: 8 }} />
+      <WarningOutlined
+        style={{ fontSize: 24, color: token.colorWarning, marginBottom: 8 }}
+      />
       <Text type="secondary" style={{ marginBottom: 12, textAlign: "center" }}>
         {i18next.t("errorBoundary.moduleError", { moduleName })}
       </Text>

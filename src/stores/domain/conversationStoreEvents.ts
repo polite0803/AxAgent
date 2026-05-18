@@ -40,7 +40,11 @@ export interface EventMethods {
 }
 
 export function createEventMethods(
-  set: (partial: Partial<ConversationState> | ((s: ConversationState) => Partial<ConversationState>)) => void,
+  set: (
+    partial:
+      | Partial<ConversationState>
+      | ((s: ConversationState) => Partial<ConversationState>),
+  ) => void,
   get: () => ConversationState,
 ): EventMethods {
   return {
@@ -54,24 +58,45 @@ export function createEventMethods(
 
       const [chunkUnsub, errorUnsub, titleUnsub, titleGenUnsub, ragUnsub] = await Promise.all([
         listen<ChatStreamEvent>("chat-stream-chunk", (event) => {
-          if (_listenerGen !== gen) { return; // stale listener
-           }
-          if (!useStreamStore.getState().streaming) { return; // cancelled
-           }
-          const { conversation_id, message_id, chunk, model_id: evt_model_id, provider_id: evt_provider_id } =
-            event.payload;
+          if (_listenerGen !== gen) {
+            return; // stale listener
+          }
+          if (!useStreamStore.getState().streaming) {
+            return; // cancelled
+          }
+          const {
+            conversation_id,
+            message_id,
+            chunk,
+            model_id: evt_model_id,
+            provider_id: evt_provider_id,
+          } = event.payload;
 
-          if (typeof conversation_id !== "string" || !conversation_id) { return; }
+          if (typeof conversation_id !== "string" || !conversation_id) {
+            return;
+          }
 
           if (chunk.done) {
             if (chunk.is_final === false) {
               // Append any remaining content in the done chunk (e.g. closing </think> tag)
               if (chunk.content) {
-                appendStreamChunk(set, get, message_id, chunk.content, conversation_id, evt_model_id, evt_provider_id);
+                appendStreamChunk(
+                  set,
+                  get,
+                  message_id,
+                  chunk.content,
+                  conversation_id,
+                  evt_model_id,
+                  evt_provider_id,
+                );
               }
               flushPendingStreamChunk(set, get);
               // Clear thinking state — this iteration is done
-              if (useStreamStore.getState().thinkingActiveMessageIds.has(message_id)) {
+              if (
+                useStreamStore
+                  .getState()
+                  .thinkingActiveMessageIds.has(message_id)
+              ) {
                 useStreamStore.setState((s) => {
                   const next = new Set(s.thinkingActiveMessageIds);
                   next.delete(message_id);
@@ -90,7 +115,10 @@ export function createEventMethods(
               // Clear streamingMessageId and mark completed message as 'complete'
               const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
               const currentThinkingIds = useStreamStore.getState().thinkingActiveMessageIds;
-              const streamUpdates: { streamingMessageId?: string | null; thinkingActiveMessageIds?: Set<string> } = {};
+              const streamUpdates: {
+                streamingMessageId?: string | null;
+                thinkingActiveMessageIds?: Set<string>;
+              } = {};
               if (currentStreamingMessageId === message_id) {
                 // This is the first model finishing — save its message_id for later version switching
                 setMultiModelFirstMessageId(message_id);
@@ -108,12 +136,17 @@ export function createEventMethods(
               set((s) => {
                 const updated: Partial<ConversationState> = {};
                 updated.conversations = s.conversations.map((c) =>
-                  c.id === conversation_id ? { ...c, message_count: c.message_count + 1 } : c
+                  c.id === conversation_id
+                    ? { ...c, message_count: c.message_count + 1 }
+                    : c
                 );
                 // Update completed message status to prevent "主动停止" tag
                 updated.messages = s.messages.map((m) => m.id === message_id ? { ...m, status: "complete" } : m);
                 // Track per-model completion for individual loading indicators
-                updated.multiModelDoneMessageIds = [...s.multiModelDoneMessageIds, message_id];
+                updated.multiModelDoneMessageIds = [
+                  ...s.multiModelDoneMessageIds,
+                  message_id,
+                ];
                 return updated;
               });
 
@@ -148,7 +181,9 @@ export function createEventMethods(
               new Set(
                 [placeholderMessageId, flushedMessageId, message_id].filter(
                   (value): value is string =>
-                    typeof value === "string" && value.length > 0 && !value.startsWith("temp-"),
+                    typeof value === "string"
+                    && value.length > 0
+                    && !value.startsWith("temp-"),
                 ),
               ),
             );
@@ -171,17 +206,16 @@ export function createEventMethods(
               ),
               // Update completed message status immediately to prevent "主动停止" tag flash
               messages: s.messages.map((m) =>
-                preserveMessageIds.includes(m.id) ? { ...m, status: "complete" as const } : m
+                preserveMessageIds.includes(m.id)
+                  ? { ...m, status: "complete" as const }
+                  : m
               ),
             }));
             if (get().activeConversationId === conversation_id) {
               // Active conversation — refresh messages then clear buffer
               setStreamBuffer(null);
               window.setTimeout(() => {
-                void get().fetchMessages(
-                  conversation_id,
-                  preserveMessageIds,
-                );
+                void get().fetchMessages(conversation_id, preserveMessageIds);
               }, 120);
             } else {
               // User is viewing a different conversation — keep buffer alive and
@@ -196,46 +230,73 @@ export function createEventMethods(
             Promise.all([
               import("@/lib/invoke"),
               import("@/stores/feature/executionStore"),
-            ]).then(([{ invoke }, { useExecutionStore }]) => {
-              const isAgentActive = useExecutionStore.getState().isActive(conversation_id);
-              if (isAgentActive) { return; }
+            ])
+              .then(([{ invoke }, { useExecutionStore }]) => {
+                const isAgentActive = useExecutionStore
+                  .getState()
+                  .isActive(conversation_id);
+                if (isAgentActive) {
+                  return;
+                }
 
-              const scheduledConvId = conversation_id;
-              const memNsId = usePreferenceStore.getState().activeMemoryNamespaceId;
-              setTimeout(() => {
-                const currentConvId = useConversationStore.getState().activeConversationId;
-                if (currentConvId !== scheduledConvId) { return; }
-                const stillActive = useExecutionStore.getState().isActive(conversation_id);
-                if (stillActive) { return; }
-                void invoke("auto_extract_incremental_memories", {
-                  conversationId: conversation_id,
-                  namespaceId: memNsId ?? null,
-                }).catch(logIpcError("auto_extract_memories"));
-              }, 5000);
-              setTimeout(() => {
-                const currentConvId = useConversationStore.getState().activeConversationId;
-                if (currentConvId !== scheduledConvId) { return; }
-                const stillActive = useExecutionStore.getState().isActive(conversation_id);
-                if (stillActive) { return; }
-                void invoke("extract_conversation_entities", {
-                  conversationId: conversation_id,
-                }).catch(logIpcError("extract_entities"));
-              }, 8000);
-            }).catch(logIpcError("dynamic_import_invoke"));
+                const scheduledConvId = conversation_id;
+                const memNsId = usePreferenceStore.getState().activeMemoryNamespaceId;
+                setTimeout(() => {
+                  const currentConvId = useConversationStore.getState().activeConversationId;
+                  if (currentConvId !== scheduledConvId) {
+                    return;
+                  }
+                  const stillActive = useExecutionStore
+                    .getState()
+                    .isActive(conversation_id);
+                  if (stillActive) {
+                    return;
+                  }
+                  void invoke("auto_extract_incremental_memories", {
+                    conversationId: conversation_id,
+                    namespaceId: memNsId ?? null,
+                  }).catch(logIpcError("auto_extract_memories"));
+                }, 5000);
+                setTimeout(() => {
+                  const currentConvId = useConversationStore.getState().activeConversationId;
+                  if (currentConvId !== scheduledConvId) {
+                    return;
+                  }
+                  const stillActive = useExecutionStore
+                    .getState()
+                    .isActive(conversation_id);
+                  if (stillActive) {
+                    return;
+                  }
+                  void invoke("extract_conversation_entities", {
+                    conversationId: conversation_id,
+                  }).catch(logIpcError("extract_entities"));
+                }, 8000);
+              })
+              .catch(logIpcError("dynamic_import_invoke"));
 
             return;
           }
 
           if (
-            chunk.thinking !== undefined && chunk.thinking !== null
-            && !useStreamStore.getState().thinkingActiveMessageIds.has(message_id)
+            chunk.thinking !== undefined
+            && chunk.thinking !== null
+            && !useStreamStore
+              .getState()
+              .thinkingActiveMessageIds.has(message_id)
           ) {
             useStreamStore.setState((s) => ({
-              thinkingActiveMessageIds: new Set([...s.thinkingActiveMessageIds, message_id]),
+              thinkingActiveMessageIds: new Set([
+                ...s.thinkingActiveMessageIds,
+                message_id,
+              ]),
             }));
           }
           if (
-            chunk.content && useStreamStore.getState().thinkingActiveMessageIds.has(message_id)
+            chunk.content
+            && useStreamStore
+              .getState()
+              .thinkingActiveMessageIds.has(message_id)
             && (chunk.thinking === undefined || chunk.thinking === null)
           ) {
             useStreamStore.setState((s) => {
@@ -245,14 +306,28 @@ export function createEventMethods(
             });
           }
 
-          appendStreamChunk(set, get, message_id, chunk.content, conversation_id, evt_model_id, evt_provider_id);
+          appendStreamChunk(
+            set,
+            get,
+            message_id,
+            chunk.content,
+            conversation_id,
+            evt_model_id,
+            evt_provider_id,
+          );
         }),
         listen<ChatStreamErrorEvent>("chat-stream-error", (event) => {
-          if (_listenerGen !== gen) { return; // stale listener
-           }
-          if (!useStreamStore.getState().streaming) { return; // cancelled
-           }
-          const { conversation_id, message_id, error: errMsg } = event.payload;
+          if (_listenerGen !== gen) {
+            return; // stale listener
+          }
+          if (!useStreamStore.getState().streaming) {
+            return; // cancelled
+          }
+          const {
+            conversation_id,
+            message_id,
+            error: errMsg,
+          } = event.payload;
 
           flushPendingStreamChunk(set, get);
           setStreamBuffer(null); // Clear buffer on error
@@ -264,10 +339,17 @@ export function createEventMethods(
             // Mark this model as done so ModelTags stops showing loading indicator.
             // Include error message in content so the user sees diagnostic info.
             set((s) => ({
-              multiModelDoneMessageIds: [...s.multiModelDoneMessageIds, message_id],
+              multiModelDoneMessageIds: [
+                ...s.multiModelDoneMessageIds,
+                message_id,
+              ],
               messages: s.messages.map((m) =>
                 m.id === message_id
-                  ? { ...m, content: errMsg || m.content, status: "error" as const }
+                  ? {
+                    ...m,
+                    content: errMsg || m.content,
+                    status: "error" as const,
+                  }
                   : m
               ),
             }));
@@ -316,7 +398,7 @@ export function createEventMethods(
             thinkingActiveMessageIds: new Set<string>(),
           }));
           set((s) => ({
-            messages: s.messages.map(m =>
+            messages: s.messages.map((m) =>
               m.id === message_id || m.id === currentStreamingMessageId
                 ? { ...m, content: errMsg, status: "error" as const }
                 : m
@@ -333,55 +415,91 @@ export function createEventMethods(
         listen<{ conversation_id: string; title: string }>(
           "conversation-title-updated",
           (event) => {
-            if (_listenerGen !== gen) { return; }
+            if (_listenerGen !== gen) {
+              return;
+            }
             const { conversation_id, title } = event.payload;
             set((s) => ({
               conversations: s.conversations.map((c) => c.id === conversation_id ? { ...c, title } : c),
             }));
           },
         ),
-        listen<{ conversation_id: string; generating: boolean; error: string | null }>(
-          "conversation-title-generating",
-          (event) => {
-            if (_listenerGen !== gen) { return; }
-            const { conversation_id, generating, error } = event.payload;
-            set({ titleGeneratingConversationId: generating ? conversation_id : null });
-            if (!generating && error) {
-              console.error("[title-gen] AI title generation failed:", error);
-              set({ error });
-            }
-          },
-        ),
+        listen<{
+          conversation_id: string;
+          generating: boolean;
+          error: string | null;
+        }>("conversation-title-generating", (event) => {
+          if (_listenerGen !== gen) {
+            return;
+          }
+          const { conversation_id, generating, error } = event.payload;
+          set({
+            titleGeneratingConversationId: generating
+              ? conversation_id
+              : null,
+          });
+          if (!generating && error) {
+            console.error("[title-gen] AI title generation failed:", error);
+            set({ error });
+          }
+        }),
         listen<RagContextRetrievedEvent>("rag-context-retrieved", (event) => {
-          if (_listenerGen !== gen) { return; }
-          if (!useStreamStore.getState().streaming) { return; }
+          if (_listenerGen !== gen) {
+            return;
+          }
+          if (!useStreamStore.getState().streaming) {
+            return;
+          }
           const { conversation_id, sources } = event.payload;
 
           // Split sources by type and build separate tags
-          const knowledgeSources = sources.filter(s => s.source_type === "knowledge");
-          const memorySources = sources.filter(s => s.source_type === "memory");
-          const wikiSources = sources.filter(s => s.source_type === "wiki");
+          const knowledgeSources = sources.filter(
+            (s) => s.source_type === "knowledge",
+          );
+          const memorySources = sources.filter(
+            (s) => s.source_type === "memory",
+          );
+          const wikiSources = sources.filter((s) => s.source_type === "wiki");
 
           const kbSearching = buildKnowledgeTag("searching");
           const memSearching = buildMemoryTag("searching");
           const wikiSearching = buildWikiTag("searching");
-          const kbDone = knowledgeSources.length > 0 ? buildKnowledgeTag("done", knowledgeSources) : "";
-          const memDone = memorySources.length > 0 ? buildMemoryTag("done", memorySources) : "";
+          const kbDone = knowledgeSources.length > 0
+            ? buildKnowledgeTag("done", knowledgeSources)
+            : "";
+          const memDone = memorySources.length > 0
+            ? buildMemoryTag("done", memorySources)
+            : "";
           const wikiDone = wikiSources.length > 0 ? buildWikiTag("done", wikiSources) : "";
 
           // Replace each searching tag with its done counterpart (or remove if empty)
-          const replaceTag = (content: string, searching: string, done: string) => {
-            if (content.includes(searching)) { return content.replace(searching, done); }
-            if (done) { return done + content; }
+          const replaceTag = (
+            content: string,
+            searching: string,
+            done: string,
+          ) => {
+            if (content.includes(searching)) {
+              return content.replace(searching, done);
+            }
+            if (done) {
+              return done + content;
+            }
             return content;
           };
 
-          if (_streamBuffer && _streamBuffer.conversationId === conversation_id) {
+          if (
+            _streamBuffer
+            && _streamBuffer.conversationId === conversation_id
+          ) {
             const buf = _streamBuffer;
             setStreamBuffer({
               ...buf,
               content: replaceTag(
-                replaceTag(replaceTag(buf.content, kbSearching, kbDone), memSearching, memDone),
+                replaceTag(
+                  replaceTag(buf.content, kbSearching, kbDone),
+                  memSearching,
+                  memDone,
+                ),
                 wikiSearching,
                 wikiDone,
               ),
@@ -389,7 +507,11 @@ export function createEventMethods(
           } else {
             setStreamPrefix(
               replaceTag(
-                replaceTag(replaceTag(_streamPrefix, kbSearching, kbDone), memSearching, memDone),
+                replaceTag(
+                  replaceTag(_streamPrefix, kbSearching, kbDone),
+                  memSearching,
+                  memDone,
+                ),
                 wikiSearching,
                 wikiDone,
               ),
@@ -401,8 +523,10 @@ export function createEventMethods(
             const msgId = useStreamStore.getState().streamingMessageId;
             if (msgId) {
               set((s) => ({
-                messages: s.messages.map(m => {
-                  if (m.id !== msgId) { return m; }
+                messages: s.messages.map((m) => {
+                  if (m.id !== msgId) {
+                    return m;
+                  }
                   let updated = m.content;
                   updated = replaceTag(updated, kbSearching, kbDone);
                   updated = replaceTag(updated, memSearching, memDone);
@@ -455,7 +579,11 @@ export function createEventMethods(
           setMultiModelDoneResolve(null);
           r();
         }
-        set({ pendingCompanionModels: [], multiModelParentId: null, multiModelDoneMessageIds: [] });
+        set({
+          pendingCompanionModels: [],
+          multiModelParentId: null,
+          multiModelDoneMessageIds: [],
+        });
       }
       if (_streamUiFlushTimer !== null) {
         clearTimeout(_streamUiFlushTimer);
@@ -471,14 +599,21 @@ export function createEventMethods(
         // Also cancel the agent if in agent mode
         const conv = get().conversations.find((c) => c.id === conversationId);
         if (conv?.mode === "agent") {
-          invoke("agent_cancel", { request: { conversationId } }).catch((e: unknown) => {
-            console.warn("[IPC]", e);
-          });
+          invoke("agent_cancel", { request: { conversationId } }).catch(
+            (e: unknown) => {
+              console.warn("[IPC]", e);
+            },
+          );
         }
       }
-      if (!conversationId) { return; }
+      if (!conversationId) {
+        return;
+      }
       // Mark the current streaming message as partial
-      const streamMsgId = getStreamingMessageId(streamState.activeStreams, conversationId);
+      const streamMsgId = getStreamingMessageId(
+        streamState.activeStreams,
+        conversationId,
+      );
       useStreamStore.setState((s) => ({
         ...stopConversationStream(s.activeStreams, conversationId),
         streamingStartTimestamps: (() => {
@@ -490,7 +625,7 @@ export function createEventMethods(
       }));
       if (streamMsgId) {
         set((s) => ({
-          messages: s.messages.map(m => m.id === streamMsgId ? { ...m, status: "partial" as const } : m),
+          messages: s.messages.map((m) => m.id === streamMsgId ? { ...m, status: "partial" as const } : m),
         }));
       }
     },

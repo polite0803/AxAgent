@@ -171,7 +171,9 @@ describe("normalizeShortcutFromKeyboardEvent", () => {
 
 describe("toTauriAccelerator", () => {
   it("converts CmdOrCtrl to CommandOrControl", () => {
-    expect(toTauriAccelerator("CmdOrCtrl+Shift+A")).toBe("CommandOrControl+Shift+A");
+    expect(toTauriAccelerator("CmdOrCtrl+Shift+A")).toBe(
+      "CommandOrControl+Shift+A",
+    );
   });
 
   it("converts comma shorthand", () => {

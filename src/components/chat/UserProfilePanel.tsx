@@ -15,7 +15,11 @@ interface UserProfileData {
   communication_style: CommunicationStyle;
   expertise: Record<string, string>;
   goals: string[];
-  behavior_patterns: { pattern: string; frequency: number; confidence: number }[];
+  behavior_patterns: {
+    pattern: string;
+    frequency: number;
+    confidence: number;
+  }[];
 }
 
 export function UserProfilePanel() {
@@ -29,18 +33,27 @@ export function UserProfilePanel() {
     try {
       const p = await invoke<UserProfileData>("user_profile_get", {});
       setProfile(p);
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     fetchProfile();
   }, [expanded, fetchProfile]);
 
   const addPreference = async () => {
-    if (!newPrefKey.trim() || !newPrefValue.trim()) { return; }
+    if (!newPrefKey.trim() || !newPrefValue.trim()) {
+      return;
+    }
     try {
-      await invoke("user_profile_set_preference", { key: newPrefKey.trim(), value: newPrefValue.trim() });
+      await invoke("user_profile_set_preference", {
+        key: newPrefKey.trim(),
+        value: newPrefValue.trim(),
+      });
       setNewPrefKey("");
       setNewPrefValue("");
       fetchProfile();
@@ -56,7 +69,13 @@ export function UserProfilePanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="size-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -77,13 +96,25 @@ export function UserProfilePanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t("chat.userProfile")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("chat.userProfile")}
+        </span>
         <button
           onClick={() => setExpanded(false)}
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="size-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -96,7 +127,9 @@ export function UserProfilePanel() {
           </div>
           <div className="flex flex-wrap gap-1 mt-0.5">
             {style.verbosity !== "unchanged" && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-500">{style.verbosity}</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-500">
+                {style.verbosity}
+              </span>
             )}
             {style.technical_level !== "unchanged" && (
               <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-500">
@@ -113,9 +146,13 @@ export function UserProfilePanel() {
                 {style.preferred_language}
               </span>
             )}
-            {style.verbosity === "unchanged" && style.technical_level === "unchanged"
-              && style.preferred_format === "unchanged" && !style.preferred_language && (
-              <span className="text-[10px] text-muted-foreground/50">{t("chat.adaptingFromInteractions")}</span>
+            {style.verbosity === "unchanged"
+              && style.technical_level === "unchanged"
+              && style.preferred_format === "unchanged"
+              && !style.preferred_language && (
+              <span className="text-[10px] text-muted-foreground/50">
+                {t("chat.adaptingFromInteractions")}
+              </span>
             )}
           </div>
         </div>
@@ -172,12 +209,17 @@ export function UserProfilePanel() {
             {t("chat.patterns")}
           </div>
           <div className="space-y-0.5 mt-0.5">
-            {patterns.filter(p => p.confidence >= 0.5).slice(0, 3).map((p, _i) => (
-              <div key={p.pattern} className="text-[11px] text-foreground/60">
-                {p.pattern}{" "}
-                <span className="text-muted-foreground/50">x{p.frequency} {Math.round(p.confidence * 100)}%</span>
-              </div>
-            ))}
+            {patterns
+              .filter((p) => p.confidence >= 0.5)
+              .slice(0, 3)
+              .map((p, _i) => (
+                <div key={p.pattern} className="text-[11px] text-foreground/60">
+                  {p.pattern}{" "}
+                  <span className="text-muted-foreground/50">
+                    x{p.frequency} {Math.round(p.confidence * 100)}%
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
       )}

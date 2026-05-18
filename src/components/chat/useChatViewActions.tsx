@@ -41,13 +41,19 @@ export interface UseChatViewActionsReturn {
   editingMessageRole: "user" | "assistant" | null;
   editingContent: string;
   editSaving: boolean;
-  handleEditMessage: (messageId: string, content: string, role: "user" | "assistant") => void;
+  handleEditMessage: (
+    messageId: string,
+    content: string,
+    role: "user" | "assistant",
+  ) => void;
   handleEditSaveOnly: () => void;
   handleEditSaveAndResend: () => void;
   resetEditing: () => void;
   setEditingContent: (v: string) => void;
   handleLoadOlderMessages: () => Promise<void>;
-  handlePromptClick: (info: { data: { label?: unknown; scenario?: string } }) => void;
+  handlePromptClick: (info: {
+    data: { label?: unknown; scenario?: string };
+  }) => void;
   handleTopicGroupToggle: () => void;
   handleStatsOpenChange: (open: boolean) => void;
   statsOpen: boolean;
@@ -74,14 +80,19 @@ export function useChatViewActions({
   const updateConversation = useConversationStore((s) => s.updateConversation);
   const regenerateTitle = useConversationStore((s) => s.regenerateTitle);
   const regenerateMessage = useConversationStore((s) => s.regenerateMessage);
-  const updateMessageContent = useConversationStore((s) => s.updateMessageContent);
+  const updateMessageContent = useConversationStore(
+    (s) => s.updateMessageContent,
+  );
   const createConversation = useConversationStore((s) => s.createConversation);
-  const titleGeneratingConversationId = useConversationStore((s) => s.titleGeneratingConversationId);
+  const titleGeneratingConversationId = useConversationStore(
+    (s) => s.titleGeneratingConversationId,
+  );
   const providers = useProviderStore((s) => s.providers);
   const providersLoading = useProviderStore((s) => s.loading);
   const settings = useSettingsStore((s) => s.settings);
 
-  const isTitleGenerating = activeConversationId != null && titleGeneratingConversationId === activeConversationId;
+  const isTitleGenerating = activeConversationId != null
+    && titleGeneratingConversationId === activeConversationId;
 
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -89,7 +100,9 @@ export function useChatViewActions({
   const skipTitleSaveRef = useRef(false);
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editingMessageRole, setEditingMessageRole] = useState<"user" | "assistant" | null>(null);
+  const [editingMessageRole, setEditingMessageRole] = useState<
+    "user" | "assistant" | null
+  >(null);
   const [editingContent, setEditingContent] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
@@ -101,7 +114,9 @@ export function useChatViewActions({
 
   const [toolCount, setToolCount] = useState(0);
   useEffect(() => {
-    invoke<number>("get_tool_count").then(setToolCount).catch(logIpcError("get_tool_count"));
+    invoke<number>("get_tool_count")
+      .then(setToolCount)
+      .catch(logIpcError("get_tool_count"));
   }, []);
 
   useEffect(() => {
@@ -111,11 +126,15 @@ export function useChatViewActions({
   }, [editingTitle]);
 
   const topicGroupEnabled = useTopicGroupStore((s) =>
-    activeConversationId ? s.enabledByConversation[activeConversationId] : false
+    activeConversationId
+      ? s.enabledByConversation[activeConversationId]
+      : false
   );
 
   const handleTitleClick = useCallback(() => {
-    if (!activeConversation) { return; }
+    if (!activeConversation) {
+      return;
+    }
     setTitleDraft(activeConversation.title);
     setEditingTitle(true);
   }, [activeConversation]);
@@ -127,25 +146,38 @@ export function useChatViewActions({
     }
     setEditingTitle(false);
     const trimmed = titleDraft.trim();
-    if (!trimmed || !activeConversation || trimmed === activeConversation.title) { return; }
+    if (
+      !trimmed
+      || !activeConversation
+      || trimmed === activeConversation.title
+    ) {
+      return;
+    }
     await updateConversation(activeConversation.id, { title: trimmed });
   }, [titleDraft, activeConversation, updateConversation]);
 
   const handleRegenerateTitle = useCallback(async () => {
-    if (!activeConversation || isTitleGenerating) { return; }
+    if (!activeConversation || isTitleGenerating) {
+      return;
+    }
     skipTitleSaveRef.current = true;
     setEditingTitle(false);
     await regenerateTitle(activeConversation.id);
   }, [activeConversation, isTitleGenerating, regenerateTitle]);
 
   const handleLoadOlderMessages = useCallback(async () => {
-    const scrollContainer = bubbleListRef.current?.scrollBoxNativeElement as HTMLDivElement | null | undefined;
+    const scrollContainer = bubbleListRef.current?.scrollBoxNativeElement as
+      | HTMLDivElement
+      | null
+      | undefined;
     const previousScrollHeight = scrollContainer?.scrollHeight ?? 0;
     const previousScrollTop = scrollContainer?.scrollTop ?? 0;
     await loadOlderMessages();
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        if (!scrollContainer) { return; }
+        if (!scrollContainer) {
+          return;
+        }
         scrollContainer.scrollTop = getScrollTopAfterPrepend(
           previousScrollTop,
           previousScrollHeight,
@@ -156,17 +188,20 @@ export function useChatViewActions({
     });
   }, [loadOlderMessages]);
 
-  const handleEditMessage = useCallback((messageId: string, content: string, role: "user" | "assistant") => {
-    if (!messageId) {
-      setEditingMessageId(null);
-      setEditingMessageRole(null);
-      setEditingContent("");
-      return;
-    }
-    setEditingMessageId(messageId);
-    setEditingMessageRole(role);
-    setEditingContent(content);
-  }, []);
+  const handleEditMessage = useCallback(
+    (messageId: string, content: string, role: "user" | "assistant") => {
+      if (!messageId) {
+        setEditingMessageId(null);
+        setEditingMessageRole(null);
+        setEditingContent("");
+        return;
+      }
+      setEditingMessageId(messageId);
+      setEditingMessageRole(role);
+      setEditingContent(content);
+    },
+    [],
+  );
 
   const resetEditing = useCallback(() => {
     setEditingMessageId(null);
@@ -175,7 +210,9 @@ export function useChatViewActions({
   }, []);
 
   const handleEditSaveOnly = useCallback(async () => {
-    if (!editingMessageId) { return; }
+    if (!editingMessageId) {
+      return;
+    }
     setEditSaving(true);
     try {
       await updateMessageContent(editingMessageId, editingContent);
@@ -190,12 +227,16 @@ export function useChatViewActions({
   }, [editingMessageId, editingContent, updateMessageContent, messageApi]);
 
   const handleEditSaveAndResend = useCallback(async () => {
-    if (!editingMessageId) { return; }
+    if (!editingMessageId) {
+      return;
+    }
     setEditSaving(true);
     try {
       await updateMessageContent(editingMessageId, editingContent);
       const msgs = useConversationStore.getState().messages;
-      const aiMsg = msgs.find(m => m.parent_message_id === editingMessageId && m.is_active);
+      const aiMsg = msgs.find(
+        (m) => m.parent_message_id === editingMessageId && m.is_active,
+      );
       setEditingMessageId(null);
       setEditingMessageRole(null);
       setEditingContent("");
@@ -205,14 +246,22 @@ export function useChatViewActions({
     } finally {
       setEditSaving(false);
     }
-  }, [editingMessageId, editingContent, updateMessageContent, regenerateMessage, messageApi]);
+  }, [
+    editingMessageId,
+    editingContent,
+    updateMessageContent,
+    regenerateMessage,
+    messageApi,
+  ]);
 
   const handlePromptClick = useCallback(
     async (info: { data: { label?: unknown; scenario?: string } }) => {
       const label = info.data.label;
       const text = typeof label === "string" ? label : "";
       const scenario = info.data.scenario;
-      if (!text) { return; }
+      if (!text) {
+        return;
+      }
 
       try {
         if (!activeConversationId) {
@@ -221,20 +270,29 @@ export function useChatViewActions({
             return;
           }
           let provider = settings.default_provider_id
-            ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
+            ? providers.find(
+              (p) => p.id === settings.default_provider_id && p.enabled,
+            )
             : undefined;
           let model = provider?.models.find(
             (m) => m.model_id === settings.default_model_id && m.enabled,
           );
           if (!provider || !model) {
-            provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
+            provider = providers.find(
+              (p) => p.enabled && p.models.some((m) => m.enabled),
+            );
             model = provider?.models.find((m) => m.enabled);
           }
           if (!provider || !model) {
             messageApi.warning(t("chat.noModel"));
             return;
           }
-          await createConversation(text.slice(0, 30), model.model_id, provider.id, { scenario });
+          await createConversation(
+            text.slice(0, 30),
+            model.model_id,
+            provider.id,
+            { scenario },
+          );
         }
 
         useConversationStore.getState().setPendingPromptText(text);
@@ -243,11 +301,21 @@ export function useChatViewActions({
         messageApi.error(String(e));
       }
     },
-    [activeConversationId, providers, providersLoading, settings, createConversation, messageApi, t],
+    [
+      activeConversationId,
+      providers,
+      providersLoading,
+      settings,
+      createConversation,
+      messageApi,
+      t,
+    ],
   );
 
   const handleTopicGroupToggle = useCallback(() => {
-    if (!activeConversationId) { return; }
+    if (!activeConversationId) {
+      return;
+    }
     const enabled = !topicGroupEnabled;
     useTopicGroupStore.getState().setEnabled(activeConversationId, enabled);
     if (enabled) {
@@ -255,20 +323,27 @@ export function useChatViewActions({
     }
   }, [activeConversationId, topicGroupEnabled]);
 
-  const handleStatsOpenChange = useCallback(async (open: boolean) => {
-    setStatsOpen(open);
-    if (open && activeConversationId) {
-      setStats(null);
-      try {
-        const data = await invoke<ConversationStats>("get_conversation_stats", {
-          conversationId: activeConversationId,
-        }, 5_000);
-        setStats(data);
-      } catch {
+  const handleStatsOpenChange = useCallback(
+    async (open: boolean) => {
+      setStatsOpen(open);
+      if (open && activeConversationId) {
         setStats(null);
+        try {
+          const data = await invoke<ConversationStats>(
+            "get_conversation_stats",
+            {
+              conversationId: activeConversationId,
+            },
+            5_000,
+          );
+          setStats(data);
+        } catch {
+          setStats(null);
+        }
       }
-    }
-  }, [activeConversationId]);
+    },
+    [activeConversationId],
+  );
 
   const exportMenuItems = useMemo(
     () => [
@@ -282,10 +357,17 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await copyTranscript(messages, activeConversation?.title ?? "chat", "markdown", {
-              includeThinking: false,
-            });
-            if (ok) { messageApi.success(t("chat.copied")); }
+            const ok = await copyTranscript(
+              messages,
+              activeConversation?.title ?? "chat",
+              "markdown",
+              {
+                includeThinking: false,
+              },
+            );
+            if (ok) {
+              messageApi.success(t("chat.copied"));
+            }
           } catch (e) {
             console.error("Copy MD failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -298,8 +380,13 @@ export function useChatViewActions({
         icon: <FileImage size={14} />,
         onClick: async () => {
           try {
-            const ok = await exportAsPNG(messageAreaRef.current, activeConversation?.title ?? "chat");
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsPNG(
+              messageAreaRef.current,
+              activeConversation?.title ?? "chat",
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export PNG failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -316,8 +403,13 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsMarkdown(messages, activeConversation?.title ?? "chat");
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsMarkdown(
+              messages,
+              activeConversation?.title ?? "chat",
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export MD failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -334,10 +426,16 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsMarkdown(messages, activeConversation?.title ?? "chat", {
-              includeThinking: false,
-            });
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsMarkdown(
+              messages,
+              activeConversation?.title ?? "chat",
+              {
+                includeThinking: false,
+              },
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export MD (no thinking) failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -354,8 +452,13 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsText(messages, activeConversation?.title ?? "chat");
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsText(
+              messages,
+              activeConversation?.title ?? "chat",
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export TXT failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -372,8 +475,14 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsText(messages, activeConversation?.title ?? "chat", { includeThinking: false });
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsText(
+              messages,
+              activeConversation?.title ?? "chat",
+              { includeThinking: false },
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export TXT (no thinking) failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -390,8 +499,13 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsJSON(messages, activeConversation?.title ?? "chat");
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsJSON(
+              messages,
+              activeConversation?.title ?? "chat",
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export JSON failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -408,8 +522,14 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsJSON(messages, activeConversation?.title ?? "chat", { includeThinking: false });
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsJSON(
+              messages,
+              activeConversation?.title ?? "chat",
+              { includeThinking: false },
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export JSON (no thinking) failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -426,8 +546,13 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsHTML(messages, activeConversation?.title ?? "chat");
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsHTML(
+              messages,
+              activeConversation?.title ?? "chat",
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export HTML failed:", e);
             messageApi.error(t("chat.exportFailed"));
@@ -444,8 +569,14 @@ export function useChatViewActions({
             return;
           }
           try {
-            const ok = await exportAsHTML(messages, activeConversation?.title ?? "chat", { includeThinking: false });
-            if (ok) { messageApi.success(t("chat.exportSuccess")); }
+            const ok = await exportAsHTML(
+              messages,
+              activeConversation?.title ?? "chat",
+              { includeThinking: false },
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
           } catch (e) {
             console.error("Export HTML (no thinking) failed:", e);
             messageApi.error(t("chat.exportFailed"));

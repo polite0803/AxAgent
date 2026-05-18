@@ -112,9 +112,15 @@ async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
 type FileTypeCategory = "image" | "video" | "audio" | "document" | "other";
 
 function getFileTypeCategory(mimeType: string): FileTypeCategory {
-  if (mimeType.startsWith("image/")) { return "image"; }
-  if (mimeType.startsWith("video/")) { return "video"; }
-  if (mimeType.startsWith("audio/")) { return "audio"; }
+  if (mimeType.startsWith("image/")) {
+    return "image";
+  }
+  if (mimeType.startsWith("video/")) {
+    return "video";
+  }
+  if (mimeType.startsWith("audio/")) {
+    return "audio";
+  }
   if (
     mimeType.startsWith("text/")
     || mimeType === "application/pdf"
@@ -129,7 +135,9 @@ function getFileTypeCategory(mimeType: string): FileTypeCategory {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) { return "0 B"; }
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -233,14 +241,22 @@ export function InputArea() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Multi-model companion state
-  const [companionModels, setCompanionModels] = useState<Array<{ providerId: string; model_id: string }>>([]);
+  const [companionModels, setCompanionModels] = useState<
+    Array<{ providerId: string; model_id: string }>
+  >([]);
   const [multiModelOpen, setMultiModelOpen] = useState(false);
-  const sendMultiModelMessage = useConversationStore((s) => s.sendMultiModelMessage);
+  const sendMultiModelMessage = useConversationStore(
+    (s) => s.sendMultiModelMessage,
+  );
 
   const { message: messageApi, modal } = App.useApp();
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
   const activeStreams = useStreamStore((s) => s.activeStreams);
-  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
+  const streaming = activeConversationId
+    ? activeConversationId in activeStreams
+    : false;
   const compressing = useCompressStore((s) => s.compressing);
   const cancelCurrentStream = useStreamStore((s) => s.cancelCurrentStream);
   const sendMessage = useConversationStore((s) => s.sendMessage);
@@ -254,7 +270,12 @@ export function InputArea() {
     const msgs = useConversationStore.getState().messages;
     const activeMessages = msgs.filter((m) => m.is_active !== false);
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
-      if (m.content === "<!-- context-clear -->" || m.content === "<!-- context-compressed -->") { return i; }
+      if (
+        m.content === "<!-- context-clear -->"
+        || m.content === "<!-- context-compressed -->"
+      ) {
+        return i;
+      }
       return maxIdx;
     }, -1);
     if (lastMarkerIdx !== -1) {
@@ -271,24 +292,33 @@ export function InputArea() {
   const providersLoading = useProviderStore((s) => s.loading);
   const settings = useSettingsStore((s) => s.settings);
 
-  const shortcutHint = useCallback((label: string, action: ShortcutAction) => {
-    if (!settings) { return label; }
-    const binding = getShortcutBinding(settings, action);
-    return `${label} (${formatShortcutForDisplay(binding)})`;
-  }, [settings]);
+  const shortcutHint = useCallback(
+    (label: string, action: ShortcutAction) => {
+      if (!settings) {
+        return label;
+      }
+      const binding = getShortcutBinding(settings, action);
+      return `${label} (${formatShortcutForDisplay(binding)})`;
+    },
+    [settings],
+  );
 
   // Search state
   const searchEnabled = useConversationStore((s) => s.searchEnabled);
   const searchProviderId = useConversationStore((s) => s.searchProviderId);
   const setSearchEnabled = useConversationStore((s) => s.setSearchEnabled);
-  const setSearchProviderId = useConversationStore((s) => s.setSearchProviderId);
+  const setSearchProviderId = useConversationStore(
+    (s) => s.setSearchProviderId,
+  );
   const searchProviders = useSearchStore((s) => s.providers);
   const loadSearchProviders = useSearchStore((s) => s.loadProviders);
 
   // MCP state
   const mcpServers = useMcpStore((s) => s.servers);
   const loadMcpServers = useMcpStore((s) => s.loadServers);
-  const enabledMcpServerIds = useConversationStore((s) => s.enabledMcpServerIds);
+  const enabledMcpServerIds = useConversationStore(
+    (s) => s.enabledMcpServerIds,
+  );
   const toggleMcpServer = useConversationStore((s) => s.toggleMcpServer);
   const mcpMode = useConversationStore((s) => s.mcpMode);
   const setMcpMode = useConversationStore((s) => s.setMcpMode);
@@ -310,20 +340,30 @@ export function InputArea() {
   // Gateway links state
   const gatewayLinks = useGatewayLinkStore((s) => s.links);
   const fetchGatewayLinks = useGatewayLinkStore((s) => s.fetchLinks);
-  const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(null);
+  const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(
+    null,
+  );
 
   // Knowledge base state
   const knowledgeBases = useKnowledgeStore((s) => s.bases);
   const loadKnowledgeBases = useKnowledgeStore((s) => s.loadBases);
-  const enabledKnowledgeBaseIds = useConversationStore((s) => s.enabledKnowledgeBaseIds);
-  const toggleKnowledgeBase = useConversationStore((s) => s.toggleKnowledgeBase);
+  const enabledKnowledgeBaseIds = useConversationStore(
+    (s) => s.enabledKnowledgeBaseIds,
+  );
+  const toggleKnowledgeBase = useConversationStore(
+    (s) => s.toggleKnowledgeBase,
+  );
   const [sourcePopoverOpen, setSourcePopoverOpen] = useState(false);
 
   // Memory state
   const memoryNamespaces = useMemoryStore((s) => s.namespaces);
   const loadMemoryNamespaces = useMemoryStore((s) => s.loadNamespaces);
-  const activeMemoryNamespaceId = useConversationStore((s) => s.activeMemoryNamespaceId);
-  const setActiveMemoryNamespace = useConversationStore((s) => s.setActiveMemoryNamespace);
+  const activeMemoryNamespaceId = useConversationStore(
+    (s) => s.activeMemoryNamespaceId,
+  );
+  const setActiveMemoryNamespace = useConversationStore(
+    (s) => s.setActiveMemoryNamespace,
+  );
 
   // Wiki vault state
   const wikis = useLlmWikiStore((s) => s.wikis);
@@ -345,12 +385,12 @@ export function InputArea() {
   // even when the user hasn't created one yet.
   const pendingModeRef = useRef<"chat" | "agent" | null>(null);
 
-  const activeConversation = conversations.find((c) => c.id === activeConversationId);
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId,
+  );
   // Use pendingModeRef when no conversation exists so the UI (mode badge, send routing)
   // correctly reflects the user's last mode dropdown choice.
-  const currentMode = activeConversation?.mode
-    || pendingModeRef.current
-    || "chat";
+  const currentMode = activeConversation?.mode || pendingModeRef.current || "chat";
 
   // Reset pending mode ref when a conversation becomes active
   useEffect(() => {
@@ -361,7 +401,10 @@ export function InputArea() {
 
   // Sync work strategy from conversation (also fires on mode switch)
   useEffect(() => {
-    const strategy = activeConversation?.work_strategy as "direct" | "plan" | undefined;
+    const strategy = activeConversation?.work_strategy as
+      | "direct"
+      | "plan"
+      | undefined;
     setWorkStrategy(strategy || "direct");
   }, [activeConversation?.work_strategy, activeConversation?.mode]);
 
@@ -370,37 +413,53 @@ export function InputArea() {
 
   // Load search providers on mount
   useEffect(() => {
-    if ((searchProviders ?? []).length === 0) { loadSearchProviders(); }
+    if ((searchProviders ?? []).length === 0) {
+      loadSearchProviders();
+    }
   }, [searchProviders, loadSearchProviders]);
 
   // Load MCP servers on mount
   useEffect(() => {
-    if ((mcpServers ?? []).length === 0) { loadMcpServers(); }
+    if ((mcpServers ?? []).length === 0) {
+      loadMcpServers();
+    }
   }, [mcpServers, loadMcpServers]);
 
   // Load knowledge bases on mount
   useEffect(() => {
-    if ((knowledgeBases ?? []).length === 0) { loadKnowledgeBases(); }
+    if ((knowledgeBases ?? []).length === 0) {
+      loadKnowledgeBases();
+    }
   }, [knowledgeBases, loadKnowledgeBases]);
 
   // Load memory namespaces on mount
   useEffect(() => {
-    if ((memoryNamespaces ?? []).length === 0) { loadMemoryNamespaces(); }
+    if ((memoryNamespaces ?? []).length === 0) {
+      loadMemoryNamespaces();
+    }
   }, [memoryNamespaces, loadMemoryNamespaces]);
 
   // Load wiki vaults on mount
   useEffect(() => {
-    if ((wikis ?? []).length === 0) { loadWikis(); }
+    if ((wikis ?? []).length === 0) {
+      loadWikis();
+    }
   }, [wikis, loadWikis]);
 
   // Load gateway links on mount
   useEffect(() => {
-    if ((gatewayLinks ?? []).length === 0) { fetchGatewayLinks(); }
+    if ((gatewayLinks ?? []).length === 0) {
+      fetchGatewayLinks();
+    }
   }, [gatewayLinks, fetchGatewayLinks]);
 
   // Set default workspace directory when in agent mode and no conversation is active
   useEffect(() => {
-    if (!activeConversationId && currentMode === "agent" && settings.default_workspace_dir) {
+    if (
+      !activeConversationId
+      && currentMode === "agent"
+      && settings.default_workspace_dir
+    ) {
       setAgentCwd(settings.default_workspace_dir);
     }
   }, [activeConversationId, currentMode, settings.default_workspace_dir]);
@@ -408,7 +467,9 @@ export function InputArea() {
   // Fetch agent permission mode on mount/conversation switch
   useEffect(() => {
     if (currentMode === "agent" && activeConversationId) {
-      invoke("agent_get_session", { request: { conversationId: activeConversationId } })
+      invoke("agent_get_session", {
+        request: { conversationId: activeConversationId },
+      })
         .then((session: any) => {
           if (session) {
             setAgentPermissionMode(session.permission_mode || "default");
@@ -426,10 +487,15 @@ export function InputArea() {
     const prev = prevConvIdRef.current;
     if (prev && prev !== activeConversationId) {
       const draft = valueRef.current;
-      if (draft) { _draftCache.set(prev, draft); }
-      else { _draftCache.delete(prev); }
+      if (draft) {
+        _draftCache.set(prev, draft);
+      } else {
+        _draftCache.delete(prev);
+      }
     }
-    setValue(activeConversationId ? _draftCache.get(activeConversationId) || "" : "");
+    setValue(
+      activeConversationId ? _draftCache.get(activeConversationId) || "" : "",
+    );
     prevConvIdRef.current = activeConversationId ?? null;
   }, [activeConversationId]);
 
@@ -444,7 +510,9 @@ export function InputArea() {
   }, []);
 
   // Persist companion models per conversation in localStorage
-  const companionStorageKey = activeConversationId ? `axagent:companion-models:${activeConversationId}` : null;
+  const companionStorageKey = activeConversationId
+    ? `axagent:companion-models:${activeConversationId}`
+    : null;
 
   // Load companion models when conversation changes
   useEffect(() => {
@@ -463,7 +531,9 @@ export function InputArea() {
   // Pick up pending prompt text from welcome cards and populate the input field
   const pendingPromptText = useConversationStore((s) => s.pendingPromptText);
   useEffect(() => {
-    if (!pendingPromptText) { return; }
+    if (!pendingPromptText) {
+      return;
+    }
     const text = pendingPromptText;
     useConversationStore.getState().setPendingPromptText(null);
     setValue(text);
@@ -504,7 +574,9 @@ export function InputArea() {
             <SearchProviderTypeIcon type={p.providerType} size={14} />
             {PROVIDER_TYPE_LABELS[p.providerType] || p.providerType}
           </Tag>
-          <span className="flex-1" style={{ fontSize: 13 }}>{p.name}</span>
+          <span className="flex-1" style={{ fontSize: 13 }}>
+            {p.name}
+          </span>
           {searchEnabled && searchProviderId === p.id && <Check size={14} style={{ color: token.colorPrimary }} />}
         </div>
       ),
@@ -513,7 +585,9 @@ export function InputArea() {
 
   const handleSearchMenuClick = useCallback(
     ({ key }: { key: string }) => {
-      if (key === "__empty") { return; }
+      if (key === "__empty") {
+        return;
+      }
       setSearchEnabled(true);
       setSearchProviderId(key);
     },
@@ -526,7 +600,13 @@ export function InputArea() {
     if (enabledServers.length === 0) {
       return (
         <div style={{ padding: "8px 0", minWidth: 220 }}>
-          <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
+          <div
+            style={{
+              color: token.colorTextSecondary,
+              fontSize: 12,
+              marginBottom: 8,
+            }}
+          >
             {t("chat.mcp.noServers")}
           </div>
           <Button
@@ -551,7 +631,16 @@ export function InputArea() {
 
     const renderGroup = (title: string, servers: typeof mcpServers) => (
       <div key={title}>
-        <div style={{ fontSize: 12, color: token.colorTextSecondary, padding: "4px 0", fontWeight: 600 }}>{title}</div>
+        <div
+          style={{
+            fontSize: 12,
+            color: token.colorTextSecondary,
+            padding: "4px 0",
+            fontWeight: 600,
+          }}
+        >
+          {title}
+        </div>
         {servers.map((server) => (
           <div key={server.id} style={{ padding: "3px 0" }}>
             <Checkbox
@@ -559,20 +648,39 @@ export function InputArea() {
               disabled={!isManual}
               onChange={() => toggleMcpServer(server.id)}
             >
-              <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
                 <McpServerIcon server={server} size={18} />
                 <span>
-                  <span style={{ fontWeight: 500 }}>{server.alias || server.name}</span>
+                  <span style={{ fontWeight: 500 }}>
+                    {server.alias || server.name}
+                  </span>
                   {server.description && (
                     <span
-                      style={{ display: "block", fontSize: 12, color: token.colorTextSecondary, lineHeight: "16px" }}
+                      style={{
+                        display: "block",
+                        fontSize: 12,
+                        color: token.colorTextSecondary,
+                        lineHeight: "16px",
+                      }}
                     >
                       {server.description}
                     </span>
                   )}
                   {server.alias && (
                     <span
-                      style={{ display: "block", fontSize: 10, color: token.colorTextQuaternary, lineHeight: "14px" }}
+                      style={{
+                        display: "block",
+                        fontSize: 10,
+                        color: token.colorTextQuaternary,
+                        lineHeight: "14px",
+                      }}
                     >
                       {server.name}
                     </span>
@@ -586,10 +694,31 @@ export function InputArea() {
     );
 
     return (
-      <div style={{ minWidth: 260, maxHeight: 360, overflowY: "auto", padding: "4px 0" }}>
+      <div
+        style={{
+          minWidth: 260,
+          maxHeight: 360,
+          overflowY: "auto",
+          padding: "4px 0",
+        }}
+      >
         {/* Mode selector */}
-        <div style={{ padding: "4px 0 8px", borderBottom: `1px solid ${token.colorBorderSecondary}`, marginBottom: 8 }}>
-          <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 6 }}>{t("chat.mcp.mode")}</div>
+        <div
+          style={{
+            padding: "4px 0 8px",
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: token.colorTextSecondary,
+              marginBottom: 6,
+            }}
+          >
+            {t("chat.mcp.mode")}
+          </div>
           <div style={{ display: "flex", gap: 4 }}>
             {(["auto", "manual", "disabled"] as const).map((mode) => (
               <Button
@@ -607,7 +736,13 @@ export function InputArea() {
               </Button>
             ))}
           </div>
-          <div style={{ fontSize: 10, color: token.colorTextQuaternary, marginTop: 4 }}>
+          <div
+            style={{
+              fontSize: 10,
+              color: token.colorTextQuaternary,
+              marginTop: 4,
+            }}
+          >
             {mcpMode === "auto"
               ? t("chat.mcp.modeAutoDesc")
               : mcpMode === "manual"
@@ -615,26 +750,46 @@ export function InputArea() {
               : t("chat.mcp.modeDisabledDesc")}
           </div>
         </div>
-        {builtinServers.length > 0 && renderGroup(t("settings.mcp.builtin"), builtinServers)}
+        {builtinServers.length > 0
+          && renderGroup(t("settings.mcp.builtin"), builtinServers)}
         {builtinServers.length > 0 && customServers.length > 0 && (
-          <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, margin: "6px 0" }} />
+          <div
+            style={{
+              borderTop: `1px solid ${token.colorBorderSecondary}`,
+              margin: "6px 0",
+            }}
+          />
         )}
-        {customServers.length > 0 && renderGroup(t("settings.mcp.custom"), customServers)}
+        {customServers.length > 0
+          && renderGroup(t("settings.mcp.custom"), customServers)}
       </div>
     );
-  }, [mcpServers, enabledMcpServerIds, toggleMcpServer, mcpMode, setMcpMode, token, t]);
+  }, [
+    mcpServers,
+    enabledMcpServerIds,
+    toggleMcpServer,
+    mcpMode,
+    setMcpMode,
+    token,
+    t,
+  ]);
 
-  const thinkingOptions = useMemo(() => [
-    { key: "default", label: t("chat.thinking.default"), value: null },
-    { key: "none", label: t("chat.thinking.none"), value: 0 },
-    { key: "low", label: t("chat.thinking.low"), value: 1024 },
-    { key: "medium", label: t("chat.thinking.medium"), value: 4096 },
-    { key: "high", label: t("chat.thinking.high"), value: 8192 },
-    { key: "xhigh", label: t("chat.thinking.xhigh"), value: 16384 },
-  ], [t]);
+  const thinkingOptions = useMemo(
+    () => [
+      { key: "default", label: t("chat.thinking.default"), value: null },
+      { key: "none", label: t("chat.thinking.none"), value: 0 },
+      { key: "low", label: t("chat.thinking.low"), value: 1024 },
+      { key: "medium", label: t("chat.thinking.medium"), value: 4096 },
+      { key: "high", label: t("chat.thinking.high"), value: 8192 },
+      { key: "xhigh", label: t("chat.thinking.xhigh"), value: 16384 },
+    ],
+    [t],
+  );
 
   const selectedThinkingOption = useMemo(
-    () => thinkingOptions.find((opt) => opt.value === thinkingBudget) ?? thinkingOptions[0],
+    () =>
+      thinkingOptions.find((opt) => opt.value === thinkingBudget)
+        ?? thinkingOptions[0],
     [thinkingBudget, thinkingOptions],
   );
 
@@ -682,10 +837,14 @@ export function InputArea() {
     [thinkingOptions],
   );
 
-  const handleThinkingMenuClick = useCallback<NonNullable<MenuProps["onClick"]>>(
+  const handleThinkingMenuClick = useCallback<
+    NonNullable<MenuProps["onClick"]>
+  >(
     ({ key }) => {
       const selected = thinkingOptions.find((opt) => opt.key === key);
-      if (!selected) { return; }
+      if (!selected) {
+        return;
+      }
       setThinkingBudget(selected.value);
       setThinkingDropdownOpen(false);
     },
@@ -714,7 +873,9 @@ export function InputArea() {
         items.push({
           key: `expert-${role.id}`,
           label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
               <span>{role.icon}</span>
               <span>{role.name}</span>
             </span>
@@ -739,14 +900,24 @@ export function InputArea() {
         label: (
           <>
             {t("common.agentMode")}{" "}
-            <Tag color="blue" style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", marginLeft: 2 }}>
+            <Tag
+              color="blue"
+              style={{
+                fontSize: 10,
+                lineHeight: "16px",
+                padding: "0 4px",
+                marginLeft: 2,
+              }}
+            >
               Beta
             </Tag>
           </>
         ),
       },
     ];
-    const connectedGateways = gatewayLinks.filter((l) => l.enabled && l.status === "connected");
+    const connectedGateways = gatewayLinks.filter(
+      (l) => l.enabled && l.status === "connected",
+    );
     if (connectedGateways.length > 0) {
       items.push({ type: "divider" as const });
       connectedGateways.forEach((gateway) => {
@@ -764,19 +935,27 @@ export function InputArea() {
   const handleScenarioClick = useCallback<NonNullable<MenuProps["onClick"]>>(
     async ({ key }) => {
       const expertPrefix = "expert-";
-      if (!key.startsWith(expertPrefix)) { return; }
+      if (!key.startsWith(expertPrefix)) {
+        return;
+      }
       const roleId = key.replace(expertPrefix, "");
       const role = useExpertStore.getState().getRoleById(roleId);
-      if (!role) { return; }
+      if (!role) {
+        return;
+      }
 
       let provider: ProviderConfig | undefined;
       let model: Model | undefined;
       if (role.suggestedProviderId && role.suggestedModelId) {
         provider = providers.find((p) => p.id === role.suggestedProviderId);
-        model = provider?.models.find((m: Model) => m.model_id === role.suggestedModelId);
+        model = provider?.models.find(
+          (m: Model) => m.model_id === role.suggestedModelId,
+        );
       }
       if (!provider || !model) {
-        provider = providers.find((p) => p.enabled && p.models.some((m: Model) => m.enabled));
+        provider = providers.find(
+          (p) => p.enabled && p.models.some((m: Model) => m.enabled),
+        );
         model = provider?.models.find((m: Model) => m.enabled);
       }
       if (!provider || !model) {
@@ -784,71 +963,77 @@ export function InputArea() {
         return;
       }
 
-      await createConversation(
-        role.name,
-        model.model_id,
-        provider.id,
-        {
-          mode: "agent",
-          expert_role_id: roleId,
-          system_prompt: role.systemPrompt || undefined,
-        },
-      );
+      await createConversation(role.name, model.model_id, provider.id, {
+        mode: "agent",
+        expert_role_id: roleId,
+        system_prompt: role.systemPrompt || undefined,
+      });
     },
     [createConversation, providers, messageApi, t],
   );
 
   // Agent permission mode menu items
-  const permissionModeItems = useMemo<MenuProps["items"]>(() => [
-    {
-      key: "default",
-      label: t("common.permissionDefault"),
-      icon: <Shield size={14} />,
-    },
-    {
-      key: "accept_edits",
-      label: t("common.permissionAcceptEdits"),
-      icon: <ShieldCheck size={14} style={{ color: "#1890ff" }} />,
-    },
-    {
-      key: "full_access",
-      label: t("common.permissionFullAccess"),
-      icon: <ShieldAlert size={14} style={{ color: "#ff4d4f" }} />,
-    },
-  ], [t]);
+  const permissionModeItems = useMemo<MenuProps["items"]>(
+    () => [
+      {
+        key: "default",
+        label: t("common.permissionDefault"),
+        icon: <Shield size={14} />,
+      },
+      {
+        key: "accept_edits",
+        label: t("common.permissionAcceptEdits"),
+        icon: <ShieldCheck size={14} style={{ color: "#1890ff" }} />,
+      },
+      {
+        key: "full_access",
+        label: t("common.permissionFullAccess"),
+        icon: <ShieldAlert size={14} style={{ color: "#ff4d4f" }} />,
+      },
+    ],
+    [t],
+  );
 
-  const handlePermissionModeChange = useCallback(async (mode: string) => {
-    if (!activeConversationId) { return; }
-
-    const applyChange = async () => {
-      try {
-        await invoke("agent_update_session", {
-          request: { conversationId: activeConversationId, permissionMode: mode },
-        });
-        setAgentPermissionMode(mode);
-      } catch (e) {
-        console.warn("Failed to update permission mode:", e);
+  const handlePermissionModeChange = useCallback(
+    async (mode: string) => {
+      if (!activeConversationId) {
+        return;
       }
-    };
 
-    if (mode === "accept_edits" || mode === "full_access") {
-      const isFullAccess = mode === "full_access";
-      modal.confirm({
-        title: isFullAccess
-          ? t("agent.permissionFullAccessWarningTitle")
-          : t("agent.permissionAcceptEditsWarningTitle"),
-        content: isFullAccess
-          ? t("agent.permissionFullAccessWarning")
-          : t("agent.permissionAcceptEditsWarning"),
-        okText: t("common.confirm"),
-        cancelText: t("common.cancel"),
-        okButtonProps: isFullAccess ? { danger: true } : undefined,
-        onOk: applyChange,
-      });
-    } else {
-      await applyChange();
-    }
-  }, [activeConversationId, t]);
+      const applyChange = async () => {
+        try {
+          await invoke("agent_update_session", {
+            request: {
+              conversationId: activeConversationId,
+              permissionMode: mode,
+            },
+          });
+          setAgentPermissionMode(mode);
+        } catch (e) {
+          console.warn("Failed to update permission mode:", e);
+        }
+      };
+
+      if (mode === "accept_edits" || mode === "full_access") {
+        const isFullAccess = mode === "full_access";
+        modal.confirm({
+          title: isFullAccess
+            ? t("agent.permissionFullAccessWarningTitle")
+            : t("agent.permissionAcceptEditsWarningTitle"),
+          content: isFullAccess
+            ? t("agent.permissionFullAccessWarning")
+            : t("agent.permissionAcceptEditsWarning"),
+          okText: t("common.confirm"),
+          cancelText: t("common.cancel"),
+          okButtonProps: isFullAccess ? { danger: true } : undefined,
+          onOk: applyChange,
+        });
+      } else {
+        await applyChange();
+      }
+    },
+    [activeConversationId, t],
+  );
 
   const permissionModeIcon = useMemo(() => {
     switch (agentPermissionMode) {
@@ -877,19 +1062,27 @@ export function InputArea() {
 
   const handleWorkStrategyChange = useCallback(
     async (strategy: "direct" | "plan") => {
-      if (!activeConversationId || !activeConversation) { return; }
+      if (!activeConversationId || !activeConversation) {
+        return;
+      }
       if (isSwitchingStrategyRef.current) {
-        if (import.meta.env.DEV) { console.log("[WorkStrategy] Already switching, ignoring"); }
+        if (import.meta.env.DEV) {
+          console.log("[WorkStrategy] Already switching, ignoring");
+        }
         return;
       }
       isSwitchingStrategyRef.current = true;
       try {
         setWorkStrategy(strategy);
-        await updateConversation(activeConversationId, { work_strategy: strategy });
+        await updateConversation(activeConversationId, {
+          work_strategy: strategy,
+        });
       } catch (e) {
         console.warn("[WorkStrategy] Failed to update work strategy:", e);
         // Revert
-        setWorkStrategy(activeConversation.work_strategy as "direct" | "plan" || "direct");
+        setWorkStrategy(
+          (activeConversation.work_strategy as "direct" | "plan") || "direct",
+        );
       } finally {
         isSwitchingStrategyRef.current = false;
       }
@@ -900,7 +1093,9 @@ export function InputArea() {
   // Agent CWD helpers
   const abbreviatePath = useCallback((path: string): string => {
     const segments = path.replace(/\\/g, "/").split("/").filter(Boolean);
-    if (segments.length <= 2) { return path; }
+    if (segments.length <= 2) {
+      return path;
+    }
     return "…/" + segments.slice(-2).join("/");
   }, []);
 
@@ -932,7 +1127,13 @@ export function InputArea() {
     if (totalSources === 0) {
       return (
         <div style={{ padding: "8px 0", minWidth: 200 }}>
-          <div style={{ color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
+          <div
+            style={{
+              color: token.colorTextSecondary,
+              fontSize: 12,
+              marginBottom: 8,
+            }}
+          >
             {t("chat.sources.empty")}
           </div>
           <Button
@@ -954,7 +1155,10 @@ export function InputArea() {
         {safeKb.length > 0 && (
           <div
             style={{
-              marginBottom: safeKb.length > 0 && (safeMem.length > 0 || safeWikis.length > 0) ? 8 : 0,
+              marginBottom: safeKb.length > 0
+                  && (safeMem.length > 0 || safeWikis.length > 0)
+                ? 8
+                : 0,
             }}
           >
             <div
@@ -979,7 +1183,14 @@ export function InputArea() {
                   checked={enabledKnowledgeBaseIds.includes(kb.id)}
                   onChange={() => toggleKnowledgeBase(kb.id)}
                 >
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 13,
+                    }}
+                  >
                     <KnowledgeBaseIcon kb={kb} size={14} />
                     {kb.name}
                   </span>
@@ -989,7 +1200,11 @@ export function InputArea() {
           </div>
         )}
         {safeMem.length > 0 && (
-          <div style={{ marginBottom: safeMem.length > 0 && safeWikis.length > 0 ? 8 : 0 }}>
+          <div
+            style={{
+              marginBottom: safeMem.length > 0 && safeWikis.length > 0 ? 8 : 0,
+            }}
+          >
             <div
               style={{
                 fontSize: 12,
@@ -1013,7 +1228,14 @@ export function InputArea() {
             >
               {safeMem.map((ns) => (
                 <Radio key={ns.id} value={ns.id}>
-                  <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
                     <NamespaceIcon ns={ns} size={16} />
                     {ns.name}
                   </span>
@@ -1046,7 +1268,14 @@ export function InputArea() {
                   checked={enabledWikiIds.includes(wiki.id)}
                   onChange={() => toggleWiki(wiki.id)}
                 >
-                  <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
                     <Library size={14} />
                     {wiki.name}
                   </span>
@@ -1076,7 +1305,7 @@ export function InputArea() {
 
   const handleTemplateSelect = useCallback(
     (template: PromptTemplate, filledContent: string) => {
-      setValue((prev) => (prev ? prev + "\n\n" + filledContent : filledContent));
+      setValue((prev) => prev ? prev + "\n\n" + filledContent : filledContent);
       setTemplatePopoverOpen(false);
       textareaRef.current?.focus();
       incrementUsage(template.id);
@@ -1090,26 +1319,47 @@ export function InputArea() {
 
   const currentModel = React.useMemo(() => {
     if (activeConversation) {
-      return findModelByIds(providers, activeConversation.provider_id, activeConversation.model_id);
+      return findModelByIds(
+        providers,
+        activeConversation.provider_id,
+        activeConversation.model_id,
+      );
     }
 
     if (settings.default_provider_id && settings.default_model_id) {
-      const defaultModel = findModelByIds(providers, settings.default_provider_id, settings.default_model_id);
-      if (defaultModel?.enabled) { return defaultModel; }
+      const defaultModel = findModelByIds(
+        providers,
+        settings.default_provider_id,
+        settings.default_model_id,
+      );
+      if (defaultModel?.enabled) {
+        return defaultModel;
+      }
     }
 
     for (const provider of providers) {
-      if (!provider.enabled) { continue; }
+      if (!provider.enabled) {
+        continue;
+      }
       for (const item of provider.models) {
-        if (item.enabled) { return item; }
+        if (item.enabled) {
+          return item;
+        }
       }
     }
 
     return null;
-  }, [activeConversation, providers, settings.default_provider_id, settings.default_model_id]);
+  }, [
+    activeConversation,
+    providers,
+    settings.default_provider_id,
+    settings.default_model_id,
+  ]);
 
   // Context token usage calculation
-  const getCompressionSummary = useCompressStore((s) => s.getCompressionSummary);
+  const getCompressionSummary = useCompressStore(
+    (s) => s.getCompressionSummary,
+  );
   const [summaryTokenCount, setSummaryTokenCount] = useState<number>(0);
 
   useEffect(() => {
@@ -1120,23 +1370,37 @@ export function InputArea() {
     getCompressionSummary(activeConversationId).then((s) => {
       setSummaryTokenCount(s?.token_count ?? 0);
     });
-  }, [activeConversationId, activeConversation?.context_compression, getCompressionSummary, messagesLength]);
+  }, [
+    activeConversationId,
+    activeConversation?.context_compression,
+    getCompressionSummary,
+    messagesLength,
+  ]);
 
   // TODO: Token estimation only considers loaded messages. When hasOlderMessages is true
   // and no context-clear marker is found, the token estimate will be lower than actual.
   // A proper fix would require the backend to return total token counts.
   const contextTokenUsage = useMemo(() => {
     const maxTokens = currentModel?.max_tokens;
-    if (!maxTokens) { return null; }
+    if (!maxTokens) {
+      return null;
+    }
 
     // Count message tokens (only after last marker)
     const msgs = useConversationStore.getState().messages;
     const activeMessages = msgs.filter((m) => m.is_active !== false);
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
-      if (m.content === "<!-- context-clear -->" || m.content === "<!-- context-compressed -->") { return i; }
+      if (
+        m.content === "<!-- context-clear -->"
+        || m.content === "<!-- context-compressed -->"
+      ) {
+        return i;
+      }
       return maxIdx;
     }, -1);
-    const effectiveMessages = lastMarkerIdx === -1 ? activeMessages : activeMessages.slice(lastMarkerIdx + 1);
+    const effectiveMessages = lastMarkerIdx === -1
+      ? activeMessages
+      : activeMessages.slice(lastMarkerIdx + 1);
     let usedTokens = effectiveMessages.reduce(
       (sum, m) => sum + estimateMessageTokens(m.role, m.content),
       0,
@@ -1152,17 +1416,27 @@ export function InputArea() {
 
     const percent = Math.min(Math.round((usedTokens / maxTokens) * 100), 100);
     return { usedTokens, maxTokens, percent };
-  }, [messagesLength, currentModel?.max_tokens, activeConversation?.system_prompt, summaryTokenCount]);
+  }, [
+    messagesLength,
+    currentModel?.max_tokens,
+    activeConversation?.system_prompt,
+    summaryTokenCount,
+  ]);
 
-  const { hasRealtimeVoice, hasReasoning, hasVision } = React.useMemo(() => ({
-    hasRealtimeVoice: activeConversation
-      ? !!findModelByIds(providers, activeConversation.provider_id, activeConversation.model_id)?.capabilities.includes(
-        "RealtimeVoice",
-      )
-      : false,
-    hasReasoning: supportsReasoning(currentModel),
-    hasVision: modelHasCapability(currentModel, "Vision"),
-  }), [activeConversation, currentModel, providers]);
+  const { hasRealtimeVoice, hasReasoning, hasVision } = React.useMemo(
+    () => ({
+      hasRealtimeVoice: activeConversation
+        ? !!findModelByIds(
+          providers,
+          activeConversation.provider_id,
+          activeConversation.model_id,
+        )?.capabilities.includes("RealtimeVoice")
+        : false,
+      hasReasoning: supportsReasoning(currentModel),
+      hasVision: modelHasCapability(currentModel, "Vision"),
+    }),
+    [activeConversation, currentModel, providers],
+  );
 
   // Current model key for excluding from multi-select (no longer used - users can select any model)
 
@@ -1178,34 +1452,42 @@ export function InputArea() {
     });
   }, [companionModels, providers]);
 
-  const handleMultiModelSelect = useCallback((models: Array<{ providerId: string; model_id: string }>) => {
-    setCompanionModels(models);
-    if (companionStorageKey) {
-      if (models.length > 0) {
-        localStorage.setItem(companionStorageKey, JSON.stringify(models));
-      } else {
-        localStorage.removeItem(companionStorageKey);
-      }
-    }
-  }, [companionStorageKey]);
-
-  const removeCompanionModel = useCallback((index: number) => {
-    setCompanionModels((prev) => {
-      const next = prev.filter((_, i) => i !== index);
+  const handleMultiModelSelect = useCallback(
+    (models: Array<{ providerId: string; model_id: string }>) => {
+      setCompanionModels(models);
       if (companionStorageKey) {
-        if (next.length > 0) {
-          localStorage.setItem(companionStorageKey, JSON.stringify(next));
+        if (models.length > 0) {
+          localStorage.setItem(companionStorageKey, JSON.stringify(models));
         } else {
           localStorage.removeItem(companionStorageKey);
         }
       }
-      return next;
-    });
-  }, [companionStorageKey]);
+    },
+    [companionStorageKey],
+  );
+
+  const removeCompanionModel = useCallback(
+    (index: number) => {
+      setCompanionModels((prev) => {
+        const next = prev.filter((_, i) => i !== index);
+        if (companionStorageKey) {
+          if (next.length > 0) {
+            localStorage.setItem(companionStorageKey, JSON.stringify(next));
+          } else {
+            localStorage.removeItem(companionStorageKey);
+          }
+        }
+        return next;
+      });
+    },
+    [companionStorageKey],
+  );
 
   const clearAllCompanionModels = useCallback(() => {
     setCompanionModels([]);
-    if (companionStorageKey) { localStorage.removeItem(companionStorageKey); }
+    if (companionStorageKey) {
+      localStorage.removeItem(companionStorageKey);
+    }
   }, [companionStorageKey]);
 
   const voiceConfig: RealtimeConfig = React.useMemo(
@@ -1220,136 +1502,204 @@ export function InputArea() {
   // Mutex to prevent concurrent mode switches (e.g. rapid double-clicks)
   const isSwitchingModeRef = useRef(false);
 
-  const handleModeSwitch = useCallback(async (mode: "chat" | "agent") => {
-    if (isSwitchingModeRef.current) {
-      if (import.meta.env.DEV) { console.log("[ModeSwitch] Already switching mode, ignoring"); }
-      return;
-    }
-    isSwitchingModeRef.current = true;
-    try {
-      if (!activeConversation) {
-        // No active conversation: store the mode choice so handleSend creates the right type
-        if (mode === "agent") {
-          pendingModeRef.current = "agent";
-          messageApi.info(
-            t(
-              "chat.switchAgentModeNoConversationInfo",
-              "Switched to Agent mode. Send a message to create an Agent conversation.",
-            ),
-          );
-        } else {
-          pendingModeRef.current = null;
+  const handleModeSwitch = useCallback(
+    async (mode: "chat" | "agent") => {
+      if (isSwitchingModeRef.current) {
+        if (import.meta.env.DEV) {
+          console.log("[ModeSwitch] Already switching mode, ignoring");
         }
         return;
       }
-
-      // Prevent switching while the current conversation is streaming
-      const { activeStreams } = useStreamStore.getState();
-      if (activeConversation.id in activeStreams) {
-        if (import.meta.env.DEV) { console.log("[ModeSwitch] Conversation is streaming, cannot switch mode"); }
-        return;
-      }
-
-      if (import.meta.env.DEV) { console.log("[ModeSwitch] Starting switch to:", mode); }
-      if (import.meta.env.DEV) { console.log("[ModeSwitch] Conversation ID:", activeConversation.id); }
-
+      isSwitchingModeRef.current = true;
       try {
-        await updateConversation(activeConversation.id, { mode });
-        if (import.meta.env.DEV) { console.log("[ModeSwitch] updateConversation succeeded"); }
-      } catch (e) {
-        const errorMsg = String(e);
-        if (errorMsg.includes("Not found: Conversation")) {
-          console.warn("[ModeSwitch] Conversation no longer exists, refreshing conversation list");
-          messageApi.warning(t("chat.conversationNotFound"));
-          await useConversationStore.getState().fetchConversations().catch((e: unknown) => {
-            console.warn("[IPC]", e);
-          });
-          const { conversations } = useConversationStore.getState();
-          if (conversations.length > 0) {
-            useConversationStore.getState().setActiveConversation(conversations[0].id);
-          } else {
-            useConversationStore.getState().setActiveConversation(null);
-          }
-        } else {
-          console.error("[ModeSwitch] updateConversation failed:", e);
-        }
-        return;
-      }
-
-      if (mode === "agent") {
-        if (import.meta.env.DEV) { console.log("[ModeSwitch] Initializing agent session..."); }
-        // Clear multi-model companion models — not applicable in agent mode
-        if (companionModels.length > 0) {
-          setCompanionModels([]);
-          if (companionStorageKey) { localStorage.removeItem(companionStorageKey); }
-        }
-        try {
-          // agent_update_session is a lightweight DB query, give it 10s timeout
-          const session = await invoke<{ cwd: string | null }>("agent_update_session", {
-            request: { conversationId: activeConversation.id },
-          }, 10_000);
-          if (import.meta.env.DEV) { console.log("[ModeSwitch] agent_update_session returned:", session); }
-          if (!session.cwd) {
-            if (import.meta.env.DEV) { console.log("[ModeSwitch] No cwd, creating workspace..."); }
-            // agent_ensure_workspace is a filesystem operation, give it 15s timeout
-            // (default 5-min timeout is excessive and masks backend connection issues)
-            const workspaceResult = await invoke<{ workspacePath: string }>("agent_ensure_workspace", {
-              request: { conversationId: activeConversation.id },
-            }, 15_000);
-            const workspacePath = workspaceResult.workspacePath;
-            if (import.meta.env.DEV) { console.log("[ModeSwitch] workspace created:", workspacePath); }
-            await invoke("agent_update_session", {
-              request: { conversationId: activeConversation.id, cwd: workspacePath },
-            }, 10_000);
-            setAgentCwd(workspacePath);
-          } else {
-            if (import.meta.env.DEV) { console.log("[ModeSwitch] Using existing cwd:", session.cwd); }
-            setAgentCwd(session.cwd);
-          }
-        } catch (e) {
-          const errMsg = String(e);
-          const isTransient = errMsg.includes("connection") || errMsg.includes("refused")
-            || errMsg.includes("timeout") || errMsg.includes("fetch")
-            || errMsg.includes("IPC") || errMsg.includes("backend");
-          console.warn("[ModeSwitch] Failed to init agent session:", e);
-
-          if (isTransient) {
-            // Transient IPC error: backend may be temporarily unavailable.
-            // Do NOT rollback to chat mode — the conversation mode stays as "agent"
-            // so the user doesn't need to manually re-switch when backend recovers.
-            messageApi.warning(
+        if (!activeConversation) {
+          // No active conversation: store the mode choice so handleSend creates the right type
+          if (mode === "agent") {
+            pendingModeRef.current = "agent";
+            messageApi.info(
               t(
-                "chat.agentInitTransient",
-                "Agent session initialization failed due to a temporary connection issue. You can try sending again in a moment.",
+                "chat.switchAgentModeNoConversationInfo",
+                "Switched to Agent mode. Send a message to create an Agent conversation.",
               ),
             );
           } else {
-            // Genuine session init failure: rollback to chat mode
-            try {
-              await updateConversation(activeConversation.id, { mode: "chat" });
-            } catch (rollbackErr) {
-              console.error("[ModeSwitch] Failed to rollback mode:", rollbackErr);
+            pendingModeRef.current = null;
+          }
+          return;
+        }
+
+        // Prevent switching while the current conversation is streaming
+        const { activeStreams } = useStreamStore.getState();
+        if (activeConversation.id in activeStreams) {
+          if (import.meta.env.DEV) {
+            console.log(
+              "[ModeSwitch] Conversation is streaming, cannot switch mode",
+            );
+          }
+          return;
+        }
+
+        if (import.meta.env.DEV) {
+          console.log("[ModeSwitch] Starting switch to:", mode);
+        }
+        if (import.meta.env.DEV) {
+          console.log("[ModeSwitch] Conversation ID:", activeConversation.id);
+        }
+
+        try {
+          await updateConversation(activeConversation.id, { mode });
+          if (import.meta.env.DEV) {
+            console.log("[ModeSwitch] updateConversation succeeded");
+          }
+        } catch (e) {
+          const errorMsg = String(e);
+          if (errorMsg.includes("Not found: Conversation")) {
+            console.warn(
+              "[ModeSwitch] Conversation no longer exists, refreshing conversation list",
+            );
+            messageApi.warning(t("chat.conversationNotFound"));
+            await useConversationStore
+              .getState()
+              .fetchConversations()
+              .catch((e: unknown) => {
+                console.warn("[IPC]", e);
+              });
+            const { conversations } = useConversationStore.getState();
+            if (conversations.length > 0) {
+              useConversationStore
+                .getState()
+                .setActiveConversation(conversations[0].id);
+            } else {
+              useConversationStore.getState().setActiveConversation(null);
             }
-            messageApi.error(t("chat.agentInitFailed"));
+          } else {
+            console.error("[ModeSwitch] updateConversation failed:", e);
+          }
+          return;
+        }
+
+        if (mode === "agent") {
+          if (import.meta.env.DEV) {
+            console.log("[ModeSwitch] Initializing agent session...");
+          }
+          // Clear multi-model companion models — not applicable in agent mode
+          if (companionModels.length > 0) {
+            setCompanionModels([]);
+            if (companionStorageKey) {
+              localStorage.removeItem(companionStorageKey);
+            }
+          }
+          try {
+            // agent_update_session is a lightweight DB query, give it 10s timeout
+            const session = await invoke<{ cwd: string | null }>(
+              "agent_update_session",
+              {
+                request: { conversationId: activeConversation.id },
+              },
+              10_000,
+            );
+            if (import.meta.env.DEV) {
+              console.log(
+                "[ModeSwitch] agent_update_session returned:",
+                session,
+              );
+            }
+            if (!session.cwd) {
+              if (import.meta.env.DEV) {
+                console.log("[ModeSwitch] No cwd, creating workspace...");
+              }
+              // agent_ensure_workspace is a filesystem operation, give it 15s timeout
+              // (default 5-min timeout is excessive and masks backend connection issues)
+              const workspaceResult = await invoke<{ workspacePath: string }>(
+                "agent_ensure_workspace",
+                {
+                  request: { conversationId: activeConversation.id },
+                },
+                15_000,
+              );
+              const workspacePath = workspaceResult.workspacePath;
+              if (import.meta.env.DEV) {
+                console.log("[ModeSwitch] workspace created:", workspacePath);
+              }
+              await invoke(
+                "agent_update_session",
+                {
+                  request: {
+                    conversationId: activeConversation.id,
+                    cwd: workspacePath,
+                  },
+                },
+                10_000,
+              );
+              setAgentCwd(workspacePath);
+            } else {
+              if (import.meta.env.DEV) {
+                console.log("[ModeSwitch] Using existing cwd:", session.cwd);
+              }
+              setAgentCwd(session.cwd);
+            }
+          } catch (e) {
+            const errMsg = String(e);
+            const isTransient = errMsg.includes("connection")
+              || errMsg.includes("refused")
+              || errMsg.includes("timeout")
+              || errMsg.includes("fetch")
+              || errMsg.includes("IPC")
+              || errMsg.includes("backend");
+            console.warn("[ModeSwitch] Failed to init agent session:", e);
+
+            if (isTransient) {
+              // Transient IPC error: backend may be temporarily unavailable.
+              // Do NOT rollback to chat mode — the conversation mode stays as "agent"
+              // so the user doesn't need to manually re-switch when backend recovers.
+              messageApi.warning(
+                t(
+                  "chat.agentInitTransient",
+                  "Agent session initialization failed due to a temporary connection issue. You can try sending again in a moment.",
+                ),
+              );
+            } else {
+              // Genuine session init failure: rollback to chat mode
+              try {
+                await updateConversation(activeConversation.id, {
+                  mode: "chat",
+                });
+              } catch (rollbackErr) {
+                console.error(
+                  "[ModeSwitch] Failed to rollback mode:",
+                  rollbackErr,
+                );
+              }
+              messageApi.error(t("chat.agentInitFailed"));
+            }
+          }
+        } else {
+          // Switching to chat mode: clear agent-related stores to prevent stale UI state
+          const { clearConversation } = useAgentStore.getState();
+          clearConversation(activeConversation.id);
+          useExecutionStore.getState().clearConversation(activeConversation.id);
+          usePlanStore.getState().clearActivePlan(activeConversation.id);
+          if (
+            activeConversation.session_type === "workflow"
+            || activeConversation.workflow_template_id
+          ) {
+            await updateConversation(activeConversation.id, {
+              session_type: "conversation",
+              workflow_template_id: null,
+            });
           }
         }
-      } else {
-        // Switching to chat mode: clear agent-related stores to prevent stale UI state
-        const { clearConversation } = useAgentStore.getState();
-        clearConversation(activeConversation.id);
-        useExecutionStore.getState().clearConversation(activeConversation.id);
-        usePlanStore.getState().clearActivePlan(activeConversation.id);
-        if (activeConversation.session_type === "workflow" || activeConversation.workflow_template_id) {
-          await updateConversation(activeConversation.id, {
-            session_type: "conversation",
-            workflow_template_id: null,
-          });
-        }
+      } finally {
+        isSwitchingModeRef.current = false;
       }
-    } finally {
-      isSwitchingModeRef.current = false;
-    }
-  }, [activeConversation, updateConversation, companionModels, companionStorageKey]);
+    },
+    [
+      activeConversation,
+      updateConversation,
+      companionModels,
+      companionStorageKey,
+    ],
+  );
 
   const handleModeMenuClick = useCallback<NonNullable<MenuProps["onClick"]>>(
     ({ key }) => {
@@ -1365,14 +1715,18 @@ export function InputArea() {
 
   const handleSend = useCallback(async () => {
     const trimmed = value.trim();
-    if (!trimmed || streaming) { return; }
+    if (!trimmed || streaming) {
+      return;
+    }
 
     const submittedFiles = attachedFiles;
 
     try {
       if (!activeConversationId) {
         if (currentMode === "gateway" && selectedGatewayId) {
-          const conversationId = await useGatewayLinkStore.getState().createGatewayConversation(selectedGatewayId);
+          const conversationId = await useGatewayLinkStore
+            .getState()
+            .createGatewayConversation(selectedGatewayId);
           useConversationStore.getState().setActiveConversation(conversationId);
         } else {
           if (providersLoading || (providers ?? []).length === 0) {
@@ -1380,29 +1734,40 @@ export function InputArea() {
             return;
           }
           let provider = settings.default_provider_id
-            ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
+            ? providers.find(
+              (p) => p.id === settings.default_provider_id && p.enabled,
+            )
             : undefined;
           let model = provider?.models.find(
             (m) => m.model_id === settings.default_model_id && m.enabled,
           );
           if (!provider || !model) {
-            provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
+            provider = providers.find(
+              (p) => p.enabled && p.models.some((m) => m.enabled),
+            );
             model = provider?.models.find((m) => m.enabled);
           }
           if (!provider || !model) {
             messageApi.warning(t("chat.noModelsAvailable"));
             return;
           }
-          await createConversation(trimmed.slice(0, 30), model.model_id, provider.id, {
-            mode: pendingModeRef.current ?? undefined,
-          });
+          await createConversation(
+            trimmed.slice(0, 30),
+            model.model_id,
+            provider.id,
+            {
+              mode: pendingModeRef.current ?? undefined,
+            },
+          );
           pendingModeRef.current = null;
         }
       }
 
       let attachments: AttachmentInput[] | undefined;
       if (submittedFiles.length > 0) {
-        attachments = await Promise.all(submittedFiles.map(fileToAttachmentInput));
+        attachments = await Promise.all(
+          submittedFiles.map(fileToAttachmentInput),
+        );
       }
 
       setValue("");
@@ -1417,17 +1782,34 @@ export function InputArea() {
         }
       });
       if (currentMode === "agent" && workStrategy === "plan") {
-        await sendPlanMessage(trimmed, attachments, searchEnabled ? searchProviderId : null);
+        await sendPlanMessage(
+          trimmed,
+          attachments,
+          searchEnabled ? searchProviderId : null,
+        );
       } else if (currentMode === "agent") {
-        await sendAgentMessage(trimmed, attachments, searchEnabled ? searchProviderId : null);
+        await sendAgentMessage(
+          trimmed,
+          attachments,
+          searchEnabled ? searchProviderId : null,
+        );
       } else if (companionModels.length > 0) {
-        await sendMultiModelMessage(trimmed, companionModels, attachments, searchEnabled ? searchProviderId : null);
+        await sendMultiModelMessage(
+          trimmed,
+          companionModels,
+          attachments,
+          searchEnabled ? searchProviderId : null,
+        );
       } else {
-        await sendMessage(trimmed, attachments, searchEnabled ? searchProviderId : null);
+        await sendMessage(
+          trimmed,
+          attachments,
+          searchEnabled ? searchProviderId : null,
+        );
       }
     } catch (e) {
       setValue((current) => current || trimmed);
-      setAttachedFiles((current) => (current.length > 0 ? current : submittedFiles));
+      setAttachedFiles((current) => current.length > 0 ? current : submittedFiles);
       console.error("[handleSend] error:", e);
       messageApi.error(String(e));
       // Re-expand textarea after restoring content
@@ -1466,17 +1848,23 @@ export function InputArea() {
   ]);
 
   const handleFillLastMessage = useCallback(() => {
-    if (streaming) { return; }
+    if (streaming) {
+      return;
+    }
     const msgs = useConversationStore.getState().messages;
     const lastUserMessage = [...msgs]
       .reverse()
       .find((message) => message.role === "user" && message.status !== "error");
-    if (!lastUserMessage?.content) { return; }
+    if (!lastUserMessage?.content) {
+      return;
+    }
     setValue(lastUserMessage.content);
     hasUserResizedRef.current = false;
     requestAnimationFrame(() => {
       const textarea = textareaRef.current;
-      if (!textarea) { return; }
+      if (!textarea) {
+        return;
+      }
       textarea.focus();
       textarea.style.height = "auto";
       const desired = Math.max(textarea.scrollHeight, userMinHeightRef.current);
@@ -1504,74 +1892,98 @@ export function InputArea() {
     videoInputRef.current?.click();
   }, []);
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }, []);
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files) {
+        setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [],
+  );
 
-  const handlePhotoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
-    }
-    if (photoInputRef.current) {
-      photoInputRef.current.value = "";
-    }
-  }, []);
+  const handlePhotoChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files) {
+        setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
+      }
+      if (photoInputRef.current) {
+        photoInputRef.current.value = "";
+      }
+    },
+    [],
+  );
 
-  const handleAudioChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
-    }
-    if (audioInputRef.current) {
-      audioInputRef.current.value = "";
-    }
-  }, []);
+  const handleAudioChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files) {
+        setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
+      }
+      if (audioInputRef.current) {
+        audioInputRef.current.value = "";
+      }
+    },
+    [],
+  );
 
-  const handleVideoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
-    }
-    if (videoInputRef.current) {
-      videoInputRef.current.value = "";
-    }
-  }, []);
+  const handleVideoChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files) {
+        setAttachedFiles((prev) => [...prev, ...Array.from(files)]);
+      }
+      if (videoInputRef.current) {
+        videoInputRef.current.value = "";
+      }
+    },
+    [],
+  );
 
   const removeFile = useCallback((index: number) => {
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    if (!hasVision) { return; }
-    const items = e.clipboardData?.items;
-    if (!items) { return; }
-    const files: File[] = [];
-    for (const item of items) {
-      if (item.kind === "file") {
-        const file = item.getAsFile();
-        if (file) { files.push(file); }
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      if (!hasVision) {
+        return;
       }
-    }
-    if (files.length > 0) {
-      e.preventDefault();
-      setAttachedFiles((prev) => [...prev, ...files]);
-    }
-  }, [hasVision]);
+      const items = e.clipboardData?.items;
+      if (!items) {
+        return;
+      }
+      const files: File[] = [];
+      for (const item of items) {
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+          if (file) {
+            files.push(file);
+          }
+        }
+      }
+      if (files.length > 0) {
+        e.preventDefault();
+        setAttachedFiles((prev) => [...prev, ...files]);
+      }
+    },
+    [hasVision],
+  );
 
   // Drag-and-drop overlay (Tauri native)
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    if (!hasVision) { return; }
-    if (!isTauri()) { return; // Skip drag-drop in browser mode
-     }
+    if (!hasVision) {
+      return;
+    }
+    if (!isTauri()) {
+      return; // Skip drag-drop in browser mode
+    }
 
     let unlisten: (() => void) | undefined;
 
@@ -1608,19 +2020,25 @@ export function InputArea() {
               ts: "text/typescript",
               zip: "application/zip",
             };
-            const fileResults = await Promise.all(paths.map(async (filePath) => {
-              try {
-                const fileName = filePath.split(/[\\/]/).pop() || "file";
-                const ext = fileName.split(".").pop()?.toLowerCase() || "";
-                const mimeType = mimeMap[ext] || "application/octet-stream";
-                const bytes = await readFile(filePath);
-                const blob = new Blob([bytes], { type: mimeType });
-                return new globalThis.File([blob], fileName);
-              } catch (err) {
-                console.error("[drag-drop] Failed to read file:", filePath, err);
-                return null;
-              }
-            }));
+            const fileResults = await Promise.all(
+              paths.map(async (filePath) => {
+                try {
+                  const fileName = filePath.split(/[\\/]/).pop() || "file";
+                  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+                  const mimeType = mimeMap[ext] || "application/octet-stream";
+                  const bytes = await readFile(filePath);
+                  const blob = new Blob([bytes], { type: mimeType });
+                  return new globalThis.File([blob], fileName);
+                } catch (err) {
+                  console.error(
+                    "[drag-drop] Failed to read file:",
+                    filePath,
+                    err,
+                  );
+                  return null;
+                }
+              }),
+            );
             const files = fileResults.filter((f): f is File => f !== null);
             if (files.length > 0) {
               setAttachedFiles((prev) => [...prev, ...files]);
@@ -1639,7 +2057,11 @@ export function InputArea() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.nativeEvent.isComposing || e.key === "Process" || e.keyCode === 229) {
+      if (
+        e.nativeEvent.isComposing
+        || e.key === "Process"
+        || e.keyCode === 229
+      ) {
         return;
       }
       if (e.key === "Enter" && !e.shiftKey) {
@@ -1660,21 +2082,31 @@ export function InputArea() {
     el.style.height = Math.min(desired, ABSOLUTE_MAX_HEIGHT) + "px";
   }, []);
 
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setValue(e.target.value);
-    autoResizeTextarea(e.target);
-  }, [autoResizeTextarea]);
+  const handleInput = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setValue(e.target.value);
+      autoResizeTextarea(e.target);
+    },
+    [autoResizeTextarea],
+  );
 
   // Drag-to-resize: changes userMinHeight so the textarea grows even with short content
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const textarea = textareaRef.current;
-    const startHeight = textarea ? textarea.offsetHeight : userMinHeightRef.current;
+    const startHeight = textarea
+      ? textarea.offsetHeight
+      : userMinHeightRef.current;
     dragStateRef.current = { startY: e.clientY, startH: startHeight };
     const onMouseMove = (ev: MouseEvent) => {
-      if (!dragStateRef.current) { return; }
+      if (!dragStateRef.current) {
+        return;
+      }
       const delta = dragStateRef.current.startY - ev.clientY;
-      const newH = Math.max(INITIAL_MIN_HEIGHT, Math.min(ABSOLUTE_MAX_HEIGHT, dragStateRef.current.startH + delta));
+      const newH = Math.max(
+        INITIAL_MIN_HEIGHT,
+        Math.min(ABSOLUTE_MAX_HEIGHT, dragStateRef.current.startH + delta),
+      );
       hasUserResizedRef.current = true;
       setUserMinHeight(newH);
       userMinHeightRef.current = newH;
@@ -1710,7 +2142,9 @@ export function InputArea() {
       }
     };
     const onClearConversation = () => {
-      if (!activeConversationId || streaming || messagesLength === 0) { return; }
+      if (!activeConversationId || streaming || messagesLength === 0) {
+        return;
+      }
       modal.confirm({
         title: t("chat.clearConversationConfirmTitle"),
         content: t("chat.clearConversationConfirmContent"),
@@ -1725,11 +2159,17 @@ export function InputArea() {
 
     window.addEventListener("axagent:fill-last-message", onFillLast);
     window.addEventListener("axagent:clear-context", onClearContext);
-    window.addEventListener("axagent:clear-conversation-messages", onClearConversation);
+    window.addEventListener(
+      "axagent:clear-conversation-messages",
+      onClearConversation,
+    );
     return () => {
       window.removeEventListener("axagent:fill-last-message", onFillLast);
       window.removeEventListener("axagent:clear-context", onClearContext);
-      window.removeEventListener("axagent:clear-conversation-messages", onClearConversation);
+      window.removeEventListener(
+        "axagent:clear-conversation-messages",
+        onClearConversation,
+      );
     };
   }, [
     activeConversationId,
@@ -1746,11 +2186,15 @@ export function InputArea() {
   React.useEffect(() => {
     const onFillInput = (e: Event) => {
       const text = (e as CustomEvent).detail;
-      if (typeof text !== "string" || !text) { return; }
+      if (typeof text !== "string" || !text) {
+        return;
+      }
       setValue((prev) => (prev ? prev + "\n" + text : text));
       requestAnimationFrame(() => {
         const textarea = textareaRef.current;
-        if (!textarea) { return; }
+        if (!textarea) {
+          return;
+        }
         textarea.focus();
         textarea.style.height = "auto";
         const desired = hasUserResizedRef.current
@@ -1816,7 +2260,9 @@ export function InputArea() {
           {attachedFiles.map((file, idx) => {
             const fileCategory = getFileTypeCategory(file.type);
             const isImage = fileCategory === "image";
-            const isPreviewable = isImage && file.type !== "image/gif" && file.type !== "image/svg+xml";
+            const isPreviewable = isImage
+              && file.type !== "image/gif"
+              && file.type !== "image/svg+xml";
 
             return (
               <div
@@ -1888,7 +2334,10 @@ export function InputArea() {
                   >
                     {file.name}
                   </span>
-                  <span className="text-xs" style={{ color: token.colorTextSecondary, flexShrink: 0 }}>
+                  <span
+                    className="text-xs"
+                    style={{ color: token.colorTextSecondary, flexShrink: 0 }}
+                  >
                     {formatFileSize(file.size)}
                   </span>
                   <Trash2
@@ -1923,7 +2372,9 @@ export function InputArea() {
           aria-label="resize handle"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); }
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+            }
           }}
           style={{
             height: 10,
@@ -1934,7 +2385,10 @@ export function InputArea() {
             flexShrink: 0,
           }}
         >
-          <GripHorizontal size={14} style={{ color: token.colorTextQuaternary, opacity: 0.5 }} />
+          <GripHorizontal
+            size={14}
+            style={{ color: token.colorTextQuaternary, opacity: 0.5 }}
+          />
         </div>
         {/* Companion model tags */}
         {currentMode !== "agent" && companionModels.length > 0 && (
@@ -1956,11 +2410,20 @@ export function InputArea() {
                 }}
               >
                 <ModelIcon model={cm.model_id} size={14} type="avatar" />
-                <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span
+                  style={{
+                    maxWidth: 120,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {cm.modelName}
                 </span>
                 {cm.providerName && (
-                  <span style={{ color: token.colorTextQuaternary, fontSize: 12 }}>
+                  <span
+                    style={{ color: token.colorTextQuaternary, fontSize: 12 }}
+                  >
                     {cm.providerName}
                   </span>
                 )}
@@ -2052,9 +2515,14 @@ export function InputArea() {
             onKeyUp={() => {
               if (textareaRef.current) {
                 setCursorPosition(textareaRef.current.selectionStart);
-                const textBefore = value.slice(0, textareaRef.current.selectionStart);
+                const textBefore = value.slice(
+                  0,
+                  textareaRef.current.selectionStart,
+                );
                 setShowSuggest(
-                  textBefore.endsWith("/") || textBefore.endsWith("@") || /\/\w*$/.test(textBefore)
+                  textBefore.endsWith("/")
+                    || textBefore.endsWith("@")
+                    || /\/\w*$/.test(textBefore)
                     || /@\w*$/.test(textBefore),
                 );
               }
@@ -2090,16 +2558,18 @@ export function InputArea() {
                 <Dropdown
                   trigger={["click"]}
                   placement="topLeft"
-                  menu={{ items: searchMenuItems, onClick: handleSearchMenuClick }}
+                  menu={{
+                    items: searchMenuItems,
+                    onClick: handleSearchMenuClick,
+                  }}
                   open={searchDropdownOpen}
                   onOpenChange={setSearchDropdownOpen}
                 >
-                  <Tooltip title={t("chat.search.title")} open={searchDropdownOpen ? false : undefined}>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<Globe size={14} />}
-                    />
+                  <Tooltip
+                    title={t("chat.search.title")}
+                    open={searchDropdownOpen ? false : undefined}
+                  >
+                    <Button type="text" size="small" icon={<Globe size={14} />} />
                   </Tooltip>
                 </Dropdown>
               )}
@@ -2112,15 +2582,8 @@ export function InputArea() {
                   onClick: handleScenarioClick,
                 }}
               >
-                <Tooltip
-                  title={t("chat.selectExpert")}
-                  open={undefined}
-                >
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Bot size={14} />}
-                  />
+                <Tooltip title={t("chat.selectExpert")} open={undefined}>
+                  <Button type="text" size="small" icon={<Bot size={14} />} />
                 </Tooltip>
               </Dropdown>
             )}
@@ -2204,7 +2667,10 @@ export function InputArea() {
               open={mcpPopoverOpen}
               onOpenChange={setMcpPopoverOpen}
             >
-              <Tooltip title={t("chat.mcp.title")} open={mcpPopoverOpen ? false : undefined}>
+              <Tooltip
+                title={t("chat.mcp.title")}
+                open={mcpPopoverOpen ? false : undefined}
+              >
                 <Badge
                   count={enabledMcpServerIds.filter((id) => mcpServers.some((s) => s.id === id && s.enabled)).length}
                   size="small"
@@ -2230,9 +2696,14 @@ export function InputArea() {
               open={sourcePopoverOpen}
               onOpenChange={setSourcePopoverOpen}
             >
-              <Tooltip title={t("chat.sources.title")} open={sourcePopoverOpen ? false : undefined}>
+              <Tooltip
+                title={t("chat.sources.title")}
+                open={sourcePopoverOpen ? false : undefined}
+              >
                 <Badge
-                  count={enabledKnowledgeBaseIds.length + (activeMemoryNamespaceId ? 1 : 0) + enabledWikiIds.length}
+                  count={enabledKnowledgeBaseIds.length
+                    + (activeMemoryNamespaceId ? 1 : 0)
+                    + enabledWikiIds.length}
                   size="small"
                   offset={[-4, 4]}
                   color={token.colorPrimary}
@@ -2241,7 +2712,9 @@ export function InputArea() {
                     type="text"
                     size="small"
                     icon={<Database size={14} />}
-                    style={(enabledKnowledgeBaseIds.length + (activeMemoryNamespaceId ? 1 : 0) + enabledWikiIds.length)
+                    style={enabledKnowledgeBaseIds.length
+                          + (activeMemoryNamespaceId ? 1 : 0)
+                          + enabledWikiIds.length
                         > 0
                       ? { color: token.colorPrimary }
                       : undefined}
@@ -2257,12 +2730,17 @@ export function InputArea() {
               open={templatePopoverOpen}
               onOpenChange={setTemplatePopoverOpen}
             >
-              <Tooltip title={t("promptTemplates.title")} open={templatePopoverOpen ? false : undefined}>
+              <Tooltip
+                title={t("promptTemplates.title")}
+                open={templatePopoverOpen ? false : undefined}
+              >
                 <Button
                   type="text"
                   size="small"
                   icon={<FileText size={14} />}
-                  style={{ color: templatePopoverOpen ? token.colorPrimary : undefined }}
+                  style={{
+                    color: templatePopoverOpen ? token.colorPrimary : undefined,
+                  }}
                 />
               </Tooltip>
             </Popover>
@@ -2273,7 +2751,9 @@ export function InputArea() {
                   size="small"
                   icon={<GitCompareArrows size={14} />}
                   onClick={() => setMultiModelOpen(true)}
-                  style={companionModels.length > 0 ? { color: token.colorPrimary } : undefined}
+                  style={companionModels.length > 0
+                    ? { color: token.colorPrimary }
+                    : undefined}
                 />
               </Tooltip>
             )}
@@ -2282,14 +2762,14 @@ export function InputArea() {
                 items: [
                   {
                     key: "auto",
-                    icon: activeConversation?.context_compression
-                      ? <ZapOff size={14} />
-                      : <Zap size={14} />,
+                    icon: activeConversation?.context_compression ? <ZapOff size={14} /> : <Zap size={14} />,
                     label: activeConversation?.context_compression
                       ? t("chat.disableAutoCompression")
                       : t("chat.enableAutoCompression"),
                     onClick: () => {
-                      if (!activeConversationId || !activeConversation) { return; }
+                      if (!activeConversationId || !activeConversation) {
+                        return;
+                      }
                       updateConversation(activeConversationId, {
                         context_compression: !activeConversation.context_compression,
                       });
@@ -2299,9 +2779,14 @@ export function InputArea() {
                     key: "manual",
                     icon: <Shrink size={14} />,
                     label: t("chat.manualCompress"),
-                    disabled: !activeConversationId || streaming || compressing || messagesLength === 0,
+                    disabled: !activeConversationId
+                      || streaming
+                      || compressing
+                      || messagesLength === 0,
                     onClick: async () => {
-                      if (!activeConversationId) { return; }
+                      if (!activeConversationId) {
+                        return;
+                      }
                       try {
                         await compressContext();
                         messageApi.success(t("chat.compressSuccess"));
@@ -2322,27 +2807,41 @@ export function InputArea() {
                   icon={<Zap size={14} />}
                   loading={compressing}
                   disabled={!activeConversationId}
-                  style={activeConversation?.context_compression ? { color: token.colorPrimary } : undefined}
+                  style={activeConversation?.context_compression
+                    ? { color: token.colorPrimary }
+                    : undefined}
                 />
               </Tooltip>
             </Dropdown>
-            <Tooltip title={shortcutHint(t("chat.clearContext"), "clearContext")}>
+            <Tooltip
+              title={shortcutHint(t("chat.clearContext"), "clearContext")}
+            >
               <Button
                 type="text"
                 size="small"
                 icon={<Scissors size={14} />}
                 onClick={insertContextClear}
-                disabled={!activeConversationId || streaming || messagesLength === 0
-                  || useConversationStore.getState().messages[messagesLength - 1]?.content === "<!-- context-clear -->"}
+                disabled={!activeConversationId
+                  || streaming
+                  || messagesLength === 0
+                  || useConversationStore.getState().messages[messagesLength - 1]
+                      ?.content === "<!-- context-clear -->"}
               />
             </Tooltip>
-            <Tooltip title={shortcutHint(t("chat.clearConversation"), "clearConversationMessages")}>
+            <Tooltip
+              title={shortcutHint(
+                t("chat.clearConversation"),
+                "clearConversationMessages",
+              )}
+            >
               <Button
                 type="text"
                 size="small"
                 icon={<Eraser size={14} />}
                 onClick={() => {
-                  if (!activeConversationId) { return; }
+                  if (!activeConversationId) {
+                    return;
+                  }
                   modal.confirm({
                     title: t("chat.clearConversationConfirmTitle"),
                     content: t("chat.clearConversationConfirmContent"),
@@ -2378,7 +2877,8 @@ export function InputArea() {
             >
               <Tooltip
                 title={currentMode === "gateway" && selectedGatewayId
-                  ? gatewayLinks.find((l) => l.id === selectedGatewayId)?.name || t("common.chatMode")
+                  ? gatewayLinks.find((l) => l.id === selectedGatewayId)
+                    ?.name || t("common.chatMode")
                   : currentMode === "agent"
                   ? t("common.agentMode")
                   : t("common.chatMode")}
@@ -2414,7 +2914,12 @@ export function InputArea() {
                           {t("plan.strategyPlan")}{" "}
                           <Tag
                             color="purple"
-                            style={{ fontSize: 10, lineHeight: "16px", padding: "0 3px", marginLeft: 2 }}
+                            style={{
+                              fontSize: 10,
+                              lineHeight: "16px",
+                              padding: "0 3px",
+                              marginLeft: 2,
+                            }}
                           >
                             New
                           </Tag>
@@ -2452,7 +2957,9 @@ export function InputArea() {
             )}
             {currentMode === "agent" && (
               <Tooltip
-                title={messagesLength > 0 ? t("chat.workspaceLocked") : (agentCwd || t("common.workingDirectory"))}
+                title={messagesLength > 0
+                  ? t("chat.workspaceLocked")
+                  : agentCwd || t("common.workingDirectory")}
               >
                 <Button
                   type="text"
@@ -2460,15 +2967,31 @@ export function InputArea() {
                   icon={<FolderOpen size={14} />}
                   onClick={handleSelectCwd}
                   disabled={messagesLength > 0}
-                  style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: 200 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    maxWidth: 200,
+                  }}
                 >
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
-                    {agentCwd ? abbreviatePath(agentCwd) : t("common.selectDirectory")}
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontSize: 12,
+                    }}
+                  >
+                    {agentCwd
+                      ? abbreviatePath(agentCwd)
+                      : t("common.selectDirectory")}
                   </span>
                 </Button>
               </Tooltip>
             )}
-            {currentMode === "agent" && activeConversationId && activeConversation?.session_type !== "workflow" && (
+            {currentMode === "agent"
+              && activeConversationId
+              && activeConversation?.session_type !== "workflow" && (
               <Tooltip title={t("chat.modelRouting")}>
                 <Button
                   type="text"
@@ -2479,7 +3002,9 @@ export function InputArea() {
               </Tooltip>
             )}
             {hasRealtimeVoice && (
-              <Tooltip title={t("voice.startCall") + " - " + t("common.comingSoon")}>
+              <Tooltip
+                title={t("voice.startCall") + " - " + t("common.comingSoon")}
+              >
                 <Button
                   type="text"
                   size="small"
@@ -2519,9 +3044,12 @@ export function InputArea() {
                       && activeConversation?.workflow_status === "completed"
                     ? t("chat.workflow.sessionCompletedHint")
                     : undefined}
-                  style={value.trim() && !streaming
-                      && !(activeConversation?.session_type === "workflow"
-                        && activeConversation?.workflow_status === "completed")
+                  style={value.trim()
+                      && !streaming
+                      && !(
+                        activeConversation?.session_type === "workflow"
+                        && activeConversation?.workflow_status === "completed"
+                      )
                     ? { boxShadow: "0 0 12px rgba(0,240,255,0.3)" }
                     : undefined}
                 />
@@ -2572,7 +3100,9 @@ export function InputArea() {
                   alignItems: "center",
                   gap: 4,
                   fontSize: 12,
-                  ...(agentPermissionMode === "full_access" ? { color: "#ff4d4f" } : {}),
+                  ...(agentPermissionMode === "full_access"
+                    ? { color: "#ff4d4f" }
+                    : {}),
                 }}
               >
                 {permissionModeLabel}
@@ -2584,54 +3114,65 @@ export function InputArea() {
               {contextCount} {t("chat.contextMessages")}
             </span>
           )}
-          {contextTokenUsage && (() => {
-            const r = 8, stroke = 2.5, size = (r + stroke) * 2;
-            const circ = 2 * Math.PI * r;
-            const offset = circ * (1 - contextTokenUsage.percent / 100);
-            const color = contextTokenUsage.percent > 80
-              ? token.colorError
-              : contextTokenUsage.percent > 60
-              ? token.colorWarning
-              : token.colorPrimary;
-            return (
-              <Popover
-                content={
-                  <span style={{ fontSize: 12 }}>
-                    {contextTokenUsage.usedTokens.toLocaleString()} / {contextTokenUsage.maxTokens.toLocaleString()}
-                    {" "}
-                    tokens ({contextTokenUsage.percent}%)
-                  </span>
-                }
-              >
-                <svg width={size} height={size} style={{ display: "block", cursor: "pointer" }}>
-                  <circle
-                    cx={r + stroke}
-                    cy={r + stroke}
-                    r={r}
-                    fill="none"
-                    stroke={token.colorBorderSecondary}
-                    strokeWidth={stroke}
-                  />
-                  <circle
-                    cx={r + stroke}
-                    cy={r + stroke}
-                    r={r}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={stroke}
-                    strokeDasharray={circ}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                    transform={`rotate(-90 ${r + stroke} ${r + stroke})`}
-                  />
-                </svg>
-              </Popover>
-            );
-          })()}
+          {contextTokenUsage
+            && (() => {
+              const r = 8,
+                stroke = 2.5,
+                size = (r + stroke) * 2;
+              const circ = 2 * Math.PI * r;
+              const offset = circ * (1 - contextTokenUsage.percent / 100);
+              const color = contextTokenUsage.percent > 80
+                ? token.colorError
+                : contextTokenUsage.percent > 60
+                ? token.colorWarning
+                : token.colorPrimary;
+              return (
+                <Popover
+                  content={
+                    <span style={{ fontSize: 12 }}>
+                      {contextTokenUsage.usedTokens.toLocaleString()} / {contextTokenUsage.maxTokens.toLocaleString()}
+                      {" "}
+                      tokens (
+                      {contextTokenUsage.percent}%)
+                    </span>
+                  }
+                >
+                  <svg
+                    width={size}
+                    height={size}
+                    style={{ display: "block", cursor: "pointer" }}
+                  >
+                    <circle
+                      cx={r + stroke}
+                      cy={r + stroke}
+                      r={r}
+                      fill="none"
+                      stroke={token.colorBorderSecondary}
+                      strokeWidth={stroke}
+                    />
+                    <circle
+                      cx={r + stroke}
+                      cy={r + stroke}
+                      r={r}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={stroke}
+                      strokeDasharray={circ}
+                      strokeDashoffset={offset}
+                      strokeLinecap="round"
+                      transform={`rotate(-90 ${r + stroke} ${r + stroke})`}
+                    />
+                  </svg>
+                </Popover>
+              );
+            })()}
         </div>
       </div>
 
-      <ConversationSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ConversationSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
 
       {activeConversationId && (
         <ModelRoutingConfigPanel
@@ -2676,7 +3217,9 @@ export function InputArea() {
             }}
           >
             <Upload size={48} style={{ color: token.colorPrimary }} />
-            <span style={{ fontSize: 16, fontWeight: 500, color: token.colorText }}>
+            <span
+              style={{ fontSize: 16, fontWeight: 500, color: token.colorText }}
+            >
               {t("chat.dropToAttach")}
             </span>
           </div>

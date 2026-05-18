@@ -16,7 +16,9 @@ export function AboutPage() {
   const [checking, setChecking] = useState(false);
   const [appVersion, setAppVersion] = useState("...");
   const { checkForUpdate } = useUpdateChecker();
-  const updateCheckInterval = useSettingsStore((s) => s.settings.update_check_interval ?? 60);
+  const updateCheckInterval = useSettingsStore(
+    (s) => s.settings.update_check_interval ?? 60,
+  );
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const navigate = useNavigate();
   const startTutorial = useOnboardingStore((s) => s.startTutorial);
@@ -24,7 +26,7 @@ export function AboutPage() {
   useEffect(() => {
     if (isTauri()) {
       import("@tauri-apps/api/app").then(({ getVersion }) => {
-        getVersion().then(v => setAppVersion(v));
+        getVersion().then((v) => setAppVersion(v));
       });
     }
   }, []);
@@ -44,7 +46,9 @@ export function AboutPage() {
     if (isTauri()) {
       try {
         await invoke("open_devtools");
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }, []);
 

@@ -13,7 +13,10 @@ interface SkillErrorBoundaryState {
   error: Error | null;
 }
 
-export class SkillErrorBoundary extends Component<SkillErrorBoundaryProps, SkillErrorBoundaryState> {
+export class SkillErrorBoundary extends Component<
+  SkillErrorBoundaryProps,
+  SkillErrorBoundaryState
+> {
   state: SkillErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): SkillErrorBoundaryState {
@@ -43,7 +46,11 @@ export class SkillErrorBoundary extends Component<SkillErrorBoundaryProps, Skill
 }
 
 /** Class 组件内不能直接 useTranslation，拆出函数组件 */
-function SkillErrorBoundaryInner({ skillName, error, onRetry }: {
+function SkillErrorBoundaryInner({
+  skillName,
+  error,
+  onRetry,
+}: {
   skillName: string;
   error: Error | null;
   onRetry: () => void;
@@ -64,7 +71,11 @@ function SkillErrorBoundaryInner({ skillName, error, onRetry }: {
 }
 
 /** 通用错误展示（非 boundary 场景） */
-export function SkillErrorFallback({ skillName, error, onRetry }: {
+export function SkillErrorFallback({
+  skillName,
+  error,
+  onRetry,
+}: {
   skillName: string;
   error: string;
   onRetry?: () => void;
@@ -90,7 +101,13 @@ export function SkillErrorFallback({ skillName, error, onRetry }: {
 export function SkillLoadingSkeleton() {
   const { t } = useTranslation();
   return (
-    <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-secondary)" }}>
+    <div
+      style={{
+        padding: 24,
+        textAlign: "center",
+        color: "var(--color-text-secondary)",
+      }}
+    >
       <div
         style={{
           width: 32,

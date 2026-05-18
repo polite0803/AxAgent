@@ -31,10 +31,15 @@ interface ChangeResult {
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) { return "0 B"; }
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(k)),
+    sizes.length - 1,
+  );
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
@@ -94,12 +99,17 @@ export function StorageSpaceManager() {
   const handleChangeDir = async () => {
     try {
       const selected = await open({ directory: true, multiple: false });
-      if (!selected) { return; }
+      if (!selected) {
+        return;
+      }
 
       const newPath = selected as string;
 
       // Validate the directory
-      const validation = await invoke<ValidateResult>("validate_documents_root", { path: newPath });
+      const validation = await invoke<ValidateResult>(
+        "validate_documents_root",
+        { path: newPath },
+      );
 
       if (!validation.writable) {
         message.error(t("settings.storage.dirNotWritable"));
@@ -118,7 +128,9 @@ export function StorageSpaceManager() {
             onCancel: () => resolve(false),
           });
         });
-        if (!proceed) { return; }
+        if (!proceed) {
+          return;
+        }
       } else {
         // Target is empty — ask about migration
         migrate = await new Promise<boolean>((resolve) => {
@@ -141,7 +153,9 @@ export function StorageSpaceManager() {
 
         if (migrate && result.files_moved > 0) {
           message.success(
-            t("settings.storage.changeDirSuccessMigrate", { count: result.files_moved }),
+            t("settings.storage.changeDirSuccessMigrate", {
+              count: result.files_moved,
+            }),
           );
         } else {
           message.success(t("settings.storage.changeDirSuccess"));
@@ -192,7 +206,11 @@ export function StorageSpaceManager() {
             <SettingsGroup
               title={t("settings.storage.title")}
               extra={
-                <Button size="small" icon={<FolderOpen size={14} />} onClick={handleOpenFolder}>
+                <Button
+                  size="small"
+                  icon={<FolderOpen size={14} />}
+                  onClick={handleOpenFolder}
+                >
                   {t("settings.storage.openFolder")}
                 </Button>
               }
@@ -202,13 +220,14 @@ export function StorageSpaceManager() {
                 renderItem={(bucket) => (
                   <List.Item>
                     <div className="flex items-center gap-3 w-full">
-                      <span className="flex items-center" style={{ color: "var(--ant-color-text-secondary)" }}>
+                      <span
+                        className="flex items-center"
+                        style={{ color: "var(--ant-color-text-secondary)" }}
+                      >
                         {BUCKET_ICONS[bucket.bucket]}
                       </span>
                       <div className="flex-1">
-                        <Text>
-                          {t(`settings.storage.${bucket.bucket}`)}
-                        </Text>
+                        <Text>{t(`settings.storage.${bucket.bucket}`)}</Text>
                       </div>
                       <Text type="secondary">
                         {bucket.file_count} {t("settings.storage.fileCount")}

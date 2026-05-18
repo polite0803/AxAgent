@@ -55,7 +55,12 @@ export function ToolSemanticCheck() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [matches, setMatches] = useState<NodeToolMatches[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<{ source: ToolToCheck; match: ToolMatch } | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<
+    {
+      source: ToolToCheck;
+      match: ToolMatch;
+    } | null
+  >(null);
   const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeSuggestion, setUpgradeSuggestion] = useState<ToolUpgradeSuggestion | null>(null);
@@ -68,7 +73,7 @@ export function ToolSemanticCheck() {
       setToolsLoading(true);
       try {
         const groups = await invoke<LocalToolGroupInfo[]>("list_local_tools");
-        const tools = groups.flatMap(g => g.tools);
+        const tools = groups.flatMap((g) => g.tools);
         setAllTools(tools);
       } catch (e) {
         message.error(String(e));
@@ -79,45 +84,56 @@ export function ToolSemanticCheck() {
     loadTools();
   }, []);
 
-  const filteredTools = allTools.filter(tool =>
-    tool.name.toLowerCase().includes(searchTerm.toLowerCase())
-    || tool.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTools = allTools.filter(
+    (tool) =>
+      tool.name.toLowerCase().includes(searchTerm.toLowerCase())
+      || tool.description.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const checkSemanticMatches = useCallback(async (tool: LocalToolInfo) => {
-    setSearchLoading(true);
-    try {
-      const toolsToCheck: ToolToCheck[] = [
-        {
-          name: tool.name,
-          description: tool.description,
-          tool_type: "local",
-        },
-      ];
+  const checkSemanticMatches = useCallback(
+    async (tool: LocalToolInfo) => {
+      setSearchLoading(true);
+      try {
+        const toolsToCheck: ToolToCheck[] = [
+          {
+            name: tool.name,
+            description: tool.description,
+            tool_type: "local",
+          },
+        ];
 
-      const response: ToolSemanticCheckResponse = await invoke("check_tool_semantic_matches", {
-        request: { tools: toolsToCheck },
-        min_similarity: 0.6,
-      });
+        const response: ToolSemanticCheckResponse = await invoke(
+          "check_tool_semantic_matches",
+          {
+            request: { tools: toolsToCheck },
+            min_similarity: 0.6,
+          },
+        );
 
-      setMatches(response.matches);
-      if (response.matches.length === 0) {
-        message.info(t("settings.toolSemanticCheck.noMatches"));
+        setMatches(response.matches);
+        if (response.matches.length === 0) {
+          message.info(t("settings.toolSemanticCheck.noMatches"));
+        }
+      } catch (error) {
+        message.error(String(error));
+      } finally {
+        setSearchLoading(false);
       }
-    } catch (error) {
-      message.error(String(error));
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [t]);
+    },
+    [t],
+  );
 
   useEffect(() => {
-    if (!selectedTool) { return; }
+    if (!selectedTool) {
+      return;
+    }
     checkSemanticMatches(selectedTool);
   }, [selectedTool, checkSemanticMatches]);
 
   const handleUpgradeTool = useCallback(async () => {
-    if (!selectedMatch) { return; }
+    if (!selectedMatch) {
+      return;
+    }
 
     setUpgradeLoading(true);
     try {
@@ -129,9 +145,12 @@ export function ToolSemanticCheck() {
         generated_description: selectedMatch.source.description,
       };
 
-      const response: ToolUpgradeResponse = await invoke("upgrade_tool_with_llm", {
-        request,
-      });
+      const response: ToolUpgradeResponse = await invoke(
+        "upgrade_tool_with_llm",
+        {
+          request,
+        },
+      );
 
       setUpgradeSuggestion(response.suggestion);
       message.success(t("settings.toolSemanticCheck.upgradeSuccess"));
@@ -142,21 +161,29 @@ export function ToolSemanticCheck() {
     }
   }, [selectedMatch, t]);
 
-  const handleMatchSelect = useCallback((source: ToolToCheck, match: ToolMatch) => {
-    setSelectedMatch({ source, match });
-    setUpgradeModalVisible(true);
-  }, []);
+  const handleMatchSelect = useCallback(
+    (source: ToolToCheck, match: ToolMatch) => {
+      setSelectedMatch({ source, match });
+      setUpgradeModalVisible(true);
+    },
+    [],
+  );
 
   return (
     <div className="flex gap-4 flex-1" style={{ minHeight: 0 }}>
-      <div className="w-1/3 border rounded-lg overflow-hidden flex flex-col" style={{ minHeight: 0 }}>
+      <div
+        className="w-1/3 border rounded-lg overflow-hidden flex flex-col"
+        style={{ minHeight: 0 }}
+      >
         <div className="p-3 border-b shrink-0">
           <AntSearch
             placeholder={t("settings.toolSemanticCheck.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onSearch={() => {
-              if (filteredTools.length > 0) { setSelectedTool(filteredTools[0]); }
+              if (filteredTools.length > 0) {
+                setSelectedTool(filteredTools[0]);
+              }
             }}
             allowClear
           />
@@ -177,7 +204,7 @@ export function ToolSemanticCheck() {
               />
             )
             : (
-              filteredTools.map(tool => (
+              filteredTools.map((tool) => (
                 <div
                   key={tool.name}
                   role="button"
@@ -187,11 +214,20 @@ export function ToolSemanticCheck() {
                   }`}
                   onClick={() => setSelectedTool(tool)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { setSelectedTool(tool); }
+                    if (e.key === "Enter" || e.key === " ") {
+                      setSelectedTool(tool);
+                    }
                   }}
                 >
-                  <Text strong className="text-sm">{tool.name}</Text>
-                  <Text type="secondary" className="block text-xs mt-0.5 line-clamp-2">{tool.description}</Text>
+                  <Text strong className="text-sm">
+                    {tool.name}
+                  </Text>
+                  <Text
+                    type="secondary"
+                    className="block text-xs mt-0.5 line-clamp-2"
+                  >
+                    {tool.description}
+                  </Text>
                 </div>
               ))
             )}
@@ -205,7 +241,9 @@ export function ToolSemanticCheck() {
               title={
                 <div className="flex items-center gap-2">
                   <Search size={18} />
-                  {t("settings.toolSemanticCheck.checkingTool", { tool: selectedTool.name })}
+                  {t("settings.toolSemanticCheck.checkingTool", {
+                    tool: selectedTool.name,
+                  })}
                 </div>
               }
               className="flex-1 flex flex-col"
@@ -233,7 +271,11 @@ export function ToolSemanticCheck() {
                             icon={<Zap size={16} />}
                             onClick={() =>
                               handleMatchSelect(
-                                { name: item.tool_name, description: "", tool_type: "local" },
+                                {
+                                  name: item.tool_name,
+                                  description: "",
+                                  tool_type: "local",
+                                },
                                 item.matches[0],
                               )}
                           >
@@ -246,11 +288,18 @@ export function ToolSemanticCheck() {
                             <div className="flex items-center gap-2">
                               <Text strong>{item.tool_name}</Text>
                               <Text type="secondary">
-                                ({t("settings.toolSemanticCheck.matches", { count: item.matches.length })})
+                                (
+                                {t("settings.toolSemanticCheck.matches", {
+                                  count: item.matches.length,
+                                })}
+                                )
                               </Text>
                             </div>
                           }
-                          description={t("settings.toolSemanticCheck.checkingTool", { tool: item.tool_name })}
+                          description={t(
+                            "settings.toolSemanticCheck.checkingTool",
+                            { tool: item.tool_name },
+                          )}
                         />
                         <div className="mt-2">
                           {item.matches.map((match, _index) => (
@@ -262,20 +311,31 @@ export function ToolSemanticCheck() {
                                 <Text type="success">
                                   {t("settings.toolSemanticCheck.similarity", {
                                     score: Math.round(match.similarity_score * 100),
-                                  })}%
+                                  })}
+                                  %
                                 </Text>
                               }
                             >
                               <div className="flex items-start gap-3">
-                                <CheckCircle size={18} className="text-success mt-1 shrink-0" />
+                                <CheckCircle
+                                  size={18}
+                                  className="text-success mt-1 shrink-0"
+                                />
                                 <div className="flex-1">
                                   <Text strong>{match.tool_name}</Text>
-                                  <Text type="secondary" className="block mt-1 text-sm">
+                                  <Text
+                                    type="secondary"
+                                    className="block mt-1 text-sm"
+                                  >
                                     {match.description}
                                   </Text>
                                   <div className="mt-2">
                                     {match.match_reasons.map((reason, rIndex) => (
-                                      <Text key={rIndex} type="secondary" className="block text-xs">
+                                      <Text
+                                        key={rIndex}
+                                        type="secondary"
+                                        className="block text-xs"
+                                      >
                                         • {reason}
                                       </Text>
                                     ))}
@@ -320,7 +380,9 @@ export function ToolSemanticCheck() {
         {selectedMatch && (
           <div>
             <div className="mb-4">
-              <Title level={5}>{t("settings.toolSemanticCheck.existingTool")}</Title>
+              <Title level={5}>
+                {t("settings.toolSemanticCheck.existingTool")}
+              </Title>
               <Card size="small">
                 <Text strong>{selectedMatch.match.tool_name}</Text>
                 <Text type="secondary" className="block mt-1">
@@ -337,11 +399,14 @@ export function ToolSemanticCheck() {
             </div>
 
             <div className="mb-4">
-              <Title level={5}>{t("settings.toolSemanticCheck.generatedTool")}</Title>
+              <Title level={5}>
+                {t("settings.toolSemanticCheck.generatedTool")}
+              </Title>
               <Card size="small">
                 <Text strong>{selectedMatch.source.name}</Text>
                 <Text type="secondary" className="block mt-1">
-                  {selectedMatch.source.description || t("settings.toolSemanticCheck.noDescription")}
+                  {selectedMatch.source.description
+                    || t("settings.toolSemanticCheck.noDescription")}
                 </Text>
               </Card>
             </div>
@@ -354,7 +419,10 @@ export function ToolSemanticCheck() {
                     {upgradeSuggestion.description}
                   </Text>
                   <Text type="secondary" className="block mt-3 text-sm">
-                    <strong>{t("settings.toolSemanticCheck.reasoning")}:</strong> {upgradeSuggestion.reasoning}
+                    <strong>
+                      {t("settings.toolSemanticCheck.reasoning")}:
+                    </strong>{" "}
+                    {upgradeSuggestion.reasoning}
                   </Text>
                 </Card>
               </div>

@@ -26,7 +26,9 @@ export interface ChartGenResult {
   title: string;
 }
 
-export async function generateChart(request: ChartGenRequest): Promise<ChartGenResult> {
+export async function generateChart(
+  request: ChartGenRequest,
+): Promise<ChartGenResult> {
   return invoke<ChartGenResult>("generate_chart_config", {
     description: request.description,
     data: request.data,
@@ -56,10 +58,20 @@ export function detectChartIntent(message: string): ChartGenRequest | null {
 }
 
 function inferChartType(message: string): ChartType | undefined {
-  if (/趋势|变化|增长|时间|折线|line/i.test(message)) { return "line"; }
-  if (/对比|比较|排名|柱状|bar/i.test(message)) { return "bar"; }
-  if (/占比|比例|分布|饼图|pie/i.test(message)) { return "pie"; }
-  if (/关系|关联|散点|scatter/i.test(message)) { return "scatter"; }
-  if (/热力|密度|heatmap/i.test(message)) { return "heatmap"; }
+  if (/趋势|变化|增长|时间|折线|line/i.test(message)) {
+    return "line";
+  }
+  if (/对比|比较|排名|柱状|bar/i.test(message)) {
+    return "bar";
+  }
+  if (/占比|比例|分布|饼图|pie/i.test(message)) {
+    return "pie";
+  }
+  if (/关系|关联|散点|scatter/i.test(message)) {
+    return "scatter";
+  }
+  if (/热力|密度|heatmap/i.test(message)) {
+    return "heatmap";
+  }
   return undefined;
 }

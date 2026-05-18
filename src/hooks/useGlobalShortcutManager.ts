@@ -14,7 +14,9 @@ import { useEffect } from "react";
 
 export function useGlobalShortcutManager() {
   const settings = useSettingsStore((s) => s.settings);
-  const setGlobalShortcutStatus = useSettingsStore((s) => s.setGlobalShortcutStatus);
+  const setGlobalShortcutStatus = useSettingsStore(
+    (s) => s.setGlobalShortcutStatus,
+  );
 
   useEffect(() => {
     const diagnostics: GlobalShortcutDiagnostic[] = [];
@@ -29,7 +31,9 @@ export function useGlobalShortcutManager() {
       if (diagnostics.length > 40) {
         diagnostics.splice(0, diagnostics.length - 40);
       }
-      if (!settings.shortcut_registration_logs_enabled) { return; }
+      if (!settings.shortcut_registration_logs_enabled) {
+        return;
+      }
       const consolePayload = {
         phase: withTimestamp.phase,
         level: withTimestamp.level,
@@ -46,10 +50,14 @@ export function useGlobalShortcutManager() {
         console.info("[global-shortcut]", consolePayload);
       }
     };
-    const updateStatus = (status: Omit<GlobalShortcutStatus, "diagnostics">) => {
+    const updateStatus = (
+      status: Omit<GlobalShortcutStatus, "diagnostics">,
+    ) => {
       setGlobalShortcutStatus({
         ...status,
-        diagnostics: settings.shortcut_registration_logs_enabled ? [...diagnostics] : [],
+        diagnostics: settings.shortcut_registration_logs_enabled
+          ? [...diagnostics]
+          : [],
       });
     };
 
@@ -114,93 +122,104 @@ export function useGlobalShortcutManager() {
           level: "info",
           message: "Cleared previously registered global shortcuts before re-register.",
         });
-        if (cancelled) { return; }
+        if (cancelled) {
+          return;
+        }
 
         await Promise.all(
           SHORTCUT_ACTIONS.flatMap((action) =>
             isGlobalShortcutAction(action)
-              ? [(async () => {
-                const binding = getShortcutBinding(settings, action);
-                const accelerator = toTauriAccelerator(binding);
-                pushDiagnostic({
-                  phase: "register",
-                  level: "info",
-                  action,
-                  shortcut: accelerator,
-                  message: "Attempting to register global shortcut.",
-                });
-                try {
-                  if (await isRegistered(accelerator)) {
-                    pushDiagnostic({
-                      phase: "register",
-                      level: "info",
-                      action,
-                      shortcut: accelerator,
-                      message: "Shortcut already registered, unregistering before re-register.",
-                    });
-                    const { unregister } = await import("@tauri-apps/plugin-global-shortcut");
-                    await unregister(accelerator);
-                  }
-                  await register(accelerator, async (event) => {
-                    if (event.state !== "Pressed") { return; }
-                    pushDiagnostic({
-                      phase: "register",
-                      level: "info",
-                      action,
-                      shortcut: accelerator,
-                      message: "Global shortcut callback fired.",
-                    });
-                    console.info("[shortcut-global-hit]", {
-                      action,
-                      accelerator,
-                      eventShortcut: event.shortcut,
-                      state: event.state,
-                    });
-                    await executeShortcutAction(action as ShortcutAction);
-                  });
-                  const verifyRegistered = await isRegistered(accelerator);
-                  if (!verifyRegistered) {
-                    const reason = "register returned without error but isRegistered returned false";
-                    failed.push({ shortcut: accelerator, reason });
-                    pushDiagnostic({
-                      phase: "register",
-                      level: "warn",
-                      action,
-                      shortcut: accelerator,
-                      reason,
-                      message: "Global shortcut registration verification failed.",
-                    });
-                    return;
-                  }
-                  registered.push(accelerator);
+              ? [
+                (async () => {
+                  const binding = getShortcutBinding(settings, action);
+                  const accelerator = toTauriAccelerator(binding);
                   pushDiagnostic({
                     phase: "register",
                     level: "info",
                     action,
                     shortcut: accelerator,
-                    message: "Global shortcut registered successfully.",
+                    message: "Attempting to register global shortcut.",
                   });
-                } catch (error) {
-                  let reason = String(error);
-                  if (reason.indexOf("HotKey already registered") !== -1) {
-                    reason = i18n.t("shortcuts.conflictError");
-                  } else if (reason.indexOf("Invalid shortcut") !== -1) {
-                    reason = "快捷键格式无效";
-                  } else if (reason.indexOf(" accelerators are not supported") !== -1) {
-                    reason = "系统不支持此快捷键组合";
+                  try {
+                    if (await isRegistered(accelerator)) {
+                      pushDiagnostic({
+                        phase: "register",
+                        level: "info",
+                        action,
+                        shortcut: accelerator,
+                        message: "Shortcut already registered, unregistering before re-register.",
+                      });
+                      const { unregister } = await import("@tauri-apps/plugin-global-shortcut");
+                      await unregister(accelerator);
+                    }
+                    await register(accelerator, async (event) => {
+                      if (event.state !== "Pressed") {
+                        return;
+                      }
+                      pushDiagnostic({
+                        phase: "register",
+                        level: "info",
+                        action,
+                        shortcut: accelerator,
+                        message: "Global shortcut callback fired.",
+                      });
+                      console.info("[shortcut-global-hit]", {
+                        action,
+                        accelerator,
+                        eventShortcut: event.shortcut,
+                        state: event.state,
+                      });
+                      await executeShortcutAction(action as ShortcutAction);
+                    });
+                    const verifyRegistered = await isRegistered(accelerator);
+                    if (!verifyRegistered) {
+                      const reason = "register returned without error but isRegistered returned false";
+                      failed.push({ shortcut: accelerator, reason });
+                      pushDiagnostic({
+                        phase: "register",
+                        level: "warn",
+                        action,
+                        shortcut: accelerator,
+                        reason,
+                        message: "Global shortcut registration verification failed.",
+                      });
+                      return;
+                    }
+                    registered.push(accelerator);
+                    pushDiagnostic({
+                      phase: "register",
+                      level: "info",
+                      action,
+                      shortcut: accelerator,
+                      message: "Global shortcut registered successfully.",
+                    });
+                  } catch (error) {
+                    let reason = String(error);
+                    if (reason.indexOf("HotKey already registered") !== -1) {
+                      reason = i18n.t("shortcuts.conflictError");
+                    } else if (reason.indexOf("Invalid shortcut") !== -1) {
+                      reason = "快捷键格式无效";
+                    } else if (
+                      reason.indexOf(" accelerators are not supported") !== -1
+                    ) {
+                      reason = "系统不支持此快捷键组合";
+                    }
+                    failed.push({ shortcut: accelerator, reason });
+                    pushDiagnostic({
+                      phase: "register",
+                      level: "error",
+                      action,
+                      shortcut: accelerator,
+                      reason,
+                      message: "Failed to register global shortcut.",
+                    });
+                    console.warn(
+                      `Failed to register global shortcut for ${action} (${accelerator}):`,
+                      error,
+                    );
                   }
-                  failed.push({ shortcut: accelerator, reason });
-                  pushDiagnostic({
-                    phase: "register",
-                    level: "error",
-                    action,
-                    shortcut: accelerator,
-                    reason,
-                    message: "Failed to register global shortcut.",
-                  });
-                  console.warn(`Failed to register global shortcut for ${action} (${accelerator}):`, error);
-                }
-              })()]
+                })(),
+              ]
               : []
           ),
         );

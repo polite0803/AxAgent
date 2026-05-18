@@ -39,7 +39,9 @@ describe("GatewayPage", () => {
   it("switches to the logs tab and refreshes logs when overview view more is clicked", async () => {
     render(<GatewayPage />);
 
-    await userEvent.click(screen.getByRole("button", { name: "gateway.viewMoreLogs" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "gateway.viewMoreLogs" }),
+    );
 
     await waitFor(() => {
       expect(fetchRequestLogs).toHaveBeenCalledTimes(1);

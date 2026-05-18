@@ -249,9 +249,15 @@ describe("CodeExecutor", () => {
         .mockResolvedValueOnce("");
 
       // 第一次执行 Python
-      await codeExecutor.execute({ language: "python", code: "print('first')" });
+      await codeExecutor.execute({
+        language: "python",
+        code: "print('first')",
+      });
       // 第二次执行 Python（不应再次创建 script 标签）
-      await codeExecutor.execute({ language: "python", code: "print('second')" });
+      await codeExecutor.execute({
+        language: "python",
+        code: "print('second')",
+      });
 
       // script 标签只创建了一次
       expect(scriptCount).toBe(1);

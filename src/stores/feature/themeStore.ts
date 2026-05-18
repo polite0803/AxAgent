@@ -179,9 +179,7 @@ export const useThemeStore = create<ThemeState>()(
       loadThemes: async () => {
         set({ isLoading: true, error: null });
         try {
-          const themeList = await invoke<ThemeMetadata[]>(
-            "list_themes",
-          );
+          const themeList = await invoke<ThemeMetadata[]>("list_themes");
           const builtInThemes: ThemeMetadata[] = [
             {
               name: "default",
@@ -189,14 +187,24 @@ export const useThemeStore = create<ThemeState>()(
               author: "AxAgent Team",
               description: "Default Catppuccin Mocha theme",
             },
-            { name: "monokai", version: "1.0.0", author: "Wimer Hazenberg", description: "Monokai color scheme" },
+            {
+              name: "monokai",
+              version: "1.0.0",
+              author: "Wimer Hazenberg",
+              description: "Monokai color scheme",
+            },
             {
               name: "gruvbox",
               version: "1.0.0",
               author: "github.com/morhetz/gruvbox",
               description: "Gruvbox dark theme",
             },
-            { name: "catppuccin-mocha", version: "1.0.0", author: "Catppuccin", description: "Catppuccin Mocha theme" },
+            {
+              name: "catppuccin-mocha",
+              version: "1.0.0",
+              author: "Catppuccin",
+              description: "Catppuccin Mocha theme",
+            },
           ];
           set({ themes: [...builtInThemes, ...themeList], isLoading: false });
         } catch (e) {
@@ -228,7 +236,9 @@ export const useThemeStore = create<ThemeState>()(
         try {
           await invoke("delete_theme", { name: themeName });
           set((state) => ({
-            customThemes: state.customThemes.filter((t) => t.metadata.name !== themeName),
+            customThemes: state.customThemes.filter(
+              (t) => t.metadata.name !== themeName,
+            ),
           }));
         } catch (e) {
           set({ error: String(e) });
@@ -259,25 +269,58 @@ export function applyThemeToDocument(themeName: string) {
   const colors = store.getThemeColors(themeName);
 
   if (colors) {
-    document.documentElement.style.setProperty("--theme-background", colors.background);
-    document.documentElement.style.setProperty("--theme-foreground", colors.foreground);
+    document.documentElement.style.setProperty(
+      "--theme-background",
+      colors.background,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-foreground",
+      colors.foreground,
+    );
     document.documentElement.style.setProperty("--theme-cursor", colors.cursor);
     document.documentElement.style.setProperty("--theme-black", colors.black);
     document.documentElement.style.setProperty("--theme-red", colors.red);
     document.documentElement.style.setProperty("--theme-green", colors.green);
     document.documentElement.style.setProperty("--theme-yellow", colors.yellow);
     document.documentElement.style.setProperty("--theme-blue", colors.blue);
-    document.documentElement.style.setProperty("--theme-magenta", colors.magenta);
+    document.documentElement.style.setProperty(
+      "--theme-magenta",
+      colors.magenta,
+    );
     document.documentElement.style.setProperty("--theme-cyan", colors.cyan);
     document.documentElement.style.setProperty("--theme-white", colors.white);
-    document.documentElement.style.setProperty("--theme-bright-black", colors.brightBlack);
-    document.documentElement.style.setProperty("--theme-bright-red", colors.brightRed);
-    document.documentElement.style.setProperty("--theme-bright-green", colors.brightGreen);
-    document.documentElement.style.setProperty("--theme-bright-yellow", colors.brightYellow);
-    document.documentElement.style.setProperty("--theme-bright-blue", colors.brightBlue);
-    document.documentElement.style.setProperty("--theme-bright-magenta", colors.brightMagenta);
-    document.documentElement.style.setProperty("--theme-bright-cyan", colors.brightCyan);
-    document.documentElement.style.setProperty("--theme-bright-white", colors.brightWhite);
+    document.documentElement.style.setProperty(
+      "--theme-bright-black",
+      colors.brightBlack,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-bright-red",
+      colors.brightRed,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-bright-green",
+      colors.brightGreen,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-bright-yellow",
+      colors.brightYellow,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-bright-blue",
+      colors.brightBlue,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-bright-magenta",
+      colors.brightMagenta,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-bright-cyan",
+      colors.brightCyan,
+    );
+    document.documentElement.style.setProperty(
+      "--theme-bright-white",
+      colors.brightWhite,
+    );
 
     document.body.style.backgroundColor = colors.background;
     document.body.style.color = colors.foreground;

@@ -21,7 +21,9 @@ function buildBreadcrumbs(
 
   while (currentId) {
     const conv = convMap.get(currentId);
-    if (!conv) { break; }
+    if (!conv) {
+      break;
+    }
     path.unshift(conv);
     currentId = conv.parent_conversation_id;
   }
@@ -35,10 +37,14 @@ export function BreadcrumbBar({
   setActiveConversation,
 }: BreadcrumbBarProps) {
   const active = conversations.find((c) => c.id === activeConversationId);
-  if (!activeConversationId || !active?.parent_conversation_id) { return null; }
+  if (!activeConversationId || !active?.parent_conversation_id) {
+    return null;
+  }
 
   const breadcrumbs = buildBreadcrumbs(conversations, activeConversationId);
-  if (breadcrumbs.length <= 1) { return null; }
+  if (breadcrumbs.length <= 1) {
+    return null;
+  }
 
   return (
     <div
@@ -55,12 +61,7 @@ export function BreadcrumbBar({
 
         return (
           <span key={conv.id} className="flex items-center gap-1 min-w-0">
-            {index > 0 && (
-              <ChevronRight
-                size={10}
-                style={{ flexShrink: 0, opacity: 0.4 }}
-              />
-            )}
+            {index > 0 && <ChevronRight size={10} style={{ flexShrink: 0, opacity: 0.4 }} />}
             {index === 0 && <Home size={11} style={{ flexShrink: 0, opacity: 0.5 }} />}
             <span
               role="button"
@@ -72,7 +73,9 @@ export function BreadcrumbBar({
                 }
               }}
               onClick={isClickable ? () => setActiveConversation(conv.id) : undefined}
-              className={isLast ? "truncate font-medium" : "truncate cursor-pointer hover:underline"}
+              className={isLast
+                ? "truncate font-medium"
+                : "truncate cursor-pointer hover:underline"}
               style={{
                 maxWidth: isLast ? "none" : 160,
                 color: isLast ? undefined : "var(--text-secondary, #666)",

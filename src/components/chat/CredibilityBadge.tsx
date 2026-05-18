@@ -23,16 +23,32 @@ export function CredibilityBadge({
   if (showStars) {
     const starCount = Math.round(normalizedScore * 5);
     const stars = [];
-    {/* static 5-star rating display, safe to use index as key */}
+    {
+      /* static 5-star rating display, safe to use index as key */
+    }
     for (let i = 0; i < 5; i++) {
       stars.push(
         i < starCount
-          ? <StarFilled key={i} style={{ color: "#faad14", fontSize: size === "small" ? 12 : 14 }} />
-          : <StarOutlined key={i} style={{ color: "#d9d9d9", fontSize: size === "small" ? 12 : 14 }} />,
+          ? (
+            <StarFilled
+              key={i}
+              style={{ color: "#faad14", fontSize: size === "small" ? 12 : 14 }}
+            />
+          )
+          : (
+            <StarOutlined
+              key={i}
+              style={{ color: "#d9d9d9", fontSize: size === "small" ? 12 : 14 }}
+            />
+          ),
       );
     }
     return (
-      <Tooltip title={t("credibility.score", { score: Math.round(normalizedScore * 100) })}>
+      <Tooltip
+        title={t("credibility.score", {
+          score: Math.round(normalizedScore * 100),
+        })}
+      >
         <Space size="small">{stars}</Space>
       </Tooltip>
     );
@@ -53,8 +69,15 @@ export function CredibilityBadge({
 
   if (showLabel) {
     return (
-      <Tooltip title={t("credibility.scoreLabel", { score: Math.round(normalizedScore * 100) })}>
-        <Tag color={colorMap[level]} className={size === "small" ? "text-xs" : ""}>
+      <Tooltip
+        title={t("credibility.scoreLabel", {
+          score: Math.round(normalizedScore * 100),
+        })}
+      >
+        <Tag
+          color={colorMap[level]}
+          className={size === "small" ? "text-xs" : ""}
+        >
           {labelMap[level]}
         </Tag>
       </Tooltip>
@@ -62,8 +85,15 @@ export function CredibilityBadge({
   }
 
   return (
-    <Tooltip title={t("credibility.score", { score: Math.round(normalizedScore * 100) })}>
-      <Tag color={colorMap[level]} className={size === "small" ? "text-xs" : ""}>
+    <Tooltip
+      title={t("credibility.score", {
+        score: Math.round(normalizedScore * 100),
+      })}
+    >
+      <Tag
+        color={colorMap[level]}
+        className={size === "small" ? "text-xs" : ""}
+      >
         {Math.round(normalizedScore * 100)}%
       </Tag>
     </Tooltip>
@@ -76,10 +106,18 @@ interface CredibilityBarProps {
   height?: number;
 }
 
-export function CredibilityBar({ score, showValue = true, height = 8 }: CredibilityBarProps) {
+export function CredibilityBar({
+  score,
+  showValue = true,
+  height = 8,
+}: CredibilityBarProps) {
   const normalizedScore = Math.max(0, Math.min(1, score)) * 100;
 
-  const color = normalizedScore >= 70 ? "#52c41a" : normalizedScore >= 40 ? "#faad14" : "#ff4d4f";
+  const color = normalizedScore >= 70
+    ? "#52c41a"
+    : normalizedScore >= 40
+    ? "#faad14"
+    : "#ff4d4f";
 
   return (
     <div className="flex items-center gap-2">

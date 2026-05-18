@@ -14,7 +14,10 @@ interface AgentProfileState {
   importFromAgency(): Promise<{ count: number; errors: string[] }>;
 
   createCustomProfile(input: CreateAgentProfileInput): Promise<AgentProfile>;
-  updateCustomProfile(id: string, input: UpdateAgentProfileInput): Promise<AgentProfile>;
+  updateCustomProfile(
+    id: string,
+    input: UpdateAgentProfileInput,
+  ): Promise<AgentProfile>;
   deleteCustomProfile(id: string): Promise<void>;
 }
 
@@ -51,14 +54,24 @@ export const useAgentProfileStore = create<AgentProfileState>((set, get) => ({
     return result;
   },
 
-  async createCustomProfile(input: CreateAgentProfileInput): Promise<AgentProfile> {
-    const profile: AgentProfile = await invoke("create_agent_profile", { input });
+  async createCustomProfile(
+    input: CreateAgentProfileInput,
+  ): Promise<AgentProfile> {
+    const profile: AgentProfile = await invoke("create_agent_profile", {
+      input,
+    });
     set((s) => ({ profiles: [...s.profiles, profile] }));
     return profile;
   },
 
-  async updateCustomProfile(id: string, input: UpdateAgentProfileInput): Promise<AgentProfile> {
-    const profile: AgentProfile = await invoke("update_agent_profile", { id, input });
+  async updateCustomProfile(
+    id: string,
+    input: UpdateAgentProfileInput,
+  ): Promise<AgentProfile> {
+    const profile: AgentProfile = await invoke("update_agent_profile", {
+      id,
+      input,
+    });
     set((s) => ({
       profiles: s.profiles.map((p) => (p.id === id ? profile : p)),
     }));

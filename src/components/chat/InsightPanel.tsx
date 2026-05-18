@@ -37,13 +37,19 @@ export function InsightPanel() {
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     const fetch = async () => {
       try {
         await fetchInsights();
-        if (mountedRef.current) { setError(false); }
+        if (mountedRef.current) {
+          setError(false);
+        }
       } catch {
-        if (mountedRef.current) { setError(true); }
+        if (mountedRef.current) {
+          setError(true);
+        }
       }
     };
     fetch();
@@ -52,7 +58,9 @@ export function InsightPanel() {
   }, [expanded, fetchInsights]);
 
   const handleFlush = useCallback(async () => {
-    if (!flushContent.trim()) { return; }
+    if (!flushContent.trim()) {
+      return;
+    }
     await memoryFlush(flushContent.trim(), flushTarget);
     setFlushContent("");
     await fetchInsights();
@@ -67,7 +75,12 @@ export function InsightPanel() {
         >
           <Lightbulb size={14} />
           {t("chat.insightsMemory")} ({insights.length})
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
         </button>
       </div>
     );
@@ -76,9 +89,16 @@ export function InsightPanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t("chat.learningInsights")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("chat.learningInsights")}
+        </span>
         <div className="flex items-center gap-1">
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
           <button
             onClick={() => {
               setExpanded(false);
@@ -86,8 +106,18 @@ export function InsightPanel() {
             }}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="size-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -104,20 +134,30 @@ export function InsightPanel() {
                   >
                     {CATEGORY_LABELS[insight.category]}
                   </span>
-                  <span className="text-foreground/80 truncate">{insight.title}</span>
+                  <span className="text-foreground/80 truncate">
+                    {insight.title}
+                  </span>
                   <span className="text-[10px] text-muted-foreground/60 ml-auto">
                     {Math.round(insight.confidence * 100)}%
                   </span>
                 </div>
-                <div className="text-[11px] text-foreground/60 line-clamp-1">{insight.description}</div>
+                <div className="text-[11px] text-foreground/60 line-clamp-1">
+                  {insight.description}
+                </div>
               </div>
             ))}
           </div>
         )
-        : <div className="text-xs text-muted-foreground/60">{error ? t("chat.loadError") : t("chat.noInsights")}</div>}
+        : (
+          <div className="text-xs text-muted-foreground/60">
+            {error ? t("chat.loadError") : t("chat.noInsights")}
+          </div>
+        )}
 
       <div className="space-y-1">
-        <div className="text-[10px] text-muted-foreground">{t("chat.flushToMemory")}</div>
+        <div className="text-[10px] text-muted-foreground">
+          {t("chat.flushToMemory")}
+        </div>
         <div className="flex items-center gap-1.5">
           <select
             value={flushTarget}

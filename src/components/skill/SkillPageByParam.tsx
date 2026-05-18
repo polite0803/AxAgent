@@ -7,14 +7,19 @@ import { SkillPageRenderer } from "./SkillPageRenderer";
 
 export default function SkillPageByParam() {
   const { t } = useTranslation();
-  const { skillName, pageId } = useParams<{ skillName: string; pageId?: string }>();
+  const { skillName, pageId } = useParams<{
+    skillName: string;
+    pageId?: string;
+  }>();
   const pages = useSkillExtensionStore((s) => s.pages);
   const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
   const loading = useSkillExtensionStore((s) => s.loading);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!skillName) { return; }
+    if (!skillName) {
+      return;
+    }
     // 如果 store 为空且不在加载中，触发 fetch
     if (pages.length === 0 && !loading) {
       fetchSkills();
@@ -23,7 +28,9 @@ export default function SkillPageByParam() {
 
   useEffect(() => {
     // 加载完成后检查页面是否存在，超时后显示 404
-    if (loading) { return; }
+    if (loading) {
+      return;
+    }
     const timer = setTimeout(() => {
       const found = pages.some((p) => {
         if (pageId) {
@@ -31,7 +38,9 @@ export default function SkillPageByParam() {
         }
         return p.skillName === skillName;
       });
-      if (!found) { setNotFound(true); }
+      if (!found) {
+        setNotFound(true);
+      }
     }, 1000);
     return () => clearTimeout(timer);
   }, [loading, pages, skillName, pageId]);
@@ -54,20 +63,41 @@ export default function SkillPageByParam() {
   if (!page) {
     if (loading) {
       return (
-        <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-secondary)" }}>
+        <div
+          style={{
+            padding: 48,
+            textAlign: "center",
+            color: "var(--color-text-secondary)",
+          }}
+        >
           <Spin size="large" />
         </div>
       );
     }
     if (notFound) {
       return (
-        <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-secondary)" }}>
-          {t("skill.notFound", { skillName, pageId: pageId ? `/${pageId}` : "" })}
+        <div
+          style={{
+            padding: 48,
+            textAlign: "center",
+            color: "var(--color-text-secondary)",
+          }}
+        >
+          {t("skill.notFound", {
+            skillName,
+            pageId: pageId ? `/${pageId}` : "",
+          })}
         </div>
       );
     }
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-secondary)" }}>
+      <div
+        style={{
+          padding: 48,
+          textAlign: "center",
+          color: "var(--color-text-secondary)",
+        }}
+      >
         <Spin size="large" />
       </div>
     );

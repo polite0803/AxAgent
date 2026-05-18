@@ -83,11 +83,10 @@ export const useCategoryStore = create<CategoryState>((set) => ({
   reorderCategories: async (categoryIds) => {
     await invoke("reorder_conversation_categories", { categoryIds });
     set((s) => {
-      const ordered = categoryIds
-        .flatMap((id, i) => {
-          const c = s.categories.find((c) => c.id === id);
-          return c ? [{ ...c, sort_order: i }] : [];
-        }) as ConversationCategory[];
+      const ordered = categoryIds.flatMap((id, i) => {
+        const c = s.categories.find((c) => c.id === id);
+        return c ? [{ ...c, sort_order: i }] : [];
+      }) as ConversationCategory[];
       return { categories: ordered };
     });
   },

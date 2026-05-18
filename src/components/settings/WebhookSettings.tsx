@@ -280,7 +280,12 @@ export function WebhookSettings() {
         </div>
         <div className="flex gap-2">
           <Button
-            icon={<RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />}
+            icon={
+              <RefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
+            }
             onClick={handleRefresh}
             loading={refreshing}
           >
@@ -348,7 +353,11 @@ export function WebhookSettings() {
               { type: "url", message: t("settings.webhook.urlInvalid") },
             ]}
           >
-            <Input name="url" placeholder="https://example.com/webhook" prefix={<Webhook size={14} />} />
+            <Input
+              name="url"
+              placeholder="https://example.com/webhook"
+              prefix={<Webhook size={14} />}
+            />
           </Form.Item>
 
           <Form.Item
@@ -366,7 +375,10 @@ export function WebhookSettings() {
           </Form.Item>
 
           <Form.Item name="secret" label={t("settings.webhook.secret")}>
-            <Input.Password name="secret" placeholder={t("settings.webhook.secretPlaceholder")} />
+            <Input.Password
+              name="secret"
+              placeholder={t("settings.webhook.secretPlaceholder")}
+            />
           </Form.Item>
 
           <Form.Item className="mb-0">

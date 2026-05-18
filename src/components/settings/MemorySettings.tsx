@@ -140,10 +140,16 @@ const SOURCE_TAG_COLOR: Record<MemorySource, string> = {
 
 const INDEX_STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
   pending: { color: "default", labelKey: "settings.indexStatus.pending" },
-  indexing: { color: "processing", labelKey: "settings.indexStatus.indexing" },
+  indexing: {
+    color: "processing",
+    labelKey: "settings.indexStatus.indexing",
+  },
   ready: { color: "success", labelKey: "settings.indexStatus.indexed" },
   failed: { color: "error", labelKey: "settings.indexStatus.failed" },
-  skipped: { color: "warning", labelKey: "settings.indexStatus.notConfigured" },
+  skipped: {
+    color: "warning",
+    labelKey: "settings.indexStatus.notConfigured",
+  },
 };
 
 // ── Sortable Namespace Item ──────────────────────────────
@@ -204,13 +210,21 @@ function SortableNamespaceItem({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") { onSelect(); }
+        if (e.key === "Enter" || e.key === " ") {
+          onSelect();
+        }
       }}
       onMouseEnter={(e) => {
-        if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
+        }
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) { e.currentTarget.style.backgroundColor = isSelected ? token.colorPrimaryBg : ""; }
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = isSelected
+            ? token.colorPrimaryBg
+            : "";
+        }
       }}
     >
       <div
@@ -221,7 +235,9 @@ function SortableNamespaceItem({
         tabIndex={0}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+          if (e.key === "Enter" || e.key === " ") {
+            e.stopPropagation();
+          }
         }}
       >
         <GripVertical size={14} style={{ color: token.colorTextQuaternary }} />
@@ -230,13 +246,17 @@ function SortableNamespaceItem({
         <NamespaceIcon ns={ns} size={16} />
       </div>
       <div className="min-w-0 flex-1">
-        <span style={{ color: isSelected ? token.colorPrimary : undefined }}>{ns.name}</span>
+        <span style={{ color: isSelected ? token.colorPrimary : undefined }}>
+          {ns.name}
+        </span>
       </div>
       <Tag
         color={ns.embeddingProvider ? "green" : "default"}
         style={{ marginRight: 4, fontSize: 12 }}
       >
-        {ns.embeddingProvider ? t("settings.memory.vectorReady") : t("settings.memory.vectorNotConfigured")}
+        {ns.embeddingProvider
+          ? t("settings.memory.vectorReady")
+          : t("settings.memory.vectorNotConfigured")}
       </Tag>
       <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
         <Button
@@ -273,10 +293,14 @@ function NamespaceList({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) { return; }
+    if (!over || active.id === over.id) {
+      return;
+    }
     const oldIndex = namespaces.findIndex((n) => n.id === active.id);
     const newIndex = namespaces.findIndex((n) => n.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) { return; }
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
     const newOrder = [...namespaces];
     const [moved] = newOrder.splice(oldIndex, 1);
     newOrder.splice(newIndex, 0, moved);
@@ -289,12 +313,22 @@ function NamespaceList({
         {namespaces.length === 0
           ? (
             <div className="flex-1 flex items-center justify-center">
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.empty")} />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t("settings.memory.empty")}
+              />
             </div>
           )
           : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={namespaces.map((n) => n.id)} strategy={verticalListSortingStrategy}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={namespaces.map((n) => n.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 {namespaces.map((ns) => (
                   <SortableNamespaceItem
                     key={ns.id}
@@ -309,12 +343,7 @@ function NamespaceList({
           )}
       </div>
       <div className="shrink-0 p-2 pt-0">
-        <Button
-          type="dashed"
-          block
-          icon={<Plus size={14} />}
-          onClick={onAdd}
-        >
+        <Button type="dashed" block icon={<Plus size={14} />} onClick={onAdd}>
           {t("settings.memory.addNamespace")}
         </Button>
       </div>
@@ -324,14 +353,18 @@ function NamespaceList({
 
 // ── Right Panel: Memory Items ─────────────────────────────
 
-function MemoryItemsPanel({
-  namespace,
-}: {
-  namespace: MemoryNamespace;
-}) {
+function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const { items, loading, loadItems, addItem, deleteItem, updateItem, updateNamespace } = useMemoryStore();
+  const {
+    items,
+    loading,
+    loadItems,
+    addItem,
+    deleteItem,
+    updateItem,
+    updateNamespace,
+  } = useMemoryStore();
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MemoryItem | null>(null);
   const [itemForm] = Form.useForm();
@@ -346,25 +379,35 @@ function MemoryItemsPanel({
     retrievalThreshold: undefined as number | undefined,
     retrievalTopK: undefined as number | undefined,
   });
-  const [originalProvider, setOriginalProvider] = useState<string | undefined>(undefined);
+  const [originalProvider, setOriginalProvider] = useState<string | undefined>(
+    undefined,
+  );
 
   // Pending embedding provider change (for confirmation)
-  const [pendingProvider, setPendingProvider] = useState<string | undefined>(undefined);
+  const [pendingProvider, setPendingProvider] = useState<string | undefined>(
+    undefined,
+  );
   const [providerConfirmOpen, setProviderConfirmOpen] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<VectorSearchResult[] | null>(null);
+  const [searchResults, setSearchResults] = useState<
+    VectorSearchResult[] | null
+  >(null);
   const [searching, setSearching] = useState(false);
   const [explainedSearch, setExplainedSearch] = useState(false);
-  const [explainedResults, setExplainedResults] = useState<ExplainedSearchResult[]>([]);
+  const [explainedResults, setExplainedResults] = useState<
+    ExplainedSearchResult[]
+  >([]);
 
   // Index status
   const [rebuildingIndex, setRebuildingIndex] = useState(false);
   const rebuildingRef = useRef(false);
 
   // Working Memory state
-  const [workingMemories, setWorkingMemories] = useState<WorkingMemoryEntry[]>([]);
+  const [workingMemories, setWorkingMemories] = useState<WorkingMemoryEntry[]>(
+    [],
+  );
   const [workingMemoriesLoading, setWorkingMemoriesLoading] = useState(false);
 
   // Tier Stats state
@@ -374,18 +417,24 @@ function MemoryItemsPanel({
   const [duplicatesModalOpen, setDuplicatesModalOpen] = useState(false);
   const [duplicatesLoading, setDuplicatesLoading] = useState(false);
   const [clusters, setClusters] = useState<MemoryCluster[]>([]);
-  const [consolidatingIds, setConsolidatingIds] = useState<Set<string>>(new Set());
+  const [consolidatingIds, setConsolidatingIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Knowledge Graph state
   const [knowledgeGraphModalOpen, setKnowledgeGraphModalOpen] = useState(false);
   const [knowledgeGraphLoading, setKnowledgeGraphLoading] = useState(false);
   const [entities, setEntities] = useState<KnowledgeEntity[]>([]);
-  const [relationships, setRelationships] = useState<KnowledgeRelationship[]>([]);
+  const [relationships, setRelationships] = useState<KnowledgeRelationship[]>(
+    [],
+  );
 
   // Timeline state
   const [timelineModalOpen, setTimelineModalOpen] = useState(false);
   const [timelineLoading, setTimelineLoading] = useState(false);
-  const [timelineData, setTimelineData] = useState<TimeGroupedMemories | null>(null);
+  const [timelineData, setTimelineData] = useState<TimeGroupedMemories | null>(
+    null,
+  );
 
   useEffect(() => {
     loadItems(namespace.id);
@@ -399,14 +448,15 @@ function MemoryItemsPanel({
 
   // Listen for indexing events
   useEffect(() => {
-    const unlistenIndexed = listen<
-      { itemId: string; success: boolean; status?: string; error?: string; isRebuild?: boolean }
-    >(
-      "memory-item-indexed",
-      () => {
-        loadItems(namespace.id);
-      },
-    );
+    const unlistenIndexed = listen<{
+      itemId: string;
+      success: boolean;
+      status?: string;
+      error?: string;
+      isRebuild?: boolean;
+    }>("memory-item-indexed", () => {
+      loadItems(namespace.id);
+    });
     const unlistenRebuild = listen<{ namespaceId: string }>(
       "memory-rebuild-complete",
       (event) => {
@@ -426,7 +476,10 @@ function MemoryItemsPanel({
   const loadWorkingMemories = async () => {
     setWorkingMemoriesLoading(true);
     try {
-      const result = await invoke<WorkingMemoryEntry[]>("search_working_memories", { query: "", limit: 50 });
+      const result = await invoke<WorkingMemoryEntry[]>(
+        "search_working_memories",
+        { query: "", limit: 50 },
+      );
       setWorkingMemories(result);
     } catch (e) {
       messageApi.error(String(e));
@@ -457,7 +510,9 @@ function MemoryItemsPanel({
   };
 
   const handleEditItem = async () => {
-    if (!editingItem) { return; }
+    if (!editingItem) {
+      return;
+    }
     try {
       const values = await itemForm.validateFields();
       await updateItem(namespace.id, editingItem.id, {
@@ -473,14 +528,19 @@ function MemoryItemsPanel({
   };
 
   const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim()) { return; }
+    if (!searchQuery.trim()) {
+      return;
+    }
     setSearching(true);
     try {
       if (explainedSearch) {
-        const results = await invoke<ExplainedSearchResult[]>("search_memories_explained", {
-          query: searchQuery,
-          limit: 10,
-        });
+        const results = await invoke<ExplainedSearchResult[]>(
+          "search_memories_explained",
+          {
+            query: searchQuery,
+            limit: 10,
+          },
+        );
         setExplainedResults(results);
         setSearchResults(null);
       } else if (namespace.embeddingProvider) {
@@ -497,7 +557,13 @@ function MemoryItemsPanel({
     } finally {
       setSearching(false);
     }
-  }, [searchQuery, namespace.id, namespace.embeddingProvider, explainedSearch, messageApi]);
+  }, [
+    searchQuery,
+    namespace.id,
+    namespace.embeddingProvider,
+    explainedSearch,
+    messageApi,
+  ]);
 
   const handlePromoteMemory = async (memoryId: string) => {
     try {
@@ -523,7 +589,10 @@ function MemoryItemsPanel({
     }
   };
 
-  const handleFeedback = async (memoryId: string, feedback: "useful" | "not_useful") => {
+  const handleFeedback = async (
+    memoryId: string,
+    feedback: "useful" | "not_useful",
+  ) => {
     try {
       await invoke("submit_memory_feedback", { memoryId, feedback });
       messageApi.success(t("settings.memory.feedbackSuccess"));
@@ -536,7 +605,9 @@ function MemoryItemsPanel({
     setDuplicatesLoading(true);
     setDuplicatesModalOpen(true);
     try {
-      const result = await invoke<MemoryCluster[]>("find_memory_clusters", { similarityThreshold: 0.7 });
+      const result = await invoke<MemoryCluster[]>("find_memory_clusters", {
+        similarityThreshold: 0.7,
+      });
       setClusters(result);
     } catch (e) {
       messageApi.error(String(e));
@@ -555,7 +626,9 @@ function MemoryItemsPanel({
       loadWorkingMemories();
       loadTierStats();
       // Refresh duplicates
-      const result = await invoke<MemoryCluster[]>("find_memory_clusters", { similarityThreshold: 0.7 });
+      const result = await invoke<MemoryCluster[]>("find_memory_clusters", {
+        similarityThreshold: 0.7,
+      });
       setClusters(result);
     } catch (e) {
       messageApi.error(String(e));
@@ -572,9 +645,10 @@ function MemoryItemsPanel({
     setKnowledgeGraphLoading(true);
     setKnowledgeGraphModalOpen(true);
     try {
-      const result = await invoke<{ entities: KnowledgeEntity[]; relationships: KnowledgeRelationship[] }>(
-        "list_knowledge_graph",
-      );
+      const result = await invoke<{
+        entities: KnowledgeEntity[];
+        relationships: KnowledgeRelationship[];
+      }>("list_knowledge_graph");
       setEntities(result.entities);
       setRelationships(result.relationships);
     } catch (e) {
@@ -588,7 +662,9 @@ function MemoryItemsPanel({
     setTimelineLoading(true);
     setTimelineModalOpen(true);
     try {
-      const result = await invoke<TimeGroupedMemories>("get_memories_time_grouped");
+      const result = await invoke<TimeGroupedMemories>(
+        "get_memories_time_grouped",
+      );
       setTimelineData(result);
     } catch (e) {
       messageApi.error(String(e));
@@ -600,9 +676,19 @@ function MemoryItemsPanel({
   const formatAge = (createdAt: number) => {
     const now = Date.now() / 1000;
     const diffSec = now - createdAt;
-    if (diffSec < 60) { return t("settings.memory.ageJustNow"); }
-    if (diffSec < 3600) { return t("settings.memory.ageMinutes", { count: Math.floor(diffSec / 60) }); }
-    if (diffSec < 86400) { return t("settings.memory.ageHours", { count: Math.floor(diffSec / 3600) }); }
+    if (diffSec < 60) {
+      return t("settings.memory.ageJustNow");
+    }
+    if (diffSec < 3600) {
+      return t("settings.memory.ageMinutes", {
+        count: Math.floor(diffSec / 60),
+      });
+    }
+    if (diffSec < 86400) {
+      return t("settings.memory.ageHours", {
+        count: Math.floor(diffSec / 3600),
+      });
+    }
     return t("settings.memory.ageDays", { count: Math.floor(diffSec / 86400) });
   };
 
@@ -639,7 +725,9 @@ function MemoryItemsPanel({
       width: 90,
       render: (source: MemorySource) => (
         <Tag color={SOURCE_TAG_COLOR[source]}>
-          {t(`settings.memory.${source === "auto_extract" ? "autoExtract" : "manual"}`)}
+          {t(
+            `settings.memory.${source === "auto_extract" ? "autoExtract" : "manual"}`,
+          )}
         </Tag>
       ),
     },
@@ -662,7 +750,14 @@ function MemoryItemsPanel({
       render: (importance: number) => (
         <Tooltip title={`${(importance * 100).toFixed(0)}%`}>
           <span
-            style={{ fontSize: 12, color: importance >= 0.7 ? "#f59e0b" : importance >= 0.4 ? "#3b82f6" : "#94a3b8" }}
+            style={{
+              fontSize: 12,
+              color: importance >= 0.7
+                ? "#f59e0b"
+                : importance >= 0.4
+                ? "#3b82f6"
+                : "#94a3b8",
+            }}
           >
             {formatImportance(importance)}
           </span>
@@ -675,7 +770,9 @@ function MemoryItemsPanel({
       key: "nature",
       width: 80,
       render: (nature: string) => (
-        <Tag style={{ fontSize: 12 }}>{getNatureLabel(nature as "episodic" | "semantic")}</Tag>
+        <Tag style={{ fontSize: 12 }}>
+          {getNatureLabel(nature as "episodic" | "semantic")}
+        </Tag>
       ),
     },
     {
@@ -730,7 +827,10 @@ function MemoryItemsPanel({
             title={t("settings.memory.rebuildItemConfirm")}
             placement="bottom"
             onConfirm={async () => {
-              await invoke("reindex_memory_item", { namespaceId: namespace.id, itemId: record.id }).catch((e) => {
+              await invoke("reindex_memory_item", {
+                namespaceId: namespace.id,
+                itemId: record.id,
+              }).catch((e) => {
                 messageApi.error(String(e));
               });
               loadItems(namespace.id);
@@ -750,7 +850,12 @@ function MemoryItemsPanel({
             title={t("settings.memory.deleteConfirm")}
             onConfirm={() => deleteItem(namespace.id, record.id)}
           >
-            <Button size="small" danger type="text" icon={<Trash2 size={14} />} />
+            <Button
+              size="small"
+              danger
+              type="text"
+              icon={<Trash2 size={14} />}
+            />
           </Popconfirm>
         </div>
       ),
@@ -764,7 +869,10 @@ function MemoryItemsPanel({
       key: "content",
       ellipsis: { showTitle: true },
       render: (content: string) => (
-        <Typography.Paragraph ellipsis={{ rows: 1 }} style={{ margin: 0, fontSize: 12 }}>
+        <Typography.Paragraph
+          ellipsis={{ rows: 1 }}
+          style={{ margin: 0, fontSize: 12 }}
+        >
           {content}
         </Typography.Paragraph>
       ),
@@ -800,7 +908,9 @@ function MemoryItemsPanel({
       key: "created_at",
       width: 80,
       render: (createdAt: number) => (
-        <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{formatAge(createdAt)}</span>
+        <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
+          {formatAge(createdAt)}
+        </span>
       ),
     },
     {
@@ -862,14 +972,18 @@ function MemoryItemsPanel({
             size={28}
             defaultIcon={<NamespaceIcon ns={namespace} size={28} />}
           />
-          <span style={{ fontWeight: 600, fontSize: 16 }}>{namespace.name}</span>
+          <span style={{ fontWeight: 600, fontSize: 16 }}>
+            {namespace.name}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <Tag
             color={namespace.embeddingProvider ? "green" : "default"}
             style={{ fontSize: 12 }}
           >
-            {namespace.embeddingProvider ? t("settings.memory.vectorReady") : t("settings.memory.vectorNotConfigured")}
+            {namespace.embeddingProvider
+              ? t("settings.memory.vectorReady")
+              : t("settings.memory.vectorNotConfigured")}
           </Tag>
           <Tooltip title={t("settings.memory.namespaceSettings")}>
             <Button
@@ -902,7 +1016,9 @@ function MemoryItemsPanel({
             label: (
               <div className="flex items-center gap-2">
                 <Brain size={14} style={{ color: token.colorPrimary }} />
-                <span style={{ fontWeight: 500 }}>{t("settings.memory.workingMemory")}</span>
+                <span style={{ fontWeight: 500 }}>
+                  {t("settings.memory.workingMemory")}
+                </span>
                 <Badge
                   count={workingMemories.length}
                   showZero
@@ -924,7 +1040,12 @@ function MemoryItemsPanel({
               />
             ),
             children: workingMemories.length === 0
-              ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noWorkingMemory")} />
+              ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={t("settings.memory.noWorkingMemory")}
+                />
+              )
               : (
                 <Table
                   dataSource={workingMemories}
@@ -1005,7 +1126,7 @@ function MemoryItemsPanel({
             <span>{t("settings.memory.namespaceName")}</span>
             <Input
               value={settingsForm.name}
-              onChange={(e) => setSettingsForm(s => ({ ...s, name: e.target.value }))}
+              onChange={(e) => setSettingsForm((s) => ({ ...s, name: e.target.value }))}
               style={{ width: 280 }}
             />
           </div>
@@ -1014,7 +1135,11 @@ function MemoryItemsPanel({
             <span>{t("settings.memory.embeddingModel")}</span>
             <EmbeddingModelSelect
               value={settingsForm.embeddingProvider}
-              onChange={(val) => setSettingsForm(s => ({ ...s, embeddingProvider: val || undefined }))}
+              onChange={(val) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  embeddingProvider: val || undefined,
+                }))}
               placeholder={t("settings.memory.embeddingModelPlaceholder")}
               style={{ width: 280 }}
             />
@@ -1025,7 +1150,11 @@ function MemoryItemsPanel({
             <InputNumber
               id="memory-settings-inputnumber-104"
               value={settingsForm.embeddingDimensions}
-              onChange={(val) => setSettingsForm(s => ({ ...s, embeddingDimensions: val ?? undefined }))}
+              onChange={(val) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  embeddingDimensions: val ?? undefined,
+                }))}
               placeholder={t("settings.memory.embeddingDimensionsAuto")}
               min={1}
               max={65536}
@@ -1038,7 +1167,11 @@ function MemoryItemsPanel({
             <InputNumber
               id="memory-settings-inputnumber-105"
               value={settingsForm.retrievalThreshold}
-              onChange={(val) => setSettingsForm(s => ({ ...s, retrievalThreshold: val ?? 0.1 }))}
+              onChange={(val) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  retrievalThreshold: val ?? 0.1,
+                }))}
               min={0}
               max={2}
               step={0.01}
@@ -1051,7 +1184,7 @@ function MemoryItemsPanel({
             <InputNumber
               id="memory-settings-inputnumber-106"
               value={settingsForm.retrievalTopK}
-              onChange={(val) => setSettingsForm(s => ({ ...s, retrievalTopK: val ?? 5 }))}
+              onChange={(val) => setSettingsForm((s) => ({ ...s, retrievalTopK: val ?? 5 }))}
               min={1}
               max={100}
               style={{ width: 280 }}
@@ -1081,10 +1214,12 @@ function MemoryItemsPanel({
           setSettingsOpen(false);
           if (pendingProvider) {
             setRebuildingIndex(true);
-            invoke("rebuild_memory_index", { namespaceId: namespace.id }).catch((e) => {
-              setRebuildingIndex(false);
-              messageApi.error(String(e));
-            });
+            invoke("rebuild_memory_index", { namespaceId: namespace.id }).catch(
+              (e) => {
+                setRebuildingIndex(false);
+                messageApi.error(String(e));
+              },
+            );
           }
         }}
         onCancel={() => {
@@ -1117,7 +1252,9 @@ function MemoryItemsPanel({
               setRebuildingIndex(true);
               rebuildingRef.current = true;
               try {
-                await invoke("rebuild_memory_index", { namespaceId: namespace.id });
+                await invoke("rebuild_memory_index", {
+                  namespaceId: namespace.id,
+                });
                 loadItems(namespace.id);
               } catch (e) {
                 setRebuildingIndex(false);
@@ -1139,13 +1276,22 @@ function MemoryItemsPanel({
             placement="bottom"
             onConfirm={async () => {
               try {
-                const count = await invoke<number>("sync_working_memory_to_namespace", {
-                  namespaceId: namespace.id,
-                });
-                messageApi.success(t("settings.memory.syncWorkingMemorySuccess", { count }));
+                const count = await invoke<number>(
+                  "sync_working_memory_to_namespace",
+                  {
+                    namespaceId: namespace.id,
+                  },
+                );
+                messageApi.success(
+                  t("settings.memory.syncWorkingMemorySuccess", { count }),
+                );
                 loadItems(namespace.id);
               } catch (e) {
-                messageApi.error(t("settings.memory.syncWorkingMemoryError", { error: String(e) }));
+                messageApi.error(
+                  t("settings.memory.syncWorkingMemoryError", {
+                    error: String(e),
+                  }),
+                );
               }
             }}
           >
@@ -1166,10 +1312,7 @@ function MemoryItemsPanel({
             />
           </Tooltip>
           <Tooltip title={t("settings.memory.timeline")}>
-            <Button
-              icon={<Clock size={14} />}
-              onClick={handleTimeline}
-            />
+            <Button icon={<Clock size={14} />} onClick={handleTimeline} />
           </Tooltip>
         </div>
         <div className="flex items-center gap-2">
@@ -1199,14 +1342,17 @@ function MemoryItemsPanel({
               icon={<Search size={14} />}
               loading={searching}
               onClick={handleSearch}
-              disabled={!searchQuery.trim() || (!explainedSearch && !namespace.embeddingProvider)}
+              disabled={!searchQuery.trim()
+                || (!explainedSearch && !namespace.embeddingProvider)}
             />
           </Tooltip>
           <Popconfirm
             title={t("settings.memory.clearIndexConfirm")}
             onConfirm={async () => {
               try {
-                await invoke("clear_memory_index", { namespaceId: namespace.id });
+                await invoke("clear_memory_index", {
+                  namespaceId: namespace.id,
+                });
                 loadItems(namespace.id);
                 messageApi.success(t("settings.memory.clearSuccess"));
               } catch (e) {
@@ -1235,7 +1381,12 @@ function MemoryItemsPanel({
         mask={{ enabled: true, blur: true }}
       >
         {searchResults && searchResults.length === 0
-          ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noResults")} />
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("settings.memory.noResults")}
+            />
+          )
           : (
             <Table
               dataSource={searchResults || []}
@@ -1274,7 +1425,9 @@ function MemoryItemsPanel({
                   defaultSortOrder: "ascend" as const,
                   sorter: (a: VectorSearchResult, b: VectorSearchResult) => a.score - b.score,
                   render: (score: number) => (
-                    <Tag color="blue" style={{ fontSize: 12 }}>{(1 / (1 + score)).toFixed(4)}</Tag>
+                    <Tag color="blue" style={{ fontSize: 12 }}>
+                      {(1 / (1 + score)).toFixed(4)}
+                    </Tag>
                   ),
                 },
               ]}
@@ -1308,28 +1461,41 @@ function MemoryItemsPanel({
                 >
                   {result.entry.content}
                 </Typography.Paragraph>
-                <Tag color={getTierColor(result.entry.tier)} style={{ fontSize: 12, flexShrink: 0 }}>
+                <Tag
+                  color={getTierColor(result.entry.tier)}
+                  style={{ fontSize: 12, flexShrink: 0 }}
+                >
                   {getTierLabel(result.entry.tier)}
                 </Tag>
               </div>
               <div className="flex items-center gap-3 mb-2">
-                <Tooltip title={`Relevance: ${(result.explanation.relevance_score * 100).toFixed(0)}%`}>
+                <Tooltip
+                  title={`Relevance: ${(result.explanation.relevance_score * 100).toFixed(0)}%`}
+                >
                   <Progress
-                    percent={Math.round(result.explanation.relevance_score * 100)}
+                    percent={Math.round(
+                      result.explanation.relevance_score * 100,
+                    )}
                     size="small"
                     style={{ width: 80, margin: 0 }}
                     strokeColor="#3b82f6"
                   />
                 </Tooltip>
-                <Tooltip title={`Effective: ${(result.explanation.effective_score * 100).toFixed(0)}%`}>
+                <Tooltip
+                  title={`Effective: ${(result.explanation.effective_score * 100).toFixed(0)}%`}
+                >
                   <Progress
-                    percent={Math.round(result.explanation.effective_score * 100)}
+                    percent={Math.round(
+                      result.explanation.effective_score * 100,
+                    )}
                     size="small"
                     style={{ width: 80, margin: 0 }}
                     strokeColor="#8b5cf6"
                   />
                 </Tooltip>
-                <Tooltip title={`Recency: ${(result.explanation.recency_score * 100).toFixed(0)}%`}>
+                <Tooltip
+                  title={`Recency: ${(result.explanation.recency_score * 100).toFixed(0)}%`}
+                >
                   <Progress
                     percent={Math.round(result.explanation.recency_score * 100)}
                     size="small"
@@ -1344,7 +1510,9 @@ function MemoryItemsPanel({
               {result.explanation.matched_keywords.length > 0 && (
                 <div className="flex items-center gap-1 flex-wrap">
                   {result.explanation.matched_keywords.map((kw, ki) => (
-                    <Tag key={ki} style={{ fontSize: 10 }}>{kw}</Tag>
+                    <Tag key={ki} style={{ fontSize: 10 }}>
+                      {kw}
+                    </Tag>
                   ))}
                 </div>
               )}
@@ -1377,7 +1545,12 @@ function MemoryItemsPanel({
             </div>
           )
           : clusters.length === 0
-          ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noDuplicates")} />
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("settings.memory.noDuplicates")}
+            />
+          )
           : (
             <div className="flex flex-col gap-3">
               {clusters.map((cluster, idx) => (
@@ -1391,7 +1564,10 @@ function MemoryItemsPanel({
                 >
                   <div className="flex items-center justify-between">
                     <span style={{ fontWeight: 500, fontSize: 13 }}>
-                      {t("settings.memory.clusterLabel", { index: idx + 1, count: cluster.ids.length })}
+                      {t("settings.memory.clusterLabel", {
+                        index: idx + 1,
+                        count: cluster.ids.length,
+                      })}
                     </span>
                     <div className="flex items-center gap-2">
                       <Tag style={{ fontSize: 12 }}>
@@ -1450,15 +1626,25 @@ function MemoryItemsPanel({
             </div>
           )
           : entities.length === 0 && relationships.length === 0
-          ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noKnowledgeGraph")} />
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("settings.memory.noKnowledgeGraph")}
+            />
+          )
           : (
             <div className="flex flex-col gap-4">
               {/* Entities Section */}
               {entities.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{t("settings.memory.entities")}</span>
-                    <Badge count={entities.length} style={{ backgroundColor: token.colorPrimary }} />
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>
+                      {t("settings.memory.entities")}
+                    </span>
+                    <Badge
+                      count={entities.length}
+                      style={{ backgroundColor: token.colorPrimary }}
+                    />
                   </div>
                   <Table
                     dataSource={entities}
@@ -1478,7 +1664,11 @@ function MemoryItemsPanel({
                         dataIndex: "entity_type",
                         key: "entity_type",
                         width: 100,
-                        render: (entityType: string) => <Tag color="blue" style={{ fontSize: 12 }}>{entityType}</Tag>,
+                        render: (entityType: string) => (
+                          <Tag color="blue" style={{ fontSize: 12 }}>
+                            {entityType}
+                          </Tag>
+                        ),
                       },
                       {
                         title: t("settings.memory.mentionCount"),
@@ -1508,14 +1698,21 @@ function MemoryItemsPanel({
               {relationships.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{t("settings.memory.relationships")}</span>
-                    <Badge count={relationships.length} style={{ backgroundColor: token.colorPrimary }} />
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>
+                      {t("settings.memory.relationships")}
+                    </span>
+                    <Badge
+                      count={relationships.length}
+                      style={{ backgroundColor: token.colorPrimary }}
+                    />
                   </div>
                   <Table
                     dataSource={relationships.map((r) => ({
                       ...r,
-                      source_name: entities.find((e) => e.id === r.source_id)?.name ?? r.source_id,
-                      target_name: entities.find((e) => e.id === r.target_id)?.name ?? r.target_id,
+                      source_name: entities.find((e) => e.id === r.source_id)?.name
+                        ?? r.source_id,
+                      target_name: entities.find((e) => e.id === r.target_id)?.name
+                        ?? r.target_id,
                     }))}
                     rowKey="id"
                     pagination={{ pageSize: 5, size: "small" }}
@@ -1534,7 +1731,9 @@ function MemoryItemsPanel({
                         key: "relation_type",
                         width: 120,
                         render: (relationType: string) => (
-                          <Tag color="purple" style={{ fontSize: 12 }}>{relationType}</Tag>
+                          <Tag color="purple" style={{ fontSize: 12 }}>
+                            {relationType}
+                          </Tag>
                         ),
                       },
                       {
@@ -1548,7 +1747,11 @@ function MemoryItemsPanel({
                         dataIndex: "weight",
                         key: "weight",
                         width: 80,
-                        render: (weight: number) => <span style={{ fontSize: 12 }}>{weight.toFixed(2)}</span>,
+                        render: (weight: number) => (
+                          <span style={{ fontSize: 12 }}>
+                            {weight.toFixed(2)}
+                          </span>
+                        ),
                       },
                     ]}
                   />
@@ -1578,64 +1781,119 @@ function MemoryItemsPanel({
           )
           : !timelineData
           ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          : (() => {
-            const sections: { key: keyof TimeGroupedMemories; label: string; color: string }[] = [
-              { key: "today", label: t("settings.memory.timelineToday"), color: "#10b981" },
-              { key: "this_week", label: t("settings.memory.timelineThisWeek"), color: "#3b82f6" },
-              { key: "this_month", label: t("settings.memory.timelineThisMonth"), color: "#f59e0b" },
-              { key: "older", label: t("settings.memory.timelineOlder"), color: "#94a3b8" },
-            ];
-            const total = sections.reduce((s, sec) => s + timelineData[sec.key].length, 0);
-            if (total === 0) {
-              return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.memory.noTimelineData")} />;
-            }
-            return (
-              <div className="flex flex-col gap-4">
-                {sections.map((sec) => {
-                  const entries = timelineData[sec.key];
-                  if (entries.length === 0) { return null; }
-                  return (
-                    <div key={sec.key}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: sec.color }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>{sec.label}</span>
-                        <Badge count={entries.length} style={{ backgroundColor: sec.color }} />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        {entries.map((entry) => (
+          : (
+            (() => {
+              const sections: {
+                key: keyof TimeGroupedMemories;
+                label: string;
+                color: string;
+              }[] = [
+                {
+                  key: "today",
+                  label: t("settings.memory.timelineToday"),
+                  color: "#10b981",
+                },
+                {
+                  key: "this_week",
+                  label: t("settings.memory.timelineThisWeek"),
+                  color: "#3b82f6",
+                },
+                {
+                  key: "this_month",
+                  label: t("settings.memory.timelineThisMonth"),
+                  color: "#f59e0b",
+                },
+                {
+                  key: "older",
+                  label: t("settings.memory.timelineOlder"),
+                  color: "#94a3b8",
+                },
+              ];
+              const total = sections.reduce(
+                (s, sec) => s + timelineData[sec.key].length,
+                0,
+              );
+              if (total === 0) {
+                return (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={t("settings.memory.noTimelineData")}
+                  />
+                );
+              }
+              return (
+                <div className="flex flex-col gap-4">
+                  {sections.map((sec) => {
+                    const entries = timelineData[sec.key];
+                    if (entries.length === 0) {
+                      return null;
+                    }
+                    return (
+                      <div key={sec.key}>
+                        <div className="flex items-center gap-2 mb-2">
                           <div
-                            key={entry.id}
-                            className="flex items-center gap-2"
                             style={{
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              backgroundColor: token.colorBgLayout,
-                              fontSize: 13,
+                              width: 4,
+                              height: 18,
+                              borderRadius: 2,
+                              backgroundColor: sec.color,
                             }}
-                          >
-                            <Tag
-                              color={getTierColor(entry.tier as MemoryTierType)}
-                              style={{ fontSize: 12, margin: 0, flexShrink: 0 }}
+                          />
+                          <span style={{ fontWeight: 600, fontSize: 14 }}>
+                            {sec.label}
+                          </span>
+                          <Badge
+                            count={entries.length}
+                            style={{ backgroundColor: sec.color }}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          {entries.map((entry) => (
+                            <div
+                              key={entry.id}
+                              className="flex items-center gap-2"
+                              style={{
+                                padding: "6px 8px",
+                                borderRadius: 6,
+                                backgroundColor: token.colorBgLayout,
+                                fontSize: 13,
+                              }}
                             >
-                              {getTierLabel(entry.tier as MemoryTierType)}
-                            </Tag>
-                            <span
-                              style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                            >
-                              {entry.content}
-                            </span>
-                            <span style={{ fontSize: 12, color: token.colorTextSecondary, flexShrink: 0 }}>
-                              {formatImportance(entry.importance)}
-                            </span>
-                          </div>
-                        ))}
+                              <Tag
+                                color={getTierColor(entry.tier as MemoryTierType)}
+                                style={{ fontSize: 12, margin: 0, flexShrink: 0 }}
+                              >
+                                {getTierLabel(entry.tier as MemoryTierType)}
+                              </Tag>
+                              <span
+                                style={{
+                                  flex: 1,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {entry.content}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: token.colorTextSecondary,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {formatImportance(entry.importance)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+                    );
+                  })}
+                </div>
+              );
+            })()
+          )}
       </Modal>
 
       <Table
@@ -1650,7 +1908,9 @@ function MemoryItemsPanel({
 
       {/* Add / Edit Modal */}
       <Modal
-        title={editingItem ? t("settings.memory.editItem") : t("settings.memory.addItem")}
+        title={editingItem
+          ? t("settings.memory.editItem")
+          : t("settings.memory.addItem")}
         open={itemModalOpen || !!editingItem}
         onOk={editingItem ? handleEditItem : handleAddItem}
         onCancel={() => {
@@ -1661,8 +1921,15 @@ function MemoryItemsPanel({
         mask={{ enabled: true, blur: true }}
       >
         <Form form={itemForm} layout="vertical">
-          <Form.Item name="content" label={t("settings.memory.itemContent")} rules={[{ required: true }]}>
-            <Input.TextArea name="content" autoSize={{ minRows: 3, maxRows: 8 }} />
+          <Form.Item
+            name="content"
+            label={t("settings.memory.itemContent")}
+            rules={[{ required: true }]}
+          >
+            <Input.TextArea
+              name="content"
+              autoSize={{ minRows: 3, maxRows: 8 }}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -1674,7 +1941,12 @@ function MemoryItemsPanel({
 
 export function MemorySettings() {
   const { t } = useTranslation();
-  const { namespaces, loadNamespaces, createNamespace, setSelectedNamespaceId } = useMemoryStore();
+  const {
+    namespaces,
+    loadNamespaces,
+    createNamespace,
+    setSelectedNamespaceId,
+  } = useMemoryStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nsModalOpen, setNsModalOpen] = useState(false);
   const [nsForm] = Form.useForm();
@@ -1715,7 +1987,10 @@ export function MemorySettings() {
 
   return (
     <div className="flex h-full">
-      <div className="w-64 shrink-0 pt-2" style={{ borderRight: "1px solid var(--border-color)" }}>
+      <div
+        className="w-64 shrink-0 pt-2"
+        style={{ borderRight: "1px solid var(--border-color)" }}
+      >
         <NamespaceList
           namespaces={namespaces}
           selectedId={selectedId}
@@ -1752,13 +2027,22 @@ export function MemorySettings() {
         mask={{ enabled: true, blur: true }}
       >
         <Form form={nsForm} layout="vertical">
-          <Form.Item name="name" label={t("settings.memory.namespaceName")} rules={[{ required: true }]}>
+          <Form.Item
+            name="name"
+            label={t("settings.memory.namespaceName")}
+            rules={[{ required: true }]}
+          >
             <Input name="name" />
           </Form.Item>
           <Form.Item
             name="embeddingProvider"
             label={t("settings.memory.embeddingModel")}
-            rules={[{ required: true, message: t("settings.memory.embeddingModelPlaceholder") }]}
+            rules={[
+              {
+                required: true,
+                message: t("settings.memory.embeddingModelPlaceholder"),
+              },
+            ]}
           >
             <EmbeddingModelSelect
               value={nsForm.getFieldValue("embeddingProvider")}

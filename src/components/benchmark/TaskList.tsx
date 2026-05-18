@@ -32,7 +32,9 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       key: "difficulty",
       width: 80,
       render: (difficulty: BenchmarkTask["difficulty"]) => (
-        <Tag color={getDifficultyColor(difficulty)}>{t(getDifficultyKey(difficulty))}</Tag>
+        <Tag color={getDifficultyColor(difficulty)}>
+          {t(getDifficultyKey(difficulty))}
+        </Tag>
       ),
     },
     {
@@ -42,7 +44,9 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       width: 100,
       render: (_: string, record: BenchmarkTask) => {
         const result = results.find((r) => r.task_id === record.id);
-        if (!result) { return <Tag>{t("benchmark.waiting")}</Tag>; }
+        if (!result) {
+          return <Tag>{t("benchmark.waiting")}</Tag>;
+        }
         return (
           <Tag color={result.success ? "green" : "red"}>
             {result.success ? t("benchmark.passed") : t("benchmark.failed")}
@@ -57,7 +61,9 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       width: 80,
       render: (_: string, record: BenchmarkTask) => {
         const result = results.find((r) => r.task_id === record.id);
-        if (!result) { return "-"; }
+        if (!result) {
+          return "-";
+        }
         return formatScore(result.overall_score);
       },
     },
@@ -68,7 +74,9 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
       width: 100,
       render: (_: string, record: BenchmarkTask) => {
         const result = results.find((r) => r.task_id === record.id);
-        if (!result) { return "-"; }
+        if (!result) {
+          return "-";
+        }
         return formatDuration(result.duration_ms);
       },
     },
@@ -96,7 +104,13 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
         expandable={{
           expandedRowRender: (record) => {
             const result = results.find((r) => r.task_id === record.id);
-            if (!result) { return <div className="p-4 text-zinc-500">{t("benchmark.noResult")}</div>; }
+            if (!result) {
+              return (
+                <div className="p-4 text-zinc-500">
+                  {t("benchmark.noResult")}
+                </div>
+              );
+            }
             return <TaskResultCard result={result} />;
           },
         }}

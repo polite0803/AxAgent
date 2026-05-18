@@ -74,24 +74,31 @@ function MonacoDiffEditor({
   readOnly = true,
 }: MonacoDiffEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<import("monaco-editor").editor.IStandaloneDiffEditor | null>(null);
+  const editorRef = useRef<
+    import("monaco-editor").editor.IStandaloneDiffEditor | null
+  >(null);
 
   useEffect(() => {
-    if (!containerRef.current || typeof window.monaco === "undefined") { return; }
+    if (!containerRef.current || typeof window.monaco === "undefined") {
+      return;
+    }
 
-    const diffEditor = window.monaco.editor.createDiffEditor(containerRef.current, {
-      theme: "vs-dark",
-      readOnly,
-      automaticLayout: true,
-      minimap: { enabled: false },
-      fontSize: 12,
-      lineNumbers: "on",
-      scrollBeyondLastLine: false,
-      wordWrap: "on",
-      padding: { top: 8 },
-      renderSideBySide: true,
-      originalEditable: false,
-    });
+    const diffEditor = window.monaco.editor.createDiffEditor(
+      containerRef.current,
+      {
+        theme: "vs-dark",
+        readOnly,
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 12,
+        lineNumbers: "on",
+        scrollBeyondLastLine: false,
+        wordWrap: "on",
+        padding: { top: 8 },
+        renderSideBySide: true,
+        originalEditable: false,
+      },
+    );
 
     const originalModel = window.monaco.editor.createModel(original, language);
     const modifiedModel = window.monaco.editor.createModel(modified, language);
@@ -123,14 +130,26 @@ function MonacoDiffEditor({
   return (
     <div
       ref={containerRef}
-      style={{ height, width: "100%", border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden" }}
+      style={{
+        height,
+        width: "100%",
+        border: "1px solid var(--border-color)",
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
     />
   );
 }
 
 // ── Diff Stat Bar ────────────────────────────────────────────────────────
 
-function DiffStatBar({ original, modified }: { original: string; modified: string }) {
+function DiffStatBar({
+  original,
+  modified,
+}: {
+  original: string;
+  modified: string;
+}) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const stats = useMemo(() => {
@@ -159,11 +178,27 @@ function DiffStatBar({ original, modified }: { original: string; modified: strin
   }, [original, modified]);
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
-      <span style={{ display: "flex", alignItems: "center", gap: 3, color: token.colorSuccess }}>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}
+    >
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+          color: token.colorSuccess,
+        }}
+      >
         <Plus size={12} /> {stats.additions}
       </span>
-      <span style={{ display: "flex", alignItems: "center", gap: 3, color: token.colorError }}>
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+          color: token.colorError,
+        }}
+      >
         <Minus size={12} /> {stats.deletions}
       </span>
       <span style={{ color: token.colorTextSecondary }}>
@@ -191,7 +226,9 @@ export const FileChangeCard = React.memo(function FileChangeCard({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const [status, setStatus] = useState<"pending" | "accepted" | "rejected">("pending");
+  const [status, setStatus] = useState<"pending" | "accepted" | "rejected">(
+    "pending",
+  );
 
   const lang = change.language ?? detectLanguage(change.filePath);
   const isNew = change.operation === "write" && !change.originalContent;
@@ -230,7 +267,11 @@ export const FileChangeCard = React.memo(function FileChangeCard({
         tabIndex={0}
         aria-expanded={expanded}
         aria-label={`${change.filePath} - ${
-          isNew ? t("chat.diff.newFile") : isDeleted ? t("chat.diff.deleted") : t("chat.diff.modified")
+          isNew
+            ? t("chat.diff.newFile")
+            : isDeleted
+            ? t("chat.diff.deleted")
+            : t("chat.diff.modified")
         }`}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -244,7 +285,9 @@ export const FileChangeCard = React.memo(function FileChangeCard({
           justifyContent: "space-between",
           padding: "8px 12px",
           backgroundColor: token.colorFillQuaternary,
-          borderBottom: expanded ? `1px solid ${token.colorBorderSecondary}` : "none",
+          borderBottom: expanded
+            ? `1px solid ${token.colorBorderSecondary}`
+            : "none",
           cursor: "pointer",
         }}
         onClick={() => setExpanded(!expanded)}
@@ -259,17 +302,37 @@ export const FileChangeCard = React.memo(function FileChangeCard({
             {change.filePath}
           </Typography.Text>
           {isNew && (
-            <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.newFile")}</Tag>
+            <Tag
+              color="green"
+              style={{ fontSize: 10, margin: 0, padding: "0 4px" }}
+            >
+              {t("diffViewer.newFile")}
+            </Tag>
           )}
           {isDeleted && (
-            <Tag color="red" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.deleted")}</Tag>
+            <Tag
+              color="red"
+              style={{ fontSize: 10, margin: 0, padding: "0 4px" }}
+            >
+              {t("diffViewer.deleted")}
+            </Tag>
           )}
           {change.operation === "edit" && (
-            <Tag color="orange" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>{t("diffViewer.modified")}</Tag>
+            <Tag
+              color="orange"
+              style={{ fontSize: 10, margin: 0, padding: "0 4px" }}
+            >
+              {t("diffViewer.modified")}
+            </Tag>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {!isDeleted && !isNew && <DiffStatBar original={change.originalContent} modified={change.modifiedContent} />}
+          {!isDeleted && !isNew && (
+            <DiffStatBar
+              original={change.originalContent}
+              modified={change.modifiedContent}
+            />
+          )}
           {status === "pending" && (
             <Space size={4} onClick={(e) => e.stopPropagation()}>
               <Tooltip title={t("chat.diff.accept")}>
@@ -339,7 +402,10 @@ export const FileChangeCard = React.memo(function FileChangeCard({
                 original={change.originalContent}
                 modified={change.modifiedContent}
                 language={lang}
-                height={Math.min(400, Math.max(150, change.modifiedContent.split("\n").length * 22))}
+                height={Math.min(
+                  400,
+                  Math.max(150, change.modifiedContent.split("\n").length * 22),
+                )}
               />
             )}
         </div>
@@ -358,7 +424,14 @@ export const FileChangeCard = React.memo(function FileChangeCard({
             color: token.colorError,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              marginBottom: 8,
+            }}
+          >
             <Minus size={12} /> {t("diffViewer.deletedContent")}
           </div>
           {change.originalContent}
@@ -387,7 +460,9 @@ export const FileChangeList = React.memo(function FileChangeList({
   const { t } = useTranslation();
   const [expandedAll, setExpandedAll] = useState(false);
 
-  if (changes.length === 0) { return null; }
+  if (changes.length === 0) {
+    return null;
+  }
 
   return (
     <div style={{ marginTop: 8 }}>
@@ -400,7 +475,15 @@ export const FileChangeList = React.memo(function FileChangeList({
           padding: "4px 0",
         }}
       >
-        <Typography.Text strong style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+        <Typography.Text
+          strong
+          style={{
+            fontSize: 13,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
           <GitBranch size={14} />
           {changes.length} {t("chat.diff.fileChanges")}
         </Typography.Text>
@@ -410,10 +493,17 @@ export const FileChangeList = React.memo(function FileChangeList({
             type="text"
             onClick={() => setExpandedAll(!expandedAll)}
           >
-            {expandedAll ? t("chat.diff.collapseAll") : t("chat.diff.expandAll")}
+            {expandedAll
+              ? t("chat.diff.collapseAll")
+              : t("chat.diff.expandAll")}
           </Button>
           {onAcceptAll && (
-            <Button size="small" type="primary" icon={<Check size={12} />} onClick={onAcceptAll}>
+            <Button
+              size="small"
+              type="primary"
+              icon={<Check size={12} />}
+              onClick={onAcceptAll}
+            >
               {t("chat.diff.acceptAll")}
             </Button>
           )}
@@ -435,7 +525,11 @@ export const FileChangeList = React.memo(function FileChangeList({
 // ── Utility: extract file changes from tool call ─────────────────────────
 
 export function extractFileChanges(
-  toolCalls: { toolName: string; input: Record<string, unknown>; output?: string }[],
+  toolCalls: {
+    toolName: string;
+    input: Record<string, unknown>;
+    output?: string;
+  }[],
 ): FileChange[] {
   const changes: FileChange[] = [];
 
@@ -445,17 +539,32 @@ export function extractFileChanges(
       continue;
     }
 
-    const filePath = (tc.input.file_path ?? tc.input.path ?? tc.input.filePath ?? "") as string;
-    if (!filePath) { continue; }
+    const filePath = (tc.input.file_path
+      ?? tc.input.path
+      ?? tc.input.filePath
+      ?? "") as string;
+    if (!filePath) {
+      continue;
+    }
 
-    const modifiedContent = (tc.input.content ?? tc.input.contents ?? tc.input.text ?? "") as string;
-    const originalContent = (tc.input.original_content ?? tc.input.old_content ?? tc.input.old_str ?? "") as string;
+    const modifiedContent = (tc.input.content
+      ?? tc.input.contents
+      ?? tc.input.text
+      ?? "") as string;
+    const originalContent = (tc.input.original_content
+      ?? tc.input.old_content
+      ?? tc.input.old_str
+      ?? "") as string;
 
     changes.push({
       filePath,
       originalContent,
       modifiedContent: modifiedContent || (tc.output ?? ""),
-      operation: originalContent ? "edit" : modifiedContent ? "write" : "delete",
+      operation: originalContent
+        ? "edit"
+        : modifiedContent
+        ? "write"
+        : "delete",
     });
   }
 

@@ -119,9 +119,13 @@ export const useTracerStore = create<TracerState>((set, get) => ({
     if (selectedTrace) {
       const findSpan = (spans: Span[]): Span | undefined => {
         for (const span of spans) {
-          if (span.id === spanId) { return span; }
+          if (span.id === spanId) {
+            return span;
+          }
           const found = findSpan(span.events as unknown as Span[]);
-          if (found) { return found; }
+          if (found) {
+            return found;
+          }
         }
         return undefined;
       };
@@ -232,7 +236,9 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   },
 
   setupLongTaskObserver: () => {
-    if (typeof window === "undefined" || !("PerformanceObserver" in window)) { return; }
+    if (typeof window === "undefined" || !("PerformanceObserver" in window)) {
+      return;
+    }
     try {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {

@@ -72,7 +72,9 @@ export function DataManager() {
           input.accept = ".json";
           input.onchange = () => {
             const file = input.files?.[0];
-            if (!file) { return resolve(null); }
+            if (!file) {
+              return resolve(null);
+            }
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
             reader.readAsText(file);
@@ -81,7 +83,9 @@ export function DataManager() {
         });
       }
 
-      if (!jsonStr) { return; }
+      if (!jsonStr) {
+        return;
+      }
 
       const data = JSON.parse(jsonStr);
       if (!data.version) {
@@ -103,7 +107,9 @@ export function DataManager() {
   const handleClear = async () => {
     try {
       const conversations = useConversationStore.getState().conversations;
-      await Promise.all(conversations.map((conv) => useConversationStore.getState().deleteConversation(conv.id)));
+      await Promise.all(
+        conversations.map((conv) => useConversationStore.getState().deleteConversation(conv.id)),
+      );
       message.success(t("settings.clearSuccess"));
     } catch (e) {
       console.error("Clear failed:", e);

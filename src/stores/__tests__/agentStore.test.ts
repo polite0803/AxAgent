@@ -142,7 +142,9 @@ describe("agentStore event handling", () => {
     });
 
     // Key is requestId when present
-    expect(result.current.pendingPermissions["perm_1"]).toEqual(permissionEvent);
+    expect(result.current.pendingPermissions["perm_1"]).toEqual(
+      permissionEvent,
+    );
   });
 
   it("should handle permission resolved", () => {
@@ -159,7 +161,10 @@ describe("agentStore event handling", () => {
     };
 
     act(() => {
-      result.current.handlePermissionRequest({ ...permissionEvent, requestId: "req1" });
+      result.current.handlePermissionRequest({
+        ...permissionEvent,
+        requestId: "req1",
+      });
     });
 
     // Then add the tool call
@@ -286,7 +291,9 @@ describe("agentStore event handling", () => {
     });
 
     expect(result.current.agentStatus["conv1"]).toBe("Running...");
-    expect(Object.keys(result.current.pendingPermissions).length).toBeGreaterThan(0);
+    expect(
+      Object.keys(result.current.pendingPermissions).length,
+    ).toBeGreaterThan(0);
 
     // Clear the conversation
     act(() => {
@@ -299,7 +306,9 @@ describe("agentStore event handling", () => {
 
   it("should setup event listeners", () => {
     const unlistenFn = vi.fn();
-    (listen as unknown as ReturnType<typeof vi.fn>).mockReturnValue(Promise.resolve(unlistenFn));
+    (listen as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
+      Promise.resolve(unlistenFn),
+    );
 
     const cleanup = setupAgentEventListeners();
 

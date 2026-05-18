@@ -27,9 +27,20 @@ interface NudgeStore {
   // P3: Insight & Memory Flush actions
   fetchInsights: () => Promise<void>;
   fetchInsightsByCategory: (category: string) => Promise<LearningInsight[]>;
-  generateInsightReport: (sessionId: string, messageCount?: number) => Promise<void>;
-  memoryFlush: (content: string, target?: string, category?: string) => Promise<void>;
-  recordFeedback: (feedbackType: FeedbackType, source: FeedbackSource, content: string) => Promise<void>;
+  generateInsightReport: (
+    sessionId: string,
+    messageCount?: number,
+  ) => Promise<void>;
+  memoryFlush: (
+    content: string,
+    target?: string,
+    category?: string,
+  ) => Promise<void>;
+  recordFeedback: (
+    feedbackType: FeedbackType,
+    source: FeedbackSource,
+    content: string,
+  ) => Promise<void>;
   clearSession: () => void;
 }
 
@@ -124,7 +135,9 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
 
   fetchInsightsByCategory: async (category: string) => {
     try {
-      return await invoke<LearningInsight[]>("insight_get_by_category", { category });
+      return await invoke<LearningInsight[]>("insight_get_by_category", {
+        category,
+      });
     } catch (e) {
       console.warn("[nudgeStore] Failed to fetch insights by category:", e);
       return [];
@@ -149,7 +162,11 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
     }
   },
 
-  recordFeedback: async (feedbackType: FeedbackType, source: FeedbackSource, content: string) => {
+  recordFeedback: async (
+    feedbackType: FeedbackType,
+    source: FeedbackSource,
+    content: string,
+  ) => {
     try {
       await invoke("record_feedback", { feedbackType, source, content });
     } catch (e) {

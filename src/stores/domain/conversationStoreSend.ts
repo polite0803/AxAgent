@@ -64,14 +64,19 @@ function buildFallbackChain(
     for (const p of providers) {
       for (const m of p.models ?? []) {
         const key = `${p.id}:${m.model_id}`;
-        if (key === `${currentProviderId}:${currentModelId}`) { continue; }
+        if (key === `${currentProviderId}:${currentModelId}`) {
+          continue;
+        }
 
         const entry: FallbackModel = { providerId: p.id, model_id: m.model_id };
 
         // Same provider, different model — highest priority
         if (p.id === currentProviderId) {
           chain.unshift(entry);
-        } else if (p.id === defaultProviderId && m.model_id === defaultModelId) {
+        } else if (
+          p.id === defaultProviderId
+          && m.model_id === defaultModelId
+        ) {
           // User's default model — second priority
           chain.push(entry);
         } else {
@@ -88,7 +93,11 @@ function buildFallbackChain(
 import type { ConversationState } from "./conversationStore";
 
 export interface SendMethods {
-  sendMessage: (content: string, attachments?: AttachmentInput[], searchProviderId?: string | null) => Promise<void>;
+  sendMessage: (
+    content: string,
+    attachments?: AttachmentInput[],
+    searchProviderId?: string | null,
+  ) => Promise<void>;
   sendAgentMessage: (
     content: string,
     attachments?: AttachmentInput[],
@@ -100,7 +109,11 @@ export interface SendMethods {
     searchProviderId?: string | null,
   ) => Promise<void>;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
-  regenerateWithModel: (targetMessageId: string, providerId: string, model_id: string) => Promise<void>;
+  regenerateWithModel: (
+    targetMessageId: string,
+    providerId: string,
+    model_id: string,
+  ) => Promise<void>;
   sendMultiModelMessage: (
     content: string,
     companionModels: Array<{ providerId: string; model_id: string }>,
@@ -110,7 +123,11 @@ export interface SendMethods {
 }
 
 export function createSendMethods(
-  set: (partial: Partial<ConversationState> | ((s: ConversationState) => Partial<ConversationState>)) => void,
+  set: (
+    partial:
+      | Partial<ConversationState>
+      | ((s: ConversationState) => Partial<ConversationState>),
+  ) => void,
   get: () => ConversationState,
 ): SendMethods {
   return {
@@ -120,11 +137,18 @@ export function createSendMethods(
       searchProviderId: string | null = null,
     ) => {
       const conversationId = get().activeConversationId;
-      if (!conversationId) { throw new Error("No active conversation"); }
+      if (!conversationId) {
+        throw new Error("No active conversation");
+      }
 
       // Guard: prevent duplicate sends while a stream is already active for this conversation
-      if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
-        console.warn("[sendMessage] Ignoring duplicate send — stream already active for", conversationId);
+      if (
+        isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
+      ) {
+        console.warn(
+          "[sendMessage] Ignoring duplicate send — stream already active for",
+          conversationId,
+        );
         return;
       }
 
@@ -173,10 +197,18 @@ export function createSendMethods(
       const hasWikiRag = wikiIds.length > 0;
       const hasAnyRag = hasKnowledgeRag || hasMemoryRag || hasWikiRag;
       let placeholderContent = "";
-      if (searchProviderId) { placeholderContent += buildSearchTag("searching"); }
-      if (hasKnowledgeRag) { placeholderContent += buildKnowledgeTag("searching"); }
-      if (hasMemoryRag) { placeholderContent += buildMemoryTag("searching"); }
-      if (hasWikiRag) { placeholderContent += buildWikiTag("searching"); }
+      if (searchProviderId) {
+        placeholderContent += buildSearchTag("searching");
+      }
+      if (hasKnowledgeRag) {
+        placeholderContent += buildKnowledgeTag("searching");
+      }
+      if (hasMemoryRag) {
+        placeholderContent += buildMemoryTag("searching");
+      }
+      if (hasWikiRag) {
+        placeholderContent += buildWikiTag("searching");
+      }
       const placeholderAssistant: Message = {
         id: tempAssistantId,
         conversation_id: conversationId,
@@ -200,8 +232,15 @@ export function createSendMethods(
         messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
       }));
       useStreamStore.setState((s) => ({
-        ...startConversationStream(s.activeStreams, conversationId, tempAssistantId),
-        streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+        ...startConversationStream(
+          s.activeStreams,
+          conversationId,
+          tempAssistantId,
+        ),
+        streamingStartTimestamps: {
+          ...s.streamingStartTimestamps,
+          [conversationId]: Date.now(),
+        },
         thinkingActiveMessageIds: new Set<string>(),
       }));
       setPendingUiChunk(null);
@@ -215,7 +254,9 @@ export function createSendMethods(
         if (searchProviderId) {
           let searchResultTag = "";
           try {
-            const searchResult = await useSearchStore.getState().executeSearch(searchProviderId, content);
+            const searchResult = await useSearchStore
+              .getState()
+              .executeSearch(searchProviderId, content);
             if (searchResult?.ok && searchResult.results.length > 0) {
               finalContent = formatSearchContent(searchResult.results, content);
               searchResultTag = buildSearchTag("done", searchResult.results);
@@ -229,8 +270,13 @@ export function createSendMethods(
           const wikiPart = hasWikiRag ? buildWikiTag("searching") : "";
           setStreamPrefix(searchResultTag + kbPart + memPart + wikiPart);
           set((s) => ({
-            messages: s.messages.map(m =>
-              m.id === tempAssistantId ? { ...m, content: searchResultTag + kbPart + memPart + wikiPart } : m
+            messages: s.messages.map((m) =>
+              m.id === tempAssistantId
+                ? {
+                  ...m,
+                  content: searchResultTag + kbPart + memPart + wikiPart,
+                }
+                : m
             ),
           }));
         } else if (hasAnyRag) {
@@ -260,13 +306,19 @@ export function createSendMethods(
 
         // Stale guard: if user switched conversations while send was in-flight,
         // discard the response to prevent cross-conversation message pollution.
-        if (get().activeConversationId !== conversationId) { return; }
+        if (get().activeConversationId !== conversationId) {
+          return;
+        }
 
         // Replace optimistic user msg with real one, update placeholder parent
         set((s) => ({
-          messages: s.messages.map(m => {
-            if (m.id === optimisticUserMsg.id) { return userMessage; }
-            if (m.id === tempAssistantId) { return { ...m, parent_message_id: userMessage.id }; }
+          messages: s.messages.map((m) => {
+            if (m.id === optimisticUserMsg.id) {
+              return userMessage;
+            }
+            if (m.id === tempAssistantId) {
+              return { ...m, parent_message_id: userMessage.id };
+            }
             return m;
           }),
         }));
@@ -300,12 +352,17 @@ export function createSendMethods(
 
         // Try fallback models before showing error (use loop, not recursion)
         if (isRetryable) {
-          const conversation = get().conversations.find(c => c.id === conversationId);
+          const conversation = get().conversations.find(
+            (c) => c.id === conversationId,
+          );
           const currentProviderId = conversation?.provider_id;
           const currentModelId = conversation?.model_id;
 
           if (currentProviderId && currentModelId) {
-            const fallbackChain = buildFallbackChain(currentProviderId, currentModelId);
+            const fallbackChain = buildFallbackChain(
+              currentProviderId,
+              currentModelId,
+            );
             let fallbackSucceeded = false;
             // 保存原始 provider/model，全部 fallback 失败后恢复
             const originalProviderId = currentProviderId;
@@ -315,14 +372,28 @@ export function createSendMethods(
             for (let i = 0; i < fallbackChain.length; i++) {
               const fb = fallbackChain[i];
               try {
-                await get().updateConversation(conversationId, { provider_id: fb.providerId, model_id: fb.model_id });
+                await get().updateConversation(conversationId, {
+                  provider_id: fb.providerId,
+                  model_id: fb.model_id,
+                });
                 const currentActiveStreams = useStreamStore.getState().activeStreams;
-                if (isConvStreaming(currentActiveStreams, conversationId)) { return; }
+                if (isConvStreaming(currentActiveStreams, conversationId)) {
+                  return;
+                }
                 // Remove error placeholder
-                const currentMsgId = getStreamingMessageId(useStreamStore.getState().activeStreams, conversationId);
+                const currentMsgId = getStreamingMessageId(
+                  useStreamStore.getState().activeStreams,
+                  conversationId,
+                );
                 set((s) => ({
-                  messages: s.messages.filter(m =>
-                    m.id !== currentMsgId && !(m.status === "error" && m.role === "assistant" && m.content === errMsg)
+                  messages: s.messages.filter(
+                    (m) =>
+                      m.id !== currentMsgId
+                      && !(
+                        m.status === "error"
+                        && m.role === "assistant"
+                        && m.content === errMsg
+                      ),
                   ),
                 }));
                 // Re-invoke send_message directly (not recursive sendMessage)
@@ -341,21 +412,34 @@ export function createSendMethods(
                 // Re-start stream
                 const newTempId = tempId("temp-assistant-");
                 useStreamStore.setState((s) => ({
-                  ...startConversationStream(s.activeStreams, conversationId, newTempId),
-                  streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+                  ...startConversationStream(
+                    s.activeStreams,
+                    conversationId,
+                    newTempId,
+                  ),
+                  streamingStartTimestamps: {
+                    ...s.streamingStartTimestamps,
+                    [conversationId]: Date.now(),
+                  },
                   thinkingActiveMessageIds: new Set<string>(),
                 }));
                 fallbackSucceeded = true;
                 break;
-              } catch (_fallbackErr) { /* continue to next */ }
+              } catch (_fallbackErr) {
+                /* continue to next */
+              }
             }
-            if (fallbackSucceeded) { return; }
+            if (fallbackSucceeded) {
+              return;
+            }
 
             // 全部 fallback 失败，恢复原始 provider/model
-            await get().updateConversation(conversationId, {
-              provider_id: originalProviderId,
-              model_id: originalModelId,
-            }).catch(logIpcError("restore_original_model"));
+            await get()
+              .updateConversation(conversationId, {
+                provider_id: originalProviderId,
+                model_id: originalModelId,
+              })
+              .catch(logIpcError("restore_original_model"));
           }
         }
 
@@ -377,29 +461,32 @@ export function createSendMethods(
         const tempErrorId = tempId("temp-error-");
         set((s) => ({
           messages: currentStreamingMessageId
-            ? s.messages.map(m =>
+            ? s.messages.map((m) =>
               m.id === currentStreamingMessageId
                 ? { ...m, content: errMsg, status: "error" as const }
                 : m
             )
-            : [...s.messages, {
-              id: tempErrorId,
-              conversation_id: conversationId,
-              role: "assistant" as const,
-              content: errMsg,
-              provider_id: null,
-              model_id: null,
-              token_count: null,
-              attachments: [],
-              thinking: null,
-              tool_calls_json: null,
-              tool_call_id: null,
-              created_at: Date.now(),
-              parent_message_id: null,
-              version_index: 0,
-              is_active: true,
-              status: "error" as const,
-            }],
+            : [
+              ...s.messages,
+              {
+                id: tempErrorId,
+                conversation_id: conversationId,
+                role: "assistant" as const,
+                content: errMsg,
+                provider_id: null,
+                model_id: null,
+                token_count: null,
+                attachments: [],
+                thinking: null,
+                tool_calls_json: null,
+                tool_call_id: null,
+                created_at: Date.now(),
+                parent_message_id: null,
+                version_index: 0,
+                is_active: true,
+                status: "error" as const,
+              },
+            ],
         }));
         // Sync messages from DB so temp- prefixed user messages get replaced
         // with real backend IDs, enabling regenerate after a send failure.
@@ -407,7 +494,11 @@ export function createSendMethods(
         // aren't silently dropped when invoke("send_message") failed entirely.
         // (If the DB also has the real user message, mergePreservedMessages keeps both;
         // a duplicate user bubble is much less harmful than losing the user's input.)
-        const errorPreserveIds = [optimisticUserMsg.id, tempErrorId, currentStreamingMessageId].filter(
+        const errorPreserveIds = [
+          optimisticUserMsg.id,
+          tempErrorId,
+          currentStreamingMessageId,
+        ].filter(
           (value): value is string => typeof value === "string" && value.length > 0,
         );
         window.setTimeout(() => {
@@ -422,14 +513,25 @@ export function createSendMethods(
       searchProviderId: string | null = null,
     ) => {
       const conversationId = get().activeConversationId;
-      if (!conversationId) { throw new Error("No active conversation"); }
+      if (!conversationId) {
+        throw new Error("No active conversation");
+      }
 
-      const conversation = get().conversations.find((c) => c.id === conversationId);
-      if (!conversation) { throw new Error("Conversation not found"); }
+      const conversation = get().conversations.find(
+        (c) => c.id === conversationId,
+      );
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
 
       // Guard: prevent duplicate sends while a stream is already active for this conversation
-      if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
-        console.warn("[sendAgentMessage] Ignoring duplicate send — stream already active for", conversationId);
+      if (
+        isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
+      ) {
+        console.warn(
+          "[sendAgentMessage] Ignoring duplicate send — stream already active for",
+          conversationId,
+        );
         return;
       }
 
@@ -535,8 +637,15 @@ export function createSendMethods(
         messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
       }));
       useStreamStore.setState((s) => ({
-        ...startConversationStream(s.activeStreams, conversationId, currentMsgId),
-        streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+        ...startConversationStream(
+          s.activeStreams,
+          conversationId,
+          currentMsgId,
+        ),
+        streamingStartTimestamps: {
+          ...s.streamingStartTimestamps,
+          [conversationId]: Date.now(),
+        },
       }));
 
       let unlistenDone: UnlistenFn | null = null;
@@ -552,12 +661,23 @@ export function createSendMethods(
       // Hoist promise reject so the timeout can reject the promise
       let _agentReject: ((reason: Error) => void) | null = null;
       let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
-        if (!isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) { return; }
+        if (
+          !isConvStreaming(
+            useStreamStore.getState().activeStreams,
+            conversationId,
+          )
+        ) {
+          return;
+        }
         cleanup();
         set((s) => ({
           messages: s.messages.map((m) =>
             m.id === currentMsgId
-              ? { ...m, content: i18n.t("agentMode.timeout"), status: "error" as const }
+              ? {
+                ...m,
+                content: i18n.t("agentMode.timeout"),
+                status: "error" as const,
+              }
               : m
           ),
         }));
@@ -603,17 +723,25 @@ export function createSendMethods(
         }
         const textChunk = _agentPendingText;
         _agentPendingText = "";
-        if (!textChunk) { return; }
+        if (!textChunk) {
+          return;
+        }
 
         // Guard: don't update messages if user switched to a different conversation
-        if (get().activeConversationId !== conversationId) { return; }
+        if (get().activeConversationId !== conversationId) {
+          return;
+        }
 
         set((s) => {
-          const wasThinking = useStreamStore.getState().thinkingActiveMessageIds.has(currentMsgId);
+          const wasThinking = useStreamStore
+            .getState()
+            .thinkingActiveMessageIds.has(currentMsgId);
           let nextThinkingIds = useStreamStore.getState().thinkingActiveMessageIds;
 
           const updatedMessages = s.messages.map((m) => {
-            if (m.id !== currentMsgId) { return m; }
+            if (m.id !== currentMsgId) {
+              return m;
+            }
             let content = m.content || "";
 
             // Close thinking block if we were in thinking mode
@@ -627,7 +755,9 @@ export function createSendMethods(
             return { ...m, content };
           });
 
-          useStreamStore.setState({ thinkingActiveMessageIds: nextThinkingIds });
+          useStreamStore.setState({
+            thinkingActiveMessageIds: nextThinkingIds,
+          });
           return { messages: updatedMessages };
         });
       };
@@ -639,17 +769,25 @@ export function createSendMethods(
         }
         const thinkingChunk = _agentPendingThinking;
         _agentPendingThinking = "";
-        if (!thinkingChunk) { return; }
+        if (!thinkingChunk) {
+          return;
+        }
 
         // Guard: don't update messages if user switched to a different conversation
-        if (get().activeConversationId !== conversationId) { return; }
+        if (get().activeConversationId !== conversationId) {
+          return;
+        }
 
         set((s) => {
-          const wasThinking = useStreamStore.getState().thinkingActiveMessageIds.has(currentMsgId);
+          const wasThinking = useStreamStore
+            .getState()
+            .thinkingActiveMessageIds.has(currentMsgId);
           let nextThinkingIds = useStreamStore.getState().thinkingActiveMessageIds;
 
           const updatedMessages = s.messages.map((m) => {
-            if (m.id !== currentMsgId) { return m; }
+            if (m.id !== currentMsgId) {
+              return m;
+            }
             let content = m.content || "";
             let thinking = m.thinking || "";
 
@@ -663,20 +801,28 @@ export function createSendMethods(
             return { ...m, content, thinking };
           });
 
-          useStreamStore.setState({ thinkingActiveMessageIds: nextThinkingIds });
+          useStreamStore.setState({
+            thinkingActiveMessageIds: nextThinkingIds,
+          });
           return { messages: updatedMessages };
         });
       };
 
       const scheduleAgentFlush = () => {
         if (_agentFlushTimer === null) {
-          _agentFlushTimer = setTimeout(flushAgentTextChunks, STREAM_UI_FLUSH_INTERVAL_MS);
+          _agentFlushTimer = setTimeout(
+            flushAgentTextChunks,
+            STREAM_UI_FLUSH_INTERVAL_MS,
+          );
         }
       };
 
       const scheduleAgentThinkingFlush = () => {
         if (_agentThinkingFlushTimer === null) {
-          _agentThinkingFlushTimer = setTimeout(flushAgentThinkingChunks, AGENT_THINKING_FLUSH_MS);
+          _agentThinkingFlushTimer = setTimeout(
+            flushAgentThinkingChunks,
+            AGENT_THINKING_FLUSH_MS,
+          );
         }
       };
 
@@ -744,45 +890,61 @@ export function createSendMethods(
           _agentReject = reject;
           // Listen for the real assistant message ID from the backend
           // This replaces the temp ID so tool call events can be matched
-          listen<{ conversationId: string; assistantMessageId: string }>("agent-message-id", (event) => {
-            if (event.payload.conversationId !== conversationId) { return; }
-            // Flush pending buffers before switching IDs (both text and thinking)
-            flushAgentTextChunks();
-            flushAgentThinkingChunks();
-            const realId = event.payload.assistantMessageId;
-            const oldId = currentMsgId;
-            currentMsgId = realId;
-            useStreamStore.setState((s) => ({
-              ...startConversationStream(s.activeStreams, conversationId, realId),
-              streamingMessageId: realId,
-            }));
-            set((s) => ({
-              messages: s.messages.map((m) => m.id === oldId ? { ...m, id: realId } : m),
-            }));
-          }).then((fn) => {
+          listen<{ conversationId: string; assistantMessageId: string }>(
+            "agent-message-id",
+            (event) => {
+              if (event.payload.conversationId !== conversationId) {
+                return;
+              }
+              // Flush pending buffers before switching IDs (both text and thinking)
+              flushAgentTextChunks();
+              flushAgentThinkingChunks();
+              const realId = event.payload.assistantMessageId;
+              const oldId = currentMsgId;
+              currentMsgId = realId;
+              useStreamStore.setState((s) => ({
+                ...startConversationStream(
+                  s.activeStreams,
+                  conversationId,
+                  realId,
+                ),
+                streamingMessageId: realId,
+              }));
+              set((s) => ({
+                messages: s.messages.map((m) => m.id === oldId ? { ...m, id: realId } : m),
+              }));
+            },
+          ).then((fn) => {
             unlistenMessageId = fn;
           });
 
           // Listen for incremental text chunks — buffer and flush periodically
-          listen<AgentStreamTextEvent | WorkflowEvent>("agent-stream-text", (event) => {
-            if (event.payload.conversationId !== conversationId) { return; }
+          listen<AgentStreamTextEvent | WorkflowEvent>(
+            "agent-stream-text",
+            (event) => {
+              if (event.payload.conversationId !== conversationId) {
+                return;
+              }
 
-            // Check if this is a workflow event
-            if ("type" in event.payload) {
-              handleWorkflowEvent(event.payload as WorkflowEvent);
-              return;
-            }
+              // Check if this is a workflow event
+              if ("type" in event.payload) {
+                handleWorkflowEvent(event.payload as WorkflowEvent);
+                return;
+              }
 
-            // Regular text event
-            _agentPendingText += event.payload.text;
-            scheduleAgentFlush();
-          }).then((fn) => {
+              // Regular text event
+              _agentPendingText += event.payload.text;
+              scheduleAgentFlush();
+            },
+          ).then((fn) => {
             unlistenStreamText = fn;
           });
 
           // Listen for incremental thinking chunks — buffer and flush periodically
           listen<AgentStreamThinkingEvent>("agent-stream-thinking", (event) => {
-            if (event.payload.conversationId !== conversationId) { return; }
+            if (event.payload.conversationId !== conversationId) {
+              return;
+            }
             _agentPendingThinking += event.payload.thinking;
             scheduleAgentThinkingFlush(); // P2: 200ms cadence
           }).then((fn) => {
@@ -791,11 +953,16 @@ export function createSendMethods(
 
           // Listen for agent-done — correction overwrite with final content
           listen<AgentDoneEvent>("agent-done", (event) => {
-            if (event.payload.conversationId !== conversationId) { return; }
+            if (event.payload.conversationId !== conversationId) {
+              return;
+            }
             // Clear pending buffer (done event overwrites with final content)
             clearAgentStreamBuffer();
             // Skip if streaming was already cancelled (avoid stale fetchMessages re-render)
-            const isStillStreaming = isConvStreaming(useStreamStore.getState().activeStreams, conversationId);
+            const isStillStreaming = isConvStreaming(
+              useStreamStore.getState().activeStreams,
+              conversationId,
+            );
             if (!isStillStreaming) {
               cleanup();
               resolve();
@@ -853,7 +1020,9 @@ export function createSendMethods(
 
           // Listen for workflow-complete
           listen<WorkflowCompleteEvent>("workflow-complete", (event) => {
-            if (event.payload.conversationId !== conversationId) { return; }
+            if (event.payload.conversationId !== conversationId) {
+              return;
+            }
             const text = event.payload.success
               ? `\n[Workflow Complete: ${event.payload.workflowId}]\n`
               : `\n[Workflow Failed: ${event.payload.workflowId}]\n`;
@@ -865,11 +1034,16 @@ export function createSendMethods(
 
           // Listen for agent-error
           listen<AgentErrorEvent>("agent-error", (event) => {
-            if (event.payload.conversationId !== conversationId) { return; }
+            if (event.payload.conversationId !== conversationId) {
+              return;
+            }
             // Clear pending buffer (error event overwrites content)
             clearAgentStreamBuffer();
             // Skip if streaming was already cancelled
-            const isStillStreaming = isConvStreaming(useStreamStore.getState().activeStreams, conversationId);
+            const isStillStreaming = isConvStreaming(
+              useStreamStore.getState().activeStreams,
+              conversationId,
+            );
             if (!isStillStreaming) {
               cleanup();
               resolve();
@@ -916,40 +1090,58 @@ export function createSendMethods(
         });
 
         // Listen for agent status updates — update placeholder message to show progress
-        listen<{ conversationId: string; phase: string; message: string }>("agent-status", (event) => {
-          if (event.payload.conversationId !== conversationId) { return; }
-          // Reset timeout on each status event
-          if (timeoutId !== null) { clearTimeout(timeoutId); }
-          timeoutId = setTimeout(() => {
-            if (!isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) { return; }
-            cleanup();
+        listen<{ conversationId: string; phase: string; message: string }>(
+          "agent-status",
+          (event) => {
+            if (event.payload.conversationId !== conversationId) {
+              return;
+            }
+            // Reset timeout on each status event
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+            }
+            timeoutId = setTimeout(() => {
+              if (
+                !isConvStreaming(
+                  useStreamStore.getState().activeStreams,
+                  conversationId,
+                )
+              ) {
+                return;
+              }
+              cleanup();
+              set((s) => ({
+                messages: s.messages.map((m) =>
+                  m.id === currentMsgId
+                    ? {
+                      ...m,
+                      content: i18n.t("agentMode.timeoutShort"),
+                      status: "error" as const,
+                    }
+                    : m
+                ),
+              }));
+              useStreamStore.setState((s) => ({
+                ...stopConversationStream(s.activeStreams, conversationId),
+                streamingStartTimestamps: (() => {
+                  const t = { ...s.streamingStartTimestamps };
+                  delete t[conversationId];
+                  return t;
+                })(),
+              }));
+              if (_agentReject) {
+                _agentReject(new Error(i18n.t("agentMode.timeoutShort")));
+              }
+            }, AGENT_TIMEOUT_MS);
             set((s) => ({
               messages: s.messages.map((m) =>
                 m.id === currentMsgId
-                  ? { ...m, content: i18n.t("agentMode.timeoutShort"), status: "error" as const }
+                  ? { ...m, thinking: `🔄 ${event.payload.message}` }
                   : m
               ),
             }));
-            useStreamStore.setState((s) => ({
-              ...stopConversationStream(s.activeStreams, conversationId),
-              streamingStartTimestamps: (() => {
-                const t = { ...s.streamingStartTimestamps };
-                delete t[conversationId];
-                return t;
-              })(),
-            }));
-            if (_agentReject) {
-              _agentReject(new Error(i18n.t("agentMode.timeoutShort")));
-            }
-          }, AGENT_TIMEOUT_MS);
-          set((s) => ({
-            messages: s.messages.map((m) =>
-              m.id === currentMsgId
-                ? { ...m, thinking: `🔄 ${event.payload.message}` }
-                : m
-            ),
-          }));
-        }).then((fn) => {
+          },
+        ).then((fn) => {
           unlistenStatus = fn;
         });
 
@@ -958,30 +1150,38 @@ export function createSendMethods(
         // We must NOT use the default 5-minute invoke timeout — the backend continues
         // running and we rely on agent-done/agent-error events for completion.
         // Setting timeoutMs=0 disables the invoke-level timeout entirely.
-        await invoke("agent_query", {
-          request: {
-            conversationId,
-            input: content,
-            providerId,
-            model_id,
-            expertRoleId: conversation.expert_role_id ?? undefined,
-            agentProfileId: conversation.agent_profile_id ?? undefined,
-            systemPrompt: conversation.system_prompt ?? undefined,
-            searchProviderId: searchProviderId ?? undefined,
+        await invoke(
+          "agent_query",
+          {
+            request: {
+              conversationId,
+              input: content,
+              providerId,
+              model_id,
+              expertRoleId: conversation.expert_role_id ?? undefined,
+              agentProfileId: conversation.agent_profile_id ?? undefined,
+              systemPrompt: conversation.system_prompt ?? undefined,
+              searchProviderId: searchProviderId ?? undefined,
+            },
           },
-        }, 0);
+          0,
+        );
         // Wait for agent-done or agent-error event
         await eventPromise;
       } catch (e) {
         // Safeguard: ensure listeners are always cleaned up, even if cleanup() itself throws
         try {
           cleanup();
-        } catch (_) { /* ignore cleanup errors */ }
+        } catch (_) {
+          /* ignore cleanup errors */
+        }
         const errMsg = String(e);
         console.error("[sendAgentMessage] error:", errMsg);
 
         // Stale guard: user switched conversations while agent was running
-        if (get().activeConversationId !== conversationId) { return; }
+        if (get().activeConversationId !== conversationId) {
+          return;
+        }
 
         // Only set error state if the message doesn't already have an error state
         // (agent-error event listener may have already set it with the backend message)
@@ -995,7 +1195,12 @@ export function createSendMethods(
         }
 
         // If streaming is still true, the error came from invoke itself (not an event)
-        if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+        if (
+          isConvStreaming(
+            useStreamStore.getState().activeStreams,
+            conversationId,
+          )
+        ) {
           useStreamStore.setState((s) => ({
             ...stopConversationStream(s.activeStreams, conversationId),
             streamingStartTimestamps: (() => {
@@ -1033,14 +1238,25 @@ export function createSendMethods(
       _searchProviderId: string | null = null,
     ) => {
       const conversationId = get().activeConversationId;
-      if (!conversationId) { throw new Error("No active conversation"); }
+      if (!conversationId) {
+        throw new Error("No active conversation");
+      }
 
-      const conversation = get().conversations.find((c) => c.id === conversationId);
-      if (!conversation) { throw new Error("Conversation not found"); }
+      const conversation = get().conversations.find(
+        (c) => c.id === conversationId,
+      );
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
 
       // Guard: prevent duplicate sends while a stream is already active
-      if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
-        console.warn("[sendPlanMessage] Ignoring duplicate send — stream already active for", conversationId);
+      if (
+        isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
+      ) {
+        console.warn(
+          "[sendPlanMessage] Ignoring duplicate send — stream already active for",
+          conversationId,
+        );
         return;
       }
 
@@ -1099,15 +1315,26 @@ export function createSendMethods(
         messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
       }));
       useStreamStore.setState((s) => ({
-        ...startConversationStream(s.activeStreams, conversationId, currentMsgId),
-        streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+        ...startConversationStream(
+          s.activeStreams,
+          conversationId,
+          currentMsgId,
+        ),
+        streamingStartTimestamps: {
+          ...s.streamingStartTimestamps,
+          [conversationId]: Date.now(),
+        },
       }));
 
       try {
         // Trigger plan generation on the backend - it emits plan-generated event via SSE
-        await invoke("plan_generate", {
-          request: { conversationId, content },
-        }, 0);
+        await invoke(
+          "plan_generate",
+          {
+            request: { conversationId, content },
+          },
+          0,
+        );
 
         // Plan generation is async - the plan-generated event will trigger PlanCard rendering
         // End the initial text stream so InputArea unblocks
@@ -1124,7 +1351,11 @@ export function createSendMethods(
         set((s) => ({
           messages: s.messages.map((m) =>
             m.id === currentMsgId
-              ? { ...m, content: i18n.t("agentMode.planGenerated"), status: "complete" as const }
+              ? {
+                ...m,
+                content: i18n.t("agentMode.planGenerated"),
+                status: "complete" as const,
+              }
               : m
           ),
         }));
@@ -1161,11 +1392,18 @@ export function createSendMethods(
 
     regenerateMessage: async (targetMessageId?: string) => {
       const conversationId = get().activeConversationId;
-      if (!conversationId) { throw new Error("No active conversation"); }
+      if (!conversationId) {
+        throw new Error("No active conversation");
+      }
 
       // Guard: prevent duplicate sends while a stream is already active for this conversation
-      if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
-        console.warn("[regenerateMessage] Ignoring duplicate send — stream already active for", conversationId);
+      if (
+        isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
+      ) {
+        console.warn(
+          "[regenerateMessage] Ignoring duplicate send — stream already active for",
+          conversationId,
+        );
         return;
       }
 
@@ -1174,9 +1412,9 @@ export function createSendMethods(
       let userMsg: Message | undefined;
       if (targetMessageId) {
         // Find the AI message, then its parent user message
-        const aiMsg = msgs.find(m => m.id === targetMessageId);
+        const aiMsg = msgs.find((m) => m.id === targetMessageId);
         if (aiMsg?.parent_message_id) {
-          userMsg = msgs.find(m => m.id === aiMsg.parent_message_id);
+          userMsg = msgs.find((m) => m.id === aiMsg.parent_message_id);
         }
       }
       if (!userMsg) {
@@ -1187,11 +1425,15 @@ export function createSendMethods(
           }
         }
       }
-      if (!userMsg) { throw new Error("No user message found"); }
+      if (!userMsg) {
+        throw new Error("No user message found");
+      }
 
       // Guard: reject temp IDs that haven't been persisted to the backend yet
       if (userMsg.id.startsWith("temp-")) {
-        throw new Error("Message is still being sent. Please wait and try again.");
+        throw new Error(
+          "Message is still being sent. Please wait and try again.",
+        );
       }
 
       // Create placeholder for new version, preserving original created_at for position
@@ -1199,7 +1441,9 @@ export function createSendMethods(
       const parentId = userMsg.id;
 
       // Find the original active AI message to preserve its created_at
-      const originalAiMsg = msgs.find(m => m.parent_message_id === parentId && m.is_active);
+      const originalAiMsg = msgs.find(
+        (m) => m.parent_message_id === parentId && m.is_active,
+      );
       const placeholderAssistant: Message = {
         id: tempAssistantId,
         conversation_id: conversationId,
@@ -1243,8 +1487,15 @@ export function createSendMethods(
         };
       });
       useStreamStore.setState((s) => ({
-        ...startConversationStream(s.activeStreams, conversationId, tempAssistantId),
-        streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+        ...startConversationStream(
+          s.activeStreams,
+          conversationId,
+          tempAssistantId,
+        ),
+        streamingStartTimestamps: {
+          ...s.streamingStartTimestamps,
+          [conversationId]: Date.now(),
+        },
         thinkingActiveMessageIds: new Set<string>(),
       }));
       setPendingUiChunk(null);
@@ -1302,7 +1553,7 @@ export function createSendMethods(
         }));
         set((s) => ({
           messages: currentStreamingMessageId
-            ? s.messages.map(m =>
+            ? s.messages.map((m) =>
               m.id === currentStreamingMessageId
                 ? { ...m, content: errMsg, status: "error" as const }
                 : m
@@ -1312,19 +1563,31 @@ export function createSendMethods(
       }
     },
 
-    regenerateWithModel: async (targetMessageId: string, providerId: string, model_id: string) => {
+    regenerateWithModel: async (
+      targetMessageId: string,
+      providerId: string,
+      model_id: string,
+    ) => {
       const conversationId = get().activeConversationId;
-      if (!conversationId) { throw new Error("No active conversation"); }
+      if (!conversationId) {
+        throw new Error("No active conversation");
+      }
 
       const msgs = get().messages;
       // Find the AI message, then its parent user message
-      const aiMsg = msgs.find(m => m.id === targetMessageId);
-      if (!aiMsg?.parent_message_id) { throw new Error("Cannot find parent user message"); }
-      const userMsg = msgs.find(m => m.id === aiMsg.parent_message_id);
-      if (!userMsg) { throw new Error("User message not found"); }
+      const aiMsg = msgs.find((m) => m.id === targetMessageId);
+      if (!aiMsg?.parent_message_id) {
+        throw new Error("Cannot find parent user message");
+      }
+      const userMsg = msgs.find((m) => m.id === aiMsg.parent_message_id);
+      if (!userMsg) {
+        throw new Error("User message not found");
+      }
 
       const parentId = userMsg.id;
-      const originalAiMsg = msgs.find(m => m.parent_message_id === parentId && m.is_active);
+      const originalAiMsg = msgs.find(
+        (m) => m.parent_message_id === parentId && m.is_active,
+      );
 
       // Create placeholder with the target model info
       const tempAssistantId = tempId("temp-assistant-");
@@ -1371,8 +1634,15 @@ export function createSendMethods(
         };
       });
       useStreamStore.setState((s) => ({
-        ...startConversationStream(s.activeStreams, conversationId, tempAssistantId),
-        streamingStartTimestamps: { ...s.streamingStartTimestamps, [conversationId]: Date.now() },
+        ...startConversationStream(
+          s.activeStreams,
+          conversationId,
+          tempAssistantId,
+        ),
+        streamingStartTimestamps: {
+          ...s.streamingStartTimestamps,
+          [conversationId]: Date.now(),
+        },
         thinkingActiveMessageIds: new Set<string>(),
       }));
       setPendingUiChunk(null);
@@ -1431,7 +1701,7 @@ export function createSendMethods(
         }));
         set((s) => ({
           messages: currentStreamingMessageId
-            ? s.messages.map(m =>
+            ? s.messages.map((m) =>
               m.id === currentStreamingMessageId
                 ? { ...m, content: errMsg, status: "error" as const }
                 : m
@@ -1448,12 +1718,14 @@ export function createSendMethods(
       searchProviderId?: string | null,
     ) => {
       // 委托给 multiModelStore 实现
-      return useMultiModelStore.getState().sendMultiModelMessage(
-        content,
-        companionModels,
-        attachments,
-        searchProviderId,
-      );
+      return useMultiModelStore
+        .getState()
+        .sendMultiModelMessage(
+          content,
+          companionModels,
+          attachments,
+          searchProviderId,
+        );
     },
   };
 }

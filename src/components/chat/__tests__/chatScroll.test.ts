@@ -35,41 +35,59 @@ describe("chat scroll helpers", () => {
   });
 
   it("detects layout changes that happen after content finishes rendering", () => {
-    expect(hasScrollLayoutMetricsChanged(
-      { scrollHeight: 1200, clientHeight: 800 },
-      { scrollHeight: 1248, clientHeight: 800 },
-    )).toBe(true);
+    expect(
+      hasScrollLayoutMetricsChanged(
+        { scrollHeight: 1200, clientHeight: 800 },
+        { scrollHeight: 1248, clientHeight: 800 },
+      ),
+    ).toBe(true);
 
-    expect(hasScrollLayoutMetricsChanged(
-      { scrollHeight: 1200, clientHeight: 800 },
-      { scrollHeight: 1200, clientHeight: 760 },
-    )).toBe(true);
+    expect(
+      hasScrollLayoutMetricsChanged(
+        { scrollHeight: 1200, clientHeight: 800 },
+        { scrollHeight: 1200, clientHeight: 760 },
+      ),
+    ).toBe(true);
 
-    expect(hasScrollLayoutMetricsChanged(
-      { scrollHeight: 1200, clientHeight: 800 },
-      { scrollHeight: 1200.5, clientHeight: 800 },
-    )).toBe(false);
+    expect(
+      hasScrollLayoutMetricsChanged(
+        { scrollHeight: 1200, clientHeight: 800 },
+        { scrollHeight: 1200.5, clientHeight: 800 },
+      ),
+    ).toBe(false);
   });
 
   it("keeps bottom lock on post-render layout changes only when the user was pinned", () => {
-    expect(shouldStickToBottomOnLayoutChange(
-      { scrollHeight: 1200, clientHeight: 800 },
-      { scrollHeight: 1280, clientHeight: 800 },
-      true,
-    )).toBe(true);
+    expect(
+      shouldStickToBottomOnLayoutChange(
+        { scrollHeight: 1200, clientHeight: 800 },
+        { scrollHeight: 1280, clientHeight: 800 },
+        true,
+      ),
+    ).toBe(true);
 
-    expect(shouldStickToBottomOnLayoutChange(
-      { scrollHeight: 1200, clientHeight: 800 },
-      { scrollHeight: 1280, clientHeight: 800 },
-      false,
-    )).toBe(false);
+    expect(
+      shouldStickToBottomOnLayoutChange(
+        { scrollHeight: 1200, clientHeight: 800 },
+        { scrollHeight: 1280, clientHeight: 800 },
+        false,
+      ),
+    ).toBe(false);
   });
 
   it("ignores non-user scroll departures caused by async layout shifts while pinned", () => {
-    expect(shouldIgnoreScrollDepartureFromBottom(false, true, false)).toBe(true);
-    expect(shouldIgnoreScrollDepartureFromBottom(false, true, true)).toBe(false);
-    expect(shouldIgnoreScrollDepartureFromBottom(true, true, false)).toBe(false);
-    expect(shouldIgnoreScrollDepartureFromBottom(false, false, false)).toBe(false);
+    expect(shouldIgnoreScrollDepartureFromBottom(false, true, false)).toBe(
+      true,
+    );
+    expect(shouldIgnoreScrollDepartureFromBottom(false, true, true)).toBe(
+      false,
+    );
+    expect(shouldIgnoreScrollDepartureFromBottom(true, true, false)).toBe(
+      false,
+    );
+    expect(shouldIgnoreScrollDepartureFromBottom(false, false, false)).toBe(
+      false,
+    );
   });
 
   it("preserves the viewport anchor when older messages are prepended in reversed chat mode", () => {

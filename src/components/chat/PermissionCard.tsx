@@ -31,7 +31,13 @@ interface PermissionCardProps {
 
 const RISK_CONFIG: Record<
   RiskLevel,
-  { color: string; icon: React.ReactNode; label: string; tooltip: string; bgColor: string }
+  {
+    color: string;
+    icon: React.ReactNode;
+    label: string;
+    tooltip: string;
+    bgColor: string;
+  }
 > = {
   read_only: {
     color: "blue",
@@ -56,35 +62,59 @@ const RISK_CONFIG: Record<
   },
 };
 
-function generateOperationSummary(toolName: string, input: Record<string, unknown>): string {
+function generateOperationSummary(
+  toolName: string,
+  input: Record<string, unknown>,
+): string {
   const lowerTool = toolName.toLowerCase();
 
   if (
-    lowerTool.includes("read") || lowerTool.includes("grep") || lowerTool.includes("glob") || lowerTool.includes("ls")
+    lowerTool.includes("read")
+    || lowerTool.includes("grep")
+    || lowerTool.includes("glob")
+    || lowerTool.includes("ls")
   ) {
-    if (input.path) { return `Read contents from ${input.path}`; }
-    if (input.file) { return `Read file ${input.file}`; }
+    if (input.path) {
+      return `Read contents from ${input.path}`;
+    }
+    if (input.file) {
+      return `Read file ${input.file}`;
+    }
     return "Read files or directory contents";
   }
 
   if (lowerTool.includes("write") || lowerTool.includes("edit")) {
-    if (input.file) { return `Write to file ${input.file}`; }
-    if (input.path) { return `Create or modify ${input.path}`; }
+    if (input.file) {
+      return `Write to file ${input.file}`;
+    }
+    if (input.path) {
+      return `Create or modify ${input.path}`;
+    }
     return "Create or modify files";
   }
 
-  if (lowerTool.includes("bash") || lowerTool.includes("shell") || lowerTool.includes("exec")) {
-    if (input.command) { return `Execute command: ${String(input.command).slice(0, 50)}...`; }
+  if (
+    lowerTool.includes("bash")
+    || lowerTool.includes("shell")
+    || lowerTool.includes("exec")
+  ) {
+    if (input.command) {
+      return `Execute command: ${String(input.command).slice(0, 50)}...`;
+    }
     return "Execute shell command";
   }
 
   if (lowerTool.includes("delete") || lowerTool.includes("remove")) {
-    if (input.path) { return `Delete ${input.path}`; }
+    if (input.path) {
+      return `Delete ${input.path}`;
+    }
     return "Delete files or directories";
   }
 
   if (lowerTool.includes("mkdir") || lowerTool.includes("create_dir")) {
-    if (input.path) { return `Create directory ${input.path}`; }
+    if (input.path) {
+      return `Create directory ${input.path}`;
+    }
     return "Create directory";
   }
 
@@ -93,7 +123,9 @@ function generateOperationSummary(toolName: string, input: Record<string, unknow
   }
 
   if (lowerTool.includes("mcp")) {
-    if (input.operation) { return `MCP operation: ${input.operation}`; }
+    if (input.operation) {
+      return `MCP operation: ${input.operation}`;
+    }
     return "Execute MCP tool";
   }
 
@@ -102,7 +134,16 @@ function generateOperationSummary(toolName: string, input: Record<string, unknow
 
 function extractAffectedPaths(input: Record<string, unknown>): string[] {
   const paths: string[] = [];
-  const pathFields = ["path", "file", "files", "directory", "dir", "target", "destination", "source"];
+  const pathFields = [
+    "path",
+    "file",
+    "files",
+    "directory",
+    "dir",
+    "target",
+    "destination",
+    "source",
+  ];
 
   for (const field of pathFields) {
     if (input[field]) {
@@ -140,7 +181,10 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
   }, []);
 
   const riskCfg = RISK_CONFIG[riskLevel];
-  const operationSummary = useMemo(() => generateOperationSummary(toolName, input), [toolName, input]);
+  const operationSummary = useMemo(
+    () => generateOperationSummary(toolName, input),
+    [toolName, input],
+  );
   const affectedPaths = useMemo(() => extractAffectedPaths(input), [input]);
   const isDangerous = riskLevel === "execute";
 
@@ -181,14 +225,19 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
     opacity: appeared ? 1 : 0,
     transform: appeared ? "translateY(0)" : "translateY(-10px)",
     transition: "box-shadow 0.3s ease-out, transform 0.3s ease-out",
-    boxShadow: status === "pending" && isDangerous ? `0 0 0 1px ${token.colorErrorBorder}` : undefined,
+    boxShadow: status === "pending" && isDangerous
+      ? `0 0 0 1px ${token.colorErrorBorder}`
+      : undefined,
   };
 
   return (
     <>
       <Card size="small" style={cardStyle}>
         <Space orientation="vertical" style={{ width: "100%" }} size={12}>
-          <Space align="start" style={{ width: "100%", justifyContent: "space-between" }}>
+          <Space
+            align="start"
+            style={{ width: "100%", justifyContent: "space-between" }}
+          >
             <Space align="center" size={8}>
               <div
                 style={{
@@ -213,7 +262,13 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                   <Tooltip title={riskCfg.tooltip}>
                     <Tag
                       color={riskCfg.color}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, margin: 0, cursor: "help" }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        margin: 0,
+                        cursor: "help",
+                      }}
                     >
                       {riskCfg.icon}
                       {riskCfg.label}
@@ -223,7 +278,14 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
               </div>
             </Space>
             {status === "pending" && (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, color: token.colorTextSecondary }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  color: token.colorTextSecondary,
+                }}
+              >
                 <Clock size={12} />
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("common.waitingForApproval")}
@@ -241,7 +303,14 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
             }}
           >
             <Space size={4} align="start">
-              <Info size={14} style={{ color: token.colorPrimary, marginTop: 2, flexShrink: 0 }} />
+              <Info
+                size={14}
+                style={{
+                  color: token.colorPrimary,
+                  marginTop: 2,
+                  flexShrink: 0,
+                }}
+              />
               <Text style={{ fontSize: 13, lineHeight: 1.5 }}>
                 {operationSummary}
               </Text>
@@ -253,9 +322,19 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {t("common.affectedPaths")}:
               </Text>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 4,
+                  marginTop: 4,
+                }}
+              >
                 {affectedPaths.map((p, _i) => (
-                  <Tag key={p} style={{ fontSize: 12, fontFamily: "monospace" }}>
+                  <Tag
+                    key={p}
+                    style={{ fontSize: 12, fontFamily: "monospace" }}
+                  >
                     {p.length > 40 ? p.slice(0, 40) + "..." : p}
                   </Tag>
                 ))}
@@ -273,7 +352,12 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                 setExpanded(!expanded);
               }
             }}
-            style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+            style={{
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
           >
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -301,7 +385,14 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
 
           {status === "pending"
             ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
                 <Button
                   size="small"
                   type="primary"
@@ -337,7 +428,10 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                     'Approving "Allow Once" grants permission for this single instance. "Always Allow" saves this decision for future use.',
                   )}
                 >
-                  <Info size={14} style={{ color: token.colorTextSecondary, cursor: "help" }} />
+                  <Info
+                    size={14}
+                    style={{ color: token.colorTextSecondary, cursor: "help" }}
+                  />
                 </Tooltip>
               </div>
             )
@@ -345,14 +439,18 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
             ? (
               <Space>
                 <ShieldCheck size={16} style={{ color: token.colorSuccess }} />
-                <Text type="success" style={{ fontSize: 13 }}>{t("common.approved")}</Text>
+                <Text type="success" style={{ fontSize: 13 }}>
+                  {t("common.approved")}
+                </Text>
               </Space>
             )
             : status === "denied"
             ? (
               <Space>
                 <ShieldX size={16} style={{ color: token.colorError }} />
-                <Text type="danger" style={{ fontSize: 13 }}>{t("common.denied")}</Text>
+                <Text type="danger" style={{ fontSize: 13 }}>
+                  {t("common.denied")}
+                </Text>
               </Space>
             )
             : (
@@ -393,7 +491,9 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
             </li>
             {affectedPaths.slice(0, 3).map((p, _i) => (
               <li key={p}>
-                <Text code style={{ fontSize: 12 }}>{p}</Text>
+                <Text code style={{ fontSize: 12 }}>
+                  {p}
+                </Text>
               </li>
             ))}
           </ul>

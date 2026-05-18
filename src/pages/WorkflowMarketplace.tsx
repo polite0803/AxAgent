@@ -89,7 +89,15 @@ const mockTemplates: MarketplaceTemplate[] = [
   },
 ];
 
-const categories = ["All", "Productivity", "Development", "Data", "Automation", "AI", "Business"];
+const categories = [
+  "All",
+  "Productivity",
+  "Development",
+  "Data",
+  "Automation",
+  "AI",
+  "Business",
+];
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp * 1000).toLocaleDateString();
@@ -133,7 +141,11 @@ function TemplateCard({
         title={
           <Space size={4}>
             <Text strong>{template.name}</Text>
-            {template.isFeatured && <Tag color="gold" style={{ margin: 0 }}>{t("marketplace.featured")}</Tag>}
+            {template.isFeatured && (
+              <Tag color="gold" style={{ margin: 0 }}>
+                {t("marketplace.featured")}
+              </Tag>
+            )}
           </Space>
         }
         description={
@@ -209,8 +221,13 @@ export function WorkflowMarketplace() {
     reviewForm.resetFields();
   };
 
-  const handleSubmitReview = async (values: { rating: number; comment?: string }) => {
-    if (!selectedTemplate) { return; }
+  const handleSubmitReview = async (values: {
+    rating: number;
+    comment?: string;
+  }) => {
+    if (!selectedTemplate) {
+      return;
+    }
 
     setSubmittingReview(true);
     try {
@@ -228,14 +245,18 @@ export function WorkflowMarketplace() {
       loadReviews(selectedTemplate.id);
       reviewForm.resetFields();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : t("review.failedToSubmit"));
+      message.error(
+        error instanceof Error ? error.message : t("review.failedToSubmit"),
+      );
     } finally {
       setSubmittingReview(false);
     }
   };
 
   const handleDeleteReview = async () => {
-    if (!myReview) { return; }
+    if (!myReview) {
+      return;
+    }
 
     try {
       await reviewApi.deleteReview(myReview.id);
@@ -244,7 +265,9 @@ export function WorkflowMarketplace() {
         loadReviews(selectedTemplate.id);
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : t("review.failedToDelete"));
+      message.error(
+        error instanceof Error ? error.message : t("review.failedToDelete"),
+      );
     }
   };
 
@@ -264,7 +287,10 @@ export function WorkflowMarketplace() {
   };
 
   const handleImportSubmit = async (jsonData: string) => {
-    return await invoke<{ id: string; warnings: string[]; errors: string[] }>("import_workflow_template", { jsonData });
+    return await invoke<{ id: string; warnings: string[]; errors: string[] }>(
+      "import_workflow_template",
+      { jsonData },
+    );
   };
 
   const renderReviewsTab = () => (
@@ -277,14 +303,18 @@ export function WorkflowMarketplace() {
           <div className="flex items-center gap-2">
             <Rate disabled value={stats.rating_average} allowHalf />
             <Text>{stats.rating_average.toFixed(1)}</Text>
-            <Text type="secondary">({stats.total_reviews} {t("marketplace.reviews")})</Text>
+            <Text type="secondary">
+              ({stats.total_reviews} {t("marketplace.reviews")})
+            </Text>
           </div>
         )}
       </div>
 
       <div className="border p-4 rounded">
         <Title level={5} className="m-0 mb-4">
-          {myReview ? t("marketplace.yourReview") : t("marketplace.writeReview")}
+          {myReview
+            ? t("marketplace.yourReview")
+            : t("marketplace.writeReview")}
         </Title>
         {myReview
           ? (
@@ -298,7 +328,10 @@ export function WorkflowMarketplace() {
                 <Button
                   size="small"
                   onClick={() => {
-                    reviewForm.setFieldsValue({ rating: myReview.rating, comment: myReview.comment || "" });
+                    reviewForm.setFieldsValue({
+                      rating: myReview.rating,
+                      comment: myReview.comment || "",
+                    });
                   }}
                 >
                   {t("common.edit")}
@@ -310,7 +343,11 @@ export function WorkflowMarketplace() {
             </div>
           )
           : (
-            <Form form={reviewForm} onFinish={handleSubmitReview} layout="vertical">
+            <Form
+              form={reviewForm}
+              onFinish={handleSubmitReview}
+              layout="vertical"
+            >
               <Form.Item
                 name="rating"
                 label={t("common.rating")}
@@ -319,10 +356,18 @@ export function WorkflowMarketplace() {
                 <Rate />
               </Form.Item>
               <Form.Item name="comment" label={t("common.comment")}>
-                <Input.TextArea name="comment" rows={3} placeholder={t("review.commentPlaceholder")} />
+                <Input.TextArea
+                  name="comment"
+                  rows={3}
+                  placeholder={t("review.commentPlaceholder")}
+                />
               </Form.Item>
               <Form.Item>
-                <Button type="primary" htmlType="submit" loading={submittingReview}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={submittingReview}
+                >
                   {t("marketplace.submitReview")}
                 </Button>
               </Form.Item>
@@ -357,7 +402,10 @@ export function WorkflowMarketplace() {
   );
 
   return (
-    <div className="flex h-full" style={{ backgroundColor: token.colorBgElevated }}>
+    <div
+      className="flex h-full"
+      style={{ backgroundColor: token.colorBgElevated }}
+    >
       <aside
         className="w-56 border-r p-4"
         style={{
@@ -396,7 +444,14 @@ export function WorkflowMarketplace() {
         className="flex-1 overflow-y-auto p-6"
         style={{ backgroundColor: token.colorBgContainer }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 24,
+          }}
+        >
           <Title level={4} style={{ margin: 0 }}>
             {t("marketplace.title")}
           </Title>
@@ -419,12 +474,21 @@ export function WorkflowMarketplace() {
               key: "templates",
               label: t("marketplace.templates"),
               children: (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 16,
+                  }}
+                >
                   {filteredTemplates.length > 0
                     ? (
                       filteredTemplates.map((t) => (
                         <div key={t.id} style={{ position: "relative" }}>
-                          <TemplateCard template={t} onTemplateClick={handleTemplateClick} />
+                          <TemplateCard
+                            template={t}
+                            onTemplateClick={handleTemplateClick}
+                          />
                           <Button
                             type="primary"
                             icon={<DLOutlined />}
@@ -450,25 +514,32 @@ export function WorkflowMarketplace() {
               key: "featured",
               label: t("marketplace.featured"),
               children: (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 16,
+                  }}
+                >
                   {templates.flatMap((t) =>
                     t.isFeatured
                       ? [
-                        (
-                          <div key={t.id} style={{ position: "relative" }}>
-                            <TemplateCard template={t} onTemplateClick={handleTemplateClick} />
-                            <Button
-                              type="primary"
-                              icon={<DLOutlined />}
-                              style={{ position: "absolute", top: 8, right: 8 }}
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(t);
-                              }}
-                            />
-                          </div>
-                        ),
+                        <div key={t.id} style={{ position: "relative" }}>
+                          <TemplateCard
+                            template={t}
+                            onTemplateClick={handleTemplateClick}
+                          />
+                          <Button
+                            type="primary"
+                            icon={<DLOutlined />}
+                            style={{ position: "absolute", top: 8, right: 8 }}
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(t);
+                            }}
+                          />
+                        </div>,
                       ]
                       : []
                   )}
@@ -530,19 +601,29 @@ export function WorkflowMarketplace() {
                           </div>
                         </div>
                         <div>
-                          <Text type="secondary">{t("marketplace.author")}</Text>
+                          <Text type="secondary">
+                            {t("marketplace.author")}
+                          </Text>
                           <div>{selectedTemplate.author}</div>
                         </div>
                         <div>
-                          <Text type="secondary">{t("marketplace.downloads")}</Text>
+                          <Text type="secondary">
+                            {t("marketplace.downloads")}
+                          </Text>
                           <div>{selectedTemplate.downloads}</div>
                         </div>
                       </div>
                       <div>
                         <Text type="secondary">{t("common.rating")}</Text>
                         <div>
-                          <Rate disabled defaultValue={selectedTemplate.rating} allowHalf />
-                          <Text className="ml-2">({selectedTemplate.rating})</Text>
+                          <Rate
+                            disabled
+                            defaultValue={selectedTemplate.rating}
+                            allowHalf
+                          />
+                          <Text className="ml-2">
+                            ({selectedTemplate.rating})
+                          </Text>
                         </div>
                       </div>
                       {selectedTemplate.tags && (

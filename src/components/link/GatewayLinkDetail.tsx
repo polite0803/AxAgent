@@ -14,7 +14,9 @@ export function GatewayLinkDetail() {
   const navigate = useNavigate();
   const selectedLinkId = useGatewayLinkStore((s) => s.selectedLinkId);
   const links = useGatewayLinkStore((s) => s.links);
-  const createGatewayConversation = useGatewayLinkStore((s) => s.createGatewayConversation);
+  const createGatewayConversation = useGatewayLinkStore(
+    (s) => s.createGatewayConversation,
+  );
 
   const selectedLink = links.find((l) => l.id === selectedLinkId);
 
@@ -69,11 +71,16 @@ export function GatewayLinkDetail() {
     <div className="flex flex-col h-full" style={{ overflow: "hidden" }}>
       <div
         className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: `1px solid ${token.colorBorderSecondary}`, flexShrink: 0 }}
+        style={{
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          flexShrink: 0,
+        }}
       >
         <div>
           <div className="flex items-center gap-2">
-            <span style={{ fontWeight: 600, fontSize: 15 }}>{selectedLink.name}</span>
+            <span style={{ fontWeight: 600, fontSize: 15 }}>
+              {selectedLink.name}
+            </span>
             <Tag
               color={selectedLink.status === "connected"
                 ? "green"
@@ -81,10 +88,18 @@ export function GatewayLinkDetail() {
                 ? "red"
                 : "default"}
             >
-              {t(`link.status${selectedLink.status.charAt(0).toUpperCase()}${selectedLink.status.slice(1)}`)}
+              {t(
+                `link.status${selectedLink.status.charAt(0).toUpperCase()}${selectedLink.status.slice(1)}`,
+              )}
             </Tag>
           </div>
-          <div style={{ fontSize: 12, color: token.colorTextTertiary, fontFamily: "monospace" }}>
+          <div
+            style={{
+              fontSize: 12,
+              color: token.colorTextTertiary,
+              fontFamily: "monospace",
+            }}
+          >
             {selectedLink.endpoint}
           </div>
         </div>

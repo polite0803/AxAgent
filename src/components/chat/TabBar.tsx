@@ -12,7 +12,9 @@ import { useTranslation } from "react-i18next";
 const MAX_TITLE_LEN = 24;
 
 function truncateTitle(title: string): string {
-  if (title.length <= MAX_TITLE_LEN) { return title; }
+  if (title.length <= MAX_TITLE_LEN) {
+    return title;
+  }
   return title.slice(0, MAX_TITLE_LEN - 1) + "…";
 }
 
@@ -57,8 +59,11 @@ const Tab = memo(function Tab({
 
   const handleContextMenuClick = useCallback(
     ({ key }: { key: string }) => {
-      if (key === "closeOthers") { onCloseOthers(tab.id); }
-      else if (key === "closeRight") { onCloseRight(tab.id); }
+      if (key === "closeOthers") {
+        onCloseOthers(tab.id);
+      } else if (key === "closeRight") {
+        onCloseRight(tab.id);
+      }
     },
     [onCloseOthers, onCloseRight, tab.id],
   );
@@ -119,7 +124,12 @@ const Tab = memo(function Tab({
                 <img
                   src={customIcon.value}
                   alt={model_id || ""}
-                  style={{ width: 14, height: 14, borderRadius: 2, objectFit: "cover" }}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: 2,
+                    objectFit: "cover",
+                  }}
                 />
               )
             )
@@ -129,7 +139,10 @@ const Tab = memo(function Tab({
               <Avatar
                 size={14}
                 icon={<Bot size={9} />}
-                style={{ backgroundColor: token.colorPrimaryBg, color: token.colorPrimary }}
+                style={{
+                  backgroundColor: token.colorPrimaryBg,
+                  color: token.colorPrimary,
+                }}
               />
             )}
         </span>
@@ -208,7 +221,9 @@ export function TabBar({ onNewConversation }: TabBarProps) {
   const closeTabsToRight = useTabStore((s) => s.closeTabsToRight);
 
   const conversations = useConversationStore((s) => s.conversations);
-  const streamingConversationId = useStreamStore((s) => s.streamingConversationId);
+  const streamingConversationId = useStreamStore(
+    (s) => s.streamingConversationId,
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -240,7 +255,9 @@ export function TabBar({ onNewConversation }: TabBarProps) {
     [closeTabsToRight],
   );
 
-  if (tabs.length === 0) { return null; }
+  if (tabs.length === 0) {
+    return null;
+  }
 
   return (
     <div

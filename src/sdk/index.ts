@@ -21,10 +21,18 @@
 export const ACP_VERSION = "1.0.0";
 
 /** 会话状态 */
-export type SessionStatus = "idle" | "running" | "waiting_permission" | "compacting" | "closed";
+export type SessionStatus =
+  | "idle"
+  | "running"
+  | "waiting_permission"
+  | "compacting"
+  | "closed";
 
 /** 系统权限模式 */
-export type SystemPermissionMode = "read-only" | "workspace-write" | "danger-full-access";
+export type SystemPermissionMode =
+  | "read-only"
+  | "workspace-write"
+  | "danger-full-access";
 
 /** 创建会话参数 */
 export interface CreateSessionParams {
@@ -96,7 +104,11 @@ export class AxAgentClient {
     return h;
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
       method,
@@ -105,8 +117,12 @@ export class AxAgentClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(`ACP 请求失败: ${(error as { message?: string }).message || response.statusText}`);
+      const error = await response
+        .json()
+        .catch(() => ({ message: response.statusText }));
+      throw new Error(
+        `ACP 请求失败: ${(error as { message?: string }).message || response.statusText}`,
+      );
     }
 
     return response.json();
@@ -128,12 +144,20 @@ export class AxAgentClient {
   }
 
   /** 发送 prompt */
-  async sendPrompt(sessionId: string, prompt: string, maxTurns?: number): Promise<PromptResult> {
-    return this.request<PromptResult>("POST", `/acp/v1/sessions/${sessionId}/prompts`, {
-      sessionId,
-      prompt,
-      maxTurns,
-    });
+  async sendPrompt(
+    sessionId: string,
+    prompt: string,
+    maxTurns?: number,
+  ): Promise<PromptResult> {
+    return this.request<PromptResult>(
+      "POST",
+      `/acp/v1/sessions/${sessionId}/prompts`,
+      {
+        sessionId,
+        prompt,
+        maxTurns,
+      },
+    );
   }
 
   /** 中断执行 */

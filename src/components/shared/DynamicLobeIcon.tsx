@@ -42,7 +42,9 @@ export const DynamicLobeIcon = memo(function DynamicLobeIcon({
     };
   }, [iconId]);
 
-  if (!IconModule) { return <div style={{ width: size, height: size }} />; }
+  if (!IconModule) {
+    return <div style={{ width: size, height: size }} />;
+  }
 
   if (type === "color" && IconModule.Color) {
     return <IconModule.Color size={size} />;

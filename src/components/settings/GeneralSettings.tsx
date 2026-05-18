@@ -34,7 +34,15 @@ export function GeneralSettings() {
             onChange={handleLanguageChange}
             options={LANG_OPTIONS.map((opt) => ({
               label: (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{opt.icon} {opt.label}</span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {opt.icon} {opt.label}
+                </span>
               ),
               value: opt.key,
             }))}
@@ -85,9 +93,11 @@ export function GeneralSettings() {
             onChange={(checked) => {
               saveSettings({ always_on_top: checked });
               if (inTauri) {
-                invoke("set_always_on_top", { enabled: checked }).catch((e: unknown) => {
-                  console.warn("[IPC]", e);
-                });
+                invoke("set_always_on_top", { enabled: checked }).catch(
+                  (e: unknown) => {
+                    console.warn("[IPC]", e);
+                  },
+                );
               }
             }}
             disabled={!inTauri}
@@ -115,9 +125,11 @@ export function GeneralSettings() {
             onChange={(checked) => {
               saveSettings({ minimize_to_tray: checked });
               if (inTauri) {
-                invoke("set_close_to_tray", { enabled: checked }).catch((e: unknown) => {
-                  console.warn("[IPC]", e);
-                });
+                invoke("set_close_to_tray", { enabled: checked }).catch(
+                  (e: unknown) => {
+                    console.warn("[IPC]", e);
+                  },
+                );
               }
             }}
           />
@@ -148,11 +160,18 @@ export function GeneralSettings() {
                   size="small"
                   icon={<FolderOpen size={14} />}
                   onClick={async () => {
-                    if (!inTauri) { return; }
+                    if (!inTauri) {
+                      return;
+                    }
                     try {
-                      const selected = await open({ directory: true, multiple: false });
+                      const selected = await open({
+                        directory: true,
+                        multiple: false,
+                      });
                       if (selected) {
-                        saveSettings({ default_workspace_dir: selected as string });
+                        saveSettings({
+                          default_workspace_dir: selected as string,
+                        });
                       }
                     } catch {
                       // User cancelled or not available

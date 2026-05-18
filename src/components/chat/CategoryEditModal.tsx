@@ -65,15 +65,23 @@ export function CategoryEditModal({
   const [iconType, setIconType] = useState<string | null>(null);
   const [iconValue, setIconValue] = useState<string | null>(null);
   const [systemPrompt, setSystemPrompt] = useState("");
-  const [defaultProviderId, setDefaultProviderId] = useState<string | null>(null);
+  const [defaultProviderId, setDefaultProviderId] = useState<string | null>(
+    null,
+  );
   const [defaultModelId, setDefaultModelId] = useState<string | null>(null);
-  const [defaultTemperature, setDefaultTemperature] = useState<number | null>(null);
+  const [defaultTemperature, setDefaultTemperature] = useState<number | null>(
+    null,
+  );
   const [defaultMaxTokens, setDefaultMaxTokens] = useState<number | null>(null);
   const [defaultTopP, setDefaultTopP] = useState<number | null>(null);
-  const [defaultFrequencyPenalty, setDefaultFrequencyPenalty] = useState<number | null>(null);
+  const [defaultFrequencyPenalty, setDefaultFrequencyPenalty] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
-    if (!open) { return; }
+    if (!open) {
+      return;
+    }
     setName(initialName);
     setIconType(initialIconType);
     setIconValue(initialIconValue);
@@ -100,10 +108,18 @@ export function CategoryEditModal({
   const handleParamsChange = useCallback(
     (values: Partial<ModelParamValues>) => {
       const { temperature, topP, maxTokens, frequencyPenalty } = values;
-      if (temperature !== undefined) { setDefaultTemperature(temperature ?? null); }
-      if (topP !== undefined) { setDefaultTopP(topP ?? null); }
-      if (maxTokens !== undefined) { setDefaultMaxTokens(maxTokens ?? null); }
-      if (frequencyPenalty !== undefined) { setDefaultFrequencyPenalty(frequencyPenalty ?? null); }
+      if (temperature !== undefined) {
+        setDefaultTemperature(temperature ?? null);
+      }
+      if (topP !== undefined) {
+        setDefaultTopP(topP ?? null);
+      }
+      if (maxTokens !== undefined) {
+        setDefaultMaxTokens(maxTokens ?? null);
+      }
+      if (frequencyPenalty !== undefined) {
+        setDefaultFrequencyPenalty(frequencyPenalty ?? null);
+      }
     },
     [],
   );
@@ -161,7 +177,11 @@ export function CategoryEditModal({
             <Avatar
               size={40}
               icon={<FolderOpen size={18} />}
-              style={{ cursor: "pointer", backgroundColor: token.colorFillSecondary, color: token.colorTextSecondary }}
+              style={{
+                cursor: "pointer",
+                backgroundColor: token.colorFillSecondary,
+                color: token.colorTextSecondary,
+              }}
             />
           }
         />

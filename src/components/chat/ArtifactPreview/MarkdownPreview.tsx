@@ -11,9 +11,7 @@ export const MarkdownPreview = memo(function MarkdownPreview({
   isDark = false,
 }: MarkdownPreviewProps) {
   return (
-    <div
-      style={{ padding: 16, overflow: "auto", height: "100%" }}
-    >
+    <div style={{ padding: 16, overflow: "auto", height: "100%" }}>
       <NodeRenderer
         content={content}
         isDark={isDark}

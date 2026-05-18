@@ -10,7 +10,9 @@ import { ReactFlowProvider } from "reactflow";
  */
 export function WorkflowPage() {
   const { token } = theme.useToken();
-  const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>(undefined);
+  const [editingTemplateId, setEditingTemplateId] = useState<
+    string | undefined
+  >(undefined);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   // Show editor when creating new (no templateId) or editing existing
@@ -29,7 +31,13 @@ export function WorkflowPage() {
   }
 
   return (
-    <div style={{ backgroundColor: token.colorBgElevated, height: "100%", overflowY: "auto" }}>
+    <div
+      style={{
+        backgroundColor: token.colorBgElevated,
+        height: "100%",
+        overflowY: "auto",
+      }}
+    >
       <WorkflowSettings
         onOpenEditor={(templateId?: string) => setEditingTemplateId(templateId)}
         onCreateNew={() => setIsCreatingNew(true)}

@@ -18,10 +18,14 @@ export function SkillStatusBar({ alignment }: SkillStatusBarProps) {
     .filter((item) => item.alignment === alignment)
     .sort((a, b) => a.priority - b.priority);
 
-  if (items.length === 0) { return null; }
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, height: "100%" }}>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 8, height: "100%" }}
+    >
       {items.map((item) => <StatusBarItem key={`${item.skillName}:${item.id}`} item={item} />)}
     </div>
   );
@@ -34,13 +38,18 @@ function StatusBarItem({ item }: { item: MergedStatusBarItem }) {
 
   // 动态轮询（带退避）
   useEffect(() => {
-    if (!item.dynamicText) { return; }
+    if (!item.dynamicText) {
+      return;
+    }
     const { command, args, refreshIntervalMs } = item.dynamicText;
     let timer: ReturnType<typeof setTimeout>;
 
     const fetchValue = async () => {
       try {
-        const result = await invoke<Record<string, unknown>>(command, args || {});
+        const result = await invoke<Record<string, unknown>>(
+          command,
+          args || {},
+        );
         const template = item.dynamicText!.template || "{{value}}";
         const val = result?.value ?? result?.count ?? Object.values(result || {})[0];
         setDynamicValue(template.replace("{{value}}", String(val ?? "")));

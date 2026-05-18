@@ -39,10 +39,14 @@ export function MonacoEditor({
   height = "100%",
 }: MonacoEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<import("monaco-editor").editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<
+    import("monaco-editor").editor.IStandaloneCodeEditor | null
+  >(null);
 
   useEffect(() => {
-    if (!containerRef.current) { return; }
+    if (!containerRef.current) {
+      return;
+    }
 
     const editor = window.monaco.editor.create(containerRef.current, {
       value,
@@ -85,7 +89,10 @@ export function MonacoEditor({
     if (editorRef.current) {
       const model = editorRef.current.getModel();
       if (model) {
-        window.monaco.editor.setModelLanguage(model, LANGUAGE_MAP[language] || "plaintext");
+        window.monaco.editor.setModelLanguage(
+          model,
+          LANGUAGE_MAP[language] || "plaintext",
+        );
       }
     }
   }, [language]);

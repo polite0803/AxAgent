@@ -10,7 +10,11 @@ interface FrontendEditorProps {
   onSaved: () => void;
 }
 
-export function FrontendEditor({ skillName, currentManifest, onSaved }: FrontendEditorProps) {
+export function FrontendEditor({
+  skillName,
+  currentManifest,
+  onSaved,
+}: FrontendEditorProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [jsonText, setJsonText] = useState(
@@ -63,7 +67,10 @@ export function FrontendEditor({ skillName, currentManifest, onSaved }: Frontend
         okText={t("common.save")}
         cancelText={t("common.cancel")}
       >
-        <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
+        <Typography.Paragraph
+          type="secondary"
+          style={{ fontSize: 12, marginBottom: 12 }}
+        >
           {t("skillEditor.editManifestDesc")} <code>skill-manifest.json</code>.{" "}
           {t("skillEditor.supportedCapabilities")}: page, panel, toolbar, chatCommand, statusBar, navigation, settings.
         </Typography.Paragraph>

@@ -14,7 +14,10 @@ interface DelayPropertyPanelProps {
  * Extracted component for rendering the delay config.
  * Fixes react-doctor/no-render-in-render by moving renderDelayConfig() out of DelayPropertyPanel.
  */
-function DelayConfig({ config, handleConfigChange }: {
+function DelayConfig({
+  config,
+  handleConfigChange,
+}: {
   config: Record<string, any>;
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
@@ -24,7 +27,14 @@ function DelayConfig({ config, handleConfigChange }: {
     case "seconds":
       return (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.delaySeconds")}
           </label>
           <InputNumber
@@ -47,7 +57,14 @@ function DelayConfig({ config, handleConfigChange }: {
     case "minutes":
       return (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.delayMinutes")}
           </label>
           <InputNumber
@@ -65,7 +82,14 @@ function DelayConfig({ config, handleConfigChange }: {
     case "hours":
       return (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.delayHours")}
           </label>
           <InputNumber
@@ -83,7 +107,14 @@ function DelayConfig({ config, handleConfigChange }: {
     case "until":
       return (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.delayUntil")}
           </label>
           <Input
@@ -104,7 +135,11 @@ function DelayConfig({ config, handleConfigChange }: {
   }
 }
 
-export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const delayNode = node as DelayNode;
   const config = delayNode.config || {
@@ -119,7 +154,14 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.delayType")}
         </label>
         <Select
@@ -140,8 +182,14 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({ node, on
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

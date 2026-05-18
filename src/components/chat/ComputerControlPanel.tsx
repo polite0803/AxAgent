@@ -22,22 +22,35 @@ interface UIElement {
 export function ComputerControlPanel() {
   const { t } = useTranslation();
   const mountedRef = useRef(true);
-  useEffect(() => () => {
-    mountedRef.current = false;
-  }, []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [autoMode, setAutoMode] = useState(false);
   const [elements, setElements] = useState<UIElement[]>([]);
   const [loading, setLoading] = useState(false);
-  const [clickCoords, setClickCoords] = useState<{ x: number; y: number } | null>(null);
-  const [nativeResolution, setNativeResolution] = useState({ width: 1920, height: 1080 });
+  const [clickCoords, setClickCoords] = useState<
+    {
+      x: number;
+      y: number;
+    } | null
+  >(null);
+  const [nativeResolution, setNativeResolution] = useState({
+    width: 1920,
+    height: 1080,
+  });
   const [dpiScale, setDpiScale] = useState(1.0);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const handleCapture = async () => {
     setLoading(true);
     try {
-      const result = await invoke<CaptureResult>("screen_capture", { monitor: 0 });
+      const result = await invoke<CaptureResult>("screen_capture", {
+        monitor: 0,
+      });
       setNativeResolution({ width: result.width, height: result.height });
       setScreenshot(`data:image/png;base64,${result.image_base64}`);
       if (result.scale_factor && result.scale_factor > 0) {
@@ -62,7 +75,9 @@ export function ComputerControlPanel() {
   };
 
   const handleImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
-    if (!imgRef.current) { return; }
+    if (!imgRef.current) {
+      return;
+    }
     const rect = imgRef.current.getBoundingClientRect();
     const scaleX = nativeResolution.width / rect.width;
     const scaleY = nativeResolution.height / rect.height;
@@ -76,7 +91,9 @@ export function ComputerControlPanel() {
       await invoke("mouse_click", { x, y, button: "left" });
       message.success(t("computerControl.clickSuccess", { x, y }));
       setTimeout(() => {
-        if (mountedRef.current) { handleCapture(); }
+        if (mountedRef.current) {
+          handleCapture();
+        }
       }, 500);
     } catch (e) {
       message.error(String(e));
@@ -105,7 +122,9 @@ export function ComputerControlPanel() {
     try {
       await invoke("mouse_scroll", { x, y, delta });
       message.success(
-        t("computerControl.scrolled", { direction: delta > 0 ? t("computerControl.down") : t("computerControl.up") }),
+        t("computerControl.scrolled", {
+          direction: delta > 0 ? t("computerControl.down") : t("computerControl.up"),
+        }),
       );
     } catch (e) {
       message.error(String(e));
@@ -113,7 +132,9 @@ export function ComputerControlPanel() {
   };
 
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
+    >
       <Space>
         <Button
           icon={<Scissors size={14} />}
@@ -137,7 +158,8 @@ export function ComputerControlPanel() {
           />
         </Tooltip>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {t("computerControl.resolution")}: {nativeResolution.width}x{nativeResolution.height}
+          {t("computerControl.resolution")}: {nativeResolution.width}x
+          {nativeResolution.height}
           {dpiScale !== 1.0 && ` (${Math.round(dpiScale * 100)}% DPI)`}
         </Typography.Text>
       </Space>
@@ -229,19 +251,34 @@ export function ComputerControlPanel() {
               {t("computerControl.coordinates")}: ({clickCoords.x}, {clickCoords.y})
             </Typography.Text>
             <Space>
-              <Button size="small" type="primary" onClick={() => executeClick(clickCoords.x, clickCoords.y)}>
+              <Button
+                size="small"
+                type="primary"
+                onClick={() => executeClick(clickCoords.x, clickCoords.y)}
+              >
                 {t("computerControl.executeClick")}
               </Button>
               <Input
                 id="computer-control-panel-input-9"
                 placeholder={t("computerControl.typePlaceholder")}
                 style={{ width: 200 }}
-                onPressEnter={(e) => handleTypeText(e.currentTarget.value, clickCoords.x, clickCoords.y)}
+                onPressEnter={(e) =>
+                  handleTypeText(
+                    e.currentTarget.value,
+                    clickCoords.x,
+                    clickCoords.y,
+                  )}
               />
-              <Button size="small" onClick={() => handleScroll(clickCoords.x, clickCoords.y, -3)}>
+              <Button
+                size="small"
+                onClick={() => handleScroll(clickCoords.x, clickCoords.y, -3)}
+              >
                 {t("computerControl.scrollUp")}
               </Button>
-              <Button size="small" onClick={() => handleScroll(clickCoords.x, clickCoords.y, 3)}>
+              <Button
+                size="small"
+                onClick={() => handleScroll(clickCoords.x, clickCoords.y, 3)}
+              >
                 {t("computerControl.scrollDown")}
               </Button>
             </Space>
@@ -250,7 +287,10 @@ export function ComputerControlPanel() {
       )}
 
       {elements.length > 0 && (
-        <Card size="small" title={t("computerControl.foundElements", { count: elements.length })}>
+        <Card
+          size="small"
+          title={t("computerControl.foundElements", { count: elements.length })}
+        >
           <div style={{ maxHeight: 200, overflow: "auto" }}>
             {elements.slice(0, 20).map((el, _i) => (
               <div
@@ -280,7 +320,9 @@ export function ComputerControlPanel() {
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   {el.role}
                 </Typography.Text>{" "}
-                <Typography.Text>{el.name || t("computerControl.unnamed")}</Typography.Text>
+                <Typography.Text>
+                  {el.name || t("computerControl.unnamed")}
+                </Typography.Text>
               </div>
             ))}
           </div>
@@ -289,13 +331,27 @@ export function ComputerControlPanel() {
 
       <Card size="small" title={t("computerControl.shortcuts")}>
         <Space wrap>
-          <Button size="small" onClick={() => handlePressKey("Enter")}>Enter</Button>
-          <Button size="small" onClick={() => handlePressKey("Tab")}>Tab</Button>
-          <Button size="small" onClick={() => handlePressKey("Escape")}>Esc</Button>
-          <Button size="small" onClick={() => handlePressKey("a", ["control"])}>Ctrl+A</Button>
-          <Button size="small" onClick={() => handlePressKey("c", ["control"])}>Ctrl+C</Button>
-          <Button size="small" onClick={() => handlePressKey("v", ["control"])}>Ctrl+V</Button>
-          <Button size="small" onClick={() => handlePressKey("z", ["control"])}>Ctrl+Z</Button>
+          <Button size="small" onClick={() => handlePressKey("Enter")}>
+            Enter
+          </Button>
+          <Button size="small" onClick={() => handlePressKey("Tab")}>
+            Tab
+          </Button>
+          <Button size="small" onClick={() => handlePressKey("Escape")}>
+            Esc
+          </Button>
+          <Button size="small" onClick={() => handlePressKey("a", ["control"])}>
+            Ctrl+A
+          </Button>
+          <Button size="small" onClick={() => handlePressKey("c", ["control"])}>
+            Ctrl+C
+          </Button>
+          <Button size="small" onClick={() => handlePressKey("v", ["control"])}>
+            Ctrl+V
+          </Button>
+          <Button size="small" onClick={() => handlePressKey("z", ["control"])}>
+            Ctrl+Z
+          </Button>
         </Space>
       </Card>
     </div>

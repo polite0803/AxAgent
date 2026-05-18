@@ -28,16 +28,40 @@ export function TaskPanel() {
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const STATUS_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-    pending: { color: "default", icon: <Circle size={10} />, label: t("task.statusPending") },
+  const STATUS_CONFIG: Record<
+    string,
+    { color: string; icon: React.ReactNode; label: string }
+  > = {
+    pending: {
+      color: "default",
+      icon: <Circle size={10} />,
+      label: t("task.statusPending"),
+    },
     running: {
       color: "processing",
-      icon: <LoaderCircle size={10} style={{ animation: "spin 1s linear infinite" }} />,
+      icon: (
+        <LoaderCircle
+          size={10}
+          style={{ animation: "spin 1s linear infinite" }}
+        />
+      ),
       label: t("task.statusRunning"),
     },
-    completed: { color: "success", icon: <Circle size={10} fill="currentColor" />, label: t("task.statusCompleted") },
-    failed: { color: "error", icon: <Circle size={10} fill="currentColor" />, label: t("task.statusFailed") },
-    stopped: { color: "warning", icon: <StopCircle size={10} />, label: t("task.statusStopped") },
+    completed: {
+      color: "success",
+      icon: <Circle size={10} fill="currentColor" />,
+      label: t("task.statusCompleted"),
+    },
+    failed: {
+      color: "error",
+      icon: <Circle size={10} fill="currentColor" />,
+      label: t("task.statusFailed"),
+    },
+    stopped: {
+      color: "warning",
+      icon: <StopCircle size={10} />,
+      label: t("task.statusStopped"),
+    },
   };
 
   const fetchTasks = useCallback(async () => {
@@ -77,15 +101,18 @@ export function TaskPanel() {
     };
   }, [fetchTasks]);
 
-  const handleStop = useCallback(async (taskId: string) => {
-    try {
-      await invoke("stop_background_task", { taskId });
-      message.success(t("task.stopped"));
-      fetchTasks();
-    } catch (e) {
-      message.error(`${t("task.stopFail")}: ${String(e)}`);
-    }
-  }, [fetchTasks, t]);
+  const handleStop = useCallback(
+    async (taskId: string) => {
+      try {
+        await invoke("stop_background_task", { taskId });
+        message.success(t("task.stopped"));
+        fetchTasks();
+      } catch (e) {
+        message.error(`${t("task.stopFail")}: ${String(e)}`);
+      }
+    },
+    [fetchTasks, t],
+  );
 
   const runningCount = tasks.filter((t) => t.status === "running").length;
   const pendingCount = tasks.filter((t) => t.status === "pending").length;
@@ -104,7 +131,11 @@ export function TaskPanel() {
         <span style={{ fontWeight: 600, fontSize: 14 }}>
           {t("task.title")}
           {(runningCount > 0 || pendingCount > 0) && (
-            <Badge count={runningCount + pendingCount} size="small" style={{ marginLeft: 8 }} />
+            <Badge
+              count={runningCount + pendingCount}
+              size="small"
+              style={{ marginLeft: 8 }}
+            />
           )}
         </span>
         <Button size="small" onClick={fetchTasks} loading={loading}>
@@ -116,7 +147,11 @@ export function TaskPanel() {
         {loading && tasks.length === 0 && <Spin style={{ display: "block", margin: "24px auto" }} />}
 
         {!loading && tasks.length === 0 && (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("task.empty")} style={{ marginTop: 32 }} />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("task.empty")}
+            style={{ marginTop: 32 }}
+          />
         )}
 
         {tasks.map((task) => {
@@ -140,7 +175,9 @@ export function TaskPanel() {
                   alignItems: "center",
                   gap: 8,
                   cursor: "pointer",
-                  backgroundColor: isExpanded ? "var(--color-fill-alter)" : "transparent",
+                  backgroundColor: isExpanded
+                    ? "var(--color-fill-alter)"
+                    : "transparent",
                 }}
                 role="button"
                 tabIndex={0}
@@ -152,11 +189,20 @@ export function TaskPanel() {
                 }}
                 onClick={() => setExpandedId(isExpanded ? null : task.id)}
               >
-                <span style={{ color: `var(--color-${cfg.color})`, display: "flex" }}>
+                <span
+                  style={{
+                    color: `var(--color-${cfg.color})`,
+                    display: "flex",
+                  }}
+                >
                   {cfg.icon}
                 </span>
-                <Text strong style={{ flex: 1, fontSize: 13 }}>{task.title}</Text>
-                <Tag color={cfg.color} style={{ margin: 0 }}>{cfg.label}</Tag>
+                <Text strong style={{ flex: 1, fontSize: 13 }}>
+                  {task.title}
+                </Text>
+                <Tag color={cfg.color} style={{ margin: 0 }}>
+                  {cfg.label}
+                </Tag>
                 <Tag style={{ margin: 0, fontSize: 12 }}>{task.task_type}</Tag>
                 {task.status === "running" && (
                   <Popconfirm
@@ -181,14 +227,29 @@ export function TaskPanel() {
               </div>
 
               {isExpanded && (
-                <div style={{ padding: "8px 12px 12px", borderTop: "1px solid var(--color-border-secondary)" }}>
+                <div
+                  style={{
+                    padding: "8px 12px 12px",
+                    borderTop: "1px solid var(--color-border-secondary)",
+                  }}
+                >
                   {task.description && (
-                    <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 8 }}>
+                    <Paragraph
+                      type="secondary"
+                      style={{ fontSize: 12, marginBottom: 8 }}
+                    >
                       {task.description}
                     </Paragraph>
                   )}
                   {task.command && (
-                    <Text code style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+                    <Text
+                      code
+                      style={{
+                        fontSize: 12,
+                        display: "block",
+                        marginBottom: 8,
+                      }}
+                    >
                       $ {task.command}
                     </Text>
                   )}

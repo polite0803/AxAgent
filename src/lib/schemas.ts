@@ -3,7 +3,13 @@ import { z } from "zod";
 export const ToolCallStateSchema = z.object({
   toolUseId: z.string(),
   toolName: z.string(),
-  executionStatus: z.enum(["pending", "running", "completed", "failed", "cancelled"]),
+  executionStatus: z.enum([
+    "pending",
+    "running",
+    "completed",
+    "failed",
+    "cancelled",
+  ]),
   approvalStatus: z.enum(["pending", "approved", "denied", "auto_approved"]),
   input: z.record(z.string(), z.unknown()).optional(),
   output: z.unknown().nullable().optional(),
@@ -20,7 +26,9 @@ export const AgentSessionSchema = z.object({
   systemPrompt: z.string().optional(),
   cwd: z.string().optional(),
   permissionMode: z.enum(["default", "plan", "auto"]).optional(),
-  status: z.enum(["idle", "running", "paused", "completed", "failed"]).optional(),
+  status: z
+    .enum(["idle", "running", "paused", "completed", "failed"])
+    .optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
@@ -40,7 +48,14 @@ export const PlanSchema = z.object({
   id: z.string(),
   conversationId: z.string(),
   title: z.string(),
-  status: z.enum(["draft", "approved", "executing", "completed", "failed", "cancelled"]),
+  status: z.enum([
+    "draft",
+    "approved",
+    "executing",
+    "completed",
+    "failed",
+    "cancelled",
+  ]),
   steps: z.array(PlanStepSchema),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -55,14 +70,16 @@ export const ReplanRecordSchema = z.object({
 
 export const ToTStateSummarySchema = z.object({
   rootId: z.string(),
-  nodes: z.array(z.object({
-    id: z.string(),
-    content: z.string(),
-    evaluationScore: z.number().min(0).max(1),
-    status: z.enum(["Generated", "Explored", "Pruned", "Selected"]),
-    parentId: z.string().nullable(),
-    childIds: z.array(z.string()),
-  })),
+  nodes: z.array(
+    z.object({
+      id: z.string(),
+      content: z.string(),
+      evaluationScore: z.number().min(0).max(1),
+      status: z.enum(["Generated", "Explored", "Pruned", "Selected"]),
+      parentId: z.string().nullable(),
+      childIds: z.array(z.string()),
+    }),
+  ),
   selectedPath: z.array(z.string()),
 });
 

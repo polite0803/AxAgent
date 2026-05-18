@@ -64,11 +64,16 @@ export function SkillSandboxContainer({
   };
 
   const hostApi: SkillHostApi = {
-    invoke: async <T = unknown>(command: string, args?: Record<string, unknown>): Promise<T> => {
+    invoke: async <T = unknown>(
+      command: string,
+      args?: Record<string, unknown>,
+    ): Promise<T> => {
       return invoke<T>(command, args || {});
     },
     emit: (event: string, payload?: unknown): void => {
-      window.dispatchEvent(new CustomEvent(`skill:${skillName}:${event}`, { detail: payload }));
+      window.dispatchEvent(
+        new CustomEvent(`skill:${skillName}:${event}`, { detail: payload }),
+      );
     },
   };
 
@@ -76,7 +81,10 @@ export function SkillSandboxContainer({
     navigate: (path: string): void => {
       window.location.hash = path;
     },
-    notify: (message: string, type: "info" | "success" | "warning" | "error" = "info"): void => {
+    notify: (
+      message: string,
+      type: "info" | "success" | "warning" | "error" = "info",
+    ): void => {
       notification[type]({ message, placement: "bottomRight" });
     },
     getTheme: (): "light" | "dark" => {
@@ -93,18 +101,27 @@ export function SkillSandboxContainer({
   };
 
   const hostStore: SkillHostStore = {
-    read: async <T = unknown>(storeName: string, selector?: string): Promise<T> => {
+    read: async <T = unknown>(
+      storeName: string,
+      selector?: string,
+    ): Promise<T> => {
       const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
       await initStoreRegistry();
       const registry = getStoreRegistry();
       const accessor = registry.get(storeName);
-      if (!accessor) { throw new Error(i18n.t("skill.storeNotFound", { name: storeName })); }
+      if (!accessor) {
+        throw new Error(i18n.t("skill.storeNotFound", { name: storeName }));
+      }
       const state = accessor.get() as Record<string, unknown>;
       if (selector) {
         const parts = selector.split(".");
         let result: unknown = state;
         for (const part of parts) {
-          if (result && typeof result === "object" && part in (result as Record<string, unknown>)) {
+          if (
+            result
+            && typeof result === "object"
+            && part in (result as Record<string, unknown>)
+          ) {
             result = (result as Record<string, unknown>)[part];
           } else {
             return undefined as T;
@@ -114,12 +131,18 @@ export function SkillSandboxContainer({
       }
       return structuredClone(state) as T;
     },
-    write: async (storeName: string, value: unknown, selector?: string): Promise<void> => {
+    write: async (
+      storeName: string,
+      value: unknown,
+      selector?: string,
+    ): Promise<void> => {
       const { getStoreRegistry, initStoreRegistry } = await import("@/lib/storeRegistry");
       await initStoreRegistry();
       const registry = getStoreRegistry();
       const accessor = registry.get(storeName);
-      if (!accessor) { throw new Error(i18n.t("skill.storeNotWritable", { name: storeName })); }
+      if (!accessor) {
+        throw new Error(i18n.t("skill.storeNotWritable", { name: storeName }));
+      }
       if (selector && typeof value === "object" && value !== null) {
         const partial: Record<string, unknown> = {};
         const parts = selector.split(".");
@@ -141,7 +164,9 @@ export function SkillSandboxContainer({
     setLoading(true);
 
     // 加载超时保护
-    if (loadTimerRef.current) { clearTimeout(loadTimerRef.current); }
+    if (loadTimerRef.current) {
+      clearTimeout(loadTimerRef.current);
+    }
     loadTimerRef.current = setTimeout(() => {
       setError(i18n.t("skill.timeoutError"));
       setLoading(false);
@@ -157,8 +182,12 @@ export function SkillSandboxContainer({
         throw new Error(i18n.t("skill.entryFileEmpty", { entry }));
       }
 
-      if (bridgeRef.current) { bridgeRef.current.destroy(); }
-      if (apiBridgeRef.current) { apiBridgeRef.current.destroy(); }
+      if (bridgeRef.current) {
+        bridgeRef.current.destroy();
+      }
+      if (apiBridgeRef.current) {
+        apiBridgeRef.current.destroy();
+      }
 
       const skillId = `${skillName}:${componentId}`;
       const propsJson = JSON.stringify(props);
@@ -216,7 +245,10 @@ export function SkillSandboxContainer({
           window.removeEventListener("message", messageHandler);
           window.addEventListener("message", handleRpc);
         } else if (msg?.type === "skill:error") {
-          console.error(`[SkillSandbox] Skill "${skillName}" 运行时错误:`, msg.error);
+          console.error(
+            `[SkillSandbox] Skill "${skillName}" 运行时错误:`,
+            msg.error,
+          );
         }
       };
 
@@ -225,7 +257,10 @@ export function SkillSandboxContainer({
         if (msg?.type === "rpc:request" && apiBridgeRef.current) {
           apiBridgeRef.current.handleRpcRequest(msg);
         } else if (msg?.type === "skill:error") {
-          console.error(`[SkillSandbox] Skill "${skillName}" 运行时错误:`, msg.error);
+          console.error(
+            `[SkillSandbox] Skill "${skillName}" 运行时错误:`,
+            msg.error,
+          );
         }
       };
 
@@ -240,14 +275,29 @@ export function SkillSandboxContainer({
         loadTimerRef.current = null;
       }
     }
-  }, [skillName, componentId, entry, effectivePermissions, props, hostApi, hostUi, hostStore]);
+  }, [
+    skillName,
+    componentId,
+    entry,
+    effectivePermissions,
+    props,
+    hostApi,
+    hostUi,
+    hostStore,
+  ]);
 
   useEffect(() => {
     loadSandbox();
     return () => {
-      if (bridgeRef.current) { bridgeRef.current.destroy(); }
-      if (apiBridgeRef.current) { apiBridgeRef.current.destroy(); }
-      if (loadTimerRef.current) { clearTimeout(loadTimerRef.current); }
+      if (bridgeRef.current) {
+        bridgeRef.current.destroy();
+      }
+      if (apiBridgeRef.current) {
+        apiBridgeRef.current.destroy();
+      }
+      if (loadTimerRef.current) {
+        clearTimeout(loadTimerRef.current);
+      }
     };
   }, [loadSandbox]);
 

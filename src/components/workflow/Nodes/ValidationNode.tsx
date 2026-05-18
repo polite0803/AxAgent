@@ -23,7 +23,10 @@ export interface Assertion {
   expression?: string;
 }
 
-const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data, selected }) => {
+const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#722ed1";
   const assertions = data.assertions || [];
@@ -110,7 +113,9 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
               fontWeight: 500,
             }}
           >
-            {t("workflow.validationNode.assertionCount", { count: assertions.length })}
+            {t("workflow.validationNode.assertionCount", {
+              count: assertions.length,
+            })}
           </Tag>
 
           <div

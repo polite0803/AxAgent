@@ -37,7 +37,11 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
 
   // Build flat model list
   const allModels = React.useMemo(() => {
-    const models: Array<{ value: string; label: string; providerName: string }> = [];
+    const models: Array<{
+      value: string;
+      label: string;
+      providerName: string;
+    }> = [];
     for (const provider of providers) {
       for (const model of provider.models) {
         models.push({
@@ -52,22 +56,33 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
 
   // Load saved config
   useEffect(() => {
-    if (!open) { return; }
+    if (!open) {
+      return;
+    }
     try {
-      const saved = localStorage.getItem(`axagent:model-routing:${conversationId}`);
+      const saved = localStorage.getItem(
+        `axagent:model-routing:${conversationId}`,
+      );
       if (saved) {
         setConfig(JSON.parse(saved));
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [open, conversationId]);
 
   const saveConfig = () => {
-    localStorage.setItem(`axagent:model-routing:${conversationId}`, JSON.stringify(config));
+    localStorage.setItem(
+      `axagent:model-routing:${conversationId}`,
+      JSON.stringify(config),
+    );
     onClose();
   };
 
   const addRoutingRule = () => {
-    if (!newRulePattern || !newRuleModel) { return; }
+    if (!newRulePattern || !newRuleModel) {
+      return;
+    }
     setConfig((prev) => ({
       ...prev,
       routingRules: { ...prev.routingRules, [newRulePattern]: newRuleModel },
@@ -102,7 +117,10 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           <Select
             value={config.primaryModelId || undefined}
             onChange={(v) => setConfig((prev) => ({ ...prev, primaryModelId: v }))}
-            options={allModels.map((m) => ({ value: m.value, label: `${m.label} (${m.providerName})` }))}
+            options={allModels.map((m) => ({
+              value: m.value,
+              label: `${m.label} (${m.providerName})`,
+            }))}
             showSearch
             placeholder={t("chat.modelRoutingConfig.selectPrimaryModel")}
             style={{ width: "100%" }}
@@ -116,10 +134,20 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           </label>
           <Select
             value={config.codeReviewModelId || undefined}
-            onChange={(v) => setConfig((prev) => ({ ...prev, codeReviewModelId: v || undefined }))}
+            onChange={(v) =>
+              setConfig((prev) => ({
+                ...prev,
+                codeReviewModelId: v || undefined,
+              }))}
             options={[
-              { value: "", label: t("chat.modelRoutingConfig.usePrimaryModel") },
-              ...allModels.map((m) => ({ value: m.value, label: `${m.label} (${m.providerName})` })),
+              {
+                value: "",
+                label: t("chat.modelRoutingConfig.usePrimaryModel"),
+              },
+              ...allModels.map((m) => ({
+                value: m.value,
+                label: `${m.label} (${m.providerName})`,
+              })),
             ]}
             allowClear
             showSearch
@@ -135,10 +163,20 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           </label>
           <Select
             value={config.summarizationModelId || undefined}
-            onChange={(v) => setConfig((prev) => ({ ...prev, summarizationModelId: v || undefined }))}
+            onChange={(v) =>
+              setConfig((prev) => ({
+                ...prev,
+                summarizationModelId: v || undefined,
+              }))}
             options={[
-              { value: "", label: t("chat.modelRoutingConfig.usePrimaryModel") },
-              ...allModels.map((m) => ({ value: m.value, label: `${m.label} (${m.providerName})` })),
+              {
+                value: "",
+                label: t("chat.modelRoutingConfig.usePrimaryModel"),
+              },
+              ...allModels.map((m) => ({
+                value: m.value,
+                label: `${m.label} (${m.providerName})`,
+              })),
             ]}
             allowClear
             showSearch
@@ -154,10 +192,20 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           </label>
           <Select
             value={config.translationModelId || undefined}
-            onChange={(v) => setConfig((prev) => ({ ...prev, translationModelId: v || undefined }))}
+            onChange={(v) =>
+              setConfig((prev) => ({
+                ...prev,
+                translationModelId: v || undefined,
+              }))}
             options={[
-              { value: "", label: t("chat.modelRoutingConfig.usePrimaryModel") },
-              ...allModels.map((m) => ({ value: m.value, label: `${m.label} (${m.providerName})` })),
+              {
+                value: "",
+                label: t("chat.modelRoutingConfig.usePrimaryModel"),
+              },
+              ...allModels.map((m) => ({
+                value: m.value,
+                label: `${m.label} (${m.providerName})`,
+              })),
             ]}
             allowClear
             showSearch
@@ -176,24 +224,25 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
           </div>
 
           {/* Existing rules */}
-          {Object.entries(config.routingRules || {}).map(([pattern, model_id]) => (
-            <div key={pattern} className="flex items-center gap-2 mb-1">
-              <Tag color="blue">{pattern}</Tag>
-              <span className="text-xs text-zinc-500">→</span>
-              <Tag color="green">
-                {allModels.find((m) =>
-                  m.value === model_id
-                )?.label || model_id}
-              </Tag>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<Trash2 size={12} />}
-                onClick={() => removeRoutingRule(pattern)}
-              />
-            </div>
-          ))}
+          {Object.entries(config.routingRules || {}).map(
+            ([pattern, model_id]) => (
+              <div key={pattern} className="flex items-center gap-2 mb-1">
+                <Tag color="blue">{pattern}</Tag>
+                <span className="text-xs text-zinc-500">→</span>
+                <Tag color="green">
+                  {allModels.find((m) => m.value === model_id)?.label
+                    || model_id}
+                </Tag>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<Trash2 size={12} />}
+                  onClick={() => removeRoutingRule(pattern)}
+                />
+              </div>
+            ),
+          )}
 
           {/* Add new rule */}
           <div className="flex items-center gap-2 mt-2">
@@ -209,7 +258,10 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
               size="small"
               value={newRuleModel || undefined}
               onChange={setNewRuleModel}
-              options={allModels.map((m) => ({ value: m.value, label: m.label }))}
+              options={allModels.map((m) => ({
+                value: m.value,
+                label: m.label,
+              }))}
               showSearch
               placeholder={t("chat.modelRoutingConfig.modelPlaceholder")}
               style={{ width: 180 }}

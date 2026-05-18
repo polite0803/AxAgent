@@ -12,7 +12,11 @@ interface ParallelPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const parallelNode = node as ParallelNode;
   const config = parallelNode.config || {
@@ -23,12 +27,12 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
   const { nodes } = useWorkflowEditorStore();
 
   const getNodeLabel = (nodeId: string) => {
-    const found = nodes.find(n => n.id === nodeId);
+    const found = nodes.find((n) => n.id === nodeId);
     return found ? `${found.title || found.id} (${found.type})` : nodeId;
   };
 
   const getAvailableNodes = (excludeIds: string[]) => {
-    return nodes.filter(n => !excludeIds.includes(n.id));
+    return nodes.filter((n) => !excludeIds.includes(n.id));
   };
 
   const handleAddBranch = () => {
@@ -75,13 +79,23 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
 
   const handleRemoveStepFromBranch = (branchIndex: number, nodeId: string) => {
     const branch = config.branches[branchIndex];
-    handleUpdateBranch(branchIndex, { steps: branch.steps.filter(id => id !== nodeId) });
+    handleUpdateBranch(branchIndex, {
+      steps: branch.steps.filter((id) => id !== nodeId),
+    });
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.waitForAllBranches")}</label>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <label style={{ color: "#999", fontSize: 12 }}>
+          {t("workflow.props.waitForAllBranches")}
+        </label>
         <Switch
           size="small"
           checked={config.wait_for_all}
@@ -101,7 +115,14 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.timeoutSeconds")}
         </label>
         <Input
@@ -121,7 +142,14 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
       </div>
 
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
           <label style={{ color: "#999", fontSize: 12 }}>
             {t("workflow.props.branches")}
           </label>
@@ -148,7 +176,14 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                   border: "1px solid #333",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    marginBottom: 8,
+                  }}
+                >
                   <GripVertical size={12} color="#666" />
                   <Input
                     id="parallel-property-panel-input-106"
@@ -167,22 +202,37 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                   />
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 20 }}>
-                  <label style={{ fontSize: 12, color: "#888" }}>{t("workflow.props.steps")}</label>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    paddingLeft: 20,
+                  }}
+                >
+                  <label style={{ fontSize: 12, color: "#888" }}>
+                    {t("workflow.props.steps")}
+                  </label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {branch.steps.map((stepId) => (
                       <Tag
                         key={stepId}
                         closable
                         onClose={() => handleRemoveStepFromBranch(index, stepId)}
-                        style={{ background: "#2a2a2a", border: "1px solid #444", color: "#ddd" }}
+                        style={{
+                          background: "#2a2a2a",
+                          border: "1px solid #444",
+                          color: "#ddd",
+                        }}
                         closeIcon={<X size={10} />}
                       >
                         {getNodeLabel(stepId)}
                       </Tag>
                     ))}
                     {branch.steps.length === 0 && (
-                      <span style={{ fontSize: 12, color: "#666" }}>{t("workflow.props.noSteps")}</span>
+                      <span style={{ fontSize: 12, color: "#666" }}>
+                        {t("workflow.props.noSteps")}
+                      </span>
                     )}
                   </div>
                   {availableNodes.length > 0 && (
@@ -191,7 +241,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
                       size="small"
                       style={{ width: "100%", marginTop: 4 }}
                       onChange={(nodeId) => handleAddStepToBranch(index, nodeId)}
-                      options={availableNodes.map(n => ({
+                      options={availableNodes.map((n) => ({
                         value: n.id,
                         label: `${n.title || n.id} (${n.type})`,
                       }))}
@@ -203,7 +253,14 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
           })}
 
           {config.branches.length === 0 && (
-            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 16 }}>
+            <div
+              style={{
+                color: "#666",
+                fontSize: 12,
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               {t("workflow.props.clickToAddBranch")}
             </div>
           )}
@@ -212,8 +269,14 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({ no
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

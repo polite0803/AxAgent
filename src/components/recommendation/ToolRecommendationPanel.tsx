@@ -38,9 +38,15 @@ export function ToolRecommendationPanel() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) { return "green"; }
-    if (score >= 0.6) { return "blue"; }
-    if (score >= 0.4) { return "orange"; }
+    if (score >= 0.8) {
+      return "green";
+    }
+    if (score >= 0.6) {
+      return "blue";
+    }
+    if (score >= 0.4) {
+      return "orange";
+    }
     return "red";
   };
 
@@ -78,7 +84,9 @@ export function ToolRecommendationPanel() {
           {isLoading && (
             <div style={{ textAlign: "center", padding: "40px" }}>
               <Spin size="large" />
-              <Paragraph>Analyzing task and generating recommendations…</Paragraph>
+              <Paragraph>
+                Analyzing task and generating recommendations…
+              </Paragraph>
             </div>
           )}
 
@@ -109,7 +117,10 @@ export function ToolRecommendationPanel() {
                   renderItem={(item) => (
                     <List.Item
                       actions={[
-                        <Tag color={getScoreColor(item.score)} key={item.tool_id}>
+                        <Tag
+                          color={getScoreColor(item.score)}
+                          key={item.tool_id}
+                        >
                           Score: {(item.score * 100).toFixed(0)}%
                         </Tag>,
                       ]}
@@ -135,7 +146,9 @@ export function ToolRecommendationPanel() {
                 <>
                   <Divider />
                   <div>
-                    <Title level={5}>{t("recommendation.alternativeApproaches")}</Title>
+                    <Title level={5}>
+                      {t("recommendation.alternativeApproaches")}
+                    </Title>
                     <List
                       itemLayout="horizontal"
                       dataSource={recommendations.alternatives}
@@ -167,7 +180,9 @@ export function ToolRecommendationPanel() {
           )}
 
           {!recommendations && !isLoading && !error && (
-            <div style={{ textAlign: "center", padding: "40px", color: "#999" }}>
+            <div
+              style={{ textAlign: "center", padding: "40px", color: "#999" }}
+            >
               <Paragraph>
                 Enter a task description and click "Get Recommendations" to see tool suggestions.
               </Paragraph>
@@ -177,7 +192,10 @@ export function ToolRecommendationPanel() {
       </Card>
 
       {availableTools.length > 0 && (
-        <Card title={t("recommendation.availableTools")} style={{ marginTop: "16px" }}>
+        <Card
+          title={t("recommendation.availableTools")}
+          style={{ marginTop: "16px" }}
+        >
           <List
             grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
             dataSource={availableTools}
@@ -188,11 +206,7 @@ export function ToolRecommendationPanel() {
                     {tool.description}
                   </Paragraph>
                   <div>
-                    {tool.categories.map((cat) => (
-                      <Tag key={cat}>
-                        {cat}
-                      </Tag>
-                    ))}
+                    {tool.categories.map((cat) => <Tag key={cat}>{cat}</Tag>)}
                   </div>
                 </Card>
               </List.Item>

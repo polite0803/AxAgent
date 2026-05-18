@@ -117,7 +117,10 @@ const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
   "cyberpunk-light": false,
 };
 
-function resolveShadow(preset: PresetColors): { boxShadow: string; boxShadowSecondary: string } {
+function resolveShadow(preset: PresetColors): {
+  boxShadow: string;
+  boxShadowSecondary: string;
+} {
   switch (preset.shadowStyle) {
     case "soft-dark":
       return {
@@ -164,24 +167,30 @@ export function useShadcnTheme(
     const preset = themePreset && PRESETS[themePreset] ? PRESETS[themePreset] : null;
 
     // Derive proportional radii from the base value, optionally biased by preset
-    const baseRadius = preset ? borderRadius + preset.borderRadiusBias : borderRadius;
+    const baseRadius = preset
+      ? borderRadius + preset.borderRadiusBias
+      : borderRadius;
     const radiusSM = Math.max(0, Math.round(baseRadius * 0.6));
     const radiusXS = Math.max(0, Math.round(baseRadius * 0.2));
     const radiusLG = Math.max(0, Math.round(baseRadius * 1.4));
 
     // Preset determines dark/light algorithm; fall back to isDark flag
     const effectiveDark = preset ? IS_DARK_PRESET[themePreset!] : isDark;
-    const algorithm = effectiveDark ? theme.darkAlgorithm : theme.defaultAlgorithm;
+    const algorithm = effectiveDark
+      ? theme.darkAlgorithm
+      : theme.defaultAlgorithm;
 
     // Resolve primary: preset default or user override
     const effectivePrimary = primaryColor !== DEFAULT_SETTINGS_PRIMARY
       ? primaryColor
-      : preset?.primaryColor ?? primaryColor;
+      : (preset?.primaryColor ?? primaryColor);
 
-    const shadows = preset ? resolveShadow(preset) : {
-      boxShadow: "0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)",
-      boxShadowSecondary: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
-    };
+    const shadows = preset
+      ? resolveShadow(preset)
+      : {
+        boxShadow: "0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)",
+        boxShadowSecondary: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
+      };
 
     return {
       algorithm,
@@ -237,7 +246,15 @@ export function useShadcnTheme(
         },
       },
     };
-  }, [isDark, primaryColor, fontSize, borderRadius, fontFamily, codeFontFamily, themePreset]);
+  }, [
+    isDark,
+    primaryColor,
+    fontSize,
+    borderRadius,
+    fontFamily,
+    codeFontFamily,
+    themePreset,
+  ]);
 }
 
 /** Default primary color from settings store — used as sentinel for "user hasn't changed it" */

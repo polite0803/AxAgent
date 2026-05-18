@@ -40,7 +40,9 @@ interface CollaborationPanelProps {
   conversationId: string;
 }
 
-export function CollaborationPanel({ conversationId }: CollaborationPanelProps) {
+export function CollaborationPanel({
+  conversationId,
+}: CollaborationPanelProps) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<SharedSession[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -59,7 +61,9 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
         const data = await invoke<SharedSession[]>(
           "collaboration_list_sessions",
         ).catch((e) => {
-          if (import.meta.env.DEV) { console.warn("Failed to fetch sessions:", e); }
+          if (import.meta.env.DEV) {
+            console.warn("Failed to fetch sessions:", e);
+          }
           return [];
         });
         setSessions(data);
@@ -101,7 +105,9 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
       ).catch(() => []);
       setSessions(updated);
     } catch (e) {
-      if (import.meta.env.DEV) { console.warn("Failed to join session:", e); }
+      if (import.meta.env.DEV) {
+        console.warn("Failed to join session:", e);
+      }
       throw e;
     }
   };
@@ -202,7 +208,11 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
                 </Space>
                 <Space>
                   {session.invite_code && (
-                    <Tooltip title={copied ? t("chat.collaboration.copied") : t("chat.collaboration.copyCode")}>
+                    <Tooltip
+                      title={copied
+                        ? t("chat.collaboration.copied")
+                        : t("chat.collaboration.copyCode")}
+                    >
                       <Button
                         type="link"
                         size="small"
@@ -253,7 +263,10 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
                         {t("chat.collaboration.sharedResources")}
                       </Text>
                       {session.shared_resources.map((r, _i) => (
-                        <div key={r.resource_id} className="flex items-center gap-2 py-0.5">
+                        <div
+                          key={r.resource_id}
+                          className="flex items-center gap-2 py-0.5"
+                        >
                           <Link size={10} className="text-zinc-400" />
                           <Text className="text-xs">{r.resource_type}</Text>
                           <Tag color="geekblue" className="text-xs">

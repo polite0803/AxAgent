@@ -189,9 +189,12 @@ describe("AppRoot D2 setup", () => {
 
     render(<AppRoot />);
 
-    await vi.waitFor(() => {
-      expect(enableD2).toHaveBeenCalledTimes(1);
-    }, { timeout: 30000 });
+    await vi.waitFor(
+      () => {
+        expect(enableD2).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 30000 },
+    );
     expect(preloadChatRenderers).toHaveBeenCalledTimes(1);
   }, 35000);
 });

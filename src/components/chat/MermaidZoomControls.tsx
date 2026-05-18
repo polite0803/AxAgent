@@ -19,21 +19,26 @@ export const MermaidZoomControls: React.FC<Props> = ({ ctx }) => {
   const { token } = theme.useToken();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const getBtnStyle = useCallback((idx: number): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 28,
-    height: 28,
-    borderRadius: token.borderRadiusSM,
-    border: "none",
-    background: hoveredIdx === idx ? (token.colorFillSecondary || "rgba(255,255,255,0.1)") : "transparent",
-    color: hoveredIdx === idx ? token.colorText : token.colorTextSecondary,
-    cursor: "pointer",
-    padding: "0 4px",
-    transition: "color 0.2s, background 0.2s",
-    whiteSpace: "nowrap",
-  }), [hoveredIdx, token]);
+  const getBtnStyle = useCallback(
+    (idx: number): React.CSSProperties => ({
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: 28,
+      height: 28,
+      borderRadius: token.borderRadiusSM,
+      border: "none",
+      background: hoveredIdx === idx
+        ? token.colorFillSecondary || "rgba(255,255,255,0.1)"
+        : "transparent",
+      color: hoveredIdx === idx ? token.colorText : token.colorTextSecondary,
+      cursor: "pointer",
+      padding: "0 4px",
+      transition: "color 0.2s, background 0.2s",
+      whiteSpace: "nowrap",
+    }),
+    [hoveredIdx, token],
+  );
 
   return (
     <div
@@ -81,7 +86,9 @@ export const MermaidZoomControls: React.FC<Props> = ({ ctx }) => {
           onMouseEnter={() => setHoveredIdx(2)}
           onMouseLeave={() => setHoveredIdx(null)}
         >
-          <span style={{ fontSize: 12, fontWeight: 500 }}>{Math.round(ctx.zoom * 100)}%</span>
+          <span style={{ fontSize: 12, fontWeight: 500 }}>
+            {Math.round(ctx.zoom * 100)}%
+          </span>
         </button>
       </Tooltip>
     </div>

@@ -52,7 +52,9 @@ export function WelcomeWizard() {
   }, []);
 
   const handleApplyPreset = async (preset: string) => {
-    if (applying) { return; }
+    if (applying) {
+      return;
+    }
     setApplying(true);
     setPresetMsg("");
     try {
@@ -140,7 +142,11 @@ export function WelcomeWizard() {
           </Title>
           <Paragraph
             type="secondary"
-            style={{ textAlign: "center", maxWidth: 400, margin: "8px auto 24px" }}
+            style={{
+              textAlign: "center",
+              maxWidth: 400,
+              margin: "8px auto 24px",
+            }}
           >
             {t("onboarding.welcomeDesc")}
           </Paragraph>
@@ -159,7 +165,11 @@ export function WelcomeWizard() {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Cpu
                 size={16}
-                style={{ color: ollamaAvailable ? "#52c41a" : token.colorTextQuaternary }}
+                style={{
+                  color: ollamaAvailable
+                    ? "#52c41a"
+                    : token.colorTextQuaternary,
+                }}
               />
               <Text>
                 {ollamaAvailable
@@ -171,10 +181,16 @@ export function WelcomeWizard() {
             </div>
             {ollamaModels.length > 0 && (
               <div style={{ marginTop: 8, paddingLeft: 24 }}>
-                {ollamaModels.slice(0, 5).map((m) => <Tag key={m.name} style={{ marginBottom: 4 }}>{m.name}</Tag>)}
+                {ollamaModels.slice(0, 5).map((m) => (
+                  <Tag key={m.name} style={{ marginBottom: 4 }}>
+                    {m.name}
+                  </Tag>
+                ))}
                 {ollamaModels.length > 5 && (
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    {t("onboarding.moreModels", { count: ollamaModels.length - 5 })}
+                    {t("onboarding.moreModels", {
+                      count: ollamaModels.length - 5,
+                    })}
                   </Text>
                 )}
               </div>
@@ -186,7 +202,9 @@ export function WelcomeWizard() {
               <Key
                 size={16}
                 style={{
-                  color: detectedKeys.length > 0 ? "#52c41a" : token.colorTextQuaternary,
+                  color: detectedKeys.length > 0
+                    ? "#52c41a"
+                    : token.colorTextQuaternary,
                 }}
               />
               <Text>
@@ -198,7 +216,10 @@ export function WelcomeWizard() {
               </Text>
             </div>
             {detectedKeys.map((k, _i) => (
-              <div key={k.envVar} style={{ paddingLeft: 24, marginTop: 4, fontSize: 12 }}>
+              <div
+                key={k.envVar}
+                style={{ paddingLeft: 24, marginTop: 4, fontSize: 12 }}
+              >
                 <Text type="secondary">
                   {k.providerType}: {k.prefix}
                 </Text>
@@ -250,13 +271,24 @@ export function WelcomeWizard() {
           {presetMsg && (
             <Text
               type="secondary"
-              style={{ display: "block", marginTop: 12, fontSize: 12, textAlign: "center" }}
+              style={{
+                display: "block",
+                marginTop: 12,
+                fontSize: 12,
+                textAlign: "center",
+              }}
             >
               {presetMsg}
             </Text>
           )}
           {selectedPreset === "openai" && detectedKeys.length === 0 && (
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: 8,
+              }}
+            >
               <Button
                 size="small"
                 type="link"
@@ -307,9 +339,14 @@ export function WelcomeWizard() {
                   textAlign: "center",
                 }}
               >
-                <f.icon size={24} style={{ color: token.colorPrimary, marginBottom: 8 }} />
+                <f.icon
+                  size={24}
+                  style={{ color: token.colorPrimary, marginBottom: 8 }}
+                />
                 <br />
-                <Text strong style={{ fontSize: 13 }}>{f.title}</Text>
+                <Text strong style={{ fontSize: 13 }}>
+                  {f.title}
+                </Text>
                 <br />
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {f.desc}
@@ -323,16 +360,24 @@ export function WelcomeWizard() {
       {/* Step 4: 就绪 */}
       {currentStep === 4 && (
         <div className="wizard-step" style={{ textAlign: "center" }}>
-          <CheckCircle2 size={56} style={{ color: "#52c41a", marginBottom: 16 }} />
-          <Title level={3}>
-            {t("onboarding.ready")}
-          </Title>
+          <CheckCircle2
+            size={56}
+            style={{ color: "#52c41a", marginBottom: 16 }}
+          />
+          <Title level={3}>{t("onboarding.ready")}</Title>
           <Paragraph type="secondary">
             {selectedPreset
               ? t("onboarding.readyDesc")
               : t("onboarding.readyNoPreset")}
           </Paragraph>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              justifyContent: "center",
+              marginTop: 8,
+            }}
+          >
             <Button
               type="primary"
               size="large"
@@ -362,9 +407,7 @@ export function WelcomeWizard() {
           marginTop: 24,
         }}
       >
-        <Button onClick={dismissWizard}>
-          {t("onboarding.skip")}
-        </Button>
+        <Button onClick={dismissWizard}>{t("onboarding.skip")}</Button>
         <div style={{ display: "flex", gap: 8 }}>
           {currentStep > 0 && (
             <Button onClick={() => setStep(currentStep - 1)}>
@@ -372,10 +415,7 @@ export function WelcomeWizard() {
             </Button>
           )}
           {currentStep < 4 && (
-            <Button
-              type="primary"
-              onClick={() => setStep(currentStep + 1)}
-            >
+            <Button type="primary" onClick={() => setStep(currentStep + 1)}>
               {t("onboarding.next")}
             </Button>
           )}

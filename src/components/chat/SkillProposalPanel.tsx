@@ -14,12 +14,21 @@ interface SkillProposalCardProps {
   t: (key: string) => string;
 }
 
-const SkillProposalCard: React.FC<SkillProposalCardProps> = ({ proposal, onCreate, onDismiss, t }) => {
+const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
+  proposal,
+  onCreate,
+  onDismiss,
+  t,
+}) => {
   const confidencePercent = Math.round(proposal.confidence * 100);
 
   const getConfidenceColor = () => {
-    if (confidencePercent >= 70) { return "green"; }
-    if (confidencePercent >= 50) { return "orange"; }
+    if (confidencePercent >= 70) {
+      return "green";
+    }
+    if (confidencePercent >= 50) {
+      return "orange";
+    }
     return "default";
   };
 
@@ -42,12 +51,22 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({ proposal, onCreat
       style={{ marginBottom: 12, border: "1px solid #f0f0f0" }}
       styles={{ body: { padding: 16 } }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
         <div style={{ flex: 1 }}>
           <Space align="center" style={{ marginBottom: 8 }}>
             <Sparkles size={16} style={{ color: "#faad14" }} />
-            <Text strong style={{ fontSize: 15 }}>{proposal.suggested_name}</Text>
-            <Tag color={getConfidenceColor()}>{confidencePercent}% {t("skill.proposal.confidence")}</Tag>
+            <Text strong style={{ fontSize: 15 }}>
+              {proposal.suggested_name}
+            </Text>
+            <Tag color={getConfidenceColor()}>
+              {confidencePercent}% {t("skill.proposal.confidence")}
+            </Tag>
             <Tag>{getEventLabel()}</Tag>
           </Space>
 
@@ -76,7 +95,14 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({ proposal, onCreat
           </details>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginLeft: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            marginLeft: 16,
+          }}
+        >
           <Button
             type="primary"
             size="small"
@@ -103,7 +129,10 @@ interface SkillProposalPanelProps {
   onClose: () => void;
 }
 
-export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({ open, onClose }) => {
+export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
+  open,
+  onClose,
+}) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const { loadSkillProposals, createSkillFromProposal } = useSkillStore();
@@ -112,9 +141,11 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({ open, on
   useEffect(() => {
     if (open) {
       setLoading(true);
-      loadSkillProposals().then((proposals) => {
-        setLocalProposals(proposals || []);
-      }).finally(() => setLoading(false));
+      loadSkillProposals()
+        .then((proposals) => {
+          setLocalProposals(proposals || []);
+        })
+        .finally(() => setLoading(false));
     }
   }, [open, loadSkillProposals]);
 
@@ -125,7 +156,9 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({ open, on
         proposal.task_description,
         proposal.suggested_content,
       );
-      message.success(t("skill.proposal.created") + " " + proposal.suggested_name);
+      message.success(
+        t("skill.proposal.created") + " " + proposal.suggested_name,
+      );
       setLocalProposals((prev) => prev.filter((p) => p.suggested_name !== proposal.suggested_name));
     } catch (e) {
       message.error(t("skill.proposal.error"));
@@ -173,7 +206,10 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({ open, on
         )
         : (
           <div style={{ maxHeight: 500, overflow: "auto", padding: "8px 0" }}>
-            <Paragraph type="secondary" style={{ marginBottom: 16, fontSize: 13 }}>
+            <Paragraph
+              type="secondary"
+              style={{ marginBottom: 16, fontSize: 13 }}
+            >
               {t(
                 "skill.proposal.hint",
                 "These skills were auto-generated from your successful Agent workflows. Review and create them to automate similar tasks in the future.",

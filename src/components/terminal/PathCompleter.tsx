@@ -29,20 +29,25 @@ export function usePathCompleter(
 
   const defaultGetSuggestions = useCallback(
     async (input: string): Promise<string[]> => {
-      if (!input || input.length < 1) { return []; }
+      if (!input || input.length < 1) {
+        return [];
+      }
 
       const lastSpaceIndex = input.lastIndexOf(" ");
       const searchBase = lastSpaceIndex >= 0 ? input.slice(lastSpaceIndex + 1) : input;
 
-      if (!searchBase.includes("/") && !searchBase.includes("\\") && !searchBase.includes(".")) {
+      if (
+        !searchBase.includes("/")
+        && !searchBase.includes("\\")
+        && !searchBase.includes(".")
+      ) {
         return [];
       }
 
       try {
-        const result = await invoke<string[]>(
-          "path_complete",
-          { partialPath: searchBase },
-        );
+        const result = await invoke<string[]>("path_complete", {
+          partialPath: searchBase,
+        });
         return result || [];
       } catch {
         return [];
@@ -63,12 +68,20 @@ export function usePathCompleter(
 
   const insertPath = useCallback(
     (path: string) => {
-      if (!terminal) { return; }
+      if (!terminal) {
+        return;
+      }
 
       const lastSpaceIndex = inputBufferRef.current.lastIndexOf(" ");
-      const beforeSpace = lastSpaceIndex >= 0 ? inputBufferRef.current.slice(0, lastSpaceIndex + 1) : "";
+      const beforeSpace = lastSpaceIndex >= 0
+        ? inputBufferRef.current.slice(0, lastSpaceIndex + 1)
+        : "";
 
-      for (let i = 0; i < inputBufferRef.current.length - beforeSpace.length; i++) {
+      for (
+        let i = 0;
+        i < inputBufferRef.current.length - beforeSpace.length;
+        i++
+      ) {
         terminal.write("\b \b");
       }
 
@@ -86,7 +99,9 @@ export function usePathCompleter(
 
   const cycleSuggestion = useCallback(
     (direction: 1 | -1) => {
-      if (suggestions.length === 0) { return; }
+      if (suggestions.length === 0) {
+        return;
+      }
       setSelectedIndex(
         (prev) => (prev + direction + suggestions.length) % suggestions.length,
       );
@@ -107,7 +122,9 @@ export function usePathCompleter(
   }, []);
 
   useEffect(() => {
-    if (!terminal) { return; }
+    if (!terminal) {
+      return;
+    }
 
     const handleData = (data: string) => {
       if (isActive) {
@@ -234,11 +251,10 @@ export function PathCompleterWidget({
   terminal,
   style,
 }: PathCompleterWidgetProps) {
-  const {
-    isActive,
-    suggestions,
-    selectedIndex,
-  } = usePathCompleter(terminal, {});
+  const { isActive, suggestions, selectedIndex } = usePathCompleter(
+    terminal,
+    {},
+  );
 
   if (!isActive || suggestions.length === 0) {
     return null;
@@ -301,22 +317,18 @@ export function useSmartPathCompletion(_terminal: XTerm | null) {
   const [completions, setCompletions] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const startCompletion = useCallback(
-    async (word: string) => {
-      setIsCompleting(true);
-      try {
-        const results = await invoke<string[]>(
-          "path_complete",
-          { partialPath: word },
-        );
-        setCompletions(results || []);
-        setCurrentIndex(0);
-      } catch {
-        setCompletions([]);
-      }
-    },
-    [],
-  );
+  const startCompletion = useCallback(async (word: string) => {
+    setIsCompleting(true);
+    try {
+      const results = await invoke<string[]>("path_complete", {
+        partialPath: word,
+      });
+      setCompletions(results || []);
+      setCurrentIndex(0);
+    } catch {
+      setCompletions([]);
+    }
+  }, []);
 
   const nextCompletion = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % Math.max(completions.length, 1));
@@ -330,7 +342,9 @@ export function useSmartPathCompletion(_terminal: XTerm | null) {
 
   const insertCurrentCompletion = useCallback(
     (terminal: XTerm | null) => {
-      if (!terminal || completions.length === 0) { return; }
+      if (!terminal || completions.length === 0) {
+        return;
+      }
       terminal.write(completions[currentIndex]);
       setIsCompleting(false);
       setCompletions([]);

@@ -18,8 +18,17 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
     throw new Error(`Unhandled file category: ${activeCategory}`);
   }
 
-  const { rows, search, error, loadCategory, setSearch, setSortKey, clearError, revealEntry, cleanupMissingEntry } =
-    useFileStore();
+  const {
+    rows,
+    search,
+    error,
+    loadCategory,
+    setSearch,
+    setSortKey,
+    clearError,
+    revealEntry,
+    cleanupMissingEntry,
+  } = useFileStore();
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
@@ -39,27 +48,41 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   };
 
   const handleBatchDelete = useCallback(async () => {
-    if (selectedRowKeys.length === 0) { return; }
+    if (selectedRowKeys.length === 0) {
+      return;
+    }
     try {
       await Promise.all(selectedRowKeys.map((key) => cleanupMissingEntry(key)));
       setSelectedRowKeys([]);
-      message.success(t("files.batchDeleteSuccess", { count: selectedRowKeys.length }));
+      message.success(
+        t("files.batchDeleteSuccess", { count: selectedRowKeys.length }),
+      );
       void loadCategory(activeCategory);
     } catch (e) {
       message.error(String(e));
     }
-  }, [selectedRowKeys, activeCategory, loadCategory, cleanupMissingEntry, message, t]);
+  }, [
+    selectedRowKeys,
+    activeCategory,
+    loadCategory,
+    cleanupMissingEntry,
+    message,
+    t,
+  ]);
 
-  const handleDeleteEntry = useCallback(async (id: string) => {
-    try {
-      await cleanupMissingEntry(id);
-      setSelectedRowKeys((prev) => prev.filter((k) => k !== id));
-      message.success(t("files.deleteSuccess"));
-      void loadCategory(activeCategory);
-    } catch (e) {
-      message.error(String(e));
-    }
-  }, [activeCategory, loadCategory, cleanupMissingEntry, message, t]);
+  const handleDeleteEntry = useCallback(
+    async (id: string) => {
+      try {
+        await cleanupMissingEntry(id);
+        setSelectedRowKeys((prev) => prev.filter((k) => k !== id));
+        message.success(t("files.deleteSuccess"));
+        void loadCategory(activeCategory);
+      } catch (e) {
+        message.error(String(e));
+      }
+    },
+    [activeCategory, loadCategory, cleanupMissingEntry, message, t],
+  );
 
   return (
     <div
@@ -81,7 +104,9 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
       <div className="flex items-center justify-between gap-4">
         <Space>
           <Popconfirm
-            title={t("files.batchDeleteConfirm", { count: selectedRowKeys.length })}
+            title={t("files.batchDeleteConfirm", {
+              count: selectedRowKeys.length,
+            })}
             onConfirm={() => void handleBatchDelete()}
             okText={t("files.confirmYes")}
             cancelText={t("files.confirmNo")}
@@ -96,11 +121,17 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
             </Button>
           </Popconfirm>
         </Space>
-        <div data-testid="category-search" data-category={activeCategory} style={{ maxWidth: 300 }}>
+        <div
+          data-testid="category-search"
+          data-category={activeCategory}
+          style={{ maxWidth: 300 }}
+        >
           <Input
             id="files-content-input-39"
             prefix={<Search size={14} />}
-            placeholder={t("files.searchPlaceholder", { category: t(meta.labelKey) })}
+            placeholder={t("files.searchPlaceholder", {
+              category: t(meta.labelKey),
+            })}
             value={search}
             onChange={(e) => {
               handleSearchChange(e.target.value);

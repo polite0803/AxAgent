@@ -91,7 +91,10 @@ export function SubAgentCard({ card }: SubAgentCardProps) {
         <span className="sub-agent-card__icon">{icon}</span>
         <span className="sub-agent-card__name" style={{ color }}>
           {card.isFork && (
-            <BranchesOutlined style={{ marginRight: 4, color: "#722ed1" }} title={t("subAgentCard.fork")} />
+            <BranchesOutlined
+              style={{ marginRight: 4, color: "#722ed1" }}
+              title={t("subAgentCard.fork")}
+            />
           )}
           {card.agentName || card.agentType}
         </span>

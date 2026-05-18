@@ -30,9 +30,9 @@ export function enableHtmlCompose() {
 }
 
 export function composeHtml(parts: Partial<ParsedHtml>): string {
-  if (
-    !_sandboxEnforced
-  ) { return "<!-- HTML composition disabled: call enableHtmlCompose() from sandbox context first -->"; }
+  if (!_sandboxEnforced) {
+    return "<!-- HTML composition disabled: call enableHtmlCompose() from sandbox context first -->";
+  }
   // ⚠️ SECURITY WARNING: The output of this function contains raw HTML, CSS, and JS
   // which may include user-generated or AI-generated content. This output MUST only be
   // rendered inside a sandboxed iframe (sandbox="" attribute) to prevent XSS attacks,
@@ -65,7 +65,13 @@ try { ${js} } catch(e) { document.body.innerHTML += '<pre style="color:red">Erro
 export function isChartOption(content: string): boolean {
   try {
     const obj = JSON.parse(content);
-    return !!(obj.series || obj.xAxis || obj.yAxis || obj.polar || obj.radiusAxis);
+    return !!(
+      obj.series
+      || obj.xAxis
+      || obj.yAxis
+      || obj.polar
+      || obj.radiusAxis
+    );
   } catch {
     return false;
   }

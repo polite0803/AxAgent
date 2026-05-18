@@ -9,7 +9,9 @@ export function useCommandPalette() {
         e.preventDefault();
         setOpen((prev) => !prev);
       }
-      if (e.key === "Escape") { setOpen(false); }
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);

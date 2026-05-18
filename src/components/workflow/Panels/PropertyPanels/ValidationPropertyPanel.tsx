@@ -11,7 +11,9 @@ interface ValidationPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const ValidationPropertyPanel: React.FC<
+  ValidationPropertyPanelProps
+> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const validationNode = node as ValidationNode;
   const config = validationNode.config || {
@@ -24,27 +26,45 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
     onUpdate({ config: { ...config, [key]: value } });
   };
 
-  const handleAssertionChange = (index: number, field: string, value: string) => {
+  const handleAssertionChange = (
+    index: number,
+    field: string,
+    value: string,
+  ) => {
     const newAssertions = [...(config.assertions || [])];
     newAssertions[index] = { ...newAssertions[index], [field]: value };
     handleConfigChange("assertions", newAssertions);
   };
 
   const handleAddAssertion = () => {
-    const newAssertions = [...(config.assertions || []), { type: "equals" as const, expected: "", actual: "" }];
+    const newAssertions = [
+      ...(config.assertions || []),
+      { type: "equals" as const, expected: "", actual: "" },
+    ];
     handleConfigChange("assertions", newAssertions);
   };
 
   const handleRemoveAssertion = (index: number) => {
-    const newAssertions = (config.assertions || []).filter((_, i) => i !== index);
+    const newAssertions = (config.assertions || []).filter(
+      (_, i) => i !== index,
+    );
     handleConfigChange("assertions", newAssertions);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.assertions")}</label>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 4,
+          }}
+        >
+          <label style={{ color: "#999", fontSize: 12 }}>
+            {t("workflow.props.assertions")}
+          </label>
           <Button
             size="small"
             type="dashed"
@@ -59,12 +79,21 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {/* assertions use index-based callbacks, safe to use index as key */}
           {(config.assertions || []).map((assertion, index) => (
-            <div key={`assertion-${index}`} style={{ background: "#252525", borderRadius: 4, padding: 8 }}>
-              <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>
+            <div
+              key={`assertion-${index}`}
+              style={{ background: "#252525", borderRadius: 4, padding: 8 }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: 4,
+                  alignItems: "center",
+                  marginBottom: 4,
+                }}
+              >
                 <Select
                   value={assertion.type}
-                  onChange={(value) =>
-                    handleAssertionChange(index, "type", value)}
+                  onChange={(value) => handleAssertionChange(index, "type", value)}
                   size="small"
                   style={{ flex: 1 }}
                   options={[
@@ -76,8 +105,7 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
                   ]}
                 />
                 <MinusCircleOutlined
-                  onClick={() =>
-                    handleRemoveAssertion(index)}
+                  onClick={() => handleRemoveAssertion(index)}
                   style={{ color: "#ff4d4f", cursor: "pointer", fontSize: 12 }}
                 />
               </div>
@@ -115,7 +143,14 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
           ))}
 
           {(config.assertions || []).length === 0 && (
-            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 8 }}>
+            <div
+              style={{
+                color: "#666",
+                fontSize: 12,
+                textAlign: "center",
+                padding: 8,
+              }}
+            >
               {t("workflow.props.clickToAddAssertion")}
             </div>
           )}
@@ -123,7 +158,14 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.failStrategy")}
         </label>
         <Select
@@ -141,7 +183,14 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
 
       {config.on_fail === "retry" && (
         <div>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.maxRetries")}
           </label>
           <Input
@@ -155,8 +204,14 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
         </div>
       )}
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

@@ -15,7 +15,10 @@ const LINK_TYPES: { value: GatewayLinkType; labelKey: string }[] = [
   { value: "custom", labelKey: "link.typeCustom" },
 ];
 
-export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps) {
+export function AddGatewayLinkModal({
+  open,
+  onClose,
+}: AddGatewayLinkModalProps) {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const createLink = useGatewayLinkStore((s) => s.createLink);
@@ -43,7 +46,9 @@ export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps)
       form.resetFields();
       onClose();
     } catch (e) {
-      if (e && typeof e === "object" && "errorFields" in e) { return; }
+      if (e && typeof e === "object" && "errorFields" in e) {
+        return;
+      }
       message.error(t("link.addFailed"));
     } finally {
       setLoading(false);
@@ -70,7 +75,11 @@ export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps)
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ link_type: "openclaw", auto_sync_models: false, auto_sync_skills: false }}
+        initialValues={{
+          link_type: "openclaw",
+          auto_sync_models: false,
+          auto_sync_skills: false,
+        }}
       >
         <Form.Item
           name="name"
@@ -88,7 +97,9 @@ export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps)
           <Select
             options={LINK_TYPES.map((lt) => ({
               value: lt.value,
-              label: lt.labelKey.startsWith("link.") ? t(lt.labelKey) : lt.labelKey,
+              label: lt.labelKey.startsWith("link.")
+                ? t(lt.labelKey)
+                : lt.labelKey,
             }))}
           />
         </Form.Item>
@@ -102,14 +113,25 @@ export function AddGatewayLinkModal({ open, onClose }: AddGatewayLinkModalProps)
         </Form.Item>
 
         <Form.Item name="api_key" label={t("link.apiKey")}>
-          <Input.Password name="api_key" placeholder={t("link.apiKeyPlaceholder")} />
+          <Input.Password
+            name="api_key"
+            placeholder={t("link.apiKeyPlaceholder")}
+          />
         </Form.Item>
 
-        <Form.Item name="auto_sync_models" label={t("link.autoSyncModels")} valuePropName="checked">
+        <Form.Item
+          name="auto_sync_models"
+          label={t("link.autoSyncModels")}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
 
-        <Form.Item name="auto_sync_skills" label={t("link.autoSyncSkills")} valuePropName="checked">
+        <Form.Item
+          name="auto_sync_skills"
+          label={t("link.autoSyncSkills")}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
       </Form>

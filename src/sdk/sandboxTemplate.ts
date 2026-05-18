@@ -30,7 +30,11 @@ export interface SandboxTemplateOptions {
  * 生成 Skill 沙箱 HTML 完整页面
  */
 export function generateSandboxHtml(options: SandboxTemplateOptions): string {
-  const { skillName, htmlContent, rpcTimeoutMs = DEFAULT_RPC_TIMEOUT_MS } = options;
+  const {
+    skillName,
+    htmlContent,
+    rpcTimeoutMs = DEFAULT_RPC_TIMEOUT_MS,
+  } = options;
 
   const runtimeScript = generateRuntimeScript(rpcTimeoutMs);
 

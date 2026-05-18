@@ -30,7 +30,9 @@ const { Title, Text, Paragraph } = Typography;
 function extractCategories(templates: PromptTemplate[]): string[] {
   const cats = new Set<string>();
   for (const t of templates) {
-    if (t.category) { cats.add(t.category); }
+    if (t.category) {
+      cats.add(t.category);
+    }
   }
   return Array.from(cats).sort();
 }
@@ -41,7 +43,9 @@ export function PromptTemplatesSettings() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(
+    null,
+  );
   const [versionHistoryTemplate, setVersionHistoryTemplate] = useState<PromptTemplate | null>(null);
   const [viewingVersionContent, setViewingVersionContent] = useState<PromptTemplateVersion | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -69,7 +73,8 @@ export function PromptTemplatesSettings() {
 
   const filteredTemplates = templates.filter((tmpl) => {
     const matchSearch = tmpl.name.toLowerCase().includes(searchText.toLowerCase())
-      || (tmpl.description?.toLowerCase().includes(searchText.toLowerCase()) ?? false);
+      || (tmpl.description?.toLowerCase().includes(searchText.toLowerCase())
+        ?? false);
     const matchCategory = !categoryFilter || tmpl.category === categoryFilter;
     return matchSearch && matchCategory;
   });
@@ -173,7 +178,9 @@ export function PromptTemplatesSettings() {
 
   const handleRollback = useCallback(
     async (version: PromptTemplateVersion) => {
-      if (!versionHistoryTemplate) { return; }
+      if (!versionHistoryTemplate) {
+        return;
+      }
       Modal.confirm({
         title: t("promptTemplates.rollbackConfirm"),
         content: t("promptTemplates.rollbackConfirmDetail", {
@@ -181,7 +188,10 @@ export function PromptTemplatesSettings() {
           version: version.version,
         }),
         onOk: async () => {
-          const result = await rollbackTemplate(versionHistoryTemplate.id, version.version);
+          const result = await rollbackTemplate(
+            versionHistoryTemplate.id,
+            version.version,
+          );
           if (result) {
             messageApi.success(t("promptTemplates.rollbackSuccess"));
             setIsVersionHistoryOpen(false);
@@ -230,15 +240,30 @@ export function PromptTemplatesSettings() {
             {t("promptTemplates.title")}
           </Title>
           <Space>
-            <Button icon={<ImportOutlined />} onClick={() => setIsImportOpen(true)}>
+            <Button
+              icon={<ImportOutlined />}
+              onClick={() => setIsImportOpen(true)}
+            >
               {t("promptTemplates.import")}
             </Button>
             <Dropdown
               menu={{
                 items: [
-                  { key: "json", label: "JSON", onClick: () => handleExport("json") },
-                  { key: "yaml", label: "YAML", onClick: () => handleExport("yaml") },
-                  { key: "markdown", label: "Markdown", onClick: () => handleExport("markdown") },
+                  {
+                    key: "json",
+                    label: "JSON",
+                    onClick: () => handleExport("json"),
+                  },
+                  {
+                    key: "yaml",
+                    label: "YAML",
+                    onClick: () => handleExport("yaml"),
+                  },
+                  {
+                    key: "markdown",
+                    label: "Markdown",
+                    onClick: () => handleExport("markdown"),
+                  },
                 ],
               }}
             >
@@ -246,7 +271,11 @@ export function PromptTemplatesSettings() {
                 {t("promptTemplates.export")}
               </Button>
             </Dropdown>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+            >
               {t("promptTemplates.newTemplate")}
             </Button>
           </Space>
@@ -326,7 +355,11 @@ export function PromptTemplatesSettings() {
                       {tmpl.abTestEnabled && <Tag color="blue">{t("promptTemplates.abTest")}</Tag>}
                       {tmpl.category && <Tag>{tmpl.category}</Tag>}
                       <Tag color="default">v{tmpl.version}</Tag>
-                      {tmpl.sourceType === "imported" && <Tag color="purple">{t("promptTemplates.imported")}</Tag>}
+                      {tmpl.sourceType === "imported" && (
+                        <Tag color="purple">
+                          {t("promptTemplates.imported")}
+                        </Tag>
+                      )}
                     </Space>
                   }
                   description={
@@ -353,11 +386,16 @@ export function PromptTemplatesSettings() {
       </div>
 
       {/* 导入弹窗 */}
-      <PromptImportModal open={isImportOpen} onClose={() => setIsImportOpen(false)} />
+      <PromptImportModal
+        open={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+      />
 
       {/* 编辑弹窗 */}
       <Modal
-        title={editingTemplate ? t("promptTemplates.editTemplate") : t("promptTemplates.newTemplate")}
+        title={editingTemplate
+          ? t("promptTemplates.editTemplate")
+          : t("promptTemplates.newTemplate")}
         open={isEditorOpen}
         onOk={handleSave}
         onCancel={() => setIsEditorOpen(false)}
@@ -368,29 +406,52 @@ export function PromptTemplatesSettings() {
           <Form.Item
             name="name"
             label={t("common.name")}
-            rules={[{ required: true, message: t("promptTemplates.nameRequired") }]}
+            rules={[
+              { required: true, message: t("promptTemplates.nameRequired") },
+            ]}
           >
-            <Input name="name" placeholder={t("promptTemplates.namePlaceholder")} />
+            <Input
+              name="name"
+              placeholder={t("promptTemplates.namePlaceholder")}
+            />
           </Form.Item>
           <Form.Item name="description" label={t("common.description")}>
-            <Input.TextArea name="description" placeholder={t("promptTemplates.descriptionPlaceholder")} rows={2} />
+            <Input.TextArea
+              name="description"
+              placeholder={t("promptTemplates.descriptionPlaceholder")}
+              rows={2}
+            />
           </Form.Item>
           <Form.Item name="category" label={t("promptTemplates.category")}>
-            <Input name="category" placeholder={t("promptTemplates.categoryPlaceholder")} />
+            <Input
+              name="category"
+              placeholder={t("promptTemplates.categoryPlaceholder")}
+            />
           </Form.Item>
           <Form.Item name="tags" label={t("promptTemplates.tags")}>
-            <Input name="tags" placeholder={t("promptTemplates.tagsPlaceholder")} />
+            <Input
+              name="tags"
+              placeholder={t("promptTemplates.tagsPlaceholder")}
+            />
           </Form.Item>
           <Form.Item name="author" label={t("promptTemplates.author")}>
-            <Input name="author" placeholder={t("promptTemplates.authorPlaceholder")} />
+            <Input
+              name="author"
+              placeholder={t("promptTemplates.authorPlaceholder")}
+            />
           </Form.Item>
           <Form.Item name="source" label={t("promptTemplates.source")}>
-            <Input name="source" placeholder={t("promptTemplates.sourcePlaceholder")} />
+            <Input
+              name="source"
+              placeholder={t("promptTemplates.sourcePlaceholder")}
+            />
           </Form.Item>
           <Form.Item
             name="content"
             label={t("promptTemplates.content")}
-            rules={[{ required: true, message: t("promptTemplates.contentRequired") }]}
+            rules={[
+              { required: true, message: t("promptTemplates.contentRequired") },
+            ]}
           >
             <Input.TextArea
               name="content"
@@ -399,7 +460,10 @@ export function PromptTemplatesSettings() {
               className="font-mono text-sm"
             />
           </Form.Item>
-          <Form.Item name="variablesSchema" label={t("promptTemplates.variablesSchema") + " (JSON)"}>
+          <Form.Item
+            name="variablesSchema"
+            label={t("promptTemplates.variablesSchema") + " (JSON)"}
+          >
             <Input.TextArea
               name="variablesSchema"
               placeholder='{"variable": "type"}'
@@ -412,7 +476,9 @@ export function PromptTemplatesSettings() {
 
       {/* 版本历史弹窗 */}
       <Modal
-        title={t("promptTemplates.versionHistory", { name: versionHistoryTemplate?.name ?? "" })}
+        title={t("promptTemplates.versionHistory", {
+          name: versionHistoryTemplate?.name ?? "",
+        })}
         open={isVersionHistoryOpen}
         onCancel={() => {
           setIsVersionHistoryOpen(false);

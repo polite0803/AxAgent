@@ -11,7 +11,11 @@ interface ConditionPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const conditionNode = node as ConditionNode;
   const config = conditionNode.config || {
@@ -49,7 +53,10 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
     });
   };
 
-  const handleUpdateCondition = (index: number, updates: Partial<Condition>) => {
+  const handleUpdateCondition = (
+    index: number,
+    updates: Partial<Condition>,
+  ) => {
     const newConditions = [...config.conditions];
     newConditions[index] = { ...newConditions[index], ...updates };
     onUpdate({
@@ -82,7 +89,14 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.logicalOp")}
         </label>
         <Select
@@ -98,7 +112,14 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
       </div>
 
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
           <label style={{ color: "#999", fontSize: 12 }}>
             {t("workflow.props.conditions")} ({config.conditions.length})
           </label>
@@ -137,7 +158,10 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
                 style={{
                   display: "flex",
                   gap: 4,
-                  marginBottom: condition.operator === "isEmpty" || condition.operator === "isNotEmpty" ? 0 : 8,
+                  marginBottom: condition.operator === "isEmpty"
+                      || condition.operator === "isNotEmpty"
+                    ? 0
+                    : 8,
                 }}
               >
                 <Select
@@ -148,7 +172,8 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
                   options={OPERATOR_OPTIONS}
                 />
 
-                {condition.operator !== "isEmpty" && condition.operator !== "isNotEmpty" && (
+                {condition.operator !== "isEmpty"
+                  && condition.operator !== "isNotEmpty" && (
                   <Input
                     id="condition-property-panel-input-88"
                     value={String(condition.value || "")}
@@ -171,7 +196,14 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
           ))}
 
           {config.conditions.length === 0 && (
-            <div style={{ color: "#666", fontSize: 12, textAlign: "center", padding: 16 }}>
+            <div
+              style={{
+                color: "#666",
+                fontSize: 12,
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               {t("workflow.props.clickToAddCondition")}
             </div>
           )}
@@ -180,8 +212,14 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

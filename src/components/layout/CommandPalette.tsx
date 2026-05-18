@@ -33,7 +33,9 @@ export function registerCommand(cmd: Command) {
 
 export function unregisterCommand(id: string) {
   const idx = commandRegistry.findIndex((c) => c.id === id);
-  if (idx !== -1) { commandRegistry.splice(idx, 1); }
+  if (idx !== -1) {
+    commandRegistry.splice(idx, 1);
+  }
 }
 
 // ─── 使用频率持久化 ───
@@ -41,23 +43,35 @@ const USE_COUNT_KEY = "axagent:cmd-use-count";
 function loadUseCounts(): Map<string, number> {
   try {
     const raw = localStorage.getItem(USE_COUNT_KEY);
-    if (raw) { return new Map(JSON.parse(raw)); }
-  } catch { /* ignore */ }
+    if (raw) {
+      return new Map(JSON.parse(raw));
+    }
+  } catch {
+    /* ignore */
+  }
   return new Map();
 }
 function saveUseCounts(counts: Map<string, number>) {
   try {
     localStorage.setItem(USE_COUNT_KEY, JSON.stringify([...counts]));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // ─── 简易模糊匹配评分 ───
 function fuzzyScore(text: string, query: string): number {
   const lower = text.toLowerCase();
   const q = query.toLowerCase();
-  if (lower === q) { return 100; }
-  if (lower.startsWith(q)) { return 80; }
-  if (lower.includes(q)) { return 50; }
+  if (lower === q) {
+    return 100;
+  }
+  if (lower.startsWith(q)) {
+    return 80;
+  }
+  if (lower.includes(q)) {
+    return 50;
+  }
 
   // 字符序列匹配（abc 匹配 "a.*b.*c"）
   let qi = 0;
@@ -278,7 +292,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         setActiveIndex((prev) => (prev + 1) % filtered.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setActiveIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
+        setActiveIndex(
+          (prev) => (prev - 1 + filtered.length) % filtered.length,
+        );
       } else if (e.key === "Enter" && filtered.length > 0) {
         e.preventDefault();
         executeCommand(filtered[activeIndex]);
@@ -291,7 +307,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const grouped = useMemo(() => {
     const groups: Record<string, Command[]> = {};
     for (const cmd of filtered) {
-      if (!groups[cmd.category]) { groups[cmd.category] = []; }
+      if (!groups[cmd.category]) {
+        groups[cmd.category] = [];
+      }
       groups[cmd.category].push(cmd);
     }
     return groups;
@@ -355,7 +373,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                       style={{
                         cursor: "pointer",
                         padding: "8px 16px",
-                        backgroundColor: isActive ? token.colorBgTextHover : undefined,
+                        backgroundColor: isActive
+                          ? token.colorBgTextHover
+                          : undefined,
                       }}
                     >
                       <div

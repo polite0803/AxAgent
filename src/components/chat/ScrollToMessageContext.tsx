@@ -34,7 +34,12 @@ export function ScrollToMessageProvider({
     [scrollTo],
   );
   const value = useMemo(
-    () => ({ scrollTo: wrappedScrollTo, scrollBoxRef, scrollLockRef, forcedActiveRef }),
+    () => ({
+      scrollTo: wrappedScrollTo,
+      scrollBoxRef,
+      scrollLockRef,
+      forcedActiveRef,
+    }),
     [wrappedScrollTo, scrollBoxRef],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;

@@ -47,13 +47,13 @@ export function ChartInterpreter({
   const { t } = useTranslation();
 
   const stats = useMemo(() => {
-    if (!chartData) { return null; }
+    if (!chartData) {
+      return null;
+    }
     const values = chartData.data_points.map((dp) => dp.value);
     const max = Math.max(...values, 0);
     const min = Math.min(...values, 0);
-    const avg = values.length > 0
-      ? values.reduce((a, b) => a + b, 0) / values.length
-      : 0;
+    const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
     return { max, min, avg, count: chartData.data_points.length };
   }, [chartData]);
 
@@ -83,7 +83,9 @@ export function ChartInterpreter({
     <Card size="small" className="chart-interpreter">
       <div className="flex items-center gap-2 mb-3">
         <BarChart3 size={16} className="text-blue-500" />
-        <Title level={5} className="mb-0">{t("chat.chart.analysis")}</Title>
+        <Title level={5} className="mb-0">
+          {t("chat.chart.analysis")}
+        </Title>
       </div>
 
       {imageUrl && (
@@ -101,37 +103,73 @@ export function ChartInterpreter({
           <div className="flex items-center gap-2">
             {CHART_TYPE_ICONS[chartData.chart_type] || <BarChart3 size={14} />}
             <Text strong>{chartData.title}</Text>
-            <Badge color="blue" text={<span className="text-xs">{chartData.chart_type}</span>} />
+            <Badge
+              color="blue"
+              text={<span className="text-xs">{chartData.chart_type}</span>}
+            />
           </div>
 
           {stats && (
             <div className="grid grid-cols-4 gap-2">
-              <Card size="small" className="bg-blue-50 dark:bg-blue-900/10 text-center">
-                <Text className="text-lg font-bold text-blue-600 block">{stats.count}</Text>
-                <Text type="secondary" className="text-xs">{t("chat.chart.dataPoints")}</Text>
+              <Card
+                size="small"
+                className="bg-blue-50 dark:bg-blue-900/10 text-center"
+              >
+                <Text className="text-lg font-bold text-blue-600 block">
+                  {stats.count}
+                </Text>
+                <Text type="secondary" className="text-xs">
+                  {t("chat.chart.dataPoints")}
+                </Text>
               </Card>
-              <Card size="small" className="bg-green-50 dark:bg-green-900/10 text-center">
-                <Text className="text-lg font-bold text-green-600 block">{stats.max.toFixed(1)}</Text>
-                <Text type="secondary" className="text-xs">{t("chat.chart.max")}</Text>
+              <Card
+                size="small"
+                className="bg-green-50 dark:bg-green-900/10 text-center"
+              >
+                <Text className="text-lg font-bold text-green-600 block">
+                  {stats.max.toFixed(1)}
+                </Text>
+                <Text type="secondary" className="text-xs">
+                  {t("chat.chart.max")}
+                </Text>
               </Card>
-              <Card size="small" className="bg-orange-50 dark:bg-orange-900/10 text-center">
-                <Text className="text-lg font-bold text-orange-600 block">{stats.min.toFixed(1)}</Text>
-                <Text type="secondary" className="text-xs">{t("chat.chart.min")}</Text>
+              <Card
+                size="small"
+                className="bg-orange-50 dark:bg-orange-900/10 text-center"
+              >
+                <Text className="text-lg font-bold text-orange-600 block">
+                  {stats.min.toFixed(1)}
+                </Text>
+                <Text type="secondary" className="text-xs">
+                  {t("chat.chart.min")}
+                </Text>
               </Card>
-              <Card size="small" className="bg-purple-50 dark:bg-purple-900/10 text-center">
-                <Text className="text-lg font-bold text-purple-600 block">{stats.avg.toFixed(1)}</Text>
-                <Text type="secondary" className="text-xs">{t("chat.chart.avg")}</Text>
+              <Card
+                size="small"
+                className="bg-purple-50 dark:bg-purple-900/10 text-center"
+              >
+                <Text className="text-lg font-bold text-purple-600 block">
+                  {stats.avg.toFixed(1)}
+                </Text>
+                <Text type="secondary" className="text-xs">
+                  {t("chat.chart.avg")}
+                </Text>
               </Card>
             </div>
           )}
 
           {chartData.insights.length > 0 && (
             <div>
-              <Text strong className="text-sm block mb-1">{t("chat.chart.insights")}</Text>
+              <Text strong className="text-sm block mb-1">
+                {t("chat.chart.insights")}
+              </Text>
               <ul className="space-y-1">
                 {chartData.insights.map((insight, _i) => (
                   <li key={insight} className="flex items-start gap-2 text-sm">
-                    <CheckCircle size={12} className="text-green-500 mt-0.5 shrink-0" />
+                    <CheckCircle
+                      size={12}
+                      className="text-green-500 mt-0.5 shrink-0"
+                    />
                     <span>{insight}</span>
                   </li>
                 ))}
@@ -142,32 +180,57 @@ export function ChartInterpreter({
           {chartData.data_points.length > 0 && (
             <Collapse
               size="small"
-              items={[{
-                key: "data",
-                label: <span>{t("chat.chart.rawData")} ({chartData.data_points.length} points)</span>,
-                children: (
-                  <div className="max-h-48 overflow-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
-                          <th className="text-left py-1 pr-2">{t("chat.chart.label")}</th>
-                          <th className="text-right py-1 pr-2">{t("chat.chart.value")}</th>
-                          {chartData.series.length > 0 && <th className="text-left py-1">{t("chat.chart.series")}</th>}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {chartData.data_points.map((dp, _i) => (
-                          <tr key={dp.label} className="border-b border-zinc-100 dark:border-zinc-800">
-                            <td className="py-1 pr-2 text-zinc-600 dark:text-zinc-400">{dp.label}</td>
-                            <td className="py-1 pr-2 text-right font-mono">{dp.value}</td>
-                            {chartData.series.length > 0 && <td className="py-1 text-zinc-500">{dp.series || "-"}</td>}
+              items={[
+                {
+                  key: "data",
+                  label: (
+                    <span>
+                      {t("chat.chart.rawData")} ({chartData.data_points.length} points)
+                    </span>
+                  ),
+                  children: (
+                    <div className="max-h-48 overflow-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                            <th className="text-left py-1 pr-2">
+                              {t("chat.chart.label")}
+                            </th>
+                            <th className="text-right py-1 pr-2">
+                              {t("chat.chart.value")}
+                            </th>
+                            {chartData.series.length > 0 && (
+                              <th className="text-left py-1">
+                                {t("chat.chart.series")}
+                              </th>
+                            )}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ),
-              }]}
+                        </thead>
+                        <tbody>
+                          {chartData.data_points.map((dp, _i) => (
+                            <tr
+                              key={dp.label}
+                              className="border-b border-zinc-100 dark:border-zinc-800"
+                            >
+                              <td className="py-1 pr-2 text-zinc-600 dark:text-zinc-400">
+                                {dp.label}
+                              </td>
+                              <td className="py-1 pr-2 text-right font-mono">
+                                {dp.value}
+                              </td>
+                              {chartData.series.length > 0 && (
+                                <td className="py-1 text-zinc-500">
+                                  {dp.series || "-"}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ),
+                },
+              ]}
             />
           )}
         </div>
@@ -175,7 +238,9 @@ export function ChartInterpreter({
 
       {!chartData && rawAnalysis && (
         <div>
-          <Text strong className="text-sm block mb-1">{t("chat.chart.summary")}</Text>
+          <Text strong className="text-sm block mb-1">
+            {t("chat.chart.summary")}
+          </Text>
           <Text className="text-sm">{rawAnalysis}</Text>
         </div>
       )}

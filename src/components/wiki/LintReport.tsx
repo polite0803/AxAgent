@@ -35,7 +35,9 @@ export function LintReport({ wikiId }: LintReportProps) {
   const loadLintResults = async () => {
     setLoading(true);
     try {
-      const results = await invoke<LintResult[]>("llm_wiki_lint_vault", { wikiId });
+      const results = await invoke<LintResult[]>("llm_wiki_lint_vault", {
+        wikiId,
+      });
       setLintResults(results);
     } catch (e) {
       message.error(t("wiki.lint.loadError", { error: String(e) }));
@@ -125,9 +127,15 @@ export function LintReport({ wikiId }: LintReportProps) {
       title: t("wiki.lint.issues"),
       key: "issues",
       render: (_: unknown, record: LintResult) => {
-        const errorCount = record.issues.filter((i) => i.severity === "Error").length;
-        const warningCount = record.issues.filter((i) => i.severity === "Warning").length;
-        const infoCount = record.issues.filter((i) => i.severity === "Info").length;
+        const errorCount = record.issues.filter(
+          (i) => i.severity === "Error",
+        ).length;
+        const warningCount = record.issues.filter(
+          (i) => i.severity === "Warning",
+        ).length;
+        const infoCount = record.issues.filter(
+          (i) => i.severity === "Info",
+        ).length;
 
         return (
           <Space>
@@ -160,10 +168,17 @@ export function LintReport({ wikiId }: LintReportProps) {
             />
           </Tooltip>
           <Tooltip title={t("wiki.lint.rerun")}>
-            <Button size="small" icon={<ReloadOutlined />} onClick={() => handleLintNote(record.note_id)} />
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => handleLintNote(record.note_id)}
+            />
           </Tooltip>
           <Tooltip title={t("wiki.lint.updateScore")}>
-            <Button size="small" onClick={() => handleUpdateScore(record.note_id)}>
+            <Button
+              size="small"
+              onClick={() => handleUpdateScore(record.note_id)}
+            >
               {t("wiki.lint.updateScore")}
             </Button>
           </Tooltip>
@@ -173,7 +188,9 @@ export function LintReport({ wikiId }: LintReportProps) {
   ];
 
   const averageScore = lintResults.length > 0
-    ? Math.round(lintResults.reduce((sum, r) => sum + r.score, 0) / lintResults.length)
+    ? Math.round(
+      lintResults.reduce((sum, r) => sum + r.score, 0) / lintResults.length,
+    )
     : 0;
 
   const totalIssues = lintResults.reduce((sum, r) => sum + r.issues.length, 0);
@@ -263,7 +280,12 @@ export function LintReport({ wikiId }: LintReportProps) {
             </Card>
 
             {currentResult.issues.length === 0
-              ? <Empty description={t("wiki.lint.noIssues")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              ? (
+                <Empty
+                  description={t("wiki.lint.noIssues")}
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              )
               : (
                 <Table
                   dataSource={currentResult.issues}

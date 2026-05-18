@@ -28,14 +28,23 @@ interface AgentNodeData {
   validationState?: "error" | "warning";
 }
 
-const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected }) => {
+const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#1890ff";
 
   const getBorderColor = () => {
-    if (data.validationState === "error") { return "#ff4d4f"; }
-    if (data.validationState === "warning") { return "#faad14"; }
-    if (selected) { return "#1890ff"; }
+    if (data.validationState === "error") {
+      return "#ff4d4f";
+    }
+    if (data.validationState === "warning") {
+      return "#faad14";
+    }
+    if (selected) {
+      return "#1890ff";
+    }
     return color;
   };
 
@@ -64,7 +73,9 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
 
   // 从 AgentProfile 获取名称，降级到 agentRole 的 i18n 标签
   const displayName = data.agentRoleDisplayName
-    || (data.agentRole ? t(AGENT_ROLE_META[data.agentRole]?.labelKey ?? "", data.agentRole) : null)
+    || (data.agentRole
+      ? t(AGENT_ROLE_META[data.agentRole]?.labelKey ?? "", data.agentRole)
+      : null)
     || t("workflow.agentNode.agent");
 
   return (
@@ -117,7 +128,9 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
                 color: "#fff",
               }}
             >
-              {data.model.length > 12 ? `${data.model.slice(0, 12)}...` : data.model}
+              {data.model.length > 12
+                ? `${data.model.slice(0, 12)}...`
+                : data.model}
             </Tag>
           )}
         </div>
@@ -152,7 +165,9 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({ data, selected
             </div>
           )}
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+          <div
+            style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}
+          >
             {tools.length > 0 && (
               <Badge
                 count={tools.length}

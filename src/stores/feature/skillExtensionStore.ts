@@ -125,20 +125,32 @@ function namespaceId(skillName: string, id: string): string {
   return `${skillName}::${id}`;
 }
 
-function rewriteDeclarativeAction(action: DeclarativeActionType, skillName: string): DeclarativeActionType {
+function rewriteDeclarativeAction(
+  action: DeclarativeActionType,
+  skillName: string,
+): DeclarativeActionType {
   if (action.type === "handler") {
     return { ...action, name: `${skillName}::${action.name}` };
   }
   if (action.type === "chain") {
-    return { ...action, actions: action.actions.map((a) => rewriteDeclarativeAction(a, skillName)) };
+    return {
+      ...action,
+      actions: action.actions.map((a) => rewriteDeclarativeAction(a, skillName)),
+    };
   }
   return action;
 }
 
-function rewriteHandlerActions(actions: SkillCommandAction[], skillName: string): SkillCommandAction[] {
+function rewriteHandlerActions(
+  actions: SkillCommandAction[],
+  skillName: string,
+): SkillCommandAction[] {
   return actions.map((action) => {
     if (action.mode === "declarative") {
-      return { ...action, action: rewriteDeclarativeAction(action.action, skillName) };
+      return {
+        ...action,
+        action: rewriteDeclarativeAction(action.action, skillName),
+      };
     }
     return action;
   });
@@ -158,13 +170,24 @@ function mergeExtensions(skills: Skill[]) {
   const toolbarPositionMap = new Map<string, Set<string>>();
   const pageRouteMap = new Map<string, Set<string>>();
 
-  function checkDuplicate(type: string, id: string, skillName: string): boolean {
+  function checkDuplicate(
+    type: string,
+    id: string,
+    skillName: string,
+  ): boolean {
     const namespacedId = namespaceId(skillName, id);
-    if (!seenIds.has(type)) { seenIds.set(type, new Set()); }
+    if (!seenIds.has(type)) {
+      seenIds.set(type, new Set());
+    }
     const ids = seenIds.get(type)!;
     if (ids.has(namespacedId)) {
       console.warn(
-        i18n.t("skillExtension.duplicateCapability", { type, id, ns: namespacedId, skillName }),
+        i18n.t("skillExtension.duplicateCapability", {
+          type,
+          id,
+          ns: namespacedId,
+          skillName,
+        }),
       );
       return true;
     }
@@ -172,7 +195,10 @@ function mergeExtensions(skills: Skill[]) {
     return false;
   }
 
-  function checkToolbarPositionConflict(position: string, skillName: string): void {
+  function checkToolbarPositionConflict(
+    position: string,
+    skillName: string,
+  ): void {
     if (!toolbarPositionMap.has(position)) {
       toolbarPositionMap.set(position, new Set());
     }
@@ -180,7 +206,11 @@ function mergeExtensions(skills: Skill[]) {
     if (skillsAtPosition.size > 0 && !skillsAtPosition.has(skillName)) {
       const existingSkills = [...skillsAtPosition].join(", ");
       console.warn(
-        i18n.t("skillExtension.toolbarPositionConflict", { position, skillName, existingSkills }),
+        i18n.t("skillExtension.toolbarPositionConflict", {
+          position,
+          skillName,
+          existingSkills,
+        }),
       );
     }
     skillsAtPosition.add(skillName);
@@ -194,7 +224,11 @@ function mergeExtensions(skills: Skill[]) {
     if (skillsAtRoute.size > 0 && !skillsAtRoute.has(skillName)) {
       const existingSkills = [...skillsAtRoute].join(", ");
       console.warn(
-        i18n.t("skillExtension.pageRouteConflict", { routeId, skillName, existingSkills }),
+        i18n.t("skillExtension.pageRouteConflict", {
+          routeId,
+          skillName,
+          existingSkills,
+        }),
       );
     }
     skillsAtRoute.add(skillName);
@@ -202,7 +236,9 @@ function mergeExtensions(skills: Skill[]) {
 
   for (const skill of skills) {
     const capabilities = skill.manifest?.capabilities;
-    if (!capabilities || capabilities.length === 0) { continue; }
+    if (!capabilities || capabilities.length === 0) {
+      continue;
+    }
 
     const perms = skill.manifest?.permissions;
     const required = extractRequiredCommands(capabilities);
@@ -220,7 +256,10 @@ function mergeExtensions(skills: Skill[]) {
       const capId = cap.id;
 
       if (capType === "toolbar") {
-        checkToolbarPositionConflict((cap as SkillToolbarCapability).position, skill.name);
+        checkToolbarPositionConflict(
+          (cap as SkillToolbarCapability).position,
+          skill.name,
+        );
       }
       if (capType === "page") {
         checkPageRouteConflict(capId, skill.name);
@@ -324,7 +363,10 @@ function mergeCapability(
       });
       break;
     case "chatCommand": {
-      const rewrittenActions = rewriteHandlerActions(cap.actions || [], skill.name);
+      const rewrittenActions = rewriteHandlerActions(
+        cap.actions || [],
+        skill.name,
+      );
       const handlerKey = namespaceId(skill.name, cap.commandName);
       target.chatCommands.push({
         name: cap.commandName,
@@ -349,7 +391,9 @@ function mergeCapability(
         text: cap.text,
         icon: cap.icon,
         dynamicText: cap.dynamicText,
-        onClick: cap.onClick ? rewriteHandlerActions(cap.onClick, skill.name) : undefined,
+        onClick: cap.onClick
+          ? rewriteHandlerActions(cap.onClick, skill.name)
+          : undefined,
         skillName: skill.name,
       });
       break;
@@ -366,58 +410,68 @@ function mergeCapability(
       });
       break;
     default:
-      console.warn(i18n.t("skillExtension.unknownCapabilityType", { type: (cap as Record<string, unknown>).type }));
+      console.warn(
+        i18n.t("skillExtension.unknownCapabilityType", {
+          type: (cap as Record<string, unknown>).type,
+        }),
+      );
   }
 }
 
-export const useSkillExtensionStore = create<SkillExtensionState>((set, get) => ({
-  skills: [],
-  loading: false,
-  navItems: [],
-  pages: [],
-  commands: [],
-  panels: [],
-  settingsSections: [],
-  toolbarButtons: [],
-  chatCommands: [],
-  statusBarItems: [],
-  handlers: {},
+export const useSkillExtensionStore = create<SkillExtensionState>(
+  (set, get) => ({
+    skills: [],
+    loading: false,
+    navItems: [],
+    pages: [],
+    commands: [],
+    panels: [],
+    settingsSections: [],
+    toolbarButtons: [],
+    chatCommands: [],
+    statusBarItems: [],
+    handlers: {},
 
-  fetchSkills: async () => {
-    set({ loading: true });
-    try {
+    fetchSkills: async () => {
+      set({ loading: true });
+      try {
+        const skills = await invoke<Skill[]>("list_skills");
+        const merged = mergeExtensions(skills);
+        set({ skills, ...merged, loading: false });
+      } catch (e) {
+        console.error(i18n.t("skillExtension.fetchFailed"), e);
+        set({ loading: false });
+      }
+    },
+
+    getHandler: (name: string) => get().handlers[name],
+
+    refreshSkill: async (skillName: string) => {
       const skills = await invoke<Skill[]>("list_skills");
+      // 增量更新：只合并变化的 skill，保留其他 skill 的扩展数据
+      const currentSkills = get().skills;
+      const updatedSkills = skills.map((s) => {
+        const existing = currentSkills.find((cs) => cs.name === s.name);
+        return existing && s.name !== skillName ? existing : s;
+      });
+      if (!updatedSkills.some((s) => s.name === skillName)) {
+        const newSkill = skills.find((s) => s.name === skillName);
+        if (newSkill) {
+          updatedSkills.push(newSkill);
+        }
+      }
       const merged = mergeExtensions(skills);
-      set({ skills, ...merged, loading: false });
-    } catch (e) {
-      console.error(i18n.t("skillExtension.fetchFailed"), e);
-      set({ loading: false });
-    }
-  },
-
-  getHandler: (name: string) => get().handlers[name],
-
-  refreshSkill: async (skillName: string) => {
-    const skills = await invoke<Skill[]>("list_skills");
-    // 增量更新：只合并变化的 skill，保留其他 skill 的扩展数据
-    const currentSkills = get().skills;
-    const updatedSkills = skills.map((s) => {
-      const existing = currentSkills.find((cs) => cs.name === s.name);
-      return existing && s.name !== skillName ? existing : s;
-    });
-    if (!updatedSkills.some((s) => s.name === skillName)) {
-      const newSkill = skills.find((s) => s.name === skillName);
-      if (newSkill) { updatedSkills.push(newSkill); }
-    }
-    const merged = mergeExtensions(skills);
-    set({ skills, ...merged });
-  },
-}));
+      set({ skills, ...merged });
+    },
+  }),
+);
 
 // 注册热重载监听（模块加载时执行一次）
 let _hotReloadRegistered = false;
 export function ensureHotReloadRegistered() {
-  if (_hotReloadRegistered) { return; }
+  if (_hotReloadRegistered) {
+    return;
+  }
   _hotReloadRegistered = true;
 
   // 优先使用 Tauri 事件系统
@@ -439,18 +493,26 @@ export function ensureHotReloadRegistered() {
  */
 let _pollingTimer: ReturnType<typeof setInterval> | null = null;
 function setupBrowserPolling(): void {
-  if (_pollingTimer) { return; }
+  if (_pollingTimer) {
+    return;
+  }
   // 仅在开发模式启用
-  if (!import.meta.env.DEV) { return; }
+  if (!import.meta.env.DEV) {
+    return;
+  }
 
   let lastHash = "";
   _pollingTimer = setInterval(async () => {
     try {
       const { invoke } = await import("@/lib/invoke");
       const skills = await invoke<Array<{ name: string; enabled: boolean }>>("list_skills");
-      const currentHash = JSON.stringify(skills.map((s) => `${s.name}:${s.enabled}`).sort());
+      const currentHash = JSON.stringify(
+        skills.map((s) => `${s.name}:${s.enabled}`).sort(),
+      );
       if (currentHash !== lastHash && lastHash !== "") {
-        if (import.meta.env.DEV) { console.log("[SkillHotReload] Skill list changed, refreshing..."); }
+        if (import.meta.env.DEV) {
+          console.log("[SkillHotReload] Skill list changed, refreshing...");
+        }
         useSkillExtensionStore.getState().fetchSkills();
         await import("@/stores").then((s) => s.useSkillStore.getState().loadSkills());
       }

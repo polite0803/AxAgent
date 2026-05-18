@@ -9,12 +9,16 @@ interface PromptTemplateSelectorProps {
   onSelect: (template: PromptTemplate, filledContent: string) => void;
 }
 
-export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps) {
+export function PromptTemplateSelector({
+  onSelect,
+}: PromptTemplateSelectorProps) {
   const { t } = useTranslation();
   const { templates, loading, loadTemplates } = usePromptTemplateStore();
   const [searchText, setSearchText] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
-  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(
+    {},
+  );
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
@@ -46,7 +50,9 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
   }, []);
 
   const handleFillVariables = useCallback(() => {
-    if (!selectedTemplate) { return; }
+    if (!selectedTemplate) {
+      return;
+    }
 
     let content = selectedTemplate.content;
 
@@ -88,7 +94,9 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
 
   // 决定显示哪些变量输入：schema 中定义的优先，回退到自动检测
   const displayVariables = useMemo(() => {
-    if (!selectedTemplate) { return []; }
+    if (!selectedTemplate) {
+      return [];
+    }
     if (selectedTemplate.variablesSchema) {
       try {
         return Object.entries(JSON.parse(selectedTemplate.variablesSchema));
@@ -125,12 +133,21 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
               >
                 <div className="flex flex-col w-full min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm font-medium truncate">{template.name}</span>
-                    <Tag className="shrink-0" color="blue" style={{ fontSize: 12, lineHeight: "16px" }}>
+                    <span className="text-sm font-medium truncate">
+                      {template.name}
+                    </span>
+                    <Tag
+                      className="shrink-0"
+                      color="blue"
+                      style={{ fontSize: 12, lineHeight: "16px" }}
+                    >
                       v{template.version}
                     </Tag>
                     {template.category && (
-                      <Tag className="shrink-0" style={{ fontSize: 12, lineHeight: "16px" }}>
+                      <Tag
+                        className="shrink-0"
+                        style={{ fontSize: 12, lineHeight: "16px" }}
+                      >
                         {template.category}
                       </Tag>
                     )}
@@ -158,25 +175,36 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
         {selectedTemplate && (
           <div className="py-2">
             {selectedTemplate.description && (
-              <p className="text-sm text-zinc-400 mb-3">{selectedTemplate.description}</p>
+              <p className="text-sm text-zinc-400 mb-3">
+                {selectedTemplate.description}
+              </p>
             )}
 
             {/* 变量输入 */}
             {displayVariables.length > 0 && (
               <div className="mb-3">
-                <p className="text-sm text-zinc-500 mb-2">{t("promptTemplates.fillVariables")}</p>
+                <p className="text-sm text-zinc-500 mb-2">
+                  {t("promptTemplates.fillVariables")}
+                </p>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {displayVariables.map(([varName, varType]) => (
                     <div key={varName}>
                       <label className="text-xs text-zinc-400 mb-0.5 block">
-                        {varName} <span className="text-zinc-300">({String(varType)})</span>
+                        {varName}{" "}
+                        <span className="text-zinc-300">
+                          ({String(varType)})
+                        </span>
                       </label>
                       <Input
                         id="prompt-template-selector-input-28"
                         size="small"
                         placeholder={`{${varName}}`}
                         value={variableValues[varName] || ""}
-                        onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
+                        onChange={(e) =>
+                          setVariableValues((prev) => ({
+                            ...prev,
+                            [varName]: e.target.value,
+                          }))}
                       />
                     </div>
                   ))}
@@ -186,7 +214,9 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
 
             {/* 内容预览 */}
             <div>
-              <p className="text-sm text-zinc-500 mb-1">{t("promptTemplates.preview")}</p>
+              <p className="text-sm text-zinc-500 mb-1">
+                {t("promptTemplates.preview")}
+              </p>
               <div className="bg-zinc-50 border rounded p-2.5 text-sm whitespace-pre-wrap max-h-40 overflow-y-auto text-zinc-600">
                 {selectedTemplate.content}
               </div>

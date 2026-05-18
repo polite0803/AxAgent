@@ -21,8 +21,14 @@ export function WikiSidebar({
   const { t } = useTranslation();
 
   return (
-    <div className="w-64 h-full flex flex-col" style={{ backgroundColor: "var(--color-bg-container)" }}>
-      <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: "var(--border-color)" }}>
+    <div
+      className="w-64 h-full flex flex-col"
+      style={{ backgroundColor: "var(--color-bg-container)" }}
+    >
+      <div
+        className="p-3 border-b flex items-center justify-between"
+        style={{ borderColor: "var(--border-color)" }}
+      >
         <span className="font-medium">{t("wiki.notes")}</span>
         {onCreateNote && <Button icon={<PlusOutlined />} size="small" onClick={onCreateNote} />}
       </div>
@@ -42,7 +48,9 @@ export function WikiSidebar({
                   tabIndex={0}
                   onClick={() => onSelectNote(note.id)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { onSelectNote(note.id); }
+                    if (e.key === "Enter" || e.key === " ") {
+                      onSelectNote(note.id);
+                    }
                   }}
                   className={`p-2 rounded cursor-pointer mb-1 transition-colors ${
                     selectedNoteId === note.id
@@ -51,7 +59,10 @@ export function WikiSidebar({
                   }`}
                 >
                   <div className="font-medium text-sm truncate">{note.title}</div>
-                  <div className="text-xs truncate mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                  <div
+                    className="text-xs truncate mt-0.5"
+                    style={{ color: "var(--color-text-secondary)" }}
+                  >
                     {note.filePath}
                   </div>
                   <div className="flex gap-1 mt-1">

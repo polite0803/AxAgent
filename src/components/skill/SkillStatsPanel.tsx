@@ -35,7 +35,9 @@ export function SkillStatsPanel() {
 
     async function load() {
       try {
-        const allStats = await invoke<SkillExecutionStats[]>("get_skill_execution_stats");
+        const allStats = await invoke<SkillExecutionStats[]>(
+          "get_skill_execution_stats",
+        );
 
         if (!cancelled) {
           const merged = allStats.map((s) => {
@@ -52,7 +54,9 @@ export function SkillStatsPanel() {
           setError("get_skill_execution_stats not available");
         }
       } finally {
-        if (!cancelled) { setLoading(false); }
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -92,7 +96,8 @@ export function SkillStatsPanel() {
     : 0;
   const timedStats = stats.filter((s) => s.avgExecutionTimeMs > 0);
   const avgTime = timedStats.length > 0
-    ? timedStats.reduce((sum, s) => sum + s.avgExecutionTimeMs, 0) / timedStats.length
+    ? timedStats.reduce((sum, s) => sum + s.avgExecutionTimeMs, 0)
+      / timedStats.length
     : 0;
 
   return (
@@ -153,7 +158,10 @@ export function SkillStatsPanel() {
           <Row align="middle" gutter={16}>
             <Col span={6}>
               <Typography.Text strong>{s.name}</Typography.Text>
-              <Typography.Text type="secondary" style={{ display: "block", fontSize: 12 }}>
+              <Typography.Text
+                type="secondary"
+                style={{ display: "block", fontSize: 12 }}
+              >
                 {s.totalUsages > 0
                   ? t("skill.stats.usedCount", { count: s.totalUsages })
                   : t("skill.stats.neverUsed")}
@@ -166,7 +174,11 @@ export function SkillStatsPanel() {
               <Progress
                 percent={s.successRate}
                 size="small"
-                status={s.successRate >= 80 ? "success" : s.successRate >= 50 ? "normal" : "exception"}
+                status={s.successRate >= 80
+                  ? "success"
+                  : s.successRate >= 50
+                  ? "normal"
+                  : "exception"}
                 format={(p) => `${p?.toFixed(0)}%`}
               />
             </Col>

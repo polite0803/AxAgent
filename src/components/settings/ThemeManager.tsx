@@ -22,9 +22,7 @@ function ThemePreview({ colors, name }: ThemePreviewProps) {
         minWidth: 200,
       }}
     >
-      <Text style={{ color: colors.foreground, fontSize: 12 }}>
-        {name}
-      </Text>
+      <Text style={{ color: colors.foreground, fontSize: 12 }}>{name}</Text>
       <div style={{ marginTop: 12 }}>
         <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
           {["red", "green", "yellow", "blue"].map((c) => (
@@ -152,11 +150,15 @@ colors:
         const [key, ...valueParts] = line.split(":");
         const value = valueParts.join(":").trim().replace(/"/g, "");
 
-        if (key === "name") { result.metadata.name = value; }
-        else if (key === "version") { result.metadata.version = value; }
-        else if (key === "author") { result.metadata.author = value; }
-        else if (key === "description") { result.metadata.description = value; }
-        else if (key && value) {
+        if (key === "name") {
+          result.metadata.name = value;
+        } else if (key === "version") {
+          result.metadata.version = value;
+        } else if (key === "author") {
+          result.metadata.author = value;
+        } else if (key === "description") {
+          result.metadata.description = value;
+        } else if (key && value) {
           const cleanKey = key.replace(/-/g, "");
           if (result.colors && cleanKey in result.colors) {
             (result.colors as Record<string, string>)[cleanKey] = value;
@@ -282,9 +284,7 @@ colors:
       return builtInColors[themeName];
     }
 
-    const customTheme = customThemes.find(
-      (t) => t.metadata.name === themeName,
-    );
+    const customTheme = customThemes.find((t) => t.metadata.name === themeName);
     return customTheme?.colors || null;
   };
 
@@ -305,7 +305,12 @@ colors:
             {t("settings.theme.import")}
           </Button>
           <Button
-            icon={<RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />}
+            icon={
+              <RefreshCw
+                size={16}
+                className={isLoading ? "animate-spin" : ""}
+              />
+            }
             onClick={() => loadThemes()}
           >
             {t("settings.theme.refresh")}
@@ -317,7 +322,9 @@ colors:
       <div className="grid grid-cols-4 gap-4 mb-8">
         {builtInThemes.map((theme) => {
           const colors = getThemeColors(theme.name);
-          if (!colors) { return null; }
+          if (!colors) {
+            return null;
+          }
           return (
             <Card
               key={theme.name}
@@ -377,10 +384,7 @@ colors:
                       background: colors.background,
                     }}
                   >
-                    <ThemePreview
-                      colors={colors}
-                      name={theme.metadata.name}
-                    />
+                    <ThemePreview colors={colors} name={theme.metadata.name} />
                     <div
                       style={{
                         marginTop: 8,

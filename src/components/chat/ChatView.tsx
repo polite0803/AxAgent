@@ -73,24 +73,33 @@ import type { FilePermissionRequest } from "./FilePermissionDialog";
 import { useChatViewActions } from "./useChatViewActions";
 import { useChatViewScroll } from "./useChatViewScroll";
 
-function ChatViewInner({ onScrollToReady }: {
-  onScrollToReady?: (
-    api: { scrollTo: (messageId: string) => void; scrollBoxRef: React.RefObject<HTMLElement | null> },
-  ) => void;
+function ChatViewInner({
+  onScrollToReady,
+}: {
+  onScrollToReady?: (api: {
+    scrollTo: (messageId: string) => void;
+    scrollBoxRef: React.RefObject<HTMLElement | null>;
+  }) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { message: messageApi } = App.useApp();
 
   const conversations = useConversationStore((s) => s.conversations);
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
-  const setActiveConversation = useConversationStore((s) => s.setActiveConversation);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
+  const setActiveConversation = useConversationStore(
+    (s) => s.setActiveConversation,
+  );
   const messages = useConversationStore((s) => s.messages);
   const loading = useConversationStore((s) => s.loading);
   const loadingOlder = useConversationStore((s) => s.loadingOlder);
   const hasOlderMessages = useConversationStore((s) => s.hasOlderMessages);
   const activeStreams = useStreamStore((s) => s.activeStreams);
-  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
+  const streaming = activeConversationId
+    ? activeConversationId in activeStreams
+    : false;
   const compressing = useCompressStore((s) => s.compressing);
   const settings = useSettingsStore((s) => s.settings);
   const bubbleStyle = settings.bubble_style;
@@ -105,15 +114,23 @@ function ChatViewInner({ onScrollToReady }: {
   const cacheStore = useCacheStore();
   const fetchCacheState = useCacheStore((s) => s.fetchCacheState);
 
-  const activeConversation = conversations.find((c) => c.id === activeConversationId);
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId,
+  );
 
   // 合并 preview 模态框状态，避免级联 setState
-  const [previewState, setPreviewState] = useState<{ payload: CodeBlockPreviewPayload | null; open: boolean }>({
+  const [previewState, setPreviewState] = useState<{
+    payload: CodeBlockPreviewPayload | null;
+    open: boolean;
+  }>({
     payload: null,
     open: false,
   });
   // 合并 mermaid 预览模态框状态，避免级联 setState
-  const [mermaidState, setMermaidState] = useState<{ svg: string | null; open: boolean }>({
+  const [mermaidState, setMermaidState] = useState<{
+    svg: string | null;
+    open: boolean;
+  }>({
     svg: null,
     open: false,
   });
@@ -121,7 +138,11 @@ function ChatViewInner({ onScrollToReady }: {
   const [filePermDialogOpen, setFilePermDialogOpen] = useState(false);
   const [filePermRequest, setFilePermRequest] = useState<FilePermissionRequest | null>(null);
 
-  const { darkTheme: codeBlockDarkTheme, lightTheme: codeBlockLightTheme, themes: codeBlockThemes } = useMemo(
+  const {
+    darkTheme: codeBlockDarkTheme,
+    lightTheme: codeBlockLightTheme,
+    themes: codeBlockThemes,
+  } = useMemo(
     () => getChatCodeThemes(settings.code_theme, settings.code_theme_light),
     [settings.code_theme, settings.code_theme_light],
   );
@@ -132,9 +153,9 @@ function ChatViewInner({ onScrollToReady }: {
 
   useEffect(() => {
     if (codeBlockThemes.length > 0) {
-      registerHighlight({ themes: codeBlockThemes as import("@shikijs/types").ThemeInput[] }).catch(
-        logIpcError("preload_highlight_themes"),
-      );
+      registerHighlight({
+        themes: codeBlockThemes as import("@shikijs/types").ThemeInput[],
+      }).catch(logIpcError("preload_highlight_themes"));
     }
   }, [codeBlockThemes, codeBlockDarkTheme, codeBlockLightTheme, isDarkMode]);
 
@@ -161,8 +182,12 @@ function ChatViewInner({ onScrollToReady }: {
   }, [fetchCacheState, activeConversationId]);
 
   useEffect(() => {
-    if (!activeConversationId) { return; }
-    const conversation = conversations.find((c) => c.id === activeConversationId);
+    if (!activeConversationId) {
+      return;
+    }
+    const conversation = conversations.find(
+      (c) => c.id === activeConversationId,
+    );
     if (conversation?.mode === "agent") {
       const { activePlans, loadActivePlan } = usePlanStore.getState();
       if (!activePlans[activeConversationId]) {
@@ -248,28 +273,44 @@ function ChatViewInner({ onScrollToReady }: {
     }
 
     const recent_actions: string[] = [];
-    if (messages.length > 0) { recent_actions.push("UserMessaged"); }
+    if (messages.length > 0) {
+      recent_actions.push("UserMessaged");
+    }
     if (
-      content.includes("error") || content.includes("Error") || content.includes("bug") || content.includes("修复")
+      content.includes("error")
+      || content.includes("Error")
+      || content.includes("bug")
+      || content.includes("修复")
       || content.includes("报错")
     ) {
       recent_actions.push("ErrorDetected");
     }
     if (
-      content.includes("refactor") || content.includes("优化") || content.includes("重构")
+      content.includes("refactor")
+      || content.includes("优化")
+      || content.includes("重构")
       || content.includes("improve")
     ) {
       recent_actions.push("RefactorKeyword");
     }
-    if (content.includes("test") || content.includes("测试") || content.includes("spec")) {
+    if (
+      content.includes("test")
+      || content.includes("测试")
+      || content.includes("spec")
+    ) {
       recent_actions.push("TestKeyword");
     }
     if (
-      content.includes("document") || content.includes("文档") || content.includes("readme") || content.includes("doc")
+      content.includes("document")
+      || content.includes("文档")
+      || content.includes("readme")
+      || content.includes("doc")
     ) {
       recent_actions.push("DocKeyword");
     }
-    if (fileMatches.length > 0) { recent_actions.push("FileOpened"); }
+    if (fileMatches.length > 0) {
+      recent_actions.push("FileOpened");
+    }
 
     const detected_errors = content.toLowerCase().includes("error") || content.includes("报错")
       ? ["error_detected_in_context"]
@@ -279,9 +320,10 @@ function ChatViewInner({ onScrollToReady }: {
       match_type: "file_reference",
     }));
 
-    const activity = messages.length > 0 && now.getTime() / 1000 - (lastUserMsg?.created_at || 0) < 60
-      ? "high" as const
-      : "medium" as const;
+    const activity = messages.length > 0
+        && now.getTime() / 1000 - (lastUserMsg?.created_at || 0) < 60
+      ? ("high" as const)
+      : ("medium" as const);
 
     const projectTypeMap: Record<string, string> = {
       ts: "typescript",
@@ -323,7 +365,9 @@ function ChatViewInner({ onScrollToReady }: {
       current_language,
       recent_actions,
       time_of_day: now.getHours(),
-      day_of_week: now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase(),
+      day_of_week: now
+        .toLocaleDateString("en-US", { weekday: "long" })
+        .toLowerCase(),
       project_type,
       user_activity_level: activity,
       detected_errors,
@@ -343,8 +387,8 @@ function ChatViewInner({ onScrollToReady }: {
     prevMessageCount.current = messages.length;
   }, [messages.length, activeConversationId]);
 
-  const currentAgentStatus = useAgentStore(
-    (s) => (activeConversationId ? s.agentStatus[activeConversationId] : undefined),
+  const currentAgentStatus = useAgentStore((s) =>
+    activeConversationId ? s.agentStatus[activeConversationId] : undefined
   );
 
   const bubbleListRef = useRef<any>(null);
@@ -360,9 +404,15 @@ function ChatViewInner({ onScrollToReady }: {
   });
 
   const contextBarModel = useMemo(() => {
-    if (!activeConversation) { return null; }
-    const provider = providers.find((p) => p.id === activeConversation.provider_id);
-    const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
+    if (!activeConversation) {
+      return null;
+    }
+    const provider = providers.find(
+      (p) => p.id === activeConversation.provider_id,
+    );
+    const model = provider?.models.find(
+      (m) => m.model_id === activeConversation.model_id,
+    );
     return {
       name: model?.name ?? activeConversation.model_id,
       maxTokens: model?.max_tokens ?? activeConversation.max_tokens ?? undefined,
@@ -370,7 +420,9 @@ function ChatViewInner({ onScrollToReady }: {
   }, [activeConversation, providers]);
 
   const topicGroupEnabled = useTopicGroupStore((s) =>
-    activeConversationId ? s.enabledByConversation[activeConversationId] : false
+    activeConversationId
+      ? s.enabledByConversation[activeConversationId]
+      : false
   );
 
   const msgState = useChatViewMessages({
@@ -399,7 +451,10 @@ function ChatViewInner({ onScrollToReady }: {
   });
 
   useEffect(() => {
-    onScrollToReady?.({ scrollTo: scroll.minimapScrollTo, scrollBoxRef: scroll.scrollBoxRef });
+    onScrollToReady?.({
+      scrollTo: scroll.minimapScrollTo,
+      scrollBoxRef: scroll.scrollBoxRef,
+    });
   }, [scroll.minimapScrollTo]);
 
   const activeMessages = useMemo(
@@ -408,7 +463,9 @@ function ChatViewInner({ onScrollToReady }: {
   );
 
   const tokenUsed = activeMessages.length > 0
-    ? estimateConversationTokens(activeMessages.map(m => ({ role: m.role, content: m.content })))
+    ? estimateConversationTokens(
+      activeMessages.map((m) => ({ role: m.role, content: m.content })),
+    )
     : 0;
 
   const [showTokenDetail, setShowTokenDetail] = useState(false);
@@ -566,39 +623,51 @@ function ChatViewInner({ onScrollToReady }: {
           )
           : (
             <>
-              {activeConversationId && (() => {
-                const ctxProvider = providers.find((p) => p.id === activeConversation?.provider_id);
-                const ctxModel = ctxProvider?.models.find((m) => m.model_id === activeConversation?.model_id);
-                return (
-                  <div style={{ padding: "0 16px" }}>
-                    <ContextGraphPanel
-                      conversationTitle={activeConversation?.title}
-                      conversationId={activeConversationId}
-                      modelName={ctxModel?.name ?? activeConversation?.model_id}
-                      providerName={ctxProvider?.name}
-                      knowledgeBaseIds={activeConversation?.enabled_knowledge_base_ids ?? []}
-                      memoryNamespaceIds={activeConversation?.enabled_memory_namespace_ids ?? []}
-                      mcpServerIds={activeConversation?.enabled_mcp_server_ids ?? []}
-                      searchEnabled={activeConversation?.search_enabled ?? false}
-                      enabledSkillIds={activeConversation?.enabled_skill_ids ?? []}
-                    />
+              {activeConversationId
+                && (() => {
+                  const ctxProvider = providers.find(
+                    (p) => p.id === activeConversation?.provider_id,
+                  );
+                  const ctxModel = ctxProvider?.models.find(
+                    (m) => m.model_id === activeConversation?.model_id,
+                  );
+                  return (
+                    <div style={{ padding: "0 16px" }}>
+                      <ContextGraphPanel
+                        conversationTitle={activeConversation?.title}
+                        conversationId={activeConversationId}
+                        modelName={ctxModel?.name ?? activeConversation?.model_id}
+                        providerName={ctxProvider?.name}
+                        knowledgeBaseIds={activeConversation?.enabled_knowledge_base_ids ?? []}
+                        memoryNamespaceIds={activeConversation?.enabled_memory_namespace_ids ?? []}
+                        mcpServerIds={activeConversation?.enabled_mcp_server_ids ?? []}
+                        searchEnabled={activeConversation?.search_enabled ?? false}
+                        enabledSkillIds={activeConversation?.enabled_skill_ids ?? []}
+                      />
+                    </div>
+                  );
+                })()}
+              {msgState.hiddenEarlierCount > 0
+                && msgState.hiddenEarlierCount
+                  === msgState.allBubbleItems.length
+                && (
+                  <div style={{ textAlign: "center", padding: "8px 0" }}>
+                    <Button
+                      size="small"
+                      type="link"
+                      loading={loadingOlder}
+                      onClick={() => {
+                        msgState.virtualizer.scrollToIndex(0, {
+                          behavior: "smooth",
+                        });
+                      }}
+                    >
+                      {t("chat.showAllMessages", {
+                        count: msgState.allBubbleItems.length,
+                      })}
+                    </Button>
                   </div>
-                );
-              })()}
-              {msgState.hiddenEarlierCount > 0 && msgState.hiddenEarlierCount === msgState.allBubbleItems.length && (
-                <div style={{ textAlign: "center", padding: "8px 0" }}>
-                  <Button
-                    size="small"
-                    type="link"
-                    loading={loadingOlder}
-                    onClick={() => {
-                      msgState.virtualizer.scrollToIndex(0, { behavior: "smooth" });
-                    }}
-                  >
-                    {t("chat.showAllMessages", { count: msgState.allBubbleItems.length })}
-                  </Button>
-                </div>
-              )}
+                )}
               <Bubble.List
                 key={bubbleListThemeKey}
                 ref={bubbleListRef}
@@ -608,25 +677,26 @@ function ChatViewInner({ onScrollToReady }: {
                 role={msgState.roles}
                 style={{
                   height: "100%",
-                  padding: settings.chat_minimap_enabled && settings.chat_minimap_style === "sticky"
+                  padding: settings.chat_minimap_enabled
+                      && settings.chat_minimap_style === "sticky"
                     ? "50px 24px 16px 24px"
                     : "16px 24px",
                   overflowX: "hidden",
                 }}
               />
               {activeConversation?.session_type === "workflow"
-                && activeConversation?.workflow_status === "completed"
-                && (
-                  <WorkflowEndMarker
-                    workflowName={activeConversation.workflow_template_id ?? t("chat.workflowLabel")}
-                    stepCount={0}
-                    completedCount={0}
-                    durationSeconds={0}
-                    onArchive={() => {
-                      void toggleArchive(activeConversation.id);
-                    }}
-                  />
-                )}
+                && activeConversation?.workflow_status === "completed" && (
+                <WorkflowEndMarker
+                  workflowName={activeConversation.workflow_template_id
+                    ?? t("chat.workflowLabel")}
+                  stepCount={0}
+                  completedCount={0}
+                  durationSeconds={0}
+                  onArchive={() => {
+                    void toggleArchive(activeConversation.id);
+                  }}
+                />
+              )}
               {(() => {
                 const suggestion = useAgentStore.getState().workflowMatchSuggestion;
                 if (
@@ -658,7 +728,10 @@ function ChatViewInner({ onScrollToReady }: {
                 return null;
               })()}
               <ChatScrollIndicator />
-              <MinimapScrollProvider scrollTo={scroll.minimapScrollTo} scrollBoxRef={scroll.scrollBoxRef}>
+              <MinimapScrollProvider
+                scrollTo={scroll.minimapScrollTo}
+                scrollBoxRef={scroll.scrollBoxRef}
+              >
                 <ChatMinimap />
               </MinimapScrollProvider>
             </>
@@ -697,7 +770,9 @@ function ChatViewInner({ onScrollToReady }: {
 
       {activeConversation?.mode === "agent" && <QuickCommandBar />}
 
-      {activeConversation?.mode === "agent" && activeConversationId && streaming && <SteerInput />}
+      {activeConversation?.mode === "agent"
+        && activeConversationId
+        && streaming && <SteerInput />}
 
       <div className="relative">
         {scroll.showScrollToBottom && (
@@ -739,10 +814,14 @@ function ChatViewInner({ onScrollToReady }: {
         onClose={() => actions.setExpertOpen(false)}
         selectedRoleId={activeConversation?.expert_role_id ?? null}
         onSelect={(roleId) => {
-          if (!activeConversationId) { return; }
+          if (!activeConversationId) {
+            return;
+          }
           const expertStore = useExpertStore.getState();
           const role = expertStore.getRoleById(roleId);
-          if (!role) { return; }
+          if (!role) {
+            return;
+          }
 
           updateConversation(activeConversationId, {
             expert_role_id: roleId,
@@ -766,7 +845,10 @@ function ChatViewInner({ onScrollToReady }: {
 
           if (role.recommendPermissionMode) {
             const { updatePermissionMode } = useAgentStore.getState();
-            updatePermissionMode(activeConversationId, role.recommendPermissionMode);
+            updatePermissionMode(
+              activeConversationId,
+              role.recommendPermissionMode,
+            );
           }
 
           actions.setExpertOpen(false);
@@ -806,19 +888,25 @@ function ChatViewInner({ onScrollToReady }: {
           >
             {t("common.cancel")}
           </Button>,
-          <Button key="save" onClick={actions.handleEditSaveOnly} loading={actions.editSaving}>
+          <Button
+            key="save"
+            onClick={actions.handleEditSaveOnly}
+            loading={actions.editSaving}
+          >
             {t("chat.saveOnly")}
           </Button>,
-          ...(actions.editingMessageRole === "assistant" ? [] : [
-            <Button
-              key="saveResend"
-              type="primary"
-              onClick={actions.handleEditSaveAndResend}
-              loading={actions.editSaving}
-            >
-              {t("chat.saveAndResend")}
-            </Button>,
-          ]),
+          ...(actions.editingMessageRole === "assistant"
+            ? []
+            : [
+              <Button
+                key="saveResend"
+                type="primary"
+                onClick={actions.handleEditSaveAndResend}
+                loading={actions.editSaving}
+              >
+                {t("chat.saveAndResend")}
+              </Button>,
+            ]),
         ]}
         width={640}
       >
@@ -842,13 +930,17 @@ function ChatViewInner({ onScrollToReady }: {
         footer={null}
         width="80vw"
         style={{ top: 32 }}
-        styles={{ body: { height: "calc(80vh - 55px)", overflow: "auto", padding: 16 } }}
+        styles={{
+          body: { height: "calc(80vh - 55px)", overflow: "auto", padding: 16 },
+        }}
         destroyOnHidden
       >
         {mermaidState.svg && (
           <div
             style={{ width: "100%", display: "flex", justifyContent: "center" }}
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(mermaidState.svg) }}
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(mermaidState.svg),
+            }}
           />
         )}
       </Modal>
@@ -867,11 +959,16 @@ export interface ChatViewScrollApi {
   scrollBoxRef: React.RefObject<HTMLElement | null>;
 }
 
-export function ChatView({ onScrollToReady }: {
+export function ChatView({
+  onScrollToReady,
+}: {
   onScrollToReady?: (api: ChatViewScrollApi) => void;
 }) {
   return (
-    <ModuleErrorBoundary moduleName="ChatView" showDetails={import.meta.env.DEV}>
+    <ModuleErrorBoundary
+      moduleName="ChatView"
+      showDetails={import.meta.env.DEV}
+    >
       <ChatViewInner onScrollToReady={onScrollToReady} />
     </ModuleErrorBoundary>
   );
@@ -879,7 +976,9 @@ export function ChatView({ onScrollToReady }: {
 
 function PlanCardWrapper({ conversationId }: { conversationId: string }) {
   const plan = usePlanStore((s) => s.activePlans[conversationId]);
-  if (!plan) { return null; }
+  if (!plan) {
+    return null;
+  }
   return (
     <div style={{ padding: "8px 16px" }}>
       <PlanCard plan={plan} conversationId={conversationId} />
@@ -887,10 +986,16 @@ function PlanCardWrapper({ conversationId }: { conversationId: string }) {
   );
 }
 
-function ProactivePanelsSection({ context }: { context: Record<string, unknown> }) {
+function ProactivePanelsSection({
+  context,
+}: {
+  context: Record<string, unknown>;
+}) {
   const proactiveMode = useAppConfigStore((s) => s.features.proactiveMode);
 
-  if (!proactiveMode) { return null; }
+  if (!proactiveMode) {
+    return null;
+  }
 
   return (
     <div className="border-b border-border px-4 py-2">

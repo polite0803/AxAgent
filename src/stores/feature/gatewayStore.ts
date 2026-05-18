@@ -53,11 +53,18 @@ interface GatewayState {
   fetchUsageByProvider: () => Promise<void>;
   fetchUsageByDay: (days?: number) => Promise<void>;
   fetchConnectedPrograms: () => Promise<void>;
-  listRequestLogs: (limit?: number, offset?: number) => Promise<GatewayRequestLog[]>;
+  listRequestLogs: (
+    limit?: number,
+    offset?: number,
+  ) => Promise<GatewayRequestLog[]>;
   fetchRequestLogs: (limit?: number, offset?: number) => Promise<void>;
   clearRequestLogs: () => Promise<void>;
   fetchCliToolStatuses: () => Promise<void>;
-  connectCliTool: (tool: string, keyId: string, protocol: QuickConnectProtocol) => Promise<void>;
+  connectCliTool: (
+    tool: string,
+    keyId: string,
+    protocol: QuickConnectProtocol,
+  ) => Promise<void>;
   disconnectCliTool: (tool: string, restoreBackup: boolean) => Promise<void>;
 }
 
@@ -99,7 +106,10 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   createKey: async (name) => {
     try {
-      const result = await invoke<CreateGatewayKeyResult>("create_gateway_key", { name });
+      const result = await invoke<CreateGatewayKeyResult>(
+        "create_gateway_key",
+        { name },
+      );
       set((s) => ({ keys: [...s.keys, result.gateway_key], error: null }));
       return result;
     } catch (e) {
@@ -192,7 +202,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchUsageByProvider: async () => {
     try {
-      const usageByProvider = await invoke<UsageByProvider[]>("get_gateway_usage_by_provider");
+      const usageByProvider = await invoke<UsageByProvider[]>(
+        "get_gateway_usage_by_provider",
+      );
       set({ usageByProvider });
     } catch (e) {
       set({ error: String(e) });
@@ -201,7 +213,10 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchUsageByDay: async (days = 30) => {
     try {
-      const usageByDay = await invoke<UsageByDay[]>("get_gateway_usage_by_day", { days });
+      const usageByDay = await invoke<UsageByDay[]>(
+        "get_gateway_usage_by_day",
+        { days },
+      );
       set({ usageByDay });
     } catch (e) {
       set({ error: String(e) });
@@ -210,7 +225,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   fetchConnectedPrograms: async () => {
     try {
-      const connectedPrograms = await invoke<ConnectedProgram[]>("get_connected_programs");
+      const connectedPrograms = await invoke<ConnectedProgram[]>(
+        "get_connected_programs",
+      );
       set({ connectedPrograms });
     } catch (e) {
       set({ error: String(e) });
@@ -219,7 +236,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   loadDiagnostics: async () => {
     try {
-      const diagnostics = await invoke<GatewayDiagnostic[]>("get_gateway_diagnostics");
+      const diagnostics = await invoke<GatewayDiagnostic[]>(
+        "get_gateway_diagnostics",
+      );
       set({ diagnostics });
     } catch (e) {
       set({ error: String(e) });
@@ -228,7 +247,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   loadProgramPolicies: async () => {
     try {
-      const programPolicies = await invoke<ProgramPolicy[]>("get_program_policies");
+      const programPolicies = await invoke<ProgramPolicy[]>(
+        "get_program_policies",
+      );
       set({ programPolicies });
     } catch (e) {
       set({ error: String(e) });
@@ -237,9 +258,14 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   saveProgramPolicy: async (input) => {
     try {
-      const policy = await invoke<ProgramPolicy>("save_program_policy", { input });
+      const policy = await invoke<ProgramPolicy>("save_program_policy", {
+        input,
+      });
       set((s) => ({
-        programPolicies: [...s.programPolicies.filter((p) => p.id !== policy.id), policy],
+        programPolicies: [
+          ...s.programPolicies.filter((p) => p.id !== policy.id),
+          policy,
+        ],
         error: null,
       }));
       return policy;
@@ -251,7 +277,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   loadGatewayTemplates: async () => {
     try {
-      const gatewayTemplates = await invoke<GatewayTemplate[]>("list_gateway_templates");
+      const gatewayTemplates = await invoke<GatewayTemplate[]>(
+        "list_gateway_templates",
+      );
       set({ gatewayTemplates });
     } catch (e) {
       set({ error: String(e) });
@@ -260,7 +288,9 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   copyGatewayTemplate: async (templateId: string) => {
     try {
-      const content = await invoke<string>("copy_gateway_template", { templateId: templateId });
+      const content = await invoke<string>("copy_gateway_template", {
+        templateId: templateId,
+      });
       return content;
     } catch (e) {
       set({ error: String(e) });
@@ -271,7 +301,10 @@ export const useGatewayStore = create<GatewayState>((set) => ({
   fetchRequestLogs: async (limit = 100, offset = 0) => {
     set({ requestLogsLoading: true });
     try {
-      const requestLogs = await invoke<GatewayRequestLog[]>("list_gateway_request_logs", { limit, offset });
+      const requestLogs = await invoke<GatewayRequestLog[]>(
+        "list_gateway_request_logs",
+        { limit, offset },
+      );
       set({ requestLogs, requestLogsLoading: false });
     } catch (e) {
       set({ error: String(e), requestLogsLoading: false });
@@ -280,7 +313,10 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   listRequestLogs: async (limit = 100, offset = 0) => {
     try {
-      const requestLogs = await invoke<GatewayRequestLog[]>("list_gateway_request_logs", { limit, offset });
+      const requestLogs = await invoke<GatewayRequestLog[]>(
+        "list_gateway_request_logs",
+        { limit, offset },
+      );
       set({ error: null });
       return requestLogs;
     } catch (e) {
@@ -322,7 +358,10 @@ export const useGatewayStore = create<GatewayState>((set) => ({
 
   disconnectCliTool: async (tool, restoreBackup) => {
     try {
-      await invoke("disconnect_cli_tool", { tool, restoreBackup: restoreBackup });
+      await invoke("disconnect_cli_tool", {
+        tool,
+        restoreBackup: restoreBackup,
+      });
       // Refresh statuses after disconnect
       const cliTools = await invoke<CliToolInfo[]>("get_all_cli_tool_statuses");
       set({ cliTools, error: null });

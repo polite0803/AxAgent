@@ -70,7 +70,9 @@ interface AgentStore {
 
   // Workflow match suggestion for conversation-type sessions
   workflowMatchSuggestion: WorkflowMatchSuggestion | null;
-  setWorkflowMatchSuggestion: (suggestion: WorkflowMatchSuggestion | null) => void;
+  setWorkflowMatchSuggestion: (
+    suggestion: WorkflowMatchSuggestion | null,
+  ) => void;
 
   // Unified Agent Pool — 子Agent + 工作者 + 工作流步骤
   agentPool: Record<string, AgentPoolItem[]>; // conversationId → pool items
@@ -89,14 +91,27 @@ interface AgentStore {
   }) => void;
 
   // 队友管理
-  addTeammateMessage: (conversationId: string, agentId: string, message: string) => void;
-  updateTeammateTask: (conversationId: string, agentId: string, task: string) => void;
+  addTeammateMessage: (
+    conversationId: string,
+    agentId: string,
+    message: string,
+  ) => void;
+  updateTeammateTask: (
+    conversationId: string,
+    agentId: string,
+    task: string,
+  ) => void;
 
   // Actions
   fetchSession: (conversationId: string) => Promise<AgentSession | null>;
   updateCwd: (conversationId: string, cwd: string) => Promise<void>;
   updatePermissionMode: (conversationId: string, mode: string) => Promise<void>;
-  approveToolUse: (conversationId: string, toolUseId: string, decision: string, toolName?: string) => Promise<void>;
+  approveToolUse: (
+    conversationId: string,
+    toolUseId: string,
+    decision: string,
+    toolName?: string,
+  ) => Promise<void>;
 
   // Event handlers
   handleToolUse: (event: ToolUseEvent) => void;
@@ -195,7 +210,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const msg: WorkerMessage = {
       workerId: event.workerId,
       taskId: event.taskId,
-      messageType: (event.messageType || "progress") as WorkerMessage["messageType"],
+      messageType: (event.messageType
+        || "progress") as WorkerMessage["messageType"],
       content: event.content,
       timestamp: Date.now(),
     };
@@ -220,9 +236,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         pool[idx] = {
           ...existing,
           status: newStatus,
-          summary: event.messageType === "progress"
-            ? event.content
-            : existing.summary,
+          summary: event.messageType === "progress" ? event.content : existing.summary,
           error: event.messageType === "error" ? event.content : existing.error,
           messages: [...(existing.messages || []), msg],
           duration: existing.startedAt
@@ -390,7 +404,10 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       };
       const idMap = { ...s.sdkIdToExecId };
       if (event.executionId) {
-        updates[event.executionId] = { ...toolCall, toolUseId: event.executionId };
+        updates[event.executionId] = {
+          ...toolCall,
+          toolUseId: event.executionId,
+        };
         idMap[event.toolUseId] = event.executionId;
       }
       // Create optimistic sub-agent card when task tool is called
@@ -414,7 +431,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         startedAt: Date.now(),
       };
       const isExecuting = { ...s.isExecuting, [event.conversationId]: true };
-      const executingIds = s.executingConversationIds.includes(event.conversationId)
+      const executingIds = s.executingConversationIds.includes(
+          event.conversationId,
+        )
         ? s.executingConversationIds
         : [...s.executingConversationIds, event.conversationId];
       return {
@@ -473,9 +492,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       }
       // 如果当前追踪的工具完成了，清除执行状态
       const wasActive = s.currentToolCall?.toolUseId === event.toolUseId;
-      const isExecuting = wasActive
-        ? { ...s.isExecuting }
-        : s.isExecuting;
+      const isExecuting = wasActive ? { ...s.isExecuting } : s.isExecuting;
       if (wasActive && event.conversationId) {
         delete isExecuting[event.conversationId];
       }
@@ -508,7 +525,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           ...s.toolCalls,
           [toolUseId]: {
             ...existing,
-            approvalStatus: decision === "deny" ? ("denied" as const) : ("approved" as const),
+            approvalStatus: decision === "deny"
+              ? ("denied" as const)
+              : ("approved" as const),
           },
         }
         : s.toolCalls;
@@ -558,12 +577,16 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   handleDone: (event) => {
     const stats: QueryStats = {};
-    if (event.numTurns != null) { stats.numTurns = event.numTurns; }
+    if (event.numTurns != null) {
+      stats.numTurns = event.numTurns;
+    }
     if (event.usage) {
       stats.inputTokens = event.usage.input_tokens;
       stats.outputTokens = event.usage.output_tokens;
     }
-    if (event.costUsd != null) { stats.costUsd = event.costUsd; }
+    if (event.costUsd != null) {
+      stats.costUsd = event.costUsd;
+    }
     if (event.assistantMessageId && Object.keys(stats).length > 0) {
       set((s) => ({
         queryStats: { ...s.queryStats, [event.assistantMessageId]: stats },
@@ -582,12 +605,16 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       return {
         currentToolCall: shouldClear ? null : s.currentToolCall,
         isExecuting,
-        executingConversationIds: s.executingConversationIds.filter((id) => id !== event.conversationId),
+        executingConversationIds: s.executingConversationIds.filter(
+          (id) => id !== event.conversationId,
+        ),
       };
     });
     // Agent 完成通知
     const turns = event.numTurns ?? 0;
-    const cost = event.costUsd != null ? ` (${event.costUsd < 0.01 ? "<$0.01" : `$${event.costUsd.toFixed(2)}`})` : "";
+    const cost = event.costUsd != null
+      ? ` (${event.costUsd < 0.01 ? "<$0.01" : `$${event.costUsd.toFixed(2)}`})`
+      : "";
     const doneText = i18n.t("agentStore.executionComplete", { turns, cost });
     message.success(doneText);
     pushNotification("success", doneText);
@@ -604,13 +631,18 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         return {
           currentToolCall: null,
           isExecuting,
-          executingConversationIds: s.executingConversationIds.filter((id) => id !== event.conversationId),
+          executingConversationIds: s.executingConversationIds.filter(
+            (id) => id !== event.conversationId,
+          ),
         };
       });
     }
     // Fallback: update message content if per-invocation listener missed it.
     const { activeStreams } = useStreamStore.getState();
-    const streamMsgId = getStreamingMessageId(activeStreams, event.conversationId);
+    const streamMsgId = getStreamingMessageId(
+      activeStreams,
+      event.conversationId,
+    );
     if (streamMsgId) {
       const targetId = streamMsgId;
       // Detect stream interruption errors that may have partial content
@@ -629,7 +661,11 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           activeStreams: restStreams,
           ...(restCount > 0
             ? deriveLegacyStreamFields(restStreams)
-            : { streaming: false, streamingMessageId: null, streamingConversationId: null }),
+            : {
+              streaming: false,
+              streamingMessageId: null,
+              streamingConversationId: null,
+            }),
           streamingStartTimestamps: (() => {
             const t = { ...s.streamingStartTimestamps };
             delete t[event.conversationId];
@@ -638,7 +674,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           thinkingActiveMessageIds: (() => {
             const current = s.thinkingActiveMessageIds;
             const next = new Set(current);
-            if (targetId) { next.delete(targetId); }
+            if (targetId) {
+              next.delete(targetId);
+            }
             return next;
           })(),
         };
@@ -646,7 +684,11 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       useConversationStore.setState((s) => ({
         messages: s.messages.map((m) =>
           m.id === targetId
-            ? { ...m, content: errorPrefix + event.message, status: "error" as const }
+            ? {
+              ...m,
+              content: errorPrefix + event.message,
+              status: "error" as const,
+            }
             : m
         ),
       }));
@@ -673,7 +715,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         return {
           currentToolCall: null,
           isExecuting,
-          executingConversationIds: s.executingConversationIds.filter((id) => id !== event.conversationId),
+          executingConversationIds: s.executingConversationIds.filter(
+            (id) => id !== event.conversationId,
+          ),
         };
       });
     }
@@ -712,7 +756,11 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       conversationId: event.conversationId,
       type: "sub_agent",
       name: event.agentName || event.agentType,
-      status: event.status === "failed" ? "failed" : event.status === "completed" ? "completed" : "running",
+      status: event.status === "failed"
+        ? "failed"
+        : event.status === "completed"
+        ? "completed"
+        : "running",
       agentType: event.agentType,
       childConversationId: event.childConversationId,
       childSessionId: event.childSessionId,
@@ -743,7 +791,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           expiredKeys.add(id);
         }
       }
-      if (expiredKeys.size === 0) { return s; }
+      if (expiredKeys.size === 0) {
+        return s;
+      }
 
       // Remove from pendingPermissions and mark toolCalls as expired
       const pendingPermissions: Record<string, PermissionRequestEvent> = {};
@@ -769,15 +819,22 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       const executions = await invoke<ToolExecution[]>("list_tool_executions", {
         conversationId,
       });
-      const agentExecs = executions.filter((e) => e.serverId === "__agent_sdk__");
+      const agentExecs = executions.filter(
+        (e) => e.serverId === "__agent_sdk__",
+      );
 
       const toolCalls: Record<string, ToolCallState> = {};
       for (const exec of agentExecs) {
         let executionStatus: ToolCallState["executionStatus"] = "queued";
-        if (exec.status === "running") { executionStatus = "running"; }
-        else if (exec.status === "success") { executionStatus = "success"; }
-        else if (exec.status === "failed") { executionStatus = "failed"; }
-        else if (exec.status === "cancelled") { executionStatus = "cancelled"; }
+        if (exec.status === "running") {
+          executionStatus = "running";
+        } else if (exec.status === "success") {
+          executionStatus = "success";
+        } else if (exec.status === "failed") {
+          executionStatus = "failed";
+        } else if (exec.status === "cancelled") {
+          executionStatus = "cancelled";
+        }
 
         // Historical records still showing pending/running means the agent
         // was interrupted or a duplicate record was left behind.
@@ -787,15 +844,21 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         }
 
         let approvalStatus: ToolCallState["approvalStatus"] | undefined;
-        if (exec.approvalStatus === "approved") { approvalStatus = "approved"; }
-        else if (exec.approvalStatus === "denied") { approvalStatus = "denied"; }
-        else if (exec.approvalStatus === "pending") { approvalStatus = "pending"; }
+        if (exec.approvalStatus === "approved") {
+          approvalStatus = "approved";
+        } else if (exec.approvalStatus === "denied") {
+          approvalStatus = "denied";
+        } else if (exec.approvalStatus === "pending") {
+          approvalStatus = "pending";
+        }
 
         let input: Record<string, unknown> = {};
         if (exec.inputPreview) {
           try {
             input = JSON.parse(exec.inputPreview);
-          } catch { /* leave empty */ }
+          } catch {
+            /* leave empty */
+          }
         }
 
         toolCalls[exec.id] = {
@@ -866,7 +929,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       const pausedConversations = new Set(s.pausedConversations);
       pausedConversations.delete(conversationId);
       const { [conversationId]: _isExec, ...isExecuting } = s.isExecuting;
-      const executingConversationIds = s.executingConversationIds.filter((id) => id !== conversationId);
+      const executingConversationIds = s.executingConversationIds.filter(
+        (id) => id !== conversationId,
+      );
       const { [conversationId]: _queryStats, ...queryStats } = s.queryStats;
       const { [conversationId]: _subAgent, ...subAgentCards } = s.subAgentCards;
       return {
@@ -880,7 +945,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         pausedConversations,
         isExecuting,
         executingConversationIds,
-        currentToolCall: s.currentToolCall?.conversationId === conversationId ? null : s.currentToolCall,
+        currentToolCall: s.currentToolCall?.conversationId === conversationId
+          ? null
+          : s.currentToolCall,
         queryStats,
         subAgentCards,
         workflowMatchSuggestion: s.workflowMatchSuggestion?.conversationId === conversationId
@@ -931,7 +998,9 @@ let _listenersSetup = false;
  * 委托给 setupExecutionEventListeners 处理，避免重复。
  */
 export function setupAgentEventListeners(): () => void {
-  if (_listenersSetup) { return () => {}; }
+  if (_listenersSetup) {
+    return () => {};
+  }
   _listenersSetup = true;
 
   // 执行事件由 executionStore 统一接管

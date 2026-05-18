@@ -85,7 +85,9 @@ export function useXtermEnhancement(
   };
 
   const initTerminal = useCallback(async () => {
-    if (!containerRef.current || terminalRef.current) { return; }
+    if (!containerRef.current || terminalRef.current) {
+      return;
+    }
 
     const xterm = new XTerm({
       cursorBlink,
@@ -129,7 +131,17 @@ export function useXtermEnhancement(
       searchAddonRef.current = null;
       setIsReady(false);
     };
-  }, [containerRef, cursorBlink, fontSize, fontFamily, theme, scrollback, enableWebLinks, enableSearch, onReady]);
+  }, [
+    containerRef,
+    cursorBlink,
+    fontSize,
+    fontFamily,
+    theme,
+    scrollback,
+    enableWebLinks,
+    enableSearch,
+    onReady,
+  ]);
 
   const fit = useCallback(() => {
     if (fitAddonRef.current) {
@@ -138,7 +150,14 @@ export function useXtermEnhancement(
   }, []);
 
   const search = useCallback(
-    (term: string, options?: { regex?: boolean; wholeWord?: boolean; caseSensitive?: boolean }) => {
+    (
+      term: string,
+      options?: {
+        regex?: boolean;
+        wholeWord?: boolean;
+        caseSensitive?: boolean;
+      },
+    ) => {
       if (searchAddonRef.current) {
         searchAddonRef.current.findNext(term, options);
       }
@@ -147,7 +166,14 @@ export function useXtermEnhancement(
   );
 
   const searchPrevious = useCallback(
-    (term: string, options?: { regex?: boolean; wholeWord?: boolean; caseSensitive?: boolean }) => {
+    (
+      term: string,
+      options?: {
+        regex?: boolean;
+        wholeWord?: boolean;
+        caseSensitive?: boolean;
+      },
+    ) => {
       if (searchAddonRef.current) {
         searchAddonRef.current.findPrevious(term, options);
       }
@@ -178,15 +204,18 @@ export function useXtermEnhancement(
 }
 
 export function useOscClipboard(terminal: XTerm | null) {
-  const handleClipboard = useCallback(async (event: ClipboardEvent) => {
-    if (event.type === "copy" && terminal) {
-      const selection = terminal.getSelection();
-      if (selection) {
-        event.clipboardData?.setData("text/plain", selection);
-        event.preventDefault();
+  const handleClipboard = useCallback(
+    async (event: ClipboardEvent) => {
+      if (event.type === "copy" && terminal) {
+        const selection = terminal.getSelection();
+        if (selection) {
+          event.clipboardData?.setData("text/plain", selection);
+          event.preventDefault();
+        }
       }
-    }
-  }, [terminal]);
+    },
+    [terminal],
+  );
 
   const copySelection = useCallback(() => {
     if (terminal) {
@@ -239,19 +268,25 @@ export function useVirtualScroll(
     }
   }, [terminal]);
 
-  const scrollLines = useCallback((lines: number) => {
-    if (terminal) {
-      terminal.scrollLines(lines);
-    }
-  }, [terminal]);
+  const scrollLines = useCallback(
+    (lines: number) => {
+      if (terminal) {
+        terminal.scrollLines(lines);
+      }
+    },
+    [terminal],
+  );
 
-  const onScroll = useCallback((callback: (scrollTop: number, scrollBottom: number) => void) => {
-    if (terminal) {
-      terminal.onScroll((newScrollTop) => {
-        callback(newScrollTop, newScrollTop + terminal.rows);
-      });
-    }
-  }, [terminal]);
+  const onScroll = useCallback(
+    (callback: (scrollTop: number, scrollBottom: number) => void) => {
+      if (terminal) {
+        terminal.onScroll((newScrollTop) => {
+          callback(newScrollTop, newScrollTop + terminal.rows);
+        });
+      }
+    },
+    [terminal],
+  );
 
   return {
     visibleRange,

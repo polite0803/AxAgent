@@ -30,7 +30,9 @@ export function PatternPanel() {
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     const fetch = async () => {
       try {
         const p = await invoke<TrajectoryPattern[]>("pattern_list", {});
@@ -40,7 +42,9 @@ export function PatternPanel() {
         }
       } catch (e) {
         console.warn("[pattern] Failed to fetch patterns:", e);
-        if (mountedRef.current) { setError(true); }
+        if (mountedRef.current) {
+          setError(true);
+        }
       }
     };
     fetch();
@@ -49,9 +53,15 @@ export function PatternPanel() {
   }, [expanded]);
 
   const filtered = patterns.filter((p) => {
-    if (filter === "success") { return p.success_rate >= 0.6; }
-    if (filter === "medium") { return p.success_rate >= 0.4 && p.success_rate < 0.6; }
-    if (filter === "failure") { return p.success_rate < 0.4; }
+    if (filter === "success") {
+      return p.success_rate >= 0.6;
+    }
+    if (filter === "medium") {
+      return p.success_rate >= 0.4 && p.success_rate < 0.6;
+    }
+    if (filter === "failure") {
+      return p.success_rate < 0.4;
+    }
     return true;
   });
 
@@ -62,7 +72,13 @@ export function PatternPanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="size-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -70,7 +86,12 @@ export function PatternPanel() {
             />
           </svg>
           {t("chat.patterns")} ({patterns.length})
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
         </button>
       </div>
     );
@@ -79,7 +100,9 @@ export function PatternPanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t("chat.learnedPatterns")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("chat.learnedPatterns")}
+        </span>
         <div className="flex items-center gap-1">
           <select
             value={filter}
@@ -91,13 +114,28 @@ export function PatternPanel() {
             <option value="medium">Medium</option>
             <option value="failure">Failure</option>
           </select>
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="size-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -125,7 +163,9 @@ export function PatternPanel() {
                     {Math.round(p.success_rate * 100)}% x{p.frequency}
                   </span>
                 </div>
-                <div className="text-[11px] text-foreground/60 line-clamp-1">{p.description}</div>
+                <div className="text-[11px] text-foreground/60 line-clamp-1">
+                  {p.description}
+                </div>
               </div>
             ))}
           </div>

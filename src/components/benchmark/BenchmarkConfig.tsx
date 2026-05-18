@@ -36,7 +36,9 @@ export function BenchmarkConfig() {
       </div>
 
       <div>
-        <label className="block text-sm text-zinc-600 mb-2">{t("benchmark.maxDifficulty")}</label>
+        <label className="block text-sm text-zinc-600 mb-2">
+          {t("benchmark.maxDifficulty")}
+        </label>
         <Select
           className="w-full"
           placeholder={t("benchmark.noLimit")}

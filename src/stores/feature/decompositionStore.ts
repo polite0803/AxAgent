@@ -43,7 +43,10 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
   previewDecomposition: async (request) => {
     set({ loading: true });
     try {
-      const preview = await invoke<DecompositionPreview & { cache_id: string }>("preview_decomposition", { request });
+      const preview = await invoke<DecompositionPreview & { cache_id: string }>(
+        "preview_decomposition",
+        { request },
+      );
       set({ preview, originalRequest: request });
     } finally {
       set({ loading: false });
@@ -63,44 +66,62 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
     outputSchema: Record<string, unknown>,
   ) => {
     try {
-      const result = await invoke<{ tool_name: string; success: boolean }>("generate_missing_tool", {
-        name,
-        description,
-        input_schema: inputSchema,
-        output_schema: outputSchema,
-      });
+      const result = await invoke<{ tool_name: string; success: boolean }>(
+        "generate_missing_tool",
+        {
+          name,
+          description,
+          input_schema: inputSchema,
+          output_schema: outputSchema,
+        },
+      );
       return result.success;
     } catch {
       return false;
     }
   },
 
-  confirmDecomposition: async (workflowName: string, workflowDescription?: string) => {
+  confirmDecomposition: async (
+    workflowName: string,
+    workflowDescription?: string,
+  ) => {
     const { preview, originalRequest } = get();
-    if (!preview) { throw new Error("No preview available"); }
-    if (!originalRequest) { throw new Error("No original request available"); }
+    if (!preview) {
+      throw new Error("No preview available");
+    }
+    if (!originalRequest) {
+      throw new Error("No original request available");
+    }
 
-    const result = await invoke<{ workflow_id: string; saved_skills: number }>("confirm_decomposition", {
-      request: {
-        preview: {
-          name: originalRequest.name,
-          description: originalRequest.description,
-          content: originalRequest.content,
-          source: originalRequest.source,
-          version: originalRequest.version,
-          repo: originalRequest.repo,
+    const result = await invoke<{ workflow_id: string; saved_skills: number }>(
+      "confirm_decomposition",
+      {
+        request: {
+          preview: {
+            name: originalRequest.name,
+            description: originalRequest.description,
+            content: originalRequest.content,
+            source: originalRequest.source,
+            version: originalRequest.version,
+            repo: originalRequest.repo,
+          },
+          cache_id: preview.cache_id,
+          workflow_name: workflowName,
+          workflow_description: workflowDescription,
         },
-        cache_id: preview.cache_id,
-        workflow_name: workflowName,
-        workflow_description: workflowDescription,
       },
-    });
+    );
 
     set({ preview: null, originalRequest: null, toolActions: {} });
     return result;
   },
 
   reset: () => {
-    set({ preview: null, originalRequest: null, toolActions: {}, loading: false });
+    set({
+      preview: null,
+      originalRequest: null,
+      toolActions: {},
+      loading: false,
+    });
   },
 }));

@@ -23,7 +23,11 @@ export function ProxySettings() {
 
     setTesting(true);
     try {
-      const result = await invoke<{ ok: boolean; latency_ms?: number; error?: string }>("test_proxy", {
+      const result = await invoke<{
+        ok: boolean;
+        latency_ms?: number;
+        error?: string;
+      }>("test_proxy", {
         proxyType: proxy_type || "http",
         proxyAddress: proxy_address,
         proxyPort: proxy_port || 7890,
@@ -64,7 +68,13 @@ export function ProxySettings() {
             ]}
           />
         </div>
-        <div style={{ height: 1, margin: "4px 0", backgroundColor: "var(--border-color)" }} />
+        <div
+          style={{
+            height: 1,
+            margin: "4px 0",
+            backgroundColor: "var(--border-color)",
+          }}
+        />
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.proxyAddress")}</span>
           <Input
@@ -76,7 +86,13 @@ export function ProxySettings() {
             style={{ width: 280 }}
           />
         </div>
-        <div style={{ height: 1, margin: "4px 0", backgroundColor: "var(--border-color)" }} />
+        <div
+          style={{
+            height: 1,
+            margin: "4px 0",
+            backgroundColor: "var(--border-color)",
+          }}
+        />
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.proxyPort")}</span>
           <InputNumber
@@ -90,9 +106,25 @@ export function ProxySettings() {
             style={{ width: 150 }}
           />
         </div>
-        <div style={{ height: 1, margin: "4px 0", backgroundColor: "var(--border-color)" }} />
-        <div style={{ padding: "4px 0", display: "flex", justifyContent: "flex-end" }}>
-          <Button onClick={handleTestProxy} disabled={!needsAddress} loading={testing}>
+        <div
+          style={{
+            height: 1,
+            margin: "4px 0",
+            backgroundColor: "var(--border-color)",
+          }}
+        />
+        <div
+          style={{
+            padding: "4px 0",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Button
+            onClick={handleTestProxy}
+            disabled={!needsAddress}
+            loading={testing}
+          >
             {t("settings.testProxy")}
           </Button>
         </div>

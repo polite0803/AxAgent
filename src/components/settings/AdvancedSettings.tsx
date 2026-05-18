@@ -7,7 +7,9 @@ import { SettingsGroup } from "./SettingsGroup";
 function useExtSetting<T>(key: string, defaultVal: T): [T, (v: T) => void] {
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
-  const val = (settings as unknown as Record<string, unknown>)[key] as T | undefined;
+  const val = (settings as unknown as Record<string, unknown>)[key] as
+    | T
+    | undefined;
   return [
     (val ?? defaultVal) as T,
     (v: T) => saveSettings({ [key]: v } as unknown as Partial<typeof settings>),
@@ -20,23 +22,43 @@ function useExtSetting<T>(key: string, defaultVal: T): [T, (v: T) => void] {
 
 function BashValidationSection() {
   const { t } = useTranslation();
-  const [dangerous, setDangerous] = useExtSetting("bash_validate_dangerous", true);
+  const [dangerous, setDangerous] = useExtSetting(
+    "bash_validate_dangerous",
+    true,
+  );
   const [network, setNetwork] = useExtSetting("bash_validate_network", true);
   const [timeout, setTimeout_] = useExtSetting("bash_timeout_secs", 120);
 
   return (
     <SettingsGroup title={t("advancedSettings.bashSecurity")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advanced.dangerousCmdDetect")}</span>
-        <Switch id="advanced-settings-switch-4" checked={dangerous} onChange={setDangerous} />
+        <Switch
+          id="advanced-settings-switch-4"
+          checked={dangerous}
+          onChange={setDangerous}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.networkCmdDetect")}</span>
-        <Switch id="advanced-settings-switch-5" checked={network} onChange={setNetwork} />
+        <Switch
+          id="advanced-settings-switch-5"
+          checked={network}
+          onChange={setNetwork}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advanced.cmdTimeout")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-6"
@@ -58,40 +80,79 @@ function BashValidationSection() {
 function PermissionEnforcerSection() {
   const { t } = useTranslation();
   const [permMode, setPermMode] = useExtSetting("permission_mode", "default");
-  const [writeConfirm, setWriteConfirm] = useExtSetting("permission_write_confirm", true);
-  const [netConfirm, setNetConfirm] = useExtSetting("permission_network_confirm", true);
-  const [shellConfirm, setShellConfirm] = useExtSetting("permission_shell_confirm", true);
+  const [writeConfirm, setWriteConfirm] = useExtSetting(
+    "permission_write_confirm",
+    true,
+  );
+  const [netConfirm, setNetConfirm] = useExtSetting(
+    "permission_network_confirm",
+    true,
+  );
+  const [shellConfirm, setShellConfirm] = useExtSetting(
+    "permission_shell_confirm",
+    true,
+  );
 
   return (
     <SettingsGroup title={t("advancedSettings.permissionStrategy")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.defaultPermission")}</span>
         <Select
           id="advanced-settings-select-7"
           value={permMode}
           options={[
             { value: "default", label: t("advancedSettings.perm.default") },
-            { value: "accept_edits", label: t("advancedSettings.perm.acceptEdits") },
-            { value: "full_access", label: t("advancedSettings.perm.fullAccess") },
+            {
+              value: "accept_edits",
+              label: t("advancedSettings.perm.acceptEdits"),
+            },
+            {
+              value: "full_access",
+              label: t("advancedSettings.perm.fullAccess"),
+            },
           ]}
           onChange={setPermMode}
           style={{ width: 150 }}
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advanced.fileWriteConfirm")}</span>
-        <Switch id="advanced-settings-switch-8" checked={writeConfirm} onChange={setWriteConfirm} />
+        <Switch
+          id="advanced-settings-switch-8"
+          checked={writeConfirm}
+          onChange={setWriteConfirm}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.networkConfirm")}</span>
-        <Switch id="advanced-settings-switch-9" checked={netConfirm} onChange={setNetConfirm} />
+        <Switch
+          id="advanced-settings-switch-9"
+          checked={netConfirm}
+          onChange={setNetConfirm}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.shellConfirm")}</span>
-        <Switch id="advanced-settings-switch-10" checked={shellConfirm} onChange={setShellConfirm} />
+        <Switch
+          id="advanced-settings-switch-10"
+          checked={shellConfirm}
+          onChange={setShellConfirm}
+        />
       </div>
     </SettingsGroup>
   );
@@ -105,11 +166,17 @@ function ModeSelectorSection() {
   const { t } = useTranslation();
   const [agentMode, setAgentMode] = useExtSetting("agent_mode", "general");
   const [budget, setBudget] = useExtSetting("token_budget_limit", 180000);
-  const [budgetEnabled, setBudgetEnabled] = useExtSetting("token_budget_enabled", true);
+  const [budgetEnabled, setBudgetEnabled] = useExtSetting(
+    "token_budget_enabled",
+    true,
+  );
 
   return (
     <SettingsGroup title={t("advancedSettings.agentMode")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.defaultMode")}</span>
         <Select
           id="advanced-settings-select-11"
@@ -125,7 +192,10 @@ function ModeSelectorSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.tokenBudgetLimit")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-12"
@@ -138,9 +208,16 @@ function ModeSelectorSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.enableTokenBudget")}</span>
-        <Switch id="advanced-settings-switch-13" checked={budgetEnabled} onChange={setBudgetEnabled} />
+        <Switch
+          id="advanced-settings-switch-13"
+          checked={budgetEnabled}
+          onChange={setBudgetEnabled}
+        />
       </div>
     </SettingsGroup>
   );
@@ -155,16 +232,29 @@ function RecoveryRecipesSection() {
   const [autoRetry, setAutoRetry] = useExtSetting("recovery_auto_retry", true);
   const [maxRetries, setMaxRetries] = useExtSetting("recovery_max_retries", 3);
   const [delay, setDelay] = useExtSetting("recovery_retry_delay_secs", 5);
-  const [fallback, setFallback] = useExtSetting("recovery_model_fallback", true);
+  const [fallback, setFallback] = useExtSetting(
+    "recovery_model_fallback",
+    true,
+  );
 
   return (
     <SettingsGroup title={t("advancedSettings.faultRecovery")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.autoRetry")}</span>
-        <Switch id="advanced-settings-switch-14" checked={autoRetry} onChange={setAutoRetry} />
+        <Switch
+          id="advanced-settings-switch-14"
+          checked={autoRetry}
+          onChange={setAutoRetry}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.maxRetries")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-15"
@@ -176,7 +266,10 @@ function RecoveryRecipesSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.retryDelay")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-16"
@@ -188,9 +281,16 @@ function RecoveryRecipesSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.modelFallback")}</span>
-        <Switch id="advanced-settings-switch-17" checked={fallback} onChange={setFallback} />
+        <Switch
+          id="advanced-settings-switch-17"
+          checked={fallback}
+          onChange={setFallback}
+        />
       </div>
     </SettingsGroup>
   );
@@ -199,18 +299,39 @@ function RecoveryRecipesSection() {
 function GreenContractSection() {
   const { t } = useTranslation();
   const [cpuLimit, setCpuLimit] = useExtSetting("resource_cpu_limit", 80);
-  const [memLimit, setMemLimit] = useExtSetting("resource_memory_limit_mb", 4096);
-  const [idleDetect, setIdleDetect] = useExtSetting("resource_idle_detect", true);
-  const [idleTimeout, setIdleTimeout] = useExtSetting("resource_idle_timeout_secs", 300);
+  const [memLimit, setMemLimit] = useExtSetting(
+    "resource_memory_limit_mb",
+    4096,
+  );
+  const [idleDetect, setIdleDetect] = useExtSetting(
+    "resource_idle_detect",
+    true,
+  );
+  const [idleTimeout, setIdleTimeout] = useExtSetting(
+    "resource_idle_timeout_secs",
+    300,
+  );
 
   return (
     <SettingsGroup title={t("advancedSettings.resourceControl")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.cpuLimit")}</span>
-        <Slider min={10} max={90} value={cpuLimit} onChange={setCpuLimit} style={{ width: 150 }} />
+        <Slider
+          min={10}
+          max={90}
+          value={cpuLimit}
+          onChange={setCpuLimit}
+          style={{ width: 150 }}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.memoryLimit")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-18"
@@ -223,12 +344,22 @@ function GreenContractSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.enableIdleDetection")}</span>
-        <Switch id="advanced-settings-switch-19" checked={idleDetect} onChange={setIdleDetect} />
+        <Switch
+          id="advanced-settings-switch-19"
+          checked={idleDetect}
+          onChange={setIdleDetect}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.idleTimeout")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-20"
@@ -245,14 +376,26 @@ function GreenContractSection() {
 
 function CompactionThresholdSection() {
   const { t } = useTranslation();
-  const [autoThresh, setAutoThresh] = useExtSetting("compact_auto_threshold", 13000);
-  const [warnBuffer, setWarnBuffer] = useExtSetting("compact_warning_buffer", 20000);
+  const [autoThresh, setAutoThresh] = useExtSetting(
+    "compact_auto_threshold",
+    13000,
+  );
+  const [warnBuffer, setWarnBuffer] = useExtSetting(
+    "compact_warning_buffer",
+    20000,
+  );
   const [maxFails, setMaxFails] = useExtSetting("compact_max_failures", 3);
-  const [memCompact, setMemCompact] = useExtSetting("session_memory_compact_enabled", true);
+  const [memCompact, setMemCompact] = useExtSetting(
+    "session_memory_compact_enabled",
+    true,
+  );
 
   return (
     <SettingsGroup title={t("advancedSettings.contextCompression")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.autoCompressThreshold")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-21"
@@ -265,7 +408,10 @@ function CompactionThresholdSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.warningBuffer")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-22"
@@ -278,7 +424,10 @@ function CompactionThresholdSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.maxConsecutiveFailures")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-23"
@@ -290,9 +439,16 @@ function CompactionThresholdSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.enableMemoryCompression")}</span>
-        <Switch id="advanced-settings-switch-24" checked={memCompact} onChange={setMemCompact} />
+        <Switch
+          id="advanced-settings-switch-24"
+          checked={memCompact}
+          onChange={setMemCompact}
+        />
       </div>
     </SettingsGroup>
   );
@@ -301,18 +457,34 @@ function CompactionThresholdSection() {
 function DreamConsolidationSection() {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useExtSetting("dream_enabled", true);
-  const [intervalH, setIntervalH] = useExtSetting("dream_min_interval_hours", 1);
+  const [intervalH, setIntervalH] = useExtSetting(
+    "dream_min_interval_hours",
+    1,
+  );
   const [minSessions, setMinSessions] = useExtSetting("dream_min_sessions", 3);
-  const [maxDuration, setMaxDuration] = useExtSetting("dream_max_duration_secs", 120);
+  const [maxDuration, setMaxDuration] = useExtSetting(
+    "dream_max_duration_secs",
+    120,
+  );
 
   return (
     <SettingsGroup title={t("advancedSettings.dreamConsolidation")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.enableDream")}</span>
-        <Switch id="advanced-settings-switch-25" checked={enabled} onChange={setEnabled} />
+        <Switch
+          id="advanced-settings-switch-25"
+          checked={enabled}
+          onChange={setEnabled}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.minInterval")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-26"
@@ -324,7 +496,10 @@ function DreamConsolidationSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.minNewSessions")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-27"
@@ -336,7 +511,10 @@ function DreamConsolidationSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.maxDuration")}</span>
         <InputNumber
           id="advanced-settings-inputnumber-28"
@@ -358,20 +536,39 @@ function LspDiagnosticsSection() {
 
   return (
     <SettingsGroup title={t("advancedSettings.lspServer")}>
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.enableLspDiagnostics")}</span>
-        <Switch id="advanced-settings-switch-29" checked={enabled} onChange={setEnabled} />
+        <Switch
+          id="advanced-settings-switch-29"
+          checked={enabled}
+          onChange={setEnabled}
+        />
       </div>
       <Divider style={{ margin: "4px 0" }} />
-      <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+      >
         <span>{t("advancedSettings.diagnosticLevelLabel")}</span>
         <Select
           id="advanced-settings-select-30"
           value={level}
           options={[
-            { value: "error", label: t("advancedSettings.diagnosticLevel.error") },
-            { value: "warning", label: t("advancedSettings.diagnosticLevel.warning") },
-            { value: "information", label: t("advancedSettings.diagnosticLevel.information") },
+            {
+              value: "error",
+              label: t("advancedSettings.diagnosticLevel.error"),
+            },
+            {
+              value: "warning",
+              label: t("advancedSettings.diagnosticLevel.warning"),
+            },
+            {
+              value: "information",
+              label: t("advancedSettings.diagnosticLevel.information"),
+            },
           ]}
           onChange={setLevel}
           style={{ width: 130 }}

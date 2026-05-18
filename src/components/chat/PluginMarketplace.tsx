@@ -42,7 +42,9 @@ export function PluginMarketplace() {
   const [installing, setInstalling] = useState<string | null>(null);
   const [installInput, setInstallInput] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
-  const [confirmManifest, setConfirmManifest] = useState<PluginManifest | null>(null);
+  const [confirmManifest, setConfirmManifest] = useState<PluginManifest | null>(
+    null,
+  );
   const [confirmSource, setConfirmSource] = useState("");
 
   useEffect(() => {
@@ -54,7 +56,9 @@ export function PluginMarketplace() {
     try {
       const { invoke } = await import("@/lib/invoke");
       const data = await invoke<PluginSummary[]>("plugin_list").catch((e) => {
-        if (import.meta.env.DEV) { console.warn("Failed to fetch plugins:", e); }
+        if (import.meta.env.DEV) {
+          console.warn("Failed to fetch plugins:", e);
+        }
         return [];
       });
       setPlugins(data);
@@ -67,7 +71,9 @@ export function PluginMarketplace() {
 
   const handleSearchInstall = async () => {
     const source = installInput.trim();
-    if (!source) { return; }
+    if (!source) {
+      return;
+    }
     setSearchLoading(true);
     try {
       const { invoke } = await import("@/lib/invoke");
@@ -78,14 +84,18 @@ export function PluginMarketplace() {
       setConfirmSource(source);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(t("chat.plugins.marketplace.validateFailed", { error: errMsg }));
+      message.error(
+        t("chat.plugins.marketplace.validateFailed", { error: errMsg }),
+      );
     } finally {
       setSearchLoading(false);
     }
   };
 
   const handleConfirmInstall = async () => {
-    if (!confirmSource) { return; }
+    if (!confirmSource) {
+      return;
+    }
     setInstalling(confirmSource);
     setConfirmManifest(null);
     try {
@@ -94,14 +104,19 @@ export function PluginMarketplace() {
         source: confirmSource,
       });
       message.success(
-        t("chat.plugins.marketplace.installSuccess", { id: result.plugin_id, version: result.version }),
+        t("chat.plugins.marketplace.installSuccess", {
+          id: result.plugin_id,
+          version: result.version,
+        }),
       );
       setInstallInput("");
       setConfirmSource("");
       await fetchPlugins();
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(t("chat.plugins.marketplace.installFailed", { error: errMsg }));
+      message.error(
+        t("chat.plugins.marketplace.installFailed", { error: errMsg }),
+      );
     } finally {
       setInstalling(null);
     }
@@ -186,9 +201,11 @@ export function PluginMarketplace() {
                     <Tag color="geekblue" className="text-xs">
                       {plugin.kind}
                     </Tag>
-                    {(plugin.mcp_servers.length > 0 || plugin.skills.length > 0) && (
+                    {(plugin.mcp_servers.length > 0
+                      || plugin.skills.length > 0) && (
                       <Text type="secondary" className="text-xs">
-                        MCP:{plugin.mcp_servers.length} Skills:{plugin.skills.length}
+                        MCP:{plugin.mcp_servers.length} Skills:
+                        {plugin.skills.length}
                       </Text>
                     )}
                   </Space>
@@ -234,7 +251,9 @@ export function PluginMarketplace() {
       </Card>
 
       <Modal
-        title={t("chat.plugins.marketplace.installTitle", { name: confirmManifest?.name ?? "" })}
+        title={t("chat.plugins.marketplace.installTitle", {
+          name: confirmManifest?.name ?? "",
+        })}
         open={!!confirmManifest}
         onOk={handleConfirmInstall}
         onCancel={() => setConfirmManifest(null)}
@@ -247,10 +266,14 @@ export function PluginMarketplace() {
             <Descriptions.Item label={t("chat.plugins.marketplace.version")}>
               {confirmManifest.version}
             </Descriptions.Item>
-            <Descriptions.Item label={t("chat.plugins.marketplace.description")}>
+            <Descriptions.Item
+              label={t("chat.plugins.marketplace.description")}
+            >
               {confirmManifest.description}
             </Descriptions.Item>
-            <Descriptions.Item label={t("chat.plugins.marketplace.permissions")}>
+            <Descriptions.Item
+              label={t("chat.plugins.marketplace.permissions")}
+            >
               {confirmManifest.permissions.length > 0
                 ? confirmManifest.permissions.join(", ")
                 : t("chat.plugins.marketplace.none")}

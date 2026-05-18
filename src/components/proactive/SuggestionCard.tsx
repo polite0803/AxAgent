@@ -8,7 +8,10 @@ interface SuggestionCardProps {
   compact?: boolean;
 }
 
-export function SuggestionCard({ suggestion, compact = false }: SuggestionCardProps) {
+export function SuggestionCard({
+  suggestion,
+  compact = false,
+}: SuggestionCardProps) {
   const { t } = useTranslation();
   const { acceptSuggestion, dismissSuggestion, snoozeSuggestion } = useProactiveStore();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -23,12 +26,28 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
 
   const suggestionTypeIcons: Record<string, ReactNode> = {
     Completion: (
-      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg
+        className="size-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
       </svg>
     ),
     Refactor: (
-      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg
+        className="size-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -37,7 +56,13 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
       </svg>
     ),
     Documentation: (
-      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg
+        className="size-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -46,7 +71,13 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
       </svg>
     ),
     Test: (
-      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg
+        className="size-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -55,12 +86,28 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
       </svg>
     ),
     Optimization: (
-      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      <svg
+        className="size-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M13 10V3L4 14h7v7l9-11h-7z"
+        />
       </svg>
     ),
     Learning: (
-      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg
+        className="size-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -98,15 +145,20 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
         } transition-all hover:shadow-md cursor-pointer`}
         onClick={() => setIsExpanded(!isExpanded)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { setIsExpanded(!isExpanded); }
+          if (e.key === "Enter" || e.key === " ") {
+            setIsExpanded(!isExpanded);
+          }
         }}
       >
         <div className="flex items-start gap-2">
           <div className="text-primary mt-0.5">
-            {suggestionTypeIcons[suggestion.suggestion_type] || suggestionTypeIcons.Completion}
+            {suggestionTypeIcons[suggestion.suggestion_type]
+              || suggestionTypeIcons.Completion}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium truncate">{suggestion.title}</div>
+            <div className="text-sm font-medium truncate">
+              {suggestion.title}
+            </div>
             {!isExpanded && (
               <div className="text-xs text-muted-foreground truncate mt-0.5">
                 {suggestion.description}
@@ -116,7 +168,11 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
         </div>
 
         {isExpanded && (
-          <div className="mt-3 space-y-2" role="presentation" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="mt-3 space-y-2"
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="text-xs text-muted-foreground">
               {suggestion.description}
             </div>
@@ -143,10 +199,13 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
   }
 
   return (
-    <div className={`p-4 rounded-lg border ${priorityColors[suggestion.priority]}`}>
+    <div
+      className={`p-4 rounded-lg border ${priorityColors[suggestion.priority]}`}
+    >
       <div className="flex items-start gap-3">
         <div className="text-primary mt-0.5">
-          {suggestionTypeIcons[suggestion.suggestion_type] || suggestionTypeIcons.Completion}
+          {suggestionTypeIcons[suggestion.suggestion_type]
+            || suggestionTypeIcons.Completion}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
@@ -155,7 +214,9 @@ export function SuggestionCard({ suggestion, compact = false }: SuggestionCardPr
               {suggestion.priority}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">{suggestion.description}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {suggestion.description}
+          </p>
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={handleAccept}

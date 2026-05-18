@@ -22,10 +22,16 @@ export function ModelTags({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const switchMessageVersion = useConversationStore((s) => s.switchMessageVersion);
-  const pendingCompanionModels = useConversationStore((s) => s.pendingCompanionModels);
+  const switchMessageVersion = useConversationStore(
+    (s) => s.switchMessageVersion,
+  );
+  const pendingCompanionModels = useConversationStore(
+    (s) => s.pendingCompanionModels,
+  );
   const multiModelParentId = useConversationStore((s) => s.multiModelParentId);
-  const multiModelDoneMessageIds = useConversationStore((s) => s.multiModelDoneMessageIds);
+  const multiModelDoneMessageIds = useConversationStore(
+    (s) => s.multiModelDoneMessageIds,
+  );
 
   const isMultiModelTarget = msg.parent_message_id === multiModelParentId;
 
@@ -33,49 +39,80 @@ export function ModelTags({
     const groups = new Map<string, Message[]>();
     for (const v of allVersions) {
       const key = v.model_id ?? "__unknown__";
-      if (!groups.has(key)) { groups.set(key, []); }
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
       groups.get(key)!.push(v);
     }
     return groups;
   }, [allVersions]);
 
   const pendingModels = useMemo(() => {
-    if (!isMultiModelTarget || !pendingCompanionModels.length) { return []; }
+    if (!isMultiModelTarget || !pendingCompanionModels.length) {
+      return [];
+    }
     return pendingCompanionModels.filter((cm) => !modelGroups.has(cm.model_id));
   }, [isMultiModelTarget, pendingCompanionModels, modelGroups]);
 
   const streamingModelIds = useMemo(() => {
     const ids = new Set<string>();
-    if (!isMultiModelTarget) { return ids; }
+    if (!isMultiModelTarget) {
+      return ids;
+    }
     const doneIdSet = new Set(multiModelDoneMessageIds);
     for (const cm of pendingCompanionModels) {
       if (modelGroups.has(cm.model_id)) {
         const versions = modelGroups.get(cm.model_id)!;
         const isDone = versions.some((v) => doneIdSet.has(v.id));
-        if (!isDone) { ids.add(cm.model_id); }
+        if (!isDone) {
+          ids.add(cm.model_id);
+        }
       }
     }
     return ids;
-  }, [isMultiModelTarget, pendingCompanionModels, modelGroups, multiModelDoneMessageIds]);
+  }, [
+    isMultiModelTarget,
+    pendingCompanionModels,
+    modelGroups,
+    multiModelDoneMessageIds,
+  ]);
 
-  if (modelGroups.size <= 1 && pendingModels.length === 0) { return null; }
+  if (modelGroups.size <= 1 && pendingModels.length === 0) {
+    return null;
+  }
 
   const currentModelId = msg.model_id ?? "__unknown__";
 
   const handleTagClick = (model_id: string) => {
-    if (model_id === currentModelId || !msg.parent_message_id) { return; }
+    if (model_id === currentModelId || !msg.parent_message_id) {
+      return;
+    }
     const versions = modelGroups.get(model_id);
-    if (!versions || versions.length === 0) { return; }
-    const sorted = versions.toSorted((a, b) => b.version_index - a.version_index);
+    if (!versions || versions.length === 0) {
+      return;
+    }
+    const sorted = versions.toSorted(
+      (a, b) => b.version_index - a.version_index,
+    );
     switchMessageVersion(conversationId, msg.parent_message_id, sorted[0].id);
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "wrap",
+      }}
+    >
       {Array.from(modelGroups.keys()).map((model_id) => {
         const isActive = model_id === currentModelId;
         const isStreaming = streamingModelIds.has(model_id);
-        const { modelName } = getModelDisplayInfo(model_id, modelGroups.get(model_id)?.[0]?.provider_id);
+        const { modelName } = getModelDisplayInfo(
+          model_id,
+          modelGroups.get(model_id)?.[0]?.provider_id,
+        );
         return (
           <Tooltip key={model_id} title={modelName} mouseEnterDelay={0.3}>
             <div
@@ -110,7 +147,11 @@ export function ModelTags({
       {pendingModels.map((cm) => {
         const { modelName } = getModelDisplayInfo(cm.model_id, cm.providerId);
         return (
-          <Tooltip key={`pending-${cm.model_id}`} title={`${modelName} (${t("chat.waiting")})`} mouseEnterDelay={0.3}>
+          <Tooltip
+            key={`pending-${cm.model_id}`}
+            title={`${modelName} (${t("chat.waiting")})`}
+            mouseEnterDelay={0.3}
+          >
             <div
               className="model-tag-pending"
               style={{

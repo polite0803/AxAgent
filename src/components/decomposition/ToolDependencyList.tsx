@@ -17,9 +17,20 @@ export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const STATUS_CONFIG: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
-    satisfied: { color: "success", label: t("decomposition.statusSatisfied"), icon: <CheckCircleOutlined /> },
-    auto_installable: { color: "processing", label: t("decomposition.statusAutoInstallable"), icon: <ToolOutlined /> },
+  const STATUS_CONFIG: Record<
+    string,
+    { color: string; label: string; icon: React.ReactNode }
+  > = {
+    satisfied: {
+      color: "success",
+      label: t("decomposition.statusSatisfied"),
+      icon: <CheckCircleOutlined />,
+    },
+    auto_installable: {
+      color: "processing",
+      label: t("decomposition.statusAutoInstallable"),
+      icon: <ToolOutlined />,
+    },
     manual_installable: {
       color: "warning",
       label: t("decomposition.statusManualInstallable"),
@@ -47,8 +58,16 @@ export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
       key: "status",
       width: 120,
       render: (status: string) => {
-        const config = STATUS_CONFIG[status] || { color: "default", label: status, icon: null };
-        return <Tag color={config.color} icon={config.icon}>{config.label}</Tag>;
+        const config = STATUS_CONFIG[status] || {
+          color: "default",
+          label: status,
+          icon: null,
+        };
+        return (
+          <Tag color={config.color} icon={config.icon}>
+            {config.label}
+          </Tag>
+        );
       },
     },
     {
@@ -64,11 +83,17 @@ export const ToolDependencyList: React.FC<ToolDependencyListProps> = ({
       width: 100,
       render: (_: unknown, record: ToolDependency) => {
         const isSatisfied = record.status === "satisfied";
-        if (isSatisfied) { return null; }
-        if (!onAction) { return null; }
+        if (isSatisfied) {
+          return null;
+        }
+        if (!onAction) {
+          return null;
+        }
         return (
           <Button type="link" size="small" onClick={() => onAction(record)}>
-            {actionLoading === record.name ? t("decomposition.processingLabel") : t("decomposition.processLabel")}
+            {actionLoading === record.name
+              ? t("decomposition.processingLabel")
+              : t("decomposition.processLabel")}
           </Button>
         );
       },

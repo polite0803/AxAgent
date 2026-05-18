@@ -10,7 +10,11 @@ interface EndPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const endNode = node as EndNode;
   const config = endNode.config || {};
@@ -22,7 +26,14 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({ node, onUpda
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -39,8 +50,14 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({ node, onUpda
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

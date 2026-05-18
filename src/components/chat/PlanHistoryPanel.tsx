@@ -61,15 +61,24 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) { return t("plan.justNow"); }
-    if (diffMin < 60) { return t("plan.minutesAgo").replace("{{n}}", String(diffMin)); }
+    if (diffMin < 1) {
+      return t("plan.justNow");
+    }
+    if (diffMin < 60) {
+      return t("plan.minutesAgo").replace("{{n}}", String(diffMin));
+    }
     const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) { return t("plan.hoursAgo").replace("{{n}}", String(diffHr)); }
+    if (diffHr < 24) {
+      return t("plan.hoursAgo").replace("{{n}}", String(diffHr));
+    }
     return d.toLocaleDateString();
   };
 
   const activeCount = allPlans.filter(
-    (p) => p.status === "reviewing" || p.status === "executing" || p.status === "draft",
+    (p) =>
+      p.status === "reviewing"
+      || p.status === "executing"
+      || p.status === "draft",
   ).length;
 
   return (
@@ -79,7 +88,12 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
           type="text"
           size="small"
           icon={
-            <Badge count={activeCount} size="small" offset={[-4, 4]} color="#722ed1">
+            <Badge
+              count={activeCount}
+              size="small"
+              offset={[-4, 4]}
+              color="#722ed1"
+            >
               <ClipboardList size={14} />
             </Badge>
           }
@@ -111,9 +125,18 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                   fontSize: 13,
                 }}
               >
-                <ClipboardList size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
+                <ClipboardList
+                  size={32}
+                  style={{ opacity: 0.3, marginBottom: 12 }}
+                />
                 <div>{t("plan.noPlans")}</div>
-                <div style={{ fontSize: 12, marginTop: 4, color: token.colorTextQuaternary }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    marginTop: 4,
+                    color: token.colorTextQuaternary,
+                  }}
+                >
                   {t("plan.noPlansHint")}
                 </div>
               </div>
@@ -122,7 +145,8 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
               allPlans.map((plan) => {
                 const config = statusConfig[plan.status] || statusConfig.completed;
                 const isActive = activePlan?.id === plan.id;
-                const canResume = !isActive && (plan.status === "reviewing" || plan.status === "draft");
+                const canResume = !isActive
+                  && (plan.status === "reviewing" || plan.status === "draft");
 
                 return (
                   <div
@@ -156,10 +180,23 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                       >
                         {plan.title}
                       </span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          flexShrink: 0,
+                          marginLeft: 8,
+                        }}
+                      >
                         <Tag
                           color={config.color}
-                          style={{ fontSize: 10, lineHeight: "18px", padding: "0 4px", margin: 0 }}
+                          style={{
+                            fontSize: 10,
+                            lineHeight: "18px",
+                            padding: "0 4px",
+                            margin: 0,
+                          }}
                         >
                           {t(config.labelKey)}
                         </Tag>
@@ -176,12 +213,20 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                       </div>
                     </div>
 
-                    <div style={{ fontSize: 12, color: token.colorTextQuaternary, marginBottom: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: token.colorTextQuaternary,
+                        marginBottom: 4,
+                      }}
+                    >
                       {plan.steps.length} {t("plan.stepsApproved")} · {formatTime(plan.created_at)}
                     </div>
 
                     {plan.steps.length > 0 && (
-                      <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
+                      <div
+                        style={{ fontSize: 12, color: token.colorTextSecondary }}
+                      >
                         {plan.steps.slice(0, 3).map((step) => (
                           <div
                             key={step.id}
@@ -193,9 +238,17 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                             }}
                           >
                             {step.status === "completed"
-                              ? <CheckCircleFilled style={{ color: "#52c41a", fontSize: 10 }} />
+                              ? (
+                                <CheckCircleFilled
+                                  style={{ color: "#52c41a", fontSize: 10 }}
+                                />
+                              )
                               : step.status === "error"
-                              ? <CloseCircleFilled style={{ color: "#ff4d4f", fontSize: 10 }} />
+                              ? (
+                                <CloseCircleFilled
+                                  style={{ color: "#ff4d4f", fontSize: 10 }}
+                                />
+                              )
                               : (
                                 <span
                                   style={{
@@ -207,13 +260,24 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                                   }}
                                 />
                               )}
-                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <span
+                              style={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
                               {step.title}
                             </span>
                           </div>
                         ))}
                         {plan.steps.length > 3 && (
-                          <div style={{ color: token.colorTextQuaternary, marginTop: 2 }}>
+                          <div
+                            style={{
+                              color: token.colorTextQuaternary,
+                              marginTop: 2,
+                            }}
+                          >
                             +{plan.steps.length - 3} more
                           </div>
                         )}

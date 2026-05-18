@@ -43,7 +43,9 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  const [wikilinkSelectValue, setWikilinkSelectValue] = useState<string | undefined>(undefined);
+  const [wikilinkSelectValue, setWikilinkSelectValue] = useState<
+    string | undefined
+  >(undefined);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [backlinkPanelOpen, setBacklinkPanelOpen] = useState(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,59 +91,75 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   });
 
   useEffect(() => {
-    if (!hasChanges || saving) { return; }
-    if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
+    if (!hasChanges || saving) {
+      return;
+    }
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
     autoSaveTimerRef.current = setTimeout(() => {
       handleSave();
     }, 3000);
     return () => {
-      if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
     };
   }, [content, title]);
 
   useEffect(() => {
-    if (!window.monaco) { return; }
-    const provider = window.monaco.languages.registerCompletionItemProvider("markdown", {
-      triggerCharacters: ["["],
-      provideCompletionItems: (model, position) => {
-        const textUntilPosition = model.getValueInRange({
-          startLineNumber: position.lineNumber,
-          startColumn: 1,
-          endLineNumber: position.lineNumber,
-          endColumn: position.column,
-        });
-        const match = textUntilPosition.match(/\[\[([^\]]*)$/);
-        if (!match) { return { suggestions: [] }; }
+    if (!window.monaco) {
+      return;
+    }
+    const provider = window.monaco.languages.registerCompletionItemProvider(
+      "markdown",
+      {
+        triggerCharacters: ["["],
+        provideCompletionItems: (model, position) => {
+          const textUntilPosition = model.getValueInRange({
+            startLineNumber: position.lineNumber,
+            startColumn: 1,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          });
+          const match = textUntilPosition.match(/\[\[([^\]]*)$/);
+          if (!match) {
+            return { suggestions: [] };
+          }
 
-        const search = match[1].toLowerCase();
-        const openBracketCol = position.column - match[0].length;
-        const currentNotes = useWikiStore.getState().notes;
+          const search = match[1].toLowerCase();
+          const openBracketCol = position.column - match[0].length;
+          const currentNotes = useWikiStore.getState().notes;
 
-        const suggestions = currentNotes
-          .flatMap((n) =>
+          const suggestions = currentNotes.flatMap((n) =>
             n.id !== noteId && n.title.toLowerCase().includes(search)
-              ? [{
-                kind: window.monaco.languages.CompletionItemKind.Reference,
-                label: n.title,
-                insertText: `[[${n.title}]]`,
-                range: {
-                  startLineNumber: position.lineNumber,
-                  startColumn: openBracketCol,
-                  endLineNumber: position.lineNumber,
-                  endColumn: position.column,
+              ? [
+                {
+                  kind: window.monaco.languages.CompletionItemKind.Reference,
+                  label: n.title,
+                  insertText: `[[${n.title}]]`,
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    startColumn: openBracketCol,
+                    endLineNumber: position.lineNumber,
+                    endColumn: position.column,
+                  },
                 },
-              }]
+              ]
               : []
           );
 
-        return { suggestions };
+          return { suggestions };
+        },
       },
-    });
+    );
     return () => provider.dispose();
   }, [noteId]);
 
   const handleSave = async () => {
-    if (!note || !hasChanges) { return; }
+    if (!note || !hasChanges) {
+      return;
+    }
     setSaving(true);
     try {
       const updated = await updateNote(note.id, { title, content });
@@ -186,7 +204,10 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ backgroundColor: token.colorBgElevated }}>
+      <div
+        className="h-full flex items-center justify-center"
+        style={{ backgroundColor: token.colorBgElevated }}
+      >
         <Spin size="large" />
       </div>
     );
@@ -194,19 +215,31 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
 
   if (!note) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ backgroundColor: token.colorBgElevated }}>
+      <div
+        className="h-full flex items-center justify-center"
+        style={{ backgroundColor: token.colorBgElevated }}
+      >
         <span>{t("wiki.noteNotFound")}</span>
       </div>
     );
   }
 
-  const noteOptions = notes
-    .flatMap((n) => n.id !== noteId ? [{ value: n.title, label: n.title }] : []);
+  const noteOptions = notes.flatMap((n) => n.id !== noteId ? [{ value: n.title, label: n.title }] : []);
 
   return (
-    <div className="h-full flex flex-col" style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}>
-      <div className="flex items-center gap-2 p-3 border-b" style={{ borderColor: token.colorBorderSecondary }}>
-        <Button icon={<ArrowLeft />} onClick={handleBackWithConfirm} type="text" />
+    <div
+      className="h-full flex flex-col"
+      style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}
+    >
+      <div
+        className="flex items-center gap-2 p-3 border-b"
+        style={{ borderColor: token.colorBorderSecondary }}
+      >
+        <Button
+          icon={<ArrowLeft />}
+          onClick={handleBackWithConfirm}
+          type="text"
+        />
         <input
           type="text"
           value={title}
@@ -245,7 +278,10 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                 value={wikilinkSelectValue}
                 placeholder={t("wiki.insertLink")}
                 style={{ width: 200 }}
-                filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
+                filterOption={(input, option) =>
+                  (option?.label as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())}
                 options={noteOptions}
                 onChange={handleWikilinkInsert}
               />
@@ -275,7 +311,9 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                     if (filePath) {
                       const result = await exportNotePdf(noteId, filePath);
                       if (result) {
-                        message.success(t("wiki.exportedPdf", { path: result }));
+                        message.success(
+                          t("wiki.exportedPdf", { path: result }),
+                        );
                       }
                     }
                   } catch {
@@ -293,7 +331,10 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                 title={t("wiki.backlinks")}
               />
               {note.author === "llm" && (
-                <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: token.colorPrimaryBg }}>
+                <span
+                  className="text-xs px-2 py-1 rounded"
+                  style={{ backgroundColor: token.colorPrimaryBg }}
+                >
                   {t("wiki.llmNote")}
                 </span>
               )}
@@ -308,7 +349,9 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                     color: token.colorText,
                     lineHeight: 1.7,
                   }}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(markdownToHtml(content)) }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(markdownToHtml(content)),
+                  }}
                 />
               )
               : (

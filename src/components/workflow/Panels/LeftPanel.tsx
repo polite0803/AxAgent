@@ -17,7 +17,9 @@ export const LeftPanel: React.FC = () => {
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent, nodeType: string, nodeLabel: string) => {
-      if (event.button !== 0) { return; }
+      if (event.button !== 0) {
+        return;
+      }
 
       event.preventDefault();
 
@@ -68,15 +70,17 @@ export const LeftPanel: React.FC = () => {
     [],
   );
 
-  const filteredNodeTypes = Object.entries(NODE_TYPE_MAP)
-    .filter(([type, info]) =>
+  const filteredNodeTypes = Object.entries(NODE_TYPE_MAP).filter(
+    ([type, info]) =>
       t(info.labelKey).toLowerCase().includes(search.toLowerCase())
       && !type.startsWith("_")
-      && !t(info.labelKey).includes(t("workflow.leftPanel.legacySuffix"))
-    );
+      && !t(info.labelKey).includes(t("workflow.leftPanel.legacySuffix")),
+  );
 
   const groupedNodeTypes = NODE_CATEGORIES.flatMap((category) => {
-    const items = filteredNodeTypes.filter(([_, info]) => info.category === category.id);
+    const items = filteredNodeTypes.filter(
+      ([_, info]) => info.category === category.id,
+    );
     return items.length > 0 ? [{ ...category, items }] : [];
   });
 
@@ -85,11 +89,14 @@ export const LeftPanel: React.FC = () => {
   };
 
   const filteredTemplates = templates.filter((template) => {
-    if (!templateSearch.trim()) { return true; }
+    if (!templateSearch.trim()) {
+      return true;
+    }
     const q = templateSearch.toLowerCase();
     return (
       template.name.toLowerCase().includes(q)
-      || (template.description && template.description.toLowerCase().includes(q))
+      || (template.description
+        && template.description.toLowerCase().includes(q))
       || template.tags.some((tag) => tag.toLowerCase().includes(q))
     );
   });
@@ -114,7 +121,13 @@ export const LeftPanel: React.FC = () => {
             key: "nodes",
             label: t("workflow.leftPanel.nodesTab"),
             children: (
-              <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
+                }}
+              >
                 <Input
                   id="left-panel-input-74"
                   prefix={<Search size={14} style={{ color: "#666" }} />}
@@ -139,7 +152,13 @@ export const LeftPanel: React.FC = () => {
                       >
                         {t(category.labelKey)}
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 6,
+                        }}
+                      >
                         {category.items.map(([type, info]) => (
                           <div
                             key={type}
@@ -176,8 +195,16 @@ export const LeftPanel: React.FC = () => {
                               e.currentTarget.style.background = "#1a1a1a";
                             }}
                           >
-                            <div style={{ fontSize: 16, marginBottom: 4 }}>{getNodeIcon(type)}</div>
-                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <div style={{ fontSize: 16, marginBottom: 4 }}>
+                              {getNodeIcon(type)}
+                            </div>
+                            <div
+                              style={{
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
                               {t(info.labelKey)}
                             </div>
                           </div>
@@ -203,7 +230,9 @@ export const LeftPanel: React.FC = () => {
                   style={{ marginBottom: 8 }}
                   size="small"
                 />
-                <div style={{ overflow: "auto", maxHeight: "calc(100vh - 200px)" }}>
+                <div
+                  style={{ overflow: "auto", maxHeight: "calc(100vh - 200px)" }}
+                >
                   {filteredTemplates.map((template) => (
                     <div
                       key={template.id}
@@ -211,7 +240,9 @@ export const LeftPanel: React.FC = () => {
                       tabIndex={0}
                       onClick={() => handleTemplateClick(template.id)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") { handleTemplateClick(template.id); }
+                        if (e.key === "Enter" || e.key === " ") {
+                          handleTemplateClick(template.id);
+                        }
                       }}
                       style={{
                         padding: 10,
@@ -228,9 +259,17 @@ export const LeftPanel: React.FC = () => {
                         e.currentTarget.style.borderColor = "transparent";
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
                         <FileText size={14} style={{ color: "#1890ff" }} />
-                        <span style={{ color: "#ccc", fontSize: 12 }}>{template.name}</span>
+                        <span style={{ color: "#ccc", fontSize: 12 }}>
+                          {template.name}
+                        </span>
                         {template.is_preset && (
                           <Tag color="blue" style={{ fontSize: 12, margin: 0 }}>
                             {t("workflow.preset")}

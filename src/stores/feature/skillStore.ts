@@ -25,20 +25,37 @@ interface SkillState {
   loadSkills: () => Promise<void>;
   getSkill: (name: string) => Promise<void>;
   toggleSkill: (name: string, enabled: boolean) => Promise<void>;
-  installSkill: (source: string, target?: string, scenarios?: string[]) => Promise<string>;
+  installSkill: (
+    source: string,
+    target?: string,
+    scenarios?: string[],
+  ) => Promise<string>;
   uninstallSkill: (name: string) => Promise<void>;
   uninstallSkillGroup: (group: string) => Promise<void>;
   openSkillsDir: () => Promise<void>;
   openSkillDir: (path: string) => Promise<void>;
-  searchMarketplace: (query: string, source?: string, sort?: string, page?: number) => Promise<void>;
+  searchMarketplace: (
+    query: string,
+    source?: string,
+    sort?: string,
+    page?: number,
+  ) => Promise<void>;
   loadMoreMarketplace: () => Promise<void>;
   checkUpdates: () => Promise<SkillUpdateInfo[]>;
   clearSelectedSkill: () => void;
-  createSkill: (name: string, description: string, content: string) => Promise<SkillCreateCheckResult>;
+  createSkill: (
+    name: string,
+    description: string,
+    content: string,
+  ) => Promise<SkillCreateCheckResult>;
   patchSkill: (name: string, content: string) => Promise<string>;
   editSkill: (name: string, content: string) => Promise<string>;
   loadSkillProposals: () => Promise<SkillProposal[]>;
-  createSkillFromProposal: (name: string, description: string, content: string) => Promise<string>;
+  createSkillFromProposal: (
+    name: string,
+    description: string,
+    content: string,
+  ) => Promise<string>;
 }
 
 async function syncExtensionStore(): Promise<void> {
@@ -81,7 +98,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 
   toggleSkill: async (name: string, enabled: boolean) => {
     set({
-      skills: get().skills.map(s => s.name === name ? { ...s, enabled } : s),
+      skills: get().skills.map((s) => s.name === name ? { ...s, enabled } : s),
     });
     try {
       await invoke("toggle_skill", { name, enabled });
@@ -95,12 +112,16 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     } catch (e) {
       console.error("切换 skill 状态失败:", e);
       set({
-        skills: get().skills.map(s => s.name === name ? { ...s, enabled: !enabled } : s),
+        skills: get().skills.map((s) => s.name === name ? { ...s, enabled: !enabled } : s),
       });
     }
   },
 
-  installSkill: async (source: string, target?: string, scenarios?: string[]) => {
+  installSkill: async (
+    source: string,
+    target?: string,
+    scenarios?: string[],
+  ) => {
     const name = await invoke<string>("install_skill", {
       source,
       target: target ?? null,
@@ -108,7 +129,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     });
     await get().loadSkills();
     set({
-      marketplaceSkills: get().marketplaceSkills.map(s => s.repo === source ? { ...s, installed: true } : s),
+      marketplaceSkills: get().marketplaceSkills.map((s) => s.repo === source ? { ...s, installed: true } : s),
     });
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
     triggerOnInstall(name).catch((e) => console.error("onInstall failed:", e));
@@ -120,12 +141,12 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
     await triggerOnUninstall(name).catch((e) => console.error("onUninstall failed:", e));
     await invoke("uninstall_skill", { name });
-    set({ skills: get().skills.filter(s => s.name !== name) });
+    set({ skills: get().skills.filter((s) => s.name !== name) });
     syncExtensionStore();
   },
 
   uninstallSkillGroup: async (group: string) => {
-    const groupSkills = get().skills.filter(s => s.group === group);
+    const groupSkills = get().skills.filter((s) => s.group === group);
     const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
     await Promise.all(
       groupSkills.map((skill) =>
@@ -133,7 +154,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       ),
     );
     await invoke("uninstall_skill_group", { group });
-    set({ skills: get().skills.filter(s => s.group !== group) });
+    set({ skills: get().skills.filter((s) => s.group !== group) });
     syncExtensionStore();
   },
 
@@ -145,7 +166,12 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     await invoke("open_skill_dir", { path });
   },
 
-  searchMarketplace: async (query: string, source?: string, sort?: string, page: number = 1) => {
+  searchMarketplace: async (
+    query: string,
+    source?: string,
+    sort?: string,
+    page: number = 1,
+  ) => {
     const currentSource = source ?? "skillhub";
     const currentSort = sort ?? "popular";
 
@@ -185,7 +211,9 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 
   loadMoreMarketplace: async () => {
     const { marketplacePage, marketplaceHasMore, marketplaceLoading } = get();
-    if (marketplaceLoading || !marketplaceHasMore) { return; }
+    if (marketplaceLoading || !marketplaceHasMore) {
+      return;
+    }
     await get().searchMarketplace(
       get().marketplaceQuery,
       get().marketplaceSource,
@@ -207,7 +235,11 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   clearSelectedSkill: () => set({ selectedSkill: null }),
 
   createSkill: async (name: string, description: string, content: string) => {
-    const result = await invoke<SkillCreateCheckResult>("skill_create", { name, description, content });
+    const result = await invoke<SkillCreateCheckResult>("skill_create", {
+      name,
+      description,
+      content,
+    });
     if (result.can_create) {
       await get().loadSkills();
       const { triggerOnInstall } = await import("@/lib/skillLifecycle");
@@ -241,8 +273,16 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     return proposals;
   },
 
-  createSkillFromProposal: async (name: string, description: string, content: string) => {
-    const result = await invoke<string>("create_skill_from_proposal", { name, description, content });
+  createSkillFromProposal: async (
+    name: string,
+    description: string,
+    content: string,
+  ) => {
+    const result = await invoke<string>("create_skill_from_proposal", {
+      name,
+      description,
+      content,
+    });
     await get().loadSkills();
     set((s) => ({
       skillProposals: s.skillProposals.filter((p) => p.suggested_name !== name),

@@ -16,7 +16,9 @@ function getAttrValue(
   attrs: KnowledgeRetrievalNodeData["attrs"],
   key: string,
 ): string | undefined {
-  if (!attrs) { return undefined; }
+  if (!attrs) {
+    return undefined;
+  }
   if (Array.isArray(attrs)) {
     const entry = attrs.find(([name]) => name === key);
     return entry?.[1];
@@ -25,17 +27,23 @@ function getAttrValue(
 }
 
 function truncateContent(text: string, maxLen = 120): string {
-  if (text.length <= maxLen) { return text; }
+  if (text.length <= maxLen) {
+    return text;
+  }
   return text.slice(0, maxLen) + "…";
 }
 
-export function KnowledgeRetrievalNode(props: NodeComponentProps<KnowledgeRetrievalNodeData>) {
+export function KnowledgeRetrievalNode(
+  props: NodeComponentProps<KnowledgeRetrievalNodeData>,
+) {
   const { node } = props;
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
-  if (!node) { return null; }
+  if (!node) {
+    return null;
+  }
 
   const status = getAttrValue(node.attrs, "status") ?? (node.loading ? "searching" : "done");
 
@@ -43,7 +51,9 @@ export function KnowledgeRetrievalNode(props: NodeComponentProps<KnowledgeRetrie
   if (node.content) {
     try {
       const parsed = JSON.parse(node.content);
-      if (Array.isArray(parsed)) { sources = parsed; }
+      if (Array.isArray(parsed)) {
+        sources = parsed;
+      }
     } catch {
       // invalid JSON
     }
@@ -101,7 +111,9 @@ export function KnowledgeRetrievalNode(props: NodeComponentProps<KnowledgeRetrie
   }
 
   // Done state — no results
-  if (totalItems === 0) { return null; }
+  if (totalItems === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -168,11 +180,20 @@ export function KnowledgeRetrievalNode(props: NodeComponentProps<KnowledgeRetrie
               }}
             >
               <BookOpen size={10} style={{ flexShrink: 0 }} />
-              <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  maxWidth: 120,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {item.document_name || item.document_id?.slice(0, 8) || "—"}
               </span>
               {item.id && <span style={{ opacity: 0.5 }}>#{item.id.slice(0, 6)}</span>}
-              <span style={{ color: token.colorPrimary, fontFamily: "monospace" }}>
+              <span
+                style={{ color: token.colorPrimary, fontFamily: "monospace" }}
+              >
                 {(1 / (1 + item.score)).toFixed(3)}
               </span>
             </span>
@@ -193,7 +214,9 @@ export function KnowledgeRetrievalNode(props: NodeComponentProps<KnowledgeRetrie
               <div
                 key={`${si}-${ii}`}
                 style={{
-                  marginBottom: ii < src.items.length - 1 || si < sources.length - 1 ? 8 : 0,
+                  marginBottom: ii < src.items.length - 1 || si < sources.length - 1
+                    ? 8
+                    : 0,
                   fontSize: 12,
                 }}
               >
@@ -205,12 +228,17 @@ export function KnowledgeRetrievalNode(props: NodeComponentProps<KnowledgeRetrie
                     marginBottom: 2,
                   }}
                 >
-                  <BookOpen size={12} style={{ color: token.colorPrimary, flexShrink: 0 }} />
+                  <BookOpen
+                    size={12}
+                    style={{ color: token.colorPrimary, flexShrink: 0 }}
+                  />
                   <span style={{ fontWeight: 500, color: token.colorText }}>
                     {item.document_name || item.document_id?.slice(0, 8) || "—"}
                   </span>
                   {item.id && (
-                    <span style={{ fontSize: 10, color: token.colorTextQuaternary }}>
+                    <span
+                      style={{ fontSize: 10, color: token.colorTextQuaternary }}
+                    >
                       #{item.id.slice(0, 8)}
                     </span>
                   )}

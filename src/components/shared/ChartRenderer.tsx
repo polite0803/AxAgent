@@ -20,7 +20,9 @@ export function ChartRenderer({
   theme = "light",
 }: ChartRendererProps) {
   const { t } = useTranslation();
-  const [option, setOption] = useState<Record<string, unknown> | null>(directOption || null);
+  const [option, setOption] = useState<Record<string, unknown> | null>(
+    directOption || null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +52,14 @@ export function ChartRenderer({
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: height || 400 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: height || 400,
+        }}
+      >
         <Spin />
       </div>
     );

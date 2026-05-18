@@ -19,7 +19,10 @@ interface ArtifactState {
 
   loadArtifacts: (conversationId: string) => Promise<void>;
   createArtifact: (input: CreateArtifactInput) => Promise<Artifact | null>;
-  updateArtifact: (id: string, input: UpdateArtifactInput) => Promise<Artifact | null>;
+  updateArtifact: (
+    id: string,
+    input: UpdateArtifactInput,
+  ) => Promise<Artifact | null>;
   deleteArtifact: (id: string) => Promise<void>;
   pinArtifact: (id: string, pinned: boolean) => Promise<void>;
   clearArtifacts: () => void;
@@ -64,7 +67,10 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
 
   updateArtifact: async (id, input) => {
     try {
-      const updated = await invoke<Artifact>("update_artifact", { id, ...input });
+      const updated = await invoke<Artifact>("update_artifact", {
+        id,
+        ...input,
+      });
       set((s) => ({
         artifacts: s.artifacts.map((a) => (a.id === id ? updated : a)),
         previewArtifact: s.previewArtifact?.id === id ? updated : s.previewArtifact,
@@ -103,7 +109,9 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
   executeCode: async (artifactId) => {
     const { artifacts } = get();
     const artifact = artifacts.find((a) => a.id === artifactId);
-    if (!artifact) { return null; }
+    if (!artifact) {
+      return null;
+    }
 
     const startTime = performance.now();
     try {
@@ -111,9 +119,15 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
         code: artifact.content,
         language: artifact.language || artifact.format,
       });
-      const executionResult = { ...result, duration_ms: performance.now() - startTime };
+      const executionResult = {
+        ...result,
+        duration_ms: performance.now() - startTime,
+      };
       set((s) => ({
-        executionResults: { ...s.executionResults, [artifactId]: executionResult },
+        executionResults: {
+          ...s.executionResults,
+          [artifactId]: executionResult,
+        },
       }));
       return executionResult;
     } catch (e) {
@@ -133,7 +147,9 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
   duplicateArtifact: async (id) => {
     const { artifacts, createArtifact } = get();
     const original = artifacts.find((a) => a.id === id);
-    if (!original) { return null; }
+    if (!original) {
+      return null;
+    }
 
     return createArtifact({
       conversationId: original.conversationId,

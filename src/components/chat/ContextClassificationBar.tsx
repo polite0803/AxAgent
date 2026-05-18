@@ -32,7 +32,9 @@ export function ContextClassificationBar({
   const { token } = theme.useToken();
 
   const visibleSegments = segments.filter((s) => s.tokens > 0);
-  if (visibleSegments.length === 0) { return null; }
+  if (visibleSegments.length === 0) {
+    return null;
+  }
 
   const totalTokens = visibleSegments.reduce((sum, s) => sum + s.tokens, 0);
   const max = maxTokens ?? totalTokens;
@@ -70,7 +72,9 @@ export function ContextClassificationBar({
             <Tooltip
               key={seg.key}
               title={`${t(seg.labelKey)}: ${seg.tokens.toLocaleString()} tokens (${
-                totalTokens > 0 ? ((seg.tokens / totalTokens) * 100).toFixed(1) : 0
+                totalTokens > 0
+                  ? ((seg.tokens / totalTokens) * 100).toFixed(1)
+                  : 0
               }%)`}
             >
               <div
@@ -120,7 +124,11 @@ export function ContextClassificationBar({
                   {formatTokenCount(seg.tokens)}
                 </span>
                 {i < visibleSegments.length - 1 && (
-                  <span style={{ color: token.colorBorderSecondary, marginLeft: 6 }}>|</span>
+                  <span
+                    style={{ color: token.colorBorderSecondary, marginLeft: 6 }}
+                  >
+                    |
+                  </span>
                 )}
               </span>
             </Tooltip>

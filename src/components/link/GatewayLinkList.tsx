@@ -5,7 +5,10 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const STATUS_INDICATOR: Record<GatewayLinkStatus, { color: string; labelKey: string }> = {
+const STATUS_INDICATOR: Record<
+  GatewayLinkStatus,
+  { color: string; labelKey: string }
+> = {
   connected: { color: "#52c41a", labelKey: "link.statusConnected" },
   disconnected: { color: "#d9d9d9", labelKey: "link.statusDisconnected" },
   connecting: { color: "#faad14", labelKey: "link.statusConnecting" },
@@ -19,11 +22,7 @@ function LinkTypeBadge({ type }: { type: string }) {
     hermes: "Hermes",
     custom: t("link.typeCustom"),
   };
-  return (
-    <span style={{ fontSize: 12, opacity: 0.6 }}>
-      {labelMap[type] ?? type}
-    </span>
-  );
+  return <span style={{ fontSize: 12, opacity: 0.6 }}>{labelMap[type] ?? type}</span>;
 }
 
 export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
@@ -85,7 +84,11 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
         {filteredLinks.length === 0 && (
           <div
             className="flex items-center justify-center"
-            style={{ color: token.colorTextSecondary, fontSize: 13, padding: 24 }}
+            style={{
+              color: token.colorTextSecondary,
+              fontSize: 13,
+              padding: 24,
+            }}
           >
             {t("link.noGateways")}
           </div>
@@ -106,7 +109,9 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
               }}
               onClick={() => selectLink(link.id)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") { selectLink(link.id); }
+                if (e.key === "Enter" || e.key === " ") {
+                  selectLink(link.id);
+                }
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {

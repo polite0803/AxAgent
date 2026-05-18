@@ -27,13 +27,14 @@ export function UserProfileSettings() {
     updateCommunicationPrefs,
   } = useUserProfileStore();
 
-  const {
-    currentProfile,
-    loadStyleProfile,
-    getStats,
-  } = useStyleStore();
+  const { currentProfile, loadStyleProfile, getStats } = useStyleStore();
 
-  const [stats, setStats] = useState<{ total_profiles: number; total_samples: number } | null>(null);
+  const [stats, setStats] = useState<
+    {
+      total_profiles: number;
+      total_samples: number;
+    } | null
+  >(null);
 
   useEffect(() => {
     loadTrajectoryProfile();
@@ -44,7 +45,9 @@ export function UserProfileSettings() {
   if (isLoading && !trajectoryProfile) {
     return (
       <div className="p-6 flex items-center justify-center min-h-50">
-        <div style={{ color: token.colorTextSecondary }}>{t("profile.loading")}</div>
+        <div style={{ color: token.colorTextSecondary }}>
+          {t("profile.loading")}
+        </div>
       </div>
     );
   }
@@ -98,7 +101,13 @@ export function UserProfileSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <div>
             <div>{t("profile.namingConvention")}</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: token.colorTextTertiary,
+                marginTop: 1,
+              }}
+            >
               {t("profile.namingConventionDesc")}
             </div>
           </div>
@@ -112,7 +121,13 @@ export function UserProfileSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <div>
             <div>{t("profile.indentationStyle")}</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: token.colorTextTertiary,
+                marginTop: 1,
+              }}
+            >
               {t("profile.indentationStyleDesc")}
             </div>
           </div>
@@ -126,7 +141,13 @@ export function UserProfileSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <div>
             <div>{t("profile.commentStyle")}</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: token.colorTextTertiary,
+                marginTop: 1,
+              }}
+            >
               {t("profile.commentStyleDesc")}
             </div>
           </div>
@@ -147,7 +168,13 @@ export function UserProfileSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <div>
             <div>{t("profile.detailLevel")}</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: token.colorTextTertiary,
+                marginTop: 1,
+              }}
+            >
               {t("profile.detailLevelDesc")}
             </div>
           </div>
@@ -161,7 +188,13 @@ export function UserProfileSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <div>
             <div>{t("profile.tone")}</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: token.colorTextTertiary,
+                marginTop: 1,
+              }}
+            >
               {t("profile.toneDesc")}
             </div>
           </div>
@@ -175,7 +208,13 @@ export function UserProfileSettings() {
         <div style={rowStyle} className="flex items-center justify-between">
           <div>
             <div>{t("profile.language")}</div>
-            <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: token.colorTextTertiary,
+                marginTop: 1,
+              }}
+            >
               {t("profile.languageDesc")}
             </div>
           </div>
@@ -212,12 +251,16 @@ export function UserProfileSettings() {
         <SettingsGroup title={t("style.stats")}>
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("style.totalProfiles")}</span>
-            <span style={{ fontSize: 18, fontWeight: 600 }}>{stats.total_profiles}</span>
+            <span style={{ fontSize: 18, fontWeight: 600 }}>
+              {stats.total_profiles}
+            </span>
           </div>
           <Divider style={{ margin: "4px 0" }} />
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("style.totalSamples")}</span>
-            <span style={{ fontSize: 18, fontWeight: 600 }}>{stats.total_samples}</span>
+            <span style={{ fontSize: 18, fontWeight: 600 }}>
+              {stats.total_samples}
+            </span>
           </div>
         </SettingsGroup>
       )}

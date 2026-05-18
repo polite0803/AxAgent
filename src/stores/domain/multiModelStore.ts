@@ -58,15 +58,25 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
   pendingPromptText: null,
   setPendingPromptText: (text) => set({ pendingPromptText: text }),
 
-  sendMultiModelMessage: async (content, companionModels, attachments = [], searchProviderId = null) => {
+  sendMultiModelMessage: async (
+    content,
+    companionModels,
+    attachments = [],
+    searchProviderId = null,
+  ) => {
     const convStore = useConversationStore.getState();
     const conversationId = convStore.activeConversationId;
-    if (!conversationId || companionModels.length === 0) { return; }
+    if (!conversationId || companionModels.length === 0) {
+      return;
+    }
 
     // Guard: prevent duplicate sends while a stream is already active
     const activeStreams = useStreamStore.getState().activeStreams;
     if (conversationId in activeStreams) {
-      console.warn("[sendMultiModelMessage] Ignoring duplicate send — stream already active for", conversationId);
+      console.warn(
+        "[sendMultiModelMessage] Ignoring duplicate send — stream already active for",
+        conversationId,
+      );
       return;
     }
 
@@ -91,7 +101,11 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
     } catch (e) {
       console.error("[sendMultiModelMessage] failed to switch model:", e);
       resetMultiModelState();
-      set({ pendingCompanionModels: [], multiModelParentId: null, multiModelDoneMessageIds: [] });
+      set({
+        pendingCompanionModels: [],
+        multiModelParentId: null,
+        multiModelDoneMessageIds: [],
+      });
       return;
     }
 
@@ -103,7 +117,11 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
     const lastUserMsg = [...msgs].reverse().find((m) => m.role === "user");
     if (!lastUserMsg) {
       resetMultiModelState();
-      set({ pendingCompanionModels: [], multiModelParentId: null, multiModelDoneMessageIds: [] });
+      set({
+        pendingCompanionModels: [],
+        multiModelParentId: null,
+        multiModelDoneMessageIds: [],
+      });
       if (originalProviderId && originalModelId) {
         void convStore.updateConversation(conversationId, {
           provider_id: originalProviderId,
@@ -119,7 +137,8 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
     });
     useConversationStore.setState((s) => ({
       messages: s.messages.map((m) =>
-        m.id === useStreamStore.getState().streamingMessageId && m.role === "assistant"
+        m.id === useStreamStore.getState().streamingMessageId
+          && m.role === "assistant"
           ? { ...m, parent_message_id: lastUserMsg.id }
           : m
       ),
@@ -158,75 +177,111 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
           enabledWikiIds: wikiIds.length > 0 ? wikiIds : undefined,
           isCompanion: true,
-        }).then(async () => {
-          if (!_isMultiModelActive) { return; }
-          try {
-            const versions = await convStore.listMessageVersions(conversationId, lastUserMsg.id);
-            if (versions.length > 0 && _isMultiModelActive) {
-              useConversationStore.setState((s) => {
-                const existingIds = new Set(s.messages.map((m) => m.id));
-                const dbVersionMap = new Map(versions.map((v) => [v.id, v]));
-
-                const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
-                let resolvedFirstModelId: string | null = null;
-                if (currentStreamingMessageId?.startsWith("temp-") && _multiModelFirstModelId) {
-                  const firstDbVersion = versions.find(
-                    (v) => v.model_id === _multiModelFirstModelId && !existingIds.has(v.id),
-                  );
-                  if (firstDbVersion) {
-                    resolvedFirstModelId = firstDbVersion.id;
-                    existingIds.delete(currentStreamingMessageId);
-                    existingIds.add(firstDbVersion.id);
-                    useStreamStore.setState({ streamingMessageId: firstDbVersion.id });
-                  }
-                }
-
-                const newVersions = versions
-                  .flatMap((v) => !existingIds.has(v.id) ? [{ ...v, is_active: false as const }] : []);
-                let enriched = false;
-                const updatedMessages = s.messages.map((m) => {
-                  if (resolvedFirstModelId && m.id === currentStreamingMessageId) {
-                    const dbVersion = dbVersionMap.get(resolvedFirstModelId);
-                    enriched = true;
-                    return {
-                      ...m,
-                      id: resolvedFirstModelId,
-                      model_id: dbVersion?.model_id ?? m.model_id,
-                      provider_id: dbVersion?.provider_id ?? m.provider_id,
-                    };
-                  }
-                  const dbVersion = dbVersionMap.get(m.id);
-                  if (dbVersion && (!m.model_id || !m.provider_id)) {
-                    enriched = true;
-                    return { ...m, model_id: dbVersion.model_id, provider_id: dbVersion.provider_id };
-                  }
-                  return m;
-                });
-                if (newVersions.length === 0 && !enriched && resolvedFirstModelId === null) { return {}; }
-                return { messages: [...updatedMessages, ...newVersions] };
-              });
-            }
-          } catch (e) {
-            console.warn("[sendMultiModelMessage] failed to enrich companion:", e);
-          }
-        }).catch((e) => {
-          console.error(`[sendMultiModelMessage] companion ${model.model_id} invoke failed:`, e);
-          decrementMultiModelTotalRemaining();
-          if (_multiModelTotalRemaining <= 0 && _multiModelDoneResolve) {
-            const r = _multiModelDoneResolve;
-            setMultiModelDoneResolve(null);
-            useStreamStore.setState((s) => ({
-              ...stopConversationStream(s.activeStreams, conversationId),
-              streamingStartTimestamps: (() => {
-                const t = { ...s.streamingStartTimestamps };
-                delete t[conversationId];
-                return t;
-              })(),
-              thinkingActiveMessageIds: new Set<string>(),
-            }));
-            r();
-          }
         })
+          .then(async () => {
+            if (!_isMultiModelActive) {
+              return;
+            }
+            try {
+              const versions = await convStore.listMessageVersions(
+                conversationId,
+                lastUserMsg.id,
+              );
+              if (versions.length > 0 && _isMultiModelActive) {
+                useConversationStore.setState((s) => {
+                  const existingIds = new Set(s.messages.map((m) => m.id));
+                  const dbVersionMap = new Map(versions.map((v) => [v.id, v]));
+
+                  const currentStreamingMessageId = useStreamStore.getState().streamingMessageId;
+                  let resolvedFirstModelId: string | null = null;
+                  if (
+                    currentStreamingMessageId?.startsWith("temp-")
+                    && _multiModelFirstModelId
+                  ) {
+                    const firstDbVersion = versions.find(
+                      (v) =>
+                        v.model_id === _multiModelFirstModelId
+                        && !existingIds.has(v.id),
+                    );
+                    if (firstDbVersion) {
+                      resolvedFirstModelId = firstDbVersion.id;
+                      existingIds.delete(currentStreamingMessageId);
+                      existingIds.add(firstDbVersion.id);
+                      useStreamStore.setState({
+                        streamingMessageId: firstDbVersion.id,
+                      });
+                    }
+                  }
+
+                  const newVersions = versions.flatMap((v) =>
+                    !existingIds.has(v.id)
+                      ? [{ ...v, is_active: false as const }]
+                      : []
+                  );
+                  let enriched = false;
+                  const updatedMessages = s.messages.map((m) => {
+                    if (
+                      resolvedFirstModelId
+                      && m.id === currentStreamingMessageId
+                    ) {
+                      const dbVersion = dbVersionMap.get(resolvedFirstModelId);
+                      enriched = true;
+                      return {
+                        ...m,
+                        id: resolvedFirstModelId,
+                        model_id: dbVersion?.model_id ?? m.model_id,
+                        provider_id: dbVersion?.provider_id ?? m.provider_id,
+                      };
+                    }
+                    const dbVersion = dbVersionMap.get(m.id);
+                    if (dbVersion && (!m.model_id || !m.provider_id)) {
+                      enriched = true;
+                      return {
+                        ...m,
+                        model_id: dbVersion.model_id,
+                        provider_id: dbVersion.provider_id,
+                      };
+                    }
+                    return m;
+                  });
+                  if (
+                    newVersions.length === 0
+                    && !enriched
+                    && resolvedFirstModelId === null
+                  ) {
+                    return {};
+                  }
+                  return { messages: [...updatedMessages, ...newVersions] };
+                });
+              }
+            } catch (e) {
+              console.warn(
+                "[sendMultiModelMessage] failed to enrich companion:",
+                e,
+              );
+            }
+          })
+          .catch((e) => {
+            console.error(
+              `[sendMultiModelMessage] companion ${model.model_id} invoke failed:`,
+              e,
+            );
+            decrementMultiModelTotalRemaining();
+            if (_multiModelTotalRemaining <= 0 && _multiModelDoneResolve) {
+              const r = _multiModelDoneResolve;
+              setMultiModelDoneResolve(null);
+              useStreamStore.setState((s) => ({
+                ...stopConversationStream(s.activeStreams, conversationId),
+                streamingStartTimestamps: (() => {
+                  const t = { ...s.streamingStartTimestamps };
+                  delete t[conversationId];
+                  return t;
+                })(),
+                thinkingActiveMessageIds: new Set<string>(),
+              }));
+              r();
+            }
+          })
       );
 
       void Promise.allSettled(invocations);
@@ -253,22 +308,34 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
     }
 
     // Final fetch for consistency
-    if (useConversationStore.getState().activeConversationId === conversationId) {
+    if (
+      useConversationStore.getState().activeConversationId === conversationId
+    ) {
       const parentId = get().multiModelParentId;
 
       const userSelectedMessageId = _userManuallySelectedVersion
-        ? useConversationStore.getState().messages.find(
-          (m) => m.parent_message_id === parentId && m.role === "assistant" && m.is_active,
-        )?.id ?? null
+        ? (useConversationStore
+          .getState()
+          .messages.find(
+            (m) =>
+              m.parent_message_id === parentId
+              && m.role === "assistant"
+              && m.is_active,
+          )?.id ?? null)
         : null;
 
       if (parentId && !_userManuallySelectedVersion) {
         const firstModelId = companionModels[0].model_id;
         let targetMessageId = _multiModelFirstMessageId;
         if (!targetMessageId) {
-          const localMatch = useConversationStore.getState().messages.find(
-            (m) => m.parent_message_id === parentId && m.role === "assistant" && m.model_id === firstModelId,
-          );
+          const localMatch = useConversationStore
+            .getState()
+            .messages.find(
+              (m) =>
+                m.parent_message_id === parentId
+                && m.role === "assistant"
+                && m.model_id === firstModelId,
+            );
           targetMessageId = localMatch?.id ?? null;
         }
         if (targetMessageId) {
@@ -295,18 +362,22 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
       if (parentId) {
         const refreshedMsgs = useConversationStore.getState().messages;
 
-        let displayVersion: typeof refreshedMsgs[number] | null = null;
+        let displayVersion: (typeof refreshedMsgs)[number] | null = null;
         if (_userManuallySelectedVersion && userSelectedMessageId) {
           displayVersion = refreshedMsgs.find((m) => m.id === userSelectedMessageId) ?? null;
         }
         if (!displayVersion) {
           const firstModelId = companionModels[0].model_id;
           displayVersion = _multiModelFirstMessageId
-            ? refreshedMsgs.find((m) => m.id === _multiModelFirstMessageId) ?? null
+            ? (refreshedMsgs.find((m) => m.id === _multiModelFirstMessageId)
+              ?? null)
             : null;
           if (!displayVersion) {
             displayVersion = refreshedMsgs.find(
-              (m) => m.parent_message_id === parentId && m.role === "assistant" && m.model_id === firstModelId,
+              (m) =>
+                m.parent_message_id === parentId
+                && m.role === "assistant"
+                && m.model_id === firstModelId,
             ) ?? null;
           }
         }
@@ -316,7 +387,10 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
             let kept = false;
             return {
               messages: s.messages.reduce<typeof s.messages>((acc, m) => {
-                if (m.parent_message_id === parentId && m.role === "assistant") {
+                if (
+                  m.parent_message_id === parentId
+                  && m.role === "assistant"
+                ) {
                   if (!kept) {
                     acc.push({ ...displayVersion, is_active: true });
                     kept = true;

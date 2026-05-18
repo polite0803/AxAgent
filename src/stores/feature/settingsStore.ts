@@ -193,7 +193,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ loading: true });
     try {
       const fetched = await invoke<Partial<AppSettings>>("get_settings");
-      set({ settings: { ...DEFAULT_SETTINGS, ...fetched }, loading: false, _loaded: true, error: null });
+      set({
+        settings: { ...DEFAULT_SETTINGS, ...fetched },
+        loading: false,
+        _loaded: true,
+        error: null,
+      });
     } catch (e) {
       set({ error: String(e), loading: false, _loaded: true });
     }
@@ -201,7 +206,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   saveSettings: async (partial) => {
     if (!get()._loaded) {
-      console.warn("[settingsStore] saveSettings skipped: settings not loaded yet");
+      console.warn(
+        "[settingsStore] saveSettings skipped: settings not loaded yet",
+      );
       return;
     }
     set((s) => ({ settings: { ...s.settings, ...partial }, error: null }));

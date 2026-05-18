@@ -45,11 +45,17 @@ export function IntegratedTerminal({
   const terminalReadyRef = useRef(false);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
-  const activeOutput = activeSessionId ? outputBuffers[activeSessionId] ?? [] : [];
-  const activeAnalysis = activeSessionId ? analysis[activeSessionId] : undefined;
+  const activeOutput = activeSessionId
+    ? (outputBuffers[activeSessionId] ?? [])
+    : [];
+  const activeAnalysis = activeSessionId
+    ? analysis[activeSessionId]
+    : undefined;
 
   const initTerminal = useCallback(async () => {
-    if (!terminalRef.current) { return; }
+    if (!terminalRef.current) {
+      return;
+    }
 
     try {
       const [{ Terminal: XTerm }, { FitAddon }, { WebLinksAddon }] = await Promise.all([
@@ -130,7 +136,9 @@ export function IntegratedTerminal({
   }, []);
 
   useEffect(() => {
-    if (!terminalReadyRef.current || !xtermRef.current) { return; }
+    if (!terminalReadyRef.current || !xtermRef.current) {
+      return;
+    }
 
     const xterm = xtermRef.current;
     const lastLine = activeOutput[activeOutput.length - 1] ?? "";
@@ -179,17 +187,23 @@ export function IntegratedTerminal({
   };
 
   const handleKillSession = async () => {
-    if (!activeSessionId) { return; }
+    if (!activeSessionId) {
+      return;
+    }
     await killSession(activeSessionId);
   };
 
   const handleRemoveSession = async () => {
-    if (!activeSessionId) { return; }
+    if (!activeSessionId) {
+      return;
+    }
     await removeSession(activeSessionId);
   };
 
   const handleAnalyze = async () => {
-    if (!activeSessionId) { return; }
+    if (!activeSessionId) {
+      return;
+    }
     try {
       await analyzeOutput(activeSessionId);
     } catch (e) {
@@ -198,7 +212,9 @@ export function IntegratedTerminal({
   };
 
   const handleClear = () => {
-    if (!activeSessionId) { return; }
+    if (!activeSessionId) {
+      return;
+    }
     clearOutput(activeSessionId);
     if (xtermRef.current) {
       xtermRef.current.clear();
@@ -384,18 +400,18 @@ export function IntegratedTerminal({
             >
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <span style={{ color: "#6c7086" }}>
-                    No terminal sessions
-                  </span>
-                }
+                description={<span style={{ color: "#6c7086" }}>No terminal sessions</span>}
               />
               <Button
                 size="small"
                 icon={<Plus size={14} />}
                 onClick={handleCreateSession}
                 loading={loading}
-                style={{ background: "#313244", borderColor: "#45475a", color: "#cdd6f4" }}
+                style={{
+                  background: "#313244",
+                  borderColor: "#45475a",
+                  color: "#cdd6f4",
+                }}
               >
                 New Terminal
               </Button>
@@ -467,10 +483,5 @@ function SessionStatusBadge({ status }: { status: PtySessionInfo["status"] }) {
     error: "#f38ba8",
   };
 
-  return (
-    <Badge
-      color={colorMap[status] ?? "#6c7086"}
-      style={{ marginRight: 4 }}
-    />
-  );
+  return <Badge color={colorMap[status] ?? "#6c7086"} style={{ marginRight: 4 }} />;
 }

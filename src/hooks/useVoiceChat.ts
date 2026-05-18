@@ -29,7 +29,11 @@ interface UseVoiceChatReturn {
   toggleMute: () => void;
 }
 
-export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoiceChatOptions): UseVoiceChatReturn {
+export function useVoiceChat({
+  port = 8080,
+  host = "127.1.0.0",
+  config,
+}: UseVoiceChatOptions): UseVoiceChatReturn {
   const { t } = useTranslation();
   const { message } = App.useApp();
 
@@ -93,7 +97,9 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
 
   const runVAD = useCallback(() => {
     const analyser = analyserRef.current;
-    if (!analyser) { return; }
+    if (!analyser) {
+      return;
+    }
 
     const data = new Float32Array(analyser.fftSize);
 
@@ -106,7 +112,9 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
       const rms = Math.sqrt(sum / data.length);
 
       setState((prev) => {
-        if (prev !== "Speaking" && prev !== "Listening") { return prev; }
+        if (prev !== "Speaking" && prev !== "Listening") {
+          return prev;
+        }
 
         if (rms > VAD_THRESHOLD) {
           if (vadTimerRef.current !== null) {
@@ -132,7 +140,9 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
   }, []);
 
   const start = useCallback(async () => {
-    if (state !== "Idle") { return; }
+    if (state !== "Idle") {
+      return;
+    }
     setState("Connecting");
 
     // 重置重连状态
@@ -145,11 +155,17 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { sampleRate: config.audio_format.sample_rate, channelCount: 1, echoCancellation: true },
+        audio: {
+          sampleRate: config.audio_format.sample_rate,
+          channelCount: 1,
+          echoCancellation: true,
+        },
       });
       streamRef.current = stream;
 
-      const audioCtx = new AudioContext({ sampleRate: config.audio_format.sample_rate });
+      const audioCtx = new AudioContext({
+        sampleRate: config.audio_format.sample_rate,
+      });
       audioCtxRef.current = audioCtx;
 
       await audioCtx.audioWorklet.addModule("/audio-processor.js");
@@ -252,7 +268,9 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
   }, [host, port, config, isMuted, cleanup, setState, runVAD, message, t]);
 
   const stop = useCallback(() => {
-    if (state === "Idle" || state === "Disconnecting") { return; }
+    if (state === "Idle" || state === "Disconnecting") {
+      return;
+    }
     setState("Disconnecting");
     shouldReconnectRef.current = false;
     if (reconnectTimerRef.current !== null) {

@@ -28,7 +28,9 @@ export interface UpdateReviewRequest {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: `HTTP ${response.status}` }));
     throw new Error(error.error || `HTTP ${response.status}`);
   }
   return response.json();
@@ -36,31 +38,45 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export const reviewApi = {
   async getReviews(marketplaceId: string): Promise<ReviewResponse[]> {
-    const response = await fetch(`${API_BASE}/marketplace/${marketplaceId}/reviews`);
+    const response = await fetch(
+      `${API_BASE}/marketplace/${marketplaceId}/reviews`,
+    );
     return handleResponse(response);
   },
 
   async getMyReview(marketplaceId: string): Promise<ReviewResponse | null> {
-    const response = await fetch(`${API_BASE}/marketplace/${marketplaceId}/reviews/me`);
-    if (response.status === 404) { return null; }
+    const response = await fetch(
+      `${API_BASE}/marketplace/${marketplaceId}/reviews/me`,
+    );
+    if (response.status === 404) {
+      return null;
+    }
     return handleResponse(response);
   },
 
   async getStats(marketplaceId: string): Promise<MarketplaceStats> {
-    const response = await fetch(`${API_BASE}/marketplace/${marketplaceId}/stats`);
+    const response = await fetch(
+      `${API_BASE}/marketplace/${marketplaceId}/stats`,
+    );
     return handleResponse(response);
   },
 
   async createReview(data: CreateReviewRequest): Promise<ReviewResponse> {
-    const response = await fetch(`${API_BASE}/marketplace/${data.marketplace_id}/reviews`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    const response = await fetch(
+      `${API_BASE}/marketplace/${data.marketplace_id}/reviews`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      },
+    );
     return handleResponse(response);
   },
 
-  async updateReview(reviewId: string, data: UpdateReviewRequest): Promise<ReviewResponse> {
+  async updateReview(
+    reviewId: string,
+    data: UpdateReviewRequest,
+  ): Promise<ReviewResponse> {
     const response = await fetch(`${API_BASE}/reviews/${reviewId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -74,7 +90,9 @@ export const reviewApi = {
       method: "DELETE",
     });
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+      const error = await response
+        .json()
+        .catch(() => ({ error: `HTTP ${response.status}` }));
       throw new Error(error.error || `HTTP ${response.status}`);
     }
   },

@@ -25,23 +25,23 @@ const PRESET_I18N_KEYS = {
     name: "workflow.testGen.name",
     description: "workflow.testGen.description",
   },
-  "refactor": {
+  refactor: {
     name: "workflow.refactor.name",
     description: "workflow.refactor.description",
   },
-  "explore": {
+  explore: {
     name: "workflow.explore.name",
     description: "workflow.explore.description",
   },
-  "performance": {
+  performance: {
     name: "workflow.performance.name",
     description: "workflow.performance.description",
   },
-  "security": {
+  security: {
     name: "workflow.security.name",
     description: "workflow.security.description",
   },
-  "migration": {
+  migration: {
     name: "workflow.migration.name",
     description: "workflow.migration.description",
   },
@@ -53,7 +53,7 @@ const PRESET_I18N_KEYS = {
     name: "workflow.debugEnv.name",
     description: "workflow.debugEnv.description",
   },
-  "feature": {
+  feature: {
     name: "workflow.feature.name",
     description: "workflow.feature.description",
   },
@@ -103,10 +103,18 @@ export const TemplateList: React.FC<TemplateListProps> = ({
 }) => {
   const { t } = useTranslation("translation");
   const { token } = theme.useToken();
-  const { templates, isLoading, loadTemplates, deleteTemplate, duplicateTemplate } = useWorkflowEditorStore();
+  const {
+    templates,
+    isLoading,
+    loadTemplates,
+    deleteTemplate,
+    duplicateTemplate,
+  } = useWorkflowEditorStore();
   const [searchText, setSearchText] = useState("");
   const [filterTag, setFilterTag] = useState<string | undefined>(undefined);
-  const [filterPreset, setFilterPreset] = useState<boolean | undefined>(undefined);
+  const [filterPreset, setFilterPreset] = useState<boolean | undefined>(
+    undefined,
+  );
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<WorkflowTemplateResponse | null>(null);
   const [versionHistoryVisible, setVersionHistoryVisible] = useState(false);
@@ -150,7 +158,9 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   }, [templates, searchText, filterTag, filterPreset]);
 
   const handleDelete = async () => {
-    if (!templateToDelete) { return; }
+    if (!templateToDelete) {
+      return;
+    }
     try {
       await deleteTemplate(templateToDelete.id);
       message.success(t("workflow.templateList.deleted"));
@@ -231,16 +241,33 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           body: { padding: 12 },
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
           <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 6,
+              }}
+            >
               <span style={{ fontSize: 16 }}>{template.icon || "📋"}</span>
-              <span style={{ fontWeight: 500, color: token.colorText, fontSize: 14 }}>
+              <span
+                style={{
+                  fontWeight: 500,
+                  color: token.colorText,
+                  fontSize: 14,
+                }}
+              >
                 {(() => {
                   const presetI18n = PRESET_I18N_KEYS[template.id as PresetI18nKey];
-                  return presetI18n
-                    ? t(presetI18n.name)
-                    : template.name;
+                  return presetI18n ? t(presetI18n.name) : template.name;
                 })()}
               </span>
               {template.is_preset && (
@@ -268,7 +295,8 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 const presetI18n = PRESET_I18N_KEYS[template.id as PresetI18nKey];
                 return presetI18n
                   ? t(presetI18n.description)
-                  : template.description || t("workflow.templateList.noDescription");
+                  : template.description
+                    || t("workflow.templateList.noDescription");
               })()}
             </div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -282,7 +310,9 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 </Tag>
               ))}
               {template.tags && template.tags.length > 4 && (
-                <Tag style={{ fontSize: 12, margin: 0 }}>+{template.tags.length - 4}</Tag>
+                <Tag style={{ fontSize: 12, margin: 0 }}>
+                  +{template.tags.length - 4}
+                </Tag>
               )}
             </div>
           </div>
@@ -307,7 +337,14 @@ export const TemplateList: React.FC<TemplateListProps> = ({
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 200 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: 200,
+        }}
+      >
         <Spin size="large" />
       </div>
     );
@@ -372,7 +409,13 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 12,
+        }}
+      >
         {filteredTemplates.map(renderTemplateCard)}
       </div>
 
@@ -396,8 +439,14 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         okText={t("workflow.templateList.delete")}
         okButtonProps={{ danger: true }}
       >
-        <p>{t("workflow.templateList.confirmDeleteMessage", { name: templateToDelete?.name })}</p>
-        <p style={{ color: "#ff4d4f", fontSize: 12 }}>{t("workflow.templateList.irreversible")}</p>
+        <p>
+          {t("workflow.templateList.confirmDeleteMessage", {
+            name: templateToDelete?.name,
+          })}
+        </p>
+        <p style={{ color: "#ff4d4f", fontSize: 12 }}>
+          {t("workflow.templateList.irreversible")}
+        </p>
       </Modal>
 
       <VersionHistoryModal

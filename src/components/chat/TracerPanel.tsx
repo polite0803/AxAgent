@@ -37,12 +37,16 @@ export function TracerPanel() {
         setError(false);
       }
     } catch {
-      if (mountedRef.current) { setError(true); }
+      if (mountedRef.current) {
+        setError(true);
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     fetchTraces();
     const interval = setInterval(fetchTraces, 30_000);
     return () => clearInterval(interval);
@@ -66,7 +70,12 @@ export function TracerPanel() {
         >
           <Bug size={14} />
           {t("chat.tracer")} ({traces.length})
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
         </button>
       </div>
     );
@@ -78,40 +87,70 @@ export function TracerPanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t("chat.tracerTitle")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("chat.tracerTitle")}
+        </span>
         <div className="flex items-center gap-1">
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="size-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
       </div>
 
-      {error && traces.length === 0 && <div className="text-[10px] text-muted-foreground/60">{t("chat.loadError")}
-      </div>}
+      {error && traces.length === 0 && (
+        <div className="text-[10px] text-muted-foreground/60">
+          {t("chat.loadError")}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-1.5">
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.traces")}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.traces")}
+          </div>
           <div className="text-xs font-medium">{traces.length}</div>
         </div>
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.spans")}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.spans")}
+          </div>
           <div className="text-xs font-medium">{totalSpans}</div>
         </div>
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.errors")}</div>
-          <div className={`text-xs font-medium ${totalErrors > 0 ? "text-red-500" : ""}`}>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.errors")}
+          </div>
+          <div
+            className={`text-xs font-medium ${totalErrors > 0 ? "text-red-500" : ""}`}
+          >
             {totalErrors}
           </div>
         </div>
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.status")}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.status")}
+          </div>
           <div className="text-xs font-medium text-green-500">
             {t("chat.active")}
           </div>
@@ -141,7 +180,9 @@ export function TracerPanel() {
                     {trace.error_count > 0 && (
                       <>
                         <span>·</span>
-                        <span className="text-red-500">{trace.error_count} err</span>
+                        <span className="text-red-500">
+                          {trace.error_count} err
+                        </span>
                       </>
                     )}
                   </div>

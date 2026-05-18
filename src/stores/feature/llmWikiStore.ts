@@ -55,7 +55,11 @@ interface LlmWikiState {
 
   loadWikis: () => Promise<void>;
   selectWiki: (wikiId: string | null) => void;
-  createWiki: (name: string, rootPath: string, description?: string) => Promise<Wiki | null>;
+  createWiki: (
+    name: string,
+    rootPath: string,
+    description?: string,
+  ) => Promise<Wiki | null>;
   deleteWiki: (wikiId: string) => Promise<void>;
 
   ingestSource: (
@@ -65,7 +69,10 @@ interface LlmWikiState {
     url?: string,
     title?: string,
   ) => Promise<IngestResult | null>;
-  compileWiki: (wikiId: string, sourceIds: string[]) => Promise<CompileResult | null>;
+  compileWiki: (
+    wikiId: string,
+    sourceIds: string[],
+  ) => Promise<CompileResult | null>;
   queryWiki: (
     wikiId: string,
     query: string,
@@ -122,7 +129,11 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   createWiki: async (name, rootPath, description) => {
     try {
-      const wiki = await invoke<Wiki>("llm_wiki_create", { name, rootPath, description });
+      const wiki = await invoke<Wiki>("llm_wiki_create", {
+        name,
+        rootPath,
+        description,
+      });
       set((s) => ({ wikis: [...s.wikis, wiki] }));
       return wiki;
     } catch (e) {
@@ -241,7 +252,10 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
 
   loadOperations: async (wikiId) => {
     try {
-      const operations = await invoke<WikiOperation[]>("llm_wiki_operations_list", { wikiId });
+      const operations = await invoke<WikiOperation[]>(
+        "llm_wiki_operations_list",
+        { wikiId },
+      );
       set({ operations });
     } catch (e) {
       set({ error: String(e) });

@@ -16,13 +16,23 @@ interface KnowledgeState {
   selectedBaseId: string | null;
 
   loadBases: () => Promise<void>;
-  createBase: (input: CreateKnowledgeBaseInput) => Promise<KnowledgeBase | null>;
+  createBase: (
+    input: CreateKnowledgeBaseInput,
+  ) => Promise<KnowledgeBase | null>;
   updateBase: (id: string, input: UpdateKnowledgeBaseInput) => Promise<void>;
   deleteBase: (id: string) => Promise<void>;
   reorderBases: (baseIds: string[]) => Promise<void>;
   loadDocuments: (baseId: string) => Promise<void>;
-  addDocument: (baseId: string, title: string, sourcePath: string, mimeType: string) => Promise<void>;
-  deleteDocument: (knowledgeBaseId: string, documentId: string) => Promise<void>;
+  addDocument: (
+    baseId: string,
+    title: string,
+    sourcePath: string,
+    mimeType: string,
+  ) => Promise<void>;
+  deleteDocument: (
+    knowledgeBaseId: string,
+    documentId: string,
+  ) => Promise<void>;
   setSelectedBaseId: (id: string | null) => void;
   setupEventListeners: () => Promise<() => void>;
 }
@@ -46,7 +56,9 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   createBase: async (input) => {
     try {
-      const base = await invoke<KnowledgeBase>("create_knowledge_base", { input });
+      const base = await invoke<KnowledgeBase>("create_knowledge_base", {
+        input,
+      });
       set((s) => ({ bases: [...s.bases, base], error: null }));
       return base;
     } catch (e) {
@@ -57,8 +69,14 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   updateBase: async (id, input) => {
     try {
-      const updated = await invoke<KnowledgeBase>("update_knowledge_base", { id, input });
-      set((s) => ({ bases: s.bases.map((b) => (b.id === id ? updated : b)), error: null }));
+      const updated = await invoke<KnowledgeBase>("update_knowledge_base", {
+        id,
+        input,
+      });
+      set((s) => ({
+        bases: s.bases.map((b) => (b.id === id ? updated : b)),
+        error: null,
+      }));
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -77,11 +95,10 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   reorderBases: async (baseIds) => {
     const prev = get().bases;
-    const reordered = baseIds
-      .flatMap((id) => {
-        const b = prev.find((b) => b.id === id);
-        return b ? [b] : [];
-      }) as KnowledgeBase[];
+    const reordered = baseIds.flatMap((id) => {
+      const b = prev.find((b) => b.id === id);
+      return b ? [b] : [];
+    }) as KnowledgeBase[];
     set({ bases: reordered });
     try {
       await invoke("reorder_knowledge_bases", { baseIds });
@@ -93,7 +110,10 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
   loadDocuments: async (baseId) => {
     set({ loading: true });
     try {
-      const documents = await invoke<KnowledgeDocument[]>("list_knowledge_documents", { baseId });
+      const documents = await invoke<KnowledgeDocument[]>(
+        "list_knowledge_documents",
+        { baseId },
+      );
       set({ documents, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -102,7 +122,12 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   addDocument: async (baseId, title, sourcePath, mimeType) => {
     try {
-      await invoke("add_knowledge_document", { baseId, title, sourcePath, mimeType });
+      await invoke("add_knowledge_document", {
+        baseId,
+        title,
+        sourcePath,
+        mimeType,
+      });
       await get().loadDocuments(baseId);
     } catch (e) {
       set({ error: String(e) });
@@ -112,7 +137,10 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   deleteDocument: async (knowledgeBaseId, documentId) => {
     try {
-      await invoke("delete_knowledge_document", { baseId: knowledgeBaseId, id: documentId });
+      await invoke("delete_knowledge_document", {
+        baseId: knowledgeBaseId,
+        id: documentId,
+      });
       await get().loadDocuments(knowledgeBaseId);
     } catch (e) {
       set({ error: String(e) });
@@ -126,23 +154,20 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   setupEventListeners: async () => {
     const [unlistenIndexed, unlistenReindexed, unlistenRebuild] = await Promise.all([
-      listen<DocumentIndexedEvent>(
-        "knowledge-document-indexed",
-        (event) => {
-          const { documentId, success, error } = event.payload;
-          set((state) => ({
-            documents: state.documents.map((doc) =>
-              doc.id === documentId
-                ? {
-                  ...doc,
-                  indexingStatus: success ? "ready" : "failed",
-                  indexError: success ? undefined : error,
-                }
-                : doc
-            ),
-          }));
-        },
-      ),
+      listen<DocumentIndexedEvent>("knowledge-document-indexed", (event) => {
+        const { documentId, success, error } = event.payload;
+        set((state) => ({
+          documents: state.documents.map((doc) =>
+            doc.id === documentId
+              ? {
+                ...doc,
+                indexingStatus: success ? "ready" : "failed",
+                indexError: success ? undefined : error,
+              }
+              : doc
+          ),
+        }));
+      }),
       listen<{ chunkId: string; success: boolean }>(
         "knowledge-chunk-reindexed",
         () => {
@@ -153,15 +178,12 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
           }
         },
       ),
-      listen<{ baseId: string }>(
-        "knowledge-rebuild-complete",
-        (event) => {
-          const selectedBaseId = get().selectedBaseId;
-          if (selectedBaseId === event.payload.baseId) {
-            get().loadDocuments(selectedBaseId);
-          }
-        },
-      ),
+      listen<{ baseId: string }>("knowledge-rebuild-complete", (event) => {
+        const selectedBaseId = get().selectedBaseId;
+        if (selectedBaseId === event.payload.baseId) {
+          get().loadDocuments(selectedBaseId);
+        }
+      }),
     ]);
 
     // Return cleanup function

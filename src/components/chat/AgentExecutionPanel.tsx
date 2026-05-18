@@ -23,15 +23,21 @@ export function AgentExecutionPanel({
 }: AgentExecutionPanelProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const poolItems = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY_POOL);
+  const poolItems = useExecutionStore(
+    (s) => s.agentPool[conversationId] || _EMPTY_POOL,
+  );
   const currentToolCall = useExecutionStore((s) => s.currentToolCall);
 
   const poolSummary = useMemo(() => {
-    if (poolItems.length === 0) { return null; }
+    if (poolItems.length === 0) {
+      return null;
+    }
     const completed = poolItems.filter((i) => i.status === "completed").length;
     const running = poolItems.filter((i) => i.status === "running").length;
     const failed = poolItems.filter((i) => i.status === "failed").length;
-    const pct = poolItems.length > 0 ? Math.round((completed / poolItems.length) * 100) : 0;
+    const pct = poolItems.length > 0
+      ? Math.round((completed / poolItems.length) * 100)
+      : 0;
     return { total: poolItems.length, completed, running, failed, pct };
   }, [poolItems]);
 
@@ -124,7 +130,9 @@ export function AgentExecutionPanel({
                 bottom: 0,
                 width: "100%",
                 height: `${Math.max(poolSummary.pct, 5)}%`,
-                backgroundColor: poolSummary.failed > 0 ? token.colorWarning : token.colorSuccess,
+                backgroundColor: poolSummary.failed > 0
+                  ? token.colorWarning
+                  : token.colorSuccess,
                 transition: "height 0.3s",
                 borderRadius: 2,
               }}
@@ -132,8 +140,14 @@ export function AgentExecutionPanel({
           </div>
         )}
 
-        {currentToolCall?.conversationId === conversationId && currentToolCall?.toolName && (
-          <Tooltip title={t("chat.agentPanel.currentTool", { name: currentToolCall.toolName })} placement="left">
+        {currentToolCall?.conversationId === conversationId
+          && currentToolCall?.toolName && (
+          <Tooltip
+            title={t("chat.agentPanel.currentTool", {
+              name: currentToolCall.toolName,
+            })}
+            placement="left"
+          >
             <div
               style={{
                 writingMode: "vertical-rl",
@@ -184,7 +198,10 @@ export function AgentExecutionPanel({
   }
 
   return (
-    <div className="agent-exec-panel" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div
+      className="agent-exec-panel"
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
+    >
       {/* 头部摘要栏 */}
       {poolSummary && (
         <div
@@ -200,7 +217,10 @@ export function AgentExecutionPanel({
           }}
         >
           <span style={{ fontWeight: 600, color: token.colorText }}>
-            {t("chat.agentPanel.poolSummary", { completed: poolSummary.completed, total: poolSummary.total })}
+            {t("chat.agentPanel.poolSummary", {
+              completed: poolSummary.completed,
+              total: poolSummary.total,
+            })}
           </span>
           {poolSummary.running > 0 && (
             <span style={{ color: token.colorPrimary }}>
@@ -227,7 +247,9 @@ export function AgentExecutionPanel({
               style={{
                 width: `${poolSummary.pct}%`,
                 height: "100%",
-                backgroundColor: poolSummary.failed > 0 ? token.colorWarning : token.colorSuccess,
+                backgroundColor: poolSummary.failed > 0
+                  ? token.colorWarning
+                  : token.colorSuccess,
                 transition: "width 0.3s",
               }}
             />
@@ -246,7 +268,14 @@ export function AgentExecutionPanel({
               borderRadius: 4,
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M18 6L6 18M6 6h12v12" />
             </svg>
           </button>
@@ -265,7 +294,14 @@ export function AgentExecutionPanel({
           {
             key: "pool",
             label: (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 12,
+                }}
+              >
                 <Bot size={12} />
                 {t("chat.agentPanel.pool")}
               </span>
@@ -279,7 +315,14 @@ export function AgentExecutionPanel({
           {
             key: "timeline",
             label: (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 12,
+                }}
+              >
                 <GitBranch size={12} />
                 {t("chat.agentPanel.timeline")}
               </span>
@@ -293,7 +336,14 @@ export function AgentExecutionPanel({
           {
             key: "replay",
             label: (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 12,
+                }}
+              >
                 <History size={12} />
                 {t("chat.agentPanel.replay")}
               </span>

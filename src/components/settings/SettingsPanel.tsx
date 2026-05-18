@@ -322,13 +322,21 @@ function GeneralTab() {
             optionType="button"
             buttonStyle="solid"
           >
-            <Radio.Button value="read-only">{t("settings.agent.readOnly")}</Radio.Button>
-            <Radio.Button value="workspace-write">{t("settings.agent.workspaceWrite")}</Radio.Button>
+            <Radio.Button value="read-only">
+              {t("settings.agent.readOnly")}
+            </Radio.Button>
+            <Radio.Button value="workspace-write">
+              {t("settings.agent.workspaceWrite")}
+            </Radio.Button>
             <Radio.Button
               value="danger-full-access"
               style={{
-                borderColor: permissionMode === "danger-full-access" ? token.colorError : undefined,
-                color: permissionMode === "danger-full-access" ? token.colorError : undefined,
+                borderColor: permissionMode === "danger-full-access"
+                  ? token.colorError
+                  : undefined,
+                color: permissionMode === "danger-full-access"
+                  ? token.colorError
+                  : undefined,
               }}
             >
               {t("settings.agent.fullAccess")}
@@ -347,7 +355,10 @@ function GeneralTab() {
               color: token.colorError,
             }}
           >
-            <AlertTriangle size={14} style={{ display: "inline", marginRight: 6 }} />
+            <AlertTriangle
+              size={14}
+              style={{ display: "inline", marginRight: 6 }}
+            />
             {t("settings.agent.fullAccessWarning")}
           </div>
         )}
@@ -367,12 +378,26 @@ function FeaturesTab() {
         {FEATURE_FLAG_META.map((item, idx) => (
           <div key={item.key}>
             {idx > 0 && <Divider style={{ margin: "2px 0" }} />}
-            <div style={{ padding: "8px 0" }} className="flex items-center justify-between">
+            <div
+              style={{ padding: "8px 0" }}
+              className="flex items-center justify-between"
+            >
               <div className="flex flex-col" style={{ flex: 1 }}>
-                <span className="flex items-center gap-2" style={{ fontSize: 13, fontWeight: 500 }}>
+                <span
+                  className="flex items-center gap-2"
+                  style={{ fontSize: 13, fontWeight: 500 }}
+                >
                   {item.icon} {t(item.labelKey)}
                   {features[item.key] && (
-                    <Tag color="green" style={{ marginLeft: 4, fontSize: 10, lineHeight: "16px", padding: "0 4px" }}>
+                    <Tag
+                      color="green"
+                      style={{
+                        marginLeft: 4,
+                        fontSize: 10,
+                        lineHeight: "16px",
+                        padding: "0 4px",
+                      }}
+                    >
                       {t("settings.agent.enabled")}
                     </Tag>
                   )}
@@ -447,11 +472,23 @@ function AgentsTab() {
     <div className="p-6 pb-12">
       <AgentProfileManager />
       <Divider style={{ margin: "20px 0" }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
         <Text strong style={{ fontSize: 13, color: token.colorTextSecondary }}>
           {t("settings.agent.runtimeAgentList")}
         </Text>
-        <Button size="small" icon={<ChevronRight size={14} />} onClick={fetchAgents} loading={loading}>
+        <Button
+          size="small"
+          icon={<ChevronRight size={14} />}
+          onClick={fetchAgents}
+          loading={loading}
+        >
           {t("settings.agent.refresh")}
         </Button>
       </div>
@@ -460,15 +497,27 @@ function AgentsTab() {
         ? (
           <div style={{ textAlign: "center", padding: 48 }}>
             <Spin />
-            <div style={{ marginTop: 12, color: token.colorTextDescription, fontSize: 12 }}>
+            <div
+              style={{
+                marginTop: 12,
+                color: token.colorTextDescription,
+                fontSize: 12,
+              }}
+            >
               {t("settings.agent.loading")}
             </div>
           </div>
         )
         : agents.length === 0
         ? (
-          <Card size="small" style={{ borderRadius: 10, textAlign: "center", padding: 32 }}>
-            <Empty description={t("settings.agent.noRegisteredAgents")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Card
+            size="small"
+            style={{ borderRadius: 10, textAlign: "center", padding: 32 }}
+          >
+            <Empty
+              description={t("settings.agent.noRegisteredAgents")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
           </Card>
         )
         : (
@@ -477,9 +526,16 @@ function AgentsTab() {
               <Card
                 key={agent.id}
                 size="small"
-                style={{ borderRadius: 10, border: "none", boxShadow: `0 0 0 0.5px ${token.colorBorderSecondary}` }}
+                style={{
+                  borderRadius: 10,
+                  border: "none",
+                  boxShadow: `0 0 0 0.5px ${token.colorBorderSecondary}`,
+                }}
                 title={
-                  <div className="flex items-center justify-between" style={{ width: "100%" }}>
+                  <div
+                    className="flex items-center justify-between"
+                    style={{ width: "100%" }}
+                  >
                     <Space size={8}>
                       <Bot size={16} color={token.colorPrimary} />
                       <Text strong>{agent.name}</Text>
@@ -500,15 +556,23 @@ function AgentsTab() {
                   {agent.tools.length > 0 && (
                     <Descriptions.Item label={t("settings.agent.toolsLabel")}>
                       <Space size={4} wrap>
-                        {agent.tools.map((tool) => <Tag key={tool} color="blue" style={{ fontSize: 12 }}>{tool}</Tag>)}
+                        {agent.tools.map((tool) => (
+                          <Tag key={tool} color="blue" style={{ fontSize: 12 }}>
+                            {tool}
+                          </Tag>
+                        ))}
                       </Space>
                     </Descriptions.Item>
                   )}
                   {agent.capabilities.length > 0 && (
-                    <Descriptions.Item label={t("settings.agent.capabilitiesLabel")}>
+                    <Descriptions.Item
+                      label={t("settings.agent.capabilitiesLabel")}
+                    >
                       <Space size={4} wrap>
                         {agent.capabilities.map((cap) => (
-                          <Tag key={cap} color="purple" style={{ fontSize: 12 }}>{cap}</Tag>
+                          <Tag key={cap} color="purple" style={{ fontSize: 12 }}>
+                            {cap}
+                          </Tag>
                         ))}
                       </Space>
                     </Descriptions.Item>
@@ -552,11 +616,19 @@ function HooksTab() {
 
   const addCommand = (event: string) => {
     const cmd = window.prompt(t("settings.agent.enterShellCommand"));
-    if (!cmd || !cmd.trim()) { return; }
+    if (!cmd || !cmd.trim()) {
+      return;
+    }
     setHooks((prev) =>
       prev.map((h) =>
         h.event === event
-          ? { ...h, commands: [...h.commands, { id: crypto.randomUUID(), command: cmd.trim() }] }
+          ? {
+            ...h,
+            commands: [
+              ...h.commands,
+              { id: crypto.randomUUID(), command: cmd.trim() },
+            ],
+          }
           : h
       )
     );
@@ -565,7 +637,11 @@ function HooksTab() {
 
   const removeCommand = (event: string, cmdId: string) => {
     setHooks((prev) =>
-      prev.map((h) => h.event === event ? { ...h, commands: h.commands.filter((c) => c.id !== cmdId) } : h)
+      prev.map((h) =>
+        h.event === event
+          ? { ...h, commands: h.commands.filter((c) => c.id !== cmdId) }
+          : h
+      )
     );
     message.success(t("settings.agent.commandRemoved"));
   };
@@ -574,7 +650,14 @@ function HooksTab() {
 
   const eventsContent = (
     <div className="pt-2">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
         <Text strong style={{ fontSize: 13, color: token.colorTextSecondary }}>
           {t("settings.agent.hookEventConfig")} ({HOOK_EVENTS.length})
         </Text>
@@ -602,7 +685,9 @@ function HooksTab() {
                 tabIndex={0}
                 onClick={() => toggleExpand(hook.event)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { toggleExpand(hook.event); }
+                  if (e.key === "Enter" || e.key === " ") {
+                    toggleExpand(hook.event);
+                  }
                 }}
               >
                 <Space size={8}>
@@ -610,12 +695,20 @@ function HooksTab() {
                     {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </span>
                   {meta?.icon}
-                  <Text strong style={{ fontSize: 13 }}>{meta ? t(meta.labelKey) : hook.event}</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>{hook.event}</Text>
+                  <Text strong style={{ fontSize: 13 }}>
+                    {meta ? t(meta.labelKey) : hook.event}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {hook.event}
+                  </Text>
                 </Space>
                 <Space size={8} onClick={(e) => e.stopPropagation()}>
                   {hook.commands.length > 0 && (
-                    <Badge count={hook.commands.length} size="small" style={{ marginRight: 4 }} />
+                    <Badge
+                      count={hook.commands.length}
+                      size="small"
+                      style={{ marginRight: 4 }}
+                    />
                   )}
                   <Switch
                     id="panel-switch-168"
@@ -637,7 +730,11 @@ function HooksTab() {
                   <Divider style={{ margin: "4px 0 10px" }} />
 
                   {hook.commands.length === 0
-                    ? <Text type="secondary" style={{ fontSize: 12 }}>{t("settings.agent.noShellCommands")}</Text>
+                    ? (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {t("settings.agent.noShellCommands")}
+                      </Text>
+                    )
                     : (
                       <List
                         size="small"
@@ -652,12 +749,22 @@ function HooksTab() {
                                 okText={t("common.confirm")}
                                 cancelText={t("common.cancel")}
                               >
-                                <Button size="small" type="text" danger icon={<Trash2 size={13} />} />
+                                <Button
+                                  size="small"
+                                  type="text"
+                                  danger
+                                  icon={<Trash2 size={13} />}
+                                />
                               </Popconfirm>,
                             ]}
                           >
-                            <Code size={12} style={{ marginRight: 8, opacity: 0.5 }} />
-                            <Text code style={{ fontSize: 12 }}>{cmd.command}</Text>
+                            <Code
+                              size={12}
+                              style={{ marginRight: 8, opacity: 0.5 }}
+                            />
+                            <Text code style={{ fontSize: 12 }}>
+                              {cmd.command}
+                            </Text>
                           </List.Item>
                         )}
                         style={{ marginTop: 4 }}

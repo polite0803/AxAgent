@@ -21,10 +21,14 @@ export function useResolvedAvatarSrc(
     let cancelled = false;
     invoke<string>("read_attachment_preview", { filePath: avatarValue })
       .then((dataUrl) => {
-        if (!cancelled) { setResolved(dataUrl); }
+        if (!cancelled) {
+          setResolved(dataUrl);
+        }
       })
       .catch(() => {
-        if (!cancelled) { setResolved(undefined); }
+        if (!cancelled) {
+          setResolved(undefined);
+        }
       });
     return () => {
       cancelled = true;

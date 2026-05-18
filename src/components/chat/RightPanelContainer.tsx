@@ -95,7 +95,9 @@ export function RightPanelContainer({
   const { token } = theme.useToken();
   const [inspectorTab, setInspectorTab] = useState("overview");
 
-  const convMode = useConversationStore((s) => s.conversations.find((c) => c.id === conversationId)?.mode);
+  const convMode = useConversationStore(
+    (s) => s.conversations.find((c) => c.id === conversationId)?.mode,
+  );
   const isAgent = convMode === "agent";
   const settings = useSettingsStore((s) => s.settings);
   const isDarkMode = useResolvedDarkMode(settings.theme_mode);
@@ -276,7 +278,14 @@ export function RightPanelContainer({
         key: "cache",
         icon: <Layers size={ICON} />,
         labelKey: "chatRightPanel.cache",
-        render: () => <CacheIndicator cacheValid={false} hasPendingChanges={false} tokensSaved={0} cacheHits={0} />,
+        render: () => (
+          <CacheIndicator
+            cacheValid={false}
+            hasPendingChanges={false}
+            tokensSaved={0}
+            cacheHits={0}
+          />
+        ),
       },
       {
         key: "gateway",
@@ -294,7 +303,15 @@ export function RightPanelContainer({
         key: "cronResult",
         icon: <Clock size={ICON} />,
         labelKey: "chatRightPanel.cronResult",
-        render: () => <CronResultMessage jobName="" schedule="" result="" success={false} timestamp={0} />,
+        render: () => (
+          <CronResultMessage
+            jobName=""
+            schedule=""
+            result=""
+            success={false}
+            timestamp={0}
+          />
+        ),
       },
       {
         key: "reflection",
@@ -326,7 +343,13 @@ export function RightPanelContainer({
         key: "categoryEdit",
         icon: <Layers size={ICON} />,
         labelKey: "chatRightPanel.categoryEdit",
-        render: () => <CategoryEditModal open={true} onClose={() => {}} onOk={(_data) => {}} />,
+        render: () => (
+          <CategoryEditModal
+            open={true}
+            onClose={() => {}}
+            onOk={(_data) => {}}
+          />
+        ),
       },
       {
         key: "filePermission",
@@ -375,7 +398,15 @@ export function RightPanelContainer({
     );
 
     return entries;
-  }, [conversationId, compactMode, onToggleCompact, isAgent, inspectorTab, isDarkMode, codeThemes]);
+  }, [
+    conversationId,
+    compactMode,
+    onToggleCompact,
+    isAgent,
+    inspectorTab,
+    isDarkMode,
+    codeThemes,
+  ]);
 
   const tabItems = panels.map((p) => ({
     key: p.key,

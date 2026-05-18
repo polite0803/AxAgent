@@ -136,7 +136,9 @@ describe("ProviderDetail", () => {
     await userEvent.type(inputs[0], "gpt-5.4-think");
     await userEvent.type(inputs[1], "GPT 5.4 Think");
 
-    await userEvent.click(within(dialog).getByRole("button", { name: "添加模型" }));
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "添加模型" }),
+    );
 
     expect(saveModels).toHaveBeenCalledWith(
       "provider-1",
@@ -158,7 +160,9 @@ describe("ProviderDetail", () => {
       </App>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "添加到当前分组" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "添加到当前分组" }),
+    );
 
     const dialog = await screen.findByRole("dialog");
     const inputs = within(dialog).getAllByRole("textbox");

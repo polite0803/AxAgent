@@ -58,7 +58,9 @@ function ToolItem({
     <div className="flex items-start justify-between py-2.5 px-3 border-b border-border/50 last:border-b-0 hover:bg-bg-container-hover transition-colors">
       <div className="flex-1 min-w-0 mr-3">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Text strong className="text-sm">{tool.name}</Text>
+          <Text strong className="text-sm">
+            {tool.name}
+          </Text>
           {tool.isDestructive && (
             <Tooltip title={t("toolManager.destructiveTooltip")}>
               <Tag color="red" className="text-[10px] leading-none px-1 py-0">
@@ -68,16 +70,24 @@ function ToolItem({
             </Tooltip>
           )}
           {tool.isReadOnly && (
-            <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>
+            <Tag color="green" className="text-[10px] leading-none px-1 py-0">
+              {t("toolManager.readOnly")}
+            </Tag>
           )}
         </div>
-        <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug" ellipsis={{ rows: 2 }}>
+        <Paragraph
+          type="secondary"
+          className="text-xs mt-0.5 mb-0 leading-snug"
+          ellipsis={{ rows: 2 }}
+        >
           {tool.description}
         </Paragraph>
       </div>
       <Tooltip
         title={groupEnabled
-          ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable"))
+          ? tool.enabled
+            ? t("toolManager.clickToDisable")
+            : t("toolManager.clickToEnable")
           : t("toolManager.groupDisabled")}
       >
         <Switch
@@ -112,11 +122,18 @@ function GroupHeader({
         <Text type="secondary" className="text-xs ml-2">
           {t("toolManager.enabledCount", { enabledCount, totalCount })}
         </Text>
-        <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug">
+        <Paragraph
+          type="secondary"
+          className="text-xs mt-0.5 mb-0 leading-snug"
+        >
           {group.description}
         </Paragraph>
       </div>
-      <Tooltip title={group.enabled ? t("toolManager.disableGroup") : t("toolManager.enableGroup")}>
+      <Tooltip
+        title={group.enabled
+          ? t("toolManager.disableGroup")
+          : t("toolManager.enableGroup")}
+      >
         <Switch
           id="tool-manager-switch-178"
           checked={group.enabled}
@@ -146,7 +163,15 @@ function BuiltinToolsTab() {
 
   return (
     <div className="flex-1 overflow-auto">
-      {error && <Alert message={error} type="error" showIcon className="mb-3" closable />}
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          className="mb-3"
+          closable
+        />
+      )}
       {groups.length === 0 ? <Empty description={t("settings.localTools.empty")} /> : (
         <Collapse
           size="small"
@@ -157,7 +182,12 @@ function BuiltinToolsTab() {
             children: (
               <div className="border border-border rounded-lg overflow-hidden -mt-2">
                 {group.tools.map((tool) => (
-                  <ToolItem key={tool.name} tool={tool} groupEnabled={group.enabled} onToggle={toggleTool} />
+                  <ToolItem
+                    key={tool.name}
+                    tool={tool}
+                    groupEnabled={group.enabled}
+                    onToggle={toggleTool}
+                  />
                 ))}
               </div>
             ),
@@ -205,14 +235,25 @@ export function ToolManager() {
   ];
 
   return (
-    <div className="flex flex-col flex-1" style={{ padding: 24, height: "100%", minHeight: 0 }}>
-      <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 16, flexShrink: 0 }}>
+    <div
+      className="flex flex-col flex-1"
+      style={{ padding: 24, height: "100%", minHeight: 0 }}
+    >
+      <Typography.Title
+        level={4}
+        style={{ marginTop: 0, marginBottom: 16, flexShrink: 0 }}
+      >
         {t("settings.tools.title")}
       </Typography.Title>
       <Tabs
         defaultActiveKey="builtin"
         items={tabItems}
-        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+        }}
         tabBarStyle={{ marginBottom: 16, flexShrink: 0 }}
       />
       <style>

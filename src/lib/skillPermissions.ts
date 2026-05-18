@@ -23,31 +23,63 @@ const DEFAULT_PERMISSIONS: Required<SkillPermissions> = {
   tools: [],
 };
 
-function parseStorePerm(pattern: string): { storeName: string; fieldPath?: string } {
+function parseStorePerm(pattern: string): {
+  storeName: string;
+  fieldPath?: string;
+} {
   const colonIdx = pattern.indexOf(":");
   if (colonIdx === -1) {
     return { storeName: pattern };
   }
-  return { storeName: pattern.slice(0, colonIdx), fieldPath: pattern.slice(colonIdx + 1) };
+  return {
+    storeName: pattern.slice(0, colonIdx),
+    fieldPath: pattern.slice(colonIdx + 1),
+  };
 }
 
-export function isStoreReadCovered(storeName: string, fieldPath: string | undefined, perms: string[]): boolean {
+export function isStoreReadCovered(
+  storeName: string,
+  fieldPath: string | undefined,
+  perms: string[],
+): boolean {
   return perms.some((pattern) => {
     const parsed = parseStorePerm(pattern);
-    if (parsed.storeName !== storeName) { return false; }
-    if (!parsed.fieldPath) { return true; }
-    if (!fieldPath) { return false; }
-    return fieldPath === parsed.fieldPath || fieldPath.startsWith(parsed.fieldPath + ".");
+    if (parsed.storeName !== storeName) {
+      return false;
+    }
+    if (!parsed.fieldPath) {
+      return true;
+    }
+    if (!fieldPath) {
+      return false;
+    }
+    return (
+      fieldPath === parsed.fieldPath
+      || fieldPath.startsWith(parsed.fieldPath + ".")
+    );
   });
 }
 
-export function isStoreWriteCovered(storeName: string, fieldPath: string | undefined, perms: string[]): boolean {
+export function isStoreWriteCovered(
+  storeName: string,
+  fieldPath: string | undefined,
+  perms: string[],
+): boolean {
   return perms.some((pattern) => {
     const parsed = parseStorePerm(pattern);
-    if (parsed.storeName !== storeName) { return false; }
-    if (!parsed.fieldPath) { return true; }
-    if (!fieldPath) { return false; }
-    return fieldPath === parsed.fieldPath || fieldPath.startsWith(parsed.fieldPath + ".");
+    if (parsed.storeName !== storeName) {
+      return false;
+    }
+    if (!parsed.fieldPath) {
+      return true;
+    }
+    if (!fieldPath) {
+      return false;
+    }
+    return (
+      fieldPath === parsed.fieldPath
+      || fieldPath.startsWith(parsed.fieldPath + ".")
+    );
   });
 }
 
@@ -73,7 +105,9 @@ export function validateSkillPermissions(
   const violations: string[] = [];
 
   if (!permissions) {
-    violations.push(`${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.undeclaredPermissions")}`);
+    violations.push(
+      `${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.undeclaredPermissions")}`,
+    );
     return { valid: false, violations };
   }
 
@@ -81,7 +115,9 @@ export function validateSkillPermissions(
 
   for (const cmd of requiredCommands) {
     if (!isWildcardMatch(cmd, perms.commands)) {
-      violations.push(`${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.commandNotInWhitelist", { cmd })}`);
+      violations.push(
+        `${UNAUTHORIZED_PREFIX}${i18n.t("skillPermissions.commandNotInWhitelist", { cmd })}`,
+      );
     }
   }
 
@@ -90,11 +126,17 @@ export function validateSkillPermissions(
     violations.push(i18n.t("skillPermissions.writeWithoutRead"));
   }
 
-  const writeStores = new Set(perms.storeWrite.map((p) => parseStorePerm(p).storeName));
-  const readStores = new Set(perms.storeRead.map((p) => parseStorePerm(p).storeName));
+  const writeStores = new Set(
+    perms.storeWrite.map((p) => parseStorePerm(p).storeName),
+  );
+  const readStores = new Set(
+    perms.storeRead.map((p) => parseStorePerm(p).storeName),
+  );
   for (const ws of writeStores) {
     if (!readStores.has(ws)) {
-      violations.push(i18n.t("skillPermissions.writeWithoutReadDetail", { ws }));
+      violations.push(
+        i18n.t("skillPermissions.writeWithoutReadDetail", { ws }),
+      );
     }
   }
 
@@ -133,13 +175,19 @@ export function isWildcardMatch(target: string, patterns: string[]): boolean {
 export function extractRequiredCommands(
   capabilities: unknown[] | undefined,
 ): string[] {
-  if (!capabilities) { return []; }
+  if (!capabilities) {
+    return [];
+  }
   const commands = new Set<string>();
 
   function walk(obj: unknown): void {
-    if (!obj || typeof obj !== "object") { return; }
+    if (!obj || typeof obj !== "object") {
+      return;
+    }
     if (Array.isArray(obj)) {
-      for (const item of obj) { walk(item); }
+      for (const item of obj) {
+        walk(item);
+      }
       return;
     }
     const record = obj as Record<string, unknown>;

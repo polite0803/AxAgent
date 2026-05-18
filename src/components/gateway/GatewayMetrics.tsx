@@ -49,7 +49,11 @@ export function GatewayMetrics() {
   ];
 
   const providerColumns = [
-    { title: t("gateway.provider"), dataIndex: "provider_name", key: "provider_name" },
+    {
+      title: t("gateway.provider"),
+      dataIndex: "provider_name",
+      key: "provider_name",
+    },
     {
       title: t("gateway.totalRequests"),
       dataIndex: "request_count",

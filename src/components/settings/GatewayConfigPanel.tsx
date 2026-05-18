@@ -16,25 +16,45 @@ type PlatformFieldDef = {
 
 const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
   telegram: [
-    { key: "telegram_enabled", label: "settings.platform.enable", type: "switch" },
+    {
+      key: "telegram_enabled",
+      label: "settings.platform.enable",
+      type: "switch",
+    },
     {
       key: "telegram_bot_token",
       label: "Bot Token",
       type: "password",
       placeholder: "settings.platform.placeholder.telegramBotToken",
     },
-    { key: "telegram_webhook_url", label: "Webhook URL (Optional)", type: "text" },
-    { key: "telegram_webhook_secret", label: "Webhook Secret (Optional)", type: "password" },
+    {
+      key: "telegram_webhook_url",
+      label: "Webhook URL (Optional)",
+      type: "text",
+    },
+    {
+      key: "telegram_webhook_secret",
+      label: "Webhook Secret (Optional)",
+      type: "password",
+    },
   ],
   discord: [
-    { key: "discord_enabled", label: "settings.platform.enable", type: "switch" },
+    {
+      key: "discord_enabled",
+      label: "settings.platform.enable",
+      type: "switch",
+    },
     {
       key: "discord_bot_token",
       label: "Bot Token",
       type: "password",
       placeholder: "settings.platform.placeholder.discordDevPortal",
     },
-    { key: "discord_webhook_url", label: "Webhook URL (Optional)", type: "text" },
+    {
+      key: "discord_webhook_url",
+      label: "Webhook URL (Optional)",
+      type: "text",
+    },
   ],
   slack: [
     { key: "slack_enabled", label: "settings.platform.enable", type: "switch" },
@@ -49,10 +69,18 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
     { key: "slack_workspace_id", label: "Workspace ID", type: "text" },
   ],
   whatsapp: [
-    { key: "whatsapp_enabled", label: "settings.platform.enable", type: "switch" },
+    {
+      key: "whatsapp_enabled",
+      label: "settings.platform.enable",
+      type: "switch",
+    },
     { key: "whatsapp_phone_number_id", label: "Phone Number ID", type: "text" },
     { key: "whatsapp_access_token", label: "Access Token", type: "password" },
-    { key: "whatsapp_business_account_id", label: "Business Account ID", type: "text" },
+    {
+      key: "whatsapp_business_account_id",
+      label: "Business Account ID",
+      type: "text",
+    },
     {
       key: "whatsapp_webhook_verify_token",
       label: "Webhook Verify Token (Optional)",
@@ -67,28 +95,58 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
     },
   ],
   wechat: [
-    { key: "wechat_enabled", label: "settings.platform.enable", type: "switch" },
+    {
+      key: "wechat_enabled",
+      label: "settings.platform.enable",
+      type: "switch",
+    },
     {
       key: "wechat_mode",
       label: "settings.platform.wechatMode",
       type: "select",
       options: [
-        { value: "official_account", label: "settings.platform.wechatModeOfficial" },
-        { value: "customer_service", label: "settings.platform.wechatModeCustomer" },
+        {
+          value: "official_account",
+          label: "settings.platform.wechatModeOfficial",
+        },
+        {
+          value: "customer_service",
+          label: "settings.platform.wechatModeCustomer",
+        },
       ],
     },
     { key: "wechat_app_id", label: "App ID", type: "text" },
     { key: "wechat_app_secret", label: "App Secret", type: "password" },
     { key: "wechat_token", label: "Token (Official Account)", type: "text" },
-    { key: "wechat_encoding_aes_key", label: "Encoding AES Key (Optional)", type: "password" },
-    { key: "wechat_original_id", label: "Original ID (Optional)", type: "text" },
+    {
+      key: "wechat_encoding_aes_key",
+      label: "Encoding AES Key (Optional)",
+      type: "password",
+    },
+    {
+      key: "wechat_original_id",
+      label: "Original ID (Optional)",
+      type: "text",
+    },
   ],
   feishu: [
-    { key: "feishu_enabled", label: "settings.platform.enable", type: "switch" },
+    {
+      key: "feishu_enabled",
+      label: "settings.platform.enable",
+      type: "switch",
+    },
     { key: "feishu_app_id", label: "App ID", type: "text" },
     { key: "feishu_app_secret", label: "App Secret", type: "password" },
-    { key: "feishu_verification_token", label: "Verification Token (Optional)", type: "password" },
-    { key: "feishu_encrypt_key", label: "Encrypt Key (Optional)", type: "password" },
+    {
+      key: "feishu_verification_token",
+      label: "Verification Token (Optional)",
+      type: "password",
+    },
+    {
+      key: "feishu_encrypt_key",
+      label: "Encrypt Key (Optional)",
+      type: "password",
+    },
   ],
   qq: [
     { key: "qq_enabled", label: "settings.platform.enable", type: "switch" },
@@ -97,7 +155,11 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
     { key: "qq_bot_secret", label: "Secret (Optional)", type: "password" },
   ],
   dingtalk: [
-    { key: "dingtalk_enabled", label: "settings.platform.enable", type: "switch" },
+    {
+      key: "dingtalk_enabled",
+      label: "settings.platform.enable",
+      type: "switch",
+    },
     { key: "dingtalk_app_key", label: "App Key", type: "text" },
     { key: "dingtalk_app_secret", label: "App Secret", type: "password" },
     {
@@ -106,7 +168,11 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
       type: "text",
       placeholder: "settings.platform.placeholder.dingtalkAgent",
     },
-    { key: "dingtalk_robot_code", label: "Robot Code (Optional)", type: "text" },
+    {
+      key: "dingtalk_robot_code",
+      label: "Robot Code (Optional)",
+      type: "text",
+    },
   ],
 };
 
@@ -121,15 +187,21 @@ export function GatewayConfigPanel() {
 
   const handleChange = (key: keyof PlatformConfig, value: unknown) => {
     // Immediately update local store state for responsive UI
-    usePlatformStore.setState((s) => ({ config: { ...s.config, [key]: value } }));
+    usePlatformStore.setState((s) => ({
+      config: { ...s.config, [key]: value },
+    }));
     // Debounce backend save to avoid excessive API calls on rapid input
     (pendingRef.current as Record<string, unknown>)[key] = value;
-    if (debounceTimer.current) { clearTimeout(debounceTimer.current); }
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
     debounceTimer.current = setTimeout(async () => {
       try {
         await saveConfig(pendingRef.current);
       } catch (e) {
-        message.error(t("settings.platform.saveConfigFailed", { error: String(e) }));
+        message.error(
+          t("settings.platform.saveConfigFailed", { error: String(e) }),
+        );
       }
       pendingRef.current = {};
     }, 300);
@@ -138,18 +210,29 @@ export function GatewayConfigPanel() {
   return (
     <div className="flex flex-col gap-3">
       {ALL_PLATFORMS.map((platform) => {
-        if (platform.name === "api_server") { return null; }
+        if (platform.name === "api_server") {
+          return null;
+        }
         const fields = PLATFORM_FIELDS[platform.name];
-        if (!fields) { return null; }
+        if (!fields) {
+          return null;
+        }
 
         const enabled = config[platform.enabledKey] as boolean;
 
         return (
-          <Card key={platform.name} size="small" title={`${platform.icon} ${platform.label}`}>
+          <Card
+            key={platform.name}
+            size="small"
+            title={`${platform.icon} ${platform.label}`}
+          >
             {fields.map((field) => {
               if (field.type === "switch") {
                 return (
-                  <div key={field.key} className="flex items-center justify-between py-1">
+                  <div
+                    key={field.key}
+                    className="flex items-center justify-between py-1"
+                  >
                     <span>{t(field.label)}</span>
                     <Switch
                       id="gateway-config-panel-switch-52"
@@ -159,7 +242,9 @@ export function GatewayConfigPanel() {
                   </div>
                 );
               }
-              if (!enabled) { return null; }
+              if (!enabled) {
+                return null;
+              }
               return (
                 <div key={field.key} className="mt-3">
                   <Text type="secondary">{t(field.label)}</Text>
@@ -169,7 +254,10 @@ export function GatewayConfigPanel() {
                         id="gateway-config-panel-select-53"
                         value={(config[field.key] as string) ?? ""}
                         onChange={(v) => handleChange(field.key, v)}
-                        options={field.options?.map((o) => ({ ...o, label: t(o.label) }))}
+                        options={field.options?.map((o) => ({
+                          ...o,
+                          label: t(o.label),
+                        }))}
                         style={{ width: "100%" }}
                       />
                     )
@@ -213,7 +301,11 @@ export function GatewayConfigPanel() {
               id="gateway-config-panel-input-57"
               type="number"
               value={config.api_server_port ?? 8080}
-              onChange={(e) => handleChange("api_server_port", Number.parseInt(e.target.value, 10) || 8080)}
+              onChange={(e) =>
+                handleChange(
+                  "api_server_port",
+                  Number.parseInt(e.target.value, 10) || 8080,
+                )}
               placeholder="8080"
             />
           </div>
@@ -227,12 +319,18 @@ export function GatewayConfigPanel() {
           />
         </div>
         <div className="mt-3">
-          <Text type="secondary">{t("settings.platform.maxHistoryPerSession")}</Text>
+          <Text type="secondary">
+            {t("settings.platform.maxHistoryPerSession")}
+          </Text>
           <Input
             id="gateway-config-panel-input-59"
             type="number"
             value={config.max_history_per_session}
-            onChange={(e) => handleChange("max_history_per_session", Number.parseInt(e.target.value, 10) || 100)}
+            onChange={(e) =>
+              handleChange(
+                "max_history_per_session",
+                Number.parseInt(e.target.value, 10) || 100,
+              )}
           />
         </div>
       </Card>

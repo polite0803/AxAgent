@@ -31,7 +31,9 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   }, [visible, template?.id]);
 
   const loadVersions = async () => {
-    if (!template?.id) { return; }
+    if (!template?.id) {
+      return;
+    }
     setLoadingVersions(true);
     try {
       const vers = await loadTemplateVersions(template.id);
@@ -44,14 +46,18 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   };
 
   const handleLoadVersion = async (version: number) => {
-    if (!template?.id) { return; }
+    if (!template?.id) {
+      return;
+    }
     setLoading(true);
     try {
       await loadTemplateByVersion(template.id, version);
       const versionedTemplate = useWorkflowEditorStore.getState().currentTemplate;
       if (versionedTemplate) {
         onLoadVersion(versionedTemplate);
-        message.success(t("workflow.versionHistory.loadedVersion", { version }));
+        message.success(
+          t("workflow.versionHistory.loadedVersion", { version }),
+        );
         onClose();
       }
     } catch (error) {
@@ -66,7 +72,9 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
       title={
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <History size={18} />
-          <span>{t("workflow.versionHistory.title", { name: template?.name })}</span>
+          <span>
+            {t("workflow.versionHistory.title", { name: template?.name })}
+          </span>
         </div>
       }
       open={visible}
@@ -101,12 +109,18 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
               >
                 <List.Item.Meta
                   title={
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <Tag color={version === Math.max(...versions) ? "green" : "default"}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
+                      <Tag
+                        color={version === Math.max(...versions) ? "green" : "default"}
+                      >
                         v{version}
                       </Tag>
                       {version === template?.version && (
-                        <Tag color="blue">{t("workflow.versionHistory.currentVersion")}</Tag>
+                        <Tag color="blue">
+                          {t("workflow.versionHistory.currentVersion")}
+                        </Tag>
                       )}
                     </div>
                   }

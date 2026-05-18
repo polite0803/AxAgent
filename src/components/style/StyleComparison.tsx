@@ -36,7 +36,10 @@ export function StyleComparison({
     explanation_length: t("style.dimensions.explanationLength"),
   };
 
-  const getDimensionDescription = (key: StyleDimensionKey, value: number): string => {
+  const getDimensionDescription = (
+    key: StyleDimensionKey,
+    value: number,
+  ): string => {
     const lowDescriptions: Record<StyleDimensionKey, string> = {
       naming_score: "snake_case",
       density_score: "Compact",
@@ -58,8 +61,12 @@ export function StyleComparison({
       explanation_length: "Comprehensive",
     };
 
-    if (value < 0.35) { return lowDescriptions[key]; }
-    if (value > 0.65) { return highDescriptions[key]; }
+    if (value < 0.35) {
+      return lowDescriptions[key];
+    }
+    if (value > 0.65) {
+      return highDescriptions[key];
+    }
     return "Neutral";
   };
 
@@ -68,7 +75,9 @@ export function StyleComparison({
   };
 
   const getDifferenceColor = (diff: number): string => {
-    if (Math.abs(diff) < 5) { return "text-muted-foreground"; }
+    if (Math.abs(diff) < 5) {
+      return "text-muted-foreground";
+    }
     return diff > 0 ? "text-green-500" : "text-red-500";
   };
 

@@ -19,7 +19,10 @@ interface ParallelNodeData {
   waitForAll?: boolean;
 }
 
-const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, selected }) => {
+const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#fa8c16";
   const branches = data.branches || [];
@@ -74,7 +77,9 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
               color: "#fff",
             }}
           >
-            {waitForAll ? t("workflow.parallelNode.waitForAll") : t("workflow.parallelNode.anyComplete")}
+            {waitForAll
+              ? t("workflow.parallelNode.waitForAll")
+              : t("workflow.parallelNode.anyComplete")}
           </Tag>
         </div>
 
@@ -120,7 +125,8 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
                         flex: 1,
                       }}
                     >
-                      {branch.title || t("workflow.parallelNode.branch", { index: index + 1 })}
+                      {branch.title
+                        || t("workflow.parallelNode.branch", { index: index + 1 })}
                     </span>
                     {branch.steps && (
                       <Badge
@@ -142,7 +148,10 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
                       textAlign: "center",
                     }}
                   >
-                    +{t("workflow.parallelNode.moreBranches", { count: branches.length - 4 })}
+                    +
+                    {t("workflow.parallelNode.moreBranches", {
+                      count: branches.length - 4,
+                    })}
                   </div>
                 )}
               </div>
@@ -175,7 +184,14 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
         }}
       />
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 4,
+          marginTop: 4,
+        }}
+      >
         {branches.length > 0
           ? (
             /* static visualization handles, safe to use index as key */

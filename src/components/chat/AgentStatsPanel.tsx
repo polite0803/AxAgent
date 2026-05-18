@@ -18,9 +18,13 @@ export const AgentStatsPanel: React.FC = () => {
   const { t } = useTranslation();
   const [stats, setStats] = useState<RuntimeStats | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
   const activeStreams = useStreamStore((s) => s.activeStreams);
-  const streaming = activeConversationId ? (activeConversationId in activeStreams) : false;
+  const streaming = activeConversationId
+    ? activeConversationId in activeStreams
+    : false;
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
   const pauseAgent = useAgentStore((s) => s.pauseAgent);
   const resumeAgent = useAgentStore((s) => s.resumeAgent);
@@ -50,12 +54,16 @@ export const AgentStatsPanel: React.FC = () => {
     setElapsed(0);
 
     const interval = setInterval(async () => {
-      if (cancelled) { return; }
+      if (cancelled) {
+        return;
+      }
       try {
         const s = await invoke<RuntimeStats>("agent_runtime_stats", {
           conversationId: activeConversationId,
         });
-        if (cancelled) { return; }
+        if (cancelled) {
+          return;
+        }
         setStats(s);
 
         if (s.paused && pauseStartRef.current === 0) {
@@ -66,7 +74,12 @@ export const AgentStatsPanel: React.FC = () => {
         }
 
         if (!s.paused) {
-          setElapsed(Math.floor((Date.now() - startTimeRef.current - pausedDurationRef.current) / 1000));
+          setElapsed(
+            Math.floor(
+              (Date.now() - startTimeRef.current - pausedDurationRef.current)
+                / 1000,
+            ),
+          );
         }
       } catch (e) {
         console.warn("[IPC] agent_runtime_stats poll error:", e);
@@ -75,11 +88,15 @@ export const AgentStatsPanel: React.FC = () => {
 
     invoke<RuntimeStats>("agent_runtime_stats", {
       conversationId: activeConversationId,
-    }).then((s) => {
-      if (!cancelled) { setStats(s); }
-    }).catch((e: unknown) => {
-      console.warn("[IPC]", e);
-    });
+    })
+      .then((s) => {
+        if (!cancelled) {
+          setStats(s);
+        }
+      })
+      .catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
 
     return () => {
       cancelled = true;
@@ -96,13 +113,19 @@ export const AgentStatsPanel: React.FC = () => {
   };
 
   const formatCost = (cost?: number) => {
-    if (cost === undefined || cost === null) { return "--"; }
-    if (cost < 1.0) { return "<$1.0"; }
+    if (cost === undefined || cost === null) {
+      return "--";
+    }
+    if (cost < 1.0) {
+      return "<$1.0";
+    }
     return `$${cost.toFixed(3)}`;
   };
 
   const handlePauseResume = () => {
-    if (!activeConversationId) { return; }
+    if (!activeConversationId) {
+      return;
+    }
     if (paused) {
       resumeAgent(activeConversationId);
     } else {
@@ -130,7 +153,11 @@ export const AgentStatsPanel: React.FC = () => {
               {paused
                 ? <Pause size={12} className="text-orange-500" />
                 : <Activity size={12} className="animate-pulse text-blue-500" />}
-              <span className="font-medium">{paused ? t("chat.agentStats.paused") : t("chat.agentStats.running")}</span>
+              <span className="font-medium">
+                {paused
+                  ? t("chat.agentStats.paused")
+                  : t("chat.agentStats.running")}
+              </span>
             </div>
 
             <div className="flex items-center gap-1">
@@ -141,31 +168,39 @@ export const AgentStatsPanel: React.FC = () => {
             {currentQueryStats && (
               <div className="flex items-center gap-1">
                 <span>
-                  {(currentQueryStats.inputTokens || 0) + (currentQueryStats.outputTokens || 0)}{" "}
-                  {t("chat.agentStats.tokens")}
+                  {(currentQueryStats.inputTokens || 0)
+                    + (currentQueryStats.outputTokens || 0)} {t("chat.agentStats.tokens")}
                 </span>
-                <span className="text-blue-500/70">({formatCost(currentQueryStats.costUsd)})</span>
+                <span className="text-blue-500/70">
+                  ({formatCost(currentQueryStats.costUsd)})
+                </span>
               </div>
             )}
 
             {stats.pendingPermissions > 0 && (
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
                 <Shield size={12} />
-                <span>{stats.pendingPermissions} {t("chat.agentStats.pending")}</span>
+                <span>
+                  {stats.pendingPermissions} {t("chat.agentStats.pending")}
+                </span>
               </div>
             )}
 
             {stats.pendingAskUser > 0 && (
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
                 <HelpCircle size={12} />
-                <span>{stats.pendingAskUser} {t("chat.agentStats.askUser")}</span>
+                <span>
+                  {stats.pendingAskUser} {t("chat.agentStats.askUser")}
+                </span>
               </div>
             )}
 
             {stats.activeToolCalls > 0 && (
               <div className="flex items-center gap-1">
                 <Wrench size={12} />
-                <span>{stats.activeToolCalls} {t("chat.agentStats.tool")}</span>
+                <span>
+                  {stats.activeToolCalls} {t("chat.agentStats.tool")}
+                </span>
               </div>
             )}
 
@@ -178,7 +213,11 @@ export const AgentStatsPanel: React.FC = () => {
               className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded border border-blue-300 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors"
             >
               {paused ? <Play size={12} /> : <Pause size={12} />}
-              <span>{paused ? t("chat.agentStats.resume") : t("chat.agentStats.pause")}</span>
+              <span>
+                {paused
+                  ? t("chat.agentStats.resume")
+                  : t("chat.agentStats.pause")}
+              </span>
             </button>
           </>
         )

@@ -16,7 +16,10 @@ interface CodeNodeData {
   outputVar?: string;
 }
 
-const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({ data, selected }) => {
+const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#52c41a";
   const language = data.language || "javascript";

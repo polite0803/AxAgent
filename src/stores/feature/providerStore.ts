@@ -25,8 +25,16 @@ interface ProviderState {
   toggleProviderKey: (keyId: string, enabled: boolean) => Promise<void>;
   validateProviderKey: (keyId: string) => Promise<boolean>;
   saveModels: (providerId: string, models: Model[]) => Promise<void>;
-  toggleModel: (providerId: string, model_id: string, enabled: boolean) => Promise<Model>;
-  updateModelParams: (providerId: string, model_id: string, overrides: ModelParamOverrides) => Promise<Model>;
+  toggleModel: (
+    providerId: string,
+    model_id: string,
+    enabled: boolean,
+  ) => Promise<Model>;
+  updateModelParams: (
+    providerId: string,
+    model_id: string,
+    overrides: ModelParamOverrides,
+  ) => Promise<Model>;
   fetchRemoteModels: (providerId: string) => Promise<Model[]>;
   testModel: (providerId: string, model_id: string) => Promise<number>;
 }
@@ -48,7 +56,9 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   createProvider: async (input) => {
     try {
-      const provider = await invoke<ProviderConfig>("create_provider", { input });
+      const provider = await invoke<ProviderConfig>("create_provider", {
+        input,
+      });
       set((s) => ({ providers: [...s.providers, provider], error: null }));
       return provider;
     } catch (e) {
@@ -59,7 +69,10 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   updateProvider: async (id, input) => {
     try {
-      const updated = await invoke<ProviderConfig>("update_provider", { id, input });
+      const updated = await invoke<ProviderConfig>("update_provider", {
+        id,
+        input,
+      });
       set((s) => ({
         providers: s.providers.map((p) => (p.id === id ? updated : p)),
         error: null,
@@ -111,11 +124,10 @@ export const useProviderStore = create<ProviderState>((set) => ({
       set({ providers });
     } else {
       set((s) => {
-        const ordered = providerIds
-          .flatMap((id, i) => {
-            const p = s.providers.find((p) => p.id === id);
-            return p ? [{ ...p, sort_order: i }] : [];
-          }) as ProviderConfig[];
+        const ordered = providerIds.flatMap((id, i) => {
+          const p = s.providers.find((p) => p.id === id);
+          return p ? [{ ...p, sort_order: i }] : [];
+        }) as ProviderConfig[];
         return { providers: ordered };
       });
     }
@@ -270,6 +282,9 @@ export const useProviderStore = create<ProviderState>((set) => ({
   },
 
   testModel: async (providerId, model_id) => {
-    return await invoke<number>("test_model", { providerId, modelId: model_id });
+    return await invoke<number>("test_model", {
+      providerId,
+      modelId: model_id,
+    });
   },
 }));

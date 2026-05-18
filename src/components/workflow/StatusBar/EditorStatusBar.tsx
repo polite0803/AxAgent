@@ -27,11 +27,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   const { token } = theme.useToken();
 
   const getValidationIcon = () => {
-    if (!validationResult) { return null; }
+    if (!validationResult) {
+      return null;
+    }
 
     if (validationResult.errors.length > 0) {
       return (
-        <Tooltip title={t("workflow.statusBar.errors", { count: validationResult.errors.length })}>
+        <Tooltip
+          title={t("workflow.statusBar.errors", {
+            count: validationResult.errors.length,
+          })}
+        >
           <AlertCircle size={14} style={{ color: token.colorError }} />
         </Tooltip>
       );
@@ -39,7 +45,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
     if (validationResult.warnings.length > 0) {
       return (
-        <Tooltip title={t("workflow.statusBar.warnings", { count: validationResult.warnings.length })}>
+        <Tooltip
+          title={t("workflow.statusBar.warnings", {
+            count: validationResult.warnings.length,
+          })}
+        >
           <AlertTriangle size={14} style={{ color: token.colorWarning }} />
         </Tooltip>
       );
@@ -72,7 +82,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           fill={isDirty ? token.colorWarning : token.colorSuccess}
           color={isDirty ? token.colorWarning : token.colorSuccess}
         />
-        <span>{isDirty ? t("workflow.statusBar.unsaved") : t("workflow.statusBar.saved")}</span>
+        <span>
+          {isDirty
+            ? t("workflow.statusBar.unsaved")
+            : t("workflow.statusBar.saved")}
+        </span>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -87,8 +101,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {getValidationIcon()}
           <span>
-            {t("workflow.statusBar.error", { count: validationResult.errors.length })},{" "}
-            {t("workflow.statusBar.warning", { count: validationResult.warnings.length })}
+            {t("workflow.statusBar.error", {
+              count: validationResult.errors.length,
+            })}
+            , {t("workflow.statusBar.warning", {
+              count: validationResult.warnings.length,
+            })}
           </span>
         </div>
       )}
@@ -101,9 +119,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           tabIndex={0}
           onClick={onResetZoom}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { onResetZoom(); }
+            if (e.key === "Enter" || e.key === " ") {
+              onResetZoom();
+            }
           }}
-          style={{ cursor: "pointer", color: token.colorTextSecondary, userSelect: "none" }}
+          style={{
+            cursor: "pointer",
+            color: token.colorTextSecondary,
+            userSelect: "none",
+          }}
         >
           {Math.round(zoom * 100)}%
         </span>

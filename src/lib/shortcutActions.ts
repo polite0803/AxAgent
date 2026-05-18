@@ -9,9 +9,13 @@ import { message } from "antd";
 
 function notifyShortcutTriggered(action: ShortcutAction) {
   const settings = useSettingsStore.getState().settings;
-  if (!settings.shortcut_trigger_toast_enabled) { return; }
+  if (!settings.shortcut_trigger_toast_enabled) {
+    return;
+  }
   const actionLabel = i18n.t(SHORTCUT_ACTION_LABEL_KEYS[action]);
-  const text = i18n.t("settings.shortcutTriggeredMessage", { action: actionLabel });
+  const text = i18n.t("settings.shortcutTriggeredMessage", {
+    action: actionLabel,
+  });
   message.info(text);
 }
 
@@ -32,7 +36,9 @@ function dispatchChatScopedEvent(name: string) {
 }
 
 async function toggleCurrentWindow() {
-  if (!isTauri()) { return; }
+  if (!isTauri()) {
+    return;
+  }
   const win = getCurrentWindow();
   const visible = await win.isVisible();
   if (visible) {
@@ -44,9 +50,13 @@ async function toggleCurrentWindow() {
 }
 
 async function toggleAllWindows() {
-  if (!isTauri()) { return; }
+  if (!isTauri()) {
+    return;
+  }
   const windows = await getAllWindows();
-  if (windows.length === 0) { return; }
+  if (windows.length === 0) {
+    return;
+  }
   const visibility = await Promise.all(windows.map((win) => win.isVisible()));
   const shouldHide = visibility.some(Boolean);
   if (shouldHide) {
@@ -58,7 +68,9 @@ async function toggleAllWindows() {
 }
 
 async function closeCurrentWindow() {
-  if (!isTauri()) { return; }
+  if (!isTauri()) {
+    return;
+  }
   await getCurrentWindow().close();
 }
 
@@ -71,7 +83,9 @@ async function toggleGatewayPage() {
   }
 }
 
-export async function executeShortcutAction(action: ShortcutAction): Promise<void> {
+export async function executeShortcutAction(
+  action: ShortcutAction,
+): Promise<void> {
   switch (action) {
     case "toggleCurrentWindow":
       notifyShortcutTriggered(action);
@@ -91,7 +105,10 @@ export async function executeShortcutAction(action: ShortcutAction): Promise<voi
       return;
     case "openSettings":
       notifyShortcutTriggered(action);
-      if (window.location.pathname === "/settings" || window.location.pathname.startsWith("/settings/")) {
+      if (
+        window.location.pathname === "/settings"
+        || window.location.pathname.startsWith("/settings/")
+      ) {
         window.location.href = "/";
       } else {
         window.location.href = "/settings";

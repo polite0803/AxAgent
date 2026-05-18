@@ -29,22 +29,45 @@ interface WikiState {
   createNote: (input: CreateNoteInput) => Promise<Note | null>;
   updateNote: (id: string, input: UpdateNoteInput) => Promise<Note | null>;
   deleteNote: (id: string) => Promise<void>;
-  searchNotes: (vaultId: string, query: string, topK?: number) => Promise<NoteSearchResult[]>;
+  searchNotes: (
+    vaultId: string,
+    query: string,
+    topK?: number,
+  ) => Promise<NoteSearchResult[]>;
   getNoteLinks: (noteId: string) => Promise<NoteLink[]>;
   getNoteBacklinks: (noteId: string) => Promise<BacklinkInfo[]>;
-  syncNoteLinks: (vaultId: string, sourceNoteId: string, links: [string, string, string][]) => Promise<void>;
+  syncNoteLinks: (
+    vaultId: string,
+    sourceNoteId: string,
+    links: [string, string, string][],
+  ) => Promise<void>;
   setSelectedNoteId: (id: string | null) => void;
   loadVersions: (noteId: string) => Promise<NoteVersion[]>;
   getVersion: (versionId: number) => Promise<NoteVersion | null>;
   restoreVersion: (noteId: string, versionId: number) => Promise<Note | null>;
   loadTemplates: (wikiId: string) => Promise<void>;
-  createTemplate: (input: CreateWikiTemplateInput) => Promise<WikiTemplate | null>;
+  createTemplate: (
+    input: CreateWikiTemplateInput,
+  ) => Promise<WikiTemplate | null>;
   deleteTemplate: (id: string) => Promise<void>;
-  createNoteFromTemplate: (vaultId: string, templateId: string, title?: string) => Promise<Note | null>;
+  createNoteFromTemplate: (
+    vaultId: string,
+    templateId: string,
+    title?: string,
+  ) => Promise<Note | null>;
   createDailyNote: (vaultId: string) => Promise<Note | null>;
-  importObsidianVault: (wikiId: string, vaultPath: string) => Promise<ImportStats | null>;
-  exportMarkdown: (wikiId: string, outputPath: string) => Promise<ExportStats | null>;
-  exportHtml: (wikiId: string, outputPath: string) => Promise<ExportStats | null>;
+  importObsidianVault: (
+    wikiId: string,
+    vaultPath: string,
+  ) => Promise<ImportStats | null>;
+  exportMarkdown: (
+    wikiId: string,
+    outputPath: string,
+  ) => Promise<ExportStats | null>;
+  exportHtml: (
+    wikiId: string,
+    outputPath: string,
+  ) => Promise<ExportStats | null>;
   exportNotePdf: (noteId: string, outputPath: string) => Promise<string | null>;
 }
 
@@ -57,7 +80,12 @@ export const useWikiStore = create<WikiState>((set) => ({
   templates: [],
 
   setSelectedVaultId: (vaultId) => {
-    set({ selectedVaultId: vaultId, selectedNoteId: null, notes: [], templates: [] });
+    set({
+      selectedVaultId: vaultId,
+      selectedNoteId: null,
+      notes: [],
+      templates: [],
+    });
   },
 
   loadNotes: async (vaultId) => {
@@ -81,7 +109,10 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   getNoteByPath: async (vaultId, filePath) => {
     try {
-      return await invoke<Note>("wiki_notes_get_by_path", { vaultId, filePath });
+      return await invoke<Note>("wiki_notes_get_by_path", {
+        vaultId,
+        filePath,
+      });
     } catch (e) {
       set({ error: String(e) });
       return null;
@@ -151,7 +182,9 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   getNoteBacklinks: async (noteId) => {
     try {
-      return await invoke<BacklinkInfo[]>("wiki_notes_get_backlinks", { noteId });
+      return await invoke<BacklinkInfo[]>("wiki_notes_get_backlinks", {
+        noteId,
+      });
     } catch (e) {
       set({ error: String(e) });
       return [];
@@ -191,7 +224,10 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   restoreVersion: async (noteId, versionId) => {
     try {
-      const updated = await invoke<Note>("wiki_note_restore_version", { noteId, versionId });
+      const updated = await invoke<Note>("wiki_note_restore_version", {
+        noteId,
+        versionId,
+      });
       set((s) => ({
         notes: s.notes.map((n) => (n.id === noteId ? updated : n)),
         error: null,
@@ -205,7 +241,9 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   loadTemplates: async (wikiId) => {
     try {
-      const templates = await invoke<WikiTemplate[]>("wiki_template_list", { wikiId });
+      const templates = await invoke<WikiTemplate[]>("wiki_template_list", {
+        wikiId,
+      });
       set({ templates });
     } catch (e) {
       set({ error: String(e) });
@@ -214,7 +252,9 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   createTemplate: async (input) => {
     try {
-      const template = await invoke<WikiTemplate>("wiki_template_create", { input });
+      const template = await invoke<WikiTemplate>("wiki_template_create", {
+        input,
+      });
       set((s) => ({ templates: [...s.templates, template], error: null }));
       return template;
     } catch (e) {
@@ -226,7 +266,10 @@ export const useWikiStore = create<WikiState>((set) => ({
   deleteTemplate: async (id) => {
     try {
       await invoke("wiki_template_delete", { id });
-      set((s) => ({ templates: s.templates.filter((t) => t.id !== id), error: null }));
+      set((s) => ({
+        templates: s.templates.filter((t) => t.id !== id),
+        error: null,
+      }));
     } catch (e) {
       set({ error: String(e) });
     }
@@ -234,7 +277,11 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   createNoteFromTemplate: async (vaultId, templateId, title) => {
     try {
-      const note = await invoke<Note>("wiki_note_create_from_template", { vaultId, templateId, title });
+      const note = await invoke<Note>("wiki_note_create_from_template", {
+        vaultId,
+        templateId,
+        title,
+      });
       set((s) => ({ notes: [...s.notes, note], error: null }));
       return note;
     } catch (e) {
@@ -262,7 +309,10 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   importObsidianVault: async (wikiId, vaultPath) => {
     try {
-      const stats = await invoke<ImportStats>("wiki_import_obsidian_vault", { wikiId, vaultPath });
+      const stats = await invoke<ImportStats>("wiki_import_obsidian_vault", {
+        wikiId,
+        vaultPath,
+      });
       set({ error: null });
       return stats;
     } catch (e) {
@@ -273,7 +323,10 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   exportMarkdown: async (wikiId, outputPath) => {
     try {
-      const stats = await invoke<ExportStats>("wiki_export_markdown", { wikiId, outputPath });
+      const stats = await invoke<ExportStats>("wiki_export_markdown", {
+        wikiId,
+        outputPath,
+      });
       set({ error: null });
       return stats;
     } catch (e) {
@@ -284,7 +337,10 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   exportHtml: async (wikiId, outputPath) => {
     try {
-      const stats = await invoke<ExportStats>("wiki_export_html", { wikiId, outputPath });
+      const stats = await invoke<ExportStats>("wiki_export_html", {
+        wikiId,
+        outputPath,
+      });
       set({ error: null });
       return stats;
     } catch (e) {
@@ -295,7 +351,10 @@ export const useWikiStore = create<WikiState>((set) => ({
 
   exportNotePdf: async (noteId, outputPath) => {
     try {
-      const htmlPath = await invoke<string>("wiki_note_export_pdf", { noteId, outputPath });
+      const htmlPath = await invoke<string>("wiki_note_export_pdf", {
+        noteId,
+        outputPath,
+      });
       set({ error: null });
       return htmlPath;
     } catch (e) {

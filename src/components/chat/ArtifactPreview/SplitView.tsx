@@ -22,7 +22,11 @@ export const SplitView = memo(function SplitView({
   const [activeTab, setActiveTab] = useState<"code" | "preview">(
     showPreview ? "code" : "code",
   );
-  const [htmlParts, setHtmlParts] = useState<{ html: string; css: string; js: string }>({
+  const [htmlParts, setHtmlParts] = useState<{
+    html: string;
+    css: string;
+    js: string;
+  }>({
     html: code,
     css: "",
     js: "",

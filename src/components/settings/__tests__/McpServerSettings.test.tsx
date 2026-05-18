@@ -117,7 +117,9 @@ describe("McpServerSettings", () => {
       </App>,
     );
 
-    const textarea = await screen.findByPlaceholderText("settings.mcpServers.envVarsPlaceholder");
+    const textarea = await screen.findByPlaceholderText(
+      "settings.mcpServers.envVarsPlaceholder",
+    );
     await userEvent.type(textarea, "TAVILY_API_KEY=secret");
     fireEvent.blur(textarea);
 

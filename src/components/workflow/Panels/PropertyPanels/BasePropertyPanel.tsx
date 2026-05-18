@@ -9,12 +9,22 @@ interface BasePropertyPanelProps {
   onDelete: () => void;
 }
 
-export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUpdate }) => {
+export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
+  node,
+  onUpdate,
+}) => {
   const { t } = useTranslation();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.title")}
         </label>
         <Input
@@ -26,7 +36,14 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.description")}
         </label>
         <Input.TextArea
@@ -38,8 +55,16 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
         />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 12 }}>{t("workflow.props.enabled")}</label>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <label style={{ color: "#999", fontSize: 12 }}>
+          {t("workflow.props.enabled")}
+        </label>
         <Switch
           size="small"
           checked={node.enabled}
@@ -50,7 +75,14 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.retryPolicy")}
         </label>
         <Switch
@@ -59,13 +91,25 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
           onChange={(enabled) => onUpdate({ retry: { ...node.retry, enabled } })}
         />
         {node.retry.enabled && (
-          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
             <div>
-              <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.maxRetries")}</label>
+              <label style={{ color: "#666", fontSize: 12 }}>
+                {t("workflow.props.maxRetries")}
+              </label>
               <InputNumber
                 id="base-property-panel-inputnumber-82"
                 value={node.retry.max_retries}
-                onChange={(value) => onUpdate({ retry: { ...node.retry, max_retries: value || 3 } })}
+                onChange={(value) =>
+                  onUpdate({
+                    retry: { ...node.retry, max_retries: value || 3 },
+                  })}
                 min={1}
                 max={10}
                 size="small"
@@ -73,7 +117,9 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.backoffStrategy")}</label>
+              <label style={{ color: "#666", fontSize: 12 }}>
+                {t("workflow.props.backoffStrategy")}
+              </label>
               <Select
                 value={node.retry.backoff_type}
                 onChange={(backoff_type) => onUpdate({ retry: { ...node.retry, backoff_type } })}
@@ -81,17 +127,25 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
                 style={{ width: "100%" }}
                 options={[
                   { value: "Linear", label: t("workflow.props.linear") },
-                  { value: "Exponential", label: t("workflow.props.exponential") },
+                  {
+                    value: "Exponential",
+                    label: t("workflow.props.exponential"),
+                  },
                   { value: "Fixed", label: t("workflow.props.fixed") },
                 ]}
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 12 }}>{t("workflow.props.baseDelayMs")}</label>
+              <label style={{ color: "#666", fontSize: 12 }}>
+                {t("workflow.props.baseDelayMs")}
+              </label>
               <InputNumber
                 id="base-property-panel-inputnumber-83"
                 value={node.retry.base_delay_ms}
-                onChange={(value) => onUpdate({ retry: { ...node.retry, base_delay_ms: value || 1000 } })}
+                onChange={(value) =>
+                  onUpdate({
+                    retry: { ...node.retry, base_delay_ms: value || 1000 },
+                  })}
                 min={100}
                 max={60000}
                 size="small"
@@ -105,7 +159,14 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({ node, onUp
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.timeoutSeconds")}
         </label>
         <InputNumber

@@ -17,12 +17,16 @@ function loadStagedPrefs(): Record<string, unknown> {
 function saveStagedPrefs(prefs: Record<string, unknown>) {
   try {
     localStorage.setItem(STAGED_PREFS_KEY, JSON.stringify(prefs));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 export function clearStagedPrefs() {
   try {
     localStorage.removeItem(STAGED_PREFS_KEY);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Save the current preference value to staged storage (no-conversation fallback). */
@@ -36,17 +40,29 @@ export function stagePreference(key: string, value: unknown) {
 export function getStagedPreferenceUpdate(): Partial<UpdateConversationInput> {
   const staged = loadStagedPrefs();
   const update: Record<string, unknown> = {};
-  if (staged.searchEnabled !== undefined) { update.search_enabled = staged.searchEnabled; }
-  if (staged.searchProviderId !== undefined) { update.search_provider_id = staged.searchProviderId; }
-  if (staged.enabledMcpServerIds) { update.enabled_mcp_server_ids = staged.enabledMcpServerIds; }
-  if (staged.enabledKnowledgeBaseIds) { update.enabled_knowledge_base_ids = staged.enabledKnowledgeBaseIds; }
+  if (staged.searchEnabled !== undefined) {
+    update.search_enabled = staged.searchEnabled;
+  }
+  if (staged.searchProviderId !== undefined) {
+    update.search_provider_id = staged.searchProviderId;
+  }
+  if (staged.enabledMcpServerIds) {
+    update.enabled_mcp_server_ids = staged.enabledMcpServerIds;
+  }
+  if (staged.enabledKnowledgeBaseIds) {
+    update.enabled_knowledge_base_ids = staged.enabledKnowledgeBaseIds;
+  }
   if (staged.activeMemoryNamespaceId) {
     update.enabled_memory_namespace_ids = [
       staged.activeMemoryNamespaceId as string,
     ];
   }
-  if (staged.enabledWikiIds) { update.enabled_wiki_ids = staged.enabledWikiIds; }
-  if (staged.thinkingBudget !== undefined) { update.thinking_budget = staged.thinkingBudget; }
+  if (staged.enabledWikiIds) {
+    update.enabled_wiki_ids = staged.enabledWikiIds;
+  }
+  if (staged.thinkingBudget !== undefined) {
+    update.thinking_budget = staged.thinkingBudget;
+  }
   return update as Partial<UpdateConversationInput>;
 }
 
@@ -68,10 +84,12 @@ export function conversationPreferenceStateFromConversation(
     searchEnabled: conversation?.search_enabled ?? false,
     searchProviderId: conversation?.search_provider_id ?? null,
     thinkingBudget: conversation?.thinking_budget ?? null,
-    mcpMode: ((conversation as Record<string, unknown> | null | undefined)?.mcp_mode as "auto" | "disabled" | "manual")
-      ?? "auto",
+    mcpMode: ((conversation as Record<string, unknown> | null | undefined)
+      ?.mcp_mode as "auto" | "disabled" | "manual") ?? "auto",
     enabledMcpServerIds: [...(conversation?.enabled_mcp_server_ids ?? [])],
-    enabledKnowledgeBaseIds: [...(conversation?.enabled_knowledge_base_ids ?? [])],
+    enabledKnowledgeBaseIds: [
+      ...(conversation?.enabled_knowledge_base_ids ?? []),
+    ],
     activeMemoryNamespaceId: (conversation?.enabled_memory_namespace_ids ?? [])[0] ?? null,
     enabledWikiIds: [...(conversation?.enabled_wiki_ids ?? [])],
   };
@@ -104,18 +122,25 @@ export function conversationPreferenceUpdateFromState(
     thinking_budget: state.thinkingBudget,
     enabled_mcp_server_ids: [...state.enabledMcpServerIds],
     enabled_knowledge_base_ids: [...state.enabledKnowledgeBaseIds],
-    enabled_memory_namespace_ids: state.activeMemoryNamespaceId ? [state.activeMemoryNamespaceId] : [],
+    enabled_memory_namespace_ids: state.activeMemoryNamespaceId
+      ? [state.activeMemoryNamespaceId]
+      : [],
     enabled_wiki_ids: [...state.enabledWikiIds],
   };
 }
 
-export function nextConversationPreferenceSaveSeq(conversationId: string): number {
+export function nextConversationPreferenceSaveSeq(
+  conversationId: string,
+): number {
   const next = (_conversationPreferenceSaveSeq.get(conversationId) ?? 0) + 1;
   _conversationPreferenceSaveSeq.set(conversationId, next);
   return next;
 }
 
-export function isLatestConversationPreferenceSave(conversationId: string, seq: number): boolean {
+export function isLatestConversationPreferenceSave(
+  conversationId: string,
+  seq: number,
+): boolean {
   return (_conversationPreferenceSaveSeq.get(conversationId) ?? 0) === seq;
 }
 
@@ -138,12 +163,10 @@ export function mergeConversationCollections(
   updated: Conversation,
 ) {
   return {
-    conversations: conversations.map((conversation) => (
+    conversations: conversations.map((conversation) => conversation.id === updated.id ? updated : conversation),
+    archivedConversations: archivedConversations.map((conversation) =>
       conversation.id === updated.id ? updated : conversation
-    )),
-    archivedConversations: archivedConversations.map((conversation) => (
-      conversation.id === updated.id ? updated : conversation
-    )),
+    ),
   };
 }
 

@@ -78,7 +78,10 @@ export function LinkSkills({ link }: LinkSkillsProps) {
       key: "sync_status",
       width: 120,
       render: (status: string) => {
-        const mapped = SYNC_STATUS_MAP[status] ?? { color: "default", label: status };
+        const mapped = SYNC_STATUS_MAP[status] ?? {
+          color: "default",
+          label: status,
+        };
         return <Tag color={mapped.color}>{mapped.label}</Tag>;
       },
     },
@@ -153,7 +156,12 @@ export function LinkSkills({ link }: LinkSkillsProps) {
 
       <Card size="small">
         {skillSyncs.length === 0
-          ? <Empty description={t("link.noSkills")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ? (
+            <Empty
+              description={t("link.noSkills")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )
           : (
             <Table
               dataSource={skillSyncs}

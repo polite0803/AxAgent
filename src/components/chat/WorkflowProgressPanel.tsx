@@ -46,7 +46,13 @@ interface WorkflowStep {
 interface WorkflowData {
   id: string;
   name: string;
-  status: "created" | "running" | "completed" | "partially_completed" | "failed" | "cancelled";
+  status:
+    | "created"
+    | "running"
+    | "completed"
+    | "partially_completed"
+    | "failed"
+    | "cancelled";
   steps: WorkflowStep[];
   max_concurrent: number;
   created_at?: number;
@@ -81,8 +87,12 @@ const DAG_HEIGHT = 220;
 // ---------------------------------------------------------------------------
 
 function truncate(str: string | null, maxLen: number): string {
-  if (!str) { return ""; }
-  if (str.length <= maxLen) { return str; }
+  if (!str) {
+    return "";
+  }
+  if (str.length <= maxLen) {
+    return str;
+  }
   return str.slice(0, maxLen) + "...";
 }
 
@@ -138,14 +148,21 @@ interface WorkflowDagNodeData {
   status: WorkflowStep["status"];
 }
 
-function computeDagLayout(steps: WorkflowStep[]): { nodes: Node<WorkflowDagNodeData>[]; edges: Edge[] } {
-  if (steps.length === 0) { return { nodes: [], edges: [] }; }
+function computeDagLayout(steps: WorkflowStep[]): {
+  nodes: Node<WorkflowDagNodeData>[];
+  edges: Edge[];
+} {
+  if (steps.length === 0) {
+    return { nodes: [], edges: [] };
+  }
 
   const stepMap = new Map(steps.map((s) => [s.id, s]));
   const layerCache = new Map<string, number>();
 
   function getLayer(id: string): number {
-    if (layerCache.has(id)) { return layerCache.get(id)!; }
+    if (layerCache.has(id)) {
+      return layerCache.get(id)!;
+    }
     const step = stepMap.get(id);
     if (!step || step.needs.length === 0) {
       layerCache.set(id, 0);
@@ -164,7 +181,9 @@ function computeDagLayout(steps: WorkflowStep[]): { nodes: Node<WorkflowDagNodeD
   const layerGroups = new Map<number, WorkflowStep[]>();
   for (const step of steps) {
     const layer = layerCache.get(step.id)!;
-    if (!layerGroups.has(layer)) { layerGroups.set(layer, []); }
+    if (!layerGroups.has(layer)) {
+      layerGroups.set(layer, []);
+    }
     layerGroups.get(layer)!.push(step);
   }
 
@@ -207,7 +226,10 @@ function computeDagLayout(steps: WorkflowStep[]): { nodes: Node<WorkflowDagNodeD
           source: dep,
           target: step.id,
           animated: step.status === "running",
-          style: { stroke: step.status === "failed" ? "#ff4d4f" : "#b1b1b7", strokeWidth: 1.5 },
+          style: {
+            stroke: step.status === "failed" ? "#ff4d4f" : "#b1b1b7",
+            strokeWidth: 1.5,
+          },
         });
       }
     }
@@ -220,42 +242,61 @@ function computeDagLayout(steps: WorkflowStep[]): { nodes: Node<WorkflowDagNodeD
 // WorkflowDagNode
 // ---------------------------------------------------------------------------
 
-const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(({ data, selected }) => {
-  const color = getStatusColor(data.status);
-  const isRunning = data.status === "running";
-  const isFailed = data.status === "failed";
+const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(
+  ({ data, selected }) => {
+    const color = getStatusColor(data.status);
+    const isRunning = data.status === "running";
+    const isFailed = data.status === "failed";
 
-  return (
-    <div
-      className="rounded-md border px-2 py-1.5 bg-white dark:bg-zinc-800 shadow-sm"
-      style={{
-        width: NODE_WIDTH,
-        borderColor: selected ? "#1890ff" : color,
-        borderWidth: selected ? 2 : 1,
-        opacity: data.status === "skipped" ? 0.65 : 1,
-      }}
-    >
-      <Handle type="target" position={Position.Top} style={{ visibility: "hidden" }} />
-      <div className="flex items-center gap-1">
-        {isRunning
-          ? <Loader2 size={10} className="animate-spin shrink-0" style={{ color }} />
-          : isFailed
-          ? <XCircle size={10} className="shrink-0" style={{ color }} />
-          : <CheckCircle size={10} className="shrink-0" style={{ color }} />}
-        <span className="text-[10px] font-mono font-medium truncate" style={{ color }}>
-          {data.stepId}
-        </span>
+    return (
+      <div
+        className="rounded-md border px-2 py-1.5 bg-white dark:bg-zinc-800 shadow-sm"
+        style={{
+          width: NODE_WIDTH,
+          borderColor: selected ? "#1890ff" : color,
+          borderWidth: selected ? 2 : 1,
+          opacity: data.status === "skipped" ? 0.65 : 1,
+        }}
+      >
+        <Handle
+          type="target"
+          position={Position.Top}
+          style={{ visibility: "hidden" }}
+        />
+        <div className="flex items-center gap-1">
+          {isRunning
+            ? (
+              <Loader2
+                size={10}
+                className="animate-spin shrink-0"
+                style={{ color }}
+              />
+            )
+            : isFailed
+            ? <XCircle size={10} className="shrink-0" style={{ color }} />
+            : <CheckCircle size={10} className="shrink-0" style={{ color }} />}
+          <span
+            className="text-[10px] font-mono font-medium truncate"
+            style={{ color }}
+          >
+            {data.stepId}
+          </span>
+        </div>
+        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 leading-tight">
+          {truncate(data.goal, 28)}
+        </div>
+        <div className="text-[9px] text-zinc-400 dark:text-zinc-500 truncate">
+          {data.agentRole}
+        </div>
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          style={{ visibility: "hidden" }}
+        />
       </div>
-      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 leading-tight">
-        {truncate(data.goal, 28)}
-      </div>
-      <div className="text-[9px] text-zinc-400 dark:text-zinc-500 truncate">
-        {data.agentRole}
-      </div>
-      <Handle type="source" position={Position.Bottom} style={{ visibility: "hidden" }} />
-    </div>
-  );
-});
+    );
+  },
+);
 WorkflowDagNode.displayName = "WorkflowDagNode";
 
 const nodeTypes = { workflowStep: WorkflowDagNode };
@@ -264,42 +305,46 @@ const nodeTypes = { workflowStep: WorkflowDagNode };
 // WorkflowDagView (inner - needs ReactFlowProvider)
 // ---------------------------------------------------------------------------
 
-const WorkflowDagView: React.FC<{ steps: WorkflowStep[] }> = memo(({ steps }) => {
-  const { fitView } = useReactFlow();
-  const { nodes, edges } = useMemo(() => computeDagLayout(steps), [steps]);
+const WorkflowDagView: React.FC<{ steps: WorkflowStep[] }> = memo(
+  ({ steps }) => {
+    const { fitView } = useReactFlow();
+    const { nodes, edges } = useMemo(() => computeDagLayout(steps), [steps]);
 
-  useEffect(() => {
-    if (nodes.length > 0) {
-      const timer = setTimeout(() => {
-        fitView({ padding: 0.3, duration: 200 });
-      }, 60);
-      return () => clearTimeout(timer);
+    useEffect(() => {
+      if (nodes.length > 0) {
+        const timer = setTimeout(() => {
+          fitView({ padding: 0.3, duration: 200 });
+        }, 60);
+        return () => clearTimeout(timer);
+      }
+    }, [nodes, fitView]);
+
+    if (nodes.length === 0) {
+      return null;
     }
-  }, [nodes, fitView]);
 
-  if (nodes.length === 0) { return null; }
-
-  return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={nodeTypes}
-      nodesDraggable={false}
-      nodesConnectable={false}
-      nodesFocusable={false}
-      elementsSelectable={false}
-      panOnDrag={false}
-      zoomOnScroll={false}
-      zoomOnDoubleClick={false}
-      preventScrolling={false}
-      fitView
-      proOptions={{ hideAttribution: true }}
-      style={{ background: "transparent" }}
-    >
-      <Background color="#e5e5e5" gap={16} size={0.5} />
-    </ReactFlow>
-  );
-});
+    return (
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        nodesFocusable={false}
+        elementsSelectable={false}
+        panOnDrag={false}
+        zoomOnScroll={false}
+        zoomOnDoubleClick={false}
+        preventScrolling={false}
+        fitView
+        proOptions={{ hideAttribution: true }}
+        style={{ background: "transparent" }}
+      >
+        <Background color="#e5e5e5" gap={16} size={0.5} />
+      </ReactFlow>
+    );
+  },
+);
 WorkflowDagView.displayName = "WorkflowDagView";
 
 // ---------------------------------------------------------------------------
@@ -312,7 +357,11 @@ interface StepRowProps {
   onToggle: () => void;
 }
 
-const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps) {
+const StepRow = memo(function StepRow({
+  step,
+  expanded,
+  onToggle,
+}: StepRowProps) {
   const { t } = useTranslation();
   const color = getStatusColor(step.status);
 
@@ -349,10 +398,20 @@ const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps
         }}
         onClick={onToggle}
       >
-        <span style={{ color, display: "flex", alignItems: "center", flexShrink: 0 }}>
+        <span
+          style={{
+            color,
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
           <StatusIcon size={14} className={iconClass} />
         </span>
-        <span className="text-xs font-mono font-medium shrink-0" style={{ color }}>
+        <span
+          className="text-xs font-mono font-medium shrink-0"
+          style={{ color }}
+        >
           {step.id}
         </span>
         <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate flex-1">
@@ -376,12 +435,18 @@ const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps
       {expanded && (
         <div className="px-3 pb-2 text-xs space-y-1">
           <div className="flex gap-4">
-            <span className="text-zinc-500">{t("chat.workflow.stepStatus")}</span>
-            <span style={{ color }}>{t(`chat.workflow.status.${step.status}`)}</span>
+            <span className="text-zinc-500">
+              {t("chat.workflow.stepStatus")}
+            </span>
+            <span style={{ color }}>
+              {t(`chat.workflow.status.${step.status}`)}
+            </span>
           </div>
           {step.needs.length > 0 && (
             <div className="flex gap-4">
-              <span className="text-zinc-500">{t("chat.workflow.dependsOn")}</span>
+              <span className="text-zinc-500">
+                {t("chat.workflow.dependsOn")}
+              </span>
               <span>{step.needs.join(", ")}</span>
             </div>
           )}
@@ -417,7 +482,9 @@ const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps
 // Main Component
 // ---------------------------------------------------------------------------
 
-export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ conversationId }) => {
+export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
+  conversationId,
+}) => {
   const { t } = useTranslation();
 
   const [workflow, setWorkflow] = useState<WorkflowData | null>(null);
@@ -436,10 +503,12 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
   // --- Sync: custom event for same-tab changes (from ChatViewToolbar) ---
   useEffect(() => {
     const handler = (e: Event) => {
-      const { conversationId: cid, workflowId: wid } = (e as CustomEvent<{
-        conversationId: string;
-        workflowId: string | null;
-      }>).detail;
+      const { conversationId: cid, workflowId: wid } = (
+        e as CustomEvent<{
+          conversationId: string;
+          workflowId: string | null;
+        }>
+      ).detail;
       if (cid === conversationId) {
         setWorkflowId(wid);
       }
@@ -492,7 +561,9 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
     let stoppedByTerminal = false;
 
     const poll = async () => {
-      if (stoppedByTerminal) { return; }
+      if (stoppedByTerminal) {
+        return;
+      }
       const requestId = ++fetchIdRef.current;
 
       if (requestId === 1) {
@@ -500,8 +571,12 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
       }
 
       try {
-        const data = await invoke<WorkflowData>("workflow_get_status", { workflowId });
-        if (fetchIdRef.current !== requestId) { return; }
+        const data = await invoke<WorkflowData>("workflow_get_status", {
+          workflowId,
+        });
+        if (fetchIdRef.current !== requestId) {
+          return;
+        }
         setWorkflow(data);
         setError(null);
 
@@ -513,13 +588,18 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
           }
         }
       } catch (e) {
-        if (fetchIdRef.current !== requestId) { return; }
+        if (fetchIdRef.current !== requestId) {
+          return;
+        }
         const msg = e instanceof Error ? e.message : String(e);
         setError(msg);
         if (workflowRef.current) {
           message.warning(msg);
         }
-        console.error("[WorkflowProgressPanel] Failed to fetch workflow status:", e);
+        console.error(
+          "[WorkflowProgressPanel] Failed to fetch workflow status:",
+          e,
+        );
       } finally {
         if (fetchIdRef.current === requestId) {
           setLoading(false);
@@ -554,12 +634,16 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
 
   // --- Cancel ---
   const handleCancel = useCallback(async () => {
-    if (!workflowId) { return; }
+    if (!workflowId) {
+      return;
+    }
     setCancelling(true);
     try {
       await invoke("workflow_cancel", { workflowId });
       message.success(t("chat.workflow.cancelled"));
-      const data = await invoke<WorkflowData>("workflow_get_status", { workflowId });
+      const data = await invoke<WorkflowData>("workflow_get_status", {
+        workflowId,
+      });
       setWorkflow(data);
       setError(null);
     } catch (e) {
@@ -581,7 +665,9 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ co
       <div className="mx-3 my-1.5 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/50 dark:bg-purple-900/10 p-4">
         <div className="flex items-center gap-2">
           <Spin size="small" />
-          <span className="text-sm text-zinc-500">{t("chat.workflow.loading")}</span>
+          <span className="text-sm text-zinc-500">
+            {t("chat.workflow.loading")}
+          </span>
         </div>
       </div>
     );

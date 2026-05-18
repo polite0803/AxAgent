@@ -37,7 +37,12 @@ interface AgentGeneratorModalProps {
   conversationId: string;
 }
 
-export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: AgentGeneratorModalProps) {
+export function AgentGeneratorModal({
+  open,
+  onClose,
+  onSave,
+  conversationId,
+}: AgentGeneratorModalProps) {
   const { t } = useTranslation();
   const [description, setDescription] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -46,7 +51,9 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
   const { message } = App.useApp();
 
   const handleGenerate = async () => {
-    if (!description.trim()) { return; }
+    if (!description.trim()) {
+      return;
+    }
 
     setGenerating(true);
     setError(null);
@@ -132,9 +139,7 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
       {!result
         ? (
           <div className="flex flex-col gap-4">
-            <Text type="secondary">
-              {t("agentGenerator.desc")}
-            </Text>
+            <Text type="secondary">{t("agentGenerator.desc")}</Text>
             <TextArea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -193,7 +198,11 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
               </div>
               <div>
                 <Text strong>{t("agentGenerator.field.permissions")}：</Text>
-                {result.permissions.map((p) => <Text key={p} code style={{ marginRight: 4 }}>{p}</Text>)}
+                {result.permissions.map((p) => (
+                  <Text key={p} code style={{ marginRight: 4 }}>
+                    {p}
+                  </Text>
+                ))}
               </div>
               <div>
                 <Text strong>{t("agentGenerator.field.recommendedModel")}：</Text>
@@ -202,7 +211,11 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
               <div>
                 <Text strong>{t("agentGenerator.field.systemPrompt")}：</Text>
                 <Paragraph
-                  ellipsis={{ rows: 4, expandable: true, symbol: t("agentGenerator.expand") }}
+                  ellipsis={{
+                    rows: 4,
+                    expandable: true,
+                    symbol: t("agentGenerator.expand"),
+                  }}
                   type="secondary"
                   style={{ marginTop: 4 }}
                 >
@@ -221,7 +234,11 @@ export function AgentGeneratorModal({ open, onClose, onSave, conversationId }: A
               >
                 {t("agentGenerator.reedit")}
               </Button>
-              <Button type="primary" icon={<Check size={16} />} onClick={handleSave}>
+              <Button
+                type="primary"
+                icon={<Check size={16} />}
+                onClick={handleSave}
+              >
                 {t("agentGenerator.save")}
               </Button>
             </div>

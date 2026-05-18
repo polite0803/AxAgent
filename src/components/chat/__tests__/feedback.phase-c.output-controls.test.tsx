@@ -19,7 +19,9 @@ describe("Phase C output control regressions", () => {
   it("shows a per-turn total token summary alongside prompt and completion counts", () => {
     const source = readSource("src/components/chat/ChatView.tsx");
 
-    expect(source).toContain("const totalTokens = (msg.prompt_tokens ?? 0) + (msg.completion_tokens ?? 0);");
+    expect(source).toContain(
+      "const totalTokens = (msg.prompt_tokens ?? 0) + (msg.completion_tokens ?? 0);",
+    );
     expect(source).toContain('t("chat.totalTokens"');
   });
 

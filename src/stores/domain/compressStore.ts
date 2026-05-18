@@ -8,7 +8,9 @@ const MESSAGE_PAGE_SIZE = 100;
 interface CompressState {
   compressing: boolean;
   compressContext: () => Promise<void>;
-  getCompressionSummary: (conversationId: string) => Promise<ConversationSummary | null>;
+  getCompressionSummary: (
+    conversationId: string,
+  ) => Promise<ConversationSummary | null>;
   deleteCompression: () => Promise<void>;
 }
 
@@ -17,7 +19,9 @@ export const useCompressStore = create<CompressState>((set) => ({
 
   compressContext: async () => {
     const conversationId = useConversationStore.getState().activeConversationId;
-    if (!conversationId) { return; }
+    if (!conversationId) {
+      return;
+    }
     set({ compressing: true });
     try {
       await invoke<ConversationSummary>("compress_context", { conversationId });
@@ -43,7 +47,10 @@ export const useCompressStore = create<CompressState>((set) => ({
 
   getCompressionSummary: async (conversationId: string) => {
     try {
-      return await invoke<ConversationSummary | null>("get_compression_summary", { conversationId });
+      return await invoke<ConversationSummary | null>(
+        "get_compression_summary",
+        { conversationId },
+      );
     } catch (e) {
       console.error("Failed to get compression summary:", e);
       return null;
@@ -52,7 +59,9 @@ export const useCompressStore = create<CompressState>((set) => ({
 
   deleteCompression: async () => {
     const conversationId = useConversationStore.getState().activeConversationId;
-    if (!conversationId) { return; }
+    if (!conversationId) {
+      return;
+    }
     try {
       await invoke("delete_compression", { conversationId });
       // Reload messages to remove the compression marker

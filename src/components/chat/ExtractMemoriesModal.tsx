@@ -11,7 +11,11 @@ interface ExtractMemoriesModalProps {
   conversationId: string;
 }
 
-export function ExtractMemoriesModal({ open, onClose, conversationId }: ExtractMemoriesModalProps) {
+export function ExtractMemoriesModal({
+  open,
+  onClose,
+  conversationId,
+}: ExtractMemoriesModalProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { message: messageApi } = App.useApp();
@@ -20,7 +24,9 @@ export function ExtractMemoriesModal({ open, onClose, conversationId }: ExtractM
   const loadNamespaces = useMemoryStore((s) => s.loadNamespaces);
   const loading = useMemoryStore((s) => s.loading);
 
-  const [selectedNamespaceId, setSelectedNamespaceId] = useState<string | null>(null);
+  const [selectedNamespaceId, setSelectedNamespaceId] = useState<string | null>(
+    null,
+  );
   const [extracting, setExtracting] = useState(false);
 
   useEffect(() => {
@@ -31,7 +37,9 @@ export function ExtractMemoriesModal({ open, onClose, conversationId }: ExtractM
   }, [open, loadNamespaces]);
 
   const handleOk = useCallback(async () => {
-    if (!selectedNamespaceId || !conversationId) { return; }
+    if (!selectedNamespaceId || !conversationId) {
+      return;
+    }
     setExtracting(true);
     try {
       const count = await invoke<number>("extract_conversation_memories", {
@@ -77,17 +85,32 @@ export function ExtractMemoriesModal({ open, onClose, conversationId }: ExtractM
           loading={extracting}
           disabled={!selectedNamespaceId || !hasNamespaces}
         >
-          {extracting ? t("chat.extractMemoriesProcessing") : t("chat.extractMemories")}
+          {extracting
+            ? t("chat.extractMemoriesProcessing")
+            : t("chat.extractMemories")}
         </Button>,
       ]}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          marginTop: 8,
+        }}
+      >
         <Typography.Text type="secondary">
           {t("chat.extractMemoriesDesc")}
         </Typography.Text>
         {loading
           ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                padding: "16px 0",
+              }}
+            >
               <Spin size="small" />
             </div>
           )

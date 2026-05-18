@@ -49,14 +49,26 @@ function generateOperationSummary(
     || lowerTool.includes("glob")
     || lowerTool.includes("ls")
   ) {
-    if (input.path) { return t("permissionModal.toolDesc.readFilePath", { path: String(input.path) }); }
-    if (input.file) { return t("permissionModal.toolDesc.readFile", { file: String(input.file) }); }
+    if (input.path) {
+      return t("permissionModal.toolDesc.readFilePath", {
+        path: String(input.path),
+      });
+    }
+    if (input.file) {
+      return t("permissionModal.toolDesc.readFile", {
+        file: String(input.file),
+      });
+    }
     return t("permissionModal.toolDesc.readFileGeneric");
   }
 
   if (lowerTool.includes("write") || lowerTool.includes("edit")) {
     const filePath = input.file_path || input.path;
-    if (filePath) { return t("permissionModal.toolDesc.writeFile", { path: String(filePath) }); }
+    if (filePath) {
+      return t("permissionModal.toolDesc.writeFile", {
+        path: String(filePath),
+      });
+    }
     return t("permissionModal.toolDesc.writeFileGeneric");
   }
 
@@ -68,13 +80,19 @@ function generateOperationSummary(
     if (input.command) {
       const raw = String(input.command);
       const cmd = raw.slice(0, 60);
-      return t("permissionModal.toolDesc.execCommand", { cmd: cmd + (raw.length > 60 ? "..." : "") });
+      return t("permissionModal.toolDesc.execCommand", {
+        cmd: cmd + (raw.length > 60 ? "..." : ""),
+      });
     }
     return t("permissionModal.toolDesc.execShell");
   }
 
   if (lowerTool.includes("delete") || lowerTool.includes("remove")) {
-    if (input.path) { return t("permissionModal.toolDesc.deletePath", { path: String(input.path) }); }
+    if (input.path) {
+      return t("permissionModal.toolDesc.deletePath", {
+        path: String(input.path),
+      });
+    }
     return t("permissionModal.toolDesc.deleteGeneric");
   }
 
@@ -124,13 +142,17 @@ export const PermissionModal: React.FC = () => {
     ? pendingEntries[currentIndex]
     : null;
 
-  const [requestId, permissionRequest]: [string, PermissionRequestEvent] | [null, null] = currentEntry ?? [null, null];
+  const [requestId, permissionRequest]:
+    | [string, PermissionRequestEvent]
+    | [null, null] = currentEntry ?? [null, null];
 
   const riskLevel: RiskLevel = permissionRequest?.riskLevel ?? "read_only";
   const riskCfg = RISK_CONFIG[riskLevel];
 
   const operationSummary = useMemo(() => {
-    if (!permissionRequest) { return ""; }
+    if (!permissionRequest) {
+      return "";
+    }
     return generateOperationSummary(
       permissionRequest.toolName,
       permissionRequest.input,
@@ -139,7 +161,9 @@ export const PermissionModal: React.FC = () => {
   }, [permissionRequest, t]);
 
   const inputJson = useMemo(() => {
-    if (!permissionRequest?.input) { return ""; }
+    if (!permissionRequest?.input) {
+      return "";
+    }
     try {
       return JSON.stringify(permissionRequest.input, null, 2);
     } catch {
@@ -149,7 +173,9 @@ export const PermissionModal: React.FC = () => {
 
   const handleDecision = useCallback(
     async (decision: string) => {
-      if (!permissionRequest || !requestId) { return; }
+      if (!permissionRequest || !requestId) {
+        return;
+      }
 
       setLoading(decision);
       try {
@@ -160,7 +186,11 @@ export const PermissionModal: React.FC = () => {
           permissionRequest.toolName,
         );
       } catch (e) {
-        console.error("[PermissionModal]", t("permissionModal.approveError"), e);
+        console.error(
+          "[PermissionModal]",
+          t("permissionModal.approveError"),
+          e,
+        );
       } finally {
         setLoading(null);
         // 移动到下一个待审批项
@@ -184,7 +214,15 @@ export const PermissionModal: React.FC = () => {
           <Shield size={18} style={{ color: "var(--ant-color-primary)" }} />
           <span>{t("permissionModal.title")}</span>
           {permissionRequest && (
-            <Tag color={riskCfg.color} style={{ display: "inline-flex", alignItems: "center", gap: 4, margin: 0 }}>
+            <Tag
+              color={riskCfg.color}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                margin: 0,
+              }}
+            >
               {riskCfg.icon}
               {t(riskCfg.labelKey)}
             </Tag>
@@ -204,7 +242,9 @@ export const PermissionModal: React.FC = () => {
             width: "100%",
           }}
         >
-          <div style={{ fontSize: 12, color: "var(--ant-color-text-secondary)" }}>
+          <div
+            style={{ fontSize: 12, color: "var(--ant-color-text-secondary)" }}
+          >
             {pendingEntries.length > 1
               ? t("permissionModal.pendingCount", {
                 count: String(pendingEntries.length),
@@ -263,7 +303,8 @@ export const PermissionModal: React.FC = () => {
             />
             <div>
               <Text strong style={{ fontSize: 14, display: "block" }}>
-                {permissionRequest?.toolName ?? t("permissionModal.unknownTool")}
+                {permissionRequest?.toolName
+                  ?? t("permissionModal.unknownTool")}
               </Text>
               <Text type="secondary" style={{ fontSize: 13 }}>
                 {operationSummary}
@@ -307,7 +348,9 @@ export const PermissionModal: React.FC = () => {
             }}
           >
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {showDetails ? t("permissionModal.collapseDetails") : t("permissionModal.expandDetails")}
+              {showDetails
+                ? t("permissionModal.collapseDetails")
+                : t("permissionModal.expandDetails")}
             </Text>
           </div>
           {showDetails && (

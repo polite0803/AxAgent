@@ -80,7 +80,10 @@ interface WorkflowEditorProps {
   onClose?: () => void;
 }
 
-export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onClose }) => {
+export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
+  templateId,
+  onClose,
+}) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const {
@@ -143,7 +146,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   }, [templateId]);
 
   useEffect(() => {
-    if (!isDirty || isSaving || isDecompositionTemplate) { return; }
+    if (!isDirty || isSaving || isDecompositionTemplate) {
+      return;
+    }
 
     const timer = setTimeout(async () => {
       const input = {
@@ -189,15 +194,22 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       const warningNodeIds = new Set<string>();
       if (validationResult) {
         validationResult.errors.forEach((e) => {
-          if (e.node_id) { errorNodeIds.add(e.node_id); }
+          if (e.node_id) {
+            errorNodeIds.add(e.node_id);
+          }
         });
         validationResult.warnings.forEach((w) => {
-          if (w.node_id) { warningNodeIds.add(w.node_id); }
+          if (w.node_id) {
+            warningNodeIds.add(w.node_id);
+          }
         });
       }
 
       const flowNodes: Node[] = nodes.map((node: WorkflowNode) => {
-        const typeInfo = NODE_TYPE_MAP[node.type] || { labelKey: "", color: token.colorTextQuaternary };
+        const typeInfo = NODE_TYPE_MAP[node.type] || {
+          labelKey: "",
+          color: token.colorTextQuaternary,
+        };
         const nodeType = NODE_TYPE_MAP[node.type] ? node.type : "base";
 
         let validationState: "error" | "warning" | undefined;
@@ -222,13 +234,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                 agentProfileId: (node as AgentNodeType).config.agentProfileId,
                 systemPrompt: (node as AgentNodeType).config.system_prompt,
                 tools: (node as AgentNodeType).config.tools,
-                contextSources: (node as AgentNodeType).config.context_sources,
+                contextSources: (node as AgentNodeType).config
+                  .context_sources,
                 outputMode: (node as AgentNodeType).config.output_mode,
                 model: (node as AgentNodeType).config.model,
                 ...(function() {
-                  const profileId = (node as AgentNodeType).config.agentProfileId;
+                  const profileId = (node as AgentNodeType).config
+                    .agentProfileId;
                   if (profileId) {
-                    const profile = useExpertStore.getState().getRoleById(profileId);
+                    const profile = useExpertStore
+                      .getState()
+                      .getRoleById(profileId);
                     if (profile) {
                       return {
                         agentRole: profile.agentRole || undefined,
@@ -339,14 +355,21 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   useEffect(() => {
     const handleGlobalMouseUp = (e: MouseEvent) => {
       const payload = getDragPayload();
-      if (!payload) { return; }
+      if (!payload) {
+        return;
+      }
 
       try {
-        const typeInfo = NODE_TYPE_MAP[payload.type] || { labelKey: "", color: token.colorTextQuaternary };
+        const typeInfo = NODE_TYPE_MAP[payload.type] || {
+          labelKey: "",
+          color: token.colorTextQuaternary,
+        };
 
         // Check if the mouse is within the canvas area
         const canvasEl = document.querySelector(".react-flow");
-        if (!canvasEl) { return; }
+        if (!canvasEl) {
+          return;
+        }
 
         const rect = canvasEl.getBoundingClientRect();
         if (
@@ -364,7 +387,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         });
 
         const id = `node-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-        const actualNodeType = NODE_TYPE_MAP[payload.type] ? payload.type : "base";
+        const actualNodeType = NODE_TYPE_MAP[payload.type]
+          ? payload.type
+          : "base";
 
         const newNode: Node = {
           id,
@@ -373,7 +398,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           data: {
             id,
             type: payload.type,
-            title: t("workflow.newNode", { type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type }),
+            title: t("workflow.newNode", {
+              type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type,
+            }),
             description: "",
             color: typeInfo.color,
             nodeType: payload.type,
@@ -388,7 +415,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           id,
           payload.type,
           position,
-          t("workflow.newNode", { type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type }),
+          t("workflow.newNode", {
+            type: typeInfo.labelKey ? t(typeInfo.labelKey) : payload.type,
+          }),
         );
         useWorkflowEditorStore.getState().addNode(workflowNode);
       } catch (error) {
@@ -404,11 +433,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   }, [reactFlowInstance, setRNodes]);
 
   const handleSave = useCallback(async () => {
-    if (!currentTemplate) { return; }
+    if (!currentTemplate) {
+      return;
+    }
 
     if (isDecompositionTemplate) {
       try {
-        await saveSkillWorkflowFromLlm(currentTemplate.name, currentTemplate.description);
+        await saveSkillWorkflowFromLlm(
+          currentTemplate.name,
+          currentTemplate.description,
+        );
         message.success(t("workflow.decompositionSaved"));
         onClose?.();
       } catch (e) {
@@ -419,7 +453,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
     const validation = await validateTemplate();
     if (validation && !validation.is_valid) {
-      message.error(t("workflow.validationFailed", { count: validation.errors.length }));
+      message.error(
+        t("workflow.validationFailed", { count: validation.errors.length }),
+      );
       return;
     }
 
@@ -472,28 +508,41 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
       if (isCtrlOrCmd && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        if (canUndo()) { undo(); }
-        else { message.info(t("workflow.noUndoAvailable")); }
+        if (canUndo()) {
+          undo();
+        } else {
+          message.info(t("workflow.noUndoAvailable"));
+        }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "z" && e.shiftKey) {
         e.preventDefault();
-        if (canRedo()) { redo(); }
-        else { message.info(t("workflow.noRedoAvailable")); }
+        if (canRedo()) {
+          redo();
+        } else {
+          message.info(t("workflow.noRedoAvailable"));
+        }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "y") {
         e.preventDefault();
-        if (canRedo()) { redo(); }
-        else { message.info(t("workflow.noRedoAvailable")); }
+        if (canRedo()) {
+          redo();
+        } else {
+          message.info(t("workflow.noRedoAvailable"));
+        }
         return;
       }
 
       if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
         const target = e.target as HTMLElement;
-        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        if (
+          target.tagName === "INPUT"
+          || target.tagName === "TEXTAREA"
+          || target.isContentEditable
+        ) {
           return;
         }
         e.preventDefault();
@@ -512,7 +561,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       }
 
       if (isCtrlOrCmd && e.key === "v") {
-        if (clipboardRef.current.length === 0) { return; }
+        if (clipboardRef.current.length === 0) {
+          return;
+        }
         const newNodes: WorkflowNode[] = [];
         const offset = { x: 50, y: 50 };
 
@@ -530,14 +581,20 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
           addNode(newNode);
         });
         if (newNodes.length > 0) {
-          message.success(t("workflow.nodesPasted", { count: newNodes.length }));
+          message.success(
+            t("workflow.nodesPasted", { count: newNodes.length }),
+          );
         }
         return;
       }
 
       if (isCtrlOrCmd && e.key === "a") {
         const target = e.target as HTMLElement;
-        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        if (
+          target.tagName === "INPUT"
+          || target.tagName === "TEXTAREA"
+          || target.isContentEditable
+        ) {
           return;
         }
         e.preventDefault();
@@ -547,7 +604,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo, selectedNodeId, deleteNode, setSelectedNode, nodes, addNode, handleSave]);
+  }, [
+    undo,
+    redo,
+    selectedNodeId,
+    deleteNode,
+    setSelectedNode,
+    nodes,
+    addNode,
+    handleSave,
+  ]);
 
   const handleNodesChange = useCallback(
     (changes: any) => {
@@ -587,9 +653,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
     [updateTemplateMetadata],
   );
 
-  const handleImportedTemplate = useCallback((id: string) => {
-    loadTemplate(id);
-  }, [loadTemplate]);
+  const handleImportedTemplate = useCallback(
+    (id: string) => {
+      loadTemplate(id);
+    },
+    [loadTemplate],
+  );
 
   const handleClose = useCallback(() => {
     if (isDirty) {
@@ -608,25 +677,43 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
   }, [isDirty, t, onClose]);
 
   const selectedNode = useMemo(() => {
-    if (!selectedNodeId) { return null; }
+    if (!selectedNodeId) {
+      return null;
+    }
     return nodes.find((n) => n.id === selectedNodeId) || null;
   }, [selectedNodeId, nodes]);
 
   const selectedEdge = useMemo(() => {
-    if (!selectedEdgeId) { return null; }
+    if (!selectedEdgeId) {
+      return null;
+    }
     return edges.find((e) => e.id === selectedEdgeId) || null;
   }, [selectedEdgeId, edges]);
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+        }}
+      >
         <Spin size="large" />
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: token.colorBgContainer }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        background: token.colorBgContainer,
+      }}
+    >
       <EditorHeader
         templateName={currentTemplate?.name || t("workflow.newWorkflow")}
         isDirty={isDirty}
@@ -638,10 +725,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
         onToggleDebugPanel={() => setDebugPanelVisible(!debugPanelVisible)}
         onOpenImportExport={() => setImportExportModalVisible(true)}
         onUndo={() => {
-          if (canUndo()) { undo(); }
+          if (canUndo()) {
+            undo();
+          }
         }}
         onRedo={() => {
-          if (canRedo()) { redo(); }
+          if (canRedo()) {
+            redo();
+          }
         }}
         canUndo={canUndo()}
         canRedo={canRedo()}
@@ -679,7 +770,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
                   maskColor="rgba(0, 0, 0, 0.8)"
                 />
                 {nodes.length === 0 && (
-                  <Panel position="top-center" style={{ textAlign: "center", color: token.colorTextSecondary }}>
+                  <Panel
+                    position="top-center"
+                    style={{
+                      textAlign: "center",
+                      color: token.colorTextSecondary,
+                    }}
+                  >
                     {t("workflow.dragToStart")}
                   </Panel>
                 )}
@@ -751,7 +848,15 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ templateId, onCl
       />
 
       {error && (
-        <div style={{ position: "fixed", bottom: 60, left: "50%", transform: "translateX(-50%)", color: "red" }}>
+        <div
+          style={{
+            position: "fixed",
+            bottom: 60,
+            left: "50%",
+            transform: "translateX(-50%)",
+            color: "red",
+          }}
+        >
           {error}
         </div>
       )}
@@ -790,7 +895,12 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
     case "parallel":
       return { branches: [], wait_for_all: true };
     case "loop":
-      return { loop_type: "forEach", max_iterations: 100, continue_on_error: false, body_steps: [] };
+      return {
+        loop_type: "forEach",
+        max_iterations: 100,
+        continue_on_error: false,
+        body_steps: [],
+      };
     case "tool":
       return { tool_name: "", input_mapping: {}, output_var: "" };
     case "code":
@@ -800,7 +910,12 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
     case "delay":
       return { delay_type: "seconds", seconds: 5 };
     case "subWorkflow":
-      return { sub_workflow_id: "", input_mapping: {}, output_var: "", is_async: false };
+      return {
+        sub_workflow_id: "",
+        input_mapping: {},
+        output_var: "",
+        is_async: false,
+      };
     case "documentParser":
       return { input_var: "", parser_type: "", output_var: "" };
     case "vectorRetrieve":
@@ -814,7 +929,12 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
   }
 }
 
-function createWorkflowNode(id: string, type: string, position: { x: number; y: number }, title: string): WorkflowNode {
+function createWorkflowNode(
+  id: string,
+  type: string,
+  position: { x: number; y: number },
+  title: string,
+): WorkflowNode {
   const baseNode = {
     id,
     title,
@@ -833,7 +953,11 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
 
   switch (type) {
     case "trigger":
-      return { ...baseNode, type: "trigger", config: { type: "manual", config: {} } };
+      return {
+        ...baseNode,
+        type: "trigger",
+        config: { type: "manual", config: {} },
+      };
     case "agent":
       return {
         ...baseNode,
@@ -847,33 +971,75 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
         },
       };
     case "llm":
-      return { ...baseNode, type: "llm", config: { model: "", prompt: "", temperature: 0.7, max_tokens: 2048 } };
+      return {
+        ...baseNode,
+        type: "llm",
+        config: { model: "", prompt: "", temperature: 0.7, max_tokens: 2048 },
+      };
     case "condition":
-      return { ...baseNode, type: "condition", config: { conditions: [], logical_op: "and" } };
+      return {
+        ...baseNode,
+        type: "condition",
+        config: { conditions: [], logical_op: "and" },
+      };
     case "parallel":
-      return { ...baseNode, type: "parallel", config: { branches: [], wait_for_all: true } };
+      return {
+        ...baseNode,
+        type: "parallel",
+        config: { branches: [], wait_for_all: true },
+      };
     case "loop":
       return {
         ...baseNode,
         type: "loop",
-        config: { loop_type: "forEach", max_iterations: 100, continue_on_error: false, body_steps: [] },
+        config: {
+          loop_type: "forEach",
+          max_iterations: 100,
+          continue_on_error: false,
+          body_steps: [],
+        },
       };
     case "merge":
-      return { ...baseNode, type: "merge", config: { merge_type: "all", inputs: [] } };
+      return {
+        ...baseNode,
+        type: "merge",
+        config: { merge_type: "all", inputs: [] },
+      };
     case "delay":
-      return { ...baseNode, type: "delay", config: { delay_type: "seconds", seconds: 5 } };
+      return {
+        ...baseNode,
+        type: "delay",
+        config: { delay_type: "seconds", seconds: 5 },
+      };
     case "tool":
-      return { ...baseNode, type: "tool", config: { tool_name: "", input_mapping: {}, output_var: "" } };
+      return {
+        ...baseNode,
+        type: "tool",
+        config: { tool_name: "", input_mapping: {}, output_var: "" },
+      };
     case "code":
-      return { ...baseNode, type: "code", config: { language: "javascript", code: "", output_var: "" } };
+      return {
+        ...baseNode,
+        type: "code",
+        config: { language: "javascript", code: "", output_var: "" },
+      };
     case "subWorkflow":
       return {
         ...baseNode,
         type: "subWorkflow",
-        config: { sub_workflow_id: "", input_mapping: {}, output_var: "", is_async: false },
+        config: {
+          sub_workflow_id: "",
+          input_mapping: {},
+          output_var: "",
+          is_async: false,
+        },
       };
     case "documentParser":
-      return { ...baseNode, type: "documentParser", config: { input_var: "", parser_type: "", output_var: "" } };
+      return {
+        ...baseNode,
+        type: "documentParser",
+        config: { input_var: "", parser_type: "", output_var: "" },
+      };
     case "vectorRetrieve":
       return {
         ...baseNode,

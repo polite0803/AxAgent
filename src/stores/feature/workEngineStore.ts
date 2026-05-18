@@ -42,57 +42,92 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
 
   pause: async () => {
     const { executionId } = get();
-    if (!executionId) { return; }
-    await invoke<boolean>("pause_workflow_execution", { execution_id: executionId });
+    if (!executionId) {
+      return;
+    }
+    await invoke<boolean>("pause_workflow_execution", {
+      execution_id: executionId,
+    });
   },
 
   resume: async () => {
     const { executionId } = get();
-    if (!executionId) { return; }
-    await invoke<boolean>("resume_workflow_execution", { execution_id: executionId });
+    if (!executionId) {
+      return;
+    }
+    await invoke<boolean>("resume_workflow_execution", {
+      execution_id: executionId,
+    });
   },
 
   cancel: async () => {
     const { executionId } = get();
-    if (!executionId) { return; }
-    await invoke<boolean>("cancel_workflow_execution", { execution_id: executionId });
+    if (!executionId) {
+      return;
+    }
+    await invoke<boolean>("cancel_workflow_execution", {
+      execution_id: executionId,
+    });
   },
 
   loadHistory: async (workflowId: string) => {
-    const history = await invoke<ExecutionSummary[]>("list_workflow_executions", {
-      workflow_id: workflowId,
-    });
+    const history = await invoke<ExecutionSummary[]>(
+      "list_workflow_executions",
+      {
+        workflow_id: workflowId,
+      },
+    );
     set({ executionHistory: history });
   },
 
   getStatus: async (executionId: string) => {
-    const status = await invoke<ExecutionStatusResponse>("get_workflow_execution_status", {
-      execution_id: executionId,
-    });
+    const status = await invoke<ExecutionStatusResponse>(
+      "get_workflow_execution_status",
+      {
+        execution_id: executionId,
+      },
+    );
     set({ status });
   },
 
   setupEventListeners: async () => {
-    const unlistenNode = await listen("workflow:node-status-changed", (event) => {
-      const payload = event.payload as { execution_id: string; node_id: string; status: string };
-      set((state) => ({
-        nodeStatuses: { ...state.nodeStatuses, [payload.node_id]: payload.status },
-      }));
-    });
-
-    const unlistenCompleted = await listen("workflow:execution-completed", (event) => {
-      const payload = event.payload as { execution_id: string; status: string; total_time_ms: number };
-      const { status } = get();
-      if (status && status.execution_id === payload.execution_id) {
-        set({
-          status: {
-            ...status,
-            status: payload.status as ExecutionStatusResponse["status"],
-            total_time_ms: payload.total_time_ms,
+    const unlistenNode = await listen(
+      "workflow:node-status-changed",
+      (event) => {
+        const payload = event.payload as {
+          execution_id: string;
+          node_id: string;
+          status: string;
+        };
+        set((state) => ({
+          nodeStatuses: {
+            ...state.nodeStatuses,
+            [payload.node_id]: payload.status,
           },
-        });
-      }
-    });
+        }));
+      },
+    );
+
+    const unlistenCompleted = await listen(
+      "workflow:execution-completed",
+      (event) => {
+        const payload = event.payload as {
+          execution_id: string;
+          status: string;
+          total_time_ms: number;
+        };
+        const { status } = get();
+        if (status && status.execution_id === payload.execution_id) {
+          set({
+            status: {
+              ...status,
+              status: payload.status as ExecutionStatusResponse["status"],
+              total_time_ms: payload.total_time_ms,
+            },
+          });
+        }
+      },
+    );
 
     return () => {
       unlistenNode();

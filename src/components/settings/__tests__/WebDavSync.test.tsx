@@ -90,10 +90,7 @@ describe("WebDavSync", () => {
       screen.getByRole("textbox", { name: "backup.webdav.username" }),
       "alice",
     );
-    await user.type(
-      screen.getByLabelText("backup.webdav.password"),
-      "secret",
-    );
+    await user.type(screen.getByLabelText("backup.webdav.password"), "secret");
 
     await user.click(screen.getByRole("button", { name: "OK" }));
 

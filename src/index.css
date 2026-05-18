@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import 'markstream-react/index.css';
-@import 'overlayscrollbars/overlayscrollbars.css';
+@import "markstream-react/index.css";
+@import "overlayscrollbars/overlayscrollbars.css";
 
 /* ── Base — dark-first defaults (paperclip-dark), overridden by JS on startup ──────── */
 :root {
@@ -19,8 +19,11 @@
   --neon-green: #39ff14;
   --cyber-grid-color: rgba(0, 240, 255, 0.03);
   --cyber-glow-sm: 0 0 8px rgba(0, 240, 255, 0.15);
-  --cyber-glow-md: 0 0 16px rgba(0, 240, 255, 0.2), 0 0 4px rgba(0, 240, 255, 0.1);
-  --cyber-glow-lg: 0 0 24px rgba(0, 240, 255, 0.25), 0 0 8px rgba(0, 240, 255, 0.15), 0 0 2px rgba(0, 240, 255, 0.1);
+  --cyber-glow-md:
+    0 0 16px rgba(0, 240, 255, 0.2), 0 0 4px rgba(0, 240, 255, 0.1);
+  --cyber-glow-lg:
+    0 0 24px rgba(0, 240, 255, 0.25), 0 0 8px rgba(0, 240, 255, 0.15),
+    0 0 2px rgba(0, 240, 255, 0.1);
 }
 
 html,
@@ -65,8 +68,16 @@ button,
 
 /* Page enter: fade + slight slide + blur */
 @keyframes ax-page-enter {
-  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
-  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
 }
 .ax-page-transition {
   animation: ax-page-enter 0.2s ease-out;
@@ -74,8 +85,16 @@ button,
 
 /* Message slide-up (applied by ChatView) */
 @keyframes ax-message-up {
-  from { opacity: 0; transform: translateY(10px); filter: blur(3px); }
-  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
 }
 
 /* Button press feedback */
@@ -83,13 +102,20 @@ button:active:not(:disabled) {
   transform: scale(0.97);
 }
 button {
-  transition: transform 0.06s ease-out, background-color 0.12s ease-in-out, color 0.12s ease-in-out;
+  transition:
+    transform 0.06s ease-out,
+    background-color 0.12s ease-in-out,
+    color 0.12s ease-in-out;
 }
 
 /* Skeleton shimmer */
 @keyframes ax-shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 .ax-skeleton {
   background: linear-gradient(
@@ -105,32 +131,70 @@ button {
 
 /* ── Cyberpunk visual effects ─────────────────────────────────────── */
 @keyframes ax-neon-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; filter: drop-shadow(0 0 2px currentColor); }
-  50% { opacity: 0.6; filter: drop-shadow(0 0 6px currentColor); }
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  50% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
 }
 
 @keyframes ax-scan-line {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
 @keyframes ax-glitch-1 {
-  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
-  20% { clip-path: inset(20% 0 60% 0); transform: translate(-2px, 1px); }
-  40% { clip-path: inset(40% 0 30% 0); transform: translate(2px, -1px); }
-  60% { clip-path: inset(60% 0 10% 0); transform: translate(-1px, 2px); }
-  80% { clip-path: inset(10% 0 70% 0); transform: translate(1px, -2px); }
+  0%,
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translate(0);
+  }
+  20% {
+    clip-path: inset(20% 0 60% 0);
+    transform: translate(-2px, 1px);
+  }
+  40% {
+    clip-path: inset(40% 0 30% 0);
+    transform: translate(2px, -1px);
+  }
+  60% {
+    clip-path: inset(60% 0 10% 0);
+    transform: translate(-1px, 2px);
+  }
+  80% {
+    clip-path: inset(10% 0 70% 0);
+    transform: translate(1px, -2px);
+  }
 }
 
 @keyframes ax-border-flow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes ax-cyber-fade-in {
@@ -152,7 +216,9 @@ button {
 
 /* Neon text glow for active states */
 .ax-neon-text {
-  text-shadow: 0 0 7px var(--neon-cyan), 0 0 14px rgba(0, 240, 255, 0.3);
+  text-shadow:
+    0 0 7px var(--neon-cyan),
+    0 0 14px rgba(0, 240, 255, 0.3);
 }
 
 /* Cyberpunk border gradient animation */
@@ -174,9 +240,13 @@ button {
   );
   background-size: 300% 300%;
   animation: ax-border-flow 4s ease infinite;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   pointer-events: none;
   opacity: 0;
@@ -213,7 +283,9 @@ button {
 
 /* Subtle card lift on hover */
 .ax-card-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .ax-card-lift:hover {
   transform: translateY(-1px);
@@ -264,11 +336,15 @@ button {
   height: 0;
   border-radius: 0 3px 3px 0;
   background: var(--color-primary, #a1a1aa);
-  transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  transition:
+    height 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s ease;
 }
 .ax-nav-item-active .ax-nav-indicator {
   height: 24px;
-  box-shadow: 0 0 8px var(--neon-cyan, #00f0ff), 0 0 2px var(--neon-cyan, #00f0ff);
+  box-shadow:
+    0 0 8px var(--neon-cyan, #00f0ff),
+    0 0 2px var(--neon-cyan, #00f0ff);
 }
 
 /* Sidebar section group header */
@@ -323,7 +399,10 @@ code,
 
 .mermaid-block-header {
   padding: 6px 10px !important;
-  background-color: var(--mermaid-header-bg, var(--color-fill-alter)) !important;
+  background-color: var(
+    --mermaid-header-bg,
+    var(--color-fill-alter)
+  ) !important;
   border-bottom-color: var(--mermaid-border, var(--border-color)) !important;
 }
 
@@ -386,8 +465,14 @@ code,
 
 .infographic-block-header {
   padding: 6px 10px !important;
-  background-color: var(--infographic-header-bg, var(--color-fill-alter)) !important;
-  border-bottom-color: var(--infographic-border, var(--border-color)) !important;
+  background-color: var(
+    --infographic-header-bg,
+    var(--color-fill-alter)
+  ) !important;
+  border-bottom-color: var(
+    --infographic-border,
+    var(--border-color)
+  ) !important;
 }
 
 .infographic-block-body {
@@ -443,12 +528,16 @@ code,
 
 /* Fix icon alignment in dropdown menus (lucide SVGs) */
 .ant-dropdown-menu .ant-dropdown-menu-item-icon,
-.ant-dropdown-menu .ant-dropdown-menu-submenu-title > .ant-dropdown-menu-item-icon {
+.ant-dropdown-menu
+  .ant-dropdown-menu-submenu-title
+  > .ant-dropdown-menu-item-icon {
   display: inline-flex !important;
   align-items: center !important;
 }
 
-b, strong, th,
+b,
+strong,
+th,
 [class*="ant-"] b,
 [class*="ant-"] strong,
 .ant-typography strong,
@@ -503,7 +592,8 @@ html[data-theme="light"] .axagent-input-textarea::-webkit-scrollbar-thumb {
   background: rgba(123, 47, 247, 0.18);
 }
 
-html[data-theme="light"] .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
+html[data-theme="light"]
+  .axagent-input-textarea::-webkit-scrollbar-thumb:hover {
   background: rgba(123, 47, 247, 0.28);
 }
 
@@ -546,7 +636,9 @@ html[data-theme="light"] .chat-scroll-indicator {
   justify-content: center;
   padding: 3px 5px;
   border-radius: 4px;
-  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    background-color 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 }
 .axagent-action-item:hover {
   background: rgba(0, 240, 255, 0.08);
@@ -608,15 +700,19 @@ svg.lucide {
 
 /* Multi-model streaming animation */
 @keyframes model-tag-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .model-tag-streaming {
   position: relative;
 }
 .model-tag-streaming::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: -2px;
   border-radius: 50%;
@@ -633,8 +729,13 @@ svg.lucide {
 }
 
 @keyframes model-tag-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* ── markstream-react dark mode border overrides ────────────────────── */
@@ -722,7 +823,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   padding-left: 12px;
   padding-right: 12px;
   gap: 10px;
-  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    background-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
   background-color: transparent;
   border: none;
   font-family: inherit;
@@ -753,7 +856,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   cursor: pointer;
   border: none;
   background-color: transparent;
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    background-color 0.15s ease-in-out,
+    color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 .ax-titlebar-btn:hover {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
@@ -770,7 +876,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   background: transparent;
   cursor: pointer;
   outline: none;
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+  transition:
+    background-color 0.15s ease-in-out,
+    color 0.15s ease-in-out;
 }
 .ax-titlebar-winctrl:hover {
   background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
@@ -791,7 +899,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   border-radius: 6px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    background-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
   background-color: transparent;
   border: none;
   font-family: inherit;
@@ -812,7 +922,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   margin-bottom: 8px;
   cursor: pointer;
   border-radius: 6px;
-  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    background-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
   background-color: transparent;
   border: none;
   font-family: inherit;
@@ -837,13 +949,17 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
 /* ═══════════════════════════════════════════════════════════════
 /*   ── Mobile Landscape Mode (height <= 500px & width > var(--breakpoint-mobile)) ── */
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-height: 500px) and (orientation: landscape) {
+═══════════════════════════════════════════════════════════════
+  */
+  @media
+  (max-height: 500px)
+  and
+  (orientation: landscape) {
   /* Font size adjustments for landscape reading */
   :root {
     --font-size-base: 13px !important;
   }
-  
+
   body {
     font-size: 13px !important;
   }
@@ -1026,11 +1142,17 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
   /* Active state for touch feedback instead of hover */
   .ax-nav-item:active {
-    background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08)) !important;
+    background-color: var(
+      --ant-color-fill-secondary,
+      rgba(255, 255, 255, 0.08)
+    ) !important;
   }
 
   .ax-sidebar-user:active {
-    background-color: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08)) !important;
+    background-color: var(
+      --ant-color-fill-secondary,
+      rgba(255, 255, 255, 0.08)
+    ) !important;
   }
 
   .axagent-action-item:active {
@@ -1121,8 +1243,12 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   }
 
   @keyframes ax-shimmer {
-    0%   { background-position: -100% 0; }
-    100% { background-position: 100% 0; }
+    0% {
+      background-position: -100% 0;
+    }
+    100% {
+      background-position: 100% 0;
+    }
   }
 
   .ax-skeleton {

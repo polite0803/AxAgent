@@ -18,7 +18,9 @@ interface VectorRetrieveNodeData {
   outputVar?: string;
 }
 
-const VectorRetrieveNodeComponent: React.FC<NodeProps<VectorRetrieveNodeData>> = ({ data, selected }) => {
+const VectorRetrieveNodeComponent: React.FC<
+  NodeProps<VectorRetrieveNodeData>
+> = ({ data, selected }) => {
   const { t } = useTranslation();
   const color = "#eb2f96";
   const query = data.query || "";

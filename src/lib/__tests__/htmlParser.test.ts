@@ -52,31 +52,39 @@ describe("composeHtml", () => {
 
 describe("isChartOption", () => {
   it("returns true for ECharts option with series", () => {
-    const result = isChartOption(JSON.stringify({
-      series: [{ type: "line", data: [1, 2, 3] }],
-    }));
+    const result = isChartOption(
+      JSON.stringify({
+        series: [{ type: "line", data: [1, 2, 3] }],
+      }),
+    );
     expect(result).toBe(true);
   });
 
   it("returns true for ECharts option with xAxis", () => {
-    const result = isChartOption(JSON.stringify({
-      xAxis: { type: "category" },
-    }));
+    const result = isChartOption(
+      JSON.stringify({
+        xAxis: { type: "category" },
+      }),
+    );
     expect(result).toBe(true);
   });
 
   it("returns true for ECharts option with yAxis", () => {
-    const result = isChartOption(JSON.stringify({
-      yAxis: { type: "value" },
-    }));
+    const result = isChartOption(
+      JSON.stringify({
+        yAxis: { type: "value" },
+      }),
+    );
     expect(result).toBe(true);
   });
 
   it("returns true for ECharts polar chart", () => {
-    const result = isChartOption(JSON.stringify({
-      polar: {},
-      radiusAxis: {},
-    }));
+    const result = isChartOption(
+      JSON.stringify({
+        polar: {},
+        radiusAxis: {},
+      }),
+    );
     expect(result).toBe(true);
   });
 

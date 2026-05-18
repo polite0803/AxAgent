@@ -14,7 +14,12 @@ interface EvolutionStats {
 export function EvolutionPanel() {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
-  const [status, setStatus] = useState<{ is_running: boolean; stats: EvolutionStats | null } | null>(null);
+  const [status, setStatus] = useState<
+    {
+      is_running: boolean;
+      stats: EvolutionStats | null;
+    } | null
+  >(null);
   const [error, setError] = useState(false);
   const mountedRef = useRef(true);
 
@@ -27,18 +32,25 @@ export function EvolutionPanel() {
 
   const fetchData = useCallback(async () => {
     try {
-      const s = await invoke<{ is_running: boolean; stats: EvolutionStats }>("skill_evolution_status", {});
+      const s = await invoke<{ is_running: boolean; stats: EvolutionStats }>(
+        "skill_evolution_status",
+        {},
+      );
       if (mountedRef.current) {
         setStatus(s);
         setError(false);
       }
     } catch {
-      if (mountedRef.current) { setError(true); }
+      if (mountedRef.current) {
+        setError(true);
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     fetchData();
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
@@ -53,7 +65,12 @@ export function EvolutionPanel() {
         >
           <Sparkles size={14} />
           {t("chat.evolution")}
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
         </button>
       </div>
     );
@@ -65,15 +82,32 @@ export function EvolutionPanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t("chat.skillEvolution")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("chat.skillEvolution")}
+        </span>
         <div className="flex items-center gap-1">
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="size-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -81,17 +115,31 @@ export function EvolutionPanel() {
 
       <div className="grid grid-cols-3 gap-1.5">
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.generation")}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.generation")}
+          </div>
           <div className="text-xs font-medium">{stats?.generation ?? 0}</div>
         </div>
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.bestFitness")}</div>
-          <div className="text-xs font-medium">{(stats?.best_fitness ?? 0).toFixed(3)}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.bestFitness")}
+          </div>
+          <div className="text-xs font-medium">
+            {(stats?.best_fitness ?? 0).toFixed(3)}
+          </div>
         </div>
         <div className="text-center p-1 rounded bg-muted/30">
-          <div className="text-[10px] text-muted-foreground">{t("chat.status")}</div>
-          <div className={`text-xs font-medium ${stats?.converged ? "text-green-500" : "text-amber-500"}`}>
-            {stats?.converged ? t("chat.converged") : status?.is_running ? t("chat.running") : t("chat.idle")}
+          <div className="text-[10px] text-muted-foreground">
+            {t("chat.status")}
+          </div>
+          <div
+            className={`text-xs font-medium ${stats?.converged ? "text-green-500" : "text-amber-500"}`}
+          >
+            {stats?.converged
+              ? t("chat.converged")
+              : status?.is_running
+              ? t("chat.running")
+              : t("chat.idle")}
           </div>
         </div>
       </div>
@@ -107,7 +155,9 @@ export function EvolutionPanel() {
               const min = Math.min(...fitnessHistory.slice(-20));
               const range = max - min || 1;
               const height = ((f - min) / range) * 100;
-              {/* static fitness chart bars, safe to use index as key */}
+              {
+                /* static fitness chart bars, safe to use index as key */
+              }
               return (
                 <div
                   key={i}

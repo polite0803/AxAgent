@@ -70,7 +70,9 @@ export function SessionSearchPanel({
   };
 
   const handleSaveFilter = () => {
-    if (!filterName.trim()) { return; }
+    if (!filterName.trim()) {
+      return;
+    }
 
     const filter: SavedFilter = {
       name: filterName,
@@ -90,7 +92,9 @@ export function SessionSearchPanel({
   };
 
   const highlightText = (text: string, ranges: [number, number][]) => {
-    if (!ranges || ranges.length === 0) { return text; }
+    if (!ranges || ranges.length === 0) {
+      return text;
+    }
 
     const parts: React.ReactNode[] = [];
     let lastEnd = 0;
@@ -99,7 +103,9 @@ export function SessionSearchPanel({
       if (start > lastEnd) {
         parts.push(text.slice(lastEnd, start));
       }
-      {/* computed highlight ranges, safe to use index as key */}
+      {
+        /* computed highlight ranges, safe to use index as key */
+      }
       parts.push(
         <mark
           key={`hl-${start}-${end}`}
@@ -214,7 +220,11 @@ export function SessionSearchPanel({
 
           {showFilters && (
             <Card size="small" style={{ marginBottom: 8 }}>
-              <Space direction="vertical" style={{ width: "100%" }} size="small">
+              <Space
+                direction="vertical"
+                style={{ width: "100%" }}
+                size="small"
+              >
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                   <Checkbox
                     checked={searchOptions.useRegex}
@@ -292,7 +302,10 @@ export function SessionSearchPanel({
 
           {savedFilters.length > 0 && (
             <div>
-              <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+              <Text
+                type="secondary"
+                style={{ display: "block", marginBottom: 8 }}
+              >
                 <Star size={14} style={{ marginRight: 4 }} />
                 {t("search.savedFilters")}
               </Text>
@@ -328,13 +341,7 @@ export function SessionSearchPanel({
             </div>
           )}
 
-          {error && (
-            <Alert
-              type="error"
-              message={error}
-              style={{ marginTop: 8 }}
-            />
-          )}
+          {error && <Alert type="error" message={error} style={{ marginTop: 8 }} />}
 
           {results.length > 0
             ? (

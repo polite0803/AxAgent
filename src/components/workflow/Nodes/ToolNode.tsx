@@ -16,7 +16,10 @@ interface ToolNodeData {
   outputVar?: string;
 }
 
-const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({ data, selected }) => {
+const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#52c41a";
   const toolName = data.toolName || t("workflow.toolNode.notSelected");

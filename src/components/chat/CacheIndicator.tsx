@@ -47,7 +47,12 @@ export function CacheIndicator({
   }
 
   return (
-    <Tooltip title={t("cacheIndicator.active", { hits: cacheHits, tokens: formatTokens(tokensSaved) })}>
+    <Tooltip
+      title={t("cacheIndicator.active", {
+        hits: cacheHits,
+        tokens: formatTokens(tokensSaved),
+      })}
+    >
       <Tag
         icon={<Database size={12} />}
         color="green"
@@ -61,7 +66,11 @@ export function CacheIndicator({
 }
 
 function formatTokens(n: number): string {
-  if (n >= 1_000_000) { return `${(n / 1_000_000).toFixed(1)}M`; }
-  if (n >= 1_000) { return `${(n / 1_000).toFixed(1)}K`; }
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toFixed(1)}M`;
+  }
+  if (n >= 1_000) {
+    return `${(n / 1_000).toFixed(1)}K`;
+  }
   return n.toString();
 }

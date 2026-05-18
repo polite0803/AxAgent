@@ -6,7 +6,9 @@ import { useTranslation } from "react-i18next";
 
 const { Column } = Table;
 
-const getStatusColor = (status: string): "success" | "error" | "processing" | "default" | "warning" => {
+const getStatusColor = (
+  status: string,
+): "success" | "error" | "processing" | "default" | "warning" => {
   switch (status) {
     case "Pending":
       return "default";
@@ -87,20 +89,37 @@ export function TrainingJobList() {
           loading={isLoading}
           pagination={false}
         >
-          <Column title={t("trainingJob.id")} dataIndex="id" key="id" width={200} ellipsis />
+          <Column
+            title={t("trainingJob.id")}
+            dataIndex="id"
+            key="id"
+            width={200}
+            ellipsis
+          />
           <Column
             title={t("trainingJob.status")}
             dataIndex="status"
             key="status"
             render={(status: string) => <Badge status={getStatusColor(status)} text={status} />}
           />
-          <Column title={t("trainingJob.baseModel")} dataIndex="base_model" key="base_model" />
-          <Column title={t("trainingJob.datasetId")} dataIndex="dataset_id" key="dataset_id" />
+          <Column
+            title={t("trainingJob.baseModel")}
+            dataIndex="base_model"
+            key="base_model"
+          />
+          <Column
+            title={t("trainingJob.datasetId")}
+            dataIndex="dataset_id"
+            key="dataset_id"
+          />
           <Column
             title={t("trainingJob.progress")}
             key="progress"
             render={(_: unknown, record: { progress_percent: number }) => (
-              <Progress percent={Math.round(record.progress_percent)} size="small" />
+              <Progress
+                percent={Math.round(record.progress_percent)}
+                size="small"
+              />
             )}
           />
           <Column
@@ -113,7 +132,7 @@ export function TrainingJobList() {
             title={t("trainingJob.loraOutput")}
             dataIndex="output_lora"
             key="output_lora"
-            render={(lora: string | null) => (lora ? <Tag color="green">{t("trainingJob.ready")}</Tag> : "-")}
+            render={(lora: string | null) => lora ? <Tag color="green">{t("trainingJob.ready")}</Tag> : "-"}
           />
           <Column
             title={t("trainingJob.action")}

@@ -26,14 +26,16 @@ interface WorkerResponse {
 // ─── Token estimation (replicated from tokenEstimator.ts for worker context) ───
 
 function estimateTokens(text: string): number {
-  if (!text) { return 0; }
+  if (!text) {
+    return 0;
+  }
   // Simple heuristic: character count / 4, with adjustments
   let count = 0;
   for (const ch of text) {
     const code = ch.charCodeAt(0);
-    if (code <= 0x7F) {
+    if (code <= 0x7f) {
       count += 0.25; // ASCII
-    } else if (code <= 0x7FF) {
+    } else if (code <= 0x7ff) {
       count += 0.5; // Latin extended
     } else if (ch.match(/[\u4e00-\u9fff\u3400-\u4dbf]/)) {
       count += 1.5; // CJK characters (1-2 tokens each)
@@ -51,7 +53,9 @@ function estimateTokens(text: string): number {
 const AXAGENT_TAG_REGEX = /<think\s+data-axagent=.+?<\/think>|<\/?web-search[^>]*>/gs;
 
 function processMarkdown(text: string, stripTags: boolean): string {
-  if (!stripTags) { return text; }
+  if (!stripTags) {
+    return text;
+  }
   return text.replace(AXAGENT_TAG_REGEX, "").trim();
 }
 
@@ -60,7 +64,11 @@ function processMarkdown(text: string, stripTags: boolean): string {
 function formatExportMarkdown(messages: Message[]): string {
   const lines: string[] = ["# Chat Export\n"];
   for (const msg of messages) {
-    const role = msg.role === "user" ? "User" : msg.role === "assistant" ? "Assistant" : msg.role;
+    const role = msg.role === "user"
+      ? "User"
+      : msg.role === "assistant"
+      ? "Assistant"
+      : msg.role;
     const content = msg.content.replace(AXAGENT_TAG_REGEX, "").trim();
     lines.push(`## ${role}\n\n${content}\n`);
   }
@@ -70,7 +78,11 @@ function formatExportMarkdown(messages: Message[]): string {
 function formatExportText(messages: Message[]): string {
   const lines: string[] = [];
   for (const msg of messages) {
-    const role = msg.role === "user" ? "User" : msg.role === "assistant" ? "Assistant" : msg.role;
+    const role = msg.role === "user"
+      ? "User"
+      : msg.role === "assistant"
+      ? "Assistant"
+      : msg.role;
     const content = msg.content.replace(AXAGENT_TAG_REGEX, "").trim();
     lines.push(`[${role}] ${content}`);
   }
@@ -92,12 +104,18 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
         break;
       }
       case "processMarkdown": {
-        const { text, stripTags } = payload as { text: string; stripTags: boolean };
+        const { text, stripTags } = payload as {
+          text: string;
+          stripTags: boolean;
+        };
         result = { result: processMarkdown(text || "", stripTags) };
         break;
       }
       case "formatExport": {
-        const { messages, format } = payload as { messages: Message[]; format: string };
+        const { messages, format } = payload as {
+          messages: Message[];
+          format: string;
+        };
         if (format === "markdown") {
           result = { result: formatExportMarkdown(messages) };
         } else {
@@ -107,7 +125,10 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       }
       case "parseMarkdown": {
         const { content } = payload as { content: string };
-        result = { html: parseMarkdownBasic(content || ""), id: (payload as { id?: string }).id };
+        result = {
+          html: parseMarkdownBasic(content || ""),
+          id: (payload as { id?: string }).id,
+        };
         break;
       }
       default:
@@ -136,7 +157,10 @@ function parseMarkdownBasic(content: string): string {
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+  html = html.replace(
+    /```(\w*)\n([\s\S]*?)```/g,
+    '<pre><code class="language-$1">$2</code></pre>',
+  );
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');

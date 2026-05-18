@@ -33,7 +33,9 @@ export function WikiNodeContextMenu({
   const { token } = theme.useToken();
   const { t } = useTranslation();
 
-  if (!visible) { return null; }
+  if (!visible) {
+    return null;
+  }
 
   const menuItemStyle: React.CSSProperties = {
     padding: "6px 12px",
@@ -92,7 +94,12 @@ export function WikiNodeContextMenu({
             {nodeTitle}
           </Text>
         </div>
-        <Divider style={{ margin: "2px 0", borderColor: `${token.colorBorderSecondary}20` }} />
+        <Divider
+          style={{
+            margin: "2px 0",
+            borderColor: `${token.colorBorderSecondary}20`,
+          }}
+        />
 
         <div
           role="menuitem"
@@ -102,7 +109,9 @@ export function WikiNodeContextMenu({
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onEdit(nodeId))}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { handleClick(() => onEdit(nodeId)); }
+            if (e.key === "Enter" || e.key === " ") {
+              handleClick(() => onEdit(nodeId));
+            }
           }}
         >
           <PenLine size={14} />
@@ -117,7 +126,9 @@ export function WikiNodeContextMenu({
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onViewBacklinks(nodeId))}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { handleClick(() => onViewBacklinks(nodeId)); }
+            if (e.key === "Enter" || e.key === " ") {
+              handleClick(() => onViewBacklinks(nodeId));
+            }
           }}
         >
           <GitGraph size={14} />
@@ -132,7 +143,9 @@ export function WikiNodeContextMenu({
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onFocusLocal(nodeId))}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { handleClick(() => onFocusLocal(nodeId)); }
+            if (e.key === "Enter" || e.key === " ") {
+              handleClick(() => onFocusLocal(nodeId));
+            }
           }}
         >
           <Focus size={14} />
@@ -147,7 +160,9 @@ export function WikiNodeContextMenu({
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => handleClick(() => onCreateLinked(nodeId))}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { handleClick(() => onCreateLinked(nodeId)); }
+            if (e.key === "Enter" || e.key === " ") {
+              handleClick(() => onCreateLinked(nodeId));
+            }
           }}
         >
           <Link2 size={14} />

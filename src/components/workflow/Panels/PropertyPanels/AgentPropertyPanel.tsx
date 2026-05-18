@@ -21,7 +21,11 @@ interface AgentRoleRow {
   name: string;
 }
 
-export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
@@ -38,7 +42,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
   const [creatingProfile, setCreatingProfile] = useState(false);
 
   const getExpert = useExpertStore((s) => s.getRoleById);
-  const selectedExpert = config.agentProfileId ? getExpert(config.agentProfileId) : null;
+  const selectedExpert = config.agentProfileId
+    ? getExpert(config.agentProfileId)
+    : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
@@ -67,14 +73,26 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     if (providers.length === 0) {
       fetchProviders();
     }
-  }, [toolGroups.length, knowledgeBases.length, providers.length, loadToolGroups, loadKnowledgeBases, fetchProviders]);
+  }, [
+    toolGroups.length,
+    knowledgeBases.length,
+    providers.length,
+    loadToolGroups,
+    loadKnowledgeBases,
+    fetchProviders,
+  ]);
 
   const toolOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [];
     for (const group of toolGroups) {
-      if (!group.enabled) { continue; }
+      if (!group.enabled) {
+        continue;
+      }
       for (const tool of group.tools) {
-        options.push({ value: tool.name, label: `${group.groupName} / ${tool.name}` });
+        options.push({
+          value: tool.name,
+          label: `${group.groupName} / ${tool.name}`,
+        });
       }
     }
     return options;
@@ -82,7 +100,10 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
   const contextSourceOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [
-      { value: "conversation_history", label: t("workflow.props.contextConversationHistory") },
+      {
+        value: "conversation_history",
+        label: t("workflow.props.contextConversationHistory"),
+      },
     ];
     for (const kb of knowledgeBases) {
       if (kb.enabled) {
@@ -139,11 +160,15 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
         recommendedTools: expert.recommendedTools,
         recommendedWorkflows: expert.recommendedWorkflows,
       };
-      const profile = await useAgentProfileStore.getState().createCustomProfile(input);
+      const profile = await useAgentProfileStore
+        .getState()
+        .createCustomProfile(input);
       handleConfigChange("agentProfileId", profile.id);
       message.success(t("workflow.props.profileCreated"));
     } catch (e) {
-      message.error(t("workflow.props.profileCreateFailed", { error: String(e) }));
+      message.error(
+        t("workflow.props.profileCreateFailed", { error: String(e) }),
+      );
     } finally {
       setCreatingProfile(false);
     }
@@ -153,7 +178,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* 角色选择（全局 agent_roles） */}
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.agentRole")}
         </label>
         <Select
@@ -175,25 +207,48 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       {/* 专家/AgentProfile 选择 */}
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.expertRole")}
         </label>
         {selectedExpert
           ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                flexWrap: "wrap",
+              }}
+            >
               <Tag
                 closable
                 onClose={() => {
                   handleConfigChange("agentProfileId", undefined);
                   setSelectedRoleId(null);
                 }}
-                style={{ margin: 0, fontSize: 12, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}
+                style={{
+                  margin: 0,
+                  fontSize: 12,
+                  padding: "2px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
               >
                 {selectedExpert.icon} {selectedExpert.name}
               </Tag>
               {selectedExpert.agentRole && (
                 <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
-                  {t("workflow.props.roleTag", { role: selectedExpert.agentRole })}
+                  {t("workflow.props.roleTag", {
+                    role: selectedExpert.agentRole,
+                  })}
                 </Tag>
               )}
               {!selectedExpert.agentRole && selectedRoleId && (
@@ -201,7 +256,11 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
                   size="small"
                   type="link"
                   loading={creatingProfile}
-                  onClick={() => handleRoleExpertCombine(selectedRoleId, config.agentProfileId!)}
+                  onClick={() =>
+                    handleRoleExpertCombine(
+                      selectedRoleId,
+                      config.agentProfileId!,
+                    )}
                 >
                   {t("workflow.props.bindRole")}
                 </Button>
@@ -236,7 +295,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.systemPrompt")}
         </label>
         <Input.TextArea
@@ -250,7 +316,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.model")}
         </label>
         <ModelSelect
@@ -264,7 +337,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.temperature")}
           </label>
           <InputNumber
@@ -279,7 +359,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.maxTokens")}
           </label>
           <InputNumber
@@ -296,7 +383,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputMode")}
         </label>
         <Select
@@ -313,7 +407,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -328,7 +429,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.toolsCount", { count: config.tools?.length || 0 })}
         </label>
         <Select
@@ -345,8 +453,17 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
-          {t("workflow.props.contextSourcesCount", { count: config.context_sources?.length || 0 })}
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
+          {t("workflow.props.contextSourcesCount", {
+            count: config.context_sources?.length || 0,
+          })}
         </label>
         <Select
           mode="multiple"
@@ -359,8 +476,14 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({ node, on
         />
       </div>
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

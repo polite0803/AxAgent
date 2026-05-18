@@ -13,7 +13,10 @@ interface EndNodeData {
   outputVar?: string;
 }
 
-const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({ data, selected }) => {
+const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const color = "#ff4d4f";
 

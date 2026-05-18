@@ -9,8 +9,15 @@ import { formatTokenCount } from "./tokenFormat";
 
 export function GatewayDiagnostics() {
   const { t } = useTranslation();
-  const { requestLogs, requestLogsLoading, fetchRequestLogs, clearRequestLogs } = useGatewayStore();
-  const [selectedErrorMessage, setSelectedErrorMessage] = useState<string | null>(null);
+  const {
+    requestLogs,
+    requestLogsLoading,
+    fetchRequestLogs,
+    clearRequestLogs,
+  } = useGatewayStore();
+  const [selectedErrorMessage, setSelectedErrorMessage] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     void fetchRequestLogs();
@@ -55,7 +62,9 @@ export function GatewayDiagnostics() {
       key: "statusCode",
       width: 80,
       render: (code: number) => (
-        <Tag color={code >= 200 && code < 300 ? "green" : code >= 400 ? "red" : "orange"}>
+        <Tag
+          color={code >= 200 && code < 300 ? "green" : code >= 400 ? "red" : "orange"}
+        >
           {code}
         </Tag>
       ),
@@ -66,7 +75,9 @@ export function GatewayDiagnostics() {
       key: "durationMs",
       width: 100,
       render: (ms: number) => {
-        if (ms >= 1000) { return `${(ms / 1000).toFixed(1)}s`; }
+        if (ms >= 1000) {
+          return `${(ms / 1000).toFixed(1)}s`;
+        }
         return `${ms}ms`;
       },
     },
@@ -132,7 +143,10 @@ export function GatewayDiagnostics() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }} data-testid="gateway-diagnostics">
+    <div
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+      data-testid="gateway-diagnostics"
+    >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
         <Popconfirm
           title={t("gateway.clearLogsConfirm")}
@@ -185,7 +199,13 @@ export function GatewayDiagnostics() {
         onCancel={() => setSelectedErrorMessage(null)}
         footer={null}
       >
-        <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#ff4d4f" }}>
+        <div
+          style={{
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            color: "#ff4d4f",
+          }}
+        >
           {selectedErrorMessage}
         </div>
       </Modal>

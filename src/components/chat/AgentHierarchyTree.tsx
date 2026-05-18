@@ -23,8 +23,9 @@ function toTreeNode(
   t: (key: string, options?: Record<string, unknown>) => string,
 ): DataNode {
   const isFork = item.isFork;
-  const children = allItems
-    .flatMap((child) => child.dependsOn?.includes(item.id) ? [toTreeNode(child, allItems, t)] : []);
+  const children = allItems.flatMap((child) =>
+    child.dependsOn?.includes(item.id) ? [toTreeNode(child, allItems, t)] : []
+  );
 
   return {
     key: item.id,
@@ -53,7 +54,9 @@ function toTreeNode(
             : item.status}
         </Tag>
         {item.agentType && item.agentType !== "general-purpose" && (
-          <Text type="secondary" style={{ fontSize: 12 }}>{item.agentType}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {item.agentType}
+          </Text>
         )}
       </span>
     ),
@@ -63,25 +66,46 @@ function toTreeNode(
   };
 }
 
-export function AgentHierarchyTree({ conversationId }: AgentHierarchyTreeProps) {
+export function AgentHierarchyTree({
+  conversationId,
+}: AgentHierarchyTreeProps) {
   const { t } = useTranslation();
   const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
 
   const treeData = useMemo(() => {
-    const roots = pool.filter((item) => !item.dependsOn || item.dependsOn.length === 0);
+    const roots = pool.filter(
+      (item) => !item.dependsOn || item.dependsOn.length === 0,
+    );
     if (roots.length === 0 && pool.length > 0) {
       return pool.slice(0, 2).map((item) => toTreeNode(item, pool, t));
     }
     return roots.map((item) => toTreeNode(item, pool, t));
   }, [pool, t]);
 
-  if (treeData.length === 0) { return null; }
+  if (treeData.length === 0) {
+    return null;
+  }
 
   return (
-    <div style={{ padding: "8px 12px", borderBottom: "1px solid #f0f0f0", background: "#fafafa" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+    <div
+      style={{
+        padding: "8px 12px",
+        borderBottom: "1px solid #f0f0f0",
+        background: "#fafafa",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 6,
+        }}
+      >
         <BranchesOutlined style={{ fontSize: 13, color: "#722ed1" }} />
-        <Text style={{ fontSize: 12, fontWeight: 600 }}>{t("agentHierarchy.title")}</Text>
+        <Text style={{ fontSize: 12, fontWeight: 600 }}>
+          {t("agentHierarchy.title")}
+        </Text>
         <Text type="secondary" style={{ fontSize: 12 }}>
           {t("agentHierarchy.count", { count: pool.length })}
         </Text>

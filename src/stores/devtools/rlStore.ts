@@ -34,7 +34,11 @@ export const useRLStore = create<{
   fetchPolicies: () => Promise<void>;
   fetchStats: () => Promise<void>;
   selectPolicy: (policyId: string) => Promise<void>;
-  createPolicy: (name: string, policyType: string, modelId: string) => Promise<RLPolicy | null>;
+  createPolicy: (
+    name: string,
+    policyType: string,
+    modelId: string,
+  ) => Promise<RLPolicy | null>;
   deletePolicy: (policyId: string) => Promise<void>;
   trainPolicy: (policyId: string) => Promise<void>;
   recordExperience: (
@@ -60,7 +64,10 @@ export const useRLStore = create<{
       const policies = await invoke<RLPolicy[]>("rl_list_policies");
       set({ policies, isLoading: false });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch policies", isLoading: false });
+      set({
+        error: error instanceof Error ? error.message : "Failed to fetch policies",
+        isLoading: false,
+      });
     }
   },
 
@@ -69,28 +76,45 @@ export const useRLStore = create<{
       const stats = await invoke<RLStats>("rl_get_stats");
       set({ stats });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch stats" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to fetch stats",
+      });
     }
   },
 
   selectPolicy: async (policyId: string) => {
     set({ isLoading: true });
     try {
-      const policy = await invoke<RLPolicy | null>("rl_get_policy", { policyId });
+      const policy = await invoke<RLPolicy | null>("rl_get_policy", {
+        policyId,
+      });
       set({ selectedPolicy: policy, isLoading: false });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to select policy", isLoading: false });
+      set({
+        error: error instanceof Error ? error.message : "Failed to select policy",
+        isLoading: false,
+      });
     }
   },
 
   createPolicy: async (name: string, policyType: string, modelId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const policy = await invoke<RLPolicy>("rl_create_policy", { name, policyType, modelId });
-      set((state) => ({ policies: [...state.policies, policy], isLoading: false }));
+      const policy = await invoke<RLPolicy>("rl_create_policy", {
+        name,
+        policyType,
+        modelId,
+      });
+      set((state) => ({
+        policies: [...state.policies, policy],
+        isLoading: false,
+      }));
       return policy;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to create policy", isLoading: false });
+      set({
+        error: error instanceof Error ? error.message : "Failed to create policy",
+        isLoading: false,
+      });
       return null;
     }
   },
@@ -105,7 +129,10 @@ export const useRLStore = create<{
         isLoading: false,
       }));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to delete policy", isLoading: false });
+      set({
+        error: error instanceof Error ? error.message : "Failed to delete policy",
+        isLoading: false,
+      });
     }
   },
 
@@ -124,14 +151,18 @@ export const useRLStore = create<{
     try {
       await invoke("rl_train_policy", { policyId });
       set((state) => ({
-        trainingProgress: state.trainingProgress ? { ...state.trainingProgress, status: "completed" } : null,
+        trainingProgress: state.trainingProgress
+          ? { ...state.trainingProgress, status: "completed" }
+          : null,
         isLoading: false,
       }));
     } catch (error) {
       set((state) => ({
         error: error instanceof Error ? error.message : "Training failed",
         isLoading: false,
-        trainingProgress: state.trainingProgress ? { ...state.trainingProgress, status: "failed" as const } : null,
+        trainingProgress: state.trainingProgress
+          ? { ...state.trainingProgress, status: "failed" as const }
+          : null,
       }));
     }
   },
@@ -144,7 +175,13 @@ export const useRLStore = create<{
     reward: number,
   ) => {
     try {
-      await invoke("rl_record_experience", { taskId, taskType, toolId, toolName, reward });
+      await invoke("rl_record_experience", {
+        taskId,
+        taskType,
+        toolId,
+        toolName,
+        reward,
+      });
     } catch (error) {
       console.error("Failed to record experience:", error);
     }
@@ -154,7 +191,9 @@ export const useRLStore = create<{
     try {
       return await invoke<string>("rl_export_model", { policyId, path });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to export model" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to export model",
+      });
       return null;
     }
   },
@@ -165,7 +204,9 @@ export const useRLStore = create<{
       set((state) => ({ policies: [...state.policies, policy] }));
       return policy;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to import model" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to import model",
+      });
       return null;
     }
   },

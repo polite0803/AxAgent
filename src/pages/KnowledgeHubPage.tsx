@@ -10,9 +10,17 @@ export function KnowledgeHubPage() {
     <div className="h-full flex flex-col" style={{ overflow: "hidden" }}>
       <div
         className="px-4 pt-3 pb-2 border-b flex items-center gap-2"
-        style={{ borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }}
+        style={{
+          borderColor: token.colorBorder,
+          backgroundColor: token.colorBgContainer,
+        }}
       >
-        <span style={{ fontSize: token.fontSizeLG, fontWeight: token.fontWeightStrong }}>
+        <span
+          style={{
+            fontSize: token.fontSizeLG,
+            fontWeight: token.fontWeightStrong,
+          }}
+        >
           {t("nav.knowledge")}
         </span>
       </div>

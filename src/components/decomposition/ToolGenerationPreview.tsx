@@ -9,7 +9,9 @@ interface ToolGenerationPreviewProps {
   dependency: ToolDependency;
 }
 
-export const ToolGenerationPreview: React.FC<ToolGenerationPreviewProps> = ({ dependency }) => {
+export const ToolGenerationPreview: React.FC<ToolGenerationPreviewProps> = ({
+  dependency,
+}) => {
   const { t } = useTranslation();
   return (
     <div style={{ padding: "12px 0" }}>
@@ -21,7 +23,11 @@ export const ToolGenerationPreview: React.FC<ToolGenerationPreviewProps> = ({ de
           {
             key: "name",
             label: t("decomposition.toolName"),
-            children: <Text code>generated_{dependency.name.replace(/[^a-zA-Z0-9]/g, "_")}</Text>,
+            children: (
+              <Text code>
+                generated_{dependency.name.replace(/[^a-zA-Z0-9]/g, "_")}
+              </Text>
+            ),
           },
           {
             key: "original",
@@ -37,7 +43,10 @@ export const ToolGenerationPreview: React.FC<ToolGenerationPreviewProps> = ({ de
             key: "description",
             label: t("decomposition.description"),
             children: (
-              <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
+              <Paragraph
+                type="secondary"
+                style={{ fontSize: 12, marginBottom: 0 }}
+              >
                 {t("decomposition.promptTemplateDesc")}
               </Paragraph>
             ),

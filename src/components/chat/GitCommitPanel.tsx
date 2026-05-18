@@ -26,7 +26,10 @@ interface GitCommitPanelProps {
   onCommitSuccess?: (commitHash: string) => void;
 }
 
-export function GitCommitPanel({ repoPath, onCommitSuccess }: GitCommitPanelProps) {
+export function GitCommitPanel({
+  repoPath,
+  onCommitSuccess,
+}: GitCommitPanelProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [diff, setDiff] = useState<GitDiffSummary | null>(null);
@@ -44,14 +47,18 @@ export function GitCommitPanel({ repoPath, onCommitSuccess }: GitCommitPanelProp
   const loadGitInfo = async () => {
     setLoading(true);
     try {
-      const branch = await invoke<string>("get_current_branch", { repoPath: repoPath || "." });
+      const branch = await invoke<string>("get_current_branch", {
+        repoPath: repoPath || ".",
+      });
       setCurrentBranch(branch);
     } catch {
       setCurrentBranch("main");
     }
 
     try {
-      const diffData = await invoke<GitDiffSummary>("get_staged_diff", { repoPath: repoPath || "." });
+      const diffData = await invoke<GitDiffSummary>("get_staged_diff", {
+        repoPath: repoPath || ".",
+      });
       setDiff(diffData);
       setStaged(diffData.total_files > 0);
     } catch {
@@ -63,10 +70,14 @@ export function GitCommitPanel({ repoPath, onCommitSuccess }: GitCommitPanelProp
   };
 
   const generateCommitMessage = async () => {
-    if (!repoPath) { return; }
+    if (!repoPath) {
+      return;
+    }
     setLoading(true);
     try {
-      const message_text = await invoke<string>("generate_commit_context", { repoPath });
+      const message_text = await invoke<string>("generate_commit_context", {
+        repoPath,
+      });
       setGeneratedMessage(message_text);
       if (!commitMessage) {
         setCommitMessage(message_text);
@@ -84,7 +95,10 @@ export function GitCommitPanel({ repoPath, onCommitSuccess }: GitCommitPanelProp
     }
     setLoading(true);
     try {
-      const result = await invoke<string>("git_commit", { repoPath: repoPath || ".", message: commitMessage });
+      const result = await invoke<string>("git_commit", {
+        repoPath: repoPath || ".",
+        message: commitMessage,
+      });
       message.success(t("chat.git.commitSuccess"));
       setCommitMessage("");
       setGeneratedMessage("");
@@ -187,7 +201,9 @@ export function GitCommitPanel({ repoPath, onCommitSuccess }: GitCommitPanelProp
 
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <Text type="secondary" className="text-xs">{t("chat.git.commitMessage")}</Text>
+                <Text type="secondary" className="text-xs">
+                  {t("chat.git.commitMessage")}
+                </Text>
                 <Button
                   type="link"
                   size="small"
@@ -241,7 +257,11 @@ interface GitBranchPanelProps {
   headBranch?: string;
 }
 
-export function GitBranchPanel({ repoPath, baseBranch, headBranch }: GitBranchPanelProps) {
+export function GitBranchPanel({
+  repoPath,
+  baseBranch,
+  headBranch,
+}: GitBranchPanelProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [diff, setDiff] = useState<GitDiffSummary | null>(null);
@@ -255,7 +275,9 @@ export function GitBranchPanel({ repoPath, baseBranch, headBranch }: GitBranchPa
   }, [repoPath, baseBranch, headBranch]);
 
   const loadBranchDiff = async () => {
-    if (!repoPath || !baseBranch || !headBranch) { return; }
+    if (!repoPath || !baseBranch || !headBranch) {
+      return;
+    }
     setLoading(true);
     try {
       const diffData = await invoke<GitDiffSummary>("get_branch_diff", {
@@ -327,7 +349,9 @@ export function GitBranchPanel({ repoPath, baseBranch, headBranch }: GitBranchPa
 
           {commits.length > 0 && (
             <div className="mb-3">
-              <Text type="secondary" className="text-xs block mb-1">{t("chat.git.commits")}:</Text>
+              <Text type="secondary" className="text-xs block mb-1">
+                {t("chat.git.commits")}:
+              </Text>
               <div className="max-h-24 overflow-auto">
                 {commits.map((commit) => (
                   <Text key={commit} className="text-xs font-mono block">
@@ -340,9 +364,14 @@ export function GitBranchPanel({ repoPath, baseBranch, headBranch }: GitBranchPa
 
           {prDescription && (
             <div className="mb-3">
-              <Text type="secondary" className="text-xs block mb-1">{t("chat.git.prDescription")}:</Text>
+              <Text type="secondary" className="text-xs block mb-1">
+                {t("chat.git.prDescription")}:
+              </Text>
               <div className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded text-xs">
-                <Paragraph className="text-xs mb-0" ellipsis={{ rows: 4, expandable: true }}>
+                <Paragraph
+                  className="text-xs mb-0"
+                  ellipsis={{ rows: 4, expandable: true }}
+                >
                   {prDescription}
                 </Paragraph>
               </div>

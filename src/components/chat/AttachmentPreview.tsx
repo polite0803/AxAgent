@@ -14,15 +14,25 @@ export const ATTACHMENT_IMG_STYLE: React.CSSProperties = {
   objectFit: "cover" as const,
 };
 
-export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeColor: string }) {
+export function AttachmentPreview({
+  att,
+  themeColor,
+}: {
+  att: Attachment;
+  themeColor: string;
+}) {
   const { t } = useTranslation();
   const { modal } = App.useApp();
   const isImage = att.file_type?.startsWith("image/");
   const mountedRef = useRef(true);
 
   const [src, setSrc] = useState<string | null>(() => {
-    if (!isImage) { return null; }
-    if (att.data) { return `data:${att.file_type};base64,${att.data}`; }
+    if (!isImage) {
+      return null;
+    }
+    if (att.data) {
+      return `data:${att.file_type};base64,${att.data}`;
+    }
     return null;
   });
   const failedRef = useRef(false);
@@ -35,10 +45,14 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
     }
     invoke<boolean>("check_attachment_exists", { filePath: att.file_path })
       .then((exists) => {
-        if (mountedRef.current) { setFileExists(exists); }
+        if (mountedRef.current) {
+          setFileExists(exists);
+        }
       })
       .catch(() => {
-        if (mountedRef.current) { setFileExists(false); }
+        if (mountedRef.current) {
+          setFileExists(false);
+        }
       });
     return () => {
       mountedRef.current = false;
@@ -46,18 +60,26 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
   }, [att.file_path]);
 
   useEffect(() => {
-    if (!isImage || src || failedRef.current) { return; }
+    if (!isImage || src || failedRef.current) {
+      return;
+    }
     if (!att.file_path || fileExists === false) {
       failedRef.current = true;
       return;
     }
-    if (fileExists === null) { return; }
+    if (fileExists === null) {
+      return;
+    }
     invoke<string>("read_attachment_preview", { filePath: att.file_path })
       .then((dataUrl) => {
-        if (mountedRef.current) { setSrc(dataUrl); }
+        if (mountedRef.current) {
+          setSrc(dataUrl);
+        }
       })
       .catch(() => {
-        if (mountedRef.current) { failedRef.current = true; }
+        if (mountedRef.current) {
+          failedRef.current = true;
+        }
       });
   }, [isImage, att.file_path, src, fileExists]);
 
@@ -72,9 +94,9 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
             okText: t("chat.attachmentOk"),
             cancelText: t("chat.attachmentRevealLocation"),
             onCancel: () => {
-              invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) =>
-                console.warn("[IPC]", e)
-              );
+              invoke("reveal_attachment_file", {
+                filePath: att.file_path,
+              }).catch((e: unknown) => console.warn("[IPC]", e));
             },
           });
         })
@@ -122,20 +144,28 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
 
   const handleOpen = () => {
     if (att.file_path) {
-      invoke("open_attachment_file", { filePath: att.file_path }).catch((e: unknown) => console.warn("[IPC]", e));
+      invoke("open_attachment_file", { filePath: att.file_path }).catch(
+        (e: unknown) => console.warn("[IPC]", e),
+      );
     }
   };
 
   const handleReveal = () => {
     if (att.file_path) {
-      invoke("reveal_attachment_file", { filePath: att.file_path }).catch((e: unknown) => console.warn("[IPC]", e));
+      invoke("reveal_attachment_file", { filePath: att.file_path }).catch(
+        (e: unknown) => console.warn("[IPC]", e),
+      );
     }
   };
 
   const contextMenuItems = att.file_path
     ? [
       { key: "open", label: t("chat.attachmentOpen"), onClick: handleOpen },
-      { key: "reveal", label: t("chat.attachmentRevealInFinder"), onClick: handleReveal },
+      {
+        key: "reveal",
+        label: t("chat.attachmentRevealInFinder"),
+        onClick: handleReveal,
+      },
     ]
     : [];
 
@@ -150,7 +180,9 @@ export function AttachmentPreview({ att, themeColor }: { att: Attachment; themeC
     </Tag>
   );
 
-  if (!att.file_path) { return tag; }
+  if (!att.file_path) {
+    return tag;
+  }
 
   return (
     <Dropdown menu={{ items: contextMenuItems }} trigger={["contextMenu"]}>

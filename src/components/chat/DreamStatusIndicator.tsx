@@ -38,9 +38,17 @@ export function DreamStatusIndicator() {
 
   if (status === "running") {
     return (
-      <div className="dream-indicator dream-indicator--running" title={t("dreamStatus.running")}>
-        <Moon size={14} className="dream-indicator__icon dream-indicator__icon--pulse" />
-        <span className="dream-indicator__text">{t("dreamStatus.consolidating")}</span>
+      <div
+        className="dream-indicator dream-indicator--running"
+        title={t("dreamStatus.running")}
+      >
+        <Moon
+          size={14}
+          className="dream-indicator__icon dream-indicator__icon--pulse"
+        />
+        <span className="dream-indicator__text">
+          {t("dreamStatus.consolidating")}
+        </span>
       </div>
     );
   }
@@ -48,26 +56,38 @@ export function DreamStatusIndicator() {
   if (showResult && lastResult) {
     const parts: string[] = [];
     if (lastResult.memoriesExtracted > 0) {
-      parts.push(t("dreamStatus.memoriesCount", { count: lastResult.memoriesExtracted }));
+      parts.push(
+        t("dreamStatus.memoriesCount", { count: lastResult.memoriesExtracted }),
+      );
     }
     if (lastResult.patternsDiscovered > 0) {
-      parts.push(t("dreamStatus.patternsCount", { count: lastResult.patternsDiscovered }));
+      parts.push(
+        t("dreamStatus.patternsCount", {
+          count: lastResult.patternsDiscovered,
+        }),
+      );
     }
     if (lastResult.error) {
       parts.push(t("dreamStatus.errorLabel", { error: lastResult.error }));
     }
-    const summary = parts.length > 0 ? parts.join(t("dreamStatus.separator")) : t("dreamStatus.completed");
+    const summary = parts.length > 0
+      ? parts.join(t("dreamStatus.separator"))
+      : t("dreamStatus.completed");
 
     return (
       <div
         className="dream-indicator dream-indicator--completed"
-        title={t("dreamStatus.completedTitle", { secs: lastResult.durationSecs })}
+        title={t("dreamStatus.completedTitle", {
+          secs: lastResult.durationSecs,
+        })}
       >
         <CheckCircleOutlined className="dream-indicator__icon dream-indicator__icon--done" />
         <span className="dream-indicator__text">
           {summary}
           {lastResult.durationSecs > 0 && (
-            <span className="dream-indicator__duration">({lastResult.durationSecs}s)</span>
+            <span className="dream-indicator__duration">
+              ({lastResult.durationSecs}s)
+            </span>
           )}
         </span>
       </div>
@@ -79,11 +99,16 @@ export function DreamStatusIndicator() {
     return (
       <div
         className="dream-indicator dream-indicator--idle"
-        title={t("dreamStatus.totalConsolidations", { count: totalConsolidations })}
+        title={t("dreamStatus.totalConsolidations", {
+          count: totalConsolidations,
+        })}
       >
         <Brain size={13} className="dream-indicator__icon" />
         <span className="dream-indicator__text">
-          {t("dreamStatus.statsSummary", { memories: totalMemories, patterns: totalPatterns })}
+          {t("dreamStatus.statsSummary", {
+            memories: totalMemories,
+            patterns: totalPatterns,
+          })}
         </span>
       </div>
     );

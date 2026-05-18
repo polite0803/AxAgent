@@ -37,8 +37,12 @@ export function GatewaySettings() {
     }
   };
 
-  const handleSelectFile = async (field: "gateway_ssl_cert_path" | "gateway_ssl_key_path") => {
-    if (settingsLocked) { return; }
+  const handleSelectFile = async (
+    field: "gateway_ssl_cert_path" | "gateway_ssl_key_path",
+  ) => {
+    if (settingsLocked) {
+      return;
+    }
     try {
       const selected = await open({
         multiple: false,
@@ -55,7 +59,9 @@ export function GatewaySettings() {
   };
 
   const handleGenerateSelfSigned = async () => {
-    if (settingsLocked) { return; }
+    if (settingsLocked) {
+      return;
+    }
     try {
       const result = await invoke<CertResult>("generate_self_signed_cert");
       await handleSave({
@@ -68,11 +74,17 @@ export function GatewaySettings() {
     }
   };
 
-  const [sslPortValue, setSslPortValue] = useState<number>(settings.gateway_ssl_port ?? 8443);
+  const [sslPortValue, setSslPortValue] = useState<number>(
+    settings.gateway_ssl_port ?? 8443,
+  );
   const [sslPortError, setSslPortError] = useState(false);
-  const [portValue, setPortValue] = useState<number>(settings.gateway_port ?? 8080);
+  const [portValue, setPortValue] = useState<number>(
+    settings.gateway_port ?? 8080,
+  );
   const [portError, setPortError] = useState(false);
-  const [listenAddressValue, setListenAddressValue] = useState<string>(settings.gateway_listen_address ?? "127.1.0.0");
+  const [listenAddressValue, setListenAddressValue] = useState<string>(
+    settings.gateway_listen_address ?? "127.1.0.0",
+  );
 
   // Track port values that were blocked from saving due to a conflict so they
   // can be persisted as soon as the conflict is resolved.
@@ -114,7 +126,9 @@ export function GatewaySettings() {
   }, [settings.gateway_ssl_enabled, portValue, sslPortValue]);
 
   const handleSslPortChange = (val: number | null) => {
-    if (val == null) { return; }
+    if (val == null) {
+      return;
+    }
     setSslPortValue(val);
     if (val === portValue) {
       setSslPortError(true);
@@ -127,7 +141,9 @@ export function GatewaySettings() {
   };
 
   const handlePortChange = (val: number | null) => {
-    if (val == null) { return; }
+    if (val == null) {
+      return;
+    }
     setPortValue(val);
     if ((settings.gateway_ssl_enabled ?? false) && val === sslPortValue) {
       setPortError(true);
@@ -141,7 +157,9 @@ export function GatewaySettings() {
 
   const handleListenAddressCommit = () => {
     const trimmed = listenAddressValue.trim();
-    if (trimmed) { handleSave({ gateway_listen_address: trimmed }); }
+    if (trimmed) {
+      handleSave({ gateway_listen_address: trimmed });
+    }
   };
 
   const handleStopNow = async () => {
@@ -170,8 +188,15 @@ export function GatewaySettings() {
         />
       )}
 
-      <Card size="small" title={t("gateway.settingsService")} style={{ marginBottom: 16 }}>
-        <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+      <Card
+        size="small"
+        title={t("gateway.settingsService")}
+        style={{ marginBottom: 16 }}
+      >
+        <div
+          style={{ padding: "4px 0" }}
+          className="flex items-center justify-between"
+        >
           <span>{t("gateway.listenAddress")}</span>
           <Input
             id="gateway-settings-input-43"
@@ -184,9 +209,18 @@ export function GatewaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "4px 0" }}
+          className="flex items-center justify-between"
+        >
           <span>{t("gateway.port")}</span>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+            }}
+          >
             <InputNumber
               id="gateway-settings-inputnumber-44"
               value={portValue}
@@ -198,14 +232,19 @@ export function GatewaySettings() {
               status={portError ? "error" : undefined}
             />
             {portError && (
-              <span style={{ color: token.colorError, fontSize: 12, marginTop: 4 }}>
+              <span
+                style={{ color: token.colorError, fontSize: 12, marginTop: 4 }}
+              >
                 {t("gateway.sslPortConflict")}
               </span>
             )}
           </div>
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "4px 0" }}
+          className="flex items-center justify-between"
+        >
           <span>{t("gateway.autoStart")}</span>
           <Switch
             checked={settings.gateway_auto_start ?? false}
@@ -214,12 +253,22 @@ export function GatewaySettings() {
         </div>
       </Card>
 
-      <Card size="small" title={t("gateway.settingsSsl")} style={{ marginBottom: 16 }}>
-        <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+      <Card
+        size="small"
+        title={t("gateway.settingsSsl")}
+        style={{ marginBottom: 16 }}
+      >
+        <div
+          style={{ padding: "4px 0" }}
+          className="flex items-center justify-between"
+        >
           <div className="flex items-center gap-1">
             <span>{t("gateway.sslEnable")}</span>
             <Tooltip title={t("gateway.sslEnableTooltip")}>
-              <Info size={12} style={{ color: token.colorTextSecondary, cursor: "help" }} />
+              <Info
+                size={12}
+                style={{ color: token.colorTextSecondary, cursor: "help" }}
+              />
             </Tooltip>
           </div>
           <Switch
@@ -233,9 +282,18 @@ export function GatewaySettings() {
           <>
             <Divider style={{ margin: "8px 0" }} />
 
-            <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+            <div
+              style={{ padding: "4px 0" }}
+              className="flex items-center justify-between"
+            >
               <span>{t("gateway.sslPort")}</span>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                }}
+              >
                 <InputNumber
                   id="gateway-settings-inputnumber-45"
                   value={sslPortValue}
@@ -247,7 +305,13 @@ export function GatewaySettings() {
                   status={sslPortError ? "error" : undefined}
                 />
                 {sslPortError && (
-                  <span style={{ color: token.colorError, fontSize: 12, marginTop: 4 }}>
+                  <span
+                    style={{
+                      color: token.colorError,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
                     {t("gateway.sslPortConflict")}
                   </span>
                 )}
@@ -255,11 +319,17 @@ export function GatewaySettings() {
             </div>
             <Divider style={{ margin: "4px 0" }} />
 
-            <div style={{ padding: "4px 0" }} className="flex items-center justify-between">
+            <div
+              style={{ padding: "4px 0" }}
+              className="flex items-center justify-between"
+            >
               <div className="flex items-center gap-1">
                 <span>{t("gateway.forceSsl")}</span>
                 <Tooltip title={t("gateway.forceSslTooltip")}>
-                  <Info size={12} style={{ color: token.colorTextSecondary, cursor: "help" }} />
+                  <Info
+                    size={12}
+                    style={{ color: token.colorTextSecondary, cursor: "help" }}
+                  />
                 </Tooltip>
               </div>
               <Switch
@@ -286,15 +356,32 @@ export function GatewaySettings() {
               disabled={settingsLocked}
             >
               <Radio value="upload">
-                <span style={{ fontWeight: 500 }}>{t("gateway.sslUpload")}</span>
-                <div style={{ color: token.colorTextSecondary, fontSize: 12, marginTop: 2 }}>
+                <span style={{ fontWeight: 500 }}>
+                  {t("gateway.sslUpload")}
+                </span>
+                <div
+                  style={{
+                    color: token.colorTextSecondary,
+                    fontSize: 12,
+                    marginTop: 2,
+                  }}
+                >
                   {t("gateway.sslUploadDesc")}
                 </div>
               </Radio>
               {(settings.gateway_ssl_mode ?? "upload") === "upload" && (
-                <div style={{ paddingLeft: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div
+                  style={{
+                    paddingLeft: 24,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
                   <div className="flex items-center gap-2">
-                    <span style={{ width: 80, flexShrink: 0 }}>{t("gateway.sslCertFile")}</span>
+                    <span style={{ width: 80, flexShrink: 0 }}>
+                      {t("gateway.sslCertFile")}
+                    </span>
                     <Input
                       id="gateway-settings-input-46"
                       readOnly
@@ -305,15 +392,16 @@ export function GatewaySettings() {
                     />
                     <Button
                       icon={<UploadIcon size={14} />}
-                      onClick={() =>
-                        handleSelectFile("gateway_ssl_cert_path")}
+                      onClick={() => handleSelectFile("gateway_ssl_cert_path")}
                       disabled={settingsLocked}
                     >
                       {t("gateway.sslSelectFile")}
                     </Button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span style={{ width: 80, flexShrink: 0 }}>{t("gateway.sslKeyFile")}</span>
+                    <span style={{ width: 80, flexShrink: 0 }}>
+                      {t("gateway.sslKeyFile")}
+                    </span>
                     <Input
                       id="gateway-settings-input-47"
                       readOnly
@@ -334,8 +422,16 @@ export function GatewaySettings() {
               )}
 
               <Radio value="selfsign">
-                <span style={{ fontWeight: 500 }}>{t("gateway.sslSelfSign")}</span>
-                <div style={{ color: token.colorTextSecondary, fontSize: 12, marginTop: 2 }}>
+                <span style={{ fontWeight: 500 }}>
+                  {t("gateway.sslSelfSign")}
+                </span>
+                <div
+                  style={{
+                    color: token.colorTextSecondary,
+                    fontSize: 12,
+                    marginTop: 2,
+                  }}
+                >
                   {t("gateway.sslSelfSignDesc")}
                 </div>
               </Radio>
@@ -347,11 +443,22 @@ export function GatewaySettings() {
                     message={t("gateway.sslSelfSignWarning")}
                     style={{ marginBottom: 8 }}
                   />
-                  <Button type="primary" onClick={handleGenerateSelfSigned} disabled={settingsLocked}>
+                  <Button
+                    type="primary"
+                    onClick={handleGenerateSelfSigned}
+                    disabled={settingsLocked}
+                  >
                     {t("gateway.sslGenerateCert")}
                   </Button>
-                  {settings.gateway_ssl_cert_path && settings.gateway_ssl_mode === "selfsign" && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: token.colorTextSecondary }}>
+                  {settings.gateway_ssl_cert_path
+                    && settings.gateway_ssl_mode === "selfsign" && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontSize: 12,
+                        color: token.colorTextSecondary,
+                      }}
+                    >
                       {t("gateway.sslCertFile")}: {settings.gateway_ssl_cert_path}
                     </div>
                   )}

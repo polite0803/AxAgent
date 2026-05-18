@@ -55,17 +55,29 @@
 
 .pool-summary__count--running {
   color: var(--ant-color-primary, #1890ff);
-  background: color-mix(in srgb, var(--ant-color-primary, #1890ff) 10%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1890ff) 10%,
+    transparent
+  );
 }
 
 .pool-summary__count--pending {
   color: var(--ant-color-text-tertiary, #8c8c8c);
-  background: color-mix(in srgb, var(--ant-color-text-tertiary, #8c8c8c) 10%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-text-tertiary, #8c8c8c) 10%,
+    transparent
+  );
 }
 
 .pool-summary__count--failed {
   color: var(--ant-color-error, #ff4d4f);
-  background: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 10%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 10%,
+    transparent
+  );
 }
 
 /* ── 条目卡片 ────────────────────────────────────────────── */
@@ -81,7 +93,10 @@
   border-radius: 6px;
   border: 1px solid var(--border-weak, #e8e8e8);
   background: color-mix(in srgb, var(--background-base, #fff) 95%, transparent);
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
   cursor: default;
 }
 
@@ -95,16 +110,31 @@
 }
 
 .pool-item--completed {
-  border-color: color-mix(in srgb, var(--ant-color-success, #52c41a) 20%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-success, #52c41a) 20%,
+    transparent
+  );
 }
 
 .pool-item--failed {
-  border-color: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 20%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 20%,
+    transparent
+  );
 }
 
 @keyframes pool-item-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ant-color-primary, #1890ff) 12%, transparent); }
-  50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-primary, #1890ff) 4%, transparent); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--ant-color-primary, #1890ff) 12%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--ant-color-primary, #1890ff) 4%, transparent);
+  }
 }
 
 /* 头部 */
@@ -259,18 +289,30 @@
 
 .worker-msg-log__entry--progress {
   color: var(--ant-color-primary, #1890ff);
-  background: color-mix(in srgb, var(--ant-color-primary, #1890ff) 6%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1890ff) 6%,
+    transparent
+  );
 }
 
 .worker-msg-log__entry--result,
 .worker-msg-log__entry--completion {
   color: var(--ant-color-success, #52c41a);
-  background: color-mix(in srgb, var(--ant-color-success, #52c41a) 6%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-success, #52c41a) 6%,
+    transparent
+  );
 }
 
 .worker-msg-log__entry--error {
   color: var(--ant-color-error, #ff4d4f);
-  background: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 6%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 6%,
+    transparent
+  );
 }
 
 .worker-msg-log__type {

@@ -27,7 +27,9 @@ const DEFAULT_BASE_URL = "http://localhost:9876";
 export function AcpSettings() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem(STORAGE_KEY) || DEFAULT_BASE_URL);
+  const [baseUrl, setBaseUrl] = useState(
+    () => localStorage.getItem(STORAGE_KEY) || DEFAULT_BASE_URL,
+  );
   const [connected, setConnected] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [workDir, setWorkDir] = useState("");
@@ -101,7 +103,11 @@ export function AcpSettings() {
   // 状态颜色和文本
   const statusConfig = () => {
     if (connected === null) {
-      return { color: "default", text: t("acp.notDetected"), dot: <Badge status="default" /> };
+      return {
+        color: "default",
+        text: t("acp.notDetected"),
+        dot: <Badge status="default" />,
+      };
     }
     if (connected) {
       return {
@@ -122,7 +128,10 @@ export function AcpSettings() {
   return (
     <div className="p-6 pb-12" style={{ overflowY: "auto" }} data-os-scrollbar>
       <SettingsGroup title={t("acp.serverTitle")}>
-        <div style={{ padding: "6px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "6px 0" }}
+          className="flex items-center justify-between"
+        >
           <span className="flex items-center gap-2">
             <Server size={14} /> {t("acp.serverAddress")}
           </span>
@@ -136,22 +145,17 @@ export function AcpSettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={{ padding: "6px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "6px 0" }}
+          className="flex items-center justify-between"
+        >
           <span className="flex items-center gap-2">
             <Link2 size={14} /> {t("acp.connectionStatus")}
           </span>
           <Space size={8}>
             <Badge
-              status={connected === null
-                ? "default"
-                : connected
-                ? "success"
-                : "error"}
-              text={
-                <Text style={{ fontSize: 13, color: st.color }}>
-                  {st.text}
-                </Text>
-              }
+              status={connected === null ? "default" : connected ? "success" : "error"}
+              text={<Text style={{ fontSize: 13, color: st.color }}>{st.text}</Text>}
             />
             <Button
               size="small"
@@ -182,7 +186,10 @@ export function AcpSettings() {
 
       {/* 创建会话 */}
       <SettingsGroup title={t("acp.createSessionTitle")}>
-        <div style={{ padding: "6px 0" }} className="flex items-center justify-between">
+        <div
+          style={{ padding: "6px 0" }}
+          className="flex items-center justify-between"
+        >
           <span className="flex items-center gap-2">
             <Plus size={14} /> {t("acp.workdir")}
           </span>
@@ -252,7 +259,12 @@ export function AcpSettings() {
                       okText={t("common.confirm")}
                       cancelText={t("common.cancel")}
                     >
-                      <Button size="small" type="text" danger icon={<Power size={13} />}>
+                      <Button
+                        size="small"
+                        type="text"
+                        danger
+                        icon={<Power size={13} />}
+                      >
                         {t("acp.close")}
                       </Button>
                     </Popconfirm>,

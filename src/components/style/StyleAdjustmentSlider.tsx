@@ -149,8 +149,12 @@ export function StyleAdjustmentSlider({
         />
 
         <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-muted-foreground">{config.lowLabel}</span>
-          <span className="text-[10px] text-muted-foreground">{config.highLabel}</span>
+          <span className="text-[10px] text-muted-foreground">
+            {config.lowLabel}
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            {config.highLabel}
+          </span>
         </div>
       </div>
 

@@ -64,7 +64,9 @@ export const useTabStore = create<TabState>((set, get) => ({
   closeTab: (tabId) => {
     const { tabs, activeTabId } = get();
     const idx = tabs.findIndex((t) => t.id === tabId);
-    if (idx === -1) { return; }
+    if (idx === -1) {
+      return;
+    }
 
     const nextTabs = tabs.filter((t) => t.id !== tabId);
 
@@ -96,9 +98,11 @@ export const useTabStore = create<TabState>((set, get) => ({
   removeTabsByConversationId: (conversationId) => {
     const { tabs, activeTabId } = get();
     const removedTabIds = new Set(
-      tabs.flatMap((t) => t.conversationId === conversationId ? [t.id] : []),
+      tabs.flatMap((t) => (t.conversationId === conversationId ? [t.id] : [])),
     );
-    if (removedTabIds.size === 0) { return; }
+    if (removedTabIds.size === 0) {
+      return;
+    }
 
     const nextTabs = tabs.filter((t) => !removedTabIds.has(t.id));
     let nextActiveId = activeTabId;
@@ -126,21 +130,27 @@ export const useTabStore = create<TabState>((set, get) => ({
 
   getActiveConversationId: () => {
     const { tabs, activeTabId } = get();
-    if (!activeTabId) { return null; }
+    if (!activeTabId) {
+      return null;
+    }
     return tabs.find((t) => t.id === activeTabId)?.conversationId ?? null;
   },
 
   closeOtherTabs: (tabId) => {
     const { tabs } = get();
     const target = tabs.find((t) => t.id === tabId);
-    if (!target) { return; }
+    if (!target) {
+      return;
+    }
     set({ tabs: [target], activeTabId: tabId });
   },
 
   closeTabsToRight: (tabId) => {
     const { tabs } = get();
     const idx = tabs.findIndex((t) => t.id === tabId);
-    if (idx === -1) { return; }
+    if (idx === -1) {
+      return;
+    }
     set({ tabs: tabs.slice(0, idx + 1) });
   },
 }));

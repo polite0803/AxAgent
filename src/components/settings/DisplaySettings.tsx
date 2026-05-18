@@ -9,15 +9,55 @@ import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
 
-const THEME_PRESETS: { key: ThemePreset; label: string; bg: string; accent: string }[] = [
-  { key: "cyberpunk-dark", label: "Cyberpunk Dark", bg: "#0a0a12", accent: "#00f0ff" },
-  { key: "cyberpunk-light", label: "Cyberpunk Light", bg: "#f0f0f8", accent: "#7b2ff7" },
-  { key: "paperclip-dark", label: "Paperclip Dark", bg: "#18181b", accent: "#a1a1aa" },
-  { key: "paperclip-light", label: "Paperclip Light", bg: "#fafafa", accent: "#71717a" },
-  { key: "dark-elegance", label: "Dark Elegance", bg: "#141414", accent: "#1677ff" },
+const THEME_PRESETS: {
+  key: ThemePreset;
+  label: string;
+  bg: string;
+  accent: string;
+}[] = [
+  {
+    key: "cyberpunk-dark",
+    label: "Cyberpunk Dark",
+    bg: "#0a0a12",
+    accent: "#00f0ff",
+  },
+  {
+    key: "cyberpunk-light",
+    label: "Cyberpunk Light",
+    bg: "#f0f0f8",
+    accent: "#7b2ff7",
+  },
+  {
+    key: "paperclip-dark",
+    label: "Paperclip Dark",
+    bg: "#18181b",
+    accent: "#a1a1aa",
+  },
+  {
+    key: "paperclip-light",
+    label: "Paperclip Light",
+    bg: "#fafafa",
+    accent: "#71717a",
+  },
+  {
+    key: "dark-elegance",
+    label: "Dark Elegance",
+    bg: "#141414",
+    accent: "#1677ff",
+  },
   { key: "dark-neon", label: "Dark Neon", bg: "#0a0a0f", accent: "#a855f7" },
-  { key: "light-professional", label: "Light Pro", bg: "#ffffff", accent: "#1677ff" },
-  { key: "light-minimal", label: "Light Minimal", bg: "#f8fafc", accent: "#0891b2" },
+  {
+    key: "light-professional",
+    label: "Light Pro",
+    bg: "#ffffff",
+    accent: "#1677ff",
+  },
+  {
+    key: "light-minimal",
+    label: "Light Minimal",
+    bg: "#f8fafc",
+    accent: "#0891b2",
+  },
 ];
 
 export function DisplaySettings() {
@@ -27,20 +67,32 @@ export function DisplaySettings() {
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!isTauri()) { return; }
-    invoke<string[]>("list_system_fonts").then(setSystemFonts).catch((e: unknown) => {
-      console.warn("[IPC]", e);
-    });
+    if (!isTauri()) {
+      return;
+    }
+    invoke<string[]>("list_system_fonts")
+      .then(setSystemFonts)
+      .catch((e: unknown) => {
+        console.warn("[IPC]", e);
+      });
   }, []);
 
   const rowStyle = { padding: "4px 0" };
 
   const lightThemeOptions = useMemo(
-    () => SHIKI_LIGHT_THEMES.map((id) => ({ label: formatThemeName(id), value: id })),
+    () =>
+      SHIKI_LIGHT_THEMES.map((id) => ({
+        label: formatThemeName(id),
+        value: id,
+      })),
     [],
   );
   const darkThemeOptions = useMemo(
-    () => SHIKI_DARK_THEMES.map((id) => ({ label: formatThemeName(id), value: id })),
+    () =>
+      SHIKI_DARK_THEMES.map((id) => ({
+        label: formatThemeName(id),
+        value: id,
+      })),
     [],
   );
 
@@ -54,9 +106,21 @@ export function DisplaySettings() {
             value={settings.theme_mode}
             onChange={(val) => saveSettings({ theme_mode: val as string })}
             options={[
-              { label: t("settings.themeSystem"), value: "system", icon: <Monitor size={14} /> },
-              { label: t("settings.themeLight"), value: "light", icon: <Sun size={14} /> },
-              { label: t("settings.themeDark"), value: "dark", icon: <Moon size={14} /> },
+              {
+                label: t("settings.themeSystem"),
+                value: "system",
+                icon: <Monitor size={14} />,
+              },
+              {
+                label: t("settings.themeLight"),
+                value: "light",
+                icon: <Sun size={14} />,
+              },
+              {
+                label: t("settings.themeDark"),
+                value: "dark",
+                icon: <Moon size={14} />,
+              },
             ]}
           />
         </div>
@@ -73,7 +137,9 @@ export function DisplaySettings() {
                     tabIndex={0}
                     onClick={() => saveSettings({ theme_preset: preset.key })}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") { saveSettings({ theme_preset: preset.key }); }
+                      if (e.key === "Enter" || e.key === " ") {
+                        saveSettings({ theme_preset: preset.key });
+                      }
                     }}
                     style={{
                       width: 48,
@@ -81,14 +147,18 @@ export function DisplaySettings() {
                       borderRadius: 8,
                       backgroundColor: preset.bg,
                       cursor: "pointer",
-                      border: isActive ? `2px solid ${preset.accent}` : "2px solid transparent",
+                      border: isActive
+                        ? `2px solid ${preset.accent}`
+                        : "2px solid transparent",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 4,
                       transition: "border-color 0.2s",
-                      boxShadow: isActive ? `0 0 0 1px ${preset.accent}` : "none",
+                      boxShadow: isActive
+                        ? `0 0 0 1px ${preset.accent}`
+                        : "none",
                     }}
                   >
                     <div
@@ -101,10 +171,22 @@ export function DisplaySettings() {
                     />
                     <div style={{ display: "flex", gap: 2 }}>
                       <div
-                        style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.6 }}
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 2,
+                          backgroundColor: preset.accent,
+                          opacity: 0.6,
+                        }}
                       />
                       <div
-                        style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: preset.accent, opacity: 0.3 }}
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 2,
+                          backgroundColor: preset.accent,
+                          opacity: 0.3,
+                        }}
                       />
                     </div>
                   </div>
@@ -116,7 +198,14 @@ export function DisplaySettings() {
         <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.primaryColor")}</span>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
             {[
               "#17A93D",
               "#1677ff",
@@ -137,7 +226,9 @@ export function DisplaySettings() {
                 tabIndex={0}
                 onClick={() => saveSettings({ primary_color: color })}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { saveSettings({ primary_color: color }); }
+                  if (e.key === "Enter" || e.key === " ") {
+                    saveSettings({ primary_color: color });
+                  }
                 }}
                 style={{
                   width: 24,
@@ -183,7 +274,14 @@ export function DisplaySettings() {
             step={100}
             value={settings.font_weight}
             onChange={(val) => saveSettings({ font_weight: val })}
-            marks={{ 100: "100", 300: "300", 400: "400", 500: "500", 700: "700", 900: "900" }}
+            marks={{
+              100: "100",
+              300: "300",
+              400: "400",
+              500: "500",
+              700: "700",
+              900: "900",
+            }}
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />

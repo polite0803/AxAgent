@@ -5,10 +5,14 @@ import type { Message } from "@/types";
  * When structured blocks are available (Part-based model), extracts text blocks.
  * Otherwise falls back to the flat content string.
  */
-export function buildAssistantDisplayContent(message: Message, _messages: Message[]): string {
+export function buildAssistantDisplayContent(
+  message: Message,
+  _messages: Message[],
+): string {
   if (message.blocks && message.blocks.length > 0) {
-    const textBlocks = message.blocks
-      .flatMap((b) => b.type === "text" ? [(b as { type: "text"; text: string }).text] : []);
+    const textBlocks = message.blocks.flatMap((b) =>
+      b.type === "text" ? [(b as { type: "text"; text: string }).text] : []
+    );
     if (textBlocks.length > 0) {
       return textBlocks.join("\n\n");
     }
@@ -20,7 +24,10 @@ export function buildAssistantDisplayContent(message: Message, _messages: Messag
  * Determine whether the assistant bubble should be hidden.
  * A bubble is hidden when it has no text content but only tool calls.
  */
-export function shouldHideAssistantBubble(message: Message, displayContent: string): boolean {
+export function shouldHideAssistantBubble(
+  message: Message,
+  displayContent: string,
+): boolean {
   if (message.role !== "assistant") {
     return false;
   }
@@ -32,7 +39,9 @@ export function shouldHideAssistantBubble(message: Message, displayContent: stri
   // With blocks: hide if there are only tool_use blocks (no text blocks)
   if (message.blocks && message.blocks.length > 0) {
     const hasText = message.blocks.some((b) => b.type === "text");
-    if (hasText) { return false; }
+    if (hasText) {
+      return false;
+    }
     const hasToolUse = message.blocks.some((b) => b.type === "tool_use");
     return hasToolUse;
   }

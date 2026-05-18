@@ -47,7 +47,9 @@ export function SkillsHubSettings() {
   const [loading, setLoading] = useState(false);
   const [searchResult, setSearchResult] = useState<SkillsHubSearchResult | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
-  const [installedSkills, setInstalledSkills] = useState<Set<string>>(new Set());
+  const [installedSkills, setInstalledSkills] = useState<Set<string>>(
+    new Set(),
+  );
 
   const handleSearch = async () => {
     setLoading(true);
@@ -95,7 +97,9 @@ export function SkillsHubSettings() {
         <div>
           <Text strong>{name}</Text>
           <br />
-          <Text type="secondary" className="text-xs">v{record.version}</Text>
+          <Text type="secondary" className="text-xs">
+            v{record.version}
+          </Text>
         </div>
       ),
     },
@@ -206,8 +210,7 @@ export function SkillsHubSettings() {
                     total: searchResult.total,
                     pageSize: searchResult.page_size,
                     current: searchResult.page,
-                    onChange: (_page) => {
-                    },
+                    onChange: (_page) => {},
                   }}
                 />
               )
@@ -222,8 +225,12 @@ export function SkillsHubSettings() {
           {t("settings.skillsHub.mySkillsDescription")}
         </Paragraph>
         <div className="flex gap-3">
-          <Button icon={<Upload size={16} />}>{t("settings.skillsHub.exportSkill")}</Button>
-          <Button icon={<Download size={16} />}>{t("settings.skillsHub.importSkill")}</Button>
+          <Button icon={<Upload size={16} />}>
+            {t("settings.skillsHub.exportSkill")}
+          </Button>
+          <Button icon={<Download size={16} />}>
+            {t("settings.skillsHub.importSkill")}
+          </Button>
         </div>
       </Card>
     </div>

@@ -49,7 +49,10 @@ export function BaseModal({
     >
       {children}
       {error && (
-        <Text type="danger" style={{ display: "block", marginTop: 12, fontSize: 12 }}>
+        <Text
+          type="danger"
+          style={{ display: "block", marginTop: 12, fontSize: 12 }}
+        >
           {error}
         </Text>
       )}

@@ -5,12 +5,16 @@ const listeners = new Map<string, Set<EventHandler>>();
 const MAX_LISTENER_KEYS = 200;
 
 function evictIfNeeded() {
-  if (listeners.size <= MAX_LISTENER_KEYS) { return; }
+  if (listeners.size <= MAX_LISTENER_KEYS) {
+    return;
+  }
   const keys = listeners.keys();
   const excess = listeners.size - MAX_LISTENER_KEYS;
   for (let i = 0; i < excess; i++) {
     const key = keys.next().value;
-    if (key !== undefined) { listeners.delete(key); }
+    if (key !== undefined) {
+      listeners.delete(key);
+    }
   }
 }
 

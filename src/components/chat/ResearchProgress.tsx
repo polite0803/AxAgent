@@ -10,7 +10,13 @@ import { Progress, Space, Typography } from "antd";
 
 const { Text } = Typography;
 
-type ResearchPhase = "planning" | "searching" | "extracting" | "analyzing" | "synthesizing" | "reporting";
+type ResearchPhase =
+  | "planning"
+  | "searching"
+  | "extracting"
+  | "analyzing"
+  | "synthesizing"
+  | "reporting";
 
 interface ResearchProgressProps {
   currentPhase: ResearchPhase;
@@ -19,7 +25,11 @@ interface ResearchProgressProps {
   showDetails?: boolean;
 }
 
-const phaseSteps: { key: ResearchPhase; label: string; icon: React.ReactNode }[] = [
+const phaseSteps: {
+  key: ResearchPhase;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
   { key: "planning", label: "规划", icon: <ClockCircleOutlined /> },
   { key: "searching", label: "搜索", icon: <SearchOutlined /> },
   { key: "extracting", label: "提取", icon: <LinkOutlined /> },
@@ -28,9 +38,12 @@ const phaseSteps: { key: ResearchPhase; label: string; icon: React.ReactNode }[]
   { key: "reporting", label: "报告", icon: <FileTextOutlined /> },
 ];
 
-export function ResearchProgress(
-  { currentPhase, percentage, currentQuery, showDetails = true }: ResearchProgressProps,
-) {
+export function ResearchProgress({
+  currentPhase,
+  percentage,
+  currentQuery,
+  showDetails = true,
+}: ResearchProgressProps) {
   const currentIndex = phaseSteps.findIndex((p) => p.key === currentPhase);
 
   return (
@@ -43,12 +56,20 @@ export function ResearchProgress(
             <div
               key={step.key}
               className={`flex flex-col items-center ${
-                isCompleted ? "text-green-500" : isCurrent ? "text-blue-500" : "text-zinc-400"
+                isCompleted
+                  ? "text-green-500"
+                  : isCurrent
+                  ? "text-blue-500"
+                  : "text-zinc-400"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  isCompleted ? "bg-green-500 text-white" : isCurrent ? "bg-blue-500 text-white" : "bg-zinc-200"
+                  isCompleted
+                    ? "bg-green-500 text-white"
+                    : isCurrent
+                    ? "bg-blue-500 text-white"
+                    : "bg-zinc-200"
                 }`}
               >
                 {step.icon}
@@ -91,7 +112,9 @@ export function ResearchPhaseIndicator({ phase }: { phase: ResearchPhase }) {
   return (
     <Space size="small">
       {completedPhases.map((step) => <CheckCircleOutlined key={step.key} className="text-green-500" />)}
-      <span className="text-blue-500 font-medium">{phaseSteps[phaseIndex]?.label}</span>
+      <span className="text-blue-500 font-medium">
+        {phaseSteps[phaseIndex]?.label}
+      </span>
       {remainingPhases.map((step) => <ClockCircleOutlined key={step.key} className="text-zinc-400" />)}
     </Space>
   );

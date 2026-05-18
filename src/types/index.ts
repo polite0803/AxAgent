@@ -1,7 +1,14 @@
 // === Provider System ===
 import type { RAGPipelineConfig } from "./knowledge";
 
-export type ProviderType = "openai" | "openai_responses" | "anthropic" | "gemini" | "openclaw" | "hermes" | "ollama";
+export type ProviderType =
+  | "openai"
+  | "openai_responses"
+  | "anthropic"
+  | "gemini"
+  | "openclaw"
+  | "hermes"
+  | "ollama";
 
 export interface ProviderConfig {
   id: string;
@@ -60,7 +67,12 @@ export interface UpdateProviderInput {
 }
 
 // === Model System ===
-export type ModelCapability = "TextChat" | "Vision" | "FunctionCalling" | "Reasoning" | "RealtimeVoice";
+export type ModelCapability =
+  | "TextChat"
+  | "Vision"
+  | "FunctionCalling"
+  | "Reasoning"
+  | "RealtimeVoice";
 export type ModelType = "Chat" | "Voice" | "Embedding";
 
 export interface Model {
@@ -195,7 +207,13 @@ export interface Message {
 export type ContentBlock =
   | { type: "text"; text: string }
   | { type: "tool_use"; id: string; name: string; input: string }
-  | { type: "tool_result"; tool_use_id: string; tool_name: string; output: string; is_error: boolean };
+  | {
+    type: "tool_result";
+    tool_use_id: string;
+    tool_name: string;
+    output: string;
+    is_error: boolean;
+  };
 
 export interface MessagePage {
   messages: Message[];
@@ -574,7 +592,13 @@ export interface TokenUsage {
 }
 
 // === Voice ===
-export type VoiceSessionState = "Idle" | "Connecting" | "Connected" | "Speaking" | "Listening" | "Disconnecting";
+export type VoiceSessionState =
+  | "Idle"
+  | "Connecting"
+  | "Connected"
+  | "Speaking"
+  | "Listening"
+  | "Disconnecting";
 
 export type AudioEncoding = "Pcm16" | "Opus";
 
@@ -592,7 +616,11 @@ export interface RealtimeConfig {
 
 // === Gateway Link (Client-side Gateway Connection) ===
 export type GatewayLinkType = "openclaw" | "hermes" | "custom";
-export type GatewayLinkStatus = "connected" | "disconnected" | "connecting" | "error";
+export type GatewayLinkStatus =
+  | "connected"
+  | "disconnected"
+  | "connecting"
+  | "error";
 
 export interface GatewayLink {
   id: string;
@@ -896,7 +924,12 @@ export type DeclarativeActionType =
   | { type: "invoke"; command: string; args?: Record<string, unknown> }
   | { type: "navigate"; path: string }
   | { type: "emit"; event: string; payload?: unknown }
-  | { type: "store"; operation: "get" | "set" | "update"; storeName: string; payload?: unknown }
+  | {
+    type: "store";
+    operation: "get" | "set" | "update";
+    storeName: string;
+    payload?: unknown;
+  }
   | { type: "function"; name: string; args?: unknown[] }
   | { type: "handler"; name: string; args?: Record<string, unknown> }
   | { type: "chain"; actions: DeclarativeActionType[] };
@@ -1054,7 +1087,12 @@ export * from "./tracer";
 export * from "./wiki";
 
 // ── Workspace / Context Types (merged from workspace.ts) ───────────────
-export type ContextSourceType = "attachment" | "search" | "knowledge" | "memory" | "tool";
+export type ContextSourceType =
+  | "attachment"
+  | "search"
+  | "knowledge"
+  | "memory"
+  | "tool";
 
 export type ContextSource = {
   id: string;
@@ -1173,7 +1211,11 @@ export type CompareResponsesResult = {
 };
 
 // ── Tool Dependencies ─────────────────────────────────────────────────
-export type ToolDependencyStatus = "satisfied" | "auto_installable" | "manual_installable" | "needs_generation";
+export type ToolDependencyStatus =
+  | "satisfied"
+  | "auto_installable"
+  | "manual_installable"
+  | "needs_generation";
 
 export interface ToolDependency {
   name: string;
@@ -1198,7 +1240,12 @@ export interface DecompositionPreview {
 }
 
 // ── Work Engine ───────────────────────────────────────────────────────
-export type ExecutionStatus = "running" | "paused" | "completed" | "failed" | "cancelled";
+export type ExecutionStatus =
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export interface ExecutionStatusResponse {
   execution_id: string;
@@ -1218,7 +1265,13 @@ export interface ExecutionSummary {
 }
 
 // ── Plan Mode (Agent Work Strategy) ──────────────────────────────────
-export type PlanStepStatus = "pending" | "approved" | "rejected" | "running" | "completed" | "error";
+export type PlanStepStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "running"
+  | "completed"
+  | "error";
 
 export interface PlanStep {
   id: string;
@@ -1231,7 +1284,14 @@ export interface PlanStep {
   result?: string | null;
 }
 
-export type PlanStatus = "draft" | "reviewing" | "approved" | "executing" | "completed" | "partial" | "cancelled";
+export type PlanStatus =
+  | "draft"
+  | "reviewing"
+  | "approved"
+  | "executing"
+  | "completed"
+  | "partial"
+  | "cancelled";
 
 export interface Plan {
   id: string;

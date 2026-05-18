@@ -30,7 +30,9 @@ export interface HookExecutionRecord {
 function readLogs(): HookExecutionRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) { return []; }
+    if (!raw) {
+      return [];
+    }
     return JSON.parse(raw) as HookExecutionRecord[];
   } catch {
     return [];

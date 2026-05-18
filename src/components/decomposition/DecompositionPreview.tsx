@@ -96,11 +96,17 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 />
               )}
 
-              <Typography.Title level={5}>{t("decomposition.workflowSteps")}</Typography.Title>
+              <Typography.Title level={5}>
+                {t("decomposition.workflowSteps")}
+              </Typography.Title>
               <Table
                 dataSource={[]}
                 columns={[
-                  { title: t("decomposition.colName"), dataIndex: "name", key: "name" },
+                  {
+                    title: t("decomposition.colName"),
+                    dataIndex: "name",
+                    key: "name",
+                  },
                   {
                     title: t("decomposition.colDescription"),
                     dataIndex: "description",
@@ -124,7 +130,8 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
               {preview.tool_dependencies.length > 0 && (
                 <>
                   <Typography.Title level={5}>
-                    {t("decomposition.toolDependencies")} ({preview.tool_dependencies.length})
+                    {t("decomposition.toolDependencies")} (
+                    {preview.tool_dependencies.length})
                   </Typography.Title>
                   <ToolDependencyList
                     dependencies={preview.tool_dependencies}
@@ -144,7 +151,7 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                       <Typography.Title level={5} style={{ marginTop: 0 }}>
                         {t("decomposition.processing")} {activeDep.name}
                       </Typography.Title>
-                      {(activeDep.status === "needs_generation")
+                      {activeDep.status === "needs_generation"
                         ? (
                           <>
                             <ToolGenerationPreview dependency={activeDep} />
@@ -165,10 +172,13 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 </>
               )}
 
-              <Typography.Title level={5}>{t("decomposition.sourceInfo")}</Typography.Title>
+              <Typography.Title level={5}>
+                {t("decomposition.sourceInfo")}
+              </Typography.Title>
               <Paragraph type="secondary">
                 {t("decomposition.market")}: {preview.original_source.market}
-                {preview.original_source.repo && ` | ${t("decomposition.repo")}: ${preview.original_source.repo}`}
+                {preview.original_source.repo
+                  && ` | ${t("decomposition.repo")}: ${preview.original_source.repo}`}
                 {preview.original_source.version
                   && ` | ${t("decomposition.version")}: ${preview.original_source.version}`}
               </Paragraph>

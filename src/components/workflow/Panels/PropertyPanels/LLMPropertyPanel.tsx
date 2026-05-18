@@ -13,12 +13,18 @@ interface LLMPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const [messageApi, contextHolder] = message.useMessage();
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
-  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(
+    {},
+  );
 
   const llmNode = node as LLMNode;
   const config = llmNode.config || {
@@ -54,11 +60,15 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
   const incrementUsage = usePromptTemplateStore((s) => s.incrementUsage);
 
   const handleApplyTemplate = () => {
-    if (!selectedTemplate) { return; }
+    if (!selectedTemplate) {
+      return;
+    }
 
     let content = selectedTemplate.content;
     try {
-      const schema = selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {};
+      const schema = selectedTemplate.variablesSchema
+        ? JSON.parse(selectedTemplate.variablesSchema)
+        : {};
       // js-hoist-regexp: 模式依赖迭代变量 varName，无法提升
       for (const [varName, _varType] of Object.entries(schema)) {
         const value = variableValues[varName] || `{${varName}}`;
@@ -87,7 +97,14 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.model")}
         </label>
         <ModelSelect
@@ -100,7 +117,14 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.prompt")}
         </label>
         <Input.TextArea
@@ -123,7 +147,14 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.temperature")}
           </label>
           <InputNumber
@@ -141,7 +172,14 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
           </div>
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          <label
+            style={{
+              display: "block",
+              color: "#999",
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
             {t("workflow.props.maxTokens")}
           </label>
           <InputNumber
@@ -157,8 +195,14 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
         </div>
       </div>
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
 
       <Modal
@@ -174,29 +218,44 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
         {selectedTemplate
           ? (
             <div style={{ padding: "12px 0" }}>
-              <p style={{ marginBottom: 8 }}>{t("promptTemplates.fillVariables")}</p>
-              {Object.entries(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {}).map(
-                ([varName, varType]) => (
-                  <div key={varName} style={{ marginBottom: 8 }}>
-                    <label style={{ display: "block", fontSize: 12, marginBottom: 2 }}>
-                      {varName} ({String(varType)})
-                    </label>
-                    <Input
-                      id="l-l-m-property-panel-input-99"
-                      placeholder={`${varName} (${String(varType)})`}
-                      value={variableValues[varName] || ""}
-                      onChange={(e) => setVariableValues((prev) => ({ ...prev, [varName]: e.target.value }))}
-                    />
-                  </div>
-                ),
-              )}
+              <p style={{ marginBottom: 8 }}>
+                {t("promptTemplates.fillVariables")}
+              </p>
+              {Object.entries(
+                selectedTemplate.variablesSchema
+                  ? JSON.parse(selectedTemplate.variablesSchema)
+                  : {},
+              ).map(([varName, varType]) => (
+                <div key={varName} style={{ marginBottom: 8 }}>
+                  <label
+                    style={{ display: "block", fontSize: 12, marginBottom: 2 }}
+                  >
+                    {varName} ({String(varType)})
+                  </label>
+                  <Input
+                    id="l-l-m-property-panel-input-99"
+                    placeholder={`${varName} (${String(varType)})`}
+                    value={variableValues[varName] || ""}
+                    onChange={(e) =>
+                      setVariableValues((prev) => ({
+                        ...prev,
+                        [varName]: e.target.value,
+                      }))}
+                  />
+                </div>
+              ))}
               {parseVariables(selectedTemplate.content).length > 0
-                && Object.keys(selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {})
-                    .length === 0
+                && Object.keys(
+                    selectedTemplate.variablesSchema
+                      ? JSON.parse(selectedTemplate.variablesSchema)
+                      : {},
+                  ).length === 0
                 && (
                   <p style={{ color: "#f59e0b", fontSize: 12 }}>
                     {t("promptTemplates.hasVariables", {
-                      variables: parseVariables(selectedTemplate.content).join(", "),
+                      variables: parseVariables(selectedTemplate.content).join(
+                        ", ",
+                      ),
                     })}
                   </p>
                 )}
@@ -218,7 +277,9 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
                       tabIndex={0}
                       onClick={() => handleSelectTemplate(template)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") { handleSelectTemplate(template); }
+                        if (e.key === "Enter" || e.key === " ") {
+                          handleSelectTemplate(template);
+                        }
                       }}
                       style={{
                         padding: "8px 12px",
@@ -228,7 +289,8 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
                     >
                       <div style={{ fontWeight: 500 }}>{template.name}</div>
                       <div style={{ fontSize: 12, color: "#999" }}>
-                        {template.description || template.content.slice(0, 60) + "..."}
+                        {template.description
+                          || template.content.slice(0, 60) + "..."}
                       </div>
                     </div>
                   ))

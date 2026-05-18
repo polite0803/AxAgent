@@ -111,7 +111,9 @@ describe("conversationStore pagination", () => {
   });
 
   it("loads only the newest 10 messages for the initial conversation page", async () => {
-    invokeMock.mockResolvedValueOnce(makePage([makeMessage(11), makeMessage(12)], true));
+    invokeMock.mockResolvedValueOnce(
+      makePage([makeMessage(11), makeMessage(12)], true),
+    );
     // useConversationStore imported at module level
 
     useConversationStore.getState().setActiveConversation("conv-1");
@@ -122,22 +124,34 @@ describe("conversationStore pagination", () => {
       limit: 50,
       beforeMessageId: null,
     });
-    expect(useConversationStore.getState().messages.map((message) => message.id)).toEqual(["msg-11", "msg-12"]);
+    expect(
+      useConversationStore.getState().messages.map((message) => message.id),
+    ).toEqual(["msg-11", "msg-12"]);
     expect(useConversationStore.getState().hasOlderMessages).toBe(true);
-    expect(useConversationStore.getState().oldestLoadedMessageId).toBe("msg-11");
+    expect(useConversationStore.getState().oldestLoadedMessageId).toBe(
+      "msg-11",
+    );
   });
 
   it("keeps loading until the newest active conversation request resolves", async () => {
     const pageA = deferred<MessagePage>();
     const pageB = deferred<MessagePage>();
-    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
-      if (cmd !== "list_messages_page") {
-        throw new Error(`unexpected command: ${cmd}`);
-      }
-      if (args?.conversationId === "conv-a") { return pageA.promise; }
-      if (args?.conversationId === "conv-b") { return pageB.promise; }
-      throw new Error(`unexpected conversation: ${String(args?.conversationId)}`);
-    });
+    invokeMock.mockImplementation(
+      (cmd: string, args?: Record<string, unknown>) => {
+        if (cmd !== "list_messages_page") {
+          throw new Error(`unexpected command: ${cmd}`);
+        }
+        if (args?.conversationId === "conv-a") {
+          return pageA.promise;
+        }
+        if (args?.conversationId === "conv-b") {
+          return pageB.promise;
+        }
+        throw new Error(
+          `unexpected conversation: ${String(args?.conversationId)}`,
+        );
+      },
+    );
     // useConversationStore imported at module level
 
     useConversationStore.getState().setActiveConversation("conv-a");
@@ -155,24 +169,30 @@ describe("conversationStore pagination", () => {
     await flushPromises();
 
     expect(useConversationStore.getState().loading).toBe(false);
-    expect(useConversationStore.getState().messages.map((message) => message.id)).toEqual(["msg-2"]);
+    expect(
+      useConversationStore.getState().messages.map((message) => message.id),
+    ).toEqual(["msg-2"]);
   });
 
   it("clears active conversation when the backend reports the conversation is missing", async () => {
-    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
-      if (cmd === "list_messages_page") {
-        if (args?.conversationId === "conv-missing") {
-          return Promise.reject(new Error("Not found: Conversation conv-missing"));
+    invokeMock.mockImplementation(
+      (cmd: string, args?: Record<string, unknown>) => {
+        if (cmd === "list_messages_page") {
+          if (args?.conversationId === "conv-missing") {
+            return Promise.reject(
+              new Error("Not found: Conversation conv-missing"),
+            );
+          }
+          if (args?.conversationId === "conv-2") {
+            return Promise.resolve(makePage([], false));
+          }
         }
-        if (args?.conversationId === "conv-2") {
-          return Promise.resolve(makePage([], false));
+        if (cmd === "list_conversations") {
+          return Promise.resolve([makeConversation("conv-2")] as never[]);
         }
-      }
-      if (cmd === "list_conversations") {
-        return Promise.resolve([makeConversation("conv-2")] as never[]);
-      }
-      throw new Error(`unexpected command: ${cmd}`);
-    });
+        throw new Error(`unexpected command: ${cmd}`);
+      },
+    );
     // useConversationStore imported at module level
     useConversationStore.setState({
       conversations: [makeConversation("conv-missing")] as never[],
@@ -182,7 +202,11 @@ describe("conversationStore pagination", () => {
     await flushPromises();
     await flushPromises();
 
-    expect(invokeMock).toHaveBeenCalledWith("list_conversations", undefined, 15000);
+    expect(invokeMock).toHaveBeenCalledWith(
+      "list_conversations",
+      undefined,
+      15000,
+    );
     expect(useConversationStore.getState().activeConversationId).toBe("conv-2");
     expect(useConversationStore.getState().messages).toEqual([]);
   });
@@ -190,7 +214,9 @@ describe("conversationStore pagination", () => {
   it("prepends older pages without replacing already loaded messages", async () => {
     invokeMock
       .mockResolvedValueOnce(makePage([makeMessage(11), makeMessage(12)], true))
-      .mockResolvedValueOnce(makePage([makeMessage(9), makeMessage(10)], false));
+      .mockResolvedValueOnce(
+        makePage([makeMessage(9), makeMessage(10)], false),
+      );
     // useConversationStore imported at module level
 
     useConversationStore.getState().setActiveConversation("conv-1");
@@ -202,12 +228,9 @@ describe("conversationStore pagination", () => {
       limit: 50,
       beforeMessageId: "msg-11",
     });
-    expect(useConversationStore.getState().messages.map((message) => message.id)).toEqual([
-      "msg-9",
-      "msg-10",
-      "msg-11",
-      "msg-12",
-    ]);
+    expect(
+      useConversationStore.getState().messages.map((message) => message.id),
+    ).toEqual(["msg-9", "msg-10", "msg-11", "msg-12"]);
     expect(useConversationStore.getState().hasOlderMessages).toBe(false);
     expect(useConversationStore.getState().loadingOlder).toBe(false);
   });
@@ -243,9 +266,15 @@ describe("conversationStore pagination", () => {
     expect(useConversationStore.getState().searchEnabled).toBe(true);
     expect(useConversationStore.getState().searchProviderId).toBe("search-a");
     expect(useConversationStore.getState().thinkingBudget).toBe(2048);
-    expect(useConversationStore.getState().enabledMcpServerIds).toEqual(["mcp-a"]);
-    expect(useConversationStore.getState().enabledKnowledgeBaseIds).toEqual(["kb-a"]);
-    expect(useConversationStore.getState().activeMemoryNamespaceId).toEqual("mem-a");
+    expect(useConversationStore.getState().enabledMcpServerIds).toEqual([
+      "mcp-a",
+    ]);
+    expect(useConversationStore.getState().enabledKnowledgeBaseIds).toEqual([
+      "kb-a",
+    ]);
+    expect(useConversationStore.getState().activeMemoryNamespaceId).toEqual(
+      "mem-a",
+    );
 
     useConversationStore.getState().setActiveConversation("conv-b");
     await flushPromises();
@@ -253,9 +282,13 @@ describe("conversationStore pagination", () => {
     expect(useConversationStore.getState().searchEnabled).toBe(false);
     expect(useConversationStore.getState().searchProviderId).toBeNull();
     expect(useConversationStore.getState().thinkingBudget).toBeNull();
-    expect(useConversationStore.getState().enabledMcpServerIds).toEqual(["mcp-b"]);
+    expect(useConversationStore.getState().enabledMcpServerIds).toEqual([
+      "mcp-b",
+    ]);
     expect(useConversationStore.getState().enabledKnowledgeBaseIds).toEqual([]);
-    expect(useConversationStore.getState().activeMemoryNamespaceId).toEqual("mem-b");
+    expect(useConversationStore.getState().activeMemoryNamespaceId).toEqual(
+      "mem-b",
+    );
   });
 
   it("persists search preference changes for the active conversation", async () => {
@@ -285,31 +318,35 @@ describe("conversationStore pagination", () => {
 
     useConversationStore.setState({
       activeConversationId: "conv-1",
-      conversations: [makeConversation("conv-1", { enabled_mcp_server_ids: ["mcp-a"] })] as never[],
+      conversations: [
+        makeConversation("conv-1", { enabled_mcp_server_ids: ["mcp-a"] }),
+      ] as never[],
       enabledMcpServerIds: ["mcp-a"],
     });
 
     await useConversationStore.getState().toggleMcpServer("mcp-b");
     await flushPromises();
-    expect(useConversationStore.getState().enabledMcpServerIds).toEqual(["mcp-a", "mcp-b"]);
+    expect(useConversationStore.getState().enabledMcpServerIds).toEqual([
+      "mcp-a",
+      "mcp-b",
+    ]);
   });
 
   it("keeps streaming active when a non-final done chunk arrives during a tool loop", async () => {
     const listeners = new Map<string, (event: unknown) => void>();
-    listenMock.mockImplementation(async (eventName: string, handler: (event: unknown) => void) => {
-      listeners.set(eventName, handler);
-      return () => {};
-    });
+    listenMock.mockImplementation(
+      async (eventName: string, handler: (event: unknown) => void) => {
+        listeners.set(eventName, handler);
+        return () => {};
+      },
+    );
 
     // useConversationStore imported at module level
     const { useStreamStore } = await import("../domain/streamStore");
 
     useConversationStore.setState({
       activeConversationId: "conv-1",
-      messages: [
-        makeMessage(1),
-        makeMessage(2, "conv-1"),
-      ],
+      messages: [makeMessage(1), makeMessage(2, "conv-1")],
     });
     useStreamStore.setState({
       streaming: true,
@@ -344,10 +381,12 @@ describe("conversationStore pagination", () => {
     vi.useFakeTimers();
 
     const listeners = new Map<string, (event: unknown) => void>();
-    listenMock.mockImplementation(async (eventName: string, handler: (event: unknown) => void) => {
-      listeners.set(eventName, handler);
-      return () => {};
-    });
+    listenMock.mockImplementation(
+      async (eventName: string, handler: (event: unknown) => void) => {
+        listeners.set(eventName, handler);
+        return () => {};
+      },
+    );
 
     // useConversationStore imported at module level
     const { useStreamStore } = await import("../domain/streamStore");
@@ -388,96 +427,108 @@ describe("conversationStore pagination", () => {
 
     useStreamStore.getState().cancelCurrentStream();
 
-    expect(useConversationStore.getState().messages[0]?.content).toBe("Hello world");
+    expect(useConversationStore.getState().messages[0]?.content).toBe(
+      "Hello world",
+    );
 
     vi.useRealTimers();
   });
 
   it("creates a new conversation from a category template when a category id is supplied", async () => {
-    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
-      if (cmd === "create_conversation") {
-        expect(args).toEqual({
-          title: "template-conversation",
-          modelId: "template-model",
-          providerId: "template-provider",
-          systemPrompt: "Category prompt",
-        });
-        return Promise.resolve(makeConversation("conv-template", {
-          provider_id: "template-provider",
-          model_id: "template-model",
-          system_prompt: "Category prompt",
-        }));
-      }
+    invokeMock.mockImplementation(
+      (cmd: string, args?: Record<string, unknown>) => {
+        if (cmd === "create_conversation") {
+          expect(args).toEqual({
+            title: "template-conversation",
+            modelId: "template-model",
+            providerId: "template-provider",
+            systemPrompt: "Category prompt",
+          });
+          return Promise.resolve(
+            makeConversation("conv-template", {
+              provider_id: "template-provider",
+              model_id: "template-model",
+              system_prompt: "Category prompt",
+            }),
+          );
+        }
 
-      if (cmd === "update_conversation") {
-        expect(args).toEqual({
-          id: "conv-template",
-          input: {
-            category_id: "cat-template",
-            system_prompt: "Category prompt",
-            temperature: 0.2,
-            max_tokens: 8192,
-            top_p: 0.95,
-            frequency_penalty: 0.4,
-            search_enabled: false,
-            search_provider_id: null,
-            thinking_budget: null,
-            enabled_mcp_server_ids: [],
-            enabled_knowledge_base_ids: [],
-            enabled_memory_namespace_ids: [],
-            enabled_wiki_ids: [],
-          },
-        });
+        if (cmd === "update_conversation") {
+          expect(args).toEqual({
+            id: "conv-template",
+            input: {
+              category_id: "cat-template",
+              system_prompt: "Category prompt",
+              temperature: 0.2,
+              max_tokens: 8192,
+              top_p: 0.95,
+              frequency_penalty: 0.4,
+              search_enabled: false,
+              search_provider_id: null,
+              thinking_budget: null,
+              enabled_mcp_server_ids: [],
+              enabled_knowledge_base_ids: [],
+              enabled_memory_namespace_ids: [],
+              enabled_wiki_ids: [],
+            },
+          });
 
-        return Promise.resolve(makeConversation("conv-template", {
-          provider_id: "template-provider",
-          model_id: "template-model",
-          category_id: "cat-template",
-          system_prompt: "Category prompt",
-          temperature: 0.2,
-          max_tokens: 8192,
-          top_p: 0.95,
-          frequency_penalty: 0.4,
-        }));
-      }
+          return Promise.resolve(
+            makeConversation("conv-template", {
+              provider_id: "template-provider",
+              model_id: "template-model",
+              category_id: "cat-template",
+              system_prompt: "Category prompt",
+              temperature: 0.2,
+              max_tokens: 8192,
+              top_p: 0.95,
+              frequency_penalty: 0.4,
+            }),
+          );
+        }
 
-      if (cmd === "list_messages_page") {
-        return Promise.resolve(makePage([], false));
-      }
+        if (cmd === "list_messages_page") {
+          return Promise.resolve(makePage([], false));
+        }
 
-      throw new Error(`unexpected command: ${cmd}`);
-    });
+        throw new Error(`unexpected command: ${cmd}`);
+      },
+    );
 
     // useConversationStore imported at module level
     const { useCategoryStore } = await import("../feature/categoryStore");
 
     useCategoryStore.setState({
-      categories: [{
-        id: "cat-template",
-        name: "Template",
-        icon_type: null,
-        icon_value: null,
-        system_prompt: "Category prompt",
-        default_provider_id: "template-provider",
-        default_model_id: "template-model",
-        default_temperature: 0.2,
-        default_max_tokens: 8192,
-        default_top_p: 0.95,
-        default_frequency_penalty: 0.4,
-        sort_order: 0,
-        is_collapsed: false,
-        created_at: 1,
-        updated_at: 1,
-      }] as never[],
+      categories: [
+        {
+          id: "cat-template",
+          name: "Template",
+          icon_type: null,
+          icon_value: null,
+          system_prompt: "Category prompt",
+          default_provider_id: "template-provider",
+          default_model_id: "template-model",
+          default_temperature: 0.2,
+          default_max_tokens: 8192,
+          default_top_p: 0.95,
+          default_frequency_penalty: 0.4,
+          sort_order: 0,
+          is_collapsed: false,
+          created_at: 1,
+          updated_at: 1,
+        },
+      ] as never[],
       loading: false,
     });
 
-    const conversation = await useConversationStore.getState().createConversation(
-      "template-conversation",
-      "fallback-model",
-      "fallback-provider",
-      { categoryId: "cat-template" },
-    );
+    const conversation = await useConversationStore
+      .getState()
+      .createConversation(
+        "template-conversation",
+        "fallback-model",
+        "fallback-provider",
+        { categoryId: "cat-template" },
+      );
 
     expect(conversation.category_id).toBe("cat-template");
     expect(conversation.provider_id).toBe("template-provider");

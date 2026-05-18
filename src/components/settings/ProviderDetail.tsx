@@ -103,7 +103,10 @@ const MODEL_TYPE_LABEL_KEYS: Record<ModelType, string> = {
   Embedding: "settings.modelType.Embedding",
 };
 
-const MODEL_TYPE_CONFIG: Record<ModelType, { color: string; icon: React.ReactNode }> = {
+const MODEL_TYPE_CONFIG: Record<
+  ModelType,
+  { color: string; icon: React.ReactNode }
+> = {
   Chat: { color: "blue", icon: <MessageSquare size={12} /> },
   Voice: { color: "red", icon: <Mic size={12} /> },
   Embedding: { color: "cyan", icon: <Database size={12} /> },
@@ -135,12 +138,18 @@ function deriveModelGroupName(model_id: string): string {
     .split("-")
     .filter((part) => part.length > 0);
 
-  if (parts.length >= 2) { return parts.slice(0, 2).join("-"); }
-  if (parts.length === 1) { return parts[0]; }
+  if (parts.length >= 2) {
+    return parts.slice(0, 2).join("-");
+  }
+  if (parts.length === 1) {
+    return parts[0];
+  }
   return model_id.trim();
 }
 
-function getModelGroupName(model: Pick<Model, "model_id" | "group_name">): string {
+function getModelGroupName(
+  model: Pick<Model, "model_id" | "group_name">,
+): string {
   const explicitGroup = model.group_name?.trim();
   return explicitGroup || deriveModelGroupName(model.model_id);
 }
@@ -157,7 +166,9 @@ function formatTokenCount(tokens: number): string {
   return `${tokens}`;
 }
 
-function getDefaultCapabilitiesForType(modelType: ModelType): ModelCapability[] {
+function getDefaultCapabilitiesForType(
+  modelType: ModelType,
+): ModelCapability[] {
   switch (modelType) {
     case "Voice":
       return ["RealtimeVoice"];
@@ -209,26 +220,39 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const addModelGroupDirty = useRef(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<Model | null>(null);
-  const [editCapabilities, setEditCapabilities] = useState<ModelCapability[]>([]);
+  const [editCapabilities, setEditCapabilities] = useState<ModelCapability[]>(
+    [],
+  );
   const [editModelType, setEditModelType] = useState<ModelType>("Chat");
   const [editMaxTokens, setEditMaxTokens] = useState<number | null>(null);
   const [editTemperature, setEditTemperature] = useState<number | null>(0.7);
-  const [editMaxTokensParam, setEditMaxTokensParam] = useState<number | null>(4096);
+  const [editMaxTokensParam, setEditMaxTokensParam] = useState<number | null>(
+    4096,
+  );
   const [editTopP, setEditTopP] = useState<number | null>(1.0);
   const [editFreqPenalty, setEditFreqPenalty] = useState<number | null>(0.0);
   const [editUseMaxCompletionTokens, setEditUseMaxCompletionTokens] = useState(false);
   const [editNoSystemRole, setEditNoSystemRole] = useState(false);
   const [editForceMaxTokens, setEditForceMaxTokens] = useState(false);
   const [editThinkingParamStyle, setEditThinkingParamStyle] = useState<string>("reasoning_effort");
-  const [editRequestDelayMs, setEditRequestDelayMs] = useState<number | null>(null);
+  const [editRequestDelayMs, setEditRequestDelayMs] = useState<number | null>(
+    null,
+  );
   const [editGroupName, setEditGroupName] = useState<string>("");
-  const [iconOverrides, setIconOverrides] = useState<Record<string, string>>({});
+  const [iconOverrides, setIconOverrides] = useState<Record<string, string>>(
+    {},
+  );
   const [apiHostLocal, setApiHostLocal] = useState(provider?.api_host ?? "");
   const [apiPathLocal, setApiPathLocal] = useState(provider?.api_path ?? "");
   const [customHeadersLocal, setCustomHeadersLocal] = useState(() => {
     try {
-      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<string, string>;
-      return Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n");
+      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<
+        string,
+        string
+      >;
+      return Object.entries(obj)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("\n");
     } catch {
       return "";
     }
@@ -236,17 +260,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const apiHostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const apiPathTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [testingModels, setTestingModels] = useState<Set<string>>(new Set());
-  const [testResults, setTestResults] = useState<Map<string, { latencyMs?: number; error?: string }>>(new Map());
+  const [testResults, setTestResults] = useState<
+    Map<string, { latencyMs?: number; error?: string }>
+  >(new Map());
   const [singleTestModalOpen, setSingleTestModalOpen] = useState(false);
   const [singleTestModelId, setSingleTestModelId] = useState<string>("");
-  const [singleTestResult, setSingleTestResult] = useState<{ latencyMs?: number; error?: string } | null>(null);
+  const [singleTestResult, setSingleTestResult] = useState<
+    {
+      latencyMs?: number;
+      error?: string;
+    } | null
+  >(null);
   const [singleTestLoading, setSingleTestLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"append" | "replace">("append");
   const [pickerModels, setPickerModels] = useState<Model[]>([]);
   const [pickerSelected, setPickerSelected] = useState<Set<string>>(new Set());
   const [pickerSearch, setPickerSearch] = useState("");
-  const [pickerCollapsed, setPickerCollapsed] = useState<Set<string>>(new Set());
+  const [pickerCollapsed, setPickerCollapsed] = useState<Set<string>>(
+    new Set(),
+  );
   const [providerEditModalOpen, setProviderEditModalOpen] = useState(false);
   const [editProviderName, setEditProviderName] = useState("");
   const [editProviderType, setEditProviderType] = useState<ProviderType>("openai");
@@ -258,7 +291,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   // Batch edit fields — each has a value + an "enabled" flag
   const [batchModelType, setBatchModelType] = useState<ModelType>("Chat");
   const [batchModelTypeEnabled, setBatchModelTypeEnabled] = useState(false);
-  const [batchCapabilities, setBatchCapabilities] = useState<ModelCapability[]>(["TextChat"]);
+  const [batchCapabilities, setBatchCapabilities] = useState<ModelCapability[]>(
+    ["TextChat"],
+  );
   const [batchCapabilitiesEnabled, setBatchCapabilitiesEnabled] = useState(false);
   const [batchMaxTokens, setBatchMaxTokens] = useState<number>(128000);
   const [batchMaxTokensEnabled, setBatchMaxTokensEnabled] = useState(false);
@@ -271,7 +306,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [batchFreqPenalty, setBatchFreqPenalty] = useState<number>(0.0);
   const [batchFreqPenaltyEnabled, setBatchFreqPenaltyEnabled] = useState(false);
   const [batchUseMaxCompletionTokens, setBatchUseMaxCompletionTokens] = useState(false);
-  const [batchUseMaxCompletionTokensEnabled, setBatchUseMaxCompletionTokensEnabled] = useState(false);
+  const [
+    batchUseMaxCompletionTokensEnabled,
+    setBatchUseMaxCompletionTokensEnabled,
+  ] = useState(false);
   const [batchNoSystemRole, setBatchNoSystemRole] = useState(false);
   const [batchNoSystemRoleEnabled, setBatchNoSystemRoleEnabled] = useState(false);
   const [batchForceMaxTokens, setBatchForceMaxTokens] = useState(false);
@@ -280,29 +318,38 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [batchThinkingParamStyleEnabled, setBatchThinkingParamStyleEnabled] = useState(false);
 
   const pickerGroups = useMemo(() => {
-    const filtered = pickerModels.filter((m) =>
-      !pickerSearch || [m.name, m.model_id].some((v) => v.toLowerCase().includes(pickerSearch.toLowerCase()))
+    const filtered = pickerModels.filter(
+      (m) =>
+        !pickerSearch
+        || [m.name, m.model_id].some((v) => v.toLowerCase().includes(pickerSearch.toLowerCase())),
     );
     const groups: Record<string, Model[]> = {};
     for (const m of filtered) {
       const key = getModelGroupName(m);
-      if (!groups[key]) { groups[key] = []; }
+      if (!groups[key]) {
+        groups[key] = [];
+      }
       groups[key].push(m);
     }
     return { filtered, entries: Object.entries(groups) };
   }, [pickerModels, pickerSearch]);
 
   // Flatten picker groups into virtual rows
-  type PickerRow = { type: "group"; group: string; models: Model[] } | { type: "model"; model: Model } | {
-    type: "spacer";
-    beforeGroup: string;
-  };
+  type PickerRow =
+    | { type: "group"; group: string; models: Model[] }
+    | { type: "model"; model: Model }
+    | {
+      type: "spacer";
+      beforeGroup: string;
+    };
   const flatPickerRows = useMemo<PickerRow[]>(() => {
     const rows: PickerRow[] = [];
     const entries = pickerGroups.entries;
     for (let i = 0; i < entries.length; i++) {
       const [group, models] = entries[i];
-      if (i > 0) { rows.push({ type: "spacer", beforeGroup: group }); }
+      if (i > 0) {
+        rows.push({ type: "spacer", beforeGroup: group });
+      }
       rows.push({ type: "group", group, models });
       if (!pickerCollapsed.has(group)) {
         for (const model of models) {
@@ -319,14 +366,22 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     getScrollElement: () => pickerListParentRef.current,
     estimateSize: (index) => {
       const row = flatPickerRows[index];
-      if (row.type === "spacer") { return 8; }
-      if (row.type === "group") { return 40; }
+      if (row.type === "spacer") {
+        return 8;
+      }
+      if (row.type === "group") {
+        return 40;
+      }
       return 40;
     },
     getItemKey: (index) => {
       const row = flatPickerRows[index];
-      if (row.type === "spacer") { return `spacer-${row.beforeGroup}`; }
-      if (row.type === "group") { return `group-${row.group}`; }
+      if (row.type === "spacer") {
+        return `spacer-${row.beforeGroup}`;
+      }
+      if (row.type === "group") {
+        return `group-${row.group}`;
+      }
       return `model-${row.model.model_id}`;
     },
     overscan: 15,
@@ -337,8 +392,15 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     setApiHostLocal(provider?.api_host ?? "");
     setApiPathLocal(provider?.api_path ?? "");
     try {
-      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<string, string>;
-      setCustomHeadersLocal(Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n"));
+      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<
+        string,
+        string
+      >;
+      setCustomHeadersLocal(
+        Object.entries(obj)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("\n"),
+      );
     } catch {
       setCustomHeadersLocal("");
     }
@@ -368,7 +430,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     const trimmed = host.replace(/\/+$/, "");
     const forced = trimmed.endsWith("!");
     const rawHost = forced ? trimmed.slice(0, -1).replace(/\/+$/, "") : trimmed;
-    const resolvedBase = forced ? rawHost : hasVersionSuffix(rawHost) ? rawHost : `${rawHost}${defaultVersion}`;
+    const resolvedBase = forced
+      ? rawHost
+      : hasVersionSuffix(rawHost)
+      ? rawHost
+      : `${rawHost}${defaultVersion}`;
 
     // resolve chat url: strip ! from path, dedup version prefix
     const pathForced = path.endsWith("!");
@@ -410,7 +476,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   }, []);
 
   const handleAddKey = useCallback(async () => {
-    if (!keyValue.trim()) { return; }
+    if (!keyValue.trim()) {
+      return;
+    }
     try {
       await addProviderKey(providerId, keyValue);
       setKeyValue("");
@@ -453,8 +521,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         seen.set(m.model_id, m);
       }
       const dedupedModels = Array.from(seen.values());
-      const existingIds = new Set((provider?.models ?? []).map((m) => m.model_id));
-      const newModels = dedupedModels.filter((m) => !existingIds.has(m.model_id));
+      const existingIds = new Set(
+        (provider?.models ?? []).map((m) => m.model_id),
+      );
+      const newModels = dedupedModels.filter(
+        (m) => !existingIds.has(m.model_id),
+      );
       if (newModels.length === 0) {
         message.info(t("settings.noNewModels"));
         return;
@@ -491,7 +563,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         message.info(t("settings.noNewModels"));
         return;
       }
-      const existingIds = new Set((provider?.models ?? []).map((m) => m.model_id));
+      const existingIds = new Set(
+        (provider?.models ?? []).map((m) => m.model_id),
+      );
       setPickerModels(dedupedModels);
       setPickerSelected(new Set(existingIds));
       setPickerMode("replace");
@@ -522,18 +596,33 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     try {
       await saveModels(providerId, merged);
       if (pickerMode === "replace") {
-        message.success(t("settings.fetchAllModelsSuccess", { count: selectedModels.length }));
+        message.success(
+          t("settings.fetchAllModelsSuccess", { count: selectedModels.length }),
+        );
       } else {
-        message.success(t("settings.modelsAdded", { count: selectedModels.length }));
+        message.success(
+          t("settings.modelsAdded", { count: selectedModels.length }),
+        );
       }
     } catch {
       message.error(t("error.saveFailed"));
     }
     setPickerOpen(false);
-  }, [pickerModels, pickerSelected, pickerMode, provider?.models, providerId, saveModels, message, t]);
+  }, [
+    pickerModels,
+    pickerSelected,
+    pickerMode,
+    provider?.models,
+    providerId,
+    saveModels,
+    message,
+    t,
+  ]);
 
   const handleTestSingleModel = useCallback(async () => {
-    if (!singleTestModelId) { return; }
+    if (!singleTestModelId) {
+      return;
+    }
     setSingleTestLoading(true);
     setSingleTestResult(null);
     try {
@@ -546,41 +635,48 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     }
   }, [providerId, singleTestModelId, testModel]);
 
-  const handleTestInlineModel = useCallback(async (model_id: string) => {
-    setTestingModels((prev) => new Set(prev).add(model_id));
-    try {
-      const latencyMs = await testModel(providerId, model_id);
-      setTestResults((prev) => new Map(prev).set(model_id, { latencyMs }));
-    } catch (e) {
-      setTestResults((prev) => new Map(prev).set(model_id, { error: String(e) }));
-    } finally {
-      setTestingModels((prev) => {
-        const next = new Set(prev);
-        next.delete(model_id);
-        return next;
-      });
-    }
-  }, [providerId, testModel]);
-
-  const handleTestAllModels = useCallback(async () => {
-    const models = provider?.models ?? [];
-    if (models.length === 0) { return; }
-    setTestResults(new Map());
-    setTestingModels(new Set(models.map((m) => m.model_id)));
-    await Promise.all(models.map(async (model) => {
+  const handleTestInlineModel = useCallback(
+    async (model_id: string) => {
+      setTestingModels((prev) => new Set(prev).add(model_id));
       try {
-        const latencyMs = await testModel(providerId, model.model_id);
-        setTestResults((prev) => new Map(prev).set(model.model_id, { latencyMs }));
+        const latencyMs = await testModel(providerId, model_id);
+        setTestResults((prev) => new Map(prev).set(model_id, { latencyMs }));
       } catch (e) {
-        setTestResults((prev) => new Map(prev).set(model.model_id, { error: String(e) }));
+        setTestResults((prev) => new Map(prev).set(model_id, { error: String(e) }));
       } finally {
         setTestingModels((prev) => {
           const next = new Set(prev);
-          next.delete(model.model_id);
+          next.delete(model_id);
           return next;
         });
       }
-    }));
+    },
+    [providerId, testModel],
+  );
+
+  const handleTestAllModels = useCallback(async () => {
+    const models = provider?.models ?? [];
+    if (models.length === 0) {
+      return;
+    }
+    setTestResults(new Map());
+    setTestingModels(new Set(models.map((m) => m.model_id)));
+    await Promise.all(
+      models.map(async (model) => {
+        try {
+          const latencyMs = await testModel(providerId, model.model_id);
+          setTestResults((prev) => new Map(prev).set(model.model_id, { latencyMs }));
+        } catch (e) {
+          setTestResults((prev) => new Map(prev).set(model.model_id, { error: String(e) }));
+        } finally {
+          setTestingModels((prev) => {
+            const next = new Set(prev);
+            next.delete(model.model_id);
+            return next;
+          });
+        }
+      }),
+    );
   }, [provider?.models, providerId, testModel]);
 
   const handleAddModel = useCallback(async () => {
@@ -593,7 +689,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       return;
     }
 
-    const duplicateExists = (provider?.models ?? []).some((model) => model.model_id === nextModelId);
+    const duplicateExists = (provider?.models ?? []).some(
+      (model) => model.model_id === nextModelId,
+    );
     if (duplicateExists) {
       message.error(t("settings.duplicateModelError"));
       return;
@@ -621,32 +719,47 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     } catch {
       message.error(t("error.saveFailed"));
     }
-  }, [addModelGroupName, addModelId, addModelName, addModelType, message, provider?.models, providerId, saveModels, t]);
+  }, [
+    addModelGroupName,
+    addModelId,
+    addModelName,
+    addModelType,
+    message,
+    provider?.models,
+    providerId,
+    saveModels,
+    t,
+  ]);
 
-  const handleOpenSettings = useCallback(
-    (model: Model) => {
-      setEditingModel(model);
-      const nextModelType = model.model_type || "Chat";
-      setEditCapabilities(sanitizeModelCapabilities(nextModelType, model.capabilities));
-      setEditModelType(nextModelType);
-      setEditMaxTokens(model.max_tokens ?? 128000);
-      setEditTemperature(model.param_overrides?.temperature ?? 0.7);
-      setEditMaxTokensParam(model.param_overrides?.max_tokens ?? 4096);
-      setEditTopP(model.param_overrides?.top_p ?? 1.0);
-      setEditFreqPenalty(model.param_overrides?.frequency_penalty ?? 0.0);
-      setEditUseMaxCompletionTokens(model.param_overrides?.use_max_completion_tokens ?? false);
-      setEditNoSystemRole(model.param_overrides?.no_system_role ?? false);
-      setEditForceMaxTokens(model.param_overrides?.force_max_tokens ?? false);
-      setEditThinkingParamStyle(model.param_overrides?.thinking_param_style ?? "reasoning_effort");
-      setEditRequestDelayMs(model.param_overrides?.request_delay_ms ?? null);
-      setEditGroupName(model.group_name ?? "");
-      setSettingsModalOpen(true);
-    },
-    [],
-  );
+  const handleOpenSettings = useCallback((model: Model) => {
+    setEditingModel(model);
+    const nextModelType = model.model_type || "Chat";
+    setEditCapabilities(
+      sanitizeModelCapabilities(nextModelType, model.capabilities),
+    );
+    setEditModelType(nextModelType);
+    setEditMaxTokens(model.max_tokens ?? 128000);
+    setEditTemperature(model.param_overrides?.temperature ?? 0.7);
+    setEditMaxTokensParam(model.param_overrides?.max_tokens ?? 4096);
+    setEditTopP(model.param_overrides?.top_p ?? 1.0);
+    setEditFreqPenalty(model.param_overrides?.frequency_penalty ?? 0.0);
+    setEditUseMaxCompletionTokens(
+      model.param_overrides?.use_max_completion_tokens ?? false,
+    );
+    setEditNoSystemRole(model.param_overrides?.no_system_role ?? false);
+    setEditForceMaxTokens(model.param_overrides?.force_max_tokens ?? false);
+    setEditThinkingParamStyle(
+      model.param_overrides?.thinking_param_style ?? "reasoning_effort",
+    );
+    setEditRequestDelayMs(model.param_overrides?.request_delay_ms ?? null);
+    setEditGroupName(model.group_name ?? "");
+    setSettingsModalOpen(true);
+  }, []);
 
   const handleSaveSettings = useCallback(async () => {
-    if (!editingModel) { return; }
+    if (!editingModel) {
+      return;
+    }
     const values: ModelParamOverrides = {
       temperature: editTemperature ?? undefined,
       max_tokens: editMaxTokensParam ?? undefined,
@@ -655,10 +768,15 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       use_max_completion_tokens: editUseMaxCompletionTokens,
       no_system_role: editNoSystemRole,
       force_max_tokens: editForceMaxTokens,
-      thinking_param_style: editThinkingParamStyle === "reasoning_effort" ? undefined : editThinkingParamStyle,
+      thinking_param_style: editThinkingParamStyle === "reasoning_effort"
+        ? undefined
+        : editThinkingParamStyle,
       request_delay_ms: editRequestDelayMs ?? undefined,
     };
-    const nextCapabilities = sanitizeModelCapabilities(editModelType, editCapabilities);
+    const nextCapabilities = sanitizeModelCapabilities(
+      editModelType,
+      editCapabilities,
+    );
     try {
       await updateModelParams(providerId, editingModel.model_id, values);
       // Update capabilities locally via saveModels
@@ -705,7 +823,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const handleApiHostChange = useCallback(
     (value: string) => {
       setApiHostLocal(value);
-      if (apiHostTimerRef.current) { clearTimeout(apiHostTimerRef.current); }
+      if (apiHostTimerRef.current) {
+        clearTimeout(apiHostTimerRef.current);
+      }
       apiHostTimerRef.current = setTimeout(() => {
         updateProvider(providerId, { api_host: value });
       }, 500);
@@ -716,7 +836,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const handleApiPathChange = useCallback(
     (value: string) => {
       setApiPathLocal(value);
-      if (apiPathTimerRef.current) { clearTimeout(apiPathTimerRef.current); }
+      if (apiPathTimerRef.current) {
+        clearTimeout(apiPathTimerRef.current);
+      }
       apiPathTimerRef.current = setTimeout(() => {
         updateProvider(providerId, { api_path: value || null });
       }, 500);
@@ -738,8 +860,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const handleBatchToggleModel = useCallback((model_id: string) => {
     setBatchSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(model_id)) { next.delete(model_id); }
-      else { next.add(model_id); }
+      if (next.has(model_id)) {
+        next.delete(model_id);
+      } else {
+        next.add(model_id);
+      }
       return next;
     });
   }, []);
@@ -749,46 +874,64 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       const next = new Set(prev);
       const allSelected = groupModels.every((m) => prev.has(m.model_id));
       if (allSelected) {
-        for (const m of groupModels) { next.delete(m.model_id); }
+        for (const m of groupModels) {
+          next.delete(m.model_id);
+        }
       } else {
-        for (const m of groupModels) { next.add(m.model_id); }
+        for (const m of groupModels) {
+          next.add(m.model_id);
+        }
       }
       return next;
     });
   }, []);
 
   const handleBatchEnable = useCallback(async () => {
-    if (batchSelected.size === 0) { return; }
+    if (batchSelected.size === 0) {
+      return;
+    }
     const updatedModels = (provider?.models ?? []).map((m) =>
       batchSelected.has(m.model_id) ? { ...m, enabled: true } : m
     );
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t("settings.batchEnableSuccess", { count: batchSelected.size }));
+      message.success(
+        t("settings.batchEnableSuccess", { count: batchSelected.size }),
+      );
     } catch {
       message.error(t("error.saveFailed"));
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
   const handleBatchDisable = useCallback(async () => {
-    if (batchSelected.size === 0) { return; }
+    if (batchSelected.size === 0) {
+      return;
+    }
     const updatedModels = (provider?.models ?? []).map((m) =>
       batchSelected.has(m.model_id) ? { ...m, enabled: false } : m
     );
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t("settings.batchDisableSuccess", { count: batchSelected.size }));
+      message.success(
+        t("settings.batchDisableSuccess", { count: batchSelected.size }),
+      );
     } catch {
       message.error(t("error.saveFailed"));
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
   const handleBatchDelete = useCallback(async () => {
-    if (batchSelected.size === 0) { return; }
-    const updatedModels = (provider?.models ?? []).filter((m) => !batchSelected.has(m.model_id));
+    if (batchSelected.size === 0) {
+      return;
+    }
+    const updatedModels = (provider?.models ?? []).filter(
+      (m) => !batchSelected.has(m.model_id),
+    );
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t("settings.batchDeleteSuccess", { count: batchSelected.size }));
+      message.success(
+        t("settings.batchDeleteSuccess", { count: batchSelected.size }),
+      );
       setBatchSelected(new Set());
     } catch {
       message.error(t("error.saveFailed"));
@@ -823,9 +966,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   }, []);
 
   const handleBatchEditSave = useCallback(async () => {
-    if (batchSelected.size === 0) { return; }
+    if (batchSelected.size === 0) {
+      return;
+    }
     const updatedModels = (provider?.models ?? []).map((m) => {
-      if (!batchSelected.has(m.model_id)) { return m; }
+      if (!batchSelected.has(m.model_id)) {
+        return m;
+      }
       let updated = { ...m };
       if (batchModelTypeEnabled) {
         updated.model_type = batchModelType;
@@ -835,19 +982,36 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         );
       }
       if (batchCapabilitiesEnabled && !batchModelTypeEnabled) {
-        updated.capabilities = sanitizeModelCapabilities(updated.model_type || "Chat", batchCapabilities);
+        updated.capabilities = sanitizeModelCapabilities(
+          updated.model_type || "Chat",
+          batchCapabilities,
+        );
       }
       if (batchMaxTokensEnabled) {
         updated.max_tokens = batchMaxTokens;
       }
       const overrides: ModelParamOverrides = { ...updated.param_overrides };
-      if (batchTemperatureEnabled) { overrides.temperature = batchTemperature; }
-      if (batchTopPEnabled) { overrides.top_p = batchTopP; }
-      if (batchMaxTokensParamEnabled) { overrides.max_tokens = batchMaxTokensParam; }
-      if (batchFreqPenaltyEnabled) { overrides.frequency_penalty = batchFreqPenalty; }
-      if (batchUseMaxCompletionTokensEnabled) { overrides.use_max_completion_tokens = batchUseMaxCompletionTokens; }
-      if (batchNoSystemRoleEnabled) { overrides.no_system_role = batchNoSystemRole; }
-      if (batchForceMaxTokensEnabled) { overrides.force_max_tokens = batchForceMaxTokens; }
+      if (batchTemperatureEnabled) {
+        overrides.temperature = batchTemperature;
+      }
+      if (batchTopPEnabled) {
+        overrides.top_p = batchTopP;
+      }
+      if (batchMaxTokensParamEnabled) {
+        overrides.max_tokens = batchMaxTokensParam;
+      }
+      if (batchFreqPenaltyEnabled) {
+        overrides.frequency_penalty = batchFreqPenalty;
+      }
+      if (batchUseMaxCompletionTokensEnabled) {
+        overrides.use_max_completion_tokens = batchUseMaxCompletionTokens;
+      }
+      if (batchNoSystemRoleEnabled) {
+        overrides.no_system_role = batchNoSystemRole;
+      }
+      if (batchForceMaxTokensEnabled) {
+        overrides.force_max_tokens = batchForceMaxTokens;
+      }
       if (batchThinkingParamStyleEnabled) {
         overrides.thinking_param_style = batchThinkingParamStyle === "reasoning_effort"
           ? undefined
@@ -858,7 +1022,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     });
     try {
       await saveModels(providerId, updatedModels);
-      message.success(t("settings.batchEditSuccess", { count: batchSelected.size }));
+      message.success(
+        t("settings.batchEditSuccess", { count: batchSelected.size }),
+      );
       setBatchEditModalOpen(false);
     } catch {
       message.error(t("error.saveFailed"));
@@ -898,7 +1064,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     const groups: Record<string, Model[]> = {};
     for (const model of filteredModels) {
       const groupKey = getModelGroupName(model);
-      if (!groups[groupKey]) { groups[groupKey] = []; }
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
       groups[groupKey].push(model);
     }
     return groups;
@@ -939,7 +1107,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     const expandedSet = new Set(expandedGroups);
     for (let i = 0; i < entries.length; i++) {
       const [group, models] = entries[i];
-      if (i > 0) { rows.push({ type: "spacer", beforeGroup: group }); }
+      if (i > 0) {
+        rows.push({ type: "spacer", beforeGroup: group });
+      }
       rows.push({ type: "group", group, models });
       if (expandedSet.has(group)) {
         for (const model of models) {
@@ -956,29 +1126,44 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     getScrollElement: () => modelListParentRef.current,
     estimateSize: (index) => {
       const row = flatModelRows[index];
-      if (row.type === "spacer") { return 8; }
-      if (row.type === "group") { return 40; }
+      if (row.type === "spacer") {
+        return 8;
+      }
+      if (row.type === "group") {
+        return 40;
+      }
       return 44;
     },
     getItemKey: (index) => {
       const row = flatModelRows[index];
-      if (row.type === "spacer") { return `spacer-${row.beforeGroup}`; }
-      if (row.type === "group") { return `group-${row.group}`; }
+      if (row.type === "spacer") {
+        return `spacer-${row.beforeGroup}`;
+      }
+      if (row.type === "group") {
+        return `group-${row.group}`;
+      }
       return `model-${row.model.model_id}`;
     },
     overscan: 10,
   });
 
-  const handleRemoveModel = useCallback(async (model_id: string) => {
-    const updatedModels = (provider?.models ?? []).filter((m) => m.model_id !== model_id);
-    try {
-      await saveModels(providerId, updatedModels);
-    } catch {
-      message.error(t("error.saveFailed"));
-    }
-  }, [provider?.models, providerId, saveModels, message, t]);
+  const handleRemoveModel = useCallback(
+    async (model_id: string) => {
+      const updatedModels = (provider?.models ?? []).filter(
+        (m) => m.model_id !== model_id,
+      );
+      try {
+        await saveModels(providerId, updatedModels);
+      } catch {
+        message.error(t("error.saveFailed"));
+      }
+    },
+    [provider?.models, providerId, saveModels, message, t],
+  );
 
-  if (!provider) { return null; }
+  if (!provider) {
+    return null;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -991,7 +1176,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             onChange={(type, value) => {
               if (type === "model_icon" && value) {
                 updateProvider(providerId, { icon: value });
-              } else if (type === "emoji" || type === "url" || type === "file") {
+              } else if (
+                type === "emoji"
+                || type === "url"
+                || type === "file"
+              ) {
                 updateProvider(providerId, { icon: `${type}:${value}` });
               } else {
                 updateProvider(providerId, { icon: "" });
@@ -999,7 +1188,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             }}
             size={40}
             shape="square"
-            defaultIcon={<SmartProviderIcon provider={provider} size={40} type="avatar" shape="square" />}
+            defaultIcon={
+              <SmartProviderIcon
+                provider={provider}
+                size={40}
+                type="avatar"
+                shape="square"
+              />
+            }
             showModelIcons
             modelIconsDefaultTab="provider"
           />
@@ -1042,7 +1238,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               cancelText={t("common.cancel")}
               okButtonProps={{ danger: true }}
             >
-              <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<Trash2 size={14} />}
+              />
             </Popconfirm>
           )}
         </Space>
@@ -1087,7 +1288,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   <Space size="small">
                     <CopyButton
                       text={async () => {
-                        const raw = await invoke<string>("get_decrypted_provider_key", { keyId: key.id });
+                        const raw = await invoke<string>(
+                          "get_decrypted_provider_key",
+                          { keyId: key.id },
+                        );
                         return raw;
                       }}
                       size={14}
@@ -1112,7 +1316,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       cancelText={t("common.cancel")}
                       okButtonProps={{ danger: true }}
                     >
-                      <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<Trash2 size={14} />}
+                      />
                     </Popconfirm>
                   </Space>
                 </div>
@@ -1123,7 +1332,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
       {/* API Host + Path */}
       <Card title={t("settings.apiHost")} size="small">
-        <Form layout="horizontal" colon={false} labelCol={{ flex: "110px" }} wrapperCol={{ flex: 1 }}>
+        <Form
+          layout="horizontal"
+          colon={false}
+          labelCol={{ flex: "110px" }}
+          wrapperCol={{ flex: 1 }}
+        >
           <Form.Item
             label={
               <Space size={4}>
@@ -1153,7 +1367,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 {t("settings.resetDefault")}
               </Button>
             </Space.Compact>
-            <div style={{ marginTop: 4, fontSize: 12, color: token.colorTextQuaternary }}>
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 12,
+                color: token.colorTextQuaternary,
+              }}
+            >
               {t("settings.urlPreviewLabel")}
               {resolvedUrls.resolvedBase}
             </div>
@@ -1175,7 +1395,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               onChange={(e) => handleApiPathChange(e.target.value)}
               placeholder={DEFAULT_PATHS[provider.provider_type]}
             />
-            <div style={{ marginTop: 4, fontSize: 12, color: token.colorTextQuaternary }}>
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 12,
+                color: token.colorTextQuaternary,
+              }}
+            >
               {t("settings.urlPreviewLabel")}
               {resolvedUrls.chatUrl}
             </div>
@@ -1199,7 +1425,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           }}
           onClick={() => setModelListFullscreen(false)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") { setModelListFullscreen(false); }
+            if (e.key === "Enter" || e.key === " ") {
+              setModelListFullscreen(false);
+            }
           }}
         />
       )}
@@ -1263,7 +1491,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 />
               </Tooltip>
               <Popconfirm
-                title={t("settings.batchDeleteConfirm", { count: batchSelected.size })}
+                title={t("settings.batchDeleteConfirm", {
+                  count: batchSelected.size,
+                })}
                 onConfirm={handleBatchDelete}
                 okText={t("common.confirm")}
                 cancelText={t("common.cancel")}
@@ -1282,7 +1512,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               </Popconfirm>
               <Divider type="vertical" style={{ margin: "0 2px" }} />
               <Tooltip title={t("settings.batchExit")}>
-                <Button type="text" size="small" icon={<X size={14} />} onClick={handleExitBatchMode} />
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<X size={14} />}
+                  onClick={handleExitBatchMode}
+                />
               </Tooltip>
             </Space>
           )
@@ -1295,9 +1530,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   icon={<Search size={14} />}
                   onClick={() => {
                     setShowModelSearch(!showModelSearch);
-                    if (showModelSearch) { setModelSearch(""); }
+                    if (showModelSearch) {
+                      setModelSearch("");
+                    }
                   }}
-                  style={{ color: showModelSearch ? token.colorPrimary : undefined }}
+                  style={{
+                    color: showModelSearch ? token.colorPrimary : undefined,
+                  }}
                 />
               </Tooltip>
               <Tooltip title={t("settings.batchEditMode")}>
@@ -1357,18 +1596,27 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   <Button type="text" size="small" icon={<Heart size={14} />} />
                 </Tooltip>
               </Dropdown>
-              <Tooltip title={allExpanded ? t("common.collapseAll") : t("common.expandAll")}>
+              <Tooltip
+                title={allExpanded ? t("common.collapseAll") : t("common.expandAll")}
+              >
                 <Button
                   type="text"
                   size="small"
                   icon={allExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                   onClick={() => {
-                    if (allExpanded) { setExpandedGroups([]); }
-                    else { setExpandedGroups(groupKeys); }
+                    if (allExpanded) {
+                      setExpandedGroups([]);
+                    } else {
+                      setExpandedGroups(groupKeys);
+                    }
                   }}
                 />
               </Tooltip>
-              <Tooltip title={modelListFullscreen ? t("settings.exitFullscreen") : t("settings.fullscreen")}>
+              <Tooltip
+                title={modelListFullscreen
+                  ? t("settings.exitFullscreen")
+                  : t("settings.fullscreen")}
+              >
                 <Button
                   type="text"
                   size="small"
@@ -1393,9 +1641,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         )}
         <div
           ref={modelListParentRef}
-          style={{ maxHeight: modelListFullscreen ? "calc(100vh - 140px)" : 520, overflow: "auto" }}
+          style={{
+            maxHeight: modelListFullscreen ? "calc(100vh - 140px)" : 520,
+            overflow: "auto",
+          }}
         >
-          <div style={{ height: modelListVirtualizer.getTotalSize(), position: "relative" }}>
+          <div
+            style={{
+              height: modelListVirtualizer.getTotalSize(),
+              position: "relative",
+            }}
+          >
             {modelListVirtualizer.getVirtualItems().map((virtualRow) => {
               const row = flatModelRows[virtualRow.index];
               if (row.type === "spacer") {
@@ -1420,8 +1676,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 const allEnabled = models.every((m) => m.enabled);
                 const someEnabled = models.some((m) => m.enabled);
                 const isExpanded = expandedGroups.includes(group);
-                const batchAllSelected = batchMode && models.every((m) => batchSelected.has(m.model_id));
-                const batchSomeSelected = batchMode && models.some((m) => batchSelected.has(m.model_id));
+                const batchAllSelected = batchMode
+                  && models.every((m) => batchSelected.has(m.model_id));
+                const batchSomeSelected = batchMode
+                  && models.some((m) => batchSelected.has(m.model_id));
                 return (
                   <div
                     key={`g-${group}`}
@@ -1448,8 +1706,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         if (batchMode) {
                           handleBatchToggleGroup(models);
                         } else {
-                          if (isExpanded) { setExpandedGroups((prev) => prev.filter((k) => k !== group)); }
-                          else { setExpandedGroups((prev) => [...prev, group]); }
+                          if (isExpanded) {
+                            setExpandedGroups((prev) => prev.filter((k) => k !== group));
+                          } else {
+                            setExpandedGroups((prev) => [...prev, group]);
+                          }
                         }
                       }}
                       onKeyDown={(e) => {
@@ -1457,8 +1718,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           if (batchMode) {
                             handleBatchToggleGroup(models);
                           } else {
-                            if (isExpanded) { setExpandedGroups((prev) => prev.filter((k) => k !== group)); }
-                            else { setExpandedGroups((prev) => [...prev, group]); }
+                            if (isExpanded) {
+                              setExpandedGroups((prev) => prev.filter((k) => k !== group));
+                            } else {
+                              setExpandedGroups((prev) => [...prev, group]);
+                            }
                           }
                         }
                       }}
@@ -1472,9 +1736,20 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         />
                       )}
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      <ModelIcon model={models[0]?.model_id ?? group} size={20} type="avatar" />
+                      <ModelIcon
+                        model={models[0]?.model_id ?? group}
+                        size={20}
+                        type="avatar"
+                      />
                       <Text style={{ fontWeight: 600 }}>{group}</Text>
-                      <Tag style={{ fontSize: 12, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                      <Tag
+                        style={{
+                          fontSize: 12,
+                          lineHeight: "18px",
+                          padding: "0 6px",
+                          margin: 0,
+                        }}
+                      >
                         {models.length}
                       </Tag>
                       <div style={{ flex: 1 }} />
@@ -1508,7 +1783,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           id="provider-detail-switch-117"
                           size="small"
                           checked={someEnabled}
-                          style={someEnabled && !allEnabled ? { backgroundColor: token.colorWarning } : undefined}
+                          style={someEnabled && !allEnabled
+                            ? { backgroundColor: token.colorWarning }
+                            : undefined}
                           onChange={(checked) => {
                             models.forEach((m) => toggleModel(providerId, m.model_id, checked));
                           }}
@@ -1517,8 +1794,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           <Popconfirm
                             title={t("settings.deleteGroupConfirm")}
                             onConfirm={async () => {
-                              const modelIds = new Set(models.map((m) => m.model_id));
-                              const updatedModels = (provider?.models ?? []).filter((m) => !modelIds.has(m.model_id));
+                              const modelIds = new Set(
+                                models.map((m) => m.model_id),
+                              );
+                              const updatedModels = (
+                                provider?.models ?? []
+                              ).filter((m) => !modelIds.has(m.model_id));
                               try {
                                 await saveModels(providerId, updatedModels);
                               } catch {
@@ -1529,7 +1810,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             cancelText={t("common.cancel")}
                             okButtonProps={{ danger: true }}
                           >
-                            <Button size="small" type="text" danger icon={<Trash2 size={14} />} />
+                            <Button
+                              size="small"
+                              type="text"
+                              danger
+                              icon={<Trash2 size={14} />}
+                            />
                           </Popconfirm>
                         )}
                       </Space>
@@ -1557,13 +1843,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     role={batchMode ? "button" : undefined}
                     tabIndex={batchMode ? 0 : undefined}
                     style={{
-                      opacity: model.enabled ? 1 : (batchMode ? 0.7 : 0.45),
+                      opacity: model.enabled ? 1 : batchMode ? 0.7 : 0.45,
                       paddingLeft: batchMode ? 24 : 36,
                       cursor: batchMode ? "pointer" : undefined,
                     }}
-                    onClick={batchMode ? () => handleBatchToggleModel(model.model_id) : undefined}
+                    onClick={batchMode
+                      ? () => handleBatchToggleModel(model.model_id)
+                      : undefined}
                     onKeyDown={(e) => {
-                      if (batchMode && (e.key === "Enter" || e.key === " ")) { handleBatchToggleModel(model.model_id); }
+                      if (batchMode && (e.key === "Enter" || e.key === " ")) {
+                        handleBatchToggleModel(model.model_id);
+                      }
                     }}
                   >
                     {batchMode && (
@@ -1574,18 +1864,37 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       />
                     )}
                     {iconOverrides[model.model_id]
-                      ? <DynamicLobeIcon iconId={iconOverrides[model.model_id]} size={20} type="avatar" />
-                      : <ModelIcon model={model.model_id} size={20} type="avatar" />}
+                      ? (
+                        <DynamicLobeIcon
+                          iconId={iconOverrides[model.model_id]}
+                          size={20}
+                          type="avatar"
+                        />
+                      )
+                      : (
+                        <ModelIcon
+                          model={model.model_id}
+                          size={20}
+                          type="avatar"
+                        />
+                      )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1 flex-wrap">
                         <span>{model.name || model.model_id}</span>
                         {model.name && model.name !== model.model_id && (
-                          <Text type="secondary" style={{ fontSize: 12 }}>({model.model_id})</Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            ({model.model_id})
+                          </Text>
                         )}
                         <Tag
                           color={MODEL_TYPE_CONFIG[model.model_type || "Chat"].color}
                           variant="filled"
-                          style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+                          style={{
+                            fontSize: 10,
+                            lineHeight: "16px",
+                            padding: "0 4px",
+                            margin: 0,
+                          }}
                         >
                           {MODEL_TYPE_CONFIG[model.model_type || "Chat"].icon}
                           <span style={{ marginLeft: 2 }}>
@@ -1596,11 +1905,22 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           </span>
                         </Tag>
                         {getVisibleModelCapabilities(model).map((cap) => (
-                          <Tooltip key={cap} title={t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}>
+                          <Tooltip
+                            key={cap}
+                            title={t(
+                              `settings.capability.${cap}`,
+                              CAPABILITY_LABEL_KEYS[cap],
+                            )}
+                          >
                             <Tag
                               color={CAPABILITY_COLORS[cap]}
                               variant="filled"
-                              style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+                              style={{
+                                fontSize: 10,
+                                lineHeight: "16px",
+                                padding: "0 4px",
+                                margin: 0,
+                              }}
                             >
                               {CAPABILITY_ICONS[cap]}
                             </Tag>
@@ -1610,36 +1930,67 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           <Tag
                             variant="filled"
                             color="default"
-                            style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
+                            style={{
+                              fontSize: 10,
+                              lineHeight: "16px",
+                              padding: "0 4px",
+                              margin: 0,
+                            }}
                           >
                             {formatTokenCount(model.max_tokens)}
                           </Tag>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+                    <div
+                      className="flex items-center gap-1"
+                      style={{ flexShrink: 0 }}
+                    >
                       {!batchMode && testingModels.has(model.model_id) && <Spin size="small" />}
-                      {!batchMode && !testingModels.has(model.model_id) && testResults.has(model.model_id) && (() => {
-                        const result = testResults.get(model.model_id)!;
-                        if (result.latencyMs != null) {
+                      {!batchMode
+                        && !testingModels.has(model.model_id)
+                        && testResults.has(model.model_id)
+                        && (() => {
+                          const result = testResults.get(model.model_id)!;
+                          if (result.latencyMs != null) {
+                            return (
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: token.colorSuccess,
+                                }}
+                              >
+                                {(result.latencyMs / 1000).toFixed(1)}s
+                              </span>
+                            );
+                          }
                           return (
-                            <span style={{ fontSize: 12, color: token.colorSuccess }}>
-                              {(result.latencyMs / 1000).toFixed(1)}s
-                            </span>
+                            <Popover
+                              content={
+                                <div
+                                  style={{
+                                    maxWidth: 300,
+                                    wordBreak: "break-all",
+                                  }}
+                                >
+                                  {result.error}
+                                </div>
+                              }
+                              title={t("common.errorDetail")}
+                              trigger="click"
+                            >
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: token.colorError,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {t("common.failed")}
+                              </span>
+                            </Popover>
                           );
-                        }
-                        return (
-                          <Popover
-                            content={<div style={{ maxWidth: 300, wordBreak: "break-all" }}>{result.error}</div>}
-                            title={t("common.errorDetail")}
-                            trigger="click"
-                          >
-                            <span style={{ fontSize: 12, color: token.colorError, cursor: "pointer" }}>
-                              {t("common.failed")}
-                            </span>
-                          </Popover>
-                        );
-                      })()}
+                        })()}
                       <Switch
                         id="provider-detail-switch-118"
                         size="small"
@@ -1670,7 +2021,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             cancelText={t("common.cancel")}
                             okButtonProps={{ danger: true }}
                           >
-                            <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<Trash2 size={14} />}
+                            />
                           </Popconfirm>
                         </>
                       )}
@@ -1695,13 +2051,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 value={customHeadersLocal}
                 onChange={(e) => setCustomHeadersLocal(e.target.value)}
                 onBlur={() => {
-                  const lines = customHeadersLocal.split("\n").filter((l) => l.trim());
+                  const lines = customHeadersLocal
+                    .split("\n")
+                    .filter((l) => l.trim());
                   const obj: Record<string, string> = {};
                   // js-set-map-lookups: indexOf 用于获取 = 位置，Set 无法替代
                   for (const line of lines) {
                     const eqIdx = line.indexOf("=");
                     if (eqIdx > 0) {
-                      obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim();
+                      obj[line.slice(0, eqIdx).trim()] = line
+                        .slice(eqIdx + 1)
+                        .trim();
                     }
                   }
                   const json = Object.keys(obj).length > 0 ? JSON.stringify(obj) : null;
@@ -1722,8 +2082,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             key: "proxy",
             label: t("settings.providerProxy"),
             children: (
-              <Form layout="vertical" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <Form.Item label={t("settings.proxyType")} style={{ marginBottom: 0 }}>
+              <Form
+                layout="vertical"
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                <Form.Item
+                  label={t("settings.proxyType")}
+                  style={{ marginBottom: 0 }}
+                >
                   <Select
                     id="provider-detail-select-120"
                     value={provider.proxy_config?.proxy_type ?? "none"}
@@ -1743,7 +2109,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     ]}
                   />
                 </Form.Item>
-                <Form.Item label={t("settings.proxyAddress")} style={{ marginBottom: 0 }}>
+                <Form.Item
+                  label={t("settings.proxyAddress")}
+                  style={{ marginBottom: 0 }}
+                >
                   <Input
                     id="provider-detail-input-121"
                     value={provider.proxy_config?.proxy_address ?? ""}
@@ -1760,7 +2129,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     disabled={provider.proxy_config?.proxy_type === "system"}
                   />
                 </Form.Item>
-                <Form.Item label={t("settings.proxyPort")} style={{ marginBottom: 0 }}>
+                <Form.Item
+                  label={t("settings.proxyPort")}
+                  style={{ marginBottom: 0 }}
+                >
                   <InputNumber
                     id="provider-detail-inputnumber-122"
                     value={provider.proxy_config?.proxy_port}
@@ -1834,7 +2206,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   setAddModelName(id);
                 }
                 if (!addModelGroupDirty.current) {
-                  setAddModelGroupName(id.trim() ? deriveModelGroupName(id) : "");
+                  setAddModelGroupName(
+                    id.trim() ? deriveModelGroupName(id) : "",
+                  );
                 }
               }}
               placeholder="gpt-5.4-think"
@@ -1860,18 +2234,28 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 setAddModelGroupName(val);
               }}
               options={modelGroupOptions}
-              placeholder={addModelId.trim() ? deriveModelGroupName(addModelId) : t("settings.modelGroupAuto")}
+              placeholder={addModelId.trim()
+                ? deriveModelGroupName(addModelId)
+                : t("settings.modelGroupAuto")}
             />
           </Form.Item>
-          <Form.Item label={t("settings.modelType.title")} style={{ marginBottom: 0 }}>
+          <Form.Item
+            label={t("settings.modelType.title")}
+            style={{ marginBottom: 0 }}
+          >
             <Select
               id="provider-detail-select-126"
               value={addModelType}
               onChange={(value) => setAddModelType(value as ModelType)}
-              options={(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => ({
-                value: type_,
-                label: t(`settings.modelType.${type_}`, MODEL_TYPE_LABEL_KEYS[type_]),
-              }))}
+              options={(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map(
+                (type_) => ({
+                  value: type_,
+                  label: t(
+                    `settings.modelType.${type_}`,
+                    MODEL_TYPE_LABEL_KEYS[type_],
+                  ),
+                }),
+              )}
             />
           </Form.Item>
         </Form>
@@ -1893,7 +2277,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         destroyOnHidden
       >
         {editingModel && (
-          <div data-os-scrollbar style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
+          <div
+            data-os-scrollbar
+            style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}
+          >
             <div className="space-y-3">
               {/* Model Icon + Name + ID */}
               <div className="flex items-center gap-3">
@@ -1905,8 +2292,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   onChange={(type, value) => {
                     if (editingModel) {
                       if (type === "model_icon" && value) {
-                        const iconId = value.indexOf(":") > 0 ? value.substring(value.indexOf(":") + 1) : value;
-                        setIconOverrides((prev) => ({ ...prev, [editingModel.model_id]: iconId }));
+                        const iconId = value.indexOf(":") > 0
+                          ? value.substring(value.indexOf(":") + 1)
+                          : value;
+                        setIconOverrides((prev) => ({
+                          ...prev,
+                          [editingModel.model_id]: iconId,
+                        }));
                       } else {
                         // Clear override for non-model_icon types (or clear)
                         setIconOverrides((prev) => {
@@ -1920,12 +2312,23 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   size={32}
                   showModelIcons
                   showClear={!!iconOverrides[editingModel.model_id]}
-                  defaultIcon={<ModelIcon model={editingModel.model_id} size={32} type="avatar" />}
+                  defaultIcon={
+                    <ModelIcon
+                      model={editingModel.model_id}
+                      size={32}
+                      type="avatar"
+                    />
+                  }
                 />
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span className="font-medium truncate">{editingModel.name || editingModel.model_id}</span>
+                  <span className="font-medium truncate">
+                    {editingModel.name || editingModel.model_id}
+                  </span>
                   {editingModel.name && (
-                    <span className="text-xs shrink-0" style={{ color: token.colorTextSecondary }}>
+                    <span
+                      className="text-xs shrink-0"
+                      style={{ color: token.colorTextSecondary }}
+                    >
                       ({editingModel.model_id})
                     </span>
                   )}
@@ -1939,8 +2342,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               </div>
 
               {/* Group Name */}
-              <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
-                <span className="text-sm shrink-0" style={{ color: token.colorText }}>
+              <div
+                className="flex items-center justify-between"
+                style={{ padding: "4px 0" }}
+              >
+                <span
+                  className="text-sm shrink-0"
+                  style={{ color: token.colorText }}
+                >
                   {t("settings.modelGroup")}
                 </span>
                 <Input
@@ -1957,24 +2366,33 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
               {/* Model Type */}
               <div>
-                <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>{t("settings.modelType.title")}</div>
+                <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>
+                  {t("settings.modelType.title")}
+                </div>
                 <div className="flex gap-2 flex-wrap">
-                  {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => (
-                    <Tag
-                      key={type_}
-                      color={editModelType === type_ ? MODEL_TYPE_CONFIG[type_].color : "default"}
-                      style={{ cursor: "pointer", fontSize: 12 }}
-                      onClick={() => {
-                        setEditModelType(type_);
-                        setEditCapabilities((current) => sanitizeModelCapabilities(type_, current));
-                      }}
-                    >
-                      {MODEL_TYPE_CONFIG[type_].icon}
-                      <span style={{ marginLeft: 4 }}>
-                        {t(`settings.modelType.${type_}`, MODEL_TYPE_LABEL_KEYS[type_])}
-                      </span>
-                    </Tag>
-                  ))}
+                  {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map(
+                    (type_) => (
+                      <Tag
+                        key={type_}
+                        color={editModelType === type_
+                          ? MODEL_TYPE_CONFIG[type_].color
+                          : "default"}
+                        style={{ cursor: "pointer", fontSize: 12 }}
+                        onClick={() => {
+                          setEditModelType(type_);
+                          setEditCapabilities((current) => sanitizeModelCapabilities(type_, current));
+                        }}
+                      >
+                        {MODEL_TYPE_CONFIG[type_].icon}
+                        <span style={{ marginLeft: 4 }}>
+                          {t(
+                            `settings.modelType.${type_}`,
+                            MODEL_TYPE_LABEL_KEYS[type_],
+                          )}
+                        </span>
+                      </Tag>
+                    ),
+                  )}
                 </div>
               </div>
 
@@ -1984,7 +2402,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
                   {/* Capabilities as clickable tags */}
                   <div>
-                    <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>{t("settings.modelAbilities")}</div>
+                    <div
+                      className="font-medium mb-1.5"
+                      style={{ fontSize: 13 }}
+                    >
+                      {t("settings.modelAbilities")}
+                    </div>
                     <div className="flex gap-2 flex-wrap">
                       {getEditableCapabilities(editModelType).map((cap) => {
                         const selected = editCapabilities.includes(cap);
@@ -1992,17 +2415,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           <Tag
                             key={cap}
                             color={selected ? CAPABILITY_COLORS[cap] : "default"}
-                            style={{ cursor: "pointer", fontSize: 12, opacity: selected ? 1 : 0.6 }}
+                            style={{
+                              cursor: "pointer",
+                              fontSize: 12,
+                              opacity: selected ? 1 : 0.6,
+                            }}
                             onClick={() => {
                               const next = selected
                                 ? editCapabilities.filter((c) => c !== cap)
                                 : [...editCapabilities, cap];
-                              setEditCapabilities(sanitizeModelCapabilities(editModelType, next));
+                              setEditCapabilities(
+                                sanitizeModelCapabilities(editModelType, next),
+                              );
                             }}
                           >
                             {CAPABILITY_ICONS[cap]}
                             <span style={{ marginLeft: 4 }}>
-                              {t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}
+                              {t(
+                                `settings.capability.${cap}`,
+                                CAPABILITY_LABEL_KEYS[cap],
+                              )}
                             </span>
                           </Tag>
                         );
@@ -2016,12 +2448,20 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
               {/* Parameters — horizontal label-control layout */}
               <div>
-                <div className="font-medium mb-2" style={{ fontSize: 13 }}>{t("settings.modelParams")}</div>
+                <div className="font-medium mb-2" style={{ fontSize: 13 }}>
+                  {t("settings.modelParams")}
+                </div>
                 <div className="space-y-3">
                   {/* Context Window */}
                   <div>
-                    <div className="flex items-center justify-between" style={{ padding: "8px 0" }}>
-                      <span className="text-sm shrink-0" style={{ color: token.colorText }}>
+                    <div
+                      className="flex items-center justify-between"
+                      style={{ padding: "8px 0" }}
+                    >
+                      <span
+                        className="text-sm shrink-0"
+                        style={{ color: token.colorText }}
+                      >
                         {t("settings.contextWindow")}
                       </span>
                       <InputNumber
@@ -2040,7 +2480,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         min={1024}
                         max={1048576}
                         step={1024}
-                        marks={{ 1024: "", 32768: "32K", 131072: "128K", 524288: "512K", 1048576: "1M" }}
+                        marks={{
+                          1024: "",
+                          32768: "32K",
+                          131072: "128K",
+                          524288: "512K",
+                          1048576: "1M",
+                        }}
                         value={Math.min(editMaxTokens ?? 128000, 1048576)}
                         onChange={(v) => setEditMaxTokens(v)}
                       />
@@ -2055,10 +2501,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       frequencyPenalty: editFreqPenalty,
                     }}
                     onChange={(v) => {
-                      if ("temperature" in v) { setEditTemperature(v.temperature!); }
-                      if ("topP" in v) { setEditTopP(v.topP!); }
-                      if ("maxTokens" in v) { setEditMaxTokensParam(v.maxTokens!); }
-                      if ("frequencyPenalty" in v) { setEditFreqPenalty(v.frequencyPenalty!); }
+                      if ("temperature" in v) {
+                        setEditTemperature(v.temperature!);
+                      }
+                      if ("topP" in v) {
+                        setEditTopP(v.topP!);
+                      }
+                      if ("maxTokens" in v) {
+                        setEditMaxTokensParam(v.maxTokens!);
+                      }
+                      if ("frequencyPenalty" in v) {
+                        setEditFreqPenalty(v.frequencyPenalty!);
+                      }
                     }}
                     showDividers={false}
                   />
@@ -2067,7 +2521,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
                   {/* Switches — horizontal */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: token.colorText }}>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
                       {t("settings.useMaxCompletionTokens")}
                     </span>
                     <Switch
@@ -2078,7 +2535,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.noSystemRole")}</span>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
+                      {t("settings.noSystemRole")}
+                    </span>
                     <Switch
                       id="provider-detail-switch-130"
                       size="small"
@@ -2087,7 +2549,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.forceMaxTokens")}</span>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
+                      {t("settings.forceMaxTokens")}
+                    </span>
                     <Switch
                       id="provider-detail-switch-131"
                       size="small"
@@ -2096,7 +2563,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: token.colorText }}>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
                       {t("settings.thinkingParamStyle")}
                     </span>
                     <Select
@@ -2106,14 +2576,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       value={editThinkingParamStyle}
                       onChange={setEditThinkingParamStyle}
                       options={[
-                        { value: "reasoning_effort", label: "reasoning_effort (OpenAI)" },
-                        { value: "enable_thinking", label: "enable_thinking (SiliconFlow)" },
-                        { value: "none", label: t("settings.thinkingParamStyleNone") },
+                        {
+                          value: "reasoning_effort",
+                          label: "reasoning_effort (OpenAI)",
+                        },
+                        {
+                          value: "enable_thinking",
+                          label: "enable_thinking (SiliconFlow)",
+                        },
+                        {
+                          value: "none",
+                          label: t("settings.thinkingParamStyleNone"),
+                        },
                       ]}
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: token.colorText }}>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
                       {t("settings.requestDelayMs")}
                     </span>
                     <InputNumber
@@ -2129,7 +2611,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     />
                   </div>
                   {editRequestDelayMs != null && editRequestDelayMs > 0 && (
-                    <div style={{ fontSize: 10, color: token.colorTextSecondary, marginTop: -4 }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: token.colorTextSecondary,
+                        marginTop: -4,
+                      }}
+                    >
                       {t("settings.requestDelayMsHint")}
                     </div>
                   )}
@@ -2167,7 +2655,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           ].some(Boolean),
         }}
       >
-        <div data-os-scrollbar style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
+        <div
+          data-os-scrollbar
+          style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}
+        >
           <div className="space-y-3">
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("settings.batchEditHint")}
@@ -2178,7 +2669,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             {/* Model Type */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <div className="font-medium" style={{ fontSize: 13 }}>{t("settings.modelType.title")}</div>
+                <div className="font-medium" style={{ fontSize: 13 }}>
+                  {t("settings.modelType.title")}
+                </div>
                 <Switch
                   id="provider-detail-switch-134"
                   size="small"
@@ -2193,22 +2686,29 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   pointerEvents: batchModelTypeEnabled ? "auto" : "none",
                 }}
               >
-                {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map((type_) => (
-                  <Tag
-                    key={type_}
-                    color={batchModelType === type_ ? MODEL_TYPE_CONFIG[type_].color : "default"}
-                    style={{ cursor: "pointer", fontSize: 12 }}
-                    onClick={() => {
-                      setBatchModelType(type_);
-                      setBatchCapabilities((current) => sanitizeModelCapabilities(type_, current));
-                    }}
-                  >
-                    {MODEL_TYPE_CONFIG[type_].icon}
-                    <span style={{ marginLeft: 4 }}>
-                      {t(`settings.modelType.${type_}`, MODEL_TYPE_LABEL_KEYS[type_])}
-                    </span>
-                  </Tag>
-                ))}
+                {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map(
+                  (type_) => (
+                    <Tag
+                      key={type_}
+                      color={batchModelType === type_
+                        ? MODEL_TYPE_CONFIG[type_].color
+                        : "default"}
+                      style={{ cursor: "pointer", fontSize: 12 }}
+                      onClick={() => {
+                        setBatchModelType(type_);
+                        setBatchCapabilities((current) => sanitizeModelCapabilities(type_, current));
+                      }}
+                    >
+                      {MODEL_TYPE_CONFIG[type_].icon}
+                      <span style={{ marginLeft: 4 }}>
+                        {t(
+                          `settings.modelType.${type_}`,
+                          MODEL_TYPE_LABEL_KEYS[type_],
+                        )}
+                      </span>
+                    </Tag>
+                  ),
+                )}
               </div>
             </div>
 
@@ -2217,7 +2717,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             {/* Capabilities */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <div className="font-medium" style={{ fontSize: 13 }}>{t("settings.modelAbilities")}</div>
+                <div className="font-medium" style={{ fontSize: 13 }}>
+                  {t("settings.modelAbilities")}
+                </div>
                 <Switch
                   id="provider-detail-switch-135"
                   size="small"
@@ -2238,17 +2740,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     <Tag
                       key={cap}
                       color={selected ? CAPABILITY_COLORS[cap] : "default"}
-                      style={{ cursor: "pointer", fontSize: 12, opacity: selected ? 1 : 0.6 }}
+                      style={{
+                        cursor: "pointer",
+                        fontSize: 12,
+                        opacity: selected ? 1 : 0.6,
+                      }}
                       onClick={() => {
                         const next = selected
                           ? batchCapabilities.filter((c) => c !== cap)
                           : [...batchCapabilities, cap];
-                        setBatchCapabilities(sanitizeModelCapabilities(batchModelType, next));
+                        setBatchCapabilities(
+                          sanitizeModelCapabilities(batchModelType, next),
+                        );
                       }}
                     >
                       {CAPABILITY_ICONS[cap]}
                       <span style={{ marginLeft: 4 }}>
-                        {t(`settings.capability.${cap}`, CAPABILITY_LABEL_KEYS[cap])}
+                        {t(
+                          `settings.capability.${cap}`,
+                          CAPABILITY_LABEL_KEYS[cap],
+                        )}
                       </span>
                     </Tag>
                   );
@@ -2261,7 +2772,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             {/* Context Window */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="font-medium" style={{ fontSize: 13 }}>{t("settings.contextWindow")}</span>
+                <span className="font-medium" style={{ fontSize: 13 }}>
+                  {t("settings.contextWindow")}
+                </span>
                 <Switch
                   id="provider-detail-switch-136"
                   size="small"
@@ -2275,7 +2788,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   pointerEvents: batchMaxTokensEnabled ? "auto" : "none",
                 }}
               >
-                <div className="flex items-center justify-between" style={{ padding: "4px 0" }}>
+                <div
+                  className="flex items-center justify-between"
+                  style={{ padding: "4px 0" }}
+                >
                   <InputNumber
                     id="provider-detail-inputnumber-137"
                     value={batchMaxTokens}
@@ -2291,7 +2807,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   min={1024}
                   max={1048576}
                   step={1024}
-                  marks={{ 1024: "", 32768: "32K", 131072: "128K", 524288: "512K", 1048576: "1M" }}
+                  marks={{
+                    1024: "",
+                    32768: "32K",
+                    131072: "128K",
+                    524288: "512K",
+                    1048576: "1M",
+                  }}
                   value={Math.min(batchMaxTokens, 1048576)}
                   onChange={(v) => setBatchMaxTokens(v)}
                 />
@@ -2300,40 +2822,52 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
             {/* Parameters */}
             <div>
-              <div className="font-medium mb-2" style={{ fontSize: 13 }}>{t("settings.modelParams")}</div>
+              <div className="font-medium mb-2" style={{ fontSize: 13 }}>
+                {t("settings.modelParams")}
+              </div>
               <div>
                 <ModelParamSliders
                   values={{
-                    temperature: batchTemperatureEnabled ? batchTemperature : null,
+                    temperature: batchTemperatureEnabled
+                      ? batchTemperature
+                      : null,
                     topP: batchTopPEnabled ? batchTopP : null,
-                    maxTokens: batchMaxTokensParamEnabled ? batchMaxTokensParam : null,
-                    frequencyPenalty: batchFreqPenaltyEnabled ? batchFreqPenalty : null,
+                    maxTokens: batchMaxTokensParamEnabled
+                      ? batchMaxTokensParam
+                      : null,
+                    frequencyPenalty: batchFreqPenaltyEnabled
+                      ? batchFreqPenalty
+                      : null,
                   }}
                   onChange={(v) => {
                     if ("temperature" in v) {
-                      if (v.temperature == null) { setBatchTemperatureEnabled(false); }
-                      else {
+                      if (v.temperature == null) {
+                        setBatchTemperatureEnabled(false);
+                      } else {
                         setBatchTemperatureEnabled(true);
                         setBatchTemperature(v.temperature);
                       }
                     }
                     if ("topP" in v) {
-                      if (v.topP == null) { setBatchTopPEnabled(false); }
-                      else {
+                      if (v.topP == null) {
+                        setBatchTopPEnabled(false);
+                      } else {
                         setBatchTopPEnabled(true);
                         setBatchTopP(v.topP);
                       }
                     }
                     if ("maxTokens" in v) {
-                      if (v.maxTokens == null) { setBatchMaxTokensParamEnabled(false); }
-                      else {
+                      if (v.maxTokens == null) {
+                        setBatchMaxTokensParamEnabled(false);
+                      } else {
                         setBatchMaxTokensParamEnabled(true);
                         setBatchMaxTokensParam(v.maxTokens);
                       }
                     }
                     if ("frequencyPenalty" in v) {
-                      if (v.frequencyPenalty == null) { setBatchFreqPenaltyEnabled(false); }
-                      else {
+                      if (v.frequencyPenalty == null) {
+                        setBatchFreqPenaltyEnabled(false);
+                      } else {
                         setBatchFreqPenaltyEnabled(true);
                         setBatchFreqPenalty(v.frequencyPenalty);
                       }
@@ -2348,9 +2882,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   <Space size="small">
                     <Checkbox
                       checked={batchUseMaxCompletionTokensEnabled}
-                      onChange={e => setBatchUseMaxCompletionTokensEnabled(e.target.checked)}
+                      onChange={(e) => setBatchUseMaxCompletionTokensEnabled(e.target.checked)}
                     />
-                    <span className="text-sm" style={{ color: token.colorText }}>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
                       {t("settings.useMaxCompletionTokens")}
                     </span>
                   </Space>
@@ -2366,9 +2903,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   <Space size="small">
                     <Checkbox
                       checked={batchNoSystemRoleEnabled}
-                      onChange={e => setBatchNoSystemRoleEnabled(e.target.checked)}
+                      onChange={(e) => setBatchNoSystemRoleEnabled(e.target.checked)}
                     />
-                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.noSystemRole")}</span>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
+                      {t("settings.noSystemRole")}
+                    </span>
                   </Space>
                   <Switch
                     id="provider-detail-switch-139"
@@ -2382,9 +2924,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   <Space size="small">
                     <Checkbox
                       checked={batchForceMaxTokensEnabled}
-                      onChange={e => setBatchForceMaxTokensEnabled(e.target.checked)}
+                      onChange={(e) => setBatchForceMaxTokensEnabled(e.target.checked)}
                     />
-                    <span className="text-sm" style={{ color: token.colorText }}>{t("settings.forceMaxTokens")}</span>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
+                      {t("settings.forceMaxTokens")}
+                    </span>
                   </Space>
                   <Switch
                     id="provider-detail-switch-140"
@@ -2398,9 +2945,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   <Space size="small">
                     <Checkbox
                       checked={batchThinkingParamStyleEnabled}
-                      onChange={e => setBatchThinkingParamStyleEnabled(e.target.checked)}
+                      onChange={(e) => setBatchThinkingParamStyleEnabled(e.target.checked)}
                     />
-                    <span className="text-sm" style={{ color: token.colorText }}>
+                    <span
+                      className="text-sm"
+                      style={{ color: token.colorText }}
+                    >
                       {t("settings.thinkingParamStyle")}
                     </span>
                   </Space>
@@ -2412,9 +2962,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     onChange={setBatchThinkingParamStyle}
                     disabled={!batchThinkingParamStyleEnabled}
                     options={[
-                      { value: "reasoning_effort", label: "reasoning_effort (OpenAI)" },
-                      { value: "enable_thinking", label: "enable_thinking (SiliconFlow)" },
-                      { value: "none", label: t("settings.thinkingParamStyleNone") },
+                      {
+                        value: "reasoning_effort",
+                        label: "reasoning_effort (OpenAI)",
+                      },
+                      {
+                        value: "enable_thinking",
+                        label: "enable_thinking (SiliconFlow)",
+                      },
+                      {
+                        value: "none",
+                        label: t("settings.thinkingParamStyleNone"),
+                      },
                     ]}
                   />
                 </div>
@@ -2461,7 +3020,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           </Form.Item>
         </Form>
         {singleTestResult && (
-          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 6, background: token.colorBgLayout }}>
+          <div
+            style={{
+              marginTop: 8,
+              padding: "8px 12px",
+              borderRadius: 6,
+              background: token.colorBgLayout,
+            }}
+          >
             {singleTestResult.latencyMs != null
               ? (
                 <span style={{ color: token.colorSuccess }}>
@@ -2470,8 +3036,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               )
               : (
                 <div>
-                  <span style={{ color: token.colorError }}>✗ {t("common.failed")}</span>
-                  <div style={{ marginTop: 4, fontSize: 12, color: token.colorTextSecondary, wordBreak: "break-all" }}>
+                  <span style={{ color: token.colorError }}>
+                    ✗ {t("common.failed")}
+                  </span>
+                  <div
+                    style={{
+                      marginTop: 4,
+                      fontSize: 12,
+                      color: token.colorTextSecondary,
+                      wordBreak: "break-all",
+                    }}
+                  >
                     {singleTestResult.error}
                   </div>
                 </div>
@@ -2482,7 +3057,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
       {/* Model picker modal */}
       <Modal
-        title={pickerMode === "replace" ? t("settings.fetchAllModels") : t("settings.selectModels")}
+        title={pickerMode === "replace"
+          ? t("settings.fetchAllModels")
+          : t("settings.selectModels")}
         open={pickerOpen}
         onCancel={() => setPickerOpen(false)}
         onOk={handlePickerConfirm}
@@ -2494,12 +3071,15 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         width={560}
         styles={{ body: { padding: 0 } }}
         afterOpenChange={(open) => {
-          if (open) { pickerVirtualizer.measure(); }
+          if (open) {
+            pickerVirtualizer.measure();
+          }
         }}
       >
         {(() => {
           const { filtered } = pickerGroups;
-          const allFilteredChecked = filtered.length > 0 && filtered.every((m) => pickerSelected.has(m.model_id));
+          const allFilteredChecked = filtered.length > 0
+            && filtered.every((m) => pickerSelected.has(m.model_id));
           const someFilteredChecked = filtered.some((m) => pickerSelected.has(m.model_id));
           return (
             <>
@@ -2523,15 +3103,19 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     setPickerSelected((prev) => {
                       const next = new Set(prev);
                       for (const m of filtered) {
-                        if (e.target.checked) { next.add(m.model_id); }
-                        else { next.delete(m.model_id); }
+                        if (e.target.checked) {
+                          next.add(m.model_id);
+                        } else {
+                          next.delete(m.model_id);
+                        }
                       }
                       return next;
                     });
                   }}
                   style={{ whiteSpace: "nowrap" }}
                 >
-                  {t("common.selectAll")} ({pickerSelected.size}/{pickerModels.length})
+                  {t("common.selectAll")} ({pickerSelected.size}/
+                  {pickerModels.length})
                 </Checkbox>
                 <Input
                   id="provider-detail-input-143"
@@ -2543,14 +3127,20 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   size="small"
                   style={{ flex: 1 }}
                 />
-                <Tooltip title={pickerCollapsed.size === 0 ? t("settings.collapseAll") : t("settings.expandAll")}>
+                <Tooltip
+                  title={pickerCollapsed.size === 0
+                    ? t("settings.collapseAll")
+                    : t("settings.expandAll")}
+                >
                   <Button
                     size="small"
                     type="text"
                     icon={pickerCollapsed.size === 0 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                     onClick={() => {
                       if (pickerCollapsed.size === 0) {
-                        setPickerCollapsed(new Set(pickerGroups.entries.map(([g]) => g)));
+                        setPickerCollapsed(
+                          new Set(pickerGroups.entries.map(([g]) => g)),
+                        );
                       } else {
                         setPickerCollapsed(new Set());
                       }
@@ -2561,9 +3151,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               <div
                 ref={pickerListParentRef}
                 className="model-picker-list"
-                style={{ maxHeight: 420, overflow: "auto", padding: "8px 16px 12px" }}
+                style={{
+                  maxHeight: 420,
+                  overflow: "auto",
+                  padding: "8px 16px 12px",
+                }}
               >
-                <div style={{ height: pickerVirtualizer.getTotalSize(), position: "relative" }}>
+                <div
+                  style={{
+                    height: pickerVirtualizer.getTotalSize(),
+                    position: "relative",
+                  }}
+                >
                   {pickerVirtualizer.getVirtualItems().map((virtualRow) => {
                     const row = flatPickerRows[virtualRow.index];
                     if (row.type === "spacer") {
@@ -2613,16 +3212,22 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             onClick={() =>
                               setPickerCollapsed((prev) => {
                                 const next = new Set(prev);
-                                if (next.has(group)) { next.delete(group); }
-                                else { next.add(group); }
+                                if (next.has(group)) {
+                                  next.delete(group);
+                                } else {
+                                  next.add(group);
+                                }
                                 return next;
                               })}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 setPickerCollapsed((prev) => {
                                   const next = new Set(prev);
-                                  if (next.has(group)) { next.delete(group); }
-                                  else { next.add(group); }
+                                  if (next.has(group)) {
+                                    next.delete(group);
+                                  } else {
+                                    next.add(group);
+                                  }
                                   return next;
                                 });
                               }
@@ -2634,7 +3239,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                               tabIndex={0}
                               onClick={(e) => e.stopPropagation()}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.stopPropagation();
+                                }
                               }}
                             >
                               <Checkbox
@@ -2644,17 +3251,31 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                                   setPickerSelected((prev) => {
                                     const next = new Set(prev);
                                     for (const m of models) {
-                                      if (e.target.checked) { next.add(m.model_id); }
-                                      else { next.delete(m.model_id); }
+                                      if (e.target.checked) {
+                                        next.add(m.model_id);
+                                      } else {
+                                        next.delete(m.model_id);
+                                      }
                                     }
                                     return next;
                                   });
                                 }}
                               />
                             </div>
-                            <ModelIcon model={models[0]?.model_id ?? group} size={20} type="avatar" />
+                            <ModelIcon
+                              model={models[0]?.model_id ?? group}
+                              size={20}
+                              type="avatar"
+                            />
                             <Text style={{ fontWeight: 600 }}>{group}</Text>
-                            <Tag style={{ fontSize: 12, lineHeight: "18px", padding: "0 6px", margin: 0 }}>
+                            <Tag
+                              style={{
+                                fontSize: 12,
+                                lineHeight: "18px",
+                                padding: "0 6px",
+                                margin: 0,
+                              }}
+                            >
                               {models.length}
                             </Tag>
                           </div>
@@ -2685,18 +3306,27 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             onChange={(e) => {
                               setPickerSelected((prev) => {
                                 const next = new Set(prev);
-                                if (e.target.checked) { next.add(m.model_id); }
-                                else { next.delete(m.model_id); }
+                                if (e.target.checked) {
+                                  next.add(m.model_id);
+                                } else {
+                                  next.delete(m.model_id);
+                                }
                                 return next;
                               });
                             }}
                           />
-                          <ModelIcon model={m.model_id} size={20} type="avatar" />
+                          <ModelIcon
+                            model={m.model_id}
+                            size={20}
+                            type="avatar"
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1 flex-wrap">
                               <span>{m.name || m.model_id}</span>
                               {m.name && m.name !== m.model_id && (
-                                <Text type="secondary" style={{ fontSize: 12 }}>({m.model_id})</Text>
+                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                  ({m.model_id})
+                                </Text>
                               )}
                             </div>
                           </div>
@@ -2718,10 +3348,16 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         onCancel={() => setProviderEditModalOpen(false)}
         onOk={() => {
           const trimmed = editProviderName.trim();
-          if (!trimmed) { return; }
+          if (!trimmed) {
+            return;
+          }
           const updates: Record<string, unknown> = {};
-          if (trimmed !== provider.name) { updates.name = trimmed; }
-          if (editProviderType !== provider.provider_type) { updates.provider_type = editProviderType; }
+          if (trimmed !== provider.name) {
+            updates.name = trimmed;
+          }
+          if (editProviderType !== provider.provider_type) {
+            updates.provider_type = editProviderType;
+          }
           if (Object.keys(updates).length > 0) {
             updateProvider(providerId, updates);
           }
@@ -2740,7 +3376,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               onChange={(e) => setEditProviderName(e.target.value)}
             />
           </Form.Item>
-          <Form.Item label={t("settings.endpointFormat")} style={{ marginBottom: 0 }}>
+          <Form.Item
+            label={t("settings.endpointFormat")}
+            style={{ marginBottom: 0 }}
+          >
             <Select
               id="provider-detail-select-145"
               value={editProviderType}

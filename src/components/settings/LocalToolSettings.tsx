@@ -55,7 +55,9 @@ function ToolItem({
     <div className="flex items-start justify-between py-2.5 px-3 border-b border-border/50 last:border-b-0 hover:bg-bg-container-hover transition-colors">
       <div className="flex-1 min-w-0 mr-3">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Text strong className="text-sm">{tool.name}</Text>
+          <Text strong className="text-sm">
+            {tool.name}
+          </Text>
           {tool.isDestructive && (
             <Tooltip title={t("toolManager.destructiveTooltip")}>
               <Tag color="red" className="text-[10px] leading-none px-1 py-0">
@@ -65,7 +67,9 @@ function ToolItem({
             </Tooltip>
           )}
           {tool.isReadOnly && (
-            <Tag color="green" className="text-[10px] leading-none px-1 py-0">{t("toolManager.readOnly")}</Tag>
+            <Tag color="green" className="text-[10px] leading-none px-1 py-0">
+              {t("toolManager.readOnly")}
+            </Tag>
           )}
         </div>
         <Paragraph
@@ -78,7 +82,9 @@ function ToolItem({
       </div>
       <Tooltip
         title={groupEnabled
-          ? (tool.enabled ? t("toolManager.clickToDisable") : t("toolManager.clickToEnable"))
+          ? tool.enabled
+            ? t("toolManager.clickToDisable")
+            : t("toolManager.clickToEnable")
           : t("toolManager.groupDisabled")}
       >
         <Switch
@@ -113,11 +119,18 @@ function GroupHeader({
         <Text type="secondary" className="text-xs ml-2">
           {enabledCount}/{totalCount} {t("toolManager.enabled")}
         </Text>
-        <Paragraph type="secondary" className="text-xs mt-0.5 mb-0 leading-snug">
+        <Paragraph
+          type="secondary"
+          className="text-xs mt-0.5 mb-0 leading-snug"
+        >
           {group.description}
         </Paragraph>
       </div>
-      <Tooltip title={group.enabled ? t("toolManager.disableGroup") : t("toolManager.enableGroup")}>
+      <Tooltip
+        title={group.enabled
+          ? t("toolManager.disableGroup")
+          : t("toolManager.enableGroup")}
+      >
         <Switch
           id="local-tool-settings-switch-91"
           checked={group.enabled}
@@ -154,7 +167,15 @@ export function LocalToolSettings() {
         {t("settings.localTools.description")}
       </Paragraph>
 
-      {error && <Alert message={error} type="error" showIcon className="mb-4" closable />}
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          className="mb-4"
+          closable
+        />
+      )}
 
       {groups.length === 0 ? <Empty description={t("toolManager.noTools")} /> : (
         <Collapse

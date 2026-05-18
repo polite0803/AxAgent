@@ -71,9 +71,15 @@ function assessCredibility(url: string): "high" | "medium" | "low" {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
     const isMatch = (domain: string) => hostname === domain || hostname.endsWith("." + domain);
-    if (highDomains.some(isMatch)) { return "high"; }
-    if (mediumDomains.some(isMatch)) { return "medium"; }
-  } catch { /* invalid URL */ }
+    if (highDomains.some(isMatch)) {
+      return "high";
+    }
+    if (mediumDomains.some(isMatch)) {
+      return "medium";
+    }
+  } catch {
+    /* invalid URL */
+  }
   return "low";
 }
 
@@ -117,8 +123,7 @@ export function parseSearchContent(content: string): {
   try {
     const data = JSON.parse(jsonStr);
     sources = data.sources ?? [];
-  } catch {
-  }
+  } catch {}
 
   const separatorIdx = content.indexOf(SEARCH_SEPARATOR);
   const userContent = separatorIdx !== -1
@@ -128,11 +133,15 @@ export function parseSearchContent(content: string): {
   return { hasSearch: true, sources, userContent };
 }
 
-export function deduplicateResults(results: SearchResultItem[]): SearchResultItem[] {
+export function deduplicateResults(
+  results: SearchResultItem[],
+): SearchResultItem[] {
   const seen = new Set<string>();
   return results.filter((r) => {
     const key = r.url.toLowerCase().replace(/\/+$/, "");
-    if (seen.has(key)) { return false; }
+    if (seen.has(key)) {
+      return false;
+    }
     seen.add(key);
     return true;
   });
@@ -142,7 +151,10 @@ export function sortResultsByRelevance(
   results: SearchResultItem[],
   query: string,
 ): SearchResultItem[] {
-  const queryTerms = query.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
+  const queryTerms = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 1);
 
   return results.toSorted((a, b) => {
     const scoreA = computeRelevanceScore(a, queryTerms);
@@ -151,7 +163,10 @@ export function sortResultsByRelevance(
   });
 }
 
-function computeRelevanceScore(result: SearchResultItem, queryTerms: string[]): number {
+function computeRelevanceScore(
+  result: SearchResultItem,
+  queryTerms: string[],
+): number {
   const titleLower = result.title.toLowerCase();
   const contentLower = result.content.toLowerCase();
 
@@ -159,12 +174,20 @@ function computeRelevanceScore(result: SearchResultItem, queryTerms: string[]): 
 
   // js-set-map-lookups: 子串匹配无法用 Set.has 替代，必须逐 term 扫描
   for (const term of queryTerms) {
-    if (titleLower.includes(term)) { score += 3; }
-    if (contentLower.includes(term)) { score += 1; }
+    if (titleLower.includes(term)) {
+      score += 3;
+    }
+    if (contentLower.includes(term)) {
+      score += 1;
+    }
   }
 
-  if (assessCredibility(result.url) === "high") { score += 2; }
-  if (result.content.length > 100) { score += 1; }
+  if (assessCredibility(result.url) === "high") {
+    score += 2;
+  }
+  if (result.content.length > 100) {
+    score += 1;
+  }
 
   return score;
 }

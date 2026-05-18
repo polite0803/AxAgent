@@ -33,8 +33,12 @@ function getSpanTypeColor(type_: SpanType): string {
 }
 
 function formatDuration(ms?: number): string {
-  if (!ms) { return "-"; }
-  if (ms < 1000) { return `${ms}ms`; }
+  if (!ms) {
+    return "-";
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
@@ -60,7 +64,9 @@ function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
         style={{ paddingLeft: `${level * 20 + 8}px` }}
         onClick={onSelect}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { onSelect(); }
+          if (e.key === "Enter" || e.key === " ") {
+            onSelect();
+          }
         }}
       >
         {hasChildren
@@ -84,10 +90,7 @@ function SpanNode({ node, level, isSelected, onSelect }: SpanNodeProps) {
             </span>
           )
           : <span className="mr-1 w-3 inline-block" />}
-        <Tag
-          color={getSpanTypeColor(node.span_type)}
-          className="mr-2 text-xs"
-        >
+        <Tag color={getSpanTypeColor(node.span_type)} className="mr-2 text-xs">
           {node.span_type.replace("_", " ")}
         </Tag>
         <Text className="flex-1 truncate">{node.name}</Text>

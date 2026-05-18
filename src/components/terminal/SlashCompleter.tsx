@@ -41,7 +41,9 @@ export function useSlashCompleter(
 
   const getFilteredCommands = useCallback(
     (input: string) => {
-      if (!input.startsWith(triggerChar)) { return []; }
+      if (!input.startsWith(triggerChar)) {
+        return [];
+      }
       const searchTerm = input.slice(1).toLowerCase();
       return commands
         .filter(
@@ -56,7 +58,9 @@ export function useSlashCompleter(
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (!terminal) { return; }
+      if (!terminal) {
+        return;
+      }
 
       const filteredCommands = getFilteredCommands(inputBufferRef.current);
 
@@ -125,12 +129,22 @@ export function useSlashCompleter(
         }
       }
     },
-    [terminal, isActive, currentInput, selectedIndex, getFilteredCommands, triggerChar, onSelect],
+    [
+      terminal,
+      isActive,
+      currentInput,
+      selectedIndex,
+      getFilteredCommands,
+      triggerChar,
+      onSelect,
+    ],
   );
 
   const insertCommand = useCallback(
     (command: string) => {
-      if (!terminal) { return; }
+      if (!terminal) {
+        return;
+      }
       for (let i = 0; i < inputBufferRef.current.length; i++) {
         terminal.write("\b \b");
       }
@@ -143,7 +157,9 @@ export function useSlashCompleter(
   );
 
   const clearInput = useCallback(() => {
-    if (!terminal) { return; }
+    if (!terminal) {
+      return;
+    }
     for (let i = 0; i < inputBufferRef.current.length; i++) {
       terminal.write("\b \b");
     }
@@ -194,14 +210,11 @@ export function SlashCompleterWidget({
     currentInput: _currentInput,
     filteredCommands,
     selectedIndex,
-  } = useSlashCompleter(
-    terminal,
-    {
-      commands,
-      triggerChar,
-      onSelect,
-    },
-  );
+  } = useSlashCompleter(terminal, {
+    commands,
+    triggerChar,
+    onSelect,
+  });
 
   if (!isActive || filteredCommands.length === 0) {
     return null;
@@ -230,7 +243,9 @@ export function SlashCompleterWidget({
             padding: "6px 12px",
             cursor: "pointer",
             background: index === selectedIndex ? "#585b70" : "transparent",
-            borderLeft: index === selectedIndex ? "2px solid #89b4fa" : "2px solid transparent",
+            borderLeft: index === selectedIndex
+              ? "2px solid #89b4fa"
+              : "2px solid transparent",
           }}
           onMouseEnter={() => {}}
         >
@@ -291,7 +306,12 @@ export const DEFAULT_COMMANDS: CommandSuggestion[] = [
     command: "/export",
     description: "Export session data",
     parameters: [
-      { name: "format", description: "Export format (json/csv)", required: false, default: "json" },
+      {
+        name: "format",
+        description: "Export format (json/csv)",
+        required: false,
+        default: "json",
+      },
     ],
   },
 ];

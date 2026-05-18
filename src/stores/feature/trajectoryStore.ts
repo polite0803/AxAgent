@@ -9,7 +9,9 @@ interface TrajectoryStore {
   loadingDetail: Record<string, boolean>;
 
   fetchTrajectoryList: (conversationId: string) => Promise<void>;
-  fetchTrajectoryDetail: (trajectoryId: string) => Promise<TrajectoryDetail | null>;
+  fetchTrajectoryDetail: (
+    trajectoryId: string,
+  ) => Promise<TrajectoryDetail | null>;
   clearConversation: (conversationId: string) => void;
 }
 
@@ -21,7 +23,9 @@ export const useTrajectoryStore = create<TrajectoryStore>((set, get) => ({
 
   fetchTrajectoryList: async (conversationId: string) => {
     // 已有缓存则跳过
-    if (get().trajectoriesByConversation[conversationId]) { return; }
+    if (get().trajectoriesByConversation[conversationId]) {
+      return;
+    }
 
     set({ loadingList: true });
     try {
@@ -30,7 +34,10 @@ export const useTrajectoryStore = create<TrajectoryStore>((set, get) => ({
         limit: 20,
       });
       set((s) => ({
-        trajectoriesByConversation: { ...s.trajectoriesByConversation, [conversationId]: result },
+        trajectoriesByConversation: {
+          ...s.trajectoriesByConversation,
+          [conversationId]: result,
+        },
       }));
     } catch {
       // 轨迹服务可能未初始化，静默处理
@@ -44,7 +51,9 @@ export const useTrajectoryStore = create<TrajectoryStore>((set, get) => ({
       return get().trajectoryDetails[trajectoryId];
     }
 
-    set((s) => ({ loadingDetail: { ...s.loadingDetail, [trajectoryId]: true } }));
+    set((s) => ({
+      loadingDetail: { ...s.loadingDetail, [trajectoryId]: true },
+    }));
     try {
       const result = await invoke<TrajectoryDetail>("get_trajectory_detail", {
         trajectoryId,
@@ -59,7 +68,9 @@ export const useTrajectoryStore = create<TrajectoryStore>((set, get) => ({
       }));
       return null;
     } finally {
-      set((s) => ({ loadingDetail: { ...s.loadingDetail, [trajectoryId]: false } }));
+      set((s) => ({
+        loadingDetail: { ...s.loadingDetail, [trajectoryId]: false },
+      }));
     }
   },
 

@@ -93,8 +93,12 @@ function findBubbleEl(marker: Element, scrollBox: HTMLElement): Element {
   // Walk up until we find an element whose parent is the scroll box or its first child container
   for (;;) {
     const parent: Element | null = el.parentElement;
-    if (!parent || parent === scrollBox) { return el; }
-    if (parent.parentElement === scrollBox) { return el; }
+    if (!parent || parent === scrollBox) {
+      return el;
+    }
+    if (parent.parentElement === scrollBox) {
+      return el;
+    }
     el = parent;
   }
 }
@@ -112,7 +116,9 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
   }, [entries, activeId]);
 
   useEffect(() => {
-    if (entries.length === 0) { return; }
+    if (entries.length === 0) {
+      return;
+    }
 
     const updateActive = () => {
       // During programmatic scroll lock, use the forced active ID
@@ -125,12 +131,18 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
       // Clear forced active once lock expires
       forcedActiveRef.current = null;
       const scrollBox = scrollBoxRef.current;
-      if (!scrollBox) { return; }
+      if (!scrollBox) {
+        return;
+      }
       const boxRect = scrollBox.getBoundingClientRect();
 
       // Collect rects for first and last entries to detect scroll extremes
-      const firstMarker = scrollBox.querySelector(`[data-axagent-msg="${entries[0].msg.id}"]`);
-      const lastMarker = scrollBox.querySelector(`[data-axagent-msg="${entries[entries.length - 1].msg.id}"]`);
+      const firstMarker = scrollBox.querySelector(
+        `[data-axagent-msg="${entries[0].msg.id}"]`,
+      );
+      const lastMarker = scrollBox.querySelector(
+        `[data-axagent-msg="${entries[entries.length - 1].msg.id}"]`,
+      );
 
       // Edge case: scrolled to top — first entry's top is at or below viewport top
       if (firstMarker) {
@@ -157,17 +169,25 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
       let best: { id: string; dist: number } | null = null;
 
       for (const entry of entries) {
-        const marker = scrollBox.querySelector(`[data-axagent-msg="${entry.msg.id}"]`);
-        if (!marker) { continue; }
+        const marker = scrollBox.querySelector(
+          `[data-axagent-msg="${entry.msg.id}"]`,
+        );
+        if (!marker) {
+          continue;
+        }
         const el = findBubbleEl(marker, scrollBox);
         const rect = el.getBoundingClientRect();
-        if (rect.bottom < boxRect.top || rect.top > boxRect.bottom) { continue; }
+        if (rect.bottom < boxRect.top || rect.top > boxRect.bottom) {
+          continue;
+        }
         const dist = Math.abs(rect.top - detectY);
         if (!best || dist < best.dist) {
           best = { id: entry.msg.id, dist };
         }
       }
-      if (best) { setActiveId(best.id); }
+      if (best) {
+        setActiveId(best.id);
+      }
     };
 
     // Wait for scroll box to be available, then attach listener
@@ -195,15 +215,24 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
   return activeId;
 }
 
-function useModelName(model_id?: string | null, providerId?: string | null): string {
+function useModelName(
+  model_id?: string | null,
+  providerId?: string | null,
+): string {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
-    if (!model_id) { return ""; }
+    if (!model_id) {
+      return "";
+    }
     for (const p of providers) {
-      if (providerId && p.id !== providerId) { continue; }
+      if (providerId && p.id !== providerId) {
+        continue;
+      }
       if (p.models) {
         for (const m of p.models) {
-          if (m.model_id === model_id) { return m.name || m.model_id; }
+          if (m.model_id === model_id) {
+            return m.name || m.model_id;
+          }
         }
       }
     }
@@ -212,7 +241,13 @@ function useModelName(model_id?: string | null, providerId?: string | null): str
   }, [model_id, providerId, providers]);
 }
 
-function ModelName({ model_id, providerId }: { model_id?: string | null; providerId?: string | null }) {
+function ModelName({
+  model_id,
+  providerId,
+}: {
+  model_id?: string | null;
+  providerId?: string | null;
+}) {
   const name = useModelName(model_id, providerId);
   return <>{name}</>;
 }
@@ -221,7 +256,10 @@ function ModelName({ model_id, providerId }: { model_id?: string | null; provide
 function UserAvatarIcon({ size }: { size: number }) {
   const { token } = theme.useToken();
   const profile = useUserProfileStore((s) => s.profile);
-  const resolvedSrc = useResolvedAvatarSrc(profile.avatarType, profile.avatarValue);
+  const resolvedSrc = useResolvedAvatarSrc(
+    profile.avatarType,
+    profile.avatarValue,
+  );
 
   if (profile.avatarType === "emoji" && profile.avatarValue) {
     return (
@@ -242,12 +280,19 @@ function UserAvatarIcon({ size }: { size: number }) {
       </div>
     );
   }
-  if ((profile.avatarType === "url" || profile.avatarType === "file") && profile.avatarValue) {
+  if (
+    (profile.avatarType === "url" || profile.avatarType === "file")
+    && profile.avatarValue
+  ) {
     const src = profile.avatarType === "file" ? resolvedSrc : profile.avatarValue;
     return <Avatar size={size} src={src} />;
   }
   return (
-    <Avatar size={size} icon={<User size={Math.round(size * 0.5)} />} style={{ backgroundColor: token.colorPrimary }} />
+    <Avatar
+      size={size}
+      icon={<User size={Math.round(size * 0.5)} />}
+      style={{ backgroundColor: token.colorPrimary }}
+    />
   );
 }
 
@@ -257,7 +302,9 @@ function FaqIndex({ entries }: { entries: MinimapEntry[] }) {
   const { token } = theme.useToken();
   const activeId = useActiveMessageId(entries);
 
-  if (entries.length === 0) { return null; }
+  if (entries.length === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -288,14 +335,23 @@ function FaqIndex({ entries }: { entries: MinimapEntry[] }) {
         }}
       >
         {entries.map((entry) => (
-          <FaqItem key={entry.msg.id} entry={entry} isActive={activeId === entry.msg.id} token={token} />
+          <FaqItem
+            key={entry.msg.id}
+            entry={entry}
+            isActive={activeId === entry.msg.id}
+            token={token}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function FaqItem({ entry, isActive, token }: {
+function FaqItem({
+  entry,
+  isActive,
+  token,
+}: {
   entry: MinimapEntry;
   isActive: boolean;
   token: ReturnType<typeof theme.useToken>["token"];
@@ -307,7 +363,9 @@ function FaqItem({ entry, isActive, token }: {
 
   // Calculate fixed position for hover card based on dot's position
   const getCardStyle = (): React.CSSProperties => {
-    if (!dotRef.current) { return { display: "none" }; }
+    if (!dotRef.current) {
+      return { display: "none" };
+    }
     const rect = dotRef.current.getBoundingClientRect();
     return {
       position: "fixed",
@@ -356,7 +414,9 @@ function FaqItem({ entry, isActive, token }: {
           fontWeight: 600,
           cursor: "pointer",
           color: isActive ? "#fff" : token.colorTextSecondary,
-          backgroundColor: isActive ? token.colorPrimary : token.colorFillQuaternary,
+          backgroundColor: isActive
+            ? token.colorPrimary
+            : token.colorFillQuaternary,
           border: `1px solid ${isActive ? token.colorPrimary : token.colorBorderSecondary}`,
           transition: "box-shadow 0.2s, transform 0.2s",
           margin: "0 auto",
@@ -380,37 +440,54 @@ function FaqItem({ entry, isActive, token }: {
       </div>
 
       {/* Hover card — fixed position to avoid clipping */}
-      {hovered && createPortal(
-        <div
-          onClick={() => scrollTo(entry.msg.id)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              scrollTo(entry.msg.id);
-            }
-          }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={getCardStyle()}
-        >
-          <div style={{ fontSize: 12, color: isUser ? token.colorTextSecondary : token.colorPrimary }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-              {!isUser && entry.model_id && <ModelIcon model={entry.model_id} size={10} type="avatar" />}
-              {isUser ? "Q" : <ModelName model_id={entry.model_id} providerId={entry.providerId} />}
-            </span>
-          </div>
-          <Typography.Text
-            type="secondary"
-            ellipsis
-            style={{ fontSize: 12, display: "block", marginTop: 1 }}
+      {hovered
+        && createPortal(
+          <div
+            onClick={() => scrollTo(entry.msg.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                scrollTo(entry.msg.id);
+              }
+            }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={getCardStyle()}
           >
-            {entry.summary}
-          </Typography.Text>
-        </div>,
-        document.body,
-      )}
+            <div
+              style={{
+                fontSize: 12,
+                color: isUser ? token.colorTextSecondary : token.colorPrimary,
+              }}
+            >
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 3 }}
+              >
+                {!isUser && entry.model_id && <ModelIcon model={entry.model_id} size={10} type="avatar" />}
+                {isUser
+                  ? (
+                    "Q"
+                  )
+                  : (
+                    <ModelName
+                      model_id={entry.model_id}
+                      providerId={entry.providerId}
+                    />
+                  )}
+              </span>
+            </div>
+            <Typography.Text
+              type="secondary"
+              ellipsis
+              style={{ fontSize: 12, display: "block", marginTop: 1 }}
+            >
+              {entry.summary}
+            </Typography.Text>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -423,7 +500,9 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
   const activeId = useActiveMessageId(entries);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  if (entries.length === 0) { return null; }
+  if (entries.length === 0) {
+    return null;
+  }
 
   const activeIdx = entries.findIndex((e) => e.msg.id === activeId);
   const current = entries[Math.max(0, activeIdx)];
@@ -463,23 +542,47 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <span style={{ color: token.colorPrimary, fontWeight: 600, flexShrink: 0 }}>
+        <span
+          style={{ color: token.colorPrimary, fontWeight: 600, flexShrink: 0 }}
+        >
           {(activeIdx >= 0 ? activeIdx : 0) + 1} / {entries.length}
         </span>
         {current.role === "assistant" && current.model_id && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              flexShrink: 0,
+            }}
+          >
             <ModelIcon model={current.model_id} size={14} type="avatar" />
-            <StickyModelName model_id={current.model_id} providerId={current.providerId} />
+            <StickyModelName
+              model_id={current.model_id}
+              providerId={current.providerId}
+            />
           </span>
         )}
         {current.role === "user" && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              flexShrink: 0,
+            }}
+          >
             <UserAvatarIcon size={14} />
           </span>
         )}
         <Typography.Text
           ellipsis
-          style={{ flex: 1, minWidth: 0, fontSize: 12, color: token.colorTextSecondary }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontSize: 12,
+            color: token.colorTextSecondary,
+          }}
         >
           {current.summary}
         </Typography.Text>
@@ -516,13 +619,27 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
   );
 }
 
-function StickyModelName({ model_id, providerId }: { model_id?: string | null; providerId?: string | null }) {
+function StickyModelName({
+  model_id,
+  providerId,
+}: {
+  model_id?: string | null;
+  providerId?: string | null;
+}) {
   const name = useModelName(model_id, providerId);
   const { token } = theme.useToken();
-  return <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{name}</span>;
+  return (
+    <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
+      {name}
+    </span>
+  );
 }
 
-function StickyDropdownItem({ entry, isActive, token }: {
+function StickyDropdownItem({
+  entry,
+  isActive,
+  token,
+}: {
   entry: MinimapEntry;
   isActive: boolean;
   token: ReturnType<typeof theme.useToken>["token"];
@@ -549,16 +666,32 @@ function StickyDropdownItem({ entry, isActive, token }: {
         fontSize: 13,
         transition: "background 0.15s",
         backgroundColor: isActive ? token.colorPrimaryBg : "transparent",
-        borderLeft: isActive ? `2px solid ${token.colorPrimary}` : "2px solid transparent",
+        borderLeft: isActive
+          ? `2px solid ${token.colorPrimary}`
+          : "2px solid transparent",
       }}
       onMouseEnter={(e) => {
-        if (!isActive) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
+        if (!isActive) {
+          e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
+        }
       }}
       onMouseLeave={(e) => {
-        if (!isActive) { e.currentTarget.style.backgroundColor = isActive ? token.colorPrimaryBg : "transparent"; }
+        if (!isActive) {
+          e.currentTarget.style.backgroundColor = isActive
+            ? token.colorPrimaryBg
+            : "transparent";
+        }
       }}
     >
-      <span style={{ width: 24, textAlign: "right", fontSize: 12, color: token.colorTextQuaternary, flexShrink: 0 }}>
+      <span
+        style={{
+          width: 24,
+          textAlign: "right",
+          fontSize: 12,
+          color: token.colorTextQuaternary,
+          flexShrink: 0,
+        }}
+      >
         #{entry.index + 1}
       </span>
       <span style={{ flexShrink: 0 }}>
@@ -566,11 +699,23 @@ function StickyDropdownItem({ entry, isActive, token }: {
           ? <UserAvatarIcon size={16} />
           : entry.model_id
           ? <ModelIcon model={entry.model_id} size={16} type="avatar" />
-          : <Avatar size={16} style={{ backgroundColor: token.colorPrimary, fontSize: 12 }}>AI</Avatar>}
+          : (
+            <Avatar
+              size={16}
+              style={{ backgroundColor: token.colorPrimary, fontSize: 12 }}
+            >
+              AI
+            </Avatar>
+          )}
       </span>
       <Typography.Text
         ellipsis
-        style={{ flex: 1, minWidth: 0, fontSize: 12, color: token.colorTextSecondary }}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          fontSize: 12,
+          color: token.colorTextSecondary,
+        }}
       >
         {entry.summary}
       </Typography.Text>
@@ -585,7 +730,9 @@ export function ChatMinimap() {
   const style = useSettingsStore((s) => s.settings.chat_minimap_style ?? "faq");
   const entries = useEntries();
 
-  if (!enabled || entries.length < 2) { return null; }
+  if (!enabled || entries.length < 2) {
+    return null;
+  }
 
   switch (style) {
     case "faq":

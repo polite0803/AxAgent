@@ -12,7 +12,9 @@ export function mergePreservedMessages(
   }
 
   const merged = new Map(pageMessages.map((message) => [message.id, message]));
-  const currentMap = new Map(currentMessages.map((message) => [message.id, message]));
+  const currentMap = new Map(
+    currentMessages.map((message) => [message.id, message]),
+  );
   for (const messageId of preserveMessageIds) {
     const localMessage = currentMap.get(messageId);
     if (localMessage) {
@@ -34,7 +36,10 @@ export function mergePreservedMessages(
   );
 }
 
-export function mergeOlderPages(olderMessages: Message[], currentMessages: Message[]): Message[] {
+export function mergeOlderPages(
+  olderMessages: Message[],
+  currentMessages: Message[],
+): Message[] {
   const merged = new Map<string, Message>();
   for (const message of olderMessages) {
     merged.set(message.id, message);

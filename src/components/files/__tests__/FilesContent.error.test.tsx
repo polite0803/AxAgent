@@ -48,7 +48,9 @@ describe("FilesContent — error visibility", () => {
 
     const alert = screen.getByTestId("files-error-alert");
     expect(alert).toBeDefined();
-    expect(alert.textContent).toContain("Failed to open file: permission denied");
+    expect(alert.textContent).toContain(
+      "Failed to open file: permission denied",
+    );
   });
 
   it("calls clearError when the alert close button is clicked", async () => {
@@ -75,6 +77,8 @@ describe("FilesContent — error visibility", () => {
     });
 
     render(<FilesContent activeCategory="files" />);
-    expect(screen.getByTestId("files-error-alert").textContent).toContain("cleanup failed");
+    expect(screen.getByTestId("files-error-alert").textContent).toContain(
+      "cleanup failed",
+    );
   });
 });

@@ -6,8 +6,12 @@ import { useTranslation } from "react-i18next";
 const { Text } = Typography;
 
 function formatDuration(ms?: number): string {
-  if (!ms) { return "-"; }
-  if (ms < 1000) { return `${ms}ms`; }
+  if (!ms) {
+    return "-";
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
@@ -27,7 +31,12 @@ export function SpanDetail({ span }: SpanDetailProps) {
   ];
 
   const eventColumns = [
-    { title: "Time", dataIndex: "timestamp", key: "timestamp", render: formatTimestamp },
+    {
+      title: "Time",
+      dataIndex: "timestamp",
+      key: "timestamp",
+      render: formatTimestamp,
+    },
     { title: "Name", dataIndex: "name", key: "name" },
   ];
 
@@ -56,7 +65,9 @@ export function SpanDetail({ span }: SpanDetailProps) {
               </Text>
             </Descriptions.Item>
           )}
-          <Descriptions.Item label={t("devtools.name")}>{span.name}</Descriptions.Item>
+          <Descriptions.Item label={t("devtools.name")}>
+            {span.name}
+          </Descriptions.Item>
           <Descriptions.Item label={t("devtools.type")}>
             <Tag>{span.span_type.replace("_", " ")}</Tag>
           </Descriptions.Item>

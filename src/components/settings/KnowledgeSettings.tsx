@@ -58,7 +58,10 @@ import { useTranslation } from "react-i18next";
 
 const INDEX_STATUS_CONFIG: Record<string, { color: string; labelKey: string }> = {
   pending: { color: "default", labelKey: "settings.indexStatus.pending" },
-  indexing: { color: "processing", labelKey: "settings.indexStatus.indexing" },
+  indexing: {
+    color: "processing",
+    labelKey: "settings.indexStatus.indexing",
+  },
   ready: { color: "success", labelKey: "settings.indexStatus.indexed" },
   failed: { color: "error", labelKey: "settings.indexStatus.failed" },
 };
@@ -121,13 +124,21 @@ function SortableKnowledgeBaseItem({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") { onSelect(); }
+        if (e.key === "Enter" || e.key === " ") {
+          onSelect();
+        }
       }}
       onMouseEnter={(e) => {
-        if (!isSelected) { e.currentTarget.style.backgroundColor = token.colorFillQuaternary; }
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
+        }
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) { e.currentTarget.style.backgroundColor = isSelected ? token.colorPrimaryBg : ""; }
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = isSelected
+            ? token.colorPrimaryBg
+            : "";
+        }
       }}
     >
       <div
@@ -138,7 +149,9 @@ function SortableKnowledgeBaseItem({
         tabIndex={0}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); }
+          if (e.key === "Enter" || e.key === " ") {
+            e.stopPropagation();
+          }
         }}
       >
         <GripVertical size={14} style={{ color: token.colorTextQuaternary }} />
@@ -147,13 +160,17 @@ function SortableKnowledgeBaseItem({
         <KnowledgeBaseIcon kb={kb} size={16} />
       </div>
       <div className="min-w-0 flex-1">
-        <span style={{ color: isSelected ? token.colorPrimary : undefined }}>{kb.name}</span>
+        <span style={{ color: isSelected ? token.colorPrimary : undefined }}>
+          {kb.name}
+        </span>
       </div>
       <Tag
         color={kb.embeddingProvider ? "green" : "default"}
         style={{ marginRight: 4, fontSize: 12 }}
       >
-        {kb.embeddingProvider ? t("settings.knowledge.vectorReady") : t("settings.knowledge.vectorNotConfigured")}
+        {kb.embeddingProvider
+          ? t("settings.knowledge.vectorReady")
+          : t("settings.knowledge.vectorNotConfigured")}
       </Tag>
       <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
         <Button
@@ -192,10 +209,14 @@ function KnowledgeBaseList({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) { return; }
+    if (!over || active.id === over.id) {
+      return;
+    }
     const oldIndex = bases.findIndex((b) => b.id === active.id);
     const newIndex = bases.findIndex((b) => b.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) { return; }
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
     const newOrder = [...bases];
     const [moved] = newOrder.splice(oldIndex, 1);
     newOrder.splice(newIndex, 0, moved);
@@ -208,12 +229,22 @@ function KnowledgeBaseList({
         {bases.length === 0
           ? (
             <div className="flex-1 flex items-center justify-center">
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.knowledge.empty")} />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t("settings.knowledge.empty")}
+              />
             </div>
           )
           : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={bases.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={bases.map((b) => b.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 {bases.map((kb) => (
                   <SortableKnowledgeBaseItem
                     key={kb.id}
@@ -257,20 +288,25 @@ interface VectorSearchResult {
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) { return "0 B"; }
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
-function KnowledgeBaseDetail({
-  base,
-}: {
-  base: KnowledgeBase;
-}) {
+function KnowledgeBaseDetail({ base }: { base: KnowledgeBase }) {
   const { t } = useTranslation();
-  const { documents, loading, updateBase, loadDocuments, addDocument, deleteDocument } = useKnowledgeStore();
+  const {
+    documents,
+    loading,
+    updateBase,
+    loadDocuments,
+    addDocument,
+    deleteDocument,
+  } = useKnowledgeStore();
   const [messageApi, contextHolder] = message.useMessage();
 
   // Settings modal state
@@ -286,13 +322,19 @@ function KnowledgeBaseDetail({
     chunkOverlap: undefined as number | undefined,
     separator: undefined as string | undefined,
   });
-  const [originalProvider, setOriginalProvider] = useState<string | undefined>(undefined);
-  const [pendingProvider, setPendingProvider] = useState<string | undefined>(undefined);
+  const [originalProvider, setOriginalProvider] = useState<string | undefined>(
+    undefined,
+  );
+  const [pendingProvider, setPendingProvider] = useState<string | undefined>(
+    undefined,
+  );
   const [providerConfirmOpen, setProviderConfirmOpen] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<VectorSearchResult[] | null>(null);
+  const [searchResults, setSearchResults] = useState<
+    VectorSearchResult[] | null
+  >(null);
   const [searching, setSearching] = useState(false);
 
   // Chunks modal state
@@ -318,22 +360,33 @@ function KnowledgeBaseDetail({
   // Rebuild state
   const [rebuildingIndex, setRebuildingIndex] = useState(false);
   const rebuildingRef = useRef(false);
-  const [reindexingChunkIds, setReindexingChunkIds] = useState<Set<string>>(new Set());
-  const [rebuildingDocIds, setRebuildingDocIds] = useState<Set<string>>(new Set());
+  const [reindexingChunkIds, setReindexingChunkIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [rebuildingDocIds, setRebuildingDocIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [syncWikiModalOpen, setSyncWikiModalOpen] = useState(false);
   const [syncWikiDocId, setSyncWikiDocId] = useState<string | null>(null);
   const [syncWikiDocTitle, setSyncWikiDocTitle] = useState("");
-  const [wikiList, setWikiList] = useState<Array<{ id: string; name: string }>>([]);
+  const [wikiList, setWikiList] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
   const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
   const [syncingToWiki, setSyncingToWiki] = useState(false);
 
   // Advanced RAG config — backed by global settings
-  const ragPipelineConfig = useSettingsStore((s) => s.settings.rag_pipeline_config);
+  const ragPipelineConfig = useSettingsStore(
+    (s) => s.settings.rag_pipeline_config,
+  );
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [ragAdvancedConfig, setRagAdvancedConfig] = useState({
     rerankEnabled: ragPipelineConfig?.rerank?.enabled ?? false,
-    rerankBackend: (ragPipelineConfig?.rerank?.backend ?? "rule") as "rule" | "cross_encoder" | "pipeline",
+    rerankBackend: (ragPipelineConfig?.rerank?.backend ?? "rule") as
+      | "rule"
+      | "cross_encoder"
+      | "pipeline",
     rerankTopN: ragPipelineConfig?.rerank?.topN ?? 5,
     rerankCandidateK: ragPipelineConfig?.rerank?.candidateK ?? 30,
     selfRagEnabled: ragPipelineConfig?.selfRag?.enabled ?? false,
@@ -342,12 +395,8 @@ function KnowledgeBaseDetail({
     selfRagQualityThreshold: ragPipelineConfig?.selfRag?.qualityThreshold ?? 0.6,
     selfRagMaxRetries: ragPipelineConfig?.selfRag?.maxRetryRounds ?? 2,
     queryEnhancementEnabled: ragPipelineConfig?.queryEnhancement?.enabled ?? false,
-    queryEnhancementStrategy: (ragPipelineConfig?.queryEnhancement?.strategy ?? "auto") as
-      | "none"
-      | "hyde"
-      | "multi_query"
-      | "decomposition"
-      | "auto",
+    queryEnhancementStrategy: (ragPipelineConfig?.queryEnhancement?.strategy
+      ?? "auto") as "none" | "hyde" | "multi_query" | "decomposition" | "auto",
     queryEnhancementMaxVariants: ragPipelineConfig?.queryEnhancement?.maxVariants ?? 3,
     queryEnhancementCombinedCall: ragPipelineConfig?.queryEnhancement?.combinedCall ?? true,
   });
@@ -393,7 +442,9 @@ function KnowledgeBaseDetail({
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
-    invoke<any[]>("list_local_models").then(setModelList).catch(logIpcError("list_local_models"));
+    invoke<any[]>("list_local_models")
+      .then(setModelList)
+      .catch(logIpcError("list_local_models"));
   }, []);
 
   const handleDownloadModel = async (filename: string) => {
@@ -420,24 +471,32 @@ function KnowledgeBaseDetail({
     }
   };
 
-  const handleOpenSyncWikiModal = useCallback(async (doc: KnowledgeDocument) => {
-    setSyncWikiDocId(doc.id);
-    setSyncWikiDocTitle(doc.title);
-    setSelectedVaultId(null);
-    try {
-      const wikis = await invoke<Array<{ id: string; name: string }>>("llm_wiki_list");
-      setWikiList(wikis);
-    } catch {
-      setWikiList([]);
-    }
-    setSyncWikiModalOpen(true);
-  }, []);
+  const handleOpenSyncWikiModal = useCallback(
+    async (doc: KnowledgeDocument) => {
+      setSyncWikiDocId(doc.id);
+      setSyncWikiDocTitle(doc.title);
+      setSelectedVaultId(null);
+      try {
+        const wikis = await invoke<Array<{ id: string; name: string }>>("llm_wiki_list");
+        setWikiList(wikis);
+      } catch {
+        setWikiList([]);
+      }
+      setSyncWikiModalOpen(true);
+    },
+    [],
+  );
 
   const handleSyncToWiki = useCallback(async () => {
-    if (!syncWikiDocId || !selectedVaultId) { return; }
+    if (!syncWikiDocId || !selectedVaultId) {
+      return;
+    }
     setSyncingToWiki(true);
     try {
-      await invoke("sync_knowledge_document_to_wiki", { documentId: syncWikiDocId, vaultId: selectedVaultId });
+      await invoke("sync_knowledge_document_to_wiki", {
+        documentId: syncWikiDocId,
+        vaultId: selectedVaultId,
+      });
       messageApi.success(t("wiki.sync.wikiSuccess"));
       setSyncWikiModalOpen(false);
     } catch (e) {
@@ -457,31 +516,46 @@ function KnowledgeBaseDetail({
     let unlistenRebuild: (() => void) | undefined;
     (async () => {
       // listen is now statically imported
-      unlisten = await listen<{ documentId: string; success: boolean }>("knowledge-document-indexed", (event) => {
-        loadDocuments(base.id);
-        setRebuildingDocIds(prev => {
-          const next = new Set(prev);
-          next.delete(event.payload.documentId);
-          return next;
-        });
-      });
-      unlistenChunk = await listen<{ chunkId: string; success: boolean }>("knowledge-chunk-reindexed", (event) => {
-        setReindexingChunkIds(prev => {
-          const next = new Set(prev);
-          next.delete(event.payload.chunkId);
-          return next;
-        });
-        if (event.payload.success) {
-          setChunks(prev => prev.map(c => c.id === event.payload.chunkId ? { ...c, has_embedding: true } : c));
-        }
-      });
-      unlistenRebuild = await listen<{ baseId: string }>("knowledge-rebuild-complete", () => {
-        loadDocuments(base.id);
-        if (rebuildingRef.current) {
-          setRebuildingIndex(false);
-          rebuildingRef.current = false;
-        }
-      });
+      unlisten = await listen<{ documentId: string; success: boolean }>(
+        "knowledge-document-indexed",
+        (event) => {
+          loadDocuments(base.id);
+          setRebuildingDocIds((prev) => {
+            const next = new Set(prev);
+            next.delete(event.payload.documentId);
+            return next;
+          });
+        },
+      );
+      unlistenChunk = await listen<{ chunkId: string; success: boolean }>(
+        "knowledge-chunk-reindexed",
+        (event) => {
+          setReindexingChunkIds((prev) => {
+            const next = new Set(prev);
+            next.delete(event.payload.chunkId);
+            return next;
+          });
+          if (event.payload.success) {
+            setChunks((prev) =>
+              prev.map((c) =>
+                c.id === event.payload.chunkId
+                  ? { ...c, has_embedding: true }
+                  : c
+              )
+            );
+          }
+        },
+      );
+      unlistenRebuild = await listen<{ baseId: string }>(
+        "knowledge-rebuild-complete",
+        () => {
+          loadDocuments(base.id);
+          if (rebuildingRef.current) {
+            setRebuildingIndex(false);
+            rebuildingRef.current = false;
+          }
+        },
+      );
     })();
     return () => {
       unlisten?.();
@@ -509,18 +583,32 @@ function KnowledgeBaseDetail({
         filters: [
           {
             name: t("settings.knowledge.documentTypes"),
-            extensions: ["pdf", "txt", "md", "doc", "docx", "csv", "json", "html", "htm"],
+            extensions: [
+              "pdf",
+              "txt",
+              "md",
+              "doc",
+              "docx",
+              "csv",
+              "json",
+              "html",
+              "htm",
+            ],
           },
         ],
       });
-      if (!selected) { return; }
+      if (!selected) {
+        return;
+      }
       const paths = Array.isArray(selected) ? selected : [selected];
-      await Promise.all(paths.map(async (filePath) => {
-        const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-        const mimeType = MIME_MAP[ext] ?? "application/octet-stream";
-        const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
-        await addDocument(base.id, fileName, filePath, mimeType);
-      }));
+      await Promise.all(
+        paths.map(async (filePath) => {
+          const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+          const mimeType = MIME_MAP[ext] ?? "application/octet-stream";
+          const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
+          await addDocument(base.id, fileName, filePath, mimeType);
+        }),
+      );
       loadDocuments(base.id);
     } catch {
       // user cancelled or error
@@ -528,14 +616,19 @@ function KnowledgeBaseDetail({
   }, [base.id, addDocument, loadDocuments, t]);
 
   const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim() || !base.embeddingProvider) { return; }
+    if (!searchQuery.trim() || !base.embeddingProvider) {
+      return;
+    }
     setSearching(true);
     try {
-      const results = await invoke<VectorSearchResult[]>("search_knowledge_base", {
-        baseId: base.id,
-        query: searchQuery,
-        topK: 5,
-      });
+      const results = await invoke<VectorSearchResult[]>(
+        "search_knowledge_base",
+        {
+          baseId: base.id,
+          query: searchQuery,
+          topK: 5,
+        },
+      );
       setSearchResults(results.toSorted((a, b) => a.score - b.score));
     } catch (e) {
       messageApi.error(String(e));
@@ -544,28 +637,35 @@ function KnowledgeBaseDetail({
     }
   }, [searchQuery, base.id, base.embeddingProvider, messageApi]);
 
-  const handleViewChunks = useCallback(async (doc: KnowledgeDocument) => {
-    setChunksDocTitle(doc.title);
-    setChunksDocId(doc.id);
-    setChunksModalOpen(true);
-    setChunksLoading(true);
-    try {
-      const result = await invoke<VectorSearchResult[]>("list_knowledge_document_chunks", {
-        baseId: base.id,
-        documentId: doc.id,
-      });
-      setChunks(result);
-    } catch (e) {
-      messageApi.error(String(e));
-      setChunks([]);
-    } finally {
-      setChunksLoading(false);
-    }
-  }, [base.id, messageApi]);
+  const handleViewChunks = useCallback(
+    async (doc: KnowledgeDocument) => {
+      setChunksDocTitle(doc.title);
+      setChunksDocId(doc.id);
+      setChunksModalOpen(true);
+      setChunksLoading(true);
+      try {
+        const result = await invoke<VectorSearchResult[]>(
+          "list_knowledge_document_chunks",
+          {
+            baseId: base.id,
+            documentId: doc.id,
+          },
+        );
+        setChunks(result);
+      } catch (e) {
+        messageApi.error(String(e));
+        setChunks([]);
+      } finally {
+        setChunksLoading(false);
+      }
+    },
+    [base.id, messageApi],
+  );
 
   const handleRebuildIndex = useCallback(async () => {
-    if (rebuildingRef.current) { return; // Prevent double-click
-     }
+    if (rebuildingRef.current) {
+      return; // Prevent double-click
+    }
     setRebuildingIndex(true);
     rebuildingRef.current = true;
     try {
@@ -599,7 +699,10 @@ function KnowledgeBaseDetail({
       width: 80,
       render: (docType: string) => (
         <Tag style={{ fontSize: 12 }}>
-          {t(`settings.knowledge.docType${docType.charAt(0).toUpperCase() + docType.slice(1)}`, docType)}
+          {t(
+            `settings.knowledge.docType${docType.charAt(0).toUpperCase() + docType.slice(1)}`,
+            docType,
+          )}
         </Tag>
       ),
     },
@@ -613,7 +716,12 @@ function KnowledgeBaseDetail({
         const tag = (
           <Tag
             color={cfg.color}
-            style={{ fontSize: 12, cursor: status === "failed" && record.indexError ? "pointer" : undefined }}
+            style={{
+              fontSize: 12,
+              cursor: status === "failed" && record.indexError
+                ? "pointer"
+                : undefined,
+            }}
           >
             {status === "indexing" && <Spin size="small" style={{ marginRight: 4 }} />}
             {t(cfg.labelKey)}
@@ -651,13 +759,18 @@ function KnowledgeBaseDetail({
             title={t("settings.knowledge.rebuildDocConfirm")}
             placement="bottom"
             onConfirm={async () => {
-              if (rebuildingDocIds.has(record.id)) { return; }
-              setRebuildingDocIds(prev => new Set(prev).add(record.id));
+              if (rebuildingDocIds.has(record.id)) {
+                return;
+              }
+              setRebuildingDocIds((prev) => new Set(prev).add(record.id));
               try {
-                await invoke("rebuild_knowledge_document", { baseId: base.id, documentId: record.id });
+                await invoke("rebuild_knowledge_document", {
+                  baseId: base.id,
+                  documentId: record.id,
+                });
                 loadDocuments(base.id);
               } catch (e) {
-                setRebuildingDocIds(prev => {
+                setRebuildingDocIds((prev) => {
                   const next = new Set(prev);
                   next.delete(record.id);
                   return next;
@@ -671,7 +784,8 @@ function KnowledgeBaseDetail({
                 size="small"
                 type="text"
                 icon={<Zap size={14} />}
-                loading={record.indexingStatus === "indexing" || rebuildingDocIds.has(record.id)}
+                loading={record.indexingStatus === "indexing"
+                  || rebuildingDocIds.has(record.id)}
                 disabled={!base.embeddingProvider}
               />
             </Tooltip>
@@ -680,7 +794,12 @@ function KnowledgeBaseDetail({
             title={t("settings.knowledge.deleteDocConfirm")}
             onConfirm={() => deleteDocument(base.id, record.id)}
           >
-            <Button size="small" type="text" danger icon={<Trash2 size={14} />} />
+            <Button
+              size="small"
+              type="text"
+              danger
+              icon={<Trash2 size={14} />}
+            />
           </Popconfirm>
         </div>
       ),
@@ -771,11 +890,14 @@ function KnowledgeBaseDetail({
             title={t("settings.knowledge.rebuildChunkConfirm")}
             placement="bottom"
             onConfirm={async () => {
-              setReindexingChunkIds(prev => new Set(prev).add(record.id));
+              setReindexingChunkIds((prev) => new Set(prev).add(record.id));
               try {
-                await invoke("reindex_knowledge_chunk", { baseId: base.id, chunkId: record.id });
+                await invoke("reindex_knowledge_chunk", {
+                  baseId: base.id,
+                  chunkId: record.id,
+                });
               } catch (e) {
-                setReindexingChunkIds(prev => {
+                setReindexingChunkIds((prev) => {
                   const next = new Set(prev);
                   next.delete(record.id);
                   return next;
@@ -798,14 +920,22 @@ function KnowledgeBaseDetail({
             title={t("settings.knowledge.deleteChunkConfirm")}
             onConfirm={async () => {
               try {
-                await invoke("delete_knowledge_chunk", { baseId: base.id, chunkId: record.id });
-                setChunks(prev => prev.filter(c => c.id !== record.id));
+                await invoke("delete_knowledge_chunk", {
+                  baseId: base.id,
+                  chunkId: record.id,
+                });
+                setChunks((prev) => prev.filter((c) => c.id !== record.id));
               } catch (e) {
                 messageApi.error(String(e));
               }
             }}
           >
-            <Button size="small" type="text" danger icon={<Trash2 size={14} />} />
+            <Button
+              size="small"
+              type="text"
+              danger
+              icon={<Trash2 size={14} />}
+            />
           </Popconfirm>
         </div>
       ),
@@ -821,7 +951,12 @@ function KnowledgeBaseDetail({
           <IconEditor
             iconType={base.iconType}
             iconValue={base.iconValue}
-            onChange={(type, value) => updateBase(base.id, { iconType: type, iconValue: value, updateIcon: true })}
+            onChange={(type, value) =>
+              updateBase(base.id, {
+                iconType: type,
+                iconValue: value,
+                updateIcon: true,
+              })}
             size={28}
             defaultIcon={<KnowledgeBaseIcon kb={base} size={28} />}
           />
@@ -832,7 +967,9 @@ function KnowledgeBaseDetail({
             color={base.embeddingProvider ? "green" : "default"}
             style={{ fontSize: 12 }}
           >
-            {base.embeddingProvider ? t("settings.knowledge.vectorReady") : t("settings.knowledge.vectorNotConfigured")}
+            {base.embeddingProvider
+              ? t("settings.knowledge.vectorReady")
+              : t("settings.knowledge.vectorNotConfigured")}
           </Tag>
           <Tooltip title={t("settings.knowledge.knowledgeBaseSettings")}>
             <Button
@@ -897,7 +1034,7 @@ function KnowledgeBaseDetail({
             <span>{t("settings.knowledge.name")}</span>
             <Input
               value={settingsForm.name}
-              onChange={(e) => setSettingsForm(s => ({ ...s, name: e.target.value }))}
+              onChange={(e) => setSettingsForm((s) => ({ ...s, name: e.target.value }))}
               style={{ width: 280 }}
             />
           </div>
@@ -906,7 +1043,11 @@ function KnowledgeBaseDetail({
             <span>{t("settings.knowledge.embeddingModel")}</span>
             <EmbeddingModelSelect
               value={settingsForm.embeddingProvider}
-              onChange={(val) => setSettingsForm(s => ({ ...s, embeddingProvider: val || undefined }))}
+              onChange={(val) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  embeddingProvider: val || undefined,
+                }))}
               placeholder={t("settings.knowledge.embeddingModelPlaceholder")}
               style={{ width: 280 }}
             />
@@ -917,7 +1058,11 @@ function KnowledgeBaseDetail({
             <InputNumber
               id="knowledge-settings-inputnumber-67"
               value={settingsForm.embeddingDimensions}
-              onChange={(val) => setSettingsForm(s => ({ ...s, embeddingDimensions: val ?? undefined }))}
+              onChange={(val) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  embeddingDimensions: val ?? undefined,
+                }))}
               placeholder={t("settings.knowledge.embeddingDimensionsAuto")}
               min={1}
               max={65536}
@@ -930,7 +1075,11 @@ function KnowledgeBaseDetail({
             <InputNumber
               id="knowledge-settings-inputnumber-68"
               value={settingsForm.retrievalThreshold}
-              onChange={(val) => setSettingsForm(s => ({ ...s, retrievalThreshold: val ?? 0.1 }))}
+              onChange={(val) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  retrievalThreshold: val ?? 0.1,
+                }))}
               min={0}
               max={2}
               step={0.01}
@@ -943,7 +1092,7 @@ function KnowledgeBaseDetail({
             <InputNumber
               id="knowledge-settings-inputnumber-69"
               value={settingsForm.retrievalTopK}
-              onChange={(val) => setSettingsForm(s => ({ ...s, retrievalTopK: val ?? 5 }))}
+              onChange={(val) => setSettingsForm((s) => ({ ...s, retrievalTopK: val ?? 5 }))}
               min={1}
               max={100}
               style={{ width: 280 }}
@@ -958,7 +1107,7 @@ function KnowledgeBaseDetail({
             <InputNumber
               id="knowledge-settings-inputnumber-70"
               value={settingsForm.chunkSize}
-              onChange={(val) => setSettingsForm(s => ({ ...s, chunkSize: val ?? undefined }))}
+              onChange={(val) => setSettingsForm((s) => ({ ...s, chunkSize: val ?? undefined }))}
               placeholder="2000"
               min={100}
               max={100000}
@@ -971,7 +1120,11 @@ function KnowledgeBaseDetail({
             <InputNumber
               id="knowledge-settings-inputnumber-71"
               value={settingsForm.chunkOverlap}
-              onChange={(val) => setSettingsForm(s => ({ ...s, chunkOverlap: val ?? undefined }))}
+              onChange={(val) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  chunkOverlap: val ?? undefined,
+                }))}
               placeholder="200"
               min={0}
               max={10000}
@@ -984,7 +1137,11 @@ function KnowledgeBaseDetail({
             <Input
               id="knowledge-settings-input-72"
               value={settingsForm.separator}
-              onChange={(e) => setSettingsForm(s => ({ ...s, separator: e.target.value || undefined }))}
+              onChange={(e) =>
+                setSettingsForm((s) => ({
+                  ...s,
+                  separator: e.target.value || undefined,
+                }))}
               placeholder={t("settings.knowledge.separatorPlaceholder")}
               style={{ width: 280 }}
             />
@@ -995,7 +1152,7 @@ function KnowledgeBaseDetail({
             <Input.TextArea
               id="knowledge-settings-input-textarea-73"
               value={settingsForm.description}
-              onChange={(e) => setSettingsForm(s => ({ ...s, description: e.target.value }))}
+              onChange={(e) => setSettingsForm((s) => ({ ...s, description: e.target.value }))}
               rows={3}
               placeholder={t("settings.knowledge.descriptionPlaceholder")}
             />
@@ -1030,10 +1187,12 @@ function KnowledgeBaseDetail({
           setSettingsOpen(false);
           if (pendingProvider) {
             rebuildingRef.current = true;
-            invoke("rebuild_knowledge_index", { baseId: base.id }).catch((e) => {
-              rebuildingRef.current = false;
-              messageApi.error(String(e));
-            });
+            invoke("rebuild_knowledge_index", { baseId: base.id }).catch(
+              (e) => {
+                rebuildingRef.current = false;
+                messageApi.error(String(e));
+              },
+            );
           }
         }}
         onCancel={() => {
@@ -1051,194 +1210,266 @@ function KnowledgeBaseDetail({
         ghost
         size="small"
         className="mb-3"
-        items={[{
-          key: "advanced-rag",
-          label: (
-            <Space>
-              <SettingOutlined />
-              {t("settings.rag.advanced")}
-            </Space>
-          ),
-          children: (
-            <>
-              {/* 查询增强 */}
-              <Divider plain style={{ fontSize: 13 }}>
-                {t("settings.rag.queryEnhancement.title")}
-              </Divider>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">{t("settings.rag.queryEnhancement.title")}</span>
-                <Switch
-                  id="knowledge-settings-switch-74"
-                  checked={ragAdvancedConfig.queryEnhancementEnabled}
-                  onChange={(v) => persistRagConfig({ queryEnhancementEnabled: v })}
-                />
-              </div>
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {t("settings.rag.queryEnhancement.desc")}
-              </Typography.Text>
-              {ragAdvancedConfig.queryEnhancementEnabled && (
-                <div className="mt-2 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.queryEnhancement.strategy")}</span>
-                    <Select
-                      id="knowledge-settings-select-75"
-                      size="small"
-                      value={ragAdvancedConfig.queryEnhancementStrategy}
-                      onChange={(v) => persistRagConfig({ queryEnhancementStrategy: v })}
-                      style={{ width: 200 }}
-                      options={[
-                        { value: "none", label: t("settings.rag.queryEnhancement.strategyNone") },
-                        { value: "hyde", label: t("settings.rag.queryEnhancement.strategyHyde") },
-                        { value: "multi_query", label: t("settings.rag.queryEnhancement.strategyMultiQuery") },
-                        { value: "decomposition", label: t("settings.rag.queryEnhancement.strategyDecomposition") },
-                        { value: "auto", label: t("settings.rag.queryEnhancement.strategyAuto") },
-                      ]}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.queryEnhancement.maxVariants")}</span>
-                    <InputNumber
-                      id="knowledge-settings-inputnumber-76"
-                      size="small"
-                      min={2}
-                      max={5}
-                      value={ragAdvancedConfig.queryEnhancementMaxVariants}
-                      onChange={(v) => persistRagConfig({ queryEnhancementMaxVariants: v ?? 3 })}
-                      style={{ width: 200 }}
-                    />
-                  </div>
+        items={[
+          {
+            key: "advanced-rag",
+            label: (
+              <Space>
+                <SettingOutlined />
+                {t("settings.rag.advanced")}
+              </Space>
+            ),
+            children: (
+              <>
+                {/* 查询增强 */}
+                <Divider plain style={{ fontSize: 13 }}>
+                  {t("settings.rag.queryEnhancement.title")}
+                </Divider>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm">
+                    {t("settings.rag.queryEnhancement.title")}
+                  </span>
+                  <Switch
+                    id="knowledge-settings-switch-74"
+                    checked={ragAdvancedConfig.queryEnhancementEnabled}
+                    onChange={(v) => persistRagConfig({ queryEnhancementEnabled: v })}
+                  />
                 </div>
-              )}
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {t("settings.rag.queryEnhancement.desc")}
+                </Typography.Text>
+                {ragAdvancedConfig.queryEnhancementEnabled && (
+                  <div className="mt-2 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.queryEnhancement.strategy")}
+                      </span>
+                      <Select
+                        id="knowledge-settings-select-75"
+                        size="small"
+                        value={ragAdvancedConfig.queryEnhancementStrategy}
+                        onChange={(v) => persistRagConfig({ queryEnhancementStrategy: v })}
+                        style={{ width: 200 }}
+                        options={[
+                          {
+                            value: "none",
+                            label: t(
+                              "settings.rag.queryEnhancement.strategyNone",
+                            ),
+                          },
+                          {
+                            value: "hyde",
+                            label: t(
+                              "settings.rag.queryEnhancement.strategyHyde",
+                            ),
+                          },
+                          {
+                            value: "multi_query",
+                            label: t(
+                              "settings.rag.queryEnhancement.strategyMultiQuery",
+                            ),
+                          },
+                          {
+                            value: "decomposition",
+                            label: t(
+                              "settings.rag.queryEnhancement.strategyDecomposition",
+                            ),
+                          },
+                          {
+                            value: "auto",
+                            label: t(
+                              "settings.rag.queryEnhancement.strategyAuto",
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.queryEnhancement.maxVariants")}
+                      </span>
+                      <InputNumber
+                        id="knowledge-settings-inputnumber-76"
+                        size="small"
+                        min={2}
+                        max={5}
+                        value={ragAdvancedConfig.queryEnhancementMaxVariants}
+                        onChange={(v) =>
+                          persistRagConfig({
+                            queryEnhancementMaxVariants: v ?? 3,
+                          })}
+                        style={{ width: 200 }}
+                      />
+                    </div>
+                  </div>
+                )}
 
-              {/* 重排序 */}
-              <Divider plain style={{ fontSize: 13, marginTop: 12 }}>
-                {t("settings.rag.rerank.title")}
-              </Divider>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">{t("settings.rag.rerank.title")}</span>
-                <Switch
-                  id="knowledge-settings-switch-77"
-                  checked={ragAdvancedConfig.rerankEnabled}
-                  onChange={(v) => persistRagConfig({ rerankEnabled: v })}
-                />
-              </div>
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {t("settings.rag.rerank.desc")}
-              </Typography.Text>
-              {ragAdvancedConfig.rerankEnabled && (
-                <div className="mt-2 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.rerank.backend")}</span>
-                    <Select
-                      id="knowledge-settings-select-78"
-                      size="small"
-                      value={ragAdvancedConfig.rerankBackend}
-                      onChange={(v) => persistRagConfig({ rerankBackend: v })}
-                      style={{ width: 200 }}
-                      options={[
-                        { value: "rule", label: t("settings.rag.rerank.backendRule") },
-                        { value: "cross_encoder", label: t("settings.rag.rerank.backendCross") },
-                        { value: "pipeline", label: t("settings.rag.rerank.backendPipeline") },
-                      ]}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.rerank.topN")}</span>
-                    <InputNumber
-                      id="knowledge-settings-inputnumber-79"
-                      size="small"
-                      min={1}
-                      max={20}
-                      value={ragAdvancedConfig.rerankTopN}
-                      onChange={(v) => persistRagConfig({ rerankTopN: v ?? 5 })}
-                      style={{ width: 200 }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.rerank.candidateK")}</span>
-                    <InputNumber
-                      id="knowledge-settings-inputnumber-80"
-                      size="small"
-                      min={5}
-                      max={100}
-                      value={ragAdvancedConfig.rerankCandidateK}
-                      onChange={(v) => persistRagConfig({ rerankCandidateK: v ?? 30 })}
-                      style={{ width: 200 }}
-                    />
-                  </div>
+                {/* 重排序 */}
+                <Divider plain style={{ fontSize: 13, marginTop: 12 }}>
+                  {t("settings.rag.rerank.title")}
+                </Divider>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm">
+                    {t("settings.rag.rerank.title")}
+                  </span>
+                  <Switch
+                    id="knowledge-settings-switch-77"
+                    checked={ragAdvancedConfig.rerankEnabled}
+                    onChange={(v) => persistRagConfig({ rerankEnabled: v })}
+                  />
                 </div>
-              )}
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {t("settings.rag.rerank.desc")}
+                </Typography.Text>
+                {ragAdvancedConfig.rerankEnabled && (
+                  <div className="mt-2 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.rerank.backend")}
+                      </span>
+                      <Select
+                        id="knowledge-settings-select-78"
+                        size="small"
+                        value={ragAdvancedConfig.rerankBackend}
+                        onChange={(v) => persistRagConfig({ rerankBackend: v })}
+                        style={{ width: 200 }}
+                        options={[
+                          {
+                            value: "rule",
+                            label: t("settings.rag.rerank.backendRule"),
+                          },
+                          {
+                            value: "cross_encoder",
+                            label: t("settings.rag.rerank.backendCross"),
+                          },
+                          {
+                            value: "pipeline",
+                            label: t("settings.rag.rerank.backendPipeline"),
+                          },
+                        ]}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.rerank.topN")}
+                      </span>
+                      <InputNumber
+                        id="knowledge-settings-inputnumber-79"
+                        size="small"
+                        min={1}
+                        max={20}
+                        value={ragAdvancedConfig.rerankTopN}
+                        onChange={(v) => persistRagConfig({ rerankTopN: v ?? 5 })}
+                        style={{ width: 200 }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.rerank.candidateK")}
+                      </span>
+                      <InputNumber
+                        id="knowledge-settings-inputnumber-80"
+                        size="small"
+                        min={5}
+                        max={100}
+                        value={ragAdvancedConfig.rerankCandidateK}
+                        onChange={(v) => persistRagConfig({ rerankCandidateK: v ?? 30 })}
+                        style={{ width: 200 }}
+                      />
+                    </div>
+                  </div>
+                )}
 
-              {/* Self-RAG */}
-              <Divider plain style={{ fontSize: 13, marginTop: 12 }}>
-                {t("settings.rag.selfRag.title")}
-              </Divider>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">{t("settings.rag.selfRag.title")}</span>
-                <Switch
-                  id="knowledge-settings-switch-81"
-                  checked={ragAdvancedConfig.selfRagEnabled}
-                  onChange={(v) => persistRagConfig({ selfRagEnabled: v })}
-                />
-              </div>
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {t("settings.rag.selfRag.desc")}
-              </Typography.Text>
-              {ragAdvancedConfig.selfRagEnabled && (
-                <div className="mt-2 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.selfRag.judgeModel")}</span>
-                    <Input
-                      id="knowledge-settings-input-82"
-                      size="small"
-                      value={ragAdvancedConfig.selfRagJudgeModel}
-                      onChange={(e) => persistRagConfig({ selfRagJudgeModel: e.target.value })}
-                      style={{ width: 200 }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.selfRag.relevanceThreshold")}</span>
-                    <InputNumber
-                      id="knowledge-settings-inputnumber-83"
-                      size="small"
-                      min={0.1}
-                      max={1.0}
-                      step={0.05}
-                      value={ragAdvancedConfig.selfRagRelevanceThreshold}
-                      onChange={(v) => persistRagConfig({ selfRagRelevanceThreshold: v ?? 0.5 })}
-                      style={{ width: 200 }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.selfRag.qualityThreshold")}</span>
-                    <InputNumber
-                      id="knowledge-settings-inputnumber-84"
-                      size="small"
-                      min={0.1}
-                      max={1.0}
-                      step={0.05}
-                      value={ragAdvancedConfig.selfRagQualityThreshold}
-                      onChange={(v) => persistRagConfig({ selfRagQualityThreshold: v ?? 0.6 })}
-                      style={{ width: 200 }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">{t("settings.rag.selfRag.maxRetries")}</span>
-                    <InputNumber
-                      id="knowledge-settings-inputnumber-85"
-                      size="small"
-                      min={1}
-                      max={5}
-                      value={ragAdvancedConfig.selfRagMaxRetries}
-                      onChange={(v) => persistRagConfig({ selfRagMaxRetries: v ?? 2 })}
-                      style={{ width: 200 }}
-                    />
-                  </div>
+                {/* Self-RAG */}
+                <Divider plain style={{ fontSize: 13, marginTop: 12 }}>
+                  {t("settings.rag.selfRag.title")}
+                </Divider>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm">
+                    {t("settings.rag.selfRag.title")}
+                  </span>
+                  <Switch
+                    id="knowledge-settings-switch-81"
+                    checked={ragAdvancedConfig.selfRagEnabled}
+                    onChange={(v) => persistRagConfig({ selfRagEnabled: v })}
+                  />
                 </div>
-              )}
-            </>
-          ),
-        }]}
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {t("settings.rag.selfRag.desc")}
+                </Typography.Text>
+                {ragAdvancedConfig.selfRagEnabled && (
+                  <div className="mt-2 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.selfRag.judgeModel")}
+                      </span>
+                      <Input
+                        id="knowledge-settings-input-82"
+                        size="small"
+                        value={ragAdvancedConfig.selfRagJudgeModel}
+                        onChange={(e) =>
+                          persistRagConfig({
+                            selfRagJudgeModel: e.target.value,
+                          })}
+                        style={{ width: 200 }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.selfRag.relevanceThreshold")}
+                      </span>
+                      <InputNumber
+                        id="knowledge-settings-inputnumber-83"
+                        size="small"
+                        min={0.1}
+                        max={1.0}
+                        step={0.05}
+                        value={ragAdvancedConfig.selfRagRelevanceThreshold}
+                        onChange={(v) =>
+                          persistRagConfig({
+                            selfRagRelevanceThreshold: v ?? 0.5,
+                          })}
+                        style={{ width: 200 }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.selfRag.qualityThreshold")}
+                      </span>
+                      <InputNumber
+                        id="knowledge-settings-inputnumber-84"
+                        size="small"
+                        min={0.1}
+                        max={1.0}
+                        step={0.05}
+                        value={ragAdvancedConfig.selfRagQualityThreshold}
+                        onChange={(v) =>
+                          persistRagConfig({
+                            selfRagQualityThreshold: v ?? 0.6,
+                          })}
+                        style={{ width: 200 }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {t("settings.rag.selfRag.maxRetries")}
+                      </span>
+                      <InputNumber
+                        id="knowledge-settings-inputnumber-85"
+                        size="small"
+                        min={1}
+                        max={5}
+                        value={ragAdvancedConfig.selfRagMaxRetries}
+                        onChange={(v) => persistRagConfig({ selfRagMaxRetries: v ?? 2 })}
+                        style={{ width: 200 }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            ),
+          },
+        ]}
       />
 
       {/* Local Model Management */}
@@ -1246,73 +1477,93 @@ function KnowledgeBaseDetail({
         ghost
         size="small"
         className="mb-3"
-        items={[{
-          key: "rag-models",
-          label: (
-            <Space>
-              <DownloadOutlined />
-              {t("settings.rag.models")}
-            </Space>
-          ),
-          children: (
-            <List
-              size="small"
-              dataSource={modelList}
-              locale={{ emptyText: <Empty description={t("settings.rag.modelNotDownloaded")} /> }}
-              renderItem={(model: any) => (
-                <List.Item
-                  actions={[
-                    model.is_downloaded
-                      ? (
-                        <Popconfirm
-                          key="delete"
-                          title={t("settings.rag.modelDelete")}
-                          onConfirm={() => handleDeleteModel(model.name)}
-                          okText={t("common.yes")}
-                          cancelText={t("common.no")}
-                        >
-                          <Button size="small" danger icon={<DeleteOutlined />}>
-                            {t("settings.rag.modelDelete")}
+        items={[
+          {
+            key: "rag-models",
+            label: (
+              <Space>
+                <DownloadOutlined />
+                {t("settings.rag.models")}
+              </Space>
+            ),
+            children: (
+              <List
+                size="small"
+                dataSource={modelList}
+                locale={{
+                  emptyText: <Empty description={t("settings.rag.modelNotDownloaded")} />,
+                }}
+                renderItem={(model: any) => (
+                  <List.Item
+                    actions={[
+                      model.is_downloaded
+                        ? (
+                          <Popconfirm
+                            key="delete"
+                            title={t("settings.rag.modelDelete")}
+                            onConfirm={() => handleDeleteModel(model.name)}
+                            okText={t("common.yes")}
+                            cancelText={t("common.no")}
+                          >
+                            <Button size="small" danger icon={<DeleteOutlined />}>
+                              {t("settings.rag.modelDelete")}
+                            </Button>
+                          </Popconfirm>
+                        )
+                        : (
+                          <Button
+                            key="download"
+                            size="small"
+                            type="primary"
+                            loading={downloading === model.name}
+                            icon={<DownloadOutlined />}
+                            onClick={() => handleDownloadModel(model.name)}
+                          >
+                            {downloading === model.name
+                              ? t("settings.rag.modelDownloading")
+                              : t("settings.rag.modelDownload")}
                           </Button>
-                        </Popconfirm>
-                      )
-                      : (
-                        <Button
-                          key="download"
-                          size="small"
-                          type="primary"
-                          loading={downloading === model.name}
-                          icon={<DownloadOutlined />}
-                          onClick={() => handleDownloadModel(model.name)}
-                        >
-                          {downloading === model.name
-                            ? t("settings.rag.modelDownloading")
-                            : t("settings.rag.modelDownload")}
-                        </Button>
-                      ),
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={model.is_downloaded
-                      ? <CheckCircleOutlined style={{ color: "var(--ant-color-success)", fontSize: 16 }} />
-                      : <ClockCircleOutlined style={{ color: "var(--ant-color-text-secondary)", fontSize: 16 }} />}
-                    title={model.name}
-                    description={
-                      <Space size={4}>
-                        <Tag>
-                          {model.model_type === "Reranker"
-                            ? t("settings.rag.rerankerModel")
-                            : t("settings.rag.judgeModel")}
-                        </Tag>
-                        <Typography.Text type="secondary">{formatBytes(model.size_bytes)}</Typography.Text>
-                      </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
-          ),
-        }]}
+                        ),
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={model.is_downloaded
+                        ? (
+                          <CheckCircleOutlined
+                            style={{
+                              color: "var(--ant-color-success)",
+                              fontSize: 16,
+                            }}
+                          />
+                        )
+                        : (
+                          <ClockCircleOutlined
+                            style={{
+                              color: "var(--ant-color-text-secondary)",
+                              fontSize: 16,
+                            }}
+                          />
+                        )}
+                      title={model.name}
+                      description={
+                        <Space size={4}>
+                          <Tag>
+                            {model.model_type === "Reranker"
+                              ? t("settings.rag.rerankerModel")
+                              : t("settings.rag.judgeModel")}
+                          </Tag>
+                          <Typography.Text type="secondary">
+                            {formatBytes(model.size_bytes)}
+                          </Typography.Text>
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            ),
+          },
+        ]}
       />
 
       {/* Toolbar: add + rebuild on left, search + clear on right */}
@@ -1391,7 +1642,12 @@ function KnowledgeBaseDetail({
         mask={{ enabled: true, blur: true }}
       >
         {searchResults && searchResults.length === 0
-          ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.knowledge.noResults")} />
+          ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("settings.knowledge.noResults")}
+            />
+          )
           : (
             <Table
               dataSource={searchResults || []}
@@ -1414,8 +1670,12 @@ function KnowledgeBaseDetail({
                   width: 120,
                   ellipsis: true,
                   render: (docId: string) => {
-                    const doc = documents.find(d => d.id === docId);
-                    return <span style={{ fontSize: 12 }}>{doc?.title || docId.slice(0, 8)}</span>;
+                    const doc = documents.find((d) => d.id === docId);
+                    return (
+                      <span style={{ fontSize: 12 }}>
+                        {doc?.title || docId.slice(0, 8)}
+                      </span>
+                    );
                   },
                 },
                 {
@@ -1446,7 +1706,9 @@ function KnowledgeBaseDetail({
                   defaultSortOrder: "ascend" as const,
                   sorter: (a: VectorSearchResult, b: VectorSearchResult) => a.score - b.score,
                   render: (score: number) => (
-                    <Tag color="blue" style={{ fontSize: 12 }}>{(1 / (1 + score)).toFixed(4)}</Tag>
+                    <Tag color="blue" style={{ fontSize: 12 }}>
+                      {(1 / (1 + score)).toFixed(4)}
+                    </Tag>
                   ),
                 },
               ]}
@@ -1523,7 +1785,9 @@ function KnowledgeBaseDetail({
 
       {/* Chunk View/Edit Modal */}
       <Modal
-        title={chunkEditing ? t("settings.knowledge.editChunk") : t("settings.knowledge.viewChunks")}
+        title={chunkEditing
+          ? t("settings.knowledge.editChunk")
+          : t("settings.knowledge.viewChunks")}
         open={chunkViewOpen}
         onCancel={() => {
           setChunkViewOpen(false);
@@ -1532,7 +1796,9 @@ function KnowledgeBaseDetail({
         }}
         onOk={chunkEditing
           ? async () => {
-            if (!chunkViewId) { return; }
+            if (!chunkViewId) {
+              return;
+            }
             setChunkSaving(true);
             try {
               await invoke("update_knowledge_chunk", {
@@ -1540,12 +1806,21 @@ function KnowledgeBaseDetail({
                 chunkId: chunkViewId,
                 content: chunkViewContent,
               });
-              setChunks(prev => prev.map(c => c.id === chunkViewId ? { ...c, content: chunkViewContent } : c));
+              setChunks((prev) =>
+                prev.map((c) =>
+                  c.id === chunkViewId
+                    ? { ...c, content: chunkViewContent }
+                    : c
+                )
+              );
               setChunkViewOpen(false);
               // Reindex only this chunk, not the entire knowledge base
-              setReindexingChunkIds(prev => new Set(prev).add(chunkViewId));
-              invoke("reindex_knowledge_chunk", { baseId: base.id, chunkId: chunkViewId }).catch((e: unknown) => {
-                setReindexingChunkIds(prev => {
+              setReindexingChunkIds((prev) => new Set(prev).add(chunkViewId));
+              invoke("reindex_knowledge_chunk", {
+                baseId: base.id,
+                chunkId: chunkViewId,
+              }).catch((e: unknown) => {
+                setReindexingChunkIds((prev) => {
                   const next = new Set(prev);
                   next.delete(chunkViewId);
                   return next;
@@ -1586,7 +1861,9 @@ function KnowledgeBaseDetail({
           setAddChunkSaving(false);
         }}
         onOk={async () => {
-          if (!addChunkDocId || !addChunkContent.trim()) { return; }
+          if (!addChunkDocId || !addChunkContent.trim()) {
+            return;
+          }
           setAddChunkSaving(true);
           try {
             await invoke("add_knowledge_chunk", {
@@ -1595,10 +1872,13 @@ function KnowledgeBaseDetail({
               content: addChunkContent,
             });
             // Refresh chunks list
-            const result = await invoke<VectorSearchResult[]>("list_knowledge_document_chunks", {
-              baseId: base.id,
-              documentId: addChunkDocId,
-            });
+            const result = await invoke<VectorSearchResult[]>(
+              "list_knowledge_document_chunks",
+              {
+                baseId: base.id,
+                documentId: addChunkDocId,
+              },
+            );
             setChunks(result);
             setAddChunkOpen(false);
             setAddChunkContent("");
@@ -1701,25 +1981,25 @@ export function KnowledgeSettings() {
 
   return (
     <div className="flex h-full" data-testid="knowledge-base-page">
-      <div className="w-64 shrink-0 pt-2" style={{ borderRight: "1px solid var(--border-color)" }}>
+      <div
+        className="w-64 shrink-0 pt-2"
+        style={{ borderRight: "1px solid var(--border-color)" }}
+      >
         <KnowledgeBaseList
           bases={bases}
           selectedId={selectedId}
           onSelect={setSelectedId}
           onAdd={handleAdd}
           onDeleted={(id) => {
-            if (id === selectedId) { setSelectedId(null); }
+            if (id === selectedId) {
+              setSelectedId(null);
+            }
           }}
         />
       </div>
       <div className="min-w-0 flex-1 overflow-y-auto">
         {selectedBase
-          ? (
-            <KnowledgeBaseDetail
-              key={selectedBase.id}
-              base={selectedBase}
-            />
-          )
+          ? <KnowledgeBaseDetail key={selectedBase.id} base={selectedBase} />
           : (
             <div className="flex h-full items-center justify-center">
               <Empty
@@ -1742,13 +2022,22 @@ export function KnowledgeSettings() {
         mask={{ enabled: true, blur: true }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label={t("settings.knowledge.name")} rules={[{ required: true }]}>
+          <Form.Item
+            name="name"
+            label={t("settings.knowledge.name")}
+            rules={[{ required: true }]}
+          >
             <Input name="name" />
           </Form.Item>
           <Form.Item
             name="embeddingProvider"
             label={t("settings.knowledge.embeddingModel")}
-            rules={[{ required: true, message: t("settings.knowledge.embeddingModelPlaceholder") }]}
+            rules={[
+              {
+                required: true,
+                message: t("settings.knowledge.embeddingModelPlaceholder"),
+              },
+            ]}
           >
             <EmbeddingModelSelect
               value={form.getFieldValue("embeddingProvider")}

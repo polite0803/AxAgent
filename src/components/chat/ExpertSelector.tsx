@@ -16,7 +16,12 @@ interface ExpertSelectorProps {
   selectedRoleId: string | null;
 }
 
-export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: ExpertSelectorProps) {
+export function ExpertSelector({
+  open,
+  onClose,
+  onSelect,
+  selectedRoleId,
+}: ExpertSelectorProps) {
   const getAllRoles = useExpertStore((s) => s.getAllRoles);
   const importAgencyExperts = useExpertStore((s) => s.importAgencyExperts);
   const loadAgencyRoles = useExpertStore((s) => s.loadAgencyRoles);
@@ -36,7 +41,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   const [importPath, setImportPath] = useState("");
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [sortBy, setSortBy] = useState<"name" | "category" | "source">("category");
+  const [sortBy, setSortBy] = useState<"name" | "category" | "source">(
+    "category",
+  );
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [editingExpert, setEditingExpert] = useState<AgentProfile | null>(null);
@@ -88,16 +95,23 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       sorted.sort((a, b) => dir * a.name.localeCompare(b.name, "zh"));
     } else if (sortBy === "category") {
       const order = EXPERT_CATEGORY_KEYS;
-      sorted.sort((a, b) =>
-        dir
-        * (order.indexOf(a.category) - order.indexOf(b.category) || a.name.localeCompare(b.name, "zh"))
+      sorted.sort(
+        (a, b) =>
+          dir
+          * (order.indexOf(a.category) - order.indexOf(b.category)
+            || a.name.localeCompare(b.name, "zh")),
       );
     } else if (sortBy === "source") {
-      const sourceOrder: Record<string, number> = { builtin: 0, agency: 1, custom: 2 };
-      sorted.sort((a, b) =>
-        dir
-        * ((sourceOrder[a.source] ?? 3) - (sourceOrder[b.source] ?? 3)
-          || a.name.localeCompare(b.name, "zh"))
+      const sourceOrder: Record<string, number> = {
+        builtin: 0,
+        agency: 1,
+        custom: 2,
+      };
+      sorted.sort(
+        (a, b) =>
+          dir
+          * ((sourceOrder[a.source] ?? 3) - (sourceOrder[b.source] ?? 3)
+            || a.name.localeCompare(b.name, "zh")),
       );
     }
     return sorted;
@@ -112,19 +126,27 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   }
 
   const handleImport = async () => {
-    if (!importPath.trim()) { return; }
+    if (!importPath.trim()) {
+      return;
+    }
     setImporting(true);
     try {
       const result = await importAgencyExperts(importPath.trim());
       if (result.count > 0) {
-        const parts = [t("expertSelector.importSuccess", { count: result.count })];
+        const parts = [
+          t("expertSelector.importSuccess", { count: result.count }),
+        ];
         if (result.workflows_created && result.workflows_created > 0) {
           parts.push(
-            t("expertSelector.importWorkflows", { count: result.workflows_created }),
+            t("expertSelector.importWorkflows", {
+              count: result.workflows_created,
+            }),
           );
         }
         if (result.tools_matched && result.tools_matched > 0) {
-          parts.push(t("expertSelector.importTools", { count: result.tools_matched }));
+          parts.push(
+            t("expertSelector.importTools", { count: result.tools_matched }),
+          );
         }
         app.message.success(parts.join("，"));
       }
@@ -135,7 +157,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             count: result.errors.length,
             errors: errorPreview,
             more: result.errors.length > 3
-              ? t("expertSelector.moreErrors", { count: result.errors.length })
+              ? t("expertSelector.moreErrors", {
+                count: result.errors.length,
+              })
               : "",
           }),
           8,
@@ -190,18 +214,26 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         multiple: false,
         title: t("expertSelector.selectFolder"),
       });
-      if (!folderPath) { return; }
+      if (!folderPath) {
+        return;
+      }
       setImporting(true);
       const result = await importAgencyExperts(folderPath);
       if (result.count > 0) {
-        const parts = [t("expertSelector.importSuccess", { count: result.count })];
+        const parts = [
+          t("expertSelector.importSuccess", { count: result.count }),
+        ];
         if (result.workflows_created && result.workflows_created > 0) {
           parts.push(
-            t("expertSelector.importWorkflows", { count: result.workflows_created }),
+            t("expertSelector.importWorkflows", {
+              count: result.workflows_created,
+            }),
           );
         }
         if (result.tools_matched && result.tools_matched > 0) {
-          parts.push(t("expertSelector.importTools", { count: result.tools_matched }));
+          parts.push(
+            t("expertSelector.importTools", { count: result.tools_matched }),
+          );
         }
         app.message.success(parts.join("，"));
       }
@@ -212,7 +244,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             count: result.errors.length,
             errors: errorPreview,
             more: result.errors.length > 3
-              ? t("expertSelector.moreErrors", { count: result.errors.length })
+              ? t("expertSelector.moreErrors", {
+                count: result.errors.length,
+              })
               : "",
           }),
           8,
@@ -244,7 +278,9 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
   };
 
   const handleEditSave = async () => {
-    if (!editingExpert) { return; }
+    if (!editingExpert) {
+      return;
+    }
     setSaving(true);
     try {
       if (editingExpert.source === "agency") {
@@ -287,7 +323,15 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
       width={720}
       destroyOnHidden
     >
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          marginBottom: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <Input
           id="expert-selector-input-13"
           placeholder={t("expertSelector.searchPlaceholder")}
@@ -323,8 +367,10 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
           size="small"
           type="text"
           icon={sortDir === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-          onClick={() => setSortDir((d) => d === "asc" ? "desc" : "asc")}
-          title={sortDir === "asc" ? t("expertSelector.sortDir") : t("expertSelector.sortDirDesc")}
+          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+          title={sortDir === "asc"
+            ? t("expertSelector.sortDir")
+            : t("expertSelector.sortDirDesc")}
         />
         <Button
           size="small"
@@ -387,20 +433,35 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               {agencyRoles.length > 0
                 ? (
                   <Tag color="blue" style={{ cursor: "default" }}>
-                    {t("expertSelector.importedCount", { count: agencyRoles.length })}
+                    {t("expertSelector.importedCount", {
+                      count: agencyRoles.length,
+                    })}
                   </Tag>
                 )
                 : (
-                  <Button size="small" icon={<Download size={14} />} onClick={() => setShowImport(true)}>
+                  <Button
+                    size="small"
+                    icon={<Download size={14} />}
+                    onClick={() => setShowImport(true)}
+                  >
                     {t("expertSelector.import")}
                   </Button>
                 )}
               {agencyRoles.length > 0 && (
                 <>
-                  <Button size="small" icon={<FolderOpen size={14} />} onClick={() => setShowImport(true)}>
+                  <Button
+                    size="small"
+                    icon={<FolderOpen size={14} />}
+                    onClick={() => setShowImport(true)}
+                  >
                     {t("expertSelector.reimport")}
                   </Button>
-                  <Button size="small" danger icon={<Trash2 size={14} />} onClick={handleClear}>
+                  <Button
+                    size="small"
+                    danger
+                    icon={<Trash2 size={14} />}
+                    onClick={handleClear}
+                  >
                     {t("expertSelector.clear")}
                   </Button>
                 </>
@@ -410,9 +471,17 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         )
         : (
           <div
-            style={{ marginBottom: 12, padding: 12, background: "var(--color-background-secondary)", borderRadius: 8 }}
+            style={{
+              marginBottom: 12,
+              padding: 12,
+              background: "var(--color-background-secondary)",
+              borderRadius: 8,
+            }}
           >
-            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, display: "block", marginBottom: 6 }}
+            >
               {t("expertSelector.importPathHint")}
             </Text>
             <div style={{ display: "flex", gap: 8 }}>
@@ -424,7 +493,12 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                 onChange={(e) => setImportPath(e.target.value)}
                 style={{ flex: 1 }}
               />
-              <Button size="small" type="primary" loading={importing} onClick={handleImport}>
+              <Button
+                size="small"
+                type="primary"
+                loading={importing}
+                onClick={handleImport}
+              >
                 {t("expertSelector.import")}
               </Button>
               <Button size="small" onClick={() => setShowImport(false)}>
@@ -434,11 +508,23 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
           </div>
         )}
 
-      <div style={{ maxHeight: "55vh", overflowY: "auto", paddingRight: 4 }} data-os-scrollbar>
+      <div
+        style={{ maxHeight: "55vh", overflowY: "auto", paddingRight: 4 }}
+        data-os-scrollbar
+      >
         {filteredRoles.length === 0
           ? (
-            <div style={{ textAlign: "center", padding: "48px 0", color: "var(--color-text-quaternary)" }}>
-              <Text type="secondary" style={{ fontSize: 14, display: "block", marginBottom: 8 }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "48px 0",
+                color: "var(--color-text-quaternary)",
+              }}
+            >
+              <Text
+                type="secondary"
+                style={{ fontSize: 14, display: "block", marginBottom: 8 }}
+              >
                 {t("expertSelector.noMatch")}
               </Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -450,176 +536,259 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               </Text>
             </div>
           )
-          : Object.entries(grouped).map(([category, roles]) => (
-            <div key={category} style={{ marginBottom: 20 }}>
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  marginBottom: 8,
-                  display: "block",
-                }}
-              >
-                {t("expertCategory." + category)}
-              </Text>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 8,
-                }}
-              >
-                {roles!.map((role) => {
-                  const isSelected = selectedRoleId === role.id;
-                  const isDefault = role.id === "general-assistant";
-                  const isBuiltin = role.source === "builtin";
-                  const sourceInfo = SOURCE_LABELS[role.source] ?? SOURCE_LABELS.builtin;
+          : (
+            Object.entries(grouped).map(([category, roles]) => (
+              <div key={category} style={{ marginBottom: 20 }}>
+                <Text
+                  type="secondary"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: 8,
+                    display: "block",
+                  }}
+                >
+                  {t("expertCategory." + category)}
+                </Text>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 8,
+                  }}
+                >
+                  {roles!.map((role) => {
+                    const isSelected = selectedRoleId === role.id;
+                    const isDefault = role.id === "general-assistant";
+                    const isBuiltin = role.source === "builtin";
+                    const sourceInfo = SOURCE_LABELS[role.source] ?? SOURCE_LABELS.builtin;
 
-                  return (
-                    <Card
-                      key={role.id}
-                      size="small"
-                      hoverable
-                      onClick={() => {
-                        onSelect(role.id);
-                        onClose();
-                      }}
-                      style={{
-                        cursor: "pointer",
-                        border: isSelected ? "1.5px solid var(--color-border-info)" : undefined,
-                        background: isSelected
-                          ? "var(--color-background-info)"
-                          : isDefault
-                          ? "var(--color-background-secondary)"
-                          : undefined,
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                        <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{role.icon}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                            <Text strong style={{ fontSize: 13 }}>
-                              {role.name}
-                            </Text>
-                            {isSelected && (
-                              <Check size={14} style={{ color: "var(--color-text-info)", flexShrink: 0 }} />
-                            )}
-                            <Tag
-                              color={sourceInfo.color}
-                              style={{ fontSize: 9, lineHeight: "14px", padding: "0 3px", margin: 0 }}
+                    return (
+                      <Card
+                        key={role.id}
+                        size="small"
+                        hoverable
+                        onClick={() => {
+                          onSelect(role.id);
+                          onClose();
+                        }}
+                        style={{
+                          cursor: "pointer",
+                          border: isSelected
+                            ? "1.5px solid var(--color-border-info)"
+                            : undefined,
+                          background: isSelected
+                            ? "var(--color-background-info)"
+                            : isDefault
+                            ? "var(--color-background-secondary)"
+                            : undefined,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 8,
+                          }}
+                        >
+                          <span
+                            style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}
+                          >
+                            {role.icon}
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                flexWrap: "wrap",
+                              }}
                             >
-                              {sourceInfo.label}
-                            </Tag>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                            <Text
-                              type="secondary"
-                              style={{ fontSize: 12, display: "block", marginTop: 2, lineHeight: "1.4", flex: 1 }}
-                              ellipsis
-                            >
-                              {role.description}
-                            </Text>
-                            {!isBuiltin && (
-                              <Space
-                                size={2}
-                                style={{ marginLeft: 4, flexShrink: 0 }}
-                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                              >
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<Pencil size={12} />}
-                                  onClick={() => handleEditOpen(role)}
-                                  style={{ padding: "0 2px", height: 20, minWidth: 20 }}
+                              <Text strong style={{ fontSize: 13 }}>
+                                {role.name}
+                              </Text>
+                              {isSelected && (
+                                <Check
+                                  size={14}
+                                  style={{
+                                    color: "var(--color-text-info)",
+                                    flexShrink: 0,
+                                  }}
                                 />
-                                <Popconfirm
-                                  title={t("expertSelector.confirmDelete")}
-                                  onConfirm={() => handleDeleteExpert(role)}
-                                  okText={t("common.delete")}
-                                  cancelText={t("common.cancel")}
+                              )}
+                              <Tag
+                                color={sourceInfo.color}
+                                style={{
+                                  fontSize: 9,
+                                  lineHeight: "14px",
+                                  padding: "0 3px",
+                                  margin: 0,
+                                }}
+                              >
+                                {sourceInfo.label}
+                              </Tag>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Text
+                                type="secondary"
+                                style={{
+                                  fontSize: 12,
+                                  display: "block",
+                                  marginTop: 2,
+                                  lineHeight: "1.4",
+                                  flex: 1,
+                                }}
+                                ellipsis
+                              >
+                                {role.description}
+                              </Text>
+                              {!isBuiltin && (
+                                <Space
+                                  size={2}
+                                  style={{ marginLeft: 4, flexShrink: 0 }}
+                                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 >
                                   <Button
                                     type="text"
                                     size="small"
-                                    danger
-                                    icon={<Trash2 size={12} />}
-                                    style={{ padding: "0 2px", height: 20, minWidth: 20 }}
-                                  />
-                                </Popconfirm>
-                              </Space>
-                            )}
-                          </div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-                            {role.recommendedWorkflows && role.recommendedWorkflows.length > 0 && (
-                              <Tag
-                                color="purple"
-                                style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
-                              >
-                                {t("expertSelector.workflows", {
-                                  count: role.recommendedWorkflows.length,
-                                })}
-                              </Tag>
-                            )}
-                            {role.recommendedTools && role.recommendedTools.length > 0 && (
-                              <Tag
-                                color="cyan"
-                                style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}
-                              >
-                                {t("expertSelector.tools", { count: role.recommendedTools.length })}
-                              </Tag>
-                            )}
-                            {role.tags.slice(0, 3).map((tag) => (
-                              <Tag key={tag} style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0 }}>
-                                {tag}
-                              </Tag>
-                            ))}
-                            {role.systemPrompt && (
-                              <Popover
-                                title={`${role.icon} ${role.name} - ${t("expertSelector.capabilityDetail")}`}
-                                content={
-                                  <div
+                                    icon={<Pencil size={12} />}
+                                    onClick={() => handleEditOpen(role)}
                                     style={{
-                                      maxWidth: 360,
-                                      maxHeight: 200,
-                                      overflowY: "auto",
-                                      fontSize: 12,
-                                      lineHeight: 1.6,
-                                      whiteSpace: "pre-wrap",
+                                      padding: "0 2px",
+                                      height: 20,
+                                      minWidth: 20,
                                     }}
+                                  />
+                                  <Popconfirm
+                                    title={t("expertSelector.confirmDelete")}
+                                    onConfirm={() => handleDeleteExpert(role)}
+                                    okText={t("common.delete")}
+                                    cancelText={t("common.cancel")}
                                   >
-                                    {role.systemPrompt.slice(0, 600)}
-                                    {role.systemPrompt.length > 600 ? "..." : ""}
-                                  </div>
-                                }
-                                trigger="click"
-                              >
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      danger
+                                      icon={<Trash2 size={12} />}
+                                      style={{
+                                        padding: "0 2px",
+                                        height: 20,
+                                        minWidth: 20,
+                                      }}
+                                    />
+                                  </Popconfirm>
+                                </Space>
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 4,
+                                marginTop: 6,
+                              }}
+                            >
+                              {role.recommendedWorkflows
+                                && role.recommendedWorkflows.length > 0 && (
                                 <Tag
-                                  color="blue"
+                                  color="purple"
                                   style={{
                                     fontSize: 10,
                                     lineHeight: "16px",
                                     padding: "0 4px",
                                     margin: 0,
-                                    cursor: "pointer",
                                   }}
-                                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 >
-                                  <Info size={10} style={{ marginRight: 2 }} /> {t("expertSelector.detail")}
+                                  {t("expertSelector.workflows", {
+                                    count: role.recommendedWorkflows.length,
+                                  })}
                                 </Tag>
-                              </Popover>
-                            )}
+                              )}
+                              {role.recommendedTools
+                                && role.recommendedTools.length > 0 && (
+                                <Tag
+                                  color="cyan"
+                                  style={{
+                                    fontSize: 10,
+                                    lineHeight: "16px",
+                                    padding: "0 4px",
+                                    margin: 0,
+                                  }}
+                                >
+                                  {t("expertSelector.tools", {
+                                    count: role.recommendedTools.length,
+                                  })}
+                                </Tag>
+                              )}
+                              {role.tags.slice(0, 3).map((tag) => (
+                                <Tag
+                                  key={tag}
+                                  style={{
+                                    fontSize: 10,
+                                    lineHeight: "16px",
+                                    padding: "0 4px",
+                                    margin: 0,
+                                  }}
+                                >
+                                  {tag}
+                                </Tag>
+                              ))}
+                              {role.systemPrompt && (
+                                <Popover
+                                  title={`${role.icon} ${role.name} - ${t("expertSelector.capabilityDetail")}`}
+                                  content={
+                                    <div
+                                      style={{
+                                        maxWidth: 360,
+                                        maxHeight: 200,
+                                        overflowY: "auto",
+                                        fontSize: 12,
+                                        lineHeight: 1.6,
+                                        whiteSpace: "pre-wrap",
+                                      }}
+                                    >
+                                      {role.systemPrompt.slice(0, 600)}
+                                      {role.systemPrompt.length > 600
+                                        ? "..."
+                                        : ""}
+                                    </div>
+                                  }
+                                  trigger="click"
+                                >
+                                  <Tag
+                                    color="blue"
+                                    style={{
+                                      fontSize: 10,
+                                      lineHeight: "16px",
+                                      padding: "0 4px",
+                                      margin: 0,
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                  >
+                                    <Info size={10} style={{ marginRight: 2 }} /> {t("expertSelector.detail")}
+                                  </Tag>
+                                </Popover>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Card>
-                  );
-                })}
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
       </div>
 
       {/* Edit Expert Modal */}
@@ -637,7 +806,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         {editingExpert && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: "#999",
+                  marginBottom: 4,
+                }}
+              >
                 {t("expertSelector.name")}
               </label>
               <Input
@@ -648,7 +824,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: "#999",
+                  marginBottom: 4,
+                }}
+              >
                 {t("expertSelector.desc")}
               </label>
               <Input
@@ -659,7 +842,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: "#999",
+                  marginBottom: 4,
+                }}
+              >
                 {t("expertSelector.category")}
               </label>
               <Select
@@ -667,11 +857,21 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
                 onChange={(v) => setEditCategory(v)}
                 size="small"
                 style={{ width: "100%" }}
-                options={EXPERT_CATEGORY_KEYS.map((k) => ({ value: k, label: t("expertCategory." + k) }))}
+                options={EXPERT_CATEGORY_KEYS.map((k) => ({
+                  value: k,
+                  label: t("expertCategory." + k),
+                }))}
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: "#999",
+                  marginBottom: 4,
+                }}
+              >
                 {t("expertSelector.prompt")}
               </label>
               <Input.TextArea
@@ -740,7 +940,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: "#999",
+                  marginBottom: 4,
+                }}
+              >
                 {t("expertSelector.name")} *
               </label>
               <Input
@@ -751,7 +958,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               />
             </div>
             <div style={{ width: 60 }}>
-              <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: "#999",
+                  marginBottom: 4,
+                }}
+              >
                 {t("expertSelector.icon")}
               </label>
               <Input
@@ -764,7 +978,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "#999",
+                marginBottom: 4,
+              }}
+            >
               {t("expertSelector.desc")}
             </label>
             <Input
@@ -775,7 +996,14 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
             />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "#999",
+                marginBottom: 4,
+              }}
+            >
               {t("expertSelector.category")}
             </label>
             <Select
@@ -783,11 +1011,21 @@ export function ExpertSelector({ open, onClose, onSelect, selectedRoleId }: Expe
               onChange={(v) => setNewRole((r) => ({ ...r, category: v }))}
               size="small"
               style={{ width: "100%" }}
-              options={EXPERT_CATEGORY_KEYS.map((k) => ({ value: k, label: t("expertCategory." + k) }))}
+              options={EXPERT_CATEGORY_KEYS.map((k) => ({
+                value: k,
+                label: t("expertCategory." + k),
+              }))}
             />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999", marginBottom: 4 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "#999",
+                marginBottom: 4,
+              }}
+            >
               {t("expertSelector.prompt")}
             </label>
             <Input.TextArea

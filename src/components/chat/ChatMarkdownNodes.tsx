@@ -100,12 +100,19 @@ type CustomNodeAttrs =
 
 function normalizeCodeTheme(raw?: string) {
   const t = raw?.trim();
-  if (t === "vs-code" || t === "vscode") { return "dark-plus"; }
-  if (t === "one-dark") { return "one-dark-pro"; }
+  if (t === "vs-code" || t === "vscode") {
+    return "dark-plus";
+  }
+  if (t === "one-dark") {
+    return "one-dark-pro";
+  }
   return t || undefined;
 }
 
-function getChatCodeThemes(selectedDarkTheme?: string, selectedLightTheme?: string) {
+function getChatCodeThemes(
+  selectedDarkTheme?: string,
+  selectedLightTheme?: string,
+) {
   const darkTheme = normalizeCodeTheme(selectedDarkTheme) || DEFAULT_DARK_CODE_BLOCK_THEME;
   const lightTheme = normalizeCodeTheme(selectedLightTheme) || DEFAULT_LIGHT_CODE_BLOCK_THEME;
   const themes = [lightTheme, darkTheme];
@@ -119,7 +126,9 @@ function getChatCodeThemes(selectedDarkTheme?: string, selectedLightTheme?: stri
   };
 }
 
-let _codeBlockPreviewHandler: ((payload: CodeBlockPreviewPayload) => void) | null = null;
+let _codeBlockPreviewHandler:
+  | ((payload: CodeBlockPreviewPayload) => void)
+  | null = null;
 let _mermaidOpenModalHandler: ((svgString: string | null) => void) | null = null;
 
 function getChatCodeBlockProps(darkTheme: string, lightTheme: string) {
@@ -137,10 +146,16 @@ function getChatCodeBlockProps(darkTheme: string, lightTheme: string) {
 const CHAT_MERMAID_PROPS = {
   renderHeaderActions: (ctx: MermaidBlockActionContext) => <MermaidBlockHeaderActions ctx={ctx} />,
   renderModeToggle: (ctx: MermaidBlockActionContext) => (
-    <DiagramModeToggle showSource={ctx.showSource} onSwitchMode={ctx.switchMode} />
+    <DiagramModeToggle
+      showSource={ctx.showSource}
+      onSwitchMode={ctx.switchMode}
+    />
   ),
   renderZoomControls: (ctx: MermaidBlockActionContext) => <MermaidZoomControls ctx={ctx} />,
-  onOpenModal: (ev: { preventDefault: () => void; svgString?: string | null }) => {
+  onOpenModal: (ev: {
+    preventDefault: () => void;
+    svgString?: string | null;
+  }) => {
     if (_mermaidOpenModalHandler) {
       ev.preventDefault();
       _mermaidOpenModalHandler(ev.svgString ?? null);
@@ -151,25 +166,40 @@ const CHAT_MERMAID_PROPS = {
 const CHAT_INFOGRAPHIC_PROPS = {
   renderHeaderActions: (ctx: InfographicBlockActionContext) => <InfographicBlockHeaderActions ctx={ctx} />,
   renderModeToggle: (ctx: InfographicBlockActionContext) => (
-    <DiagramModeToggle showSource={ctx.showSource} onSwitchMode={ctx.switchMode} />
+    <DiagramModeToggle
+      showSource={ctx.showSource}
+      onSwitchMode={ctx.switchMode}
+    />
   ),
   renderZoomControls: (ctx: InfographicBlockActionContext) => (
     <MermaidZoomControls ctx={ctx as unknown as MermaidBlockActionContext} />
   ),
 };
 
-function getCustomAttr(attrs: CustomNodeAttrs, name: string): string | undefined {
-  if (!attrs) { return undefined; }
+function getCustomAttr(
+  attrs: CustomNodeAttrs,
+  name: string,
+): string | undefined {
+  if (!attrs) {
+    return undefined;
+  }
 
   if (Array.isArray(attrs)) {
     for (const attr of attrs) {
       if (Array.isArray(attr)) {
         const [attrName, value] = attr;
-        if (attrName === name) { return value; }
+        if (attrName === name) {
+          return value;
+        }
         continue;
       }
 
-      if (attr && typeof attr === "object" && "name" in attr && attr.name === name) {
+      if (
+        attr
+        && typeof attr === "object"
+        && "name" in attr
+        && attr.name === name
+      ) {
         return typeof attr.value === "string" ? attr.value : undefined;
       }
     }
@@ -180,18 +210,29 @@ function getCustomAttr(attrs: CustomNodeAttrs, name: string): string | undefined
   return typeof value === "string" ? value : undefined;
 }
 
-function isChatD2CodeBlockNode(node: ChatMarkdownNode): node is ChatD2CodeBlockNode {
-  return node.type === "code_block"
+function isChatD2CodeBlockNode(
+  node: ChatMarkdownNode,
+): node is ChatD2CodeBlockNode {
+  return (
+    node.type === "code_block"
     && "code" in node
     && typeof node.code === "string"
-    && (!("language" in node) || typeof node.language === "string" || typeof node.language === "undefined");
+    && (!("language" in node)
+      || typeof node.language === "string"
+      || typeof node.language === "undefined")
+  );
 }
 
 function getSingleD2CodeBlockNode(nodes?: ChatMarkdownNode[]) {
-  if (!nodes || nodes.length !== 1) { return null; }
+  if (!nodes || nodes.length !== 1) {
+    return null;
+  }
 
   const [firstNode] = nodes;
-  if (!isChatD2CodeBlockNode(firstNode) || firstNode.language?.trim().toLowerCase() !== "d2") {
+  if (
+    !isChatD2CodeBlockNode(firstNode)
+    || firstNode.language?.trim().toLowerCase() !== "d2"
+  ) {
     return null;
   }
 
@@ -199,7 +240,9 @@ function getSingleD2CodeBlockNode(nodes?: ChatMarkdownNode[]) {
 }
 
 function containsDeferredHeavyNode(nodes?: ChatMarkdownNode[]) {
-  if (!nodes) { return false; }
+  if (!nodes) {
+    return false;
+  }
 
   const stack: unknown[] = [...nodes];
   while (stack.length > 0) {
@@ -249,7 +292,11 @@ function sanitizeD2Svg(svg: string) {
           continue;
         }
 
-        if (name === "style" && attr.value && DANGEROUS_D2_STYLE_PATTERNS.some((pattern) => pattern.test(attr.value))) {
+        if (
+          name === "style"
+          && attr.value
+          && DANGEROUS_D2_STYLE_PATTERNS.some((pattern) => pattern.test(attr.value))
+        ) {
           element.removeAttribute(name);
           continue;
         }
@@ -275,7 +322,10 @@ function sanitizeD2Svg(svg: string) {
     .replace(/\bvbscript:/gi, "#")
     .replace(/\bdata:text\/html/gi, "#");
 
-  const xmlRoot = new DOMParser().parseFromString(normalizedSvg, "image/svg+xml").documentElement;
+  const xmlRoot = new DOMParser().parseFromString(
+    normalizedSvg,
+    "image/svg+xml",
+  ).documentElement;
   if (xmlRoot && xmlRoot.nodeName.toLowerCase() === "svg") {
     sanitizeTree(xmlRoot);
     return xmlRoot.outerHTML;
@@ -305,7 +355,9 @@ async function loadChatD2Ctor() {
   if (!chatD2CtorPromise) {
     chatD2CtorPromise = import("@terrastruct/d2").then((module) => {
       if (typeof module.D2 !== "function") {
-        throw new Error("Failed to resolve D2 constructor from @terrastruct/d2.");
+        throw new Error(
+          "Failed to resolve D2 constructor from @terrastruct/d2.",
+        );
       }
 
       return module.D2 as ChatD2Constructor;
@@ -324,13 +376,18 @@ function ThinkNode(
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const selectedDarkCodeTheme = useSettingsStore((s) => s.settings.code_theme);
-  const selectedLightCodeTheme = useSettingsStore((s) => s.settings.code_theme_light);
+  const selectedLightCodeTheme = useSettingsStore(
+    (s) => s.settings.code_theme_light,
+  );
   const codeFontFamily = useSettingsStore((s) => s.settings.code_font_family);
   const { node, ctx } = props;
-  const thinkingNodesCacheRef = useRef<Map<string, ChatMarkdownNode[]>>(new Map());
+  const thinkingNodesCacheRef = useRef<Map<string, ChatMarkdownNode[]>>(
+    new Map(),
+  );
   const rawThinkingContent = String(node.content ?? "");
   const isStreaming = rawThinkingContent.includes(THINKING_LOADING_MARKER);
-  const totalMsAttr = getCustomAttr(node.attrs, "totalMs") ?? getCustomAttr(node.attrs, "totalms");
+  const totalMsAttr = getCustomAttr(node.attrs, "totalMs")
+    ?? getCustomAttr(node.attrs, "totalms");
   const totalMs = totalMsAttr ? parseInt(totalMsAttr, 10) : null;
   const thinkingContent = rawThinkingContent
     .replace(`${THINKING_LOADING_MARKER}\n`, "")
@@ -359,13 +416,17 @@ function ThinkNode(
   const thinkingNodes = useMemo(() => {
     const cache = thinkingNodesCacheRef.current;
     const cached = cache.get(thinkingContent);
-    if (cached) { return cached; }
+    if (cached) {
+      return cached;
+    }
 
     const parsed = parseChatMarkdown(thinkingContent);
     cache.set(thinkingContent, parsed);
     if (cache.size > 24) {
       const firstKey = cache.keys().next().value;
-      if (firstKey) { cache.delete(firstKey); }
+      if (firstKey) {
+        cache.delete(firstKey);
+      }
     }
     return parsed;
   }, [thinkingContent]);
@@ -378,7 +439,7 @@ function ThinkNode(
     [darkTheme, lightTheme],
   );
   const codeBlockMonacoOptions = useMemo(
-    () => codeFontFamily ? { fontFamily: codeFontFamily } : undefined,
+    () => (codeFontFamily ? { fontFamily: codeFontFamily } : undefined),
     [codeFontFamily],
   );
   const customHtmlTags = useMemo(
@@ -395,8 +456,17 @@ function ThinkNode(
       title={title}
       blink={isStreaming}
       loading={isStreaming
-        ? <SyncOutlined style={{ fontSize: 12, animation: "axagent-think-spin 1s linear infinite" }} />
-        : false}
+        ? (
+          <SyncOutlined
+            style={{
+              fontSize: 12,
+              animation: "axagent-think-spin 1s linear infinite",
+            }}
+          />
+        )
+        : (
+          false
+        )}
       icon={<Brain size={14} />}
       expanded={expanded}
       onExpand={setExpanded}
@@ -480,8 +550,13 @@ function ChatD2BlockNode({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [showSource, setShowSource] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { copy: copyD2, isCopied: d2Copied } = useCopyToClipboard({ timeout: 1000 });
-  const [d2RenderState, setD2RenderState] = useState<{ svg: string; error: string | null }>({
+  const { copy: copyD2, isCopied: d2Copied } = useCopyToClipboard({
+    timeout: 1000,
+  });
+  const [d2RenderState, setD2RenderState] = useState<{
+    svg: string;
+    error: string | null;
+  }>({
     svg: "",
     error: null,
   });
@@ -495,7 +570,11 @@ function ChatD2BlockNode({
     }
 
     const element = containerRef.current;
-    if (!element || typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+    if (
+      !element
+      || typeof window === "undefined"
+      || typeof IntersectionObserver === "undefined"
+    ) {
       setCanRenderPreview(true);
       return;
     }
@@ -505,20 +584,31 @@ function ChatD2BlockNode({
     let frameId = 0;
     let timeoutId: number | null = null;
     const win = window as Window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      requestIdleCallback?: (
+        callback: () => void,
+        options?: { timeout: number },
+      ) => number;
       cancelIdleCallback?: (handle: number) => void;
     };
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries[0]?.isIntersecting) { return; }
-      observer.disconnect();
-      frameId = window.requestAnimationFrame(() => {
-        if (typeof win.requestIdleCallback === "function") {
-          timeoutId = win.requestIdleCallback(() => setCanRenderPreview(true), { timeout: 250 });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) {
           return;
         }
-        timeoutId = window.setTimeout(() => setCanRenderPreview(true), 0);
-      });
-    }, { rootMargin: "160px 0px" });
+        observer.disconnect();
+        frameId = window.requestAnimationFrame(() => {
+          if (typeof win.requestIdleCallback === "function") {
+            timeoutId = win.requestIdleCallback(
+              () => setCanRenderPreview(true),
+              { timeout: 250 },
+            );
+            return;
+          }
+          timeoutId = window.setTimeout(() => setCanRenderPreview(true), 0);
+        });
+      },
+      { rootMargin: "160px 0px" },
+    );
 
     observer.observe(element);
     return () => {
@@ -554,19 +644,25 @@ function ChatD2BlockNode({
       try {
         const D2Ctor = await loadChatD2Ctor();
         const instance = new D2Ctor();
-        const compiled = await instance.compile(source) as {
-          diagram?: unknown;
-          renderOptions?: Record<string, unknown>;
-          options?: Record<string, unknown>;
-        } | unknown;
-        const diagram = typeof compiled === "object" && compiled !== null && "diagram" in compiled
+        const compiled = (await instance.compile(source)) as
+          | {
+            diagram?: unknown;
+            renderOptions?: Record<string, unknown>;
+            options?: Record<string, unknown>;
+          }
+          | unknown;
+        const diagram = typeof compiled === "object"
+            && compiled !== null
+            && "diagram" in compiled
           ? compiled.diagram
           : compiled;
         const renderOptions = typeof compiled === "object" && compiled !== null
-          ? ("renderOptions" in compiled && compiled.renderOptions) || ("options" in compiled && compiled.options) || {}
+          ? ("renderOptions" in compiled && compiled.renderOptions)
+            || ("options" in compiled && compiled.options)
+            || {}
           : {};
         const nextRenderOptions = typeof renderOptions === "object" && renderOptions !== null
-          ? { ...renderOptions as Record<string, unknown> }
+          ? { ...(renderOptions as Record<string, unknown>) }
           : {};
 
         if (isDark) {
@@ -594,8 +690,9 @@ function ChatD2BlockNode({
             AA5: token.colorBorder,
             AB4: token.colorTextSecondary,
             AB5: token.colorTextTertiary,
-            ...(typeof nextRenderOptions.themeOverrides === "object" && nextRenderOptions.themeOverrides !== null
-              ? nextRenderOptions.themeOverrides as Record<string, unknown>
+            ...(typeof nextRenderOptions.themeOverrides === "object"
+                && nextRenderOptions.themeOverrides !== null
+              ? (nextRenderOptions.themeOverrides as Record<string, unknown>)
               : {}),
           };
         }
@@ -603,9 +700,15 @@ function ChatD2BlockNode({
         const rendered = await instance.render(diagram, nextRenderOptions);
         const rawSvg = typeof rendered === "string"
           ? rendered
-          : typeof rendered === "object" && rendered !== null && "svg" in rendered && typeof rendered.svg === "string"
+          : typeof rendered === "object"
+              && rendered !== null
+              && "svg" in rendered
+              && typeof rendered.svg === "string"
           ? rendered.svg
-          : typeof rendered === "object" && rendered !== null && "data" in rendered && typeof rendered.data === "string"
+          : typeof rendered === "object"
+              && rendered !== null
+              && "data" in rendered
+              && typeof rendered.data === "string"
           ? rendered.data
           : "";
 
@@ -618,13 +721,19 @@ function ChatD2BlockNode({
           throw new Error("D2 SVG sanitization failed in the current WebView.");
         }
 
-        if (cancelled) { return; }
+        if (cancelled) {
+          return;
+        }
         setD2RenderState({ svg: sanitizedSvg, error: null });
       } catch (renderError) {
-        if (cancelled) { return; }
+        if (cancelled) {
+          return;
+        }
         setD2RenderState({
           svg: "",
-          error: renderError instanceof Error ? renderError.message : "D2 render failed.",
+          error: renderError instanceof Error
+            ? renderError.message
+            : "D2 render failed.",
         });
       }
     };
@@ -650,9 +759,13 @@ function ChatD2BlockNode({
   ]);
 
   const handleExport = useCallback(() => {
-    if (!d2RenderState.svg) { return; }
+    if (!d2RenderState.svg) {
+      return;
+    }
 
-    const blob = new Blob([d2RenderState.svg], { type: "image/svg+xml;charset=utf-8" });
+    const blob = new Blob([d2RenderState.svg], {
+      type: "image/svg+xml;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -663,39 +776,71 @@ function ChatD2BlockNode({
     URL.revokeObjectURL(url);
   }, [d2RenderState.svg]);
 
-  const shellStyle = useMemo(() => ({
-    borderColor: isDark ? token.colorBorderSecondary : token.colorBorderSecondary,
-    background: isDark ? token.colorBgElevated : token.colorBgContainer,
-    color: token.colorText,
-  }), [isDark, token.colorBgContainer, token.colorBgElevated, token.colorBorderSecondary, token.colorText]);
+  const shellStyle = useMemo(
+    () => ({
+      borderColor: isDark
+        ? token.colorBorderSecondary
+        : token.colorBorderSecondary,
+      background: isDark ? token.colorBgElevated : token.colorBgContainer,
+      color: token.colorText,
+    }),
+    [
+      isDark,
+      token.colorBgContainer,
+      token.colorBgElevated,
+      token.colorBorderSecondary,
+      token.colorText,
+    ],
+  );
 
-  const headerStyle = useMemo(() => ({
-    color: token.colorText,
-    backgroundColor: isDark ? token.colorBgContainer : token.colorFillAlter,
-    borderBottomColor: token.colorBorderSecondary,
-  }), [isDark, token.colorBgContainer, token.colorBorderSecondary, token.colorFillAlter, token.colorText]);
+  const headerStyle = useMemo(
+    () => ({
+      color: token.colorText,
+      backgroundColor: isDark ? token.colorBgContainer : token.colorFillAlter,
+      borderBottomColor: token.colorBorderSecondary,
+    }),
+    [
+      isDark,
+      token.colorBgContainer,
+      token.colorBorderSecondary,
+      token.colorFillAlter,
+      token.colorText,
+    ],
+  );
 
-  const getD2BtnStyle = useCallback((idx: number): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 28,
-    height: 28,
-    borderRadius: token.borderRadiusSM,
-    border: "none",
-    background: hoveredIdx === idx ? (token.colorFillSecondary || "rgba(255,255,255,0.1)") : "transparent",
-    color: hoveredIdx === idx ? token.colorText : token.colorTextSecondary,
-    cursor: "pointer",
-    padding: 0,
-    transition: "color 0.2s, background 0.2s",
-  }), [hoveredIdx, token]);
+  const getD2BtnStyle = useCallback(
+    (idx: number): React.CSSProperties => ({
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 28,
+      height: 28,
+      borderRadius: token.borderRadiusSM,
+      border: "none",
+      background: hoveredIdx === idx
+        ? token.colorFillSecondary || "rgba(255,255,255,0.1)"
+        : "transparent",
+      color: hoveredIdx === idx ? token.colorText : token.colorTextSecondary,
+      cursor: "pointer",
+      padding: 0,
+      transition: "color 0.2s, background 0.2s",
+    }),
+    [hoveredIdx, token],
+  );
 
-  const previewStyle = useMemo(() => ({
-    background: isDark ? token.colorBgContainer : token.colorBgElevated,
-  }), [isDark, token.colorBgContainer, token.colorBgElevated]);
+  const previewStyle = useMemo(
+    () => ({
+      background: isDark ? token.colorBgContainer : token.colorBgElevated,
+    }),
+    [isDark, token.colorBgContainer, token.colorBgElevated],
+  );
 
   return (
-    <div ref={containerRef} className="d2-block my-4 rounded-lg border overflow-hidden shadow-sm" style={shellStyle}>
+    <div
+      ref={containerRef}
+      className="d2-block my-4 rounded-lg border overflow-hidden shadow-sm"
+      style={shellStyle}
+    >
       <div
         className="d2-block-header flex justify-between items-center px-4 py-1.5 border-b border-zinc-400/5"
         style={headerStyle}
@@ -706,18 +851,17 @@ function ChatD2BlockNode({
         <div className="flex items-center gap-x-2">
           <DiagramModeToggle
             showSource={showSource}
-            onSwitchMode={(mode) =>
-              setShowSource(mode === "source")}
+            onSwitchMode={(mode) => setShowSource(mode === "source")}
           />
           {/* Collapse */}
-          <Tooltip title={isCollapsed ? t("common.expand") : t("common.collapse")} mouseEnterDelay={0.4}>
+          <Tooltip
+            title={isCollapsed ? t("common.expand") : t("common.collapse")}
+            mouseEnterDelay={0.4}
+          >
             <button
               type="button"
               style={getD2BtnStyle(0)}
-              onClick={() =>
-                setIsCollapsed(v =>
-                  !v
-                )}
+              onClick={() => setIsCollapsed((v) => !v)}
               onMouseEnter={() => setHoveredIdx(0)}
               onMouseLeave={() => setHoveredIdx(null)}
             >
@@ -731,7 +875,10 @@ function ChatD2BlockNode({
             </button>
           </Tooltip>
           {/* Copy */}
-          <Tooltip title={d2Copied ? t("common.copied") : t("common.copy")} mouseEnterDelay={0.4}>
+          <Tooltip
+            title={d2Copied ? t("common.copied") : t("common.copy")}
+            mouseEnterDelay={0.4}
+          >
             <button
               type="button"
               style={getD2BtnStyle(1)}
@@ -766,7 +913,9 @@ function ChatD2BlockNode({
           {showSource || (!d2RenderState.svg && !!d2RenderState.error)
             ? (
               <div className="d2-source p-4">
-                <pre className="d2-code"><code>{node.code}</code></pre>
+                <pre className="d2-code">
+                <code>{node.code}</code>
+                </pre>
                 {d2RenderState.error ? <p className="d2-error mt-2 text-xs">{d2RenderState.error}</p> : null}
               </div>
             )
@@ -790,11 +939,19 @@ function ChatD2BlockNode({
                     >
                       <SyncOutlined spin />
                       <span className="text-sm">
-                        {canRenderPreview ? t("chat.renderingChart") : t("chat.chartAboutToRender")}
+                        {canRenderPreview
+                          ? t("chat.renderingChart")
+                          : t("chat.chartAboutToRender")}
                       </span>
                     </div>
                   )}
-                {d2RenderState.error ? <p className="d2-error px-4 pb-3 text-xs">{d2RenderState.error}</p> : null}
+                {d2RenderState.error
+                  ? (
+                    <p className="d2-error px-4 pb-3 text-xs">
+                      {d2RenderState.error}
+                    </p>
+                  )
+                  : null}
               </div>
             )}
         </div>
@@ -821,7 +978,9 @@ const toolCallIcons: Record<string, React.ReactNode> = {
 };
 function getInlineToolIcon(toolName: string): React.ReactNode {
   const lower = toolName.toLowerCase();
-  const entry = Object.entries(toolCallIcons).find(([key]) => lower.indexOf(key) !== -1);
+  const entry = Object.entries(toolCallIcons).find(
+    ([key]) => lower.indexOf(key) !== -1,
+  );
   return entry ? entry[1] : <Zap size={14} />;
 }
 
@@ -883,7 +1042,14 @@ function ToolCallNode(
           userSelect: "none",
         }}
       >
-        <span style={{ color: statusColor, display: "flex", alignItems: "center", flexShrink: 0 }}>
+        <span
+          style={{
+            color: statusColor,
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
           {getInlineToolIcon(toolName)}
         </span>
         <span style={{ fontWeight: 500, flexShrink: 0 }}>{toolName}</span>
@@ -942,7 +1108,14 @@ function ToolCallNode(
         >
           {tc.input && Object.keys(tc.input).length > 0 && (
             <details style={{ margin: 0 }}>
-              <summary style={{ fontSize: 12, color: token.colorTextSecondary, cursor: "pointer", userSelect: "none" }}>
+              <summary
+                style={{
+                  fontSize: 12,
+                  color: token.colorTextSecondary,
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
                 {t("chatMarkdown.inputParams")}
               </summary>
               <pre
@@ -965,7 +1138,14 @@ function ToolCallNode(
           )}
           {tc.output && (
             <details style={{ margin: 0 }}>
-              <summary style={{ fontSize: 12, color: token.colorTextSecondary, cursor: "pointer", userSelect: "none" }}>
+              <summary
+                style={{
+                  fontSize: 12,
+                  color: token.colorTextSecondary,
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
                 {t("chatMarkdown.outputResult")}
               </summary>
               <pre
@@ -1004,177 +1184,211 @@ setCustomComponents("chat", {
   vmr_container: McpContainerNode,
 });
 
-const AssistantMarkdown = React.memo(function AssistantMarkdown({
-  content,
-  nodes,
-  isDarkMode,
-  isStreaming,
-  codeBlockDarkTheme,
-  codeBlockLightTheme,
-  codeBlockThemes,
-  codeFontFamily,
-}: {
-  content: string;
-  nodes?: ChatMarkdownNode[];
-  isDarkMode: boolean;
-  isStreaming: boolean;
-  codeBlockDarkTheme: string;
-  codeBlockLightTheme: string;
-  codeBlockThemes: string[];
-  codeFontFamily?: string;
-}) {
-  const { token } = theme.useToken();
-  const { t } = useTranslation();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const codeBlockProps = useMemo(
-    () => getChatCodeBlockProps(codeBlockDarkTheme, codeBlockLightTheme),
-    [codeBlockDarkTheme, codeBlockLightTheme],
-  );
-  const codeBlockMonacoOptions = useMemo(
-    () => codeFontFamily ? { fontFamily: codeFontFamily } : undefined,
-    [codeFontFamily],
-  );
-  const singleD2Node = useMemo(() => getSingleD2CodeBlockNode(nodes), [nodes]);
-  const hasDeferredHeavyNodes = useMemo(
-    () => !isStreaming && (containsDeferredHeavyNode(nodes) || content.includes("```")),
-    [content, nodes, isStreaming],
-  );
-  const [readyToRenderHeavyNodes, setReadyToRenderHeavyNodes] = useState(!hasDeferredHeavyNodes);
-  const rendererKey = `${isDarkMode ? "dark" : "light"}:${codeBlockDarkTheme}:${codeBlockLightTheme}`;
-  const nodeRendererReseedKey = `${rendererKey}:${isStreaming ? "s" : "f"}`;
+const AssistantMarkdown = React.memo(
+  function AssistantMarkdown({
+    content,
+    nodes,
+    isDarkMode,
+    isStreaming,
+    codeBlockDarkTheme,
+    codeBlockLightTheme,
+    codeBlockThemes,
+    codeFontFamily,
+  }: {
+    content: string;
+    nodes?: ChatMarkdownNode[];
+    isDarkMode: boolean;
+    isStreaming: boolean;
+    codeBlockDarkTheme: string;
+    codeBlockLightTheme: string;
+    codeBlockThemes: string[];
+    codeFontFamily?: string;
+  }) {
+    const { token } = theme.useToken();
+    const { t } = useTranslation();
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const codeBlockProps = useMemo(
+      () => getChatCodeBlockProps(codeBlockDarkTheme, codeBlockLightTheme),
+      [codeBlockDarkTheme, codeBlockLightTheme],
+    );
+    const codeBlockMonacoOptions = useMemo(
+      () => (codeFontFamily ? { fontFamily: codeFontFamily } : undefined),
+      [codeFontFamily],
+    );
+    const singleD2Node = useMemo(
+      () => getSingleD2CodeBlockNode(nodes),
+      [nodes],
+    );
+    const hasDeferredHeavyNodes = useMemo(
+      () =>
+        !isStreaming
+        && (containsDeferredHeavyNode(nodes) || content.includes("```")),
+      [content, nodes, isStreaming],
+    );
+    const [readyToRenderHeavyNodes, setReadyToRenderHeavyNodes] = useState(
+      !hasDeferredHeavyNodes,
+    );
+    const rendererKey = `${isDarkMode ? "dark" : "light"}:${codeBlockDarkTheme}:${codeBlockLightTheme}`;
+    const nodeRendererReseedKey = `${rendererKey}:${isStreaming ? "s" : "f"}`;
 
-  useEffect(() => {
-    if (!hasDeferredHeavyNodes) {
-      setReadyToRenderHeavyNodes(true);
-      return;
-    }
-
-    const element = containerRef.current;
-    if (!element || typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
-      setReadyToRenderHeavyNodes(true);
-      return;
-    }
-
-    setReadyToRenderHeavyNodes(false);
-
-    let frameId = 0;
-    let timeoutId: number | null = null;
-    const win = window as Window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries[0]?.isIntersecting) { return; }
-      observer.disconnect();
-      frameId = window.requestAnimationFrame(() => {
-        if (typeof win.requestIdleCallback === "function") {
-          timeoutId = win.requestIdleCallback(() => setReadyToRenderHeavyNodes(true), { timeout: 250 });
-          return;
-        }
-        timeoutId = window.setTimeout(() => setReadyToRenderHeavyNodes(true), 0);
-      });
-    }, { rootMargin: "160px 0px" });
-
-    observer.observe(element);
-    return () => {
-      observer.disconnect();
-      window.cancelAnimationFrame(frameId);
-      if (timeoutId !== null) {
-        if (typeof win.cancelIdleCallback === "function") {
-          win.cancelIdleCallback(timeoutId);
-        } else {
-          window.clearTimeout(timeoutId);
-        }
+    useEffect(() => {
+      if (!hasDeferredHeavyNodes) {
+        setReadyToRenderHeavyNodes(true);
+        return;
       }
-    };
-  }, [content, hasDeferredHeavyNodes]);
 
-  return (
-    <>
-      {singleD2Node
-        ? (
-          <ChatD2BlockNode
-            key={`d2:${rendererKey}`}
-            node={singleD2Node}
-            isDark={isDarkMode}
-          />
-        )
-        : hasDeferredHeavyNodes && !readyToRenderHeavyNodes
-        ? (
-          <div className="axagent-chat-markdown" key={`loading:${rendererKey}`}>
-            <div
-              ref={containerRef}
-              className="my-4 rounded-lg border"
-              style={{
-                borderColor: token.colorBorderSecondary,
-                background: isDarkMode ? token.colorBgContainer : token.colorBgElevated,
-              }}
-            >
+      const element = containerRef.current;
+      if (
+        !element
+        || typeof window === "undefined"
+        || typeof IntersectionObserver === "undefined"
+      ) {
+        setReadyToRenderHeavyNodes(true);
+        return;
+      }
+
+      setReadyToRenderHeavyNodes(false);
+
+      let frameId = 0;
+      let timeoutId: number | null = null;
+      const win = window as Window & {
+        requestIdleCallback?: (
+          callback: () => void,
+          options?: { timeout: number },
+        ) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries[0]?.isIntersecting) {
+            return;
+          }
+          observer.disconnect();
+          frameId = window.requestAnimationFrame(() => {
+            if (typeof win.requestIdleCallback === "function") {
+              timeoutId = win.requestIdleCallback(
+                () => setReadyToRenderHeavyNodes(true),
+                { timeout: 250 },
+              );
+              return;
+            }
+            timeoutId = window.setTimeout(
+              () => setReadyToRenderHeavyNodes(true),
+              0,
+            );
+          });
+        },
+        { rootMargin: "160px 0px" },
+      );
+
+      observer.observe(element);
+      return () => {
+        observer.disconnect();
+        window.cancelAnimationFrame(frameId);
+        if (timeoutId !== null) {
+          if (typeof win.cancelIdleCallback === "function") {
+            win.cancelIdleCallback(timeoutId);
+          } else {
+            window.clearTimeout(timeoutId);
+          }
+        }
+      };
+    }, [content, hasDeferredHeavyNodes]);
+
+    return (
+      <>
+        {singleD2Node
+          ? (
+            <ChatD2BlockNode
+              key={`d2:${rendererKey}`}
+              node={singleD2Node}
+              isDark={isDarkMode}
+            />
+          )
+          : hasDeferredHeavyNodes && !readyToRenderHeavyNodes
+          ? (
+            <div className="axagent-chat-markdown" key={`loading:${rendererKey}`}>
               <div
-                className="flex items-center justify-center px-4 py-10"
-                style={{ color: token.colorTextSecondary, gap: 8 }}
+                ref={containerRef}
+                className="my-4 rounded-lg border"
+                style={{
+                  borderColor: token.colorBorderSecondary,
+                  background: isDarkMode
+                    ? token.colorBgContainer
+                    : token.colorBgElevated,
+                }}
               >
-                <SyncOutlined spin />
-                <span className="text-sm">{t("chat.loadingRenderContent")}</span>
+                <div
+                  className="flex items-center justify-center px-4 py-10"
+                  style={{ color: token.colorTextSecondary, gap: 8 }}
+                >
+                  <SyncOutlined spin />
+                  <span className="text-sm">
+                    {t("chat.loadingRenderContent")}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )
-        : (
-          <div className="axagent-chat-markdown" key={`render:${nodeRendererReseedKey}`}>
-            {nodes
-              ? (
-                <NodeRenderer
-                  key={nodeRendererReseedKey}
-                  nodes={nodes}
-                  isDark={isDarkMode}
-                  customId="chat"
-                  customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
-                  final={!isStreaming}
-                  typewriter={isStreaming}
-                  themes={codeBlockThemes}
-                  codeBlockLightTheme={codeBlockLightTheme}
-                  codeBlockDarkTheme={codeBlockDarkTheme}
-                  codeBlockProps={codeBlockProps}
-                  codeBlockMonacoOptions={codeBlockMonacoOptions}
-                  mermaidProps={CHAT_MERMAID_PROPS}
-                  infographicProps={CHAT_INFOGRAPHIC_PROPS}
-                  {...CHAT_RENDER_BATCH_PROPS}
-                />
-              )
-              : (
-                <NodeRenderer
-                  key={nodeRendererReseedKey}
-                  content={content}
-                  isDark={isDarkMode}
-                  customId="chat"
-                  customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
-                  final={!isStreaming}
-                  typewriter={isStreaming}
-                  themes={codeBlockThemes}
-                  codeBlockLightTheme={codeBlockLightTheme}
-                  codeBlockDarkTheme={codeBlockDarkTheme}
-                  codeBlockProps={codeBlockProps}
-                  codeBlockMonacoOptions={codeBlockMonacoOptions}
-                  mermaidProps={CHAT_MERMAID_PROPS}
-                  infographicProps={CHAT_INFOGRAPHIC_PROPS}
-                  {...CHAT_RENDER_BATCH_PROPS}
-                />
-              )}
-          </div>
-        )}
-    </>
-  );
-}, (prev, next) => (
-  prev.content === next.content
-  && prev.nodes === next.nodes
-  && prev.isDarkMode === next.isDarkMode
-  && prev.isStreaming === next.isStreaming
-  && prev.codeBlockDarkTheme === next.codeBlockDarkTheme
-  && prev.codeBlockLightTheme === next.codeBlockLightTheme
-  && prev.codeBlockThemes === next.codeBlockThemes
-  && prev.codeFontFamily === next.codeFontFamily
-));
+          )
+          : (
+            <div
+              className="axagent-chat-markdown"
+              key={`render:${nodeRendererReseedKey}`}
+            >
+              {nodes
+                ? (
+                  <NodeRenderer
+                    key={nodeRendererReseedKey}
+                    nodes={nodes}
+                    isDark={isDarkMode}
+                    customId="chat"
+                    customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
+                    final={!isStreaming}
+                    typewriter={isStreaming}
+                    themes={codeBlockThemes}
+                    codeBlockLightTheme={codeBlockLightTheme}
+                    codeBlockDarkTheme={codeBlockDarkTheme}
+                    codeBlockProps={codeBlockProps}
+                    codeBlockMonacoOptions={codeBlockMonacoOptions}
+                    mermaidProps={CHAT_MERMAID_PROPS}
+                    infographicProps={CHAT_INFOGRAPHIC_PROPS}
+                    {...CHAT_RENDER_BATCH_PROPS}
+                  />
+                )
+                : (
+                  <NodeRenderer
+                    key={nodeRendererReseedKey}
+                    content={content}
+                    isDark={isDarkMode}
+                    customId="chat"
+                    customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
+                    final={!isStreaming}
+                    typewriter={isStreaming}
+                    themes={codeBlockThemes}
+                    codeBlockLightTheme={codeBlockLightTheme}
+                    codeBlockDarkTheme={codeBlockDarkTheme}
+                    codeBlockProps={codeBlockProps}
+                    codeBlockMonacoOptions={codeBlockMonacoOptions}
+                    mermaidProps={CHAT_MERMAID_PROPS}
+                    infographicProps={CHAT_INFOGRAPHIC_PROPS}
+                    {...CHAT_RENDER_BATCH_PROPS}
+                  />
+                )}
+            </div>
+          )}
+      </>
+    );
+  },
+  (prev, next) =>
+    prev.content === next.content
+    && prev.nodes === next.nodes
+    && prev.isDarkMode === next.isDarkMode
+    && prev.isStreaming === next.isStreaming
+    && prev.codeBlockDarkTheme === next.codeBlockDarkTheme
+    && prev.codeBlockLightTheme === next.codeBlockLightTheme
+    && prev.codeBlockThemes === next.codeBlockThemes
+    && prev.codeFontFamily === next.codeFontFamily,
+);
 
 export {
   AssistantMarkdown,
@@ -1194,12 +1408,16 @@ export {
 export function getCodeBlockPreviewHandler() {
   return _codeBlockPreviewHandler;
 }
-export function setCodeBlockPreviewHandler(h: ((payload: CodeBlockPreviewPayload) => void) | null) {
+export function setCodeBlockPreviewHandler(
+  h: ((payload: CodeBlockPreviewPayload) => void) | null,
+) {
   _codeBlockPreviewHandler = h;
 }
 export function getMermaidOpenModalHandler() {
   return _mermaidOpenModalHandler;
 }
-export function setMermaidOpenModalHandler(h: ((svgString: string | null) => void) | null) {
+export function setMermaidOpenModalHandler(
+  h: ((svgString: string | null) => void) | null,
+) {
   _mermaidOpenModalHandler = h;
 }

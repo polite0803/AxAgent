@@ -29,7 +29,9 @@ export function HelpPanel() {
 
   // 外部打开指定 section 时自动展开
   useEffect(() => {
-    if (helpActiveSection) { setActiveLocal(helpActiveSection); }
+    if (helpActiveSection) {
+      setActiveLocal(helpActiveSection);
+    }
   }, [helpActiveSection]);
 
   const activeSection = activeLocal;
@@ -197,31 +199,42 @@ export function HelpPanel() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) { return sections; }
+    if (!search.trim()) {
+      return sections;
+    }
     const q = search.toLowerCase();
-    return sections
-      .flatMap((s) => {
-        const items = s.items.filter(
-          (i) =>
-            i.question.toLowerCase().includes(q)
-            || i.answer.toLowerCase().includes(q),
-        );
-        return items.length > 0 ? [{ ...s, items }] : [];
-      });
+    return sections.flatMap((s) => {
+      const items = s.items.filter(
+        (i) =>
+          i.question.toLowerCase().includes(q)
+          || i.answer.toLowerCase().includes(q),
+      );
+      return items.length > 0 ? [{ ...s, items }] : [];
+    });
   }, [search, sections]);
 
-  if (!open) { return null; }
+  if (!open) {
+    return null;
+  }
 
   return (
     <div className="help-panel" role="dialog" aria-label={t("help.title")}>
       {/* 遮罩 */}
-      <div className="help-panel__backdrop" role="presentation" onClick={closeHelp} />
+      <div
+        className="help-panel__backdrop"
+        role="presentation"
+        onClick={closeHelp}
+      />
 
       {/* 面板 */}
       <div className="help-panel__drawer">
         <div className="help-panel__header">
           <h3>{t("help.title")}</h3>
-          <button type="button" onClick={closeHelp} className="help-panel__close">
+          <button
+            type="button"
+            onClick={closeHelp}
+            className="help-panel__close"
+          >
             <X size={16} />
           </button>
         </div>
@@ -256,7 +269,9 @@ export function HelpPanel() {
               >
                 <span className="help-section__icon">{section.icon}</span>
                 <span className="help-section__title">{section.title}</span>
-                <span className="help-section__count">{section.items.length}</span>
+                <span className="help-section__count">
+                  {section.items.length}
+                </span>
               </button>
               {(activeSection === section.key || search.trim() !== "") && (
                 <div
@@ -275,11 +290,7 @@ export function HelpPanel() {
               )}
             </div>
           ))}
-          {filtered.length === 0 && (
-            <div className="help-panel__empty">
-              {t("help.noResults")}
-            </div>
-          )}
+          {filtered.length === 0 && <div className="help-panel__empty">{t("help.noResults")}</div>}
         </div>
       </div>
     </div>

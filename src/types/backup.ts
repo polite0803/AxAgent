@@ -1,5 +1,10 @@
 export type BackupJobKind = "backup" | "restore" | "indexing";
-export type BackupJobStatus = "pending" | "running" | "success" | "failed" | "cancelled";
+export type BackupJobStatus =
+  | "pending"
+  | "running"
+  | "success"
+  | "failed"
+  | "cancelled";
 export type BackupTargetKind = "local" | "webdav" | "s3";
 
 export type WebDavConfig = {
@@ -99,7 +104,12 @@ export type SaveProgramPolicyInput = {
   rateLimitPerMinute?: number;
 };
 
-export type GatewayDiagnosticCategory = "provider_latency" | "provider_error" | "proxy" | "auth" | "port";
+export type GatewayDiagnosticCategory =
+  | "provider_latency"
+  | "provider_error"
+  | "proxy"
+  | "auth"
+  | "port";
 export type GatewayDiagnosticStatus = "ok" | "warning" | "error";
 
 export type GatewayDiagnostic = {
@@ -126,7 +136,11 @@ export type GatewayRequestLog = {
   createdAt: number;
 };
 
-export type GatewayTemplateTarget = "cursor" | "vscode" | "claude_code" | "openai_compatible";
+export type GatewayTemplateTarget =
+  | "cursor"
+  | "vscode"
+  | "claude_code"
+  | "openai_compatible";
 export type GatewayTemplateFormat = "json" | "yaml" | "markdown";
 
 export type GatewayTemplate = {
@@ -166,7 +180,12 @@ export type DesktopCapability = {
   reason?: string;
 };
 
-export type TrayAction = "show_main" | "open_mini_window" | "resume_voice_call" | "run_quick_backup" | "quit";
+export type TrayAction =
+  | "show_main"
+  | "open_mini_window"
+  | "resume_voice_call"
+  | "run_quick_backup"
+  | "quit";
 
 export type ProtocolLaunchPayload = {
   source: "browser" | "os_protocol";

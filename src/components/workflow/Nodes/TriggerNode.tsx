@@ -17,7 +17,10 @@ interface TriggerNodeData {
   };
 }
 
-const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, selected }) => {
+const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
   const triggerType = data.triggerConfig?.type || "manual";
   const color = "#722ed1";
@@ -43,10 +46,14 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({ data, sele
         return t("workflow.triggerNode.manual");
       case "schedule":
         const scheduleConfig = config as { cron?: string; timezone?: string };
-        return scheduleConfig.cron ? `Cron: ${scheduleConfig.cron}` : t("workflow.triggerNode.schedule");
+        return scheduleConfig.cron
+          ? `Cron: ${scheduleConfig.cron}`
+          : t("workflow.triggerNode.schedule");
       case "webhook":
         const webhookConfig = config as { path?: string; method?: string };
-        return webhookConfig.path ? `${webhookConfig.method || "GET"} ${webhookConfig.path}` : "Webhook";
+        return webhookConfig.path
+          ? `${webhookConfig.method || "GET"} ${webhookConfig.path}`
+          : "Webhook";
       case "event":
         const eventConfig = config as { event_type?: string };
         return eventConfig.event_type || t("workflow.triggerNode.event");

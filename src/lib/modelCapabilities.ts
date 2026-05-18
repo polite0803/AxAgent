@@ -6,7 +6,9 @@ const CHAT_MODEL_CAPABILITIES: ModelCapability[] = [
   "Reasoning",
 ];
 
-export function getEditableCapabilities(modelType: ModelType | null | undefined): ModelCapability[] {
+export function getEditableCapabilities(
+  modelType: ModelType | null | undefined,
+): ModelCapability[] {
   return modelType === "Chat" || !modelType ? CHAT_MODEL_CAPABILITIES : [];
 }
 
@@ -31,7 +33,9 @@ export function modelHasCapability(
   return model?.capabilities.includes(capability) ?? false;
 }
 
-export function supportsReasoning(model: Pick<Model, "capabilities"> | null | undefined): boolean {
+export function supportsReasoning(
+  model: Pick<Model, "capabilities"> | null | undefined,
+): boolean {
   return modelHasCapability(model, "Reasoning");
 }
 
@@ -40,7 +44,9 @@ export function findModelByIds(
   providerId: string | null | undefined,
   model_id: string | null | undefined,
 ): Model | null {
-  if (!providerId || !model_id) { return null; }
+  if (!providerId || !model_id) {
+    return null;
+  }
   const provider = providers.find((item) => item.id === providerId);
   return provider?.models.find((item) => item.model_id === model_id) ?? null;
 }

@@ -7,7 +7,10 @@ import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title } = Typography;
 
-function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
+function getSourceTypeName(
+  sourceType: string,
+  t: (key: string) => string,
+): string {
   const nameMap: Record<string, string> = {
     web: t("citationManager.sourceType.web"),
     academic: t("citationManager.sourceType.academic"),
@@ -77,7 +80,12 @@ export function CitationManager({
           {t("citationManager.title", { count: citations.length })}
         </Title>
         {onAddNew && (
-          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={onAddNew}>
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={onAddNew}
+          >
             {t("citationManager.addCitation")}
           </Button>
         )}
@@ -137,7 +145,9 @@ export function CitationManager({
       {citationsNotInReport.length > 0 && (
         <div>
           <Text type="secondary" className="text-sm">
-            {t("citationManager.notInReport", { count: citationsNotInReport.length })}
+            {t("citationManager.notInReport", {
+              count: citationsNotInReport.length,
+            })}
           </Text>
           <List
             size="small"
@@ -209,19 +219,24 @@ interface CitationStatsProps {
   citations?: Citation[];
 }
 
-export function CitationStats({ citations: externalCitations }: CitationStatsProps) {
+export function CitationStats({
+  citations: externalCitations,
+}: CitationStatsProps) {
   const { t } = useTranslation();
   const storeStats = useCitationStore((s) => s.getStats());
   const stats: CitationStatsData = externalCitations
     ? (() => {
       const total = externalCitations.length;
       const inReport = externalCitations.filter((c) => c.inReport).length;
-      const byType = externalCitations.reduce<Partial<Record<string, number>>>((acc, c) => {
+      const byType = externalCitations.reduce<
+        Partial<Record<string, number>>
+      >((acc, c) => {
         acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
         return acc;
       }, {});
       const avgCredibility = total > 0
-        ? externalCitations.reduce((sum, c) => sum + c.credibility, 0) / total
+        ? externalCitations.reduce((sum, c) => sum + c.credibility, 0)
+          / total
         : 0;
       return { total, inReport, byType, avgCredibility };
     })()

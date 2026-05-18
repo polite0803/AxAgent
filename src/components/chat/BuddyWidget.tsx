@@ -36,24 +36,32 @@ export function BuddyWidget() {
   const setVisible = useBuddyStore((s) => s.setVisible);
   const setPosition = useBuddyStore((s) => s.setPosition);
 
-  const rarityLabels = useMemo(() => ({
-    common: t("buddy.rarity.common"),
-    uncommon: t("buddy.rarity.uncommon"),
-    rare: t("buddy.rarity.rare"),
-    epic: t("buddy.rarity.epic"),
-    legendary: t("buddy.rarity.legendary"),
-  }), [t]);
+  const rarityLabels = useMemo(
+    () => ({
+      common: t("buddy.rarity.common"),
+      uncommon: t("buddy.rarity.uncommon"),
+      rare: t("buddy.rarity.rare"),
+      epic: t("buddy.rarity.epic"),
+      legendary: t("buddy.rarity.legendary"),
+    }),
+    [t],
+  );
 
-  const attrLabels = useMemo<Record<keyof BuddyAttributes, string>>(() => ({
-    debugging: t("buddy.attr.debugging"),
-    patience: t("buddy.attr.patience"),
-    chaos: t("buddy.attr.chaos"),
-    wisdom: t("buddy.attr.wisdom"),
-    snark: t("buddy.attr.snark"),
-  }), [t]);
+  const attrLabels = useMemo<Record<keyof BuddyAttributes, string>>(
+    () => ({
+      debugging: t("buddy.attr.debugging"),
+      patience: t("buddy.attr.patience"),
+      chaos: t("buddy.attr.chaos"),
+      wisdom: t("buddy.attr.wisdom"),
+      snark: t("buddy.attr.snark"),
+    }),
+    [t],
+  );
 
   // 拖动状态（按钮拖动）
-  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(savedPosition);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(
+    savedPosition,
+  );
   const dragging = useRef(false);
   const hasDragged = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
@@ -61,7 +69,9 @@ export function BuddyWidget() {
   const widgetRef = useRef<HTMLDivElement>(null);
 
   // 面板拖动状态（独立于按钮）
-  const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(null);
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(
+    null,
+  );
   const panelDragging = useRef(false);
   const panelHasDragged = useRef(false);
   const panelDragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
@@ -73,37 +83,63 @@ export function BuddyWidget() {
   }, [savedPosition]);
 
   const lastMessage = useMemo(() => {
-    if (messages.length === 0) { return null; }
+    if (messages.length === 0) {
+      return null;
+    }
     return messages[messages.length - 1];
   }, [messages]);
 
   // 拖动开始 (pointer 事件 + capture 阶段，在 Button 之前捕获)
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     // 只在鼠标左键时拖动
-    if (e.button !== 0) { return; }
+    if (e.button !== 0) {
+      return;
+    }
     dragging.current = true;
     hasDragged.current = false;
-    const currentPos = currentDragPos.current ?? { x: window.innerWidth - 76, y: window.innerHeight - 76 };
+    const currentPos = currentDragPos.current ?? {
+      x: window.innerWidth - 76,
+      y: window.innerHeight - 76,
+    };
     currentDragPos.current = currentPos;
-    dragStart.current = { x: e.clientX, y: e.clientY, posX: currentPos.x, posY: currentPos.y };
+    dragStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      posX: currentPos.x,
+      posY: currentPos.y,
+    };
     // 捕获指针，确保后续事件都发给我们
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current) { return; }
+    if (!dragging.current) {
+      return;
+    }
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) { hasDragged.current = true; }
-    if (!hasDragged.current) { return; }
-    const newX = Math.max(0, Math.min(window.innerWidth - 60, dragStart.current.posX + dx));
-    const newY = Math.max(0, Math.min(window.innerHeight - 60, dragStart.current.posY + dy));
+    if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) {
+      hasDragged.current = true;
+    }
+    if (!hasDragged.current) {
+      return;
+    }
+    const newX = Math.max(
+      0,
+      Math.min(window.innerWidth - 60, dragStart.current.posX + dx),
+    );
+    const newY = Math.max(
+      0,
+      Math.min(window.innerHeight - 60, dragStart.current.posY + dy),
+    );
     currentDragPos.current = { x: newX, y: newY };
     setDragPos({ x: newX, y: newY });
   }, []);
 
   const handlePointerUp = useCallback(() => {
-    if (!dragging.current) { return; }
+    if (!dragging.current) {
+      return;
+    }
     dragging.current = false;
     if (hasDragged.current && currentDragPos.current) {
       setPosition(currentDragPos.current.x, currentDragPos.current.y);
@@ -112,7 +148,9 @@ export function BuddyWidget() {
 
   const wrapClick = useCallback((fn: () => void) => {
     return () => {
-      if (!hasDragged.current) { fn(); }
+      if (!hasDragged.current) {
+        fn();
+      }
     };
   }, []);
 
@@ -126,36 +164,60 @@ export function BuddyWidget() {
     };
   }, []);
 
-  const handlePanelPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) { return; }
-    if ((e.target as HTMLElement).closest("button, input, select, textarea")) { return; }
-    e.stopPropagation();
-    panelDragging.current = true;
-    panelHasDragged.current = false;
-    const currentPos = panelCurrentDragPos.current ?? panelPos ?? { x: 0, y: 0 };
-    panelCurrentDragPos.current = currentPos;
-    panelDragStart.current = { x: e.clientX, y: e.clientY, posX: currentPos.x, posY: currentPos.y };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [panelPos]);
+  const handlePanelPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) {
+        return;
+      }
+      if (
+        (e.target as HTMLElement).closest("button, input, select, textarea")
+      ) {
+        return;
+      }
+      e.stopPropagation();
+      panelDragging.current = true;
+      panelHasDragged.current = false;
+      const currentPos = panelCurrentDragPos.current
+        ?? panelPos ?? { x: 0, y: 0 };
+      panelCurrentDragPos.current = currentPos;
+      panelDragStart.current = {
+        x: e.clientX,
+        y: e.clientY,
+        posX: currentPos.x,
+        posY: currentPos.y,
+      };
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [panelPos],
+  );
 
-  const handlePanelPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!panelDragging.current) { return; }
-    const dx = e.clientX - panelDragStart.current.x;
-    const dy = e.clientY - panelDragStart.current.y;
-    if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) { panelHasDragged.current = true; }
-    if (!panelHasDragged.current) { return; }
-    const rawX = panelDragStart.current.posX + dx;
-    const rawY = panelDragStart.current.posY + dy;
-    const clamped = clampPanelPos(rawX, rawY);
-    panelCurrentDragPos.current = clamped;
-    setPanelPos(clamped);
-  }, [clampPanelPos]);
+  const handlePanelPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!panelDragging.current) {
+        return;
+      }
+      const dx = e.clientX - panelDragStart.current.x;
+      const dy = e.clientY - panelDragStart.current.y;
+      if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) {
+        panelHasDragged.current = true;
+      }
+      if (!panelHasDragged.current) {
+        return;
+      }
+      const rawX = panelDragStart.current.posX + dx;
+      const rawY = panelDragStart.current.posY + dy;
+      const clamped = clampPanelPos(rawX, rawY);
+      panelCurrentDragPos.current = clamped;
+      setPanelPos(clamped);
+    },
+    [clampPanelPos],
+  );
 
   const handlePanelPointerUp = useCallback(() => {
     panelDragging.current = false;
   }, []);
 
-  const panelPosition = panelPos ?? panelDragging.current ? panelCurrentDragPos.current : null;
+  const panelPosition = (panelPos ?? panelDragging.current) ? panelCurrentDragPos.current : null;
   const panelPosStyle = panelPosition
     ? { left: panelPosition.x, top: panelPosition.y }
     : {};
@@ -241,7 +303,13 @@ export function BuddyWidget() {
   }
 
   const buddy = activeBuddy;
-  const attrKeys: (keyof BuddyAttributes)[] = ["debugging", "patience", "chaos", "wisdom", "snark"];
+  const attrKeys: (keyof BuddyAttributes)[] = [
+    "debugging",
+    "patience",
+    "chaos",
+    "wisdom",
+    "snark",
+  ];
 
   return (
     <div
@@ -262,7 +330,13 @@ export function BuddyWidget() {
           size="small"
           title={
             <div
-              style={{ display: "flex", alignItems: "center", gap: 8, cursor: "grab", userSelect: "none" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "grab",
+                userSelect: "none",
+              }}
               onPointerDown={handlePanelPointerDown}
               onPointerMove={handlePanelPointerMove}
               onPointerUp={handlePanelPointerUp}
@@ -304,7 +378,10 @@ export function BuddyWidget() {
         >
           {/* 属性条 */}
           <div style={{ marginBottom: 12 }}>
-            <Text type="secondary" style={{ fontSize: 12, marginBottom: 6, display: "block" }}>
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, marginBottom: 6, display: "block" }}
+            >
               {t("buddy.attributes")}
             </Text>
             {attrKeys.map((key) => (
@@ -327,7 +404,14 @@ export function BuddyWidget() {
                   showInfo={false}
                   style={{ flex: 1, margin: 0 }}
                 />
-                <Text style={{ fontSize: 12, color: "#999", width: 20, textAlign: "right" }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "#999",
+                    width: 20,
+                    textAlign: "right",
+                  }}
+                >
                   {buddy.attributes[key]}/10
                 </Text>
               </div>
@@ -340,9 +424,7 @@ export function BuddyWidget() {
               {t("buddy.experience")}
             </Text>
             <Progress
-              percent={Math.round(
-                (buddy.xp / (100 + buddy.level * 50)) * 100,
-              )}
+              percent={Math.round((buddy.xp / (100 + buddy.level * 50)) * 100)}
               size="small"
               strokeColor="#faad14"
               format={() => `${buddy.xp} XP`}
@@ -353,7 +435,10 @@ export function BuddyWidget() {
           {/* 最近消息 */}
           {lastMessage && (
             <div>
-              <Text type="secondary" style={{ fontSize: 12, marginBottom: 4, display: "block" }}>
+              <Text
+                type="secondary"
+                style={{ fontSize: 12, marginBottom: 4, display: "block" }}
+              >
                 {t("buddy.recentMessages")}
               </Text>
               <BuddyMessageBubble

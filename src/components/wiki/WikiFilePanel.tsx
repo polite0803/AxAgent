@@ -44,9 +44,14 @@ export function WikiFilePanel({
 
   // 按路径构建树形结构
   const treeData = useMemo(() => {
-    if (!notes || notes.length === 0) { return []; }
+    if (!notes || notes.length === 0) {
+      return [];
+    }
 
-    const root: Record<string, { name: string; children: Record<string, unknown>; notes: Note[] }> = {};
+    const root: Record<
+      string,
+      { name: string; children: Record<string, unknown>; notes: Note[] }
+    > = {};
 
     notes.forEach((note) => {
       const parts = note.filePath.split("/").filter(Boolean);
@@ -72,10 +77,7 @@ export function WikiFilePanel({
       }
     });
 
-    const buildTreeNode = (
-      dirs: typeof root,
-      depth: number,
-    ): DataNode[] => {
+    const buildTreeNode = (dirs: typeof root, depth: number): DataNode[] => {
       return Object.entries(dirs).map(([key, val]) => ({
         key: `dir:${key}`,
         title: (
@@ -105,7 +107,10 @@ export function WikiFilePanel({
                 {note.author === "llm" && (
                   <span
                     className="text-[9px] px-1 py-px rounded-full font-medium"
-                    style={{ backgroundColor: `${token.colorPrimary}18`, color: token.colorPrimary }}
+                    style={{
+                      backgroundColor: `${token.colorPrimary}18`,
+                      color: token.colorPrimary,
+                    }}
                   >
                     AI
                   </span>
@@ -120,8 +125,10 @@ export function WikiFilePanel({
     };
 
     // 收集根目录的直接笔记
-    const rootNotes = notes.filter((n) =>
-      !n.filePath.includes("/") || n.filePath.split("/").filter(Boolean).length === 1
+    const rootNotes = notes.filter(
+      (n) =>
+        !n.filePath.includes("/")
+        || n.filePath.split("/").filter(Boolean).length === 1,
     );
 
     return [
@@ -145,7 +152,9 @@ export function WikiFilePanel({
                 <div
                   className="flex items-center gap-1"
                   style={{
-                    color: selectedNodeId === note.id ? token.colorPrimary : undefined,
+                    color: selectedNodeId === note.id
+                      ? token.colorPrimary
+                      : undefined,
                     fontWeight: selectedNodeId === note.id ? 600 : undefined,
                   }}
                 >
@@ -163,7 +172,9 @@ export function WikiFilePanel({
           const dirs: typeof root = {};
           notes.forEach((note) => {
             const parts = note.filePath.split("/").filter(Boolean);
-            if (parts.length <= 1) { return; }
+            if (parts.length <= 1) {
+              return;
+            }
             const dirName = parts[0];
             if (!dirs[dirName]) {
               dirs[dirName] = { name: dirName, children: {}, notes: [] };
@@ -172,7 +183,9 @@ export function WikiFilePanel({
             let current = root;
             for (let i = 0; i < parts.length - 1; i++) {
               const p = parts[i];
-              if (!current[p]) { current[p] = { name: p, children: {}, notes: [] }; }
+              if (!current[p]) {
+                current[p] = { name: p, children: {}, notes: [] };
+              }
               current = current[p].children as typeof root;
             }
             current[parts[parts.length - 2]]?.notes.push(note);
@@ -186,7 +199,9 @@ export function WikiFilePanel({
 
   // 标签提取
   const allTags = useMemo(() => {
-    if (!graphData) { return []; }
+    if (!graphData) {
+      return [];
+    }
     const tagSet = new Set<string>();
     graphData.nodes.forEach((n) => n.tags.forEach((t) => tagSet.add(t)));
     return Array.from(tagSet).sort();
@@ -209,7 +224,10 @@ export function WikiFilePanel({
     const q = value.toLowerCase();
     const matchedIds = new Set<string>();
     graphData.nodes.forEach((n) => {
-      if (n.title.toLowerCase().includes(q) || n.tags.some((t) => t.toLowerCase().includes(q))) {
+      if (
+        n.title.toLowerCase().includes(q)
+        || n.tags.some((t) => t.toLowerCase().includes(q))
+      ) {
         matchedIds.add(n.id);
       }
     });
@@ -226,15 +244,20 @@ export function WikiFilePanel({
   };
 
   const handleTagClick = (tag: string) => {
-    if (!graphData) { return; }
+    if (!graphData) {
+      return;
+    }
     const ids = new Set(
-      graphData.nodes.flatMap((n) => n.tags.includes(tag) ? [n.id] : []),
+      graphData.nodes.flatMap((n) => (n.tags.includes(tag) ? [n.id] : [])),
     );
     onSearchHighlight(ids);
   };
 
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: token.colorBgContainer }}>
+    <div
+      className="h-full flex flex-col"
+      style={{ backgroundColor: token.colorBgContainer }}
+    >
       {/* 搜索 — 玻璃态 */}
       <div
         className="px-3 pt-3 pb-2 shrink-0"
@@ -292,7 +315,10 @@ export function WikiFilePanel({
       >
         <div className="flex items-center gap-1.5 mb-2.5">
           <Hash size={10} style={{ color: token.colorTextQuaternary }} />
-          <Text type="secondary" className="text-[11px] font-medium tracking-wide uppercase">
+          <Text
+            type="secondary"
+            className="text-[11px] font-medium tracking-wide uppercase"
+          >
             {t("wiki.tags")}
           </Text>
         </div>
@@ -317,7 +343,9 @@ export function WikiFilePanel({
                   }}
                   onClick={() => handleTagClick(tag)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { handleTagClick(tag); }
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleTagClick(tag);
+                    }
                   }}
                 >
                   {tag}
@@ -334,10 +362,7 @@ export function WikiFilePanel({
         {Object.keys(nodeTypes).length > 0 && (
           <div className="flex flex-wrap gap-2">
             {Object.entries(nodeTypes).map(([type, count]) => (
-              <div
-                key={type}
-                className="flex items-center gap-1 text-[10px]"
-              >
+              <div key={type} className="flex items-center gap-1 text-[10px]">
                 <span
                   className="size-2 rounded-full inline-block"
                   style={{ backgroundColor: getTypeColor(type) }}

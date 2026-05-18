@@ -19,8 +19,12 @@ export function LinkOverview({ link }: LinkOverviewProps) {
   const modelSyncs = useGatewayLinkStore((s) => s.modelSyncs);
   const skillSyncs = useGatewayLinkStore((s) => s.skillSyncs);
 
-  const syncedModelCount = modelSyncs.filter((m) => m.sync_status === "synced").length;
-  const syncedSkillCount = skillSyncs.filter((s) => s.sync_status === "synced").length;
+  const syncedModelCount = modelSyncs.filter(
+    (m) => m.sync_status === "synced",
+  ).length;
+  const syncedSkillCount = skillSyncs.filter(
+    (s) => s.sync_status === "synced",
+  ).length;
 
   const handleToggle = async () => {
     try {
@@ -65,17 +69,35 @@ export function LinkOverview({ link }: LinkOverviewProps) {
             <div>
               <Tag color={statusColor}>{statusLabel}</Tag>
               {link.latency_ms != null && link.status === "connected" && (
-                <span style={{ fontSize: 12, color: token.colorTextSecondary, marginLeft: 8 }}>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: token.colorTextSecondary,
+                    marginLeft: 8,
+                  }}
+                >
                   {t("link.latency")}: {link.latency_ms}ms
                 </span>
               )}
               {link.version && (
-                <span style={{ fontSize: 12, color: token.colorTextSecondary, marginLeft: 8 }}>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: token.colorTextSecondary,
+                    marginLeft: 8,
+                  }}
+                >
                   v{link.version}
                 </span>
               )}
               {link.status === "error" && link.error_message && (
-                <div style={{ fontSize: 12, color: token.colorError, marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: token.colorError,
+                    marginTop: 4,
+                  }}
+                >
                   {link.error_message}
                 </div>
               )}
@@ -121,7 +143,9 @@ export function LinkOverview({ link }: LinkOverviewProps) {
           <Card size="small">
             <Statistic
               title={t("link.lastSync")}
-              value={link.last_sync_at ? new Date(link.last_sync_at * 1000).toLocaleString() : "-"}
+              value={link.last_sync_at
+                ? new Date(link.last_sync_at * 1000).toLocaleString()
+                : "-"}
               valueStyle={{ fontSize: 14 }}
               prefix={<Clock size={14} />}
             />
@@ -133,18 +157,37 @@ export function LinkOverview({ link }: LinkOverviewProps) {
         size="small"
         title={t("link.recentActivity")}
         extra={
-          <Button size="small" icon={<RefreshCw size={14} />} onClick={handleRefresh}>
+          <Button
+            size="small"
+            icon={<RefreshCw size={14} />}
+            onClick={handleRefresh}
+          >
             {t("common.refresh")}
           </Button>
         }
       >
         {activities.length === 0
-          ? <Empty description={t("link.noActivity")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ? (
+            <Empty
+              description={t("link.noActivity")}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )
           : (
             <div className="flex flex-col gap-2">
               {activities.slice(0, 10).map((activity) => (
-                <div key={activity.id} className="flex items-start gap-2" style={{ fontSize: 13 }}>
-                  <span style={{ color: token.colorTextTertiary, flexShrink: 0, fontSize: 12 }}>
+                <div
+                  key={activity.id}
+                  className="flex items-start gap-2"
+                  style={{ fontSize: 13 }}
+                >
+                  <span
+                    style={{
+                      color: token.colorTextTertiary,
+                      flexShrink: 0,
+                      fontSize: 12,
+                    }}
+                  >
                     {new Date(activity.created_at * 1000).toLocaleTimeString()}
                   </span>
                   <span>{activity.description}</span>

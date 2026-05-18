@@ -23,7 +23,13 @@ export const BUILTIN_ICONS: Record<string, React.ReactNode> = {
  * - Custom servers with emoji/url/file iconType → user-chosen icon
  * - Default → Plug icon
  */
-export function McpServerIcon({ server, size = 24 }: { server: McpServer; size?: number }) {
+export function McpServerIcon({
+  server,
+  size = 24,
+}: {
+  server: McpServer;
+  size?: number;
+}) {
   const resolvedSrc = useResolvedAvatarSrc(
     (server.iconType as "icon" | "emoji" | "url" | "file") ?? "icon",
     server.iconValue ?? "",
@@ -71,7 +77,10 @@ export function McpServerIcon({ server, size = 24 }: { server: McpServer; size?:
   }
 
   // Custom: url or file image
-  if ((server.iconType === "url" || server.iconType === "file") && server.iconValue) {
+  if (
+    (server.iconType === "url" || server.iconType === "file")
+    && server.iconValue
+  ) {
     const src = server.iconType === "file" ? resolvedSrc : server.iconValue;
     return <Avatar size={size} src={src} style={{ flexShrink: 0 }} />;
   }

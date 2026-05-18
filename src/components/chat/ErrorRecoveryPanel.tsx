@@ -68,8 +68,12 @@ const strategyIcons: Record<string, React.ReactNode> = {
 };
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) { return `${ms}ms`; }
-  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -77,7 +81,10 @@ function ErrorTypeTag({ type }: { type: string }) {
   return (
     <Tooltip title={errorTypeDescriptions[type] || "Unknown"}>
       <span>
-        <AlertCircle size={14} className={`mr-1 text-${errorTypeColors[type]}-500`} />
+        <AlertCircle
+          size={14}
+          className={`mr-1 text-${errorTypeColors[type]}-500`}
+        />
         <span className="capitalize">{type}</span>
       </span>
     </Tooltip>
@@ -117,9 +124,15 @@ function AttemptItem({ attempt }: { attempt: RecoveryAttempt }) {
       {!attempt.success && attempt.error && (
         <Alert
           type="error"
-          message={attempt.error.length > 200 ? attempt.error.slice(0, 200) + "…" : attempt.error}
+          message={attempt.error.length > 200
+            ? attempt.error.slice(0, 200) + "…"
+            : attempt.error}
           description={attempt.error.length > 100
-            ? <div style={{ maxHeight: 200, overflowY: "auto", fontSize: 12 }}>{attempt.error}</div>
+            ? (
+              <div style={{ maxHeight: 200, overflowY: "auto", fontSize: 12 }}>
+                {attempt.error}
+              </div>
+            )
             : undefined}
           className="mt-2"
           style={{ fontSize: "12px" }}
@@ -241,7 +254,8 @@ export function ErrorRecoveryPanel({
           {isRecovering && <RefreshCw size={14} className="animate-spin text-blue-500" />}
         </div>
       }
-      extra={!isRecovering && !result && (
+      extra={!isRecovering
+        && !result && (
         <Button
           type="primary"
           size="small"

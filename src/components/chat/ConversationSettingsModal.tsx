@@ -17,12 +17,17 @@ interface ConversationSettingsModalProps {
 
 const CONTEXT_LIMIT_KEY = (id: string) => `axagent_context_limit_${id}`;
 
-export function ConversationSettingsModal({ open, onClose }: ConversationSettingsModalProps) {
+export function ConversationSettingsModal({
+  open,
+  onClose,
+}: ConversationSettingsModalProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
 
   const conversations = useConversationStore((s) => s.conversations);
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const activeConversationId = useConversationStore(
+    (s) => s.activeConversationId,
+  );
   const updateConversation = useConversationStore((s) => s.updateConversation);
   const settings = useSettingsStore((s) => s.settings);
 
@@ -73,7 +78,9 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
     }
   }, [open, conversation]);
 
-  if (!conversation) { return null; }
+  if (!conversation) {
+    return null;
+  }
 
   const handleReset = () => {
     setTemperature(null);
@@ -93,12 +100,18 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
         top_p: topP,
         frequency_penalty: frequencyPenalty,
       });
-      localStorage.setItem(CONTEXT_LIMIT_KEY(conversation.id), String(contextLimit));
+      localStorage.setItem(
+        CONTEXT_LIMIT_KEY(conversation.id),
+        String(contextLimit),
+      );
       // Save icon
       if (iconType === "model") {
         localStorage.removeItem(CONV_ICON_KEY(conversation.id));
       } else {
-        localStorage.setItem(CONV_ICON_KEY(conversation.id), JSON.stringify({ type: iconType, value: iconValue }));
+        localStorage.setItem(
+          CONV_ICON_KEY(conversation.id),
+          JSON.stringify({ type: iconType, value: iconValue }),
+        );
       }
       onClose();
     } finally {
@@ -150,9 +163,18 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
         </div>
       }
     >
-      <div data-os-scrollbar style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}>
+      <div
+        data-os-scrollbar
+        style={{ maxHeight: "70vh", overflowY: "auto", paddingRight: 4 }}
+      >
         {/* Avatar with IconEditor */}
-        <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 16px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            margin: "8px 0 16px",
+          }}
+        >
           <IconEditor
             iconType={iconType === "model" ? null : iconType}
             iconValue={iconType === "model" ? null : iconValue}
@@ -166,7 +188,13 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
               }
             }}
             size={64}
-            defaultIcon={<ModelIcon model={conversation.model_id} size={64} type="avatar" />}
+            defaultIcon={
+              <ModelIcon
+                model={conversation.model_id}
+                size={64}
+                type="avatar"
+              />
+            }
             prependMenuItems={useModelIconMenuItem}
             showClear={iconType !== "model"}
           />
@@ -175,7 +203,11 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
         {/* Name */}
         <div style={{ marginBottom: 16 }}>
           <div style={labelStyle}>{t("common.name")}</div>
-          <Input id="conversation-settings-modal-input-10" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input
+            id="conversation-settings-modal-input-10"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
         </div>
 
         {/* System Prompt */}
@@ -185,11 +217,21 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
             <div style={{ marginBottom: 6 }}>
               <Tag color="blue" style={{ fontSize: 12 }}>
                 {(() => {
-                  const role = useExpertStore.getState().getRoleById(conversation.expert_role_id!);
-                  return role ? `${role.icon} ${role.name}` : conversation.expert_role_id;
+                  const role = useExpertStore
+                    .getState()
+                    .getRoleById(conversation.expert_role_id!);
+                  return role
+                    ? `${role.icon} ${role.name}`
+                    : conversation.expert_role_id;
                 })()}
               </Tag>
-              <span style={{ fontSize: 12, color: token.colorTextSecondary, marginLeft: 6 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: token.colorTextSecondary,
+                  marginLeft: 6,
+                }}
+              >
                 {t("settings.expertPromptNote") || "系统提示词已由专家角色预设"}
               </span>
             </div>
@@ -223,9 +265,18 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
             <div style={labelStyle}>
               {t("settings.contextMessageLimit")}
               <Tooltip title={t("settings.contextMessageLimitTooltip")}>
-                <Info size={14} style={{ color: token.colorTextSecondary, cursor: "help" }} />
+                <Info
+                  size={14}
+                  style={{ color: token.colorTextSecondary, cursor: "help" }}
+                />
               </Tooltip>
-              <span style={{ marginLeft: "auto", color: token.colorTextSecondary, fontSize: 12 }}>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  color: token.colorTextSecondary,
+                  fontSize: 12,
+                }}
+              >
                 {contextLimit >= 50 ? t("common.unlimited") : contextLimit}
               </span>
             </div>
@@ -250,10 +301,18 @@ export function ConversationSettingsModal({ open, onClose }: ConversationSetting
               frequencyPenalty,
             }}
             onChange={(v) => {
-              if ("temperature" in v) { setTemperature(v.temperature!); }
-              if ("topP" in v) { setTopP(v.topP!); }
-              if ("maxTokens" in v) { setMaxTokens(v.maxTokens!); }
-              if ("frequencyPenalty" in v) { setFrequencyPenalty(v.frequencyPenalty!); }
+              if ("temperature" in v) {
+                setTemperature(v.temperature!);
+              }
+              if ("topP" in v) {
+                setTopP(v.topP!);
+              }
+              if ("maxTokens" in v) {
+                setMaxTokens(v.maxTokens!);
+              }
+              if ("frequencyPenalty" in v) {
+                setFrequencyPenalty(v.frequencyPenalty!);
+              }
             }}
             defaults={{
               temperature: settings.default_temperature ?? 0.7,

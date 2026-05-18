@@ -23,7 +23,17 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
       case "Connecting":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Spin indicator={<Loader size={48} style={{ color: textColor, animation: "spin 1s linear infinite" }} />} />
+            <Spin
+              indicator={
+                <Loader
+                  size={48}
+                  style={{
+                    color: textColor,
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
+              }
+            />
             <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.connecting")}
             </Typography.Text>
@@ -61,7 +71,11 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
       case "Listening":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Volume2 size={48} style={{ color: "#1677ff" }} className="animate-pulse" />
+            <Volume2
+              size={48}
+              style={{ color: "#1677ff" }}
+              className="animate-pulse"
+            />
             <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.listening")}
             </Typography.Text>
@@ -70,7 +84,17 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
       case "Disconnecting":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Spin indicator={<Loader size={48} style={{ color: textColor, animation: "spin 1s linear infinite" }} />} />
+            <Spin
+              indicator={
+                <Loader
+                  size={48}
+                  style={{
+                    color: textColor,
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
+              }
+            />
             <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.disconnecting")}
             </Typography.Text>
@@ -84,11 +108,21 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
   return <>{content}</>;
 }
 
-export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallProps) {
+export function VoiceCall({
+  visible,
+  onClose,
+  port,
+  host,
+  config,
+}: VoiceCallProps) {
   const { t } = useTranslation();
   const { token: controlToken } = theme.useToken();
   const btnTextColor = controlToken.colorWhite;
-  const { state, isMuted, start, stop, toggleMute } = useVoiceChat({ port, host, config });
+  const { state, isMuted, start, stop, toggleMute } = useVoiceChat({
+    port,
+    host,
+    config,
+  });
 
   // Auto-start when overlay becomes visible
   if (visible && state === "Idle") {
@@ -100,7 +134,9 @@ export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallPro
     onClose();
   };
 
-  if (!visible) { return null; }
+  if (!visible) {
+    return null;
+  }
 
   return (
     <div

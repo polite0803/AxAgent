@@ -38,12 +38,29 @@ function ParamRow({
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 0",
+        }}
+      >
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 13,
+          }}
+        >
           {label}
           {tooltip && (
             <Tooltip title={tooltip}>
-              <Info size={12} style={{ color: token.colorTextSecondary, cursor: "help" }} />
+              <Info
+                size={12}
+                style={{ color: token.colorTextSecondary, cursor: "help" }}
+              />
             </Tooltip>
           )}
         </span>
@@ -112,7 +129,9 @@ export interface ModelParamSlidersProps {
   /** Show dividers between rows (default: true) */
   showDividers?: boolean;
   /** Which parameters to render (default: all four) */
-  visibleParams?: Array<"temperature" | "topP" | "maxTokens" | "frequencyPenalty">;
+  visibleParams?: Array<
+    "temperature" | "topP" | "maxTokens" | "frequencyPenalty"
+  >;
 }
 
 const MAX_TOKENS_MARKS: Record<string | number, string> = {
@@ -149,7 +168,12 @@ const DEFAULT_DEFAULTS: Required<ModelParamDefaults> = {
   frequencyPenalty: 0,
 };
 
-const ALL_PARAMS = ["temperature", "topP", "maxTokens", "frequencyPenalty"] as const;
+const ALL_PARAMS = [
+  "temperature",
+  "topP",
+  "maxTokens",
+  "frequencyPenalty",
+] as const;
 
 export function ModelParamSliders({
   values,

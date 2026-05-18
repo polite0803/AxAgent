@@ -10,9 +10,9 @@ interface DocumentParserPropertyPanelProps {
   onDelete: () => void;
 }
 
-export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelProps> = (
-  { node, onUpdate, onDelete },
-) => {
+export const DocumentParserPropertyPanel: React.FC<
+  DocumentParserPropertyPanelProps
+> = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
   const documentParserNode = node as DocumentParserNode;
   const config = documentParserNode.config || {
@@ -38,7 +38,14 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.inputVariable")}
         </label>
         <Input
@@ -51,7 +58,14 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.parserType")}
         </label>
         <Select
@@ -64,7 +78,14 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -78,8 +99,14 @@ export const DocumentParserPropertyPanel: React.FC<DocumentParserPropertyPanelPr
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

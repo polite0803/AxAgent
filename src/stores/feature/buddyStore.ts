@@ -120,7 +120,9 @@ function resolveSpecies(speciesId?: string): SpeciesTemplate {
   const species = getSpecies();
   if (speciesId) {
     const found = species.find((s) => s.speciesId === speciesId);
-    if (found) { return found; }
+    if (found) {
+      return found;
+    }
   }
   return species[Math.floor(Math.random() * species.length)];
 }
@@ -178,7 +180,9 @@ export const useBuddyStore = create<BuddyState>((set) => ({
 
   grantXp: (amount) => {
     set((s) => {
-      if (!s.activeBuddy) { return {}; }
+      if (!s.activeBuddy) {
+        return {};
+      }
       let { level, xp } = s.activeBuddy;
       xp += amount;
 

@@ -6,7 +6,11 @@
 //   const tokens = await estimateTokensAsync(largeText);
 //   const clean = await processMarkdownAsync(markdown, true);
 
-type TaskType = "estimateTokens" | "processMarkdown" | "formatExport" | "parseMarkdown";
+type TaskType =
+  | "estimateTokens"
+  | "processMarkdown"
+  | "formatExport"
+  | "parseMarkdown";
 
 interface PendingTask {
   resolve: (value: unknown) => void;
@@ -19,14 +23,17 @@ const _pending = new Map<number, PendingTask>();
 
 function getWorker(): Worker {
   if (!_worker) {
-    _worker = new Worker(
-      new URL("./heavy.worker.ts", import.meta.url),
-      { type: "module" },
-    );
-    _worker.onmessage = (event: MessageEvent<{ id: number; result?: unknown; error?: string }>) => {
+    _worker = new Worker(new URL("./heavy.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    _worker.onmessage = (
+      event: MessageEvent<{ id: number; result?: unknown; error?: string }>,
+    ) => {
       const { id, result, error } = event.data;
       const task = _pending.get(id);
-      if (!task) { return; }
+      if (!task) {
+        return;
+      }
       _pending.delete(id);
       if (error) {
         task.reject(new Error(error));
@@ -56,7 +63,9 @@ function postTask<T>(type: TaskType, payload: unknown): Promise<T> {
 
 /** Estimate tokens for a text string in a Web Worker (non-blocking). */
 export async function estimateTokensAsync(text: string): Promise<number> {
-  if (!text) { return 0; }
+  if (!text) {
+    return 0;
+  }
   // For very short texts, do it synchronously to avoid worker overhead
   if (text.length < 500) {
     return Math.max(1, Math.ceil(text.length / 4));
@@ -66,16 +75,29 @@ export async function estimateTokensAsync(text: string): Promise<number> {
 }
 
 /** Process markdown (strip axagent tags) in a Web Worker. */
-export async function processMarkdownAsync(text: string, stripTags = true): Promise<string> {
-  if (!text) { return ""; }
+export async function processMarkdownAsync(
+  text: string,
+  stripTags = true,
+): Promise<string> {
+  if (!text) {
+    return "";
+  }
   if (text.length < 1000) {
     // Inline for small texts
     if (stripTags) {
-      return text.replace(/<think\s+data-axagent=.+?<\/think>|<\/?web-search[^>]*>/gs, "").trim();
+      return text
+        .replace(
+          /<think\s+data-axagent=.+?<\/think>|<\/?web-search[^>]*>/gs,
+          "",
+        )
+        .trim();
     }
     return text;
   }
-  const result = await postTask<{ result: string }>("processMarkdown", { text, stripTags });
+  const result = await postTask<{ result: string }>("processMarkdown", {
+    text,
+    stripTags,
+  });
   return result.result;
 }
 
@@ -87,20 +109,32 @@ export async function formatExportAsync(
   if (messages.length < 50) {
     // Inline for small conversations
     return format === "markdown"
-      ? "# Chat Export\n\n" + messages.map((m) => `## ${m.role}\n\n${m.content}`).join("\n\n")
+      ? "# Chat Export\n\n"
+        + messages.map((m) => `## ${m.role}\n\n${m.content}`).join("\n\n")
       : messages.map((m) => `[${m.role}] ${m.content}`).join("\n\n");
   }
-  const result = await postTask<{ result: string }>("formatExport", { messages, format });
+  const result = await postTask<{ result: string }>("formatExport", {
+    messages,
+    format,
+  });
   return result.result;
 }
 
 /** Parse markdown content to HTML in a Web Worker (non-blocking). */
-export async function parseMarkdownAsync(content: string, id?: string): Promise<{ html: string; id?: string }> {
-  if (!content) { return { html: "", id }; }
+export async function parseMarkdownAsync(
+  content: string,
+  id?: string,
+): Promise<{ html: string; id?: string }> {
+  if (!content) {
+    return { html: "", id };
+  }
   if (content.length < 500) {
     return { html: parseMarkdownInline(content), id };
   }
-  const result = await postTask<{ html: string; id?: string }>("parseMarkdown", { content, id });
+  const result = await postTask<{ html: string; id?: string }>(
+    "parseMarkdown",
+    { content, id },
+  );
   return result;
 }
 
@@ -118,7 +152,10 @@ function parseMarkdownInline(content: string): string {
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+  html = html.replace(
+    /```(\w*)\n([\s\S]*?)```/g,
+    '<pre><code class="language-$1">$2</code></pre>',
+  );
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');

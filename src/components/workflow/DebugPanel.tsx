@@ -76,12 +76,20 @@ interface PerformanceMetrics {
 }
 
 function calculateMetrics(executions: NodeExecution[]): PerformanceMetrics {
-  const completedExecutions = executions.filter((e) => e.status === "completed");
+  const completedExecutions = executions.filter(
+    (e) => e.status === "completed",
+  );
   const failedExecutions = executions.filter((e) => e.status === "failed");
   const skippedExecutions = executions.filter((e) => e.status === "skipped");
 
-  const totalDuration = executions.reduce((sum, e) => sum + (e.duration || 0), 0);
-  const durations = completedExecutions.map((e) => ({ nodeName: e.nodeName, duration: e.duration || 0 }));
+  const totalDuration = executions.reduce(
+    (sum, e) => sum + (e.duration || 0),
+    0,
+  );
+  const durations = completedExecutions.map((e) => ({
+    nodeName: e.nodeName,
+    duration: e.duration || 0,
+  }));
 
   const maxNode = durations.reduce(
     (max, curr) => (curr.duration > max.duration ? curr : max),
@@ -98,15 +106,23 @@ function calculateMetrics(executions: NodeExecution[]): PerformanceMetrics {
     successfulNodes: completedExecutions.length,
     failedNodes: failedExecutions.length,
     skippedNodes: skippedExecutions.length,
-    avgNodeDuration: completedExecutions.length > 0 ? totalDuration / completedExecutions.length : 0,
+    avgNodeDuration: completedExecutions.length > 0
+      ? totalDuration / completedExecutions.length
+      : 0,
     maxNodeDuration: maxNode,
-    minNodeDuration: minNode.duration === Infinity ? { nodeName: "N/A", duration: 0 } : minNode,
+    minNodeDuration: minNode.duration === Infinity
+      ? { nodeName: "N/A", duration: 0 }
+      : minNode,
   };
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) { return `${ms}ms`; }
-  if (ms < 60000) { return `${(ms / 1000).toFixed(1)}s`; }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
@@ -134,20 +150,29 @@ export function DebugPanel({ trace }: DebugPanelProps) {
   const [showPerformance, setShowPerformance] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
-  const metrics = useMemo(() => (trace ? calculateMetrics(trace.nodeExecutions) : {
-    totalDuration: 0,
-    nodeCount: 0,
-    successfulNodes: 0,
-    failedNodes: 0,
-    skippedNodes: 0,
-    avgNodeDuration: 0,
-    maxNodeDuration: { nodeName: "", duration: 0 },
-    minNodeDuration: { nodeName: "", duration: 0 },
-  } as PerformanceMetrics), [trace]);
+  const metrics = useMemo(
+    () =>
+      trace
+        ? calculateMetrics(trace.nodeExecutions)
+        : ({
+          totalDuration: 0,
+          nodeCount: 0,
+          successfulNodes: 0,
+          failedNodes: 0,
+          skippedNodes: 0,
+          avgNodeDuration: 0,
+          maxNodeDuration: { nodeName: "", duration: 0 },
+          minNodeDuration: { nodeName: "", duration: 0 },
+        } as PerformanceMetrics),
+    [trace],
+  );
 
   if (!trace) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ background: token.colorBgElevated }}>
+      <div
+        className="h-full flex items-center justify-center"
+        style={{ background: token.colorBgElevated }}
+      >
         <Empty description={t("workflow.debug.noExecutionData")} />
       </div>
     );
@@ -169,20 +194,30 @@ export function DebugPanel({ trace }: DebugPanelProps) {
     {
       title: "Duration",
       key: "duration",
-      render: (_, record) => <Text type="secondary">{record.duration ? formatDuration(record.duration) : "-"}</Text>,
+      render: (_, record) => (
+        <Text type="secondary">
+          {record.duration ? formatDuration(record.duration) : "-"}
+        </Text>
+      ),
     },
     {
       title: "Retries",
       dataIndex: "retryCount",
       key: "retryCount",
-      render: (count) => (count > 0 ? <Tag color="orange">{count}</Tag> : <Text type="secondary">-</Text>),
+      render: (count) => count > 0 ? <Tag color="orange">{count}</Tag> : <Text type="secondary">-</Text>,
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
       render: (status) => (
-        <Tag color={status === "completed" ? "success" : status === "failed" ? "error" : "default"}>
+        <Tag
+          color={status === "completed"
+            ? "success"
+            : status === "failed"
+            ? "error"
+            : "default"}
+        >
           {status.toUpperCase()}
         </Tag>
       ),
@@ -190,7 +225,10 @@ export function DebugPanel({ trace }: DebugPanelProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col" style={{ background: token.colorBgElevated }}>
+    <div
+      className="h-full flex flex-col"
+      style={{ background: token.colorBgElevated }}
+    >
       <div
         className="border-b p-4"
         style={{ borderColor: token.colorBorderSecondary }}
@@ -202,14 +240,26 @@ export function DebugPanel({ trace }: DebugPanelProps) {
               Debug Panel
             </Title>
             <Badge
-              status={trace.status === "completed" ? "success" : trace.status === "failed" ? "error" : "processing"}
+              status={trace.status === "completed"
+                ? "success"
+                : trace.status === "failed"
+                ? "error"
+                : "processing"}
               text={trace.status}
             />
           </Space>
           <Space>
-            <Switch size="small" checked={showVariables} onChange={setShowVariables} />
+            <Switch
+              size="small"
+              checked={showVariables}
+              onChange={setShowVariables}
+            />
             <Text type="secondary">{t("workflow.debug.variables")}</Text>
-            <Switch size="small" checked={showPerformance} onChange={setShowPerformance} />
+            <Switch
+              size="small"
+              checked={showPerformance}
+              onChange={setShowPerformance}
+            />
             <Text type="secondary">{t("workflow.debug.performance")}</Text>
           </Space>
         </div>
@@ -262,7 +312,10 @@ export function DebugPanel({ trace }: DebugPanelProps) {
           </Col>
         </Row>
 
-        <Collapse defaultActiveKey={["execution", "performance"]} className="mb-4">
+        <Collapse
+          defaultActiveKey={["execution", "performance"]}
+          className="mb-4"
+        >
           <Panel header={t("workflow.debug.nodeExecutions")} key="execution">
             <Table
               columns={nodeColumns}
@@ -285,7 +338,9 @@ export function DebugPanel({ trace }: DebugPanelProps) {
             </Title>
             <Timeline
               items={trace.variableSnapshots.map((snapshot, index) => ({
-                color: index === trace.variableSnapshots.length - 1 ? "blue" : "gray",
+                color: index === trace.variableSnapshots.length - 1
+                  ? "blue"
+                  : "gray",
                 children: (
                   <div key={snapshot.timestamp}>
                     <Text type="secondary" className="text-xs">
@@ -311,7 +366,12 @@ export function DebugPanel({ trace }: DebugPanelProps) {
                 <Text type="secondary">{t("workflow.debug.slowestNode")}</Text>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress
-                    percent={Math.min(100, (metrics.maxNodeDuration.duration / metrics.totalDuration) * 100)}
+                    percent={Math.min(
+                      100,
+                      (metrics.maxNodeDuration.duration
+                        / metrics.totalDuration)
+                        * 100,
+                    )}
                     size="small"
                     format={() => formatDuration(metrics.maxNodeDuration.duration)}
                   />
@@ -325,7 +385,9 @@ export function DebugPanel({ trace }: DebugPanelProps) {
                     percent={metrics.minNodeDuration.duration > 0
                       ? Math.min(
                         100,
-                        (metrics.minNodeDuration.duration / metrics.totalDuration) * 100,
+                        (metrics.minNodeDuration.duration
+                          / metrics.totalDuration)
+                          * 100,
                       )
                       : 0}
                     size="small"
@@ -339,10 +401,18 @@ export function DebugPanel({ trace }: DebugPanelProps) {
         )}
 
         {selectedNode && (
-          <Card size="small" className="mt-4" title={t("workflow.debug.selectedNodeDetails")}>
+          <Card
+            size="small"
+            className="mt-4"
+            title={t("workflow.debug.selectedNodeDetails")}
+          >
             {(() => {
-              const node = trace.nodeExecutions.find((n) => n.nodeId === selectedNode);
-              if (!node) { return null; }
+              const node = trace.nodeExecutions.find(
+                (n) => n.nodeId === selectedNode,
+              );
+              if (!node) {
+                return null;
+              }
               return (
                 <div className="space-y-3">
                   <div>

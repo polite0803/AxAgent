@@ -54,7 +54,13 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
             animation: "dash 0.5s linear infinite",
           }}
         >
-          <animate attributeName="stroke-dashoffset" from="0" to="10" dur="0.5s" repeatCount="indefinite" />
+          <animate
+            attributeName="stroke-dashoffset"
+            from="0"
+            to="10"
+            dur="0.5s"
+            repeatCount="indefinite"
+          />
         </path>
       )}
       {label && (

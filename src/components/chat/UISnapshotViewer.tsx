@@ -79,7 +79,9 @@ export function UISnapshotViewer({
     <Card size="small" className="ui-snapshot-viewer">
       <div className="flex items-center gap-2 mb-3">
         <Monitor size={16} className="text-green-500" />
-        <Title level={5} className="mb-0">{t("chat.vision.ui.title")}</Title>
+        <Title level={5} className="mb-0">
+          {t("chat.vision.ui.title")}
+        </Title>
       </div>
 
       {imageUrl && (
@@ -93,17 +95,38 @@ export function UISnapshotViewer({
       )}
 
       <div className="grid grid-cols-3 gap-2 mb-3">
-        <Card size="small" className="bg-blue-50 dark:bg-blue-900/10 text-center">
-          <Text className="text-lg font-bold text-blue-600 block">{stats.total}</Text>
-          <Text type="secondary" className="text-xs">{t("chat.vision.ui.elements")}</Text>
+        <Card
+          size="small"
+          className="bg-blue-50 dark:bg-blue-900/10 text-center"
+        >
+          <Text className="text-lg font-bold text-blue-600 block">
+            {stats.total}
+          </Text>
+          <Text type="secondary" className="text-xs">
+            {t("chat.vision.ui.elements")}
+          </Text>
         </Card>
-        <Card size="small" className="bg-green-50 dark:bg-green-900/10 text-center">
-          <Text className="text-lg font-bold text-green-600 block">{stats.actionable}</Text>
-          <Text type="secondary" className="text-xs">{t("chat.vision.ui.actionable")}</Text>
+        <Card
+          size="small"
+          className="bg-green-50 dark:bg-green-900/10 text-center"
+        >
+          <Text className="text-lg font-bold text-green-600 block">
+            {stats.actionable}
+          </Text>
+          <Text type="secondary" className="text-xs">
+            {t("chat.vision.ui.actionable")}
+          </Text>
         </Card>
-        <Card size="small" className="bg-purple-50 dark:bg-purple-900/10 text-center">
-          <Text className="text-lg font-bold text-purple-600 block">{Object.keys(stats.byType).length}</Text>
-          <Text type="secondary" className="text-xs">{t("chat.vision.ui.types")}</Text>
+        <Card
+          size="small"
+          className="bg-purple-50 dark:bg-purple-900/10 text-center"
+        >
+          <Text className="text-lg font-bold text-purple-600 block">
+            {Object.keys(stats.byType).length}
+          </Text>
+          <Text type="secondary" className="text-xs">
+            {t("chat.vision.ui.types")}
+          </Text>
         </Card>
       </div>
 
@@ -132,16 +155,29 @@ export function UISnapshotViewer({
                 onElementClick?.(el);
               }}
             >
-              <span style={{ color: el.actionable ? ACTIONABLE_COLOR : NON_ACTIONABLE_COLOR, display: "flex" }}>
+              <span
+                style={{
+                  color: el.actionable
+                    ? ACTIONABLE_COLOR
+                    : NON_ACTIONABLE_COLOR,
+                  display: "flex",
+                }}
+              >
                 {ELEMENT_ICONS[el.element_type] || <Eye size={12} />}
               </span>
               <span className="font-medium">{el.element_type}</span>
-              {el.label && <span className="text-zinc-500 truncate flex-1">{el.label}</span>}
+              {el.label && (
+                <span className="text-zinc-500 truncate flex-1">
+                  {el.label}
+                </span>
+              )}
               <Badge
                 status={el.actionable ? "success" : "default"}
                 text={
                   <span className="text-xs">
-                    {el.actionable ? t("chat.vision.ui.clickable") : t("chat.vision.ui.static")}
+                    {el.actionable
+                      ? t("chat.vision.ui.clickable")
+                      : t("chat.vision.ui.static")}
                   </span>
                 }
               />
@@ -157,8 +193,12 @@ export function UISnapshotViewer({
 
       {rawDescription && (
         <div className="mt-3">
-          <Text strong className="text-sm block mb-1">{t("chat.vision.ui.description")}</Text>
-          <Text className="text-sm text-zinc-600 dark:text-zinc-400">{rawDescription}</Text>
+          <Text strong className="text-sm block mb-1">
+            {t("chat.vision.ui.description")}
+          </Text>
+          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
+            {rawDescription}
+          </Text>
         </div>
       )}
     </Card>

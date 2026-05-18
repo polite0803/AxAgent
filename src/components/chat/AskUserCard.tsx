@@ -16,7 +16,11 @@ interface AskUserCardProps {
 
 const MAX_CHARS = 500;
 
-const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) => {
+const AskUserCard: React.FC<AskUserCardProps> = ({
+  askId,
+  question,
+  options,
+}) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [answer, setAnswer] = useState("");
@@ -35,12 +39,16 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
   const isSingleChoice = hasOptions && options.length <= 5;
 
   const canSubmit = useMemo(() => {
-    if (hasOptions && isSingleChoice) { return selectedOption !== null; }
+    if (hasOptions && isSingleChoice) {
+      return selectedOption !== null;
+    }
     return answer.trim().length > 0;
   }, [hasOptions, isSingleChoice, selectedOption, answer]);
 
   const handleSubmit = async () => {
-    if (!canSubmit || submitting || submitted) { return; }
+    if (!canSubmit || submitting || submitted) {
+      return;
+    }
 
     let finalAnswer: string;
     if (hasOptions && isSingleChoice && selectedOption) {
@@ -97,13 +105,21 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
               flexShrink: 0,
             }}
           >
-            <MessageCircleQuestion size={18} style={{ color: token.colorPrimary }} />
+            <MessageCircleQuestion
+              size={18}
+              style={{ color: token.colorPrimary }}
+            />
           </div>
           <div style={{ flex: 1 }}>
-            <Text strong style={{ fontSize: 13, display: "block", marginBottom: 4 }}>
+            <Text
+              strong
+              style={{ fontSize: 13, display: "block", marginBottom: 4 }}
+            >
               {t("agent.questionFromAgent")}
             </Text>
-            <Text style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>
+            <Text
+              style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}
+            >
               {/* static list from text split, safe to use index as key */}
               {questionLines.map((line, i) => (
                 <React.Fragment key={i}>
@@ -124,7 +140,10 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
               border: `1px solid ${token.colorBorderSecondary}`,
             }}
           >
-            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, display: "block", marginBottom: 8 }}
+            >
               {isSingleChoice
                 ? t("agent.selectOneOption")
                 : t("agent.selectOptions")}
@@ -146,7 +165,9 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
                           padding: "6px 10px",
                           borderRadius: 6,
                           border: `1px solid ${selectedOption === opt ? token.colorPrimary : token.colorBorder}`,
-                          backgroundColor: selectedOption === opt ? `${token.colorPrimary}10` : "transparent",
+                          backgroundColor: selectedOption === opt
+                            ? `${token.colorPrimary}10`
+                            : "transparent",
                           transition: "box-shadow 0.2s, transform 0.2s",
                         }}
                       >
@@ -197,7 +218,13 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
                   fontSize: 14,
                 }}
               />
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: 4,
+                }}
+              >
                 <Text
                   type={isNearLimit ? "warning" : "secondary"}
                   style={{ fontSize: 12 }}
@@ -209,7 +236,14 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
           )
           : null}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           {submitted
             ? (
               <Space size={6} style={{ color: token.colorSuccess }}>
@@ -244,7 +278,14 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
         </div>
 
         {submitting && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, color: token.colorPrimary }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: token.colorPrimary,
+            }}
+          >
             <Loader2 size={14} className="spin" />
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("agent.submitting")}

@@ -40,7 +40,9 @@ export function QualityScore({
   }, [wikiId, pageId]);
 
   useEffect(() => {
-    if (!autoRefresh) { return; }
+    if (!autoRefresh) {
+      return;
+    }
     const interval = setInterval(loadQualityScore, refreshInterval);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, wikiId, pageId]);
@@ -49,7 +51,9 @@ export function QualityScore({
     setRefreshing(true);
     try {
       if (pageId) {
-        const result = await invoke<LintResult>("llm_wiki_lint", { noteId: pageId });
+        const result = await invoke<LintResult>("llm_wiki_lint", {
+          noteId: pageId,
+        });
         const score = result?.score ?? 1.0;
         const issues = result?.issues || [];
         setDetails({
@@ -58,8 +62,10 @@ export function QualityScore({
           factors: analyzeFactors(issues),
         });
       } else {
-        const result = await invoke<LintResult[]>("llm_wiki_lint_vault", { wikiId });
-        const allIssues = result?.flatMap(r => r.issues) || [];
+        const result = await invoke<LintResult[]>("llm_wiki_lint_vault", {
+          wikiId,
+        });
+        const allIssues = result?.flatMap((r) => r.issues) || [];
         const score = calculateScore(allIssues);
         setDetails({
           score,
@@ -75,7 +81,9 @@ export function QualityScore({
   };
 
   const calculateScore = (issues: LintIssue[]): number => {
-    if (issues.length === 0) { return 1.0; }
+    if (issues.length === 0) {
+      return 1.0;
+    }
     let score = 1.0;
     for (const issue of issues) {
       switch (issue.severity) {
@@ -96,7 +104,7 @@ export function QualityScore({
   const analyzeFactors = (issues: LintIssue[]): QualityDetails["factors"] => {
     const factors: QualityDetails["factors"] = [];
 
-    const errorCount = issues.filter(i => i.severity === "Error").length;
+    const errorCount = issues.filter((i) => i.severity === "Error").length;
     if (errorCount > 0) {
       factors.push({
         name: t("wiki.quality.errors"),
@@ -105,7 +113,7 @@ export function QualityScore({
       });
     }
 
-    const warningCount = issues.filter(i => i.severity === "Warning").length;
+    const warningCount = issues.filter((i) => i.severity === "Warning").length;
     if (warningCount > 0) {
       factors.push({
         name: t("wiki.quality.warnings"),
@@ -114,7 +122,7 @@ export function QualityScore({
       });
     }
 
-    const infoCount = issues.filter(i => i.severity === "Info").length;
+    const infoCount = issues.filter((i) => i.severity === "Info").length;
     if (infoCount > 0) {
       factors.push({
         name: t("wiki.quality.suggestions"),
@@ -127,25 +135,41 @@ export function QualityScore({
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) { return "#52c41a"; }
-    if (score >= 0.5) { return "#faad14"; }
+    if (score >= 0.8) {
+      return "#52c41a";
+    }
+    if (score >= 0.5) {
+      return "#faad14";
+    }
     return "#ff4d4f";
   };
 
   const getScoreIcon = (score: number) => {
-    if (score >= 0.8) { return <CheckCircleOutlined style={{ color: "#52c41a" }} />; }
-    if (score >= 0.5) { return <WarningOutlined style={{ color: "#faad14" }} />; }
+    if (score >= 0.8) {
+      return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+    }
+    if (score >= 0.5) {
+      return <WarningOutlined style={{ color: "#faad14" }} />;
+    }
     return <CloseCircleOutlined style={{ color: "#ff4d4f" }} />;
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 0.8) { return t("wiki.quality.excellent"); }
-    if (score >= 0.6) { return t("wiki.quality.good"); }
-    if (score >= 0.4) { return t("wiki.quality.fair"); }
+    if (score >= 0.8) {
+      return t("wiki.quality.excellent");
+    }
+    if (score >= 0.6) {
+      return t("wiki.quality.good");
+    }
+    if (score >= 0.4) {
+      return t("wiki.quality.fair");
+    }
     return t("wiki.quality.poor");
   };
 
-  const getIssueSeverityColor = (severity: string): "success" | "error" | "processing" | "default" | "warning" => {
+  const getIssueSeverityColor = (
+    severity: string,
+  ): "success" | "error" | "processing" | "default" | "warning" => {
     switch (severity) {
       case "error":
         return "error";
@@ -226,8 +250,17 @@ export function QualityScore({
           </Text>
           <div className="mt-1">
             {details.factors.map((factor, _index) => (
-              <div key={factor.name} className="flex items-center gap-2 text-sm">
-                <Tag color={factor.impact < -0.2 ? "error" : factor.impact < -0.05 ? "warning" : "default"}>
+              <div
+                key={factor.name}
+                className="flex items-center gap-2 text-sm"
+              >
+                <Tag
+                  color={factor.impact < -0.2
+                    ? "error"
+                    : factor.impact < -0.05
+                    ? "warning"
+                    : "default"}
+                >
                   {factor.name}
                 </Tag>
                 <Text type="secondary">{factor.description}</Text>

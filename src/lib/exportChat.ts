@@ -25,7 +25,9 @@ async function saveFile(
       import("@tauri-apps/plugin-fs"),
     ]);
     const filePath = await save({ defaultPath: defaultName, filters });
-    if (!filePath) { return false; }
+    if (!filePath) {
+      return false;
+    }
     try {
       if (typeof content === "string") {
         await writeTextFile(filePath, content);
@@ -67,41 +69,76 @@ export interface TranscriptExportOptions {
   includeThinking?: boolean;
 }
 
-function getExportMessageContent(message: Message, options?: TranscriptExportOptions) {
+function getExportMessageContent(
+  message: Message,
+  options?: TranscriptExportOptions,
+) {
   if (options?.includeThinking === false) {
     return stripAxAgentTags(message.content);
   }
   return message.content;
 }
 
-export function buildMarkdownTranscript(messages: Message[], title: string, options?: TranscriptExportOptions) {
+export function buildMarkdownTranscript(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
   const lines: string[] = [`# ${title}`, ""];
   for (const m of messages) {
     const role = m.role === "user" ? "User" : m.role === "system" ? "System" : "Assistant";
-    lines.push(`## ${role}`, "", getExportMessageContent(m, options), "", "---", "");
+    lines.push(
+      `## ${role}`,
+      "",
+      getExportMessageContent(m, options),
+      "",
+      "---",
+      "",
+    );
   }
   return lines.join("\n");
 }
 
-export function buildTextTranscript(messages: Message[], title: string, options?: TranscriptExportOptions) {
+export function buildTextTranscript(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
   const lines: string[] = [title, "=".repeat(title.length), ""];
   for (const m of messages) {
     const role = m.role === "user" ? "User" : m.role === "system" ? "System" : "Assistant";
-    lines.push(`[${role}]`, "", getExportMessageContent(m, options), "", "---", "");
+    lines.push(
+      `[${role}]`,
+      "",
+      getExportMessageContent(m, options),
+      "",
+      "---",
+      "",
+    );
   }
   return lines.join("\n");
 }
 
 export async function exportAsPNG(element: HTMLElement | null, title: string) {
-  if (!element) { return false; }
+  if (!element) {
+    return false;
+  }
   const { default: html2canvas } = await import("html2canvas");
-  const canvas = await html2canvas(element, { useCORS: true, scale: 2, backgroundColor: "#fff" });
+  const canvas = await html2canvas(element, {
+    useCORS: true,
+    scale: 2,
+    backgroundColor: "#fff",
+  });
 
   if (isTauri()) {
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-    if (!blob) { return false; }
+    if (!blob) {
+      return false;
+    }
     const buffer = new Uint8Array(await blob.arrayBuffer());
-    return saveFile(`${title}.png`, buffer, [{ name: "PNG Image", extensions: ["png"] }]);
+    return saveFile(`${title}.png`, buffer, [
+      { name: "PNG Image", extensions: ["png"] },
+    ]);
   }
 
   // Browser fallback
@@ -112,7 +149,11 @@ export async function exportAsPNG(element: HTMLElement | null, title: string) {
   return true;
 }
 
-export function buildJsonTranscript(messages: Message[], title: string, options?: TranscriptExportOptions) {
+export function buildJsonTranscript(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
   const data = {
     title,
     exported_at: new Date().toISOString(),
@@ -127,43 +168,59 @@ export function buildJsonTranscript(messages: Message[], title: string, options?
 }
 
 /** 构建 HTML 格式的对话抄本，带内联 CSS 样式保持聊天气泡外观 */
-export function buildHtmlTranscript(messages: Message[], title: string, options?: TranscriptExportOptions) {
-  const escapedTitle = title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export function buildHtmlTranscript(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
+  const escapedTitle = title
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
   const now = new Date().toISOString().replace("T", " ").substring(0, 19);
 
-  const messageHtml = messages.map((m) => {
-    const roleLabel = m.role === "user"
-      ? i18n.t("chat.role.user")
-      : m.role === "system"
-      ? i18n.t("chat.role.system")
-      : i18n.t("chat.role.assistant");
-    const alignClass = m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant";
-    const escapedContent = getExportMessageContent(m, options)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      // 将代码块转换为 <pre><code> 以保持格式
-      .replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => {
-        const escapedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        return `<pre><code class="language-${lang || "text"}">${escapedCode}</code></pre>`;
-      })
-      // 行内代码
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      // 换行转 <br>
-      .replace(/\n/g, "<br>");
+  const messageHtml = messages
+    .map((m) => {
+      const roleLabel = m.role === "user"
+        ? i18n.t("chat.role.user")
+        : m.role === "system"
+        ? i18n.t("chat.role.system")
+        : i18n.t("chat.role.assistant");
+      const alignClass = m.role === "user"
+        ? "user"
+        : m.role === "system"
+        ? "system"
+        : "assistant";
+      const escapedContent = getExportMessageContent(m, options)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        // 将代码块转换为 <pre><code> 以保持格式
+        .replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => {
+          const escapedCode = code
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          return `<pre><code class="language-${lang || "text"}">${escapedCode}</code></pre>`;
+        })
+        // 行内代码
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        // 换行转 <br>
+        .replace(/\n/g, "<br>");
 
-    const time = m.created_at
-      ? new Date(m.created_at).toLocaleString(i18n.language)
-      : "";
+      const time = m.created_at
+        ? new Date(m.created_at).toLocaleString(i18n.language)
+        : "";
 
-    return `<div class="message ${alignClass}">
+      return `<div class="message ${alignClass}">
   <div class="message-header">
     <span class="role">${roleLabel}</span>
     <span class="time">${time}</span>
   </div>
   <div class="message-body">${escapedContent}</div>
 </div>`;
-  }).join("\n");
+    })
+    .join("\n");
 
   return `<!DOCTYPE html>
 <html lang="${i18n.language}">
@@ -276,32 +333,72 @@ export async function copyTranscript(
   return true;
 }
 
-export async function exportAsMarkdown(messages: Message[], title: string, options?: TranscriptExportOptions) {
-  return saveFile(`${title}.md`, buildMarkdownTranscript(messages, title, options), [{
-    name: "Markdown",
-    extensions: ["md"],
-  }]);
+export async function exportAsMarkdown(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
+  return saveFile(
+    `${title}.md`,
+    buildMarkdownTranscript(messages, title, options),
+    [
+      {
+        name: "Markdown",
+        extensions: ["md"],
+      },
+    ],
+  );
 }
 
-export async function exportAsText(messages: Message[], title: string, options?: TranscriptExportOptions) {
-  return saveFile(`${title}.txt`, buildTextTranscript(messages, title, options), [{
-    name: "Text",
-    extensions: ["txt"],
-  }]);
+export async function exportAsText(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
+  return saveFile(
+    `${title}.txt`,
+    buildTextTranscript(messages, title, options),
+    [
+      {
+        name: "Text",
+        extensions: ["txt"],
+      },
+    ],
+  );
 }
 
-export async function exportAsJSON(messages: Message[], title: string, options?: TranscriptExportOptions) {
-  return saveFile(`${title}.json`, buildJsonTranscript(messages, title, options), [{
-    name: "JSON",
-    extensions: ["json"],
-  }]);
+export async function exportAsJSON(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
+  return saveFile(
+    `${title}.json`,
+    buildJsonTranscript(messages, title, options),
+    [
+      {
+        name: "JSON",
+        extensions: ["json"],
+      },
+    ],
+  );
 }
 
-export async function exportAsHTML(messages: Message[], title: string, options?: TranscriptExportOptions) {
-  return saveFile(`${title}.html`, buildHtmlTranscript(messages, title, options), [{
-    name: "HTML",
-    extensions: ["html"],
-  }]);
+export async function exportAsHTML(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+) {
+  return saveFile(
+    `${title}.html`,
+    buildHtmlTranscript(messages, title, options),
+    [
+      {
+        name: "HTML",
+        extensions: ["html"],
+      },
+    ],
+  );
 }
 
 // ── Worker-accelerated exports (P2) ──
@@ -322,10 +419,12 @@ export async function exportAsMarkdownAsync(
     })),
     "markdown",
   );
-  return saveFile(`${title}.md`, `# ${title}\n\n${content}`, [{
-    name: "Markdown",
-    extensions: ["md"],
-  }]);
+  return saveFile(`${title}.md`, `# ${title}\n\n${content}`, [
+    {
+      name: "Markdown",
+      extensions: ["md"],
+    },
+  ]);
 }
 
 /** Export as Text using a Web Worker for large conversations (>50 messages). */
@@ -345,8 +444,10 @@ export async function exportAsTextAsync(
     "text",
   );
   const fullContent = `${title}\n${"=".repeat(title.length)}\n\n${content}`;
-  return saveFile(`${title}.txt`, fullContent, [{
-    name: "Text",
-    extensions: ["txt"],
-  }]);
+  return saveFile(`${title}.txt`, fullContent, [
+    {
+      name: "Text",
+      extensions: ["txt"],
+    },
+  ]);
 }

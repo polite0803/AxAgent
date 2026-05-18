@@ -13,7 +13,11 @@ interface SkillPageRendererProps {
  * Skill 渲染分发器。
  * 统一使用 Sandbox 架构（安全隔离 + RPC 通信），Markdown 作为纯内容渲染路径。
  */
-export function SkillPageRenderer({ componentType, componentConfig, skillName }: SkillPageRendererProps) {
+export function SkillPageRenderer({
+  componentType,
+  componentConfig,
+  skillName,
+}: SkillPageRendererProps) {
   if (componentType === "Markdown") {
     return <SkillMarkdownPage skillName={skillName} />;
   }

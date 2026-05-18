@@ -25,7 +25,11 @@ const LANGUAGE_OPTIONS = [
   { value: "cpp", label: "🔴 C++" },
 ];
 
-export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUpdate, onDelete }) => {
+export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
+  node,
+  onUpdate,
+  onDelete,
+}) => {
   const { t } = useTranslation();
   const codeNode = node as CodeNode;
   const config = codeNode.config || {
@@ -43,7 +47,9 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
       case "javascript":
       case "typescript":
         return `// ${t("workflow.props.codeInputParams")}\n// ${
-          t("workflow.props.codeReturnHint")
+          t(
+            "workflow.props.codeReturnHint",
+          )
         }\n\nconst result = input;\nreturn result;`;
       case "python":
         return `${t("workflow.props.defaultCodePythonComment")}\n\nresult = input\nreturn result`;
@@ -66,7 +72,14 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.language")}
         </label>
         <Select
@@ -80,7 +93,14 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.code")}
           <span style={{ color: "#666", fontWeight: 400, marginLeft: 4 }}>
             {t("workflow.props.codeInputOutputHint")}
@@ -102,7 +122,14 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
       </div>
 
       <div>
-        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+        <label
+          style={{
+            display: "block",
+            color: "#999",
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
           {t("workflow.props.outputVariable")}
         </label>
         <Input
@@ -116,8 +143,14 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({ node, onUp
 
       <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
 
-      <div style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}>
-        <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />
+      <div
+        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+      >
+        <BasePropertyPanel
+          node={node}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );

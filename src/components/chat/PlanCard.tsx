@@ -15,7 +15,10 @@ import "./PlanCard.css";
 
 // ── Status Icons ──────────────────────────────────────────────────────
 
-const statusConfig: Record<PlanStepStatus, { icon: React.ReactNode; color: string; labelKey: string }> = {
+const statusConfig: Record<
+  PlanStepStatus,
+  { icon: React.ReactNode; color: string; labelKey: string }
+> = {
   pending: {
     icon: <span className="plan-step-dot" style={{ background: "#d9d9d9" }} />,
     color: "#8c8c8c",
@@ -50,7 +53,11 @@ const statusConfig: Record<PlanStepStatus, { icon: React.ReactNode; color: strin
 
 // ── Progress calculation ──────────────────────────────────────────────
 
-function calcProgress(steps: PlanStep[]): { completed: number; total: number; percent: number } {
+function calcProgress(steps: PlanStep[]): {
+  completed: number;
+  total: number;
+  percent: number;
+} {
   const total = steps.length;
   const completed = steps.filter((s) => s.status === "completed").length;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -68,7 +75,11 @@ interface PlanCardProps {
   onExecutionComplete?: () => void;
 }
 
-export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCardProps) {
+export function PlanCard({
+  plan,
+  conversationId,
+  isHistorical = false,
+}: PlanCardProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
@@ -99,7 +110,9 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
     // Mark all pending steps as approved in parallel
     await Promise.all(
       localSteps.flatMap((step) =>
-        step.status === "pending" ? [modifyStep(conversationId, plan.id, step.id, { approved: true })] : []
+        step.status === "pending"
+          ? [modifyStep(conversationId, plan.id, step.id, { approved: true })]
+          : []
       ),
     );
     // Execute
@@ -128,8 +141,11 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
   const toggleStep = useCallback((stepId: string) => {
     setExpandedSteps((prev) => {
       const next = new Set(prev);
-      if (next.has(stepId)) { next.delete(stepId); }
-      else { next.add(stepId); }
+      if (next.has(stepId)) {
+        next.delete(stepId);
+      } else {
+        next.add(stepId);
+      }
       return next;
     });
   }, []);
@@ -160,11 +176,19 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ClipboardList size={18} color="#722ed1" />
-          <span style={{ fontWeight: 600, fontSize: 14, color: token.colorText }}>
+          <span
+            style={{ fontWeight: 600, fontSize: 14, color: token.colorText }}
+          >
             {plan.title || t("plan.defaultTitle")}
           </span>
           <Tag
-            color={isReviewing ? "purple" : isExecuting ? "blue" : isCompleted ? "green" : "default"}
+            color={isReviewing
+              ? "purple"
+              : isExecuting
+              ? "blue"
+              : isCompleted
+              ? "green"
+              : "default"}
             style={{ fontSize: 12, lineHeight: "18px" }}
           >
             {isReviewing
@@ -249,8 +273,11 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                   e.preventDefault();
                   setExpandedSteps((prev) => {
                     const next = new Set(prev);
-                    if (next.has(step.id)) { next.delete(step.id); }
-                    else { next.add(step.id); }
+                    if (next.has(step.id)) {
+                      next.delete(step.id);
+                    } else {
+                      next.add(step.id);
+                    }
                     return next;
                   });
                 }
@@ -307,7 +334,9 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                   ? <CheckCircleFilled style={{ fontSize: 14 }} />
                   : step.status === "error"
                   ? <CloseCircleFilled style={{ fontSize: 14 }} />
-                  : index + 1}
+                  : (
+                    index + 1
+                  )}
               </div>
 
               {/* Step content */}
@@ -325,12 +354,18 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                   </span>
                   <Tag
                     color={config.color}
-                    style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px" }}
+                    style={{
+                      fontSize: 10,
+                      lineHeight: "16px",
+                      padding: "0 4px",
+                    }}
                   >
                     {t(config.labelKey)}
                   </Tag>
                   {step.estimated_tools && step.estimated_tools.length > 0 && (
-                    <span style={{ fontSize: 12, color: token.colorTextQuaternary }}>
+                    <span
+                      style={{ fontSize: 12, color: token.colorTextQuaternary }}
+                    >
                       {step.estimated_tools.join(", ")}
                     </span>
                   )}
@@ -351,15 +386,14 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                 )}
 
                 {/* Result after execution */}
-                {step.result && (step.status === "completed" || step.status === "error") && (
+                {step.result
+                  && (step.status === "completed" || step.status === "error") && (
                   <div
                     style={{
                       marginTop: 6,
                       padding: "6px 10px",
                       borderRadius: 4,
-                      backgroundColor: step.status === "error"
-                        ? "#fff2f0"
-                        : "#f6ffed",
+                      backgroundColor: step.status === "error" ? "#fff2f0" : "#f6ffed",
                       border: `1px solid ${step.status === "error" ? "#ffccc7" : "#b7eb8f"}`,
                       fontSize: 12,
                       color: token.colorTextSecondary,
@@ -378,10 +412,16 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                     <Button
                       type="text"
                       size="small"
-                      icon={<CheckCircleFilled style={{ color: "#52c41a", fontSize: 16 }} />}
+                      icon={
+                        <CheckCircleFilled
+                          style={{ color: "#52c41a", fontSize: 16 }}
+                        />
+                      }
                       onClick={(e) => {
                         e.stopPropagation();
-                        modifyStep(conversationId, plan.id, step.id, { approved: true });
+                        modifyStep(conversationId, plan.id, step.id, {
+                          approved: true,
+                        });
                       }}
                     />
                   </Tooltip>
@@ -389,7 +429,11 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
                     <Button
                       type="text"
                       size="small"
-                      icon={<CloseCircleFilled style={{ color: "#ff4d4f", fontSize: 16 }} />}
+                      icon={
+                        <CloseCircleFilled
+                          style={{ color: "#ff4d4f", fontSize: 16 }}
+                        />
+                      }
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRejectStep(step.id);
@@ -417,7 +461,9 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
       </div>
 
       {/* Footer: compact action row */}
-      {isReviewing && !isHistorical && localSteps.some((s) => s.status === "approved") && (
+      {isReviewing
+        && !isHistorical
+        && localSteps.some((s) => s.status === "approved") && (
         <div
           style={{
             padding: "8px 16px",

@@ -53,7 +53,9 @@ export function SyncStatus({
   }, [wikiId]);
 
   useEffect(() => {
-    if (!autoRefresh) { return; }
+    if (!autoRefresh) {
+      return;
+    }
     const interval = setInterval(loadSyncStatus, refreshInterval);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, wikiId]);
@@ -86,7 +88,9 @@ export function SyncStatus({
     setProcessing(false);
   };
 
-  const getStatusColor = (status: string): "success" | "error" | "processing" | "default" | "warning" => {
+  const getStatusColor = (
+    status: string,
+  ): "success" | "error" | "processing" | "default" | "warning" => {
     switch (status) {
       case "completed":
         return "success";
@@ -128,9 +132,11 @@ export function SyncStatus({
     );
   }
 
-  const pendingCount = queueItems.filter(i => i.status === "pending").length;
-  const processingCount = queueItems.filter(i => i.status === "processing").length;
-  const failedCount = queueItems.filter(i => i.status === "failed").length;
+  const pendingCount = queueItems.filter((i) => i.status === "pending").length;
+  const processingCount = queueItems.filter(
+    (i) => i.status === "processing",
+  ).length;
+  const failedCount = queueItems.filter((i) => i.status === "failed").length;
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -198,7 +204,9 @@ export function SyncStatus({
           <div className="mb-3">
             <div className="flex justify-between mb-1">
               <Text>{t("wiki.sync.usage")}</Text>
-              <Text>{capacityInfo.totalChunks} / {capacityInfo.maxChunks}</Text>
+              <Text>
+                {capacityInfo.totalChunks} / {capacityInfo.maxChunks}
+              </Text>
             </div>
             <Progress
               percent={capacityInfo.usagePercent}
@@ -217,12 +225,22 @@ export function SyncStatus({
                 {t("wiki.sync.byWiki")}
               </Text>
               <div className="mt-2">
-                {Object.entries(capacityInfo.wikiChunkCounts).map(([id, count]) => (
-                  <div key={id} className="flex justify-between items-center py-1">
-                    <Text className="text-sm truncate" style={{ maxWidth: 150 }}>{id}</Text>
-                    <Tag>{count} chunks</Tag>
-                  </div>
-                ))}
+                {Object.entries(capacityInfo.wikiChunkCounts).map(
+                  ([id, count]) => (
+                    <div
+                      key={id}
+                      className="flex justify-between items-center py-1"
+                    >
+                      <Text
+                        className="text-sm truncate"
+                        style={{ maxWidth: 150 }}
+                      >
+                        {id}
+                      </Text>
+                      <Tag>{count} chunks</Tag>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           )}
@@ -250,7 +268,11 @@ export function SyncStatus({
                     </Space>
                     <Space>
                       {item.retryCount > 0 && (
-                        <Tooltip title={t("wiki.sync.retryCount", { count: item.retryCount })}>
+                        <Tooltip
+                          title={t("wiki.sync.retryCount", {
+                            count: item.retryCount,
+                          })}
+                        >
                           <Tag color="warning">{item.retryCount}</Tag>
                         </Tooltip>
                       )}

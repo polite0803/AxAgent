@@ -26,7 +26,9 @@ export function StylePreviewPanel({
 
   const [originalCode, setOriginalCode] = useState(code);
   const [styledCode, setStyledCode] = useState(code);
-  const [activeTab, setActiveTab] = useState<"preview" | "dimensions">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "dimensions">(
+    "preview",
+  );
 
   useEffect(() => {
     loadStyleProfile("default");
@@ -37,13 +39,18 @@ export function StylePreviewPanel({
   }, [code]);
 
   const handleApplyStyle = async () => {
-    if (!code) { return; }
+    if (!code) {
+      return;
+    }
     const result = await applyStyleToCode(code);
     setStyledCode(result);
     onStyleApplied?.(result);
   };
 
-  const handleDimensionChange = (dimension: keyof StyleDimensions, value: number) => {
+  const handleDimensionChange = (
+    dimension: keyof StyleDimensions,
+    value: number,
+  ) => {
     adjustStyleDimension(dimension, value);
   };
 
@@ -149,15 +156,25 @@ export function StylePreviewPanel({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <span className="text-xs text-muted-foreground">{t("style.original")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("style.original")}
+                </span>
                 <pre className="text-xs bg-muted/30 rounded p-2 max-h-48 overflow-auto font-mono">
-                <code>{originalCode.slice(0, 500)}{originalCode.length > 500 ? "..." : ""}</code>
+                <code>
+                  {originalCode.slice(0, 500)}
+                  {originalCode.length > 500 ? "..." : ""}
+                </code>
                 </pre>
               </div>
               <div className="space-y-1">
-                <span className="text-xs text-muted-foreground">{t("style.styled")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("style.styled")}
+                </span>
                 <pre className="text-xs bg-primary/5 rounded p-2 max-h-48 overflow-auto font-mono">
-                <code>{styledCode.slice(0, 500)}{styledCode.length > 500 ? "..." : ""}</code>
+                <code>
+                  {styledCode.slice(0, 500)}
+                  {styledCode.length > 500 ? "..." : ""}
+                </code>
                 </pre>
               </div>
             </div>
@@ -165,28 +182,35 @@ export function StylePreviewPanel({
         )
         : (
           <div className="p-3 space-y-3 max-h-64 overflow-auto">
-            {(Object.keys(dimensionLabels) as (keyof StyleDimensions)[]).map((dimension) => (
-              <div key={dimension} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium">{dimensionLabels[dimension]}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {Math.round(currentDimensions[dimension] * 100)}%
+            {(Object.keys(dimensionLabels) as (keyof StyleDimensions)[]).map(
+              (dimension) => (
+                <div key={dimension} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">
+                      {dimensionLabels[dimension]}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round(currentDimensions[dimension] * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={currentDimensions[dimension] * 100}
+                    onChange={(e) =>
+                      handleDimensionChange(
+                        dimension,
+                        parseInt(e.target.value) / 100,
+                      )}
+                    className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                  <span className="text-[10px] text-muted-foreground">
+                    {dimensionDescriptions[dimension]}
                   </span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={currentDimensions[dimension] * 100}
-                  onChange={(e) =>
-                    handleDimensionChange(dimension, parseInt(e.target.value) / 100)}
-                  className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <span className="text-[10px] text-muted-foreground">
-                  {dimensionDescriptions[dimension]}
-                </span>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         )}
     </div>

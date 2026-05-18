@@ -34,7 +34,9 @@ class CodeExecutor {
   private pyodideLoadFailed = false;
 
   async initPyodide(): Promise<void> {
-    if (this.pyodide) { return; }
+    if (this.pyodide) {
+      return;
+    }
     if (this.pyodideLoadFailed) {
       this.pyodideLoadFailed = false;
       this.pyodideLoading = null;
@@ -49,7 +51,9 @@ class CodeExecutor {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement("script");
           script.src = `${PYODIDE_CDN}pyodide.js`;
-          if (PYODIDE_SRI) { script.integrity = PYODIDE_SRI; }
+          if (PYODIDE_SRI) {
+            script.integrity = PYODIDE_SRI;
+          }
           script.crossOrigin = "anonymous";
           script.onload = () => resolve();
           script.onerror = () => reject(new Error("Failed to load Pyodide script"));
@@ -109,12 +113,15 @@ class CodeExecutor {
       }
 
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Python execution timed out")), PYTHON_EXECUTION_TIMEOUT_MS);
+        setTimeout(
+          () => reject(new Error("Python execution timed out")),
+          PYTHON_EXECUTION_TIMEOUT_MS,
+        );
       });
 
       const execPromise = (async () => {
         const encodedCode = btoa(
-          Array.from(new TextEncoder().encode(code), byte => String.fromCharCode(byte)).join(""),
+          Array.from(new TextEncoder().encode(code), (byte) => String.fromCharCode(byte)).join(""),
         );
         const result = await this.pyodide!.runPythonAsync(`
 import sys, json, base64
@@ -134,7 +141,10 @@ json.dumps({"stdout": _stdout, "stderr": _stderr})
         return { stdout: parsed.stdout, stderr: parsed.stderr };
       })();
 
-      const { stdout, stderr } = await Promise.race([execPromise, timeoutPromise]);
+      const { stdout, stderr } = await Promise.race([
+        execPromise,
+        timeoutPromise,
+      ]);
 
       return {
         stdout,

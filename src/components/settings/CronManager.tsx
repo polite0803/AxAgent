@@ -20,12 +20,22 @@ interface CronJob {
 
 interface CronManagerProps {
   jobs: CronJob[];
-  onAdd: (job: { name: string; schedule: string; prompt: string; platform?: string }) => void;
+  onAdd: (job: {
+    name: string;
+    schedule: string;
+    prompt: string;
+    platform?: string;
+  }) => void;
   onDelete: (id: string) => void;
   onToggle: (id: string, enabled: boolean) => void;
 }
 
-export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProps) {
+export function CronManager({
+  jobs,
+  onAdd,
+  onDelete,
+  onToggle,
+}: CronManagerProps) {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,7 +71,9 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       render: (name: string, record: CronJob) => (
         <div>
           <div className="font-medium">{name}</div>
-          <Text type="secondary" style={{ fontSize: 12 }}>{record.schedule}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.schedule}
+          </Text>
         </div>
       ),
     },
@@ -83,7 +95,11 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
       dataIndex: "last_run_at",
       key: "last_run_at",
       render: (lastRun: number | null) =>
-        lastRun ? new Date(lastRun).toLocaleString() : <Text type="secondary">{t("cronManager.never")}</Text>,
+        lastRun
+          ? (
+            new Date(lastRun).toLocaleString()
+          )
+          : <Text type="secondary">{t("cronManager.never")}</Text>,
     },
     {
       title: "Status",
@@ -119,7 +135,11 @@ export function CronManager({ jobs, onAdd, onDelete, onToggle }: CronManagerProp
     <div className="p-6">
       <SettingsGroup title={t("cronManager.title")}>
         <div style={{ marginBottom: 12 }}>
-          <Button type="primary" icon={<Plus size={14} />} onClick={() => setModalOpen(true)}>
+          <Button
+            type="primary"
+            icon={<Plus size={14} />}
+            onClick={() => setModalOpen(true)}
+          >
             Add Cron Job
           </Button>
         </div>

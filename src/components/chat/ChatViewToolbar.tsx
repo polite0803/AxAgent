@@ -32,14 +32,24 @@ import { AgentRoleSelect } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 import { WorkflowBadge } from "./WorkflowBadge";
 
-function StatsPopoverContent({ stats, t, token }: {
+function StatsPopoverContent({
+  stats,
+  t,
+  token,
+}: {
   stats: ConversationStats | null;
   t: (key: string) => string;
   token: Record<string, any>;
 }) {
   if (!stats) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "24px 40px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          padding: "24px 40px",
+        }}
+      >
         <Spin size="small" />
       </div>
     );
@@ -86,38 +96,60 @@ function StatsPopoverContent({ stats, t, token }: {
       ],
     },
     ...(stats.avg_first_token_latency_ms != null
-      ? [{
-        icon: <Zap size={14} />,
-        label: t("chat.stats.avgFirstToken"),
-        value: formatDuration(stats.avg_first_token_latency_ms),
-      }]
+      ? [
+        {
+          icon: <Zap size={14} />,
+          label: t("chat.stats.avgFirstToken"),
+          value: formatDuration(stats.avg_first_token_latency_ms),
+        },
+      ]
       : []),
     ...(stats.avg_response_time_ms != null
-      ? [{
-        icon: <Clock size={14} />,
-        label: t("chat.stats.avgResponseTime"),
-        value: formatDuration(stats.avg_response_time_ms),
-      }]
+      ? [
+        {
+          icon: <Clock size={14} />,
+          label: t("chat.stats.avgResponseTime"),
+          value: formatDuration(stats.avg_response_time_ms),
+        },
+      ]
       : []),
     ...(stats.avg_tokens_per_second != null
-      ? [{
-        icon: <Timer size={14} />,
-        label: t("chat.stats.avgSpeed"),
-        value: formatSpeed(stats.avg_tokens_per_second),
-      }]
+      ? [
+        {
+          icon: <Timer size={14} />,
+          label: t("chat.stats.avgSpeed"),
+          value: formatSpeed(stats.avg_tokens_per_second),
+        },
+      ]
       : []),
   ];
 
   return (
     <div style={{ minWidth: 220, maxWidth: 280 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: 600,
+          marginBottom: 12,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+        }}
+      >
         <ChartNoAxesColumn size={14} />
         {t("chat.stats.title")}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {items.map((item, i) => (
           <div key={item.label}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
               <span
                 style={{
                   display: "inline-flex",
@@ -130,16 +162,35 @@ function StatsPopoverContent({ stats, t, token }: {
                 {item.icon}
                 {item.label}
               </span>
-              <span style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
                 {item.value}
               </span>
             </div>
             {item.sub && (
-              <div style={{ marginLeft: 20, marginTop: 4, display: "flex", flexDirection: "column", gap: 3 }}>
+              <div
+                style={{
+                  marginLeft: 20,
+                  marginTop: 4,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 3,
+                }}
+              >
                 {item.sub.map((s) => (
                   <div
                     key={s.label}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
                   >
                     <span
                       style={{
@@ -153,7 +204,13 @@ function StatsPopoverContent({ stats, t, token }: {
                       {s.icon}
                       {s.label}
                     </span>
-                    <span style={{ fontSize: 12, color: token.colorTextSecondary, fontVariantNumeric: "tabular-nums" }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: token.colorTextSecondary,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
                       {s.value}
                     </span>
                   </div>
@@ -161,7 +218,12 @@ function StatsPopoverContent({ stats, t, token }: {
               </div>
             )}
             {i < items.length - 1 && (
-              <div style={{ borderBottom: `1px solid ${token.colorBorderSecondary}`, marginTop: 10 }} />
+              <div
+                style={{
+                  borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                  marginTop: 10,
+                }}
+              />
             )}
           </div>
         ))}
@@ -181,7 +243,10 @@ export interface ChatViewToolbarProps {
   handleTitleSave: () => void;
   handleRegenerateTitle: () => void;
   isTitleGenerating: boolean;
-  renderConvIconForChat: (size: number, model_id?: string | null) => React.ReactNode;
+  renderConvIconForChat: (
+    size: number,
+    model_id?: string | null,
+  ) => React.ReactNode;
   topicGroupEnabled: boolean;
   handleTopicGroupToggle: () => void;
   statsOpen: boolean;
@@ -290,10 +355,16 @@ export function ChatViewToolbar({
                   if (activeConversation.id) {
                     if (workflowId) {
                       try {
-                        localStorage.setItem(`axagent:workflow-id:${activeConversation.id}`, workflowId);
+                        localStorage.setItem(
+                          `axagent:workflow-id:${activeConversation.id}`,
+                          workflowId,
+                        );
                         window.dispatchEvent(
                           new CustomEvent("axagent:workflow-changed", {
-                            detail: { conversationId: activeConversation.id, workflowId },
+                            detail: {
+                              conversationId: activeConversation.id,
+                              workflowId,
+                            },
                           }),
                         );
                       } catch {
@@ -301,10 +372,15 @@ export function ChatViewToolbar({
                       }
                     } else {
                       try {
-                        localStorage.removeItem(`axagent:workflow-id:${activeConversation.id}`);
+                        localStorage.removeItem(
+                          `axagent:workflow-id:${activeConversation.id}`,
+                        );
                         window.dispatchEvent(
                           new CustomEvent("axagent:workflow-changed", {
-                            detail: { conversationId: activeConversation.id, workflowId: null },
+                            detail: {
+                              conversationId: activeConversation.id,
+                              workflowId: null,
+                            },
                           }),
                         );
                       } catch {
@@ -330,10 +406,15 @@ export function ChatViewToolbar({
                 onRemoveWorkflow={() => {
                   if (activeConversation.id) {
                     try {
-                      localStorage.removeItem(`axagent:workflow-id:${activeConversation.id}`);
+                      localStorage.removeItem(
+                        `axagent:workflow-id:${activeConversation.id}`,
+                      );
                       window.dispatchEvent(
                         new CustomEvent("axagent:workflow-changed", {
-                          detail: { conversationId: activeConversation.id, workflowId: null },
+                          detail: {
+                            conversationId: activeConversation.id,
+                            workflowId: null,
+                          },
                         }),
                       );
                     } catch {
@@ -359,7 +440,9 @@ export function ChatViewToolbar({
                 <AgentRoleSelect
                   value={activeConversation.agent_profile_id ?? ""}
                   onChange={(profileId) => {
-                    const profile = useAgentProfileStore.getState().getProfileById(profileId);
+                    const profile = useAgentProfileStore
+                      .getState()
+                      .getProfileById(profileId);
                     updateConversation(activeConversation.id, {
                       agent_profile_id: profileId || null,
                       system_prompt: profile?.systemPrompt || undefined,
@@ -389,7 +472,14 @@ export function ChatViewToolbar({
               <Button
                 type="text"
                 size="small"
-                icon={<ListTodo size={14} style={{ color: topicGroupEnabled ? token.colorPrimary : undefined }} />}
+                icon={
+                  <ListTodo
+                    size={14}
+                    style={{
+                      color: topicGroupEnabled ? token.colorPrimary : undefined,
+                    }}
+                  />
+                }
                 onClick={handleTopicGroupToggle}
               />
             </Tooltip>
@@ -402,7 +492,11 @@ export function ChatViewToolbar({
               placement="bottomRight"
             >
               <Tooltip title={t("chat.stats.title")}>
-                <Button type="text" icon={<ChartNoAxesColumn size={14} />} size="small" />
+                <Button
+                  type="text"
+                  icon={<ChartNoAxesColumn size={14} />}
+                  size="small"
+                />
               </Tooltip>
             </Popover>
             <Dropdown menu={{ items: exportMenuItems }} trigger={["click"]}>
@@ -421,7 +515,9 @@ export function ChatViewToolbar({
         )
         : (
           <>
-            <Typography.Text type="secondary">{t("chat.welcome")}</Typography.Text>
+            <Typography.Text type="secondary">
+              {t("chat.welcome")}
+            </Typography.Text>
             <div className="flex-1" />
             <ModelSelector />
           </>

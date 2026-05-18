@@ -10,7 +10,10 @@ interface WorkflowSettingsProps {
   onCreateNew?: () => void;
 }
 
-export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettingsProps) {
+export function WorkflowSettings({
+  onOpenEditor,
+  onCreateNew,
+}: WorkflowSettingsProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
@@ -30,7 +33,9 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
     if (onCreateNew) {
       onCreateNew();
     } else {
-      if (import.meta.env.DEV) { console.log("Create new template"); }
+      if (import.meta.env.DEV) {
+        console.log("Create new template");
+      }
       if (onOpenEditor) {
         onOpenEditor();
       }
@@ -39,7 +44,14 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
 
   const renderMyWorkflows = () => (
     <div style={{ padding: "0" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 24,
+        }}
+      >
         <div>
           <Button
             type="primary"
@@ -61,12 +73,22 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
             <GitBranch size={24} style={{ color: token.colorPrimary }} />
           </div>
           <div style={{ flex: 1 }}>
-            <h5 style={{ margin: "0 0 4px 0", fontWeight: 500 }}>{t("settings.workflow.visualEditor")}</h5>
-            <p style={{ margin: 0, color: token.colorTextSecondary, fontSize: 13 }}>
+            <h5 style={{ margin: "0 0 4px 0", fontWeight: 500 }}>
+              {t("settings.workflow.visualEditor")}
+            </h5>
+            <p
+              style={{
+                margin: 0,
+                color: token.colorTextSecondary,
+                fontSize: 13,
+              }}
+            >
               {t("settings.workflow.visualEditorDesc")}
             </p>
           </div>
-          <Button onClick={() => onOpenEditor?.()}>{t("settings.workflow.openEditor")}</Button>
+          <Button onClick={() => onOpenEditor?.()}>
+            {t("settings.workflow.openEditor")}
+          </Button>
         </div>
       </Card>
 
@@ -81,13 +103,20 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Tabs
-        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+        }}
         tabBarStyle={{ padding: "0 24px", marginBottom: 0, flexShrink: 0 }}
         items={[
           {
             key: "my-workflows",
             label: (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <GitBranch size={14} />
                 {t("settings.workflow.myWorkflows")}
               </span>
@@ -97,7 +126,9 @@ export function WorkflowSettings({ onOpenEditor, onCreateNew }: WorkflowSettings
           {
             key: "marketplace",
             label: (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <Store size={14} />
                 {t("settings.workflow.marketplace")}
               </span>

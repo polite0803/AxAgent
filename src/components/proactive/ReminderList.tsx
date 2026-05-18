@@ -23,7 +23,9 @@ function toLocalDatetimeValue(isoString: string): string {
   const date = new Date(isoString);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${
-    pad(date.getMinutes())
+    pad(
+      date.getMinutes(),
+    )
   }`;
 }
 
@@ -64,7 +66,9 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!newReminder.title.trim() || submittingRef.current) { return; }
+      if (!newReminder.title.trim() || submittingRef.current) {
+        return;
+      }
 
       submittingRef.current = true;
       try {
@@ -82,15 +86,14 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
     [newReminder, addReminder],
   );
 
-  const handleDelete = useCallback(
-    (reminder: Reminder) => {
-      setDeleteTarget(reminder);
-    },
-    [],
-  );
+  const handleDelete = useCallback((reminder: Reminder) => {
+    setDeleteTarget(reminder);
+  }, []);
 
   const confirmDelete = useCallback(async () => {
-    if (!deleteTarget) { return; }
+    if (!deleteTarget) {
+      return;
+    }
     await removeReminder(deleteTarget.id);
     setDeleteTarget(null);
   }, [deleteTarget, removeReminder]);
@@ -123,10 +126,14 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
 
   const getRecurrenceText = useCallback(
     (reminder: Reminder) => {
-      if (!reminder.recurrence) { return null; }
+      if (!reminder.recurrence) {
+        return null;
+      }
       const { frequency, interval } = reminder.recurrence;
       const suffixKey = FREQUENCY_UNIT_SUFFIX_KEY[frequency];
-      if (!suffixKey) { return null; }
+      if (!suffixKey) {
+        return null;
+      }
 
       if (interval === 1) {
         const unit = t(`proactive.recurrenceUnit${suffixKey}` as any);
@@ -145,7 +152,9 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
 
   const pendingReminders = reminders
     .filter((r) => !r.completed)
-    .toSorted((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+    .toSorted(
+      (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
+    );
 
   const completedReminders = reminders.filter((r) => r.completed);
 
@@ -154,7 +163,13 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
       <div className="bg-card border rounded-lg">
         <div className="px-4 py-3 border-b flex items-center justify-between">
           <h3 className="font-medium flex items-center gap-2">
-            <svg className="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="size-4 text-primary"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -171,8 +186,18 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
             title={t("proactive.addReminder")}
           >
-            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              className="size-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
             </svg>
           </button>
         </div>
@@ -185,7 +210,10 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
           )}
 
           {showForm && (
-            <form onSubmit={handleSubmit} className="mb-4 p-3 bg-muted/50 rounded-lg">
+            <form
+              onSubmit={handleSubmit}
+              className="mb-4 p-3 bg-muted/50 rounded-lg"
+            >
               <div className="space-y-3">
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">
@@ -194,7 +222,11 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                   <input
                     type="text"
                     value={newReminder.title}
-                    onChange={(e) => setNewReminder((prev) => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) =>
+                      setNewReminder((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))}
                     className="w-full px-2 py-1 text-sm bg-background border rounded"
                     placeholder={t("proactive.titlePlaceholder")}
                     required
@@ -206,7 +238,11 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                   </label>
                   <textarea
                     value={newReminder.description}
-                    onChange={(e) => setNewReminder((prev) => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setNewReminder((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))}
                     className="w-full px-2 py-1 text-sm bg-background border rounded resize-none"
                     rows={2}
                     placeholder={t("proactive.descriptionPlaceholder")}
@@ -218,9 +254,14 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                   </label>
                   <input
                     type="datetime-local"
-                    value={newReminder.scheduled_at ? toLocalDatetimeValue(newReminder.scheduled_at) : ""}
+                    value={newReminder.scheduled_at
+                      ? toLocalDatetimeValue(newReminder.scheduled_at)
+                      : ""}
                     onChange={(e) =>
-                      setNewReminder((prev) => ({ ...prev, scheduled_at: parseLocalDatetimeValue(e.target.value) }))}
+                      setNewReminder((prev) => ({
+                        ...prev,
+                        scheduled_at: parseLocalDatetimeValue(e.target.value),
+                      }))}
                     className="w-full px-2 py-1 text-sm bg-background border rounded"
                     required
                   />
@@ -251,7 +292,8 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                 <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             )
-            : pendingReminders.length === 0 && completedReminders.length === 0
+            : pendingReminders.length === 0
+                && completedReminders.length === 0
             ? (
               <div className="text-sm text-muted-foreground text-center py-4">
                 {t("proactive.noReminders")}
@@ -263,13 +305,17 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                   <div
                     key={reminder.id}
                     className={`p-3 rounded-lg border hover:bg-muted/50 transition-colors ${
-                      isOverdue(reminder.scheduled_at) ? "border-destructive/40 bg-destructive/5" : ""
+                      isOverdue(reminder.scheduled_at)
+                        ? "border-destructive/40 bg-destructive/5"
+                        : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{reminder.title}</span>
+                          <span className="text-sm font-medium">
+                            {reminder.title}
+                          </span>
                           {getRecurrenceText(reminder) && (
                             <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">
                               {getRecurrenceText(reminder)}
@@ -317,7 +363,11 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                             stroke="currentColor"
                             strokeWidth={2}
                           >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                         </button>
                         <button
@@ -356,7 +406,9 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm line-through">{reminder.title}</span>
+                            <span className="text-sm line-through">
+                              {reminder.title}
+                            </span>
                             <span className="text-xs text-muted-foreground ml-2">
                               {t("proactive.scheduledWas", {
                                 time: `${formatDate(reminder.scheduled_at)} ${formatTime(reminder.scheduled_at)}`,
@@ -374,7 +426,11 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
                               stroke="currentColor"
                               strokeWidth={2}
                             >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
                             </svg>
                           </button>
                         </div>
@@ -394,7 +450,9 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
             <div className="p-2 rounded bg-muted/30 mb-4">
               <p className="text-sm font-medium">{deleteTarget.title}</p>
               {deleteTarget.description && (
-                <p className="text-xs text-muted-foreground mt-1">{deleteTarget.description}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {deleteTarget.description}
+                </p>
               )}
             </div>
             <div className="flex justify-end gap-2">

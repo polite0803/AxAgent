@@ -16,7 +16,10 @@ export function LinkPage() {
     <div className="flex h-full">
       <div
         className="shrink-0"
-        style={{ width: 280, borderRight: `1px solid ${token.colorBorderSecondary}` }}
+        style={{
+          width: 280,
+          borderRight: `1px solid ${token.colorBorderSecondary}`,
+        }}
       >
         <GatewayLinkList onAdd={() => setAddModalOpen(true)} />
       </div>

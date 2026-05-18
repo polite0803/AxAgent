@@ -11,7 +11,9 @@ function buildDefaultContext(): Record<string, unknown> {
     current_language: null,
     recent_actions: [],
     time_of_day: now.getHours(),
-    day_of_week: now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase(),
+    day_of_week: now
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase(),
     project_type: null,
     user_activity_level: "medium",
     detected_errors: [],
@@ -47,7 +49,9 @@ export function ProactiveSuggestionBar() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="size-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-sm font-medium">{t("proactive.suggestions")}</span>
+            <span className="text-sm font-medium">
+              {t("proactive.suggestions")}
+            </span>
             <span className="text-xs text-muted-foreground">
               ({suggestions.length})
             </span>
@@ -83,13 +87,15 @@ export function ProactiveSuggestionBar() {
               </div>
             )
             : (
-              suggestions.slice(0, 5).map((suggestion) => (
-                <SuggestionCard
-                  key={suggestion.id}
-                  suggestion={suggestion}
-                  compact
-                />
-              ))
+              suggestions
+                .slice(0, 5)
+                .map((suggestion) => (
+                  <SuggestionCard
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    compact
+                  />
+                ))
             )}
         </div>
 

@@ -21,7 +21,9 @@ function getAttrValue(
   attrs: WebSearchNodeData["attrs"],
   key: string,
 ): string | undefined {
-  if (!attrs) { return undefined; }
+  if (!attrs) {
+    return undefined;
+  }
   if (Array.isArray(attrs)) {
     const entry = attrs.find(([name]) => name === key);
     return entry?.[1];
@@ -51,7 +53,9 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
   if (node.content) {
     try {
       const parsed = JSON.parse(node.content);
-      if (Array.isArray(parsed)) { results = parsed; }
+      if (Array.isArray(parsed)) {
+        results = parsed;
+      }
     } catch {
       // invalid JSON
     }
@@ -107,7 +111,9 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
   }
 
   // Done state — show results
-  if (results.length === 0) { return null; }
+  if (results.length === 0) {
+    return null;
+  }
 
   return (
     <span

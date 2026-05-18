@@ -20,9 +20,16 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<IngestResult[]>([]);
-  const [ingestType, setIngestType] = useState<"file" | "url" | "folder">("file");
+  const [ingestType, setIngestType] = useState<"file" | "url" | "folder">(
+    "file",
+  );
 
-  const handleIngest = async (values: { sourceType: string; url?: string; path?: string; title?: string }) => {
+  const handleIngest = async (values: {
+    sourceType: string;
+    url?: string;
+    path?: string;
+    title?: string;
+  }) => {
     setUploading(true);
     setProgress(0);
 
@@ -117,7 +124,9 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
         <Form.Item
           name="sourceType"
           label={t("wiki.ingest.sourceType")}
-          rules={[{ required: true, message: t("wiki.ingest.sourceTypeRequired") }]}
+          rules={[
+            { required: true, message: t("wiki.ingest.sourceTypeRequired") },
+          ]}
         >
           <Select
             options={[
@@ -145,8 +154,16 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
                 <p className="ant-upload-text">{t("wiki.ingest.uploadHint")}</p>
               </Dragger>
             </Form.Item>
-            <Form.Item name="path" label={t("wiki.ingest.path")} rules={[{ required: true }]}>
-              <Input name="path" prefix={<FolderOutlined />} placeholder={t("wiki.ingest.pathPlaceholder")} />
+            <Form.Item
+              name="path"
+              label={t("wiki.ingest.path")}
+              rules={[{ required: true }]}
+            >
+              <Input
+                name="path"
+                prefix={<FolderOutlined />}
+                placeholder={t("wiki.ingest.pathPlaceholder")}
+              />
             </Form.Item>
           </>
         )}
@@ -160,7 +177,11 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
               { type: "url", message: t("wiki.ingest.urlInvalid") },
             ]}
           >
-            <Input name="url" prefix={<LinkOutlined />} placeholder="https://..." />
+            <Input
+              name="url"
+              prefix={<LinkOutlined />}
+              placeholder="https://..."
+            />
           </Form.Item>
         )}
 
@@ -168,9 +189,15 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
           <Form.Item
             name="path"
             label={t("wiki.ingest.folderPath")}
-            rules={[{ required: true, message: t("wiki.ingest.folderPathRequired") }]}
+            rules={[
+              { required: true, message: t("wiki.ingest.folderPathRequired") },
+            ]}
           >
-            <Input name="path" prefix={<FolderOutlined />} placeholder={t("wiki.ingest.folderPathPlaceholder")} />
+            <Input
+              name="path"
+              prefix={<FolderOutlined />}
+              placeholder={t("wiki.ingest.folderPathPlaceholder")}
+            />
           </Form.Item>
         )}
 
@@ -180,7 +207,13 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
 
         {uploading && <Progress percent={progress} status="active" />}
 
-        <Button type="primary" htmlType="submit" loading={uploading} block icon={<UploadOutlined />}>
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={uploading}
+          block
+          icon={<UploadOutlined />}
+        >
           {t("wiki.ingest.start")}
         </Button>
       </Form>

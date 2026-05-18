@@ -32,21 +32,44 @@ function ContextCountParam({
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const effectiveValue = value ?? 5;
-  const contextMarks: Record<number, string> = { 0: "0", 5: "5", 10: "10", 15: "15", 50: t("common.unlimited") };
+  const contextMarks: Record<number, string> = {
+    0: "0",
+    5: "5",
+    10: "10",
+    15: "15",
+    50: t("common.unlimited"),
+  };
 
   return (
     <>
       <div style={{ padding: "12px 0 4px" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14 }}>
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 14,
+          }}
+        >
           {label}
           {tooltip && (
             <Tooltip title={tooltip}>
-              <Info size={12} style={{ color: token.colorTextSecondary, cursor: "help" }} />
+              <Info
+                size={12}
+                style={{ color: token.colorTextSecondary, cursor: "help" }}
+              />
             </Tooltip>
           )}
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          paddingBottom: 8,
+        }}
+      >
         <Slider
           style={{ flex: 1 }}
           min={0}
@@ -116,10 +139,21 @@ function ModelParamsModal({
       [topPKey]: null,
       [maxTokensKey]: null,
     };
-    if (contextCountKey) { resetValues[contextCountKey] = null; }
-    if (promptKey) { resetValues[promptKey] = null; }
+    if (contextCountKey) {
+      resetValues[contextCountKey] = null;
+    }
+    if (promptKey) {
+      resetValues[promptKey] = null;
+    }
     saveSettings(resetValues as Partial<AppSettings>);
-  }, [saveSettings, temperatureKey, topPKey, maxTokensKey, contextCountKey, promptKey]);
+  }, [
+    saveSettings,
+    temperatureKey,
+    topPKey,
+    maxTokensKey,
+    contextCountKey,
+    promptKey,
+  ]);
 
   return (
     <Modal
@@ -137,14 +171,25 @@ function ModelParamsModal({
           </div>
           <TextArea
             rows={4}
-            value={(settings[promptKey] as string | null) ?? (defaultPrompt || DEFAULT_TITLE_SUMMARY_PROMPT)}
-            onChange={(e) => saveSettings({ [promptKey]: e.target.value || null } as Partial<AppSettings>)}
+            value={(settings[promptKey] as string | null)
+              ?? (defaultPrompt || DEFAULT_TITLE_SUMMARY_PROMPT)}
+            onChange={(e) =>
+              saveSettings({
+                [promptKey]: e.target.value || null,
+              } as Partial<AppSettings>)}
             placeholder={promptPlaceholder || t("settings.titleSummaryPromptPlaceholder")}
           />
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 4,
+        }}
+      >
         <span style={{ fontSize: 14, fontWeight: 600 }}>
           {t("settings.modelParams")}
         </span>
@@ -166,12 +211,22 @@ function ModelParamsModal({
         }}
         onChange={(v) => {
           const patch: Record<string, unknown> = {};
-          if ("temperature" in v) { patch[temperatureKey] = v.temperature; }
-          if ("topP" in v) { patch[topPKey] = v.topP; }
-          if ("maxTokens" in v) { patch[maxTokensKey] = v.maxTokens; }
+          if ("temperature" in v) {
+            patch[temperatureKey] = v.temperature;
+          }
+          if ("topP" in v) {
+            patch[topPKey] = v.topP;
+          }
+          if ("maxTokens" in v) {
+            patch[maxTokensKey] = v.maxTokens;
+          }
           saveSettings(patch as Partial<AppSettings>);
         }}
-        defaults={{ temperature: defaultTemperature, topP: defaultTopP, maxTokens: defaultMaxTokens }}
+        defaults={{
+          temperature: defaultTemperature,
+          topP: defaultTopP,
+          maxTokens: defaultMaxTokens,
+        }}
         visibleParams={["temperature", "topP", "maxTokens"]}
       />
 
@@ -242,12 +297,18 @@ function ModelCard({
   const handleChange = useCallback(
     (value: string | undefined) => {
       if (!value) {
-        saveSettings({ [providerIdKey]: null, [modelIdKey]: null } as Partial<AppSettings>);
+        saveSettings({
+          [providerIdKey]: null,
+          [modelIdKey]: null,
+        } as Partial<AppSettings>);
         return;
       }
       const parsed = parseModelValue(value);
       if (parsed) {
-        saveSettings({ [providerIdKey]: parsed.providerId, [modelIdKey]: parsed.model_id } as Partial<AppSettings>);
+        saveSettings({
+          [providerIdKey]: parsed.providerId,
+          [modelIdKey]: parsed.model_id,
+        } as Partial<AppSettings>);
       }
     },
     [saveSettings, providerIdKey, modelIdKey],
@@ -256,7 +317,13 @@ function ModelCard({
   return (
     <>
       <SettingsGroup title={title}>
-        <div style={{ fontSize: 12, color: token.colorTextDescription, marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: token.colorTextDescription,
+            marginBottom: 12,
+          }}
+        >
           {description}
         </div>
         <div style={{ display: "flex", gap: 8 }}>

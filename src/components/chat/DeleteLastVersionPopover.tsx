@@ -37,7 +37,9 @@ export function DeleteLastVersionPopover({
       if (msg.parent_message_id) {
         await deleteMessageGroup(conversationId, msg.parent_message_id);
       } else if (msg.id.startsWith("temp-")) {
-        useConversationStore.setState((s) => ({ messages: s.messages.filter((m) => m.id !== msg.id) }));
+        useConversationStore.setState((s) => ({
+          messages: s.messages.filter((m) => m.id !== msg.id),
+        }));
       }
     } catch (e) {
       messageApi.error(String(e));
@@ -52,20 +54,44 @@ export function DeleteLastVersionPopover({
       placement="top"
       content={
         <div style={{ maxWidth: 280 }}>
-          <div style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <AlertCircle size={16} style={{ color: token.colorWarning, marginTop: 2, flexShrink: 0 }} />
+          <div
+            style={{
+              marginBottom: 12,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+            }}
+          >
+            <AlertCircle
+              size={16}
+              style={{ color: token.colorWarning, marginTop: 2, flexShrink: 0 }}
+            />
             <span>{t("chat.deleteLastVersionHint")}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Button size="small" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-            <Button size="small" onClick={handleDeleteThisOnly}>{t("chat.deleteThisOnly")}</Button>
-            <Button size="small" danger type="primary" onClick={handleDeleteAll}>{t("chat.deleteAll")}</Button>
+            <Button size="small" onClick={() => setOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button size="small" onClick={handleDeleteThisOnly}>
+              {t("chat.deleteThisOnly")}
+            </Button>
+            <Button
+              size="small"
+              danger
+              type="primary"
+              onClick={handleDeleteAll}
+            >
+              {t("chat.deleteAll")}
+            </Button>
           </div>
         </div>
       }
     >
       <Tooltip title={t("chat.delete")}>
-        <span className="axagent-action-item" style={{ color: token.colorError }}>
+        <span
+          className="axagent-action-item"
+          style={{ color: token.colorError }}
+        >
           <Trash2 size={14} />
         </span>
       </Tooltip>

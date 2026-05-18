@@ -43,24 +43,32 @@ export function RLPanel() {
   }, []);
 
   useEffect(() => {
-    if (!expanded) { return; }
+    if (!expanded) {
+      return;
+    }
     const fetch = async () => {
       let hasError = false;
       try {
         const c = await invoke<RLConfig>("rl_config", {});
-        if (mountedRef.current) { setConfig(c); }
+        if (mountedRef.current) {
+          setConfig(c);
+        }
       } catch (e) {
         console.warn("[rl] config fetch failed:", e);
         hasError = true;
       }
       try {
         const s = await invoke<TrajectoryStats>("trajectory_stats", {});
-        if (mountedRef.current) { setStats(s); }
+        if (mountedRef.current) {
+          setStats(s);
+        }
       } catch (e) {
         console.warn("[rl] stats fetch failed:", e);
         hasError = true;
       }
-      if (mountedRef.current) { setError(hasError); }
+      if (mountedRef.current) {
+        setError(hasError);
+      }
     };
     fetch();
     const interval = setInterval(fetch, 30000);
@@ -69,7 +77,10 @@ export function RLPanel() {
 
   const handleExport = async () => {
     try {
-      const data = await invoke<unknown[]>("rl_export_training_data", { minQuality: 0.3, limit: 20 });
+      const data = await invoke<unknown[]>("rl_export_training_data", {
+        minQuality: 0.3,
+        limit: 20,
+      });
       const json = JSON.stringify(data, null, 2);
       if (isTauri()) {
         const [{ save }, { writeTextFile }] = await Promise.all([
@@ -80,7 +91,9 @@ export function RLPanel() {
           defaultPath: "rl_training_data.json",
           filters: [{ name: "JSON", extensions: ["json"] }],
         });
-        if (!filePath) { return; }
+        if (!filePath) {
+          return;
+        }
         await writeTextFile(filePath, json);
       } else {
         const blob = new Blob([json], { type: "application/json" });
@@ -103,7 +116,13 @@ export function RLPanel() {
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="size-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -111,7 +130,12 @@ export function RLPanel() {
             />
           </svg>
           {t("chat.rlEngine")}
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
         </button>
       </div>
     );
@@ -120,36 +144,66 @@ export function RLPanel() {
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground/80">{t("chat.rlEngine")}</span>
+        <span className="text-xs font-medium text-foreground/80">
+          {t("chat.rlEngine")}
+        </span>
         <div className="flex items-center gap-1">
-          {error && <span className="size-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          {error && (
+            <span
+              className="size-1.5 rounded-full bg-red-400"
+              title={t("chat.error")}
+            />
+          )}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="size-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
       </div>
 
-      {error && (!stats || !config) && <div className="text-[10px] text-muted-foreground/60">{t("chat.loadError")}
-      </div>}
+      {error && (!stats || !config) && (
+        <div className="text-[10px] text-muted-foreground/60">
+          {t("chat.loadError")}
+        </div>
+      )}
 
       {stats && (
         <div className="grid grid-cols-3 gap-1.5">
           <div className="text-center p-1 rounded bg-muted/30">
-            <div className="text-[10px] text-muted-foreground">{t("chat.trajectories")}</div>
+            <div className="text-[10px] text-muted-foreground">
+              {t("chat.trajectories")}
+            </div>
             <div className="text-xs font-medium">{stats.total}</div>
           </div>
           <div className="text-center p-1 rounded bg-muted/30">
-            <div className="text-[10px] text-muted-foreground">{t("chat.success")}</div>
-            <div className="text-xs font-medium">{Math.round((stats.success_rate ?? 0) * 100)}%</div>
+            <div className="text-[10px] text-muted-foreground">
+              {t("chat.success")}
+            </div>
+            <div className="text-xs font-medium">
+              {Math.round((stats.success_rate ?? 0) * 100)}%
+            </div>
           </div>
           <div className="text-center p-1 rounded bg-muted/30">
-            <div className="text-[10px] text-muted-foreground">{t("chat.quality")}</div>
-            <div className="text-xs font-medium">{(stats.avg_quality ?? 0).toFixed(2)}</div>
+            <div className="text-[10px] text-muted-foreground">
+              {t("chat.quality")}
+            </div>
+            <div className="text-xs font-medium">
+              {(stats.avg_quality ?? 0).toFixed(2)}
+            </div>
           </div>
         </div>
       )}
@@ -161,13 +215,25 @@ export function RLPanel() {
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
             <span className="text-muted-foreground">{t("chat.gamma")}</span>
-            <span className="text-foreground/80 text-right">{config.config.gamma}</span>
+            <span className="text-foreground/80 text-right">
+              {config.config.gamma}
+            </span>
             <span className="text-muted-foreground">{t("chat.lambda")}</span>
-            <span className="text-foreground/80 text-right">{config.config.lambda}</span>
-            <span className="text-muted-foreground">{t("chat.rewardScale")}</span>
-            <span className="text-foreground/80 text-right">{config.config.reward_scale}</span>
-            <span className="text-muted-foreground">{t("chat.entropyCoeff")}</span>
-            <span className="text-foreground/80 text-right">{config.config.entropy_coefficient}</span>
+            <span className="text-foreground/80 text-right">
+              {config.config.lambda}
+            </span>
+            <span className="text-muted-foreground">
+              {t("chat.rewardScale")}
+            </span>
+            <span className="text-foreground/80 text-right">
+              {config.config.reward_scale}
+            </span>
+            <span className="text-muted-foreground">
+              {t("chat.entropyCoeff")}
+            </span>
+            <span className="text-foreground/80 text-right">
+              {config.config.entropy_coefficient}
+            </span>
           </div>
 
           <div className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider mt-1">
@@ -176,11 +242,18 @@ export function RLPanel() {
           <div className="space-y-0.5">
             {Object.entries(config.weights).map(([k, v]) => (
               <div key={k} className="flex items-center gap-1.5 text-[11px]">
-                <span className="text-muted-foreground truncate flex-1">{t(`chat.rewardWeights.${k}`)}</span>
+                <span className="text-muted-foreground truncate flex-1">
+                  {t(`chat.rewardWeights.${k}`)}
+                </span>
                 <div className="w-16 h-1.5 bg-muted/40 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500/60 rounded-full" style={{ width: `${v * 100}%` }} />
+                  <div
+                    className="h-full bg-blue-500/60 rounded-full"
+                    style={{ width: `${v * 100}%` }}
+                  />
                 </div>
-                <span className="text-foreground/60 w-6 text-right">{v.toFixed(2)}</span>
+                <span className="text-foreground/60 w-6 text-right">
+                  {v.toFixed(2)}
+                </span>
               </div>
             ))}
           </div>

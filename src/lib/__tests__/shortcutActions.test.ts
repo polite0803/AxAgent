@@ -149,8 +149,18 @@ describe("shortcutActions", () => {
 
     it("toggleAllWindows: 任一窗口可见时应全部隐藏", async () => {
       mockIsTauri.mockReturnValue(true);
-      const win1 = { isVisible: vi.fn().mockResolvedValue(true), show: vi.fn(), hide: vi.fn(), setFocus: vi.fn() };
-      const win2 = { isVisible: vi.fn().mockResolvedValue(false), show: vi.fn(), hide: vi.fn(), setFocus: vi.fn() };
+      const win1 = {
+        isVisible: vi.fn().mockResolvedValue(true),
+        show: vi.fn(),
+        hide: vi.fn(),
+        setFocus: vi.fn(),
+      };
+      const win2 = {
+        isVisible: vi.fn().mockResolvedValue(false),
+        show: vi.fn(),
+        hide: vi.fn(),
+        setFocus: vi.fn(),
+      };
       mockGetAllWindows.mockResolvedValue([win1, win2]);
 
       await executeShortcutAction("toggleAllWindows");
@@ -162,8 +172,18 @@ describe("shortcutActions", () => {
 
     it("toggleAllWindows: 全部不可见时应全部显示", async () => {
       mockIsTauri.mockReturnValue(true);
-      const win1 = { isVisible: vi.fn().mockResolvedValue(false), show: vi.fn(), hide: vi.fn(), setFocus: vi.fn() };
-      const win2 = { isVisible: vi.fn().mockResolvedValue(false), show: vi.fn(), hide: vi.fn(), setFocus: vi.fn() };
+      const win1 = {
+        isVisible: vi.fn().mockResolvedValue(false),
+        show: vi.fn(),
+        hide: vi.fn(),
+        setFocus: vi.fn(),
+      };
+      const win2 = {
+        isVisible: vi.fn().mockResolvedValue(false),
+        show: vi.fn(),
+        hide: vi.fn(),
+        setFocus: vi.fn(),
+      };
       mockGetAllWindows.mockResolvedValue([win1, win2]);
 
       await executeShortcutAction("toggleAllWindows");
@@ -209,7 +229,9 @@ describe("shortcutActions", () => {
       await executeShortcutAction("newConversation");
 
       expect(spy).toHaveBeenCalled();
-      const event = spy.mock.calls.find((c) => (c[0] as CustomEvent).type === "axagent:new-conversation");
+      const event = spy.mock.calls.find(
+        (c) => (c[0] as CustomEvent).type === "axagent:new-conversation",
+      );
       expect(event).toBeDefined();
     });
 
@@ -290,7 +312,10 @@ describe("shortcutActions", () => {
     });
 
     it("当前在设置子页面时应导航回 /", async () => {
-      (window as any).location = { pathname: "/settings/providers", href: "/settings/providers" };
+      (window as any).location = {
+        pathname: "/settings/providers",
+        href: "/settings/providers",
+      };
 
       await executeShortcutAction("openSettings");
 
@@ -353,16 +378,19 @@ describe("shortcutActions", () => {
       "showQuickBar",
     ];
 
-    it.each(allActions)("executeShortcutAction('%s') 不应抛出异常", async (action) => {
-      mockIsTauri.mockReturnValue(true);
-      mockGetCurrentWindow.isVisible.mockResolvedValue(false);
+    it.each(allActions)(
+      "executeShortcutAction('%s') 不应抛出异常",
+      async (action) => {
+        mockIsTauri.mockReturnValue(true);
+        mockGetCurrentWindow.isVisible.mockResolvedValue(false);
 
-      // toggleGateway 特殊处理
-      if (action === "toggleGateway") {
-        mockInvoke.mockResolvedValue({ is_running: false });
-      }
+        // toggleGateway 特殊处理
+        if (action === "toggleGateway") {
+          mockInvoke.mockResolvedValue({ is_running: false });
+        }
 
-      await expect(executeShortcutAction(action)).resolves.toBeUndefined();
-    });
+        await expect(executeShortcutAction(action)).resolves.toBeUndefined();
+      },
+    );
   });
 });

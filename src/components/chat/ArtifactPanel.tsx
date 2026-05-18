@@ -37,12 +37,25 @@ export function ArtifactPanel({
   const [currentMode, setCurrentMode] = useState<ArtifactPreviewMode>(previewMode);
 
   const canPreview = useMemo(() => {
-    if (!artifact) { return false; }
-    return ["html", "css", "javascript", "jsx", "tsx", "svg", "mermaid", "d2"].includes(artifact.format);
+    if (!artifact) {
+      return false;
+    }
+    return [
+      "html",
+      "css",
+      "javascript",
+      "jsx",
+      "tsx",
+      "svg",
+      "mermaid",
+      "d2",
+    ].includes(artifact.format);
   }, [artifact]);
 
   const handleCopy = async () => {
-    if (!artifact) { return; }
+    if (!artifact) {
+      return;
+    }
     try {
       await navigator.clipboard.writeText(artifact.content);
       setCopied(true);
@@ -54,7 +67,9 @@ export function ArtifactPanel({
   };
 
   const handleDownload = () => {
-    if (!artifact) { return; }
+    if (!artifact) {
+      return;
+    }
     const blob = new Blob([artifact.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -108,18 +123,30 @@ export function ArtifactPanel({
             ]}
           />
           <Tooltip title={copied ? "Copied!" : "Copy code"}>
-            <Button size="small" icon={copied ? <CheckOutlined /> : <CopyOutlined />} onClick={handleCopy} />
+            <Button
+              size="small"
+              icon={copied ? <CheckOutlined /> : <CopyOutlined />}
+              onClick={handleCopy}
+            />
           </Tooltip>
           <Tooltip title={t("artifactPanel.fullscreen")}>
-            <Button size="small" icon={<ExpandOutlined />} onClick={onFullscreen} />
+            <Button
+              size="small"
+              icon={<ExpandOutlined />}
+              onClick={onFullscreen}
+            />
           </Tooltip>
           <Dropdown
             menu={{
               items: menuItems,
               onClick: ({ key }) => {
-                if (key === "copy") { handleCopy(); }
-                else if (key === "download") { handleDownload(); }
-                else if (key === "fullscreen") { onFullscreen?.(); }
+                if (key === "copy") {
+                  handleCopy();
+                } else if (key === "download") {
+                  handleDownload();
+                } else if (key === "fullscreen") {
+                  onFullscreen?.();
+                }
               },
             }}
           >
@@ -132,7 +159,13 @@ export function ArtifactPanel({
       <div style={{ display: "flex", height: "100%" }}>
         {currentMode === "code" && (
           <div style={{ width: "100%", overflow: "auto", padding: 16 }}>
-            <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            <pre
+              style={{
+                margin: 0,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
               {artifact.content}
             </pre>
           </div>
@@ -146,7 +179,13 @@ export function ArtifactPanel({
 
         {currentMode === "preview" && !canPreview && (
           <div style={{ width: "100%", overflow: "auto", padding: 16 }}>
-            <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            <pre
+              style={{
+                margin: 0,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
               {artifact.content}
             </pre>
           </div>
@@ -163,15 +202,29 @@ export function ArtifactPanel({
                 background: "#fafafa",
               }}
             >
-              <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: 13 }}>
+              <pre
+                style={{
+                  margin: 0,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  fontSize: 13,
+                }}
+              >
                 {artifact.content}
               </pre>
             </div>
             <div style={{ width: "50%", overflow: "auto" }}>
               {canPreview
-                ? <ArtifactPreview code={artifact.content} format={artifact.format} />
+                ? (
+                  <ArtifactPreview
+                    code={artifact.content}
+                    format={artifact.format}
+                  />
+                )
                 : (
-                  <div style={{ padding: 16, textAlign: "center", color: "#999" }}>
+                  <div
+                    style={{ padding: 16, textAlign: "center", color: "#999" }}
+                  >
                     Preview not available for this format
                   </div>
                 )}

@@ -16,7 +16,13 @@ export function ConversationSettings() {
   return (
     <div style={{ padding: 24 }}>
       <SettingsGroup title={t("settings.defaultSystemPrompt")}>
-        <div style={{ fontSize: 12, color: token.colorTextDescription, marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: token.colorTextDescription,
+            marginBottom: 12,
+          }}
+        >
           {t("settings.defaultSystemPromptDesc")}
         </div>
         <TextArea
@@ -57,25 +63,49 @@ export function ConversationSettings() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.multiModelDisplayMode")}>
-        <div style={{ fontSize: 12, color: token.colorTextDescription, marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: token.colorTextDescription,
+            marginBottom: 12,
+          }}
+        >
           {t("settings.multiModelDisplayModeDesc")}
         </div>
         <div className="flex items-center justify-between" style={rowStyle}>
           <span>{t("settings.multiModelDisplayMode")}</span>
           <SettingsSelect
             value={settings.multi_model_display_mode ?? "tabs"}
-            onChange={(val) => saveSettings({ multi_model_display_mode: val as "tabs" | "side-by-side" | "stacked" })}
+            onChange={(val) =>
+              saveSettings({
+                multi_model_display_mode: val as
+                  | "tabs"
+                  | "side-by-side"
+                  | "stacked",
+              })}
             options={[
               { label: t("settings.multiModelDisplayModeTabs"), value: "tabs" },
-              { label: t("settings.multiModelDisplayModeSideBySide"), value: "side-by-side" },
-              { label: t("settings.multiModelDisplayModeStacked"), value: "stacked" },
+              {
+                label: t("settings.multiModelDisplayModeSideBySide"),
+                value: "side-by-side",
+              },
+              {
+                label: t("settings.multiModelDisplayModeStacked"),
+                value: "stacked",
+              },
             ]}
           />
         </div>
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.chatMinimap")}>
-        <div style={{ fontSize: 12, color: token.colorTextDescription, marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: token.colorTextDescription,
+            marginBottom: 12,
+          }}
+        >
           {t("settings.chatMinimapEnabledDesc")}
         </div>
         <div className="flex items-center justify-between" style={rowStyle}>

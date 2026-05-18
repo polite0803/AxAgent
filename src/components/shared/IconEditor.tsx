@@ -10,7 +10,9 @@ import { AvatarEditBadge } from "./AvatarEditBadge";
 import { DynamicLobeIcon } from "./DynamicLobeIcon";
 import { EmojiPicker } from "./EmojiPicker";
 
-const IconPickerModal = lazy(() => import("@/components/settings/IconPickerModal"));
+const IconPickerModal = lazy(
+  () => import("@/components/settings/IconPickerModal"),
+);
 
 export interface IconEditorProps {
   /** Current icon type: 'emoji' | 'url' | 'file' | 'model_icon' | or custom */
@@ -85,12 +87,23 @@ function IconRenderer({
   }
   if ((iconType === "url" || iconType === "file") && iconValue) {
     const src = iconType === "file" ? (resolvedSrc ?? iconValue) : iconValue;
-    return <Avatar size={size} src={src} shape={shape} style={{ cursor: "pointer" }} />;
+    return (
+      <Avatar
+        size={size}
+        src={src}
+        shape={shape}
+        style={{ cursor: "pointer" }}
+      />
+    );
   }
   if (iconType === "model_icon" && iconValue) {
     return (
       <div style={{ cursor: "pointer" }}>
-        <DynamicLobeIcon iconId={parseModelIcon(iconValue)} size={size} type="avatar" />
+        <DynamicLobeIcon
+          iconId={parseModelIcon(iconValue)}
+          size={size}
+          type="avatar"
+        />
       </div>
     );
   }
@@ -101,7 +114,11 @@ function IconRenderer({
     <Avatar
       size={size}
       shape={shape}
-      style={{ cursor: "pointer", backgroundColor: token.colorFillSecondary, color: token.colorTextSecondary }}
+      style={{
+        cursor: "pointer",
+        backgroundColor: token.colorFillSecondary,
+        color: token.colorTextSecondary,
+      }}
     />
   );
 }
@@ -129,18 +146,26 @@ export function IconEditor({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [showIconPicker, setShowIconPicker] = useState(false);
-  const resolvedSrc = useResolvedAvatarSrc((iconType as AvatarType) ?? "icon", iconValue ?? "");
+  const resolvedSrc = useResolvedAvatarSrc(
+    (iconType as AvatarType) ?? "icon",
+    iconValue ?? "",
+  );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) { return; }
+    if (!file || !file.type.startsWith("image/")) {
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUri = reader.result as string;
       const match = dataUri.match(/^data:([^;]+);base64,(.+)$/s);
       if (match && isTauri()) {
         try {
-          const relativePath = await invoke<string>("save_avatar_file", { data: match[2], mimeType: match[1] });
+          const relativePath = await invoke<string>("save_avatar_file", {
+            data: match[2],
+            mimeType: match[1],
+          });
           onChange("file", relativePath);
         } catch {
           onChange("file", dataUri);
@@ -157,12 +182,14 @@ export function IconEditor({
   const menuItems: MenuProps["items"] = [
     ...(prependMenuItems ?? []),
     ...(showModelIcons
-      ? [{
-        key: "model_icon",
-        icon: <Grid2x2 size={14} />,
-        label: t("settings.chooseIcon"),
-        onClick: () => setShowIconPicker(true),
-      }]
+      ? [
+        {
+          key: "model_icon",
+          icon: <Grid2x2 size={14} />,
+          label: t("settings.chooseIcon"),
+          onClick: () => setShowIconPicker(true),
+        },
+      ]
       : []),
     {
       key: "emoji",
@@ -206,7 +233,11 @@ export function IconEditor({
 
   return (
     <>
-      <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement="bottomLeft">
+      <Dropdown
+        menu={{ items: menuItems }}
+        trigger={["click"]}
+        placement="bottomLeft"
+      >
         <div style={{ cursor: "pointer", display: "inline-flex" }}>
           <AvatarEditBadge size={size}>
             <IconRenderer
@@ -273,7 +304,9 @@ export function IconEditor({
           >
             {t("common.ok")}
           </Button>
-          <Button size="small" onClick={() => setShowUrlInput(false)}>{t("common.cancel")}</Button>
+          <Button size="small" onClick={() => setShowUrlInput(false)}>
+            {t("common.cancel")}
+          </Button>
         </div>
       )}
     </>

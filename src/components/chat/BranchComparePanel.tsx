@@ -21,7 +21,9 @@ export interface BranchComparePanelProps {
 }
 
 function formatTime(ts?: number): string {
-  if (!ts) { return ""; }
+  if (!ts) {
+    return "";
+  }
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -47,7 +49,10 @@ function CompareCard({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  const nodes = useMemo(() => parseChatMarkdown(message.content), [message.content]);
+  const nodes = useMemo(
+    () => parseChatMarkdown(message.content),
+    [message.content],
+  );
 
   const modelName = message.model_id ?? "";
 
@@ -75,10 +80,17 @@ function CompareCard({
         <Tag color={side === "left" ? "blue" : "green"}>
           {side === "left" ? t("chat.branch.left") : t("chat.branch.right")}
         </Tag>
-        {modelName && <Typography.Text style={{ fontSize: 13 }}>{modelName}</Typography.Text>}
+        {modelName && (
+          <Typography.Text style={{ fontSize: 13 }}>
+            {modelName}
+          </Typography.Text>
+        )}
         {message.created_at
           ? (
-            <Typography.Text type="secondary" style={{ fontSize: 12, marginLeft: "auto" }}>
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: 12, marginLeft: "auto" }}
+            >
               {formatTime(message.created_at)}
             </Typography.Text>
           )
@@ -136,7 +148,14 @@ export function BranchComparePanel({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
         <GitBranch size={16} />
         <Typography.Text strong>{t("chat.branch.compare")}</Typography.Text>
       </div>

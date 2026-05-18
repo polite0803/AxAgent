@@ -20,12 +20,30 @@ export const CHAT_CUSTOM_HTML_TAGS = [
 export function stripAxAgentTags(content: string): string {
   return content
     .replace(/<think[^>]*>[\s\S]*?<\/think>\s*/g, "")
-    .replace(/<knowledge-retrieval [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/knowledge-retrieval>\s*/g, "")
-    .replace(/<memory-retrieval [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/memory-retrieval>\s*/g, "")
-    .replace(/<wiki-retrieval [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/wiki-retrieval>\s*/g, "")
-    .replace(/<web-search [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/web-search>\s*/g, "")
-    .replace(/<tool-call [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/tool-call>\s*/g, "")
-    .replace(/<cron-result [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/cron-result>\s*/g, "")
+    .replace(
+      /<knowledge-retrieval [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/knowledge-retrieval>\s*/g,
+      "",
+    )
+    .replace(
+      /<memory-retrieval [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/memory-retrieval>\s*/g,
+      "",
+    )
+    .replace(
+      /<wiki-retrieval [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/wiki-retrieval>\s*/g,
+      "",
+    )
+    .replace(
+      /<web-search [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/web-search>\s*/g,
+      "",
+    )
+    .replace(
+      /<tool-call [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/tool-call>\s*/g,
+      "",
+    )
+    .replace(
+      /<cron-result [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/cron-result>\s*/g,
+      "",
+    )
     .replace(/\n*:::mcp [^\n]*\n[\s\S]*?:::\n*/g, "\n")
     .trim();
 }

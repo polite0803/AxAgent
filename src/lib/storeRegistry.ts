@@ -15,15 +15,23 @@ let _initialized = false;
  * 注册所有可被 Skill 声明式动作访问的 Zustand Store。
  */
 export async function initStoreRegistry(): Promise<void> {
-  if (_initialized) { return; }
+  if (_initialized) {
+    return;
+  }
   _initialized = true;
 
   const stores = await import("@/stores");
 
-  const registry: Array<{ name: string; store: { getState: () => unknown; setState: (partial: unknown) => void } }> = [
+  const registry: Array<{
+    name: string;
+    store: { getState: () => unknown; setState: (partial: unknown) => void };
+  }> = [
     {
       name: "preference",
-      store: stores.usePreferenceStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.usePreferenceStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "conversation",
@@ -34,15 +42,24 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "ui",
-      store: stores.useUIStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useUIStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "skill",
-      store: stores.useSkillStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useSkillStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "artifact",
-      store: stores.useArtifactStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useArtifactStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "chatWorkspace",
@@ -53,27 +70,45 @@ export async function initStoreRegistry(): Promise<void> {
     },
     {
       name: "settings",
-      store: stores.useSettingsStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useSettingsStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "provider",
-      store: stores.useProviderStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useProviderStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "knowledge",
-      store: stores.useKnowledgeStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useKnowledgeStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "agent",
-      store: stores.useAgentStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useAgentStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "tab",
-      store: stores.useTabStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useTabStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
     {
       name: "stream",
-      store: stores.useStreamStore as unknown as { getState: () => unknown; setState: (partial: unknown) => void },
+      store: stores.useStreamStore as unknown as {
+        getState: () => unknown;
+        setState: (partial: unknown) => void;
+      },
     },
   ];
 
@@ -85,8 +120,15 @@ export async function initStoreRegistry(): Promise<void> {
         return key ? state[key] : state;
       },
       set: (payload?: unknown) => {
-        if (payload !== undefined && (typeof payload !== "object" || payload === null || Array.isArray(payload))) {
-          console.warn(`[storeRegistry] set() expected a plain object, received: ${typeof payload}`);
+        if (
+          payload !== undefined
+          && (typeof payload !== "object"
+            || payload === null
+            || Array.isArray(payload))
+        ) {
+          console.warn(
+            `[storeRegistry] set() expected a plain object, received: ${typeof payload}`,
+          );
           return;
         }
         store.setState(payload as Parameters<typeof store.setState>[0]);
@@ -95,7 +137,9 @@ export async function initStoreRegistry(): Promise<void> {
         if (payload && typeof payload === "object" && !Array.isArray(payload)) {
           store.setState(payload as Parameters<typeof store.setState>[0]);
         } else if (payload !== undefined) {
-          console.warn(`[storeRegistry] update() expected a plain object, received: ${typeof payload}`);
+          console.warn(
+            `[storeRegistry] update() expected a plain object, received: ${typeof payload}`,
+          );
         }
       },
     });

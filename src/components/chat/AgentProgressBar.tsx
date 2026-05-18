@@ -10,7 +10,10 @@ interface AgentProgressBarProps {
   conversationId: string;
 }
 
-function getToolDisplayName(toolName: string, t: (key: string) => string): string {
+function getToolDisplayName(
+  toolName: string,
+  t: (key: string) => string,
+): string {
   const lower = toolName.toLowerCase();
   const map: Record<string, string> = {
     read: "FileRead",
@@ -69,7 +72,13 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
     return currentToolCall?.conversationId === conversationId
       ? getToolDisplayName(currentToolCall.toolName, t)
       : null;
-  }, [currentToolCall?.toolName, currentToolCall?.toolUseId, currentToolCall?.conversationId, conversationId, t]);
+  }, [
+    currentToolCall?.toolName,
+    currentToolCall?.toolUseId,
+    currentToolCall?.conversationId,
+    conversationId,
+    t,
+  ]);
 
   // 当有新的工具名称时，更新持久引用
   useEffect(() => {
@@ -146,7 +155,10 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
             padding: "0 6px",
           }}
         >
-          <Wrench size={10} style={{ marginRight: 4, verticalAlign: "middle" }} />
+          <Wrench
+            size={10}
+            style={{ marginRight: 4, verticalAlign: "middle" }}
+          />
           {t("progressBar.executing", { name: displayName })}
         </Tag>
       )}

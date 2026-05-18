@@ -11,7 +11,10 @@ interface NamespaceIconProps {
 }
 
 export function NamespaceIcon({ ns, size = 16 }: NamespaceIconProps) {
-  const resolvedSrc = useResolvedAvatarSrc((ns.iconType as AvatarType) ?? "icon", ns.iconValue ?? "");
+  const resolvedSrc = useResolvedAvatarSrc(
+    (ns.iconType as AvatarType) ?? "icon",
+    ns.iconValue ?? "",
+  );
   const { token } = theme.useToken();
 
   if (ns.iconType === "emoji" && ns.iconValue) {
@@ -38,5 +41,10 @@ export function NamespaceIcon({ ns, size = 16 }: NamespaceIconProps) {
     const src = ns.iconType === "file" ? resolvedSrc : ns.iconValue;
     return <Avatar size={size} src={src} style={{ flexShrink: 0 }} />;
   }
-  return <Brain size={size} style={{ flexShrink: 0, color: CHAT_ICON_COLORS.Brain }} />;
+  return (
+    <Brain
+      size={size}
+      style={{ flexShrink: 0, color: CHAT_ICON_COLORS.Brain }}
+    />
+  );
 }

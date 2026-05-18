@@ -16,7 +16,7 @@ function resolvePreset(
     ...preset,
     name: preset.nameKey ? i18n.t(preset.nameKey) : preset.name,
     description: preset.descKey
-      ? (i18n.t(preset.descKey) || preset.description)
+      ? i18n.t(preset.descKey) || preset.description
       : (preset.description ?? null),
     nameKey: preset.nameKey,
     descKey: preset.descKey,
@@ -36,16 +36,22 @@ function loadBuiltinRoles(): AgentProfile[] {
     if (imported === "true") {
       return BUILTIN_EXPERT_PRESETS.map(resolvePreset);
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return getMinimalBuiltin();
 }
 
 function loadCustomRoles(): AgentProfile[] {
   try {
     const stored = localStorage.getItem(CUSTOM_ROLES_KEY);
-    if (!stored) { return []; }
+    if (!stored) {
+      return [];
+    }
     const parsed = JSON.parse(stored);
-    if (!Array.isArray(parsed)) { return []; }
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
     // 迁移旧格式 (ExpertRole 有 displayName) → 新格式 (AgentProfile 有 name)
     return parsed.map((item: Record<string, unknown>) => {
       if (item.displayName && !item.name) {
@@ -96,7 +102,9 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
   };
 
   const tags = [row.source_dir, row.category];
-  if (row.color) { tags.push(row.color); }
+  if (row.color) {
+    tags.push(row.color);
+  }
 
   const PERMISSION_BY_CATEGORY: Record<string, AgentBehaviorMode> = {
     security: "default",
@@ -133,7 +141,11 @@ interface ExpertState {
   agencyLoaded: boolean;
   agencyLoading: boolean;
 
-  recentSwitch: { conversationId: string; roleId: string; timestamp: number } | null;
+  recentSwitch: {
+    conversationId: string;
+    roleId: string;
+    timestamp: number;
+  } | null;
 
   getAllRoles: () => AgentProfile[];
   getRolesByCategory: () => Record<string, AgentProfile[]>;
@@ -146,13 +158,24 @@ interface ExpertState {
 
   importAgencyExperts: (
     path: string,
-  ) => Promise<{ count: number; workflows_created?: number; tools_matched?: number; errors: string[] }>;
+  ) => Promise<{
+    count: number;
+    workflows_created?: number;
+    tools_matched?: number;
+    errors: string[];
+  }>;
   loadAgencyRoles: () => Promise<void>;
   clearAgencyExperts: () => Promise<void>;
   deleteAgencyExpert: (id: string) => Promise<void>;
   updateAgencyExpert: (
     id: string,
-    fields: { name?: string; description?: string; category?: string; system_prompt?: string; is_enabled?: boolean },
+    fields: {
+      name?: string;
+      description?: string;
+      category?: string;
+      system_prompt?: string;
+      is_enabled?: boolean;
+    },
   ) => Promise<void>;
   exportAgencyExperts: () => Promise<string>;
   extractStructure: (text: string) => Promise<AgentProfile | null>;
@@ -180,10 +203,16 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   recentSwitch: null,
 
   getAllRoles: () => {
-    const general = get().builtinRoles.find((r) => r.id === "general-assistant");
-    const otherBuiltins = get().builtinRoles.filter((r) => r.id !== "general-assistant");
+    const general = get().builtinRoles.find(
+      (r) => r.id === "general-assistant",
+    );
+    const otherBuiltins = get().builtinRoles.filter(
+      (r) => r.id !== "general-assistant",
+    );
     const result: AgentProfile[] = [];
-    if (general) { result.push(general); }
+    if (general) {
+      result.push(general);
+    }
     result.push(...otherBuiltins, ...get().agencyRoles, ...get().customRoles);
     return result;
   },
@@ -200,19 +229,27 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   },
 
   getRoleById: (id: string) => {
-    return get().getAllRoles().find((r) => r.id === id);
+    return get()
+      .getAllRoles()
+      .find((r) => r.id === id);
   },
 
   getSystemPrompt: (roleId: string | null) => {
-    if (!roleId) { return null; }
+    if (!roleId) {
+      return null;
+    }
     const role = get().getRoleById(roleId);
     return role?.systemPrompt || null;
   },
 
   getCategoryLabel: (roleId: string | null) => {
-    if (!roleId) { return i18n.t("expertCategory.general"); }
+    if (!roleId) {
+      return i18n.t("expertCategory.general");
+    }
     const role = get().getRoleById(roleId);
-    if (!role) { return i18n.t("expertCategory.general"); }
+    if (!role) {
+      return i18n.t("expertCategory.general");
+    }
     return i18n.t("expertCategory." + role.category) || role.category;
   },
 
@@ -222,7 +259,9 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
 
   consumeSwitch: (conversationId) => {
     const sw = get().recentSwitch;
-    if (!sw || sw.conversationId !== conversationId) { return null; }
+    if (!sw || sw.conversationId !== conversationId) {
+      return null;
+    }
     set({ recentSwitch: null });
     return { roleId: sw.roleId };
   },
@@ -230,9 +269,12 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   importAgencyExperts: async (path: string) => {
     set({ agencyLoading: true });
     try {
-      const result = await invoke<
-        { count: number; workflows_created: number; tools_matched: number; errors: string[] }
-      >("import_agency_experts", {
+      const result = await invoke<{
+        count: number;
+        workflows_created: number;
+        tools_matched: number;
+        errors: string[];
+      }>("import_agency_experts", {
         request: { path },
       });
       await get().loadAgencyRoles();
@@ -296,8 +338,12 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
 
   extractStructure: async (expertId: string) => {
     try {
-      const row = await invoke<AgencyExpertRow>("extract_expert_structure", { request: { expertId } });
-      if (!row) { return null; }
+      const row = await invoke<AgencyExpertRow>("extract_expert_structure", {
+        request: { expertId },
+      });
+      if (!row) {
+        return null;
+      }
       return agencyRowToRole(row);
     } catch (e) {
       console.error("[expertStore] extractStructure failed:", e);
@@ -313,7 +359,9 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
 
   updateCustomRole: (role) => {
     const existing = get().customRoles.find((r) => r.id === role.id);
-    if (!existing) { return; }
+    if (!existing) {
+      return;
+    }
     const updated = get().customRoles.map((r) => (r.id === role.id ? role : r));
     saveCustomRoles(updated);
     set({ customRoles: updated });
@@ -345,7 +393,11 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
         if (hasId && hasName && hasCategory) {
           validRoles.push(item as AgentProfile);
         } else {
-          errors.push(i18n.t("expertStore.skippedInvalidRole", { role: JSON.stringify(item).slice(0, 50) }));
+          errors.push(
+            i18n.t("expertStore.skippedInvalidRole", {
+              role: JSON.stringify(item).slice(0, 50),
+            }),
+          );
         }
       }
       if (validRoles.length > 0) {
@@ -356,7 +408,10 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       }
       return { count: validRoles.length, errors };
     } catch (e) {
-      return { count: 0, errors: [i18n.t("expertStore.jsonParseError", { error: String(e) })] };
+      return {
+        count: 0,
+        errors: [i18n.t("expertStore.jsonParseError", { error: String(e) })],
+      };
     }
   },
 

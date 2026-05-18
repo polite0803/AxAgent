@@ -38,20 +38,32 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
   const isDark = useResolvedDarkMode(settings.theme_mode);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const currentTheme = isDark ? (settings.code_theme || "poimandres") : (settings.code_theme_light || "github-light");
+  const currentTheme = isDark
+    ? settings.code_theme || "poimandres"
+    : settings.code_theme_light || "github-light";
   const themeList = isDark ? SHIKI_DARK_THEMES : SHIKI_LIGHT_THEMES;
   const settingsKey = isDark ? "code_theme" : "code_theme_light";
 
-  const themeMenuItems: MenuProps["items"] = useMemo(() =>
-    themeList.map((id) => ({
-      key: id,
-      label: (
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {id === currentTheme && <Check size={12} style={{ color: token.colorPrimary, flexShrink: 0 }} />}
-          <span style={{ marginLeft: id === currentTheme ? 0 : 18 }}>{formatThemeName(id)}</span>
-        </span>
-      ),
-    })), [themeList, currentTheme, token.colorPrimary]);
+  const themeMenuItems: MenuProps["items"] = useMemo(
+    () =>
+      themeList.map((id) => ({
+        key: id,
+        label: (
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {id === currentTheme && (
+              <Check
+                size={12}
+                style={{ color: token.colorPrimary, flexShrink: 0 }}
+              />
+            )}
+            <span style={{ marginLeft: id === currentTheme ? 0 : 18 }}>
+              {formatThemeName(id)}
+            </span>
+          </span>
+        ),
+      })),
+    [themeList, currentTheme, token.colorPrimary],
+  );
 
   const handleThemeSelect = useCallback<NonNullable<MenuProps["onClick"]>>(
     ({ key }) => {
@@ -60,26 +72,34 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
     [saveSettings, settingsKey],
   );
 
-  const getBtnStyle = useCallback((idx: number, disabled?: boolean): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 24,
-    height: 24,
-    padding: 0,
-    border: "none",
-    borderRadius: token.borderRadiusSM,
-    background: !disabled && hoveredIdx === idx ? (token.colorFillSecondary || "rgba(255,255,255,0.1)") : "transparent",
-    color: !disabled && hoveredIdx === idx ? token.colorText : "inherit",
-    cursor: disabled ? "not-allowed" : "pointer",
-    transition: "color 0.2s, background 0.2s",
-    opacity: disabled ? 0.3 : (hoveredIdx === idx ? 1 : 0.7),
-  }), [hoveredIdx, token]);
+  const getBtnStyle = useCallback(
+    (idx: number, disabled?: boolean): React.CSSProperties => ({
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 24,
+      height: 24,
+      padding: 0,
+      border: "none",
+      borderRadius: token.borderRadiusSM,
+      background: !disabled && hoveredIdx === idx
+        ? token.colorFillSecondary || "rgba(255,255,255,0.1)"
+        : "transparent",
+      color: !disabled && hoveredIdx === idx ? token.colorText : "inherit",
+      cursor: disabled ? "not-allowed" : "pointer",
+      transition: "color 0.2s, background 0.2s",
+      opacity: disabled ? 0.3 : hoveredIdx === idx ? 1 : 0.7,
+    }),
+    [hoveredIdx, token],
+  );
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
       {/* Collapse/Expand */}
-      <Tooltip title={ctx.collapsed ? t("common.expand") : t("common.collapse")} mouseEnterDelay={0.4}>
+      <Tooltip
+        title={ctx.collapsed ? t("common.expand") : t("common.collapse")}
+        mouseEnterDelay={0.4}
+      >
         <button
           type="button"
           className="code-action-btn"
@@ -144,7 +164,10 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
       </Tooltip>
 
       {/* Copy */}
-      <Tooltip title={ctx.copied ? t("common.copied") : t("common.copy")} mouseEnterDelay={0.4}>
+      <Tooltip
+        title={ctx.copied ? t("common.copied") : t("common.copy")}
+        mouseEnterDelay={0.4}
+      >
         <button
           type="button"
           className="code-action-btn"
@@ -153,14 +176,15 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
           onMouseEnter={() => setHoveredIdx(4)}
           onMouseLeave={() => setHoveredIdx(null)}
         >
-          {ctx.copied
-            ? <Check size={14} style={{ color: token.colorSuccess }} />
-            : <Copy size={14} />}
+          {ctx.copied ? <Check size={14} style={{ color: token.colorSuccess }} /> : <Copy size={14} />}
         </button>
       </Tooltip>
 
       {/* Fullscreen */}
-      <Tooltip title={ctx.expanded ? t("common.collapse") : t("settings.fullscreen")} mouseEnterDelay={0.4}>
+      <Tooltip
+        title={ctx.expanded ? t("common.collapse") : t("settings.fullscreen")}
+        mouseEnterDelay={0.4}
+      >
         <button
           type="button"
           className="code-action-btn"
@@ -175,7 +199,11 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
 
       {/* Theme Picker */}
       <Dropdown
-        menu={{ items: themeMenuItems, onClick: handleThemeSelect, style: { maxHeight: 320, overflowY: "auto" } }}
+        menu={{
+          items: themeMenuItems,
+          onClick: handleThemeSelect,
+          style: { maxHeight: 320, overflowY: "auto" },
+        }}
         trigger={["click"]}
         placement="bottomRight"
       >

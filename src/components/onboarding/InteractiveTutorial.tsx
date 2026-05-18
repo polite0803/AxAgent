@@ -56,7 +56,9 @@ export function InteractiveTutorial() {
 
   // 开始教程时自动导航到聊天页（带重试）
   const handleStartTutorial = () => {
-    if (location.pathname !== "/") { navigate("/"); }
+    if (location.pathname !== "/") {
+      navigate("/");
+    }
     // 重试等待目标元素渲染（最多 5 次，每次 200ms）
     let retries = 0;
     const tryStart = () => {
@@ -72,7 +74,12 @@ export function InteractiveTutorial() {
   };
 
   const [spotlight, setSpotlight] = useState<DOMRect | null>(null);
-  const [bubblePosition, setBubblePosition] = useState<{ top: number; left: number } | null>(null);
+  const [bubblePosition, setBubblePosition] = useState<
+    {
+      top: number;
+      left: number;
+    } | null
+  >(null);
   const rafId = useRef<number>(0);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const prevFocusRef = useRef<HTMLElement | null>(null);
@@ -82,7 +89,9 @@ export function InteractiveTutorial() {
 
   // 定位到目标元素
   useEffect(() => {
-    if (!tutorialActive || !step) { return; }
+    if (!tutorialActive || !step) {
+      return;
+    }
     const updatePos = () => {
       const el = document.querySelector(step.target);
       if (el) {
@@ -114,8 +123,11 @@ export function InteractiveTutorial() {
   }, [tutorialActive, tutorialStep, step]);
 
   const handleNext = () => {
-    if (isLast) { completeTutorial(); }
-    else { nextTutorialStep(); }
+    if (isLast) {
+      completeTutorial();
+    } else {
+      nextTutorialStep();
+    }
   };
 
   useEffect(() => {
@@ -125,7 +137,9 @@ export function InteractiveTutorial() {
   }, [tutorialStep, navigate]);
 
   useEffect(() => {
-    if (!tutorialActive) { return; }
+    if (!tutorialActive) {
+      return;
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
         handleNext();
@@ -150,11 +164,15 @@ export function InteractiveTutorial() {
       bubbleRef.current?.focus();
     }, 50);
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab" || !bubbleRef.current) { return; }
+      if (e.key !== "Tab" || !bubbleRef.current) {
+        return;
+      }
       const focusable = bubbleRef.current.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      if (focusable.length === 0) { return; }
+      if (focusable.length === 0) {
+        return;
+      }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (e.shiftKey) {
@@ -176,7 +194,9 @@ export function InteractiveTutorial() {
     };
   }, [tutorialActive]);
 
-  if (!tutorialActive && tutorialCompleted) { return null; }
+  if (!tutorialActive && tutorialCompleted) {
+    return null;
+  }
 
   // 开始按钮（向导完成后显示）
   if (!tutorialActive) {
@@ -209,7 +229,11 @@ export function InteractiveTutorial() {
   return createPortal(
     <>
       {/* 遮罩 */}
-      <div className="tutorial-overlay" role="presentation" onClick={skipTutorial} />
+      <div
+        className="tutorial-overlay"
+        role="presentation"
+        onClick={skipTutorial}
+      />
 
       {/* 高亮槽 */}
       {spotlight && (
@@ -244,12 +268,20 @@ export function InteractiveTutorial() {
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
           <div style={{ flex: 1 }}>
-            <strong style={{ fontSize: 14 }}>{step ? t(step.titleKey) : ""}</strong>
-            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 4 }}>
+            <strong style={{ fontSize: 14 }}>
+              {step ? t(step.titleKey) : ""}
+            </strong>
+            <div
+              style={{
+                fontSize: 12,
+                color: token.colorTextSecondary,
+                marginTop: 4,
+              }}
+            >
               {step
-                ? (!spotlight
+                ? !spotlight
                   ? t("onboarding.targetNotFound")
-                  : t(step.descKey))
+                  : t(step.descKey)
                 : ""}
             </div>
           </div>
@@ -268,17 +300,31 @@ export function InteractiveTutorial() {
           </button>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Button size="small" type="link" onClick={skipTutorial} icon={<SkipForward size={12} />}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            size="small"
+            type="link"
+            onClick={skipTutorial}
+            icon={<SkipForward size={12} />}
+          >
             {t("onboarding.tutorialSkip")}
           </Button>
           <div style={{ fontSize: 12, color: token.colorTextQuaternary }}>
             {tutorialStep + 1} / {steps.length}
           </div>
-          <Button size="small" type="primary" onClick={handleNext} icon={<ArrowRight size={12} />}>
-            {isLast
-              ? t("onboarding.done")
-              : t("onboarding.next")}
+          <Button
+            size="small"
+            type="primary"
+            onClick={handleNext}
+            icon={<ArrowRight size={12} />}
+          >
+            {isLast ? t("onboarding.done") : t("onboarding.next")}
           </Button>
         </div>
       </div>

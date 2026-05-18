@@ -33,7 +33,9 @@ const toolIcons: Record<string, React.ReactNode> = {
 
 function getToolIcon(toolName: string): React.ReactNode {
   const lower = toolName.toLowerCase();
-  const entry = Object.entries(toolIcons).find(([key]) => lower.indexOf(key) !== -1);
+  const entry = Object.entries(toolIcons).find(
+    ([key]) => lower.indexOf(key) !== -1,
+  );
   return entry ? entry[1] : <Wrench size={14} />;
 }
 
@@ -49,189 +51,231 @@ function getInputSummary(input: Record<string, unknown>): string {
   }
 }
 
-export const ToolCallCard = React.memo(function ToolCallCard({ toolCalls }: ToolCallChainProps) {
-  const { t } = useTranslation();
-  const { token } = theme.useToken();
+export const ToolCallCard = React.memo(
+  function ToolCallCard({ toolCalls }: ToolCallChainProps) {
+    const { t } = useTranslation();
+    const { token } = theme.useToken();
 
-  const chainItems: ThoughtChainItemType[] = useMemo(() => {
-    return toolCalls.map((tc) => {
-      const contentParts: React.ReactNode[] = [];
+    const chainItems: ThoughtChainItemType[] = useMemo(() => {
+      return toolCalls.map((tc) => {
+        const contentParts: React.ReactNode[] = [];
 
-      // Input details
-      if (tc.input && Object.keys(tc.input).length > 0) {
-        contentParts.push(
-          <details key="input" style={{ margin: 0 }}>
-            <summary style={{ fontSize: 12, color: token.colorTextSecondary, cursor: "pointer", userSelect: "none" }}>
-              {t("chat.inspector.toolInput")}
-            </summary>
-            <pre
-              style={{
-                margin: "4px 0 0",
-                padding: 8,
-                fontSize: 12,
-                fontFamily: "monospace",
-                backgroundColor: token.colorBgTextHover,
-                borderRadius: token.borderRadius,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-                maxHeight: 200,
-                overflow: "auto",
-              }}
-            >
-              {typeof tc.input === 'string' ? tc.input : JSON.stringify(tc.input, null, 2)}
-            </pre>
-          </details>,
-        );
-      }
-
-      // Output details
-      if (tc.output) {
-        contentParts.push(
-          <details key="output" style={{ margin: 0 }}>
-            <summary style={{ fontSize: 12, color: token.colorTextSecondary, cursor: "pointer", userSelect: "none" }}>
-              {t("chat.inspector.toolOutput")}
-            </summary>
-            <div
-              style={{
-                margin: "4px 0 0",
-                padding: 8,
-                fontSize: 12,
-                fontFamily: "monospace",
-                backgroundColor: token.colorBgTextHover,
-                borderRadius: token.borderRadius,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-                maxHeight: 200,
-                overflow: "auto",
-              }}
-            >
-              {tc.isError
-                ? (
-                  <Alert
-                    message={t("chat.inspector.toolError")}
-                    description={tc.output}
-                    type="error"
-                    showIcon
-                    style={{ margin: 0, fontSize: 12 }}
-                    banner
-                  />
-                )
-                : (
-                  tc.output
-                )}
-            </div>
-          </details>,
-        );
-      }
-
-      // Approval status
-      if (tc.approvalStatus) {
-        contentParts.push(
-          <div key="approval" style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-            <Tag
-              color={tc.approvalStatus === "approved" ? "green" : tc.approvalStatus === "denied" ? "red" : "orange"}
-              style={{ fontSize: 12, padding: "2px 6px" }}
-            >
-              {t(
-                `chat.inspector.approval${tc.approvalStatus.charAt(0).toUpperCase() + tc.approvalStatus.slice(1)}`,
-                tc.approvalStatus,
-              )}
-            </Tag>
-          </div>,
-        );
-      }
-
-      return {
-        key: tc.toolUseId,
-        icon: getToolIcon(tc.toolName),
-        title: (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span>{tc.toolName}</span>
-            {tc.approvalStatus && (
-              <Tag
-                color={tc.approvalStatus === "approved" ? "green" : tc.approvalStatus === "denied" ? "red" : "orange"}
-                style={{ fontSize: 12, padding: "2px 4px" }}
+        // Input details
+        if (tc.input && Object.keys(tc.input).length > 0) {
+          contentParts.push(
+            <details key="input" style={{ margin: 0 }}>
+              <summary
+                style={{
+                  fontSize: 12,
+                  color: token.colorTextSecondary,
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
               >
-                {tc.approvalStatus}
-              </Tag>
-            )}
-          </div>
-        ),
-        description: (
-          <Typography.Text
-            type="secondary"
-            style={{ fontSize: 12, fontFamily: "monospace" }}
-            ellipsis
-          >
-            {getInputSummary(tc.input)}
-          </Typography.Text>
-        ),
-        status: statusMap[tc.executionStatus] || "loading",
-        collapsible: tc.executionStatus === "success" || tc.executionStatus === "failed"
-          || tc.executionStatus === "cancelled",
-        content: contentParts.length > 0
-          ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {contentParts}
-            </div>
-          )
-          : undefined,
-      } satisfies ThoughtChainItemType;
-    });
-  }, [toolCalls, token, t]);
+                {t("chat.inspector.toolInput")}
+              </summary>
+              <pre
+                style={{
+                  margin: "4px 0 0",
+                  padding: 8,
+                  fontSize: 12,
+                  fontFamily: "monospace",
+                  backgroundColor: token.colorBgTextHover,
+                  borderRadius: token.borderRadius,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-all",
+                  maxHeight: 200,
+                  overflow: "auto",
+                }}
+              >
+                {typeof tc.input === "string"
+                  ? tc.input
+                  : JSON.stringify(tc.input, null, 2)}
+              </pre>
+            </details>,
+          );
+        }
 
-  const fileChanges = useMemo(
-    () =>
-      extractFileChanges(
-        toolCalls
-          .flatMap((tc) =>
+        // Output details
+        if (tc.output) {
+          contentParts.push(
+            <details key="output" style={{ margin: 0 }}>
+              <summary
+                style={{
+                  fontSize: 12,
+                  color: token.colorTextSecondary,
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                {t("chat.inspector.toolOutput")}
+              </summary>
+              <div
+                style={{
+                  margin: "4px 0 0",
+                  padding: 8,
+                  fontSize: 12,
+                  fontFamily: "monospace",
+                  backgroundColor: token.colorBgTextHover,
+                  borderRadius: token.borderRadius,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-all",
+                  maxHeight: 200,
+                  overflow: "auto",
+                }}
+              >
+                {tc.isError
+                  ? (
+                    <Alert
+                      message={t("chat.inspector.toolError")}
+                      description={tc.output}
+                      type="error"
+                      showIcon
+                      style={{ margin: 0, fontSize: 12 }}
+                      banner
+                    />
+                  )
+                  : (
+                    tc.output
+                  )}
+              </div>
+            </details>,
+          );
+        }
+
+        // Approval status
+        if (tc.approvalStatus) {
+          contentParts.push(
+            <div
+              key="approval"
+              style={{
+                marginTop: 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Tag
+                color={tc.approvalStatus === "approved"
+                  ? "green"
+                  : tc.approvalStatus === "denied"
+                  ? "red"
+                  : "orange"}
+                style={{ fontSize: 12, padding: "2px 6px" }}
+              >
+                {t(
+                  `chat.inspector.approval${tc.approvalStatus.charAt(0).toUpperCase() + tc.approvalStatus.slice(1)}`,
+                  tc.approvalStatus,
+                )}
+              </Tag>
+            </div>,
+          );
+        }
+
+        return {
+          key: tc.toolUseId,
+          icon: getToolIcon(tc.toolName),
+          title: (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span>{tc.toolName}</span>
+              {tc.approvalStatus && (
+                <Tag
+                  color={tc.approvalStatus === "approved"
+                    ? "green"
+                    : tc.approvalStatus === "denied"
+                    ? "red"
+                    : "orange"}
+                  style={{ fontSize: 12, padding: "2px 4px" }}
+                >
+                  {tc.approvalStatus}
+                </Tag>
+              )}
+            </div>
+          ),
+          description: (
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: 12, fontFamily: "monospace" }}
+              ellipsis
+            >
+              {getInputSummary(tc.input)}
+            </Typography.Text>
+          ),
+          status: statusMap[tc.executionStatus] || "loading",
+          collapsible: tc.executionStatus === "success"
+            || tc.executionStatus === "failed"
+            || tc.executionStatus === "cancelled",
+          content: contentParts.length > 0
+            ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {contentParts}
+              </div>
+            )
+            : undefined,
+        } satisfies ThoughtChainItemType;
+      });
+    }, [toolCalls, token, t]);
+
+    const fileChanges = useMemo(
+      () =>
+        extractFileChanges(
+          toolCalls.flatMap((tc) =>
             tc.executionStatus === "success"
               ? [{ toolName: tc.toolName, input: tc.input, output: tc.output }]
               : []
           ),
-      ),
-    [toolCalls],
-  );
+        ),
+      [toolCalls],
+    );
 
-  if (chainItems.length === 0 && fileChanges.length === 0) { return null; }
+    if (chainItems.length === 0 && fileChanges.length === 0) {
+      return null;
+    }
 
-  return (
-    <div style={{ margin: "8px 0 12px" }}>
-      {chainItems.length > 0 && (
-        <>
-          <Typography.Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
-            {t("chat.inspector.toolCalls")}
-          </Typography.Text>
-          <ThoughtChain
-            items={chainItems}
-            line="dashed"
-            styles={{
-              item: { padding: "6px 0" },
-              itemContent: { fontSize: 12 },
-            }}
-          />
-        </>
-      )}
-      <FileChangeList changes={fileChanges} />
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  const prev = prevProps.toolCalls;
-  const next = nextProps.toolCalls;
-  if (prev.length !== next.length) { return false; }
-  for (let i = 0; i < prev.length; i++) {
-    const a = prev[i];
-    const b = next[i];
-    if (
-      a.toolUseId !== b.toolUseId
-      || a.toolName !== b.toolName
-      || a.executionStatus !== b.executionStatus
-      || a.approvalStatus !== b.approvalStatus
-      || a.output !== b.output
-      || a.isError !== b.isError
-    ) {
+    return (
+      <div style={{ margin: "8px 0 12px" }}>
+        {chainItems.length > 0 && (
+          <>
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: 12, display: "block", marginBottom: 4 }}
+            >
+              {t("chat.inspector.toolCalls")}
+            </Typography.Text>
+            <ThoughtChain
+              items={chainItems}
+              line="dashed"
+              styles={{
+                item: { padding: "6px 0" },
+                itemContent: { fontSize: 12 },
+              }}
+            />
+          </>
+        )}
+        <FileChangeList changes={fileChanges} />
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    const prev = prevProps.toolCalls;
+    const next = nextProps.toolCalls;
+    if (prev.length !== next.length) {
       return false;
     }
-  }
-  return true;
-});
+    for (let i = 0; i < prev.length; i++) {
+      const a = prev[i];
+      const b = next[i];
+      if (
+        a.toolUseId !== b.toolUseId
+        || a.toolName !== b.toolName
+        || a.executionStatus !== b.executionStatus
+        || a.approvalStatus !== b.approvalStatus
+        || a.output !== b.output
+        || a.isError !== b.isError
+      ) {
+        return false;
+      }
+    }
+    return true;
+  },
+);

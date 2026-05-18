@@ -27,10 +27,15 @@ export function TerminalBackendSelector({
     key: b.type,
     icon: backendIcons[b.type],
     label: (
-      <div className="flex items-center justify-between gap-4" style={{ minWidth: 180 }}>
+      <div
+        className="flex items-center justify-between gap-4"
+        style={{ minWidth: 180 }}
+      >
         <span>{t(`terminal.${b.type}`)}</span>
         <Tag color={b.connected ? "green" : "default"} style={{ margin: 0 }}>
-          {b.connected ? t("terminal.sessions", { count: b.sessions }) : t("terminal.offline")}
+          {b.connected
+            ? t("terminal.sessions", { count: b.sessions })
+            : t("terminal.offline")}
         </Tag>
       </div>
     ),

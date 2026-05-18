@@ -72,7 +72,10 @@ interface CategoryDef {
 
 /* ── Command definitions ──────────────────────────────────────────── */
 
-const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & { labelKey: string; descKey: string })[] = [
+const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
+  labelKey: string;
+  descKey: string;
+})[] = [
   {
     key: "chat",
     labelKey: "quickbar.command.chat",
@@ -237,10 +240,18 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & { labelKey: stri
 
 const CATEGORY_GROUPS: CategoryDef[] = [
   { key: "ai", labelKey: "quickbar.category.ai", borderColor: "#1677ff" },
-  { key: "knowledge", labelKey: "quickbar.category.knowledge", borderColor: "#52c41a" },
+  {
+    key: "knowledge",
+    labelKey: "quickbar.category.knowledge",
+    borderColor: "#52c41a",
+  },
   { key: "web", labelKey: "quickbar.category.web", borderColor: "#fa8c16" },
   { key: "tools", labelKey: "quickbar.category.tools", borderColor: "#eb2f96" },
-  { key: "system", labelKey: "quickbar.category.system", borderColor: "#8c8c8c" },
+  {
+    key: "system",
+    labelKey: "quickbar.category.system",
+    borderColor: "#8c8c8c",
+  },
 ];
 
 /* ── Smart parsing ────────────────────────────────────────────────── */
@@ -254,7 +265,10 @@ function isCalcExpr(text: string): boolean {
   return /^[\d\s+\-*/().%^]+$/.test(t) && /[\d]/.test(t) && /[+\-*/]/.test(t);
 }
 
-function parseCommand(raw: string, commands: CommandDef[]): { command: CommandType | null; body: string } {
+function parseCommand(
+  raw: string,
+  commands: CommandDef[],
+): { command: CommandType | null; body: string } {
   const trimmed = raw.trim();
   const match = trimmed.match(/^\/(\w+)\s*(.*)$/s);
   if (match) {
@@ -263,10 +277,18 @@ function parseCommand(raw: string, commands: CommandDef[]): { command: CommandTy
       return { command: cmd as CommandType, body: match[2].trim() };
     }
   }
-  if (isUrl(trimmed)) { return { command: "url", body: trimmed }; }
-  if (trimmed.startsWith(">")) { return { command: "agent", body: trimmed.slice(1).trim() }; }
-  if (isCalcExpr(trimmed)) { return { command: "calc", body: trimmed }; }
-  if (trimmed.length > 0 && !trimmed.startsWith("/")) { return { command: "chat", body: trimmed }; }
+  if (isUrl(trimmed)) {
+    return { command: "url", body: trimmed };
+  }
+  if (trimmed.startsWith(">")) {
+    return { command: "agent", body: trimmed.slice(1).trim() };
+  }
+  if (isCalcExpr(trimmed)) {
+    return { command: "calc", body: trimmed };
+  }
+  if (trimmed.length > 0 && !trimmed.startsWith("/")) {
+    return { command: "chat", body: trimmed };
+  }
   return { command: null, body: trimmed };
 }
 
@@ -283,8 +305,13 @@ function loadRecent(): string[] {
 
 function saveRecent(items: string[]) {
   try {
-    localStorage.setItem(QUICKBAR_RECENT_KEY, JSON.stringify(items.slice(0, 5)));
-  } catch { /* noop */ }
+    localStorage.setItem(
+      QUICKBAR_RECENT_KEY,
+      JSON.stringify(items.slice(0, 5)),
+    );
+  } catch {
+    /* noop */
+  }
 }
 
 function pushRecent(query: string) {
@@ -314,7 +341,9 @@ function TileGrid({
     <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
       {CATEGORY_GROUPS.map((group) => {
         const cmds = categorizedCommands[group.key];
-        if (!cmds.length) { return null; }
+        if (!cmds.length) {
+          return null;
+        }
         return (
           <div key={group.key} style={{ marginBottom: 16 }}>
             <div
@@ -375,12 +404,28 @@ function TileGrid({
                     e.currentTarget.style.transform = "none";
                   }}
                 >
-                  <span style={{ color: cmd.color, display: "flex" }}>{cmd.icon}</span>
+                  <span style={{ color: cmd.color, display: "flex" }}>
+                    {cmd.icon}
+                  </span>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: token.colorText, lineHeight: 1.4 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: token.colorText,
+                        lineHeight: 1.4,
+                      }}
+                    >
                       {cmd.labelKey}
                     </div>
-                    <div style={{ fontSize: 10, color: token.colorTextQuaternary, lineHeight: 1.3, marginTop: 1 }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: token.colorTextQuaternary,
+                        lineHeight: 1.3,
+                        marginTop: 1,
+                      }}
+                    >
                       {cmd.descKey}
                     </div>
                   </div>
@@ -468,7 +513,13 @@ function CommandMode({
               setActiveCommand(null);
             }
           }}
-          style={{ opacity: 0.4, cursor: "pointer", fontSize: 14, flexShrink: 0, color: token.colorTextSecondary }}
+          style={{
+            opacity: 0.4,
+            cursor: "pointer",
+            fontSize: 14,
+            flexShrink: 0,
+            color: token.colorTextSecondary,
+          }}
           title={t("quickbar.cmdTile")}
         >
           ←
@@ -495,7 +546,9 @@ function CommandMode({
           placeholder={showCommands
             ? t("quickbar.selectCommand")
             : activeCmdDef
-            ? t("quickbar.inputPlaceholderCommand", { cmdLabel: activeCmdDef.labelKey })
+            ? t("quickbar.inputPlaceholderCommand", {
+              cmdLabel: activeCmdDef.labelKey,
+            })
             : t("quickbar.inputPlaceholder")}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -506,14 +559,28 @@ function CommandMode({
           style={{ flex: 1, fontSize: 14, backgroundColor: "transparent" }}
         />
         {loading
-          ? <Loader2 size={16} className="animate-spin" style={{ opacity: 0.5, flexShrink: 0 }} />
-          : showClear && (
-            <button
-              onClick={clearAll}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: 0.4 }}
-            >
-              <X size={14} color={token.colorTextSecondary} />
-            </button>
+          ? (
+            <Loader2
+              size={16}
+              className="animate-spin"
+              style={{ opacity: 0.5, flexShrink: 0 }}
+            />
+          )
+          : (
+            showClear && (
+              <button
+                onClick={clearAll}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  opacity: 0.4,
+                }}
+              >
+                <X size={14} color={token.colorTextSecondary} />
+              </button>
+            )
           )}
       </div>
 
@@ -534,8 +601,10 @@ function CommandMode({
         >
           {(() => {
             const partial = input.trimStart().slice(1).toLowerCase();
-            const visible = COMMANDS.filter((c) =>
-              c.key.startsWith(partial) || c.labelKey.toLowerCase().includes(partial)
+            const visible = COMMANDS.filter(
+              (c) =>
+                c.key.startsWith(partial)
+                || c.labelKey.toLowerCase().includes(partial),
             );
             return visible.map((cmd, idx) => (
               <div
@@ -562,17 +631,31 @@ function CommandMode({
                   padding: "6px 12px",
                   cursor: "pointer",
                   fontSize: 12,
-                  backgroundColor: idx === selectedCmd ? token.colorFillSecondary : "transparent",
+                  backgroundColor: idx === selectedCmd
+                    ? token.colorFillSecondary
+                    : "transparent",
                   color: token.colorText,
                   transition: "background-color 0.1s",
                 }}
               >
-                <span style={{ color: cmd.color, display: "flex" }}>{cmd.icon}</span>
-                <span style={{ fontWeight: 500, fontFamily: "var(--code-font-family, monospace)", minWidth: 50 }}>
+                <span style={{ color: cmd.color, display: "flex" }}>
+                  {cmd.icon}
+                </span>
+                <span
+                  style={{
+                    fontWeight: 500,
+                    fontFamily: "var(--code-font-family, monospace)",
+                    minWidth: 50,
+                  }}
+                >
                   /{cmd.key}
                 </span>
                 <span style={{ opacity: 0.5 }}>{cmd.labelKey}</span>
-                <span style={{ opacity: 0.35, marginLeft: "auto", fontSize: 10 }}>{cmd.descKey}</span>
+                <span
+                  style={{ opacity: 0.35, marginLeft: "auto", fontSize: 10 }}
+                >
+                  {cmd.descKey}
+                </span>
               </div>
             ));
           })()}
@@ -674,12 +757,16 @@ function QuickBarResult({
     e.currentTarget.style.backgroundColor = bg;
   };
 
-  if (!hasResult && !showModelList) { return null; }
+  if (!hasResult && !showModelList) {
+    return null;
+  }
 
   if (showModelList) {
     return (
       <>
-        <div style={{ height: 1, backgroundColor: borderColor, flexShrink: 0 }} />
+        <div
+          style={{ height: 1, backgroundColor: borderColor, flexShrink: 0 }}
+        />
         <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
           {currentModels.map((m) => (
             <div
@@ -688,7 +775,9 @@ function QuickBarResult({
               tabIndex={0}
               onClick={() => runModelSwitch(m.model_id)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") { runModelSwitch(m.model_id); }
+                if (e.key === "Enter" || e.key === " ") {
+                  runModelSwitch(m.model_id);
+                }
               }}
               style={{
                 display: "flex",
@@ -697,7 +786,9 @@ function QuickBarResult({
                 padding: "8px 14px",
                 cursor: "pointer",
                 fontSize: 13,
-                backgroundColor: m.model_id === activeModelId ? token.colorFillSecondary : "transparent",
+                backgroundColor: m.model_id === activeModelId
+                  ? token.colorFillSecondary
+                  : "transparent",
                 color: token.colorText,
                 transition: "background-color 0.1s",
               }}
@@ -705,7 +796,9 @@ function QuickBarResult({
               <ModelIcon model={m.model_id} size={20} type="avatar" />
               <span style={{ flex: 1 }}>{m.model_id}</span>
               {m.model_id === activeModelId && (
-                <span style={{ fontSize: 10, color: token.colorPrimary }}>{t("quickbar.result.current")}</span>
+                <span style={{ fontSize: 10, color: token.colorPrimary }}>
+                  {t("quickbar.result.current")}
+                </span>
               )}
             </div>
           ))}
@@ -742,10 +835,14 @@ function QuickBarResult({
           flexShrink: 0,
         }}
       >
-        <Tooltip title={copied ? t("quickbar.result.copied") : t("quickbar.result.copy")}>
+        <Tooltip
+          title={copied ? t("quickbar.result.copied") : t("quickbar.result.copy")}
+        >
           <button
             onClick={handleCopy}
-            style={actionBtnStyle(copied ? token.colorSuccess : token.colorTextSecondary)}
+            style={actionBtnStyle(
+              copied ? token.colorSuccess : token.colorTextSecondary,
+            )}
             onMouseEnter={actionHover(token.colorFillSecondary)}
             onMouseLeave={actionHover("transparent")}
           >
@@ -755,11 +852,15 @@ function QuickBarResult({
         <Tooltip title={t("quickbar.result.saveWiki")}>
           <button
             onClick={async () => {
-              if (!result.trim()) { return; }
+              if (!result.trim()) {
+                return;
+              }
               setLoading(true);
               try {
                 if (!selectedWikiId) {
-                  setResult((p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"));
+                  setResult(
+                    (p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"),
+                  );
                   setLoading(false);
                   return;
                 }
@@ -771,7 +872,9 @@ function QuickBarResult({
                   path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
                   title: safeTitle,
                 });
-                setResult((p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`);
+                setResult(
+                  (p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`,
+                );
               } catch (e) {
                 setResult((p) => p + `\n\n❌ ${String(e)}`);
               }
@@ -807,7 +910,15 @@ export function QuickBarPage() {
 
   /* Resolve i18n labels into CommandDef */
   const COMMANDS: CommandDef[] = useMemo(
-    () => COMMAND_DEFS.map((d) => ({ ...d, labelKey: t(d.labelKey), descKey: t(d.descKey) }) as unknown as CommandDef),
+    () =>
+      COMMAND_DEFS.map(
+        (d) =>
+          ({
+            ...d,
+            labelKey: t(d.labelKey),
+            descKey: t(d.descKey),
+          }) as unknown as CommandDef,
+      ),
     [t],
   );
 
@@ -832,14 +943,20 @@ export function QuickBarPage() {
   const activeProviderId = settings.default_provider_id;
   const activeModelId = settings.default_model_id;
   const providers = useProviderStore((s) => s.providers);
-  const currentProvider = useMemo(() => providers.find((p) => p.id === activeProviderId), [
-    providers,
-    activeProviderId,
-  ]);
-  const currentModels = useMemo(() => currentProvider?.models.filter((m) => m.enabled) ?? [], [currentProvider]);
+  const currentProvider = useMemo(
+    () => providers.find((p) => p.id === activeProviderId),
+    [providers, activeProviderId],
+  );
+  const currentModels = useMemo(
+    () => currentProvider?.models.filter((m) => m.enabled) ?? [],
+    [currentProvider],
+  );
 
   /* Command lookup helpers */
-  const getCommand = useCallback((key: CommandType) => COMMANDS.find((c) => c.key === key), [COMMANDS]);
+  const getCommand = useCallback(
+    (key: CommandType) => COMMANDS.find((c) => c.key === key),
+    [COMMANDS],
+  );
 
   /* ── Lifecycle ──────────────────────────────────────────────────── */
 
@@ -865,22 +982,30 @@ export function QuickBarPage() {
   }, [input, commandMode]);
 
   const ensureConversation = useCallback(async (): Promise<string> => {
-    if (convId) { return convId; }
-    const conversation = await invoke<{ id: string }>("create_conversation", { title: "QuickBar" });
+    if (convId) {
+      return convId;
+    }
+    const conversation = await invoke<{ id: string }>("create_conversation", {
+      title: "QuickBar",
+    });
     setConvId(conversation.id);
     localStorage.setItem(QUICKBAR_CONV_KEY, conversation.id);
     return conversation.id;
   }, [convId]);
 
   const cleanupListeners = useCallback(() => {
-    for (const fn of unlistenRef.current) { fn(); }
+    for (const fn of unlistenRef.current) {
+      fn();
+    }
     unlistenRef.current = [];
   }, []);
 
   useEffect(() => () => cleanupListeners(), [cleanupListeners]);
 
   const handleHide = useCallback(async () => {
-    if (isTauri()) { await invoke("hide_quickbar"); }
+    if (isTauri()) {
+      await invoke("hide_quickbar");
+    }
   }, []);
 
   /* ── Keyboard global ─────────────────────────────────────────────── */
@@ -911,33 +1036,39 @@ export function QuickBarPage() {
 
   /* ── Stream lifecycle ────────────────────────────────────────────── */
 
-  const startStream = useCallback(async (op: () => Promise<void>) => {
-    setLoading(true);
-    setResult("");
-    try {
-      await op();
-      let text = "";
-      cleanupListeners();
-      const [u1, u2, u3] = await Promise.all([
-        listen<{ conversationId: string; assistantMessageId: string; text: string }>(
-          "agent-stream-text",
-          (event) => {
+  const startStream = useCallback(
+    async (op: () => Promise<void>) => {
+      setLoading(true);
+      setResult("");
+      try {
+        await op();
+        let text = "";
+        cleanupListeners();
+        const [u1, u2, u3] = await Promise.all([
+          listen<{
+            conversationId: string;
+            assistantMessageId: string;
+            text: string;
+          }>("agent-stream-text", (event) => {
             text += event.payload.text;
             setResult(text);
-          },
-        ),
-        listen("agent-done", () => setLoading(false)),
-        listen<{ message: string }>("agent-error", (event) => {
-          setResult(`${t("quickbar.result.error")}: ${event.payload.message}`);
-          setLoading(false);
-        }),
-      ]);
-      unlistenRef.current = [u1, u2, u3];
-    } catch (e) {
-      setResult(`${t("quickbar.result.error")}: ${String(e)}`);
-      setLoading(false);
-    }
-  }, [cleanupListeners, t]);
+          }),
+          listen("agent-done", () => setLoading(false)),
+          listen<{ message: string }>("agent-error", (event) => {
+            setResult(
+              `${t("quickbar.result.error")}: ${event.payload.message}`,
+            );
+            setLoading(false);
+          }),
+        ]);
+        unlistenRef.current = [u1, u2, u3];
+      } catch (e) {
+        setResult(`${t("quickbar.result.error")}: ${String(e)}`);
+        setLoading(false);
+      }
+    },
+    [cleanupListeners, t],
+  );
 
   /* ── Command executors ───────────────────────────────────────────── */
 
@@ -955,55 +1086,78 @@ export function QuickBarPage() {
   const runAgent = (body: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
-      await invoke("agent_query", {
-        request: { conversationId: cid, input: body, providerId: activeProviderId, model_id: activeModelId },
-      }, 0);
+      await invoke(
+        "agent_query",
+        {
+          request: {
+            conversationId: cid,
+            input: body,
+            providerId: activeProviderId,
+            model_id: activeModelId,
+          },
+        },
+        0,
+      );
     });
 
   const runUrl = (url: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
-      await invoke("agent_query", {
-        request: {
-          conversationId: cid,
-          input: `Fetch the content from this URL and summarize it concisely: ${url}`,
-          providerId: activeProviderId,
-          model_id: activeModelId,
+      await invoke(
+        "agent_query",
+        {
+          request: {
+            conversationId: cid,
+            input: `Fetch the content from this URL and summarize it concisely: ${url}`,
+            providerId: activeProviderId,
+            model_id: activeModelId,
+          },
         },
-      }, 0);
+        0,
+      );
     });
 
   const runSummarizeUrl = (url: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
-      await invoke("agent_query", {
-        request: {
-          conversationId: cid,
-          input: `Summarize the core content of this web page in 3-5 sentences: ${url}`,
-          providerId: activeProviderId,
-          model_id: activeModelId,
+      await invoke(
+        "agent_query",
+        {
+          request: {
+            conversationId: cid,
+            input: `Summarize the core content of this web page in 3-5 sentences: ${url}`,
+            providerId: activeProviderId,
+            model_id: activeModelId,
+          },
         },
-      }, 0);
+        0,
+      );
     });
 
   const runTranslate = (text: string) =>
     startStream(async () => {
       const cid = await ensureConversation();
-      await invoke("agent_query", {
-        request: {
-          conversationId: cid,
-          input: `Translate the following content to Chinese:\n\n${text}`,
-          providerId: activeProviderId,
-          model_id: activeModelId,
+      await invoke(
+        "agent_query",
+        {
+          request: {
+            conversationId: cid,
+            input: `Translate the following content to Chinese:\n\n${text}`,
+            providerId: activeProviderId,
+            model_id: activeModelId,
+          },
         },
-      }, 0);
+        0,
+      );
     });
 
   const runSearch = async (body: string) => {
     setLoading(true);
     setResult("");
     try {
-      const results = await invoke<Array<{ content: string; score: number; title: string }>>("search_knowledge_base", {
+      const results = await invoke<
+        Array<{ content: string; score: number; title: string }>
+      >("search_knowledge_base", {
         query: body,
         limit: 5,
       });
@@ -1013,7 +1167,11 @@ export function QuickBarPage() {
         return;
       }
       setResult(
-        results.map((r) => `**${r.title}** (${(r.score * 100).toFixed(0)}%)\n${r.content}`).join("\n\n---\n\n"),
+        results
+          .map(
+            (r) => `**${r.title}** (${(r.score * 100).toFixed(0)}%)\n${r.content}`,
+          )
+          .join("\n\n---\n\n"),
       );
     } catch (e) {
       setResult(`${t("quickbar.result.searchFailed")}: ${String(e)}`);
@@ -1025,7 +1183,9 @@ export function QuickBarPage() {
     setLoading(true);
     setResult("");
     try {
-      const results = await invoke<Array<{ content: string; score: number; title: string }>>("search_knowledge_base", {
+      const results = await invoke<
+        Array<{ content: string; score: number; title: string }>
+      >("search_knowledge_base", {
         query: body,
         limit: 5,
       });
@@ -1035,7 +1195,11 @@ export function QuickBarPage() {
         return;
       }
       setResult(
-        results.map((r) => `**${r.title}** (${(r.score * 100).toFixed(0)}%)\n${r.content}`).join("\n\n---\n\n"),
+        results
+          .map(
+            (r) => `**${r.title}** (${(r.score * 100).toFixed(0)}%)\n${r.content}`,
+          )
+          .join("\n\n---\n\n"),
       );
     } catch (e) {
       setResult(`${t("quickbar.result.searchFailed")}: ${String(e)}`);
@@ -1044,7 +1208,9 @@ export function QuickBarPage() {
   };
 
   const runWiki = async (body: string) => {
-    if (!body.trim()) { return; }
+    if (!body.trim()) {
+      return;
+    }
     setLoading(true);
     setResult("");
     try {
@@ -1071,8 +1237,12 @@ export function QuickBarPage() {
     try {
       const sanitized = expr.replace(/[^0-9+\-*/().%\s]/g, "");
       const value = Function(`"use strict"; return (${sanitized})`)();
-      if (value === Infinity || value === -Infinity) { throw new Error("Division by zero"); }
-      setResult(`${expr.trim()} = ${Number.isInteger(value) ? value : value.toFixed(6)}`);
+      if (value === Infinity || value === -Infinity) {
+        throw new Error("Division by zero");
+      }
+      setResult(
+        `${expr.trim()} = ${Number.isInteger(value) ? value : value.toFixed(6)}`,
+      );
     } catch {
       await runChat(`${expr} = ?`);
     }
@@ -1101,7 +1271,9 @@ export function QuickBarPage() {
   const runNewConversation = useCallback(async () => {
     setLoading(true);
     try {
-      const conversation = await invoke<{ id: string }>("create_conversation", { title: "QuickBar" });
+      const conversation = await invoke<{ id: string }>("create_conversation", {
+        title: "QuickBar",
+      });
       setConvId(conversation.id);
       localStorage.setItem(QUICKBAR_CONV_KEY, conversation.id);
       setResult(`✅ ${t("quickbar.result.newConversation")}`);
@@ -1114,38 +1286,43 @@ export function QuickBarPage() {
 
   /* ── Tile click handler ──────────────────────────────────────────── */
 
-  const handleTileClick = useCallback(async (cmd: CommandDef) => {
-    if (cmd.needsBody) {
-      setCommandMode(true);
-      setActiveCommand(cmd.key);
-      setInput(`/${cmd.key} `);
-      setResult("");
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      switch (cmd.key) {
-        case "new":
-          await runNewConversation();
-          break;
-        case "continue":
-          break;
-        case "model":
-          setShowModelList(true);
-          break;
-        case "settings":
-          window.open("/settings", "_blank", "noopener,noreferrer");
-          break;
-        case "gateway":
-          window.open("/gateway", "_blank", "noopener,noreferrer");
-          break;
+  const handleTileClick = useCallback(
+    async (cmd: CommandDef) => {
+      if (cmd.needsBody) {
+        setCommandMode(true);
+        setActiveCommand(cmd.key);
+        setInput(`/${cmd.key} `);
+        setResult("");
+        setTimeout(() => inputRef.current?.focus(), 50);
+      } else {
+        switch (cmd.key) {
+          case "new":
+            await runNewConversation();
+            break;
+          case "continue":
+            break;
+          case "model":
+            setShowModelList(true);
+            break;
+          case "settings":
+            window.open("/settings", "_blank", "noopener,noreferrer");
+            break;
+          case "gateway":
+            window.open("/gateway", "_blank", "noopener,noreferrer");
+            break;
+        }
       }
-    }
-  }, [runNewConversation]);
+    },
+    [runNewConversation],
+  );
 
   /* ── Submit handler ───────────────────────────────────────────────── */
 
   const handleSubmit = useCallback(async () => {
     const { command, body } = parseCommand(input, COMMANDS);
-    if (!body && command !== "new" && command !== "model") { return; }
+    if (!body && command !== "new" && command !== "model") {
+      return;
+    }
 
     setShowCommands(false);
     setActiveCommand(command);
@@ -1221,40 +1398,47 @@ export function QuickBarPage() {
 
   /* ── Keyboard in command palette ──────────────────────────────────── */
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (showCommands) {
-      const partial = input.trimStart().slice(1).toLowerCase();
-      const visible = COMMANDS.filter((c) => c.key.startsWith(partial) || c.labelKey.toLowerCase().includes(partial));
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedCmd((i) => Math.min(i + 1, visible.length - 1));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedCmd((i) => Math.max(i - 1, 0));
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        const cmd = visible[selectedCmd];
-        if (cmd) {
-          setInput(`/${cmd.key} `);
-          setActiveCommand(cmd.key);
-          setShowCommands(false);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (showCommands) {
+        const partial = input.trimStart().slice(1).toLowerCase();
+        const visible = COMMANDS.filter(
+          (c) =>
+            c.key.startsWith(partial)
+            || c.labelKey.toLowerCase().includes(partial),
+        );
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSelectedCmd((i) => Math.min(i + 1, visible.length - 1));
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSelectedCmd((i) => Math.max(i - 1, 0));
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          const cmd = visible[selectedCmd];
+          if (cmd) {
+            setInput(`/${cmd.key} `);
+            setActiveCommand(cmd.key);
+            setShowCommands(false);
+          }
+          setTimeout(() => inputRef.current?.focus(), 50);
         }
+        return;
+      }
+      if (!commandMode && e.key === "/" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setCommandMode(true);
+        setInput("/");
         setTimeout(() => inputRef.current?.focus(), 50);
       }
-      return;
-    }
-    if (!commandMode && e.key === "/" && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      setCommandMode(true);
-      setInput("/");
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-    if (!commandMode && e.key === "Enter" && !showModelList) {
-      e.preventDefault();
-      setCommandMode(true);
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [showCommands, input, selectedCmd, COMMANDS, commandMode, showModelList]);
+      if (!commandMode && e.key === "Enter" && !showModelList) {
+        e.preventDefault();
+        setCommandMode(true);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+    },
+    [showCommands, input, selectedCmd, COMMANDS, commandMode, showModelList],
+  );
 
   /* ── Misc handlers ────────────────────────────────────────────────── */
 
@@ -1288,7 +1472,9 @@ export function QuickBarPage() {
   const hasResult = result.length > 0;
   const categorizedCommands = useMemo(() => {
     const map: Record<string, CommandDef[]> = {};
-    for (const g of CATEGORY_GROUPS) { map[g.key] = COMMANDS.filter((c) => c.category === g.key); }
+    for (const g of CATEGORY_GROUPS) {
+      map[g.key] = COMMANDS.filter((c) => c.category === g.key);
+    }
     return map;
   }, [COMMANDS]);
 
@@ -1324,7 +1510,13 @@ export function QuickBarPage() {
           borderBottom: `1px solid ${borderColor}`,
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 500, color: token.colorTextSecondary }}>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: token.colorTextSecondary,
+          }}
+        >
           {t("quickbar.title")}
           {activeCommand ? ` · /${activeCommand}` : ""}
         </span>
@@ -1334,13 +1526,20 @@ export function QuickBarPage() {
               <button
                 className="title-bar-nodrag"
                 onClick={() => setShowModelList((v) => !v)}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 2,
+                }}
               >
                 <ModelIcon model={activeModelId} size={16} type="avatar" />
               </button>
             </Tooltip>
           )}
-          <Tooltip title={commandMode ? t("quickbar.cmdTile") : t("quickbar.cmdLine")}>
+          <Tooltip
+            title={commandMode ? t("quickbar.cmdTile") : t("quickbar.cmdLine")}
+          >
             <button
               className="title-bar-nodrag"
               onClick={() => {
@@ -1439,13 +1638,21 @@ export function QuickBarPage() {
                       setRecentItems([]);
                     }
                   }}
-                  style={{ cursor: "pointer", opacity: 0.35, marginLeft: "auto", flexShrink: 0 }}
+                  style={{
+                    cursor: "pointer",
+                    opacity: 0.35,
+                    marginLeft: "auto",
+                    flexShrink: 0,
+                  }}
                 >
                   {t("quickbar.clearRecent")}
                 </span>
               </div>
             )}
-            <TileGrid categorizedCommands={categorizedCommands} onTileClick={handleTileClick} />
+            <TileGrid
+              categorizedCommands={categorizedCommands}
+              onTileClick={handleTileClick}
+            />
             {!hasResult && (
               <div
                 style={{

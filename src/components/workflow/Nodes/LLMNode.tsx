@@ -17,30 +17,55 @@ interface LLMNodeData {
   tools?: string[];
 }
 
-const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({ data, selected }) => {
+const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
+  data,
+  selected,
+}) => {
   const color = "#13c2c2";
 
   const getModelIcon = (model: string): string => {
-    if (!model) { return "🤖"; }
+    if (!model) {
+      return "🤖";
+    }
     const lowerModel = model.toLowerCase();
-    if (lowerModel.includes("gpt") || lowerModel.includes("openai")) { return "🤖"; }
-    if (lowerModel.includes("claude")) { return "🧠"; }
-    if (lowerModel.includes("gemini")) { return "✨"; }
-    if (lowerModel.includes("llama")) { return "🦙"; }
-    if (lowerModel.includes("mistral")) { return "🌬️"; }
-    if (lowerModel.includes("qwen")) { return "🔮"; }
-    if (lowerModel.includes("deepseek")) { return "🔍"; }
+    if (lowerModel.includes("gpt") || lowerModel.includes("openai")) {
+      return "🤖";
+    }
+    if (lowerModel.includes("claude")) {
+      return "🧠";
+    }
+    if (lowerModel.includes("gemini")) {
+      return "✨";
+    }
+    if (lowerModel.includes("llama")) {
+      return "🦙";
+    }
+    if (lowerModel.includes("mistral")) {
+      return "🌬️";
+    }
+    if (lowerModel.includes("qwen")) {
+      return "🔮";
+    }
+    if (lowerModel.includes("deepseek")) {
+      return "🔍";
+    }
     return "🤖";
   };
 
   const formatTemperature = (temp: number | undefined): string => {
-    if (temp === undefined) { return ""; }
+    if (temp === undefined) {
+      return "";
+    }
     return temp.toFixed(1);
   };
 
   const formatMaxTokens = (tokens: number | undefined): string => {
-    if (!tokens) { return ""; }
-    if (tokens >= 1000) { return `${(tokens / 1000).toFixed(0)}k`; }
+    if (!tokens) {
+      return "";
+    }
+    if (tokens >= 1000) {
+      return `${(tokens / 1000).toFixed(0)}k`;
+    }
     return `${tokens}`;
   };
 
@@ -94,7 +119,9 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({ data, selected }) 
                 color: "#fff",
               }}
             >
-              {data.model.length > 15 ? `${data.model.slice(0, 15)}...` : data.model}
+              {data.model.length > 15
+                ? `${data.model.slice(0, 15)}...`
+                : data.model}
             </Tag>
           )}
         </div>

@@ -27,7 +27,9 @@ import { WebDavSync } from "./WebDavSync";
 const { Text } = Typography;
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) { return "0 B"; }
+  if (bytes === 0) {
+    return "0 B";
+  }
   const units = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
@@ -51,7 +53,9 @@ export function BackupCenter() {
     updateBackupSettings,
   } = useBackupStore();
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [restoreTarget, setRestoreTarget] = useState<BackupManifest | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<BackupManifest | null>(
+    null,
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [form] = Form.useForm();
   const [settingsForm] = Form.useForm();
@@ -78,7 +82,9 @@ export function BackupCenter() {
   };
 
   const handleRestore = async () => {
-    if (!restoreTarget) { return; }
+    if (!restoreTarget) {
+      return;
+    }
     try {
       await restoreBackup(restoreTarget.id);
       message.success(t("backup.restoreSuccess"));
@@ -156,7 +162,9 @@ export function BackupCenter() {
       key: "version",
       width: 100,
       render: (val: string) => (
-        <Tag icon={val === "sqlite" ? <HardDrive size={12} /> : <FileJson size={12} />}>
+        <Tag
+          icon={val === "sqlite" ? <HardDrive size={12} /> : <FileJson size={12} />}
+        >
           {val.toUpperCase()}
         </Tag>
       ),
@@ -246,7 +254,9 @@ export function BackupCenter() {
           <div className="flex items-center justify-between mb-4">
             <Space>
               <Popconfirm
-                title={t("backup.batchDeleteConfirm", { count: selectedIds.length })}
+                title={t("backup.batchDeleteConfirm", {
+                  count: selectedIds.length,
+                })}
                 onConfirm={handleBatchDelete}
                 disabled={selectedIds.length === 0}
               >
@@ -307,12 +317,22 @@ export function BackupCenter() {
         confirmLoading={loading}
         mask={{ enabled: true, blur: true }}
       >
-        <Form form={form} layout="vertical" initialValues={{ format: "sqlite" }}>
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{ format: "sqlite" }}
+        >
           <Form.Item name="format" label={t("backup.format")}>
             <Select
               options={[
-                { label: "SQLite (" + t("backup.formatSqliteDesc") + ")", value: "sqlite" },
-                { label: "JSON (" + t("backup.formatJsonDesc") + ")", value: "json" },
+                {
+                  label: "SQLite (" + t("backup.formatSqliteDesc") + ")",
+                  value: "sqlite",
+                },
+                {
+                  label: "JSON (" + t("backup.formatJsonDesc") + ")",
+                  value: "json",
+                },
               ]}
             />
           </Form.Item>
@@ -350,7 +370,11 @@ export function BackupCenter() {
             backupDir: "",
           }}
         >
-          <Form.Item name="enabled" label={t("backup.autoBackupEnabled")} valuePropName="checked">
+          <Form.Item
+            name="enabled"
+            label={t("backup.autoBackupEnabled")}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
           <Divider />
@@ -359,7 +383,11 @@ export function BackupCenter() {
               name="intervalHours"
               min={1}
               max={720}
-              addonAfter={<span style={{ whiteSpace: "nowrap" }}>{t("backup.hours")}</span>}
+              addonAfter={
+                <span style={{ whiteSpace: "nowrap" }}>
+                  {t("backup.hours")}
+                </span>
+              }
               style={{ width: 200 }}
             />
           </Form.Item>
@@ -368,7 +396,11 @@ export function BackupCenter() {
               name="maxCount"
               min={1}
               max={100}
-              addonAfter={<span style={{ whiteSpace: "nowrap" }}>{t("backup.copies")}</span>}
+              addonAfter={
+                <span style={{ whiteSpace: "nowrap" }}>
+                  {t("backup.copies")}
+                </span>
+              }
               style={{ width: 200 }}
             />
           </Form.Item>
@@ -376,7 +408,11 @@ export function BackupCenter() {
             name="backupDir"
             label={t("backup.backupDir")}
             extra={
-              <Text data-testid="backup-effective-dir" type="secondary" style={{ fontSize: 12 }}>
+              <Text
+                data-testid="backup-effective-dir"
+                type="secondary"
+                style={{ fontSize: 12 }}
+              >
                 {t("backup.effectiveDir")}: {effectiveBackupDir}
               </Text>
             }

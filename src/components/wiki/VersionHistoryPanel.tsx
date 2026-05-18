@@ -40,7 +40,13 @@ function computeDiffLines(oldText: string, newText: string) {
   return result;
 }
 
-function DiffView({ oldContent, newContent }: { oldContent: string; newContent: string }) {
+function DiffView({
+  oldContent,
+  newContent,
+}: {
+  oldContent: string;
+  newContent: string;
+}) {
   const { token } = theme.useToken();
   const diffLines = computeDiffLines(oldContent, newContent);
 
@@ -70,7 +76,13 @@ function DiffView({ oldContent, newContent }: { oldContent: string; newContent: 
             wordBreak: "break-all",
           }}
         >
-          <span style={{ display: "inline-block", width: 16, color: token.colorTextQuaternary }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: 16,
+              color: token.colorTextQuaternary,
+            }}
+          >
             {dl.type === "added" ? "+" : dl.type === "removed" ? "-" : " "}
           </span>
           {dl.line}
@@ -88,14 +100,21 @@ function shortHash(hash: string): string {
   return hash.length > 8 ? hash.slice(0, 8) : hash;
 }
 
-export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: VersionHistoryPanelProps) {
+export function VersionHistoryPanel({
+  noteId,
+  open,
+  onClose,
+  onRestore,
+}: VersionHistoryPanelProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const { loadVersions, restoreVersion } = useWikiStore();
 
   const [versions, setVersions] = useState<NoteVersion[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedVersion, setSelectedVersion] = useState<NoteVersion | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<NoteVersion | null>(
+    null,
+  );
   const [diffVersion, setDiffVersion] = useState<NoteVersion | null>(null);
   const [restoring, setRestoring] = useState(false);
 
@@ -177,7 +196,9 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
                 <List.Item
                   style={{
                     cursor: "pointer",
-                    backgroundColor: selectedVersion?.id === version.id ? token.colorPrimaryBg : "transparent",
+                    backgroundColor: selectedVersion?.id === version.id
+                      ? token.colorPrimaryBg
+                      : "transparent",
                     padding: "8px 16px",
                     borderLeft: selectedVersion?.id === version.id
                       ? `3px solid ${token.colorPrimary}`
@@ -248,18 +269,27 @@ export function VersionHistoryPanel({ noteId, open, onClose, onRestore }: Versio
                   borderColor: token.colorBorderSecondary,
                 }}
               >
-                <Text className="text-xs font-mono" style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                <Text
+                  className="text-xs font-mono"
+                  style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
+                >
                   {selectedVersion.content}
                 </Text>
               </div>
             )}
 
             {diffVersion && selectedVersion && (
-              <div className="border-t p-3" style={{ borderColor: token.colorBorderSecondary }}>
+              <div
+                className="border-t p-3"
+                style={{ borderColor: token.colorBorderSecondary }}
+              >
                 <Text className="text-xs mb-2 block" type="secondary">
                   {t("wiki.diffLabel")}: {shortHash(diffVersion.contentHash)} → {shortHash(selectedVersion.contentHash)}
                 </Text>
-                <DiffView oldContent={diffVersion.content} newContent={selectedVersion.content} />
+                <DiffView
+                  oldContent={diffVersion.content}
+                  newContent={selectedVersion.content}
+                />
               </div>
             )}
           </div>

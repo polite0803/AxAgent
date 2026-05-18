@@ -94,7 +94,10 @@ export interface ConversationState {
       system_prompt?: string;
     },
   ) => Promise<Conversation>;
-  updateConversation: (id: string, input: UpdateConversationInput) => Promise<void>;
+  updateConversation: (
+    id: string,
+    input: UpdateConversationInput,
+  ) => Promise<void>;
   renameConversation: (id: string, title: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   branchConversation: (
@@ -105,12 +108,19 @@ export interface ConversationState {
   ) => Promise<Conversation>;
   togglePin: (id: string) => Promise<void>;
   toggleArchive: (id: string) => Promise<void>;
-  archiveToKnowledgeBase: (id: string, knowledgeBaseId: string) => Promise<void>;
+  archiveToKnowledgeBase: (
+    id: string,
+    knowledgeBaseId: string,
+  ) => Promise<void>;
   archivedConversations: Conversation[];
   fetchArchivedConversations: () => Promise<void>;
   batchDelete: (ids: string[]) => Promise<void>;
   batchArchive: (ids: string[]) => Promise<void>;
-  sendMessage: (content: string, attachments?: AttachmentInput[], searchProviderId?: string | null) => Promise<void>;
+  sendMessage: (
+    content: string,
+    attachments?: AttachmentInput[],
+    searchProviderId?: string | null,
+  ) => Promise<void>;
   /** Send a message in agent mode (non-streaming MVP) */
   sendAgentMessage: (
     content: string,
@@ -124,21 +134,49 @@ export interface ConversationState {
     searchProviderId?: string | null,
   ) => Promise<void>;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
-  regenerateWithModel: (targetMessageId: string, providerId: string, model_id: string) => Promise<void>;
+  regenerateWithModel: (
+    targetMessageId: string,
+    providerId: string,
+    model_id: string,
+  ) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
-  fetchMessages: (conversationId: string, preserveMessageIds?: string[]) => Promise<void>;
+  fetchMessages: (
+    conversationId: string,
+    preserveMessageIds?: string[],
+  ) => Promise<void>;
   loadOlderMessages: () => Promise<void>;
   searchConversations: (query: string) => Promise<ConversationSearchResult[]>;
   startStreamListening: () => Promise<void>;
-  switchMessageVersion: (conversationId: string, parentMessageId: string, messageId: string) => Promise<void>;
-  listMessageVersions: (conversationId: string, parentMessageId: string) => Promise<Message[]>;
+  switchMessageVersion: (
+    conversationId: string,
+    parentMessageId: string,
+    messageId: string,
+  ) => Promise<void>;
+  listMessageVersions: (
+    conversationId: string,
+    parentMessageId: string,
+  ) => Promise<Message[]>;
   updateMessageContent: (messageId: string, content: string) => Promise<void>;
-  deleteMessageGroup: (conversationId: string, userMessageId: string) => Promise<void>;
+  deleteMessageGroup: (
+    conversationId: string,
+    userMessageId: string,
+  ) => Promise<void>;
   workspaceSnapshot: ConversationWorkspaceSnapshot | null;
-  loadWorkspaceSnapshot: (conversationId: string) => Promise<ConversationWorkspaceSnapshot | null>;
-  updateWorkspaceSnapshot: (conversationId: string, snapshot: Partial<ConversationWorkspaceSnapshot>) => Promise<void>;
-  forkConversation: (conversationId: string, fromMessageId?: string) => Promise<ConversationBranch | null>;
-  compareResponses: (leftMessageId: string, rightMessageId: string) => Promise<CompareResponsesResult | null>;
+  loadWorkspaceSnapshot: (
+    conversationId: string,
+  ) => Promise<ConversationWorkspaceSnapshot | null>;
+  updateWorkspaceSnapshot: (
+    conversationId: string,
+    snapshot: Partial<ConversationWorkspaceSnapshot>,
+  ) => Promise<void>;
+  forkConversation: (
+    conversationId: string,
+    fromMessageId?: string,
+  ) => Promise<ConversationBranch | null>;
+  compareResponses: (
+    leftMessageId: string,
+    rightMessageId: string,
+  ) => Promise<CompareResponsesResult | null>;
   /** Conversation ID currently generating an AI title (null if none) */
   titleGeneratingConversationId: string | null;
   /** Regenerate the title of a conversation using AI */
@@ -219,7 +257,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
   toggleMcpServer: async (id) => {
     const current = get().enabledMcpServerIds;
-    const next = current.includes(id) ? current.filter((s) => s !== id) : [...current, id];
+    const next = current.includes(id)
+      ? current.filter((s) => s !== id)
+      : [...current, id];
     set({ enabledMcpServerIds: next });
     try {
       await usePreferenceStore.getState().toggleMcpServer(id);
@@ -234,7 +274,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
   toggleKnowledgeBase: async (id) => {
     const current = get().enabledKnowledgeBaseIds;
-    const next = current.includes(id) ? current.filter((s) => s !== id) : [...current, id];
+    const next = current.includes(id)
+      ? current.filter((s) => s !== id)
+      : [...current, id];
     set({ enabledKnowledgeBaseIds: next });
     try {
       await usePreferenceStore.getState().toggleKnowledgeBase(id);
@@ -251,13 +293,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
   toggleWiki: (id) => {
     const current = get().enabledWikiIds;
-    const next = current.includes(id) ? current.filter((s) => s !== id) : [...current, id];
+    const next = current.includes(id)
+      ? current.filter((s) => s !== id)
+      : [...current, id];
     usePreferenceStore.getState().toggleWiki(id);
     set({ enabledWikiIds: next });
   },
   insertContextClear: async () => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) { return; }
+    if (!conversationId) {
+      return;
+    }
     try {
       const msg = await invoke<Message>("send_system_message", {
         conversationId,
@@ -265,7 +311,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
       set((s) => ({ messages: [...s.messages, msg] }));
       // Backup and clear agent SDK context (no-op if no agent session exists)
-      await invoke("agent_backup_and_clear_sdk_context", { conversationId }).catch((e: unknown) => {
+      await invoke("agent_backup_and_clear_sdk_context", {
+        conversationId,
+      }).catch((e: unknown) => {
         console.warn("[IPC]", e);
       });
     } catch {
@@ -303,7 +351,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set((s) => ({ messages: s.messages.filter((m) => m.id !== messageId) }));
       // Restore agent SDK context from backup (no-op if no agent session or no backup)
       if (conversationId) {
-        await invoke("agent_restore_sdk_context_from_backup", { conversationId }).catch((e: unknown) => {
+        await invoke("agent_restore_sdk_context_from_backup", {
+          conversationId,
+        }).catch((e: unknown) => {
           console.warn("[IPC]", e);
         });
       }
@@ -315,17 +365,23 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   clearAllMessages: async () => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) { return; }
+    if (!conversationId) {
+      return;
+    }
     // Guard: cancel any active stream before clearing messages.
     // Otherwise the backend stream task would try to update a deleted
     // placeholder message in DB, producing errors and orphaned chunks.
-    if (isConvStreaming(useStreamStore.getState().activeStreams, conversationId)) {
+    if (
+      isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
+    ) {
       useStreamStore.getState().cancelCurrentStream(conversationId);
     }
     try {
       await invoke("clear_conversation_messages", { conversationId });
       // Stale guard: don't wipe messages if user switched conversations
-      if (get().activeConversationId !== conversationId) { return; }
+      if (get().activeConversationId !== conversationId) {
+        return;
+      }
       set({
         messages: [],
         hasOlderMessages: false,
@@ -340,8 +396,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   switchModel: async (modelKeyword: string) => {
     const conversationId = get().activeConversationId;
-    const conversation = get().conversations.find((c) => c.id === conversationId);
-    if (!conversationId || !conversation) { return; }
+    const conversation = get().conversations.find(
+      (c) => c.id === conversationId,
+    );
+    if (!conversationId || !conversation) {
+      return;
+    }
 
     try {
       const providers = useProviderStore.getState().providers;
@@ -355,14 +415,18 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       for (const p of providers) {
         for (const m of p.models) {
-          if (!m.enabled) { continue; }
+          if (!m.enabled) {
+            continue;
+          }
           const modelLower = m.model_id.toLowerCase();
           const exact = modelLower === keyword;
           // js-set-map-lookups: 子串匹配无法用 Set.has 替代
           const contains = modelLower.includes(keyword);
-          if (!exact && !contains) { continue; }
+          if (!exact && !contains) {
+            continue;
+          }
           const sameProvider = p.id === conversation.provider_id;
-          const score = exact ? (sameProvider ? 3 : 2) : (sameProvider ? 1 : 0);
+          const score = exact ? (sameProvider ? 3 : 2) : sameProvider ? 1 : 0;
           if (score > bestScore) {
             bestScore = score;
             bestProviderId = p.id;
@@ -386,7 +450,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set({ loading: true });
     try {
       // 15s timeout — session list is a lightweight DB query, should be fast
-      const conversations = await invoke<Conversation[]>("list_conversations", undefined, 15_000);
+      const conversations = await invoke<Conversation[]>(
+        "list_conversations",
+        undefined,
+        15_000,
+      );
       set({ conversations, loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -394,13 +462,18 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   setActiveConversation: (id) => {
-    if (id === get().activeConversationId && (!id || !_pendingConversationRefresh.has(id))) {
+    if (
+      id === get().activeConversationId
+      && (!id || !_pendingConversationRefresh.has(id))
+    ) {
       return;
     }
     const prevId = get().activeConversationId;
     incrementActiveMessageLoadSeq();
     if (!id) {
-      if (prevId === null) { return; }
+      if (prevId === null) {
+        return;
+      }
       if (prevId) {
         if (isConvStreaming(useStreamStore.getState().activeStreams, prevId)) {
           useStreamStore.getState().cancelCurrentStream(prevId);
@@ -465,86 +538,106 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     // 同步偏好状态到 preferenceStore（两个不同 store 的 setState，不能合并）
     usePreferenceStore.setState(prefState);
     // 保留尚未持久化的 temp- 消息，防止被服务端返回的列表覆盖丢失
-    const tempIds = get().messages.flatMap(m => m.id.startsWith("temp-") ? [m.id] : []);
-    get().fetchMessages(id, tempIds).then(() => {
-      if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== id) {
-        return;
-      }
-      // If there's an active stream for this conversation, inject buffered content
-      if (
-        _streamBuffer && _streamBuffer.conversationId === id
-        && isConvStreaming(useStreamStore.getState().activeStreams, id)
-      ) {
-        const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
-        set((s) => {
-          const exists = s.messages.some((m) => m.id === realId);
-          if (exists) {
-            // Message already fetched from backend — replace with buffered content (more up-to-date)
+    const tempIds = get().messages.flatMap((m) => m.id.startsWith("temp-") ? [m.id] : []);
+    get()
+      .fetchMessages(id, tempIds)
+      .then(() => {
+        if (
+          requestSeq !== _activeMessageLoadSeq
+          || get().activeConversationId !== id
+        ) {
+          return;
+        }
+        // If there's an active stream for this conversation, inject buffered content
+        if (
+          _streamBuffer
+          && _streamBuffer.conversationId === id
+          && isConvStreaming(useStreamStore.getState().activeStreams, id)
+        ) {
+          const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
+          set((s) => {
+            const exists = s.messages.some((m) => m.id === realId);
+            if (exists) {
+              // Message already fetched from backend — replace with buffered content (more up-to-date)
+              useStreamStore.setState({ streamingMessageId: realId });
+              return {
+                messages: s.messages.map((m) =>
+                  m.id === realId
+                    ? {
+                      ...m,
+                      content: _streamBuffer!.content,
+                      thinking: _streamBuffer!.thinking || null,
+                    }
+                    : m
+                ),
+              };
+            }
+            // Message not yet in backend — create from buffer
+            const newMessage: Message = {
+              id: realId,
+              conversation_id: id,
+              role: "assistant",
+              content: _streamBuffer!.content,
+              provider_id: null,
+              model_id: null,
+              token_count: null,
+              attachments: [],
+              thinking: _streamBuffer!.thinking || null,
+              tool_calls_json: null,
+              tool_call_id: null,
+              created_at: Date.now(),
+              parent_message_id: null,
+              version_index: 0,
+              is_active: true,
+              status: "partial",
+            };
             useStreamStore.setState({ streamingMessageId: realId });
             return {
-              messages: s.messages.map((m) =>
-                m.id === realId
-                  ? { ...m, content: _streamBuffer!.content, thinking: _streamBuffer!.thinking || null }
-                  : m
-              ),
+              messages: [...s.messages, newMessage],
             };
-          }
-          // Message not yet in backend — create from buffer
-          const newMessage: Message = {
-            id: realId,
-            conversation_id: id,
-            role: "assistant",
-            content: _streamBuffer!.content,
-            provider_id: null,
-            model_id: null,
-            token_count: null,
-            attachments: [],
-            thinking: _streamBuffer!.thinking || null,
-            tool_calls_json: null,
-            tool_call_id: null,
-            created_at: Date.now(),
-            parent_message_id: null,
-            version_index: 0,
-            is_active: true,
-            status: "partial",
-          };
-          useStreamStore.setState({ streamingMessageId: realId });
-          return {
-            messages: [...s.messages, newMessage],
-          };
-        });
-      } else if (_streamBuffer && _streamBuffer.conversationId === id && needsRefreshAfterStreamDone) {
-        // Stream completed while user was away — buffer still has final content.
-        // fetchMessages already loaded the completed message from DB, but inject
-        // buffer content in case the DB response is slightly behind.
-        const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
-        set((s) => {
-          const exists = s.messages.some((m) => m.id === realId);
-          if (exists) {
-            return {
-              messages: s.messages.map((m) =>
-                m.id === realId
-                  ? { ...m, content: _streamBuffer!.content, thinking: _streamBuffer!.thinking || null }
-                  : m
-              ),
-            };
-          }
-          return {};
-        });
-        setStreamBuffer(null);
-      } else if (needsRefreshAfterStreamDone) {
-        // Stream completed while away and buffer was already consumed — the
-        // fetchMessages above should have loaded the final message from DB.
-        // Clear any stale buffer reference.
-        setStreamBuffer(null);
-      }
-    });
+          });
+        } else if (
+          _streamBuffer
+          && _streamBuffer.conversationId === id
+          && needsRefreshAfterStreamDone
+        ) {
+          // Stream completed while user was away — buffer still has final content.
+          // fetchMessages already loaded the completed message from DB, but inject
+          // buffer content in case the DB response is slightly behind.
+          const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
+          set((s) => {
+            const exists = s.messages.some((m) => m.id === realId);
+            if (exists) {
+              return {
+                messages: s.messages.map((m) =>
+                  m.id === realId
+                    ? {
+                      ...m,
+                      content: _streamBuffer!.content,
+                      thinking: _streamBuffer!.thinking || null,
+                    }
+                    : m
+                ),
+              };
+            }
+            return {};
+          });
+          setStreamBuffer(null);
+        } else if (needsRefreshAfterStreamDone) {
+          // Stream completed while away and buffer was already consumed — the
+          // fetchMessages above should have loaded the final message from DB.
+          // Clear any stale buffer reference.
+          setStreamBuffer(null);
+        }
+      });
   },
 
   createConversation: async (title, model_id, providerId, options) => {
     try {
       const category = options?.categoryId
-        ? useCategoryStore.getState().categories.find((item) => item.id === options.categoryId) ?? null
+        ? (useCategoryStore
+          .getState()
+          .categories.find((item) => item.id === options.categoryId) ?? null)
         : null;
       const templateProviderId = category?.default_provider_id ?? providerId;
       const templateModelId = category?.default_model_id ?? model_id;
@@ -553,30 +646,42 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           "Cannot create conversation: model_id and provider_id are required. Please configure a provider and model first.",
         );
       }
-      const createdConversation = await invoke<Conversation>("create_conversation", {
-        title,
-        modelId: templateModelId,
-        providerId: templateProviderId,
-        systemPrompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
-      });
+      const createdConversation = await invoke<Conversation>(
+        "create_conversation",
+        {
+          title,
+          modelId: templateModelId,
+          providerId: templateProviderId,
+          systemPrompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
+        },
+      );
       let conversation = createdConversation;
       try {
-        conversation = await invoke<Conversation>("update_conversation", {
-          id: createdConversation.id,
-          input: {
-            ...categoryTemplateUpdateFromCategory(category),
-            ...conversationPreferenceUpdateFromState(usePreferenceStore.getState()),
-            scenario: options?.scenario,
-            expert_role_id: options?.expert_role_id,
-            agent_profile_id: options?.agent_profile_id,
-            workflow_template_id: options?.workflow_template_id,
-            mode: options?.mode,
-            ...getStagedPreferenceUpdate(),
+        conversation = await invoke<Conversation>(
+          "update_conversation",
+          {
+            id: createdConversation.id,
+            input: {
+              ...categoryTemplateUpdateFromCategory(category),
+              ...conversationPreferenceUpdateFromState(
+                usePreferenceStore.getState(),
+              ),
+              scenario: options?.scenario,
+              expert_role_id: options?.expert_role_id,
+              agent_profile_id: options?.agent_profile_id,
+              workflow_template_id: options?.workflow_template_id,
+              mode: options?.mode,
+              ...getStagedPreferenceUpdate(),
+            },
           },
-        }, 10_000);
+          10_000,
+        );
       } catch (preferenceError) {
         // 非致命：对话已创建，偏好设置未应用，使用默认值
-        console.warn("[createConversation] 偏好设置更新失败，使用默认值:", preferenceError);
+        console.warn(
+          "[createConversation] 偏好设置更新失败，使用默认值:",
+          preferenceError,
+        );
       }
       // Clean up the previous active conversation's stores before switching.
       // createConversation bypassed setActiveConversation, which would normally
@@ -601,7 +706,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         error: null,
       }));
       // Sync preference state from the created conversation
-      usePreferenceStore.setState(conversationPreferenceStateFromConversation(conversation));
+      usePreferenceStore.setState(
+        conversationPreferenceStateFromConversation(conversation),
+      );
       return conversation;
     } catch (e) {
       set({ error: String(e) });
@@ -611,14 +718,23 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   updateConversation: async (id, input) => {
     try {
-      const updated = await invoke<Conversation>("update_conversation", { id, input });
+      const updated = await invoke<Conversation>("update_conversation", {
+        id,
+        input,
+      });
       set((s) => ({
-        ...mergeConversationCollections(s.conversations, s.archivedConversations, updated),
+        ...mergeConversationCollections(
+          s.conversations,
+          s.archivedConversations,
+          updated,
+        ),
         error: null,
       }));
       // Sync preference state if this is the active conversation
       if (get().activeConversationId === id) {
-        usePreferenceStore.setState(conversationPreferenceStateFromConversation(updated));
+        usePreferenceStore.setState(
+          conversationPreferenceStateFromConversation(updated),
+        );
       }
     } catch (e) {
       set({ error: String(e) });
@@ -675,7 +791,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
   },
 
-  branchConversation: async (conversationId, untilMessageId, asChild, title) => {
+  branchConversation: async (
+    conversationId,
+    untilMessageId,
+    asChild,
+    title,
+  ) => {
     try {
       const newConv = await invoke<Conversation>("branch_conversation", {
         conversationId,
@@ -703,9 +824,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         error: null,
       }));
       // Load the branched messages
-      const msgs = await invoke<Message[]>("list_messages", { conversationId: newConv.id });
+      const msgs = await invoke<Message[]>("list_messages", {
+        conversationId: newConv.id,
+      });
       // Stale guard: if user switched away, discard messages to prevent cross-conversation pollution
-      if (get().activeConversationId !== newConv.id) { return newConv; }
+      if (get().activeConversationId !== newConv.id) {
+        return newConv;
+      }
       set({ messages: msgs });
       return newConv;
     } catch (e) {
@@ -716,7 +841,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   togglePin: async (id) => {
     try {
-      const updated = await invoke<Conversation>("toggle_pin_conversation", { id });
+      const updated = await invoke<Conversation>("toggle_pin_conversation", {
+        id,
+      });
       set((s) => ({
         conversations: s.conversations.map((c) => (c.id === id ? updated : c)),
         error: null,
@@ -769,7 +896,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       } else {
         set((s) => ({
           conversations: [updated, ...s.conversations],
-          archivedConversations: s.archivedConversations.filter((c) => c.id !== id),
+          archivedConversations: s.archivedConversations.filter(
+            (c) => c.id !== id,
+          ),
           error: null,
         }));
       }
@@ -781,10 +910,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   archiveToKnowledgeBase: async (id, knowledgeBaseId) => {
     try {
-      const updated = await invoke<Conversation>("archive_conversation_to_knowledge_base", {
-        id,
-        knowledge_base_id: knowledgeBaseId,
-      });
+      const updated = await invoke<Conversation>(
+        "archive_conversation_to_knowledge_base",
+        {
+          id,
+          knowledge_base_id: knowledgeBaseId,
+        },
+      );
       // Archive succeeded — move from active list to archived list
       // When archiving the active conversation, suppress sidebar auto-select
       if (get().activeConversationId === id) {
@@ -805,7 +937,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   fetchArchivedConversations: async () => {
     try {
-      const archived = await invoke<Conversation[]>("list_archived_conversations");
+      const archived = await invoke<Conversation[]>(
+        "list_archived_conversations",
+      );
       set({ archivedConversations: archived, error: null });
     } catch (e) {
       set({ error: String(e) });
@@ -829,7 +963,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     }
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
-      activeConversationId: ids.includes(s.activeConversationId ?? "") ? null : s.activeConversationId,
+      activeConversationId: ids.includes(s.activeConversationId ?? "")
+        ? null
+        : s.activeConversationId,
       messages: ids.includes(s.activeConversationId ?? "") ? [] : s.messages,
       error: null,
     }));
@@ -849,9 +985,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         const command = conv?.session_type === "workflow"
           ? "archive_workflow_session"
           : "toggle_archive_conversation";
-        const params = conv?.session_type === "workflow"
-          ? { conversationId: id }
-          : { id };
+        const params = conv?.session_type === "workflow" ? { conversationId: id } : { id };
         return invoke<Conversation>(command, params);
       }),
     );
@@ -871,7 +1005,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set((s) => ({
       conversations: s.conversations.filter((c) => !ids.includes(c.id)),
       archivedConversations: [...archived, ...s.archivedConversations],
-      activeConversationId: ids.includes(s.activeConversationId ?? "") ? null : s.activeConversationId,
+      activeConversationId: ids.includes(s.activeConversationId ?? "")
+        ? null
+        : s.activeConversationId,
       messages: ids.includes(s.activeConversationId ?? "") ? [] : s.messages,
       error: null,
     }));
@@ -879,7 +1015,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   ...createSendMethods(set, get),
   deleteMessage: async (messageId) => {
     const conversationId = get().activeConversationId;
-    if (!conversationId) { return; }
+    if (!conversationId) {
+      return;
+    }
     // Client-only messages (temp IDs) — just remove locally
     if (messageId.startsWith("temp-")) {
       set((s) => ({
@@ -898,7 +1036,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     try {
       await invoke("delete_message", { id: messageId });
       // Stale guard: don't filter messages if user switched conversations
-      if (get().activeConversationId !== conversationId) { return; }
+      if (get().activeConversationId !== conversationId) {
+        return;
+      }
       set((s) => ({
         messages: s.messages.filter((m) => m.id !== messageId),
       }));
@@ -916,12 +1056,19 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: null,
       });
-      if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== conversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || get().activeConversationId !== conversationId
+      ) {
         return;
       }
 
       set((s) => {
-        const messages = mergePreservedMessages(page.messages, preserveMessageIds, s.messages);
+        const messages = mergePreservedMessages(
+          page.messages,
+          preserveMessageIds,
+          s.messages,
+        );
         return {
           messages,
           loading: false,
@@ -933,15 +1080,23 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         };
       });
     } catch (e) {
-      if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== conversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || get().activeConversationId !== conversationId
+      ) {
         return;
       }
       const errorMessage = String(e);
       if (errorMessage.includes("Not found: Conversation")) {
-        console.warn("Conversation no longer exists on backend, clearing active selection:", conversationId);
-        await get().fetchConversations().catch((e: unknown) => {
-          console.warn("[IPC]", e);
-        });
+        console.warn(
+          "Conversation no longer exists on backend, clearing active selection:",
+          conversationId,
+        );
+        await get()
+          .fetchConversations()
+          .catch((e: unknown) => {
+            console.warn("[IPC]", e);
+          });
         const nextConversation = get().conversations[0] ?? get().archivedConversations[0] ?? null;
         if (nextConversation) {
           get().setActiveConversation(nextConversation.id);
@@ -964,8 +1119,20 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   loadOlderMessages: async () => {
-    const { activeConversationId, oldestLoadedMessageId, hasOlderMessages, loading, loadingOlder } = get();
-    if (!activeConversationId || !oldestLoadedMessageId || !hasOlderMessages || loading || loadingOlder) {
+    const {
+      activeConversationId,
+      oldestLoadedMessageId,
+      hasOlderMessages,
+      loading,
+      loadingOlder,
+    } = get();
+    if (
+      !activeConversationId
+      || !oldestLoadedMessageId
+      || !hasOlderMessages
+      || loading
+      || loadingOlder
+    ) {
       return;
     }
 
@@ -977,7 +1144,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         limit: MESSAGE_PAGE_SIZE,
         beforeMessageId: oldestLoadedMessageId,
       });
-      if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== activeConversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || get().activeConversationId !== activeConversationId
+      ) {
         return;
       }
 
@@ -990,7 +1160,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         error: null,
       }));
     } catch (e) {
-      if (requestSeq !== _activeMessageLoadSeq || get().activeConversationId !== activeConversationId) {
+      if (
+        requestSeq !== _activeMessageLoadSeq
+        || get().activeConversationId !== activeConversationId
+      ) {
         return;
       }
       set({ error: String(e), loadingOlder: false });
@@ -999,7 +1172,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   searchConversations: async (query) => {
     try {
-      return await invoke<ConversationSearchResult[]>("search_conversations", { query });
+      return await invoke<ConversationSearchResult[]>("search_conversations", {
+        query,
+      });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -1018,13 +1193,22 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         // 多模型路径：仅在内存中切换 is_active（与下方正常路径 + catch 路径互斥）
         set((s) => {
           const targetExists = s.messages.some(
-            (m) => m.id === messageId && m.parent_message_id === parentMessageId && m.role === "assistant",
+            (m) =>
+              m.id === messageId
+              && m.parent_message_id === parentMessageId
+              && m.role === "assistant",
           );
-          if (!targetExists) { return {}; // Target not in memory yet, no-op
-           }
+          if (!targetExists) {
+            return {}; // Target not in memory yet, no-op
+          }
           return {
             messages: s.messages.map((m) => {
-              if (m.parent_message_id !== parentMessageId || m.role !== "assistant") { return m; }
+              if (
+                m.parent_message_id !== parentMessageId
+                || m.role !== "assistant"
+              ) {
+                return m;
+              }
               return m.id === messageId
                 ? { ...m, is_active: true }
                 : { ...m, is_active: false };
@@ -1043,18 +1227,29 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Normal path: fetch all versions from DB and keep them all in store
       // with correct is_active flags. This preserves multi-model detection
       // (multiModelResponseParents) which needs multiple versions visible.
-      const versions = await get().listMessageVersions(conversationId, parentMessageId);
+      const versions = await get().listMessageVersions(
+        conversationId,
+        parentMessageId,
+      );
       if (versions.length > 0) {
         // 正常路径：从 DB 获取版本更新 store（与上方多模型路径 + 下方 catch 路径互斥）
         set((s) => {
-          const versionMap = new Map(versions.map(v => [v.id, v]));
+          const versionMap = new Map(versions.map((v) => [v.id, v]));
           const existingIds = new Set(
-            s.messages
-              .flatMap(m => m.parent_message_id === parentMessageId && m.role === "assistant" ? [m.id] : []),
+            s.messages.flatMap((m) =>
+              m.parent_message_id === parentMessageId && m.role === "assistant"
+                ? [m.id]
+                : []
+            ),
           );
           // Update existing versions in-place
           const updatedMessages = s.messages.map((m) => {
-            if (m.parent_message_id !== parentMessageId || m.role !== "assistant") { return m; }
+            if (
+              m.parent_message_id !== parentMessageId
+              || m.role !== "assistant"
+            ) {
+              return m;
+            }
             const dbVersion = versionMap.get(m.id);
             if (dbVersion) {
               return { ...dbVersion, is_active: m.id === messageId };
@@ -1078,7 +1273,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   listMessageVersions: async (conversationId, parentMessageId) => {
     try {
-      return await invoke<Message[]>("list_message_versions", { conversationId, parentMessageId });
+      return await invoke<Message[]>("list_message_versions", {
+        conversationId,
+        parentMessageId,
+      });
     } catch (e) {
       set({ error: String(e) });
       return [];
@@ -1087,9 +1285,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   updateMessageContent: async (messageId, content) => {
     try {
-      const updated = await invoke<Message>("update_message_content", { id: messageId, content });
+      const updated = await invoke<Message>("update_message_content", {
+        id: messageId,
+        content,
+      });
       set((s) => ({
-        messages: s.messages.map((m) => (m.id === messageId ? { ...m, content: updated.content } : m)),
+        messages: s.messages.map((m) => m.id === messageId ? { ...m, content: updated.content } : m),
       }));
     } catch (e) {
       set({ error: String(e) });
@@ -1101,16 +1302,25 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     // Client-only messages (temp IDs) — just remove locally
     if (userMessageId.startsWith("temp-")) {
       set((s) => ({
-        messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
+        messages: s.messages.filter(
+          (m) => m.id !== userMessageId && m.parent_message_id !== userMessageId,
+        ),
       }));
       return;
     }
     try {
-      await invoke("delete_message_group", { conversationId: conversationId, userMessageId: userMessageId });
+      await invoke("delete_message_group", {
+        conversationId: conversationId,
+        userMessageId: userMessageId,
+      });
       // Stale guard: don't filter messages if user switched conversations
-      if (get().activeConversationId !== conversationId) { return; }
+      if (get().activeConversationId !== conversationId) {
+        return;
+      }
       set((s) => ({
-        messages: s.messages.filter(m => m.id !== userMessageId && m.parent_message_id !== userMessageId),
+        messages: s.messages.filter(
+          (m) => m.id !== userMessageId && m.parent_message_id !== userMessageId,
+        ),
       }));
     } catch (e) {
       set({ error: String(e) });
@@ -1121,9 +1331,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   loadWorkspaceSnapshot: async (conversationId) => {
     try {
-      const snapshot = await invoke<ConversationWorkspaceSnapshot>("get_workspace_snapshot", {
-        conversationId: conversationId,
-      });
+      const snapshot = await invoke<ConversationWorkspaceSnapshot>(
+        "get_workspace_snapshot",
+        {
+          conversationId: conversationId,
+        },
+      );
       set({ workspaceSnapshot: snapshot });
       return snapshot;
     } catch {
@@ -1215,7 +1428,9 @@ export function resetSidebarAutoSelectSuppression() {
 
 export function setSidebarAutoSelectSuppression() {
   _suppressSidebarAutoSelect = true;
-  if (_sideBarSuppressTimer) { clearTimeout(_sideBarSuppressTimer); }
+  if (_sideBarSuppressTimer) {
+    clearTimeout(_sideBarSuppressTimer);
+  }
   _sideBarSuppressTimer = setTimeout(() => {
     _suppressSidebarAutoSelect = false;
     _sideBarSuppressTimer = null;

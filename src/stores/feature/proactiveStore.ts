@@ -41,14 +41,20 @@ interface IntentPrediction {
  *  Used to trigger prefetching before the user hits send.
  *  i18n: Chinese keywords are NLP intent keywords, not for translation */
 function predictIntentFromInput(text: string): IntentPrediction[] {
-  if (!text || text.length < 3) { return []; }
+  if (!text || text.length < 3) {
+    return [];
+  }
   const lower = text.toLowerCase();
   const intents: IntentPrediction[] = [];
 
   // Code generation
   if (
-    lower.includes("write") || lower.includes("create") || lower.includes("build")
-    || lower.includes("写") || lower.includes("创建") || lower.includes("生成")
+    lower.includes("write")
+    || lower.includes("create")
+    || lower.includes("build")
+    || lower.includes("写")
+    || lower.includes("创建")
+    || lower.includes("生成")
     || lower.startsWith("```")
   ) {
     intents.push({ intent: "codeGeneration", confidence: 0.85 });
@@ -56,33 +62,50 @@ function predictIntentFromInput(text: string): IntentPrediction[] {
 
   // Search / research
   if (
-    lower.includes("search") || lower.includes("find") || lower.includes("look up")
-    || lower.includes("搜索") || lower.includes("查找") || lower.includes("what is")
-    || lower.includes("how to") || lower.includes("什么是") || lower.includes("怎么")
+    lower.includes("search")
+    || lower.includes("find")
+    || lower.includes("look up")
+    || lower.includes("搜索")
+    || lower.includes("查找")
+    || lower.includes("what is")
+    || lower.includes("how to")
+    || lower.includes("什么是")
+    || lower.includes("怎么")
   ) {
     intents.push({ intent: "search", confidence: 0.8 });
   }
 
   // Refactoring
   if (
-    lower.includes("refactor") || lower.includes("optimize") || lower.includes("improve")
-    || lower.includes("重构") || lower.includes("优化") || lower.includes("改进")
+    lower.includes("refactor")
+    || lower.includes("optimize")
+    || lower.includes("improve")
+    || lower.includes("重构")
+    || lower.includes("优化")
+    || lower.includes("改进")
   ) {
     intents.push({ intent: "refactoring", confidence: 0.75 });
   }
 
   // Translation
   if (
-    lower.includes("translate") || lower.includes("翻译") || lower.includes("译为")
+    lower.includes("translate")
+    || lower.includes("翻译")
+    || lower.includes("译为")
   ) {
     intents.push({ intent: "translation", confidence: 0.9 });
   }
 
   // Debug
   if (
-    lower.includes("debug") || lower.includes("fix") || lower.includes("error")
-    || lower.includes("broken") || lower.includes("not working")
-    || lower.includes("修复") || lower.includes("错误") || lower.includes("bug")
+    lower.includes("debug")
+    || lower.includes("fix")
+    || lower.includes("error")
+    || lower.includes("broken")
+    || lower.includes("not working")
+    || lower.includes("修复")
+    || lower.includes("错误")
+    || lower.includes("bug")
   ) {
     intents.push({ intent: "debug", confidence: 0.8 });
   }
@@ -102,7 +125,9 @@ function markPrefetched(type: string, ids: string[]) {
   for (const id of ids) {
     if (_prefetchState.prefetchedIds.size >= MAX_PREFETCH_IDS) {
       // Evict oldest (simple FIFO via clear-and-rebuild)
-      const entries = [..._prefetchState.prefetchedIds].slice(-MAX_PREFETCH_IDS / 2);
+      const entries = [..._prefetchState.prefetchedIds].slice(
+        -MAX_PREFETCH_IDS / 2,
+      );
       _prefetchState.prefetchedIds = new Set(entries);
     }
     _prefetchState.prefetchedIds.add(id);
@@ -116,7 +141,9 @@ const PREFETCH_DISPLAY_DURATION_MS = 4000;
 function schedulePrefetchCleanup(resourceId: string) {
   setTimeout(() => {
     useProactiveStore.setState((state) => {
-      const remaining = state.prefetchResults.filter((r) => r.resource_id !== resourceId);
+      const remaining = state.prefetchResults.filter(
+        (r) => r.resource_id !== resourceId,
+      );
       return {
         prefetchResults: remaining,
         isPrefetchActive: remaining.length > 0 && remaining.some((r) => !r.ready),
@@ -204,18 +231,24 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   fetchSuggestions: async () => {
     set({ isLoading: true, error: null });
     try {
-      const suggestions = await invoke<ProactiveSuggestion[]>("proactive_list_suggestions");
+      const suggestions = await invoke<ProactiveSuggestion[]>(
+        "proactive_list_suggestions",
+      );
       set({ suggestions, isLoading: false });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to fetch suggestions",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to fetch suggestions",
         isLoading: false,
       });
     }
   },
 
   refreshSuggestions: async (context: Record<string, unknown>) => {
-    if (!useAppConfigStore.getState().features.proactiveMode) { return; }
+    if (!useAppConfigStore.getState().features.proactiveMode) {
+      return;
+    }
     set({ isLoading: true, error: null });
     try {
       const suggestions = await invoke<ProactiveSuggestion[]>(
@@ -225,7 +258,9 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       set({ suggestions, isLoading: false });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to refresh suggestions",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to refresh suggestions",
         isLoading: false,
       });
     }
@@ -234,14 +269,18 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   fetchPredictions: async (context: Record<string, unknown>) => {
     set({ isLoading: true, error: null });
     try {
-      const result = await invoke<PredictionResult>("proactive_predict", { context });
+      const result = await invoke<PredictionResult>("proactive_predict", {
+        context,
+      });
       set({
         predictions: result.predictions,
         isLoading: false,
       });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to fetch predictions",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to fetch predictions",
         isLoading: false,
       });
     }
@@ -268,7 +307,9 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       }));
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to dismiss suggestion",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to dismiss suggestion",
       });
     }
   },
@@ -281,20 +322,27 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       }));
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to accept suggestion",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to accept suggestion",
       });
     }
   },
 
   snoozeSuggestion: async (id: string, durationMinutes: number) => {
     try {
-      await invoke("proactive_snooze_suggestion", { id, duration: durationMinutes });
+      await invoke("proactive_snooze_suggestion", {
+        id,
+        duration: durationMinutes,
+      });
       set((state) => ({
         suggestions: state.suggestions.filter((s) => s.id !== id),
       }));
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to snooze suggestion",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to snooze suggestion",
       });
     }
   },
@@ -302,7 +350,9 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   addReminder: async (input: ReminderInput) => {
     set({ isAdding: true, error: null });
     try {
-      const reminder = await invoke<Reminder>("proactive_add_reminder", { reminder: input });
+      const reminder = await invoke<Reminder>("proactive_add_reminder", {
+        reminder: input,
+      });
       set((state) => ({
         reminders: [...state.reminders, reminder],
         isAdding: false,
@@ -338,7 +388,9 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       }));
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to complete reminder",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to complete reminder",
       });
     }
   },
@@ -349,7 +401,9 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       set({ isEnabled: enabled });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : "Failed to set enabled state",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to set enabled state",
       });
     }
   },
@@ -401,7 +455,12 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   // ── P2 Smart Prefetch ──
 
   prefetchOnConversationSwitch: (conversationId: string) => {
-    if (!useAppConfigStore.getState().features.proactiveMode || !canPrefetchNow("conversationSwitch")) { return; }
+    if (
+      !useAppConfigStore.getState().features.proactiveMode
+      || !canPrefetchNow("conversationSwitch")
+    ) {
+      return;
+    }
 
     const type = "conversationSwitch";
     const resourceId = `conv-${conversationId}`;
@@ -466,7 +525,12 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   },
 
   prefetchModelCosts: (providerId: string, _modelId: string) => {
-    if (!useAppConfigStore.getState().features.proactiveMode || !canPrefetchNow("modelCosts")) { return; }
+    if (
+      !useAppConfigStore.getState().features.proactiveMode
+      || !canPrefetchNow("modelCosts")
+    ) {
+      return;
+    }
 
     const type = "modelCosts";
     const resourceId = `modelCosts-${providerId}`;
@@ -499,11 +563,18 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
 
   predictAndPrefetch: (inputText: string): IntentPrediction[] => {
     const intents = predictIntentFromInput(inputText);
-    if (intents.length === 0 || !useAppConfigStore.getState().features.proactiveMode) { return intents; }
+    if (
+      intents.length === 0
+      || !useAppConfigStore.getState().features.proactiveMode
+    ) {
+      return intents;
+    }
 
     for (const intent of intents) {
       const type = `intent:${intent.intent}`;
-      if (!canPrefetchNow(type)) { continue; }
+      if (!canPrefetchNow(type)) {
+        continue;
+      }
 
       switch (intent.intent) {
         case "search": {

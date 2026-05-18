@@ -42,7 +42,9 @@ export function DashboardPluginsSettings() {
 
   const loadPlugins = async () => {
     try {
-      const result = await invoke<DashboardPluginInfo[]>("dashboard_list_plugins");
+      const result = await invoke<DashboardPluginInfo[]>(
+        "dashboard_list_plugins",
+      );
       setPlugins(result);
     } catch (error) {
       message.error(`Failed to load plugins: ${error}`);
@@ -229,13 +231,23 @@ export function DashboardPluginsSettings() {
         </div>
         <div className="flex gap-2">
           <Button
-            icon={<RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />}
+            icon={
+              <RefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
+            }
             onClick={handleRefresh}
             loading={refreshing}
           >
             {t("settings.dashboardPlugins.refresh")}
           </Button>
-          <Button type="primary" icon={<Plus size={16} />} onClick={handleInstall} loading={installing}>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={handleInstall}
+            loading={installing}
+          >
             {t("settings.dashboardPlugins.install")}
           </Button>
         </div>
@@ -256,8 +268,15 @@ export function DashboardPluginsSettings() {
               image={<FolderOpen size={48} className="text-text-quaternary" />}
               description={
                 <div>
-                  <Paragraph>{t("settings.dashboardPlugins.noPlugins")}</Paragraph>
-                  <Button type="primary" icon={<Plus size={16} />} onClick={handleInstall} loading={installing}>
+                  <Paragraph>
+                    {t("settings.dashboardPlugins.noPlugins")}
+                  </Paragraph>
+                  <Button
+                    type="primary"
+                    icon={<Plus size={16} />}
+                    onClick={handleInstall}
+                    loading={installing}
+                  >
                     {t("settings.dashboardPlugins.installFirst")}
                   </Button>
                 </div>
@@ -271,7 +290,10 @@ export function DashboardPluginsSettings() {
         <Paragraph type="secondary" className="mb-4">
           {t("settings.dashboardPlugins.pluginDirsDescription")}
         </Paragraph>
-        <Button icon={<FolderOpen size={16} />} onClick={handleOpenPluginsFolder}>
+        <Button
+          icon={<FolderOpen size={16} />}
+          onClick={handleOpenPluginsFolder}
+        >
           {t("settings.dashboardPlugins.openPluginsFolder")}
         </Button>
       </Card>

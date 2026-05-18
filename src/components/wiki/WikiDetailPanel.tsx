@@ -78,7 +78,9 @@ export function WikiDetailPanel({
   }, [noteId]);
 
   const loadNote = useCallback(async () => {
-    if (!noteId) { return; }
+    if (!noteId) {
+      return;
+    }
     setLoading(true);
     const n = await getNote(noteId);
     if (n) {
@@ -90,9 +92,14 @@ export function WikiDetailPanel({
   }, [noteId, getNote]);
 
   const loadLinks = useCallback(async () => {
-    if (!noteId) { return; }
+    if (!noteId) {
+      return;
+    }
     setLinksLoading(true);
-    const [l, bl] = await Promise.all([getNoteLinks(noteId), getNoteBacklinks(noteId)]);
+    const [l, bl] = await Promise.all([
+      getNoteLinks(noteId),
+      getNoteBacklinks(noteId),
+    ]);
     setLinks(l);
     setBacklinks(bl);
     setLinksLoading(false);
@@ -118,16 +125,24 @@ export function WikiDetailPanel({
 
   // 自动保存（3 秒空闲）
   useEffect(() => {
-    if (!hasChanges || saving) { return; }
-    if (autoSaveRef.current) { clearTimeout(autoSaveRef.current); }
+    if (!hasChanges || saving) {
+      return;
+    }
+    if (autoSaveRef.current) {
+      clearTimeout(autoSaveRef.current);
+    }
     autoSaveRef.current = setTimeout(() => handleSave(), 3000);
     return () => {
-      if (autoSaveRef.current) { clearTimeout(autoSaveRef.current); }
+      if (autoSaveRef.current) {
+        clearTimeout(autoSaveRef.current);
+      }
     };
   }, [content, title]);
 
   const handleSave = async () => {
-    if (!note || !hasChanges) { return; }
+    if (!note || !hasChanges) {
+      return;
+    }
     setSaving(true);
     try {
       const updated = await updateNote(note.id, { title, content });
@@ -143,7 +158,9 @@ export function WikiDetailPanel({
   };
 
   const handleDelete = async () => {
-    if (!note) { return; }
+    if (!note) {
+      return;
+    }
     await deleteNote(note.id);
     message.success(t("wiki.deleted"));
     onNoteUpdated();
@@ -157,10 +174,15 @@ export function WikiDetailPanel({
   }, [loadBases]);
 
   const handleSyncToKb = useCallback(async () => {
-    if (!note || !selectedKbId) { return; }
+    if (!note || !selectedKbId) {
+      return;
+    }
     setSyncing(true);
     try {
-      await invoke("sync_note_to_knowledge_base", { noteId: note.id, knowledgeBaseId: selectedKbId });
+      await invoke("sync_note_to_knowledge_base", {
+        noteId: note.id,
+        knowledgeBaseId: selectedKbId,
+      });
       message.success(t("wiki.sync.success"));
       setSyncModalOpen(false);
     } catch (e) {
@@ -171,16 +193,24 @@ export function WikiDetailPanel({
 
   // 局部图谱：当前节点 + 直接邻居
   const localGraphData = useMemo(() => {
-    if (!noteId || !graphData) { return { nodes: [], edges: [] }; }
+    if (!noteId || !graphData) {
+      return { nodes: [], edges: [] };
+    }
     const neighborIds = new Set<string>();
     graphData.edges.forEach((e) => {
-      if (e.source === noteId) { neighborIds.add(e.target); }
-      if (e.target === noteId) { neighborIds.add(e.source); }
+      if (e.source === noteId) {
+        neighborIds.add(e.target);
+      }
+      if (e.target === noteId) {
+        neighborIds.add(e.source);
+      }
     });
     neighborIds.add(noteId);
     return {
       nodes: graphData.nodes.filter((n) => neighborIds.has(n.id)),
-      edges: graphData.edges.filter((e) => neighborIds.has(e.source) && neighborIds.has(e.target)),
+      edges: graphData.edges.filter(
+        (e) => neighborIds.has(e.source) && neighborIds.has(e.target),
+      ),
     };
   }, [noteId, graphData]);
 
@@ -189,7 +219,10 @@ export function WikiDetailPanel({
 
   if (!noteId) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ backgroundColor: token.colorBgElevated }}>
+      <div
+        className="h-full flex items-center justify-center"
+        style={{ backgroundColor: token.colorBgElevated }}
+      >
         <Empty description={t("wiki.selectNote")} />
       </div>
     );
@@ -197,14 +230,20 @@ export function WikiDetailPanel({
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ backgroundColor: token.colorBgElevated }}>
+      <div
+        className="h-full flex items-center justify-center"
+        style={{ backgroundColor: token.colorBgElevated }}
+      >
         <Spin />
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: token.colorBgElevated, overflow: "hidden" }}>
+    <div
+      className="h-full flex flex-col"
+      style={{ backgroundColor: token.colorBgElevated, overflow: "hidden" }}
+    >
       {/* 标题栏 — 玻璃态 */}
       <div
         className="flex items-center gap-2 px-4 py-2.5 shrink-0 backdrop-blur-lg"
@@ -217,7 +256,12 @@ export function WikiDetailPanel({
           className="w-1.5 h-5 rounded-full"
           style={{ backgroundColor: token.colorPrimary }}
         />
-        <Text strong ellipsis className="flex-1 text-sm tracking-tight" title={noteTitle}>
+        <Text
+          strong
+          ellipsis
+          className="flex-1 text-sm tracking-tight"
+          title={noteTitle}
+        >
           {noteTitle}
         </Text>
         <Tooltip title={t("wiki.close")}>
@@ -253,7 +297,10 @@ export function WikiDetailPanel({
               </span>
             ),
             children: (
-              <div className="flex flex-col gap-2 p-3" style={{ height: "calc(100% - 46px)" }}>
+              <div
+                className="flex flex-col gap-2 p-3"
+                style={{ height: "calc(100% - 46px)" }}
+              >
                 {/* 标题 */}
                 <input
                   type="text"
@@ -300,7 +347,10 @@ export function WikiDetailPanel({
                   {hasChanges && (
                     <span
                       className="text-xs px-1.5 py-0.5 rounded-full animate-pulse"
-                      style={{ backgroundColor: `${token.colorWarningBg}`, color: token.colorWarningText }}
+                      style={{
+                        backgroundColor: `${token.colorWarningBg}`,
+                        color: token.colorWarningText,
+                      }}
                     >
                       {t("wiki.unsaved")}
                     </span>
@@ -308,7 +358,10 @@ export function WikiDetailPanel({
                   {note?.author === "llm" && (
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                      style={{ backgroundColor: `${token.colorPrimary}18`, color: token.colorPrimary }}
+                      style={{
+                        backgroundColor: `${token.colorPrimary}18`,
+                        color: token.colorPrimary,
+                      }}
                     >
                       AI
                     </span>
@@ -368,7 +421,10 @@ export function WikiDetailPanel({
                 <ArrowLeftRight size={12} />
                 {t("wiki.backlinks")}
                 {backlinks.length > 0 && (
-                  <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>
+                  <Tag
+                    color="blue"
+                    style={{ fontSize: 10, margin: 0, padding: "0 4px" }}
+                  >
                     {backlinks.length}
                   </Tag>
                 )}
@@ -392,7 +448,10 @@ export function WikiDetailPanel({
                 <ArrowLeftRight size={12} />
                 {t("wiki.outlinks")}
                 {links.length > 0 && (
-                  <Tag color="green" style={{ fontSize: 10, margin: 0, padding: "0 4px" }}>
+                  <Tag
+                    color="green"
+                    style={{ fontSize: 10, margin: 0, padding: "0 4px" }}
+                  >
                     {links.length}
                   </Tag>
                 )}
@@ -417,7 +476,13 @@ export function WikiDetailPanel({
                 {t("wiki.localGraph")}
               </span>
             ),
-            children: <LocalGraphView data={localGraphData} token={token} onNodeClick={onNavigateToNote} />,
+            children: (
+              <LocalGraphView
+                data={localGraphData}
+                token={token}
+                onNodeClick={onNavigateToNote}
+              />
+            ),
           },
         ]}
       />
@@ -454,7 +519,9 @@ export function WikiDetailPanel({
 function highlightWikilink(snippet: string, linkText: string) {
   const linkPattern = `[[${linkText}]]`;
   const parts = snippet.split(linkPattern);
-  if (parts.length === 1) { return <span>{snippet}</span>; }
+  if (parts.length === 1) {
+    return <span>{snippet}</span>;
+  }
 
   return (
     <span>
@@ -520,7 +587,10 @@ function BacklinkList({
               <Network size={14} style={{ color: token.colorPrimary }} />
             </div>
             <div className="flex-1 min-w-0">
-              <Text className="text-sm font-medium truncate block" style={{ color: token.colorPrimary }}>
+              <Text
+                className="text-sm font-medium truncate block"
+                style={{ color: token.colorPrimary }}
+              >
                 {bl.title}
               </Text>
               {bl.snippets.map((snippet, si) => (
@@ -576,7 +646,12 @@ function LinkList({
           <List.Item
             className="cursor-pointer px-4 py-3 mx-2 my-0.5 rounded-xl transition-all duration-200 hover:shadow-sm"
             style={{ border: "none" }}
-            onClick={() => onNavigate(link.sourceNoteId !== "" ? link.sourceNoteId : link.targetNoteId)}
+            onClick={() =>
+              onNavigate(
+                link.sourceNoteId !== ""
+                  ? link.sourceNoteId
+                  : link.targetNoteId,
+              )}
           >
             <div className="flex items-center gap-3 w-full">
               <div
@@ -597,7 +672,9 @@ function LinkList({
                   → {targetNode?.title || link.targetNoteId}
                   <span
                     className="ml-2 px-1 py-0.5 rounded text-[10px]"
-                    style={{ backgroundColor: `${token.colorBorderSecondary}30` }}
+                    style={{
+                      backgroundColor: `${token.colorBorderSecondary}30`,
+                    }}
                   >
                     {link.linkType}
                   </span>
@@ -616,7 +693,10 @@ function LocalGraphView({
   token,
   onNodeClick,
 }: {
-  data: { nodes: GraphNode[]; edges: { source: string; target: string; type: string }[] };
+  data: {
+    nodes: GraphNode[];
+    edges: { source: string; target: string; type: string }[];
+  };
   token: ReturnType<typeof theme.useToken>["token"];
   onNodeClick: (nodeId: string) => void;
 }) {
@@ -627,8 +707,10 @@ function LocalGraphView({
         id: n.id,
         type: "default",
         position: {
-          x: 200 + Math.cos((2 * Math.PI * i) / Math.max(data.nodes.length, 1)) * 120,
-          y: 200 + Math.sin((2 * Math.PI * i) / Math.max(data.nodes.length, 1)) * 120,
+          x: 200
+            + Math.cos((2 * Math.PI * i) / Math.max(data.nodes.length, 1)) * 120,
+          y: 200
+            + Math.sin((2 * Math.PI * i) / Math.max(data.nodes.length, 1)) * 120,
         },
         data: { label: n.title },
         style: {
@@ -668,7 +750,13 @@ function LocalGraphView({
   }
 
   return (
-    <div style={{ width: "100%", height: "calc(100% - 46px)", position: "relative" }}>
+    <div
+      style={{
+        width: "100%",
+        height: "calc(100% - 46px)",
+        position: "relative",
+      }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}

@@ -8,10 +8,17 @@ interface SettingsGroupProps {
   style?: CSSProperties;
 }
 
-export function SettingsGroup({ title, children, extra, style }: SettingsGroupProps) {
+export function SettingsGroup({
+  title,
+  children,
+  extra,
+  style,
+}: SettingsGroupProps) {
   const { token } = theme.useToken();
   const baseHex = token.colorBgBase;
-  const r = baseHex ? parseInt(baseHex.replace("#", "").substring(0, 2), 16) : 255;
+  const r = baseHex
+    ? parseInt(baseHex.replace("#", "").substring(0, 2), 16)
+    : 255;
   const isLight = !isNaN(r) && r > 200;
   const cardBg = isLight ? "#fcfcfc" : token.colorBgContainer;
 

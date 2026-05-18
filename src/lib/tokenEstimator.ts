@@ -17,7 +17,9 @@ function isCjk(code: number): boolean {
 }
 
 export function estimateTokens(text: string): number {
-  if (!text) { return 0; }
+  if (!text) {
+    return 0;
+  }
 
   let asciiChars = 0;
   let cjkChars = 0;

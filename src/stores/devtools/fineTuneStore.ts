@@ -66,9 +66,17 @@ export const useFineTuneStore = create<{
   error: string | null;
   fetchDatasets: () => Promise<void>;
   fetchDataset: (id: string) => Promise<DatasetInfo | null>;
-  createDataset: (name: string, description: string) => Promise<DatasetInfo | null>;
+  createDataset: (
+    name: string,
+    description: string,
+  ) => Promise<DatasetInfo | null>;
   deleteDataset: (id: string) => Promise<void>;
-  addSample: (datasetId: string, input: string, output: string, systemPrompt?: string) => Promise<void>;
+  addSample: (
+    datasetId: string,
+    input: string,
+    output: string,
+    systemPrompt?: string,
+  ) => Promise<void>;
   fetchTrainingJobs: () => Promise<void>;
   fetchTrainingJob: (id: string) => Promise<TrainingJobInfo | null>;
   createTrainingJob: (
@@ -99,17 +107,24 @@ export const useFineTuneStore = create<{
       const datasets = await invoke<DatasetInfo[]>("list_datasets");
       set({ datasets, isLoading: false });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch datasets", isLoading: false });
+      set({
+        error: error instanceof Error ? error.message : "Failed to fetch datasets",
+        isLoading: false,
+      });
     }
   },
 
   fetchDataset: async (id: string) => {
     try {
-      const dataset = await invoke<DatasetInfo>("get_dataset", { datasetId: id });
+      const dataset = await invoke<DatasetInfo>("get_dataset", {
+        datasetId: id,
+      });
       set({ selectedDataset: dataset });
       return dataset;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch dataset" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to fetch dataset",
+      });
       return null;
     }
   },
@@ -117,11 +132,20 @@ export const useFineTuneStore = create<{
   createDataset: async (name: string, description: string) => {
     set({ isLoading: true, error: null });
     try {
-      const dataset = await invoke<DatasetInfo>("create_dataset", { name, description });
-      set((state) => ({ datasets: [...state.datasets, dataset], isLoading: false }));
+      const dataset = await invoke<DatasetInfo>("create_dataset", {
+        name,
+        description,
+      });
+      set((state) => ({
+        datasets: [...state.datasets, dataset],
+        isLoading: false,
+      }));
       return dataset;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to create dataset", isLoading: false });
+      set({
+        error: error instanceof Error ? error.message : "Failed to create dataset",
+        isLoading: false,
+      });
       return null;
     }
   },
@@ -136,16 +160,26 @@ export const useFineTuneStore = create<{
         isLoading: false,
       }));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to delete dataset", isLoading: false });
+      set({
+        error: error instanceof Error ? error.message : "Failed to delete dataset",
+        isLoading: false,
+      });
     }
   },
 
-  addSample: async (datasetId: string, input: string, output: string, systemPrompt?: string) => {
+  addSample: async (
+    datasetId: string,
+    input: string,
+    output: string,
+    systemPrompt?: string,
+  ) => {
     try {
       await invoke("add_sample", { datasetId, input, output, systemPrompt });
       await get().fetchDatasets();
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to add sample" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to add sample",
+      });
     }
   },
 
@@ -155,17 +189,28 @@ export const useFineTuneStore = create<{
       const jobs = await invoke<TrainingJobInfo[]>("list_training_jobs");
       set({ trainingJobs: jobs, isLoading: false });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch training jobs", isLoading: false });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to fetch training jobs",
+        isLoading: false,
+      });
     }
   },
 
   fetchTrainingJob: async (id: string) => {
     try {
-      const job = await invoke<TrainingJobInfo>("get_training_job", { jobId: id });
+      const job = await invoke<TrainingJobInfo>("get_training_job", {
+        jobId: id,
+      });
       set({ selectedJob: job });
       return job;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch training job" });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to fetch training job",
+      });
       return null;
     }
   },
@@ -186,10 +231,18 @@ export const useFineTuneStore = create<{
         batchSize: config.batch_size,
         epochs: config.epochs,
       });
-      set((state) => ({ trainingJobs: [...state.trainingJobs, job], isLoading: false }));
+      set((state) => ({
+        trainingJobs: [...state.trainingJobs, job],
+        isLoading: false,
+      }));
       return job;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to create training job", isLoading: false });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to create training job",
+        isLoading: false,
+      });
       return null;
     }
   },
@@ -199,7 +252,11 @@ export const useFineTuneStore = create<{
       await invoke("start_training_job", { jobId: id });
       await get().fetchTrainingJobs();
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to start training job" });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to start training job",
+      });
     }
   },
 
@@ -208,7 +265,11 @@ export const useFineTuneStore = create<{
       await invoke("cancel_training_job", { jobId: id });
       await get().fetchTrainingJobs();
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to cancel training job" });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to cancel training job",
+      });
     }
   },
 
@@ -220,7 +281,11 @@ export const useFineTuneStore = create<{
         selectedJob: state.selectedJob?.id === id ? null : state.selectedJob,
       }));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to delete training job" });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to delete training job",
+      });
     }
   },
 
@@ -229,7 +294,11 @@ export const useFineTuneStore = create<{
       const stats = await invoke<TrainingStats>("get_training_stats");
       set({ stats });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch training stats" });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to fetch training stats",
+      });
     }
   },
 
@@ -238,7 +307,11 @@ export const useFineTuneStore = create<{
       const baseModels = await invoke<BaseModelInfo[]>("list_base_models");
       set({ baseModels });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch base models" });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to fetch base models",
+      });
     }
   },
 
@@ -247,7 +320,11 @@ export const useFineTuneStore = create<{
       const loraAdapters = await invoke<LoRAAdapterInfo[]>("list_lora_adapters");
       set({ loraAdapters });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to fetch LoRA adapters" });
+      set({
+        error: error instanceof Error
+          ? error.message
+          : "Failed to fetch LoRA adapters",
+      });
     }
   },
 
@@ -255,16 +332,22 @@ export const useFineTuneStore = create<{
     try {
       await invoke("set_active_model", { modelId, adapterId });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to set active model" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to set active model",
+      });
     }
   },
 
   getActiveModel: async () => {
     try {
-      const info = await invoke<{ modelId: string; adapterId?: string }>("get_active_model");
+      const info = await invoke<{ modelId: string; adapterId?: string }>(
+        "get_active_model",
+      );
       return info;
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Failed to get active model" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to get active model",
+      });
       return null;
     }
   },

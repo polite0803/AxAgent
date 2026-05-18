@@ -80,13 +80,20 @@ export async function invokeWithRetry<T>(
       lastError = e;
 
       // 最后一次尝试不再重试
-      if (attempt >= maxRetries) { break; }
+      if (attempt >= maxRetries) {
+        break;
+      }
 
       // 非瞬时错误不重试
-      if (!isRetryableError(e)) { throw e; }
+      if (!isRetryableError(e)) {
+        throw e;
+      }
 
       // 指数退避（带 10% 抖动）
-      const delay = Math.min(baseDelayMs * Math.pow(multiplier, attempt), maxDelayMs);
+      const delay = Math.min(
+        baseDelayMs * Math.pow(multiplier, attempt),
+        maxDelayMs,
+      );
       const jitter = delay * 0.1 * (Math.random() - 0.5);
       const actualDelay = Math.round(delay + jitter);
 
@@ -119,7 +126,10 @@ interface InvokeRecord {
 const _invokeHistory: InvokeRecord[] = [];
 const MAX_INVOKE_HISTORY = 500;
 const MAX_INVOKE_COUNTS = 200;
-const _invokeCounts = new Map<string, { total: number; failed: number; totalDurationMs: number }>();
+const _invokeCounts = new Map<
+  string,
+  { total: number; failed: number; totalDurationMs: number }
+>();
 
 export interface InvokeMetricsSnapshot {
   byCommand: Array<{
@@ -136,17 +146,34 @@ export interface InvokeMetricsSnapshot {
   totalFailed: number;
 }
 
-function recordInvocation(cmd: string, durationMs: number, success: boolean, errorMsg?: string) {
-  const entry: InvokeRecord = { command: cmd, durationMs, success, timestamp: Date.now(), error: errorMsg };
+function recordInvocation(
+  cmd: string,
+  durationMs: number,
+  success: boolean,
+  errorMsg?: string,
+) {
+  const entry: InvokeRecord = {
+    command: cmd,
+    durationMs,
+    success,
+    timestamp: Date.now(),
+    error: errorMsg,
+  };
   _invokeHistory.push(entry);
   if (_invokeHistory.length > MAX_INVOKE_HISTORY) {
     _invokeHistory.shift();
   }
 
-  const stats = _invokeCounts.get(cmd) || { total: 0, failed: 0, totalDurationMs: 0 };
+  const stats = _invokeCounts.get(cmd) || {
+    total: 0,
+    failed: 0,
+    totalDurationMs: 0,
+  };
   stats.total++;
   stats.totalDurationMs += durationMs;
-  if (!success) { stats.failed++; }
+  if (!success) {
+    stats.failed++;
+  }
   _invokeCounts.set(cmd, stats);
   if (_invokeCounts.size > MAX_INVOKE_COUNTS) {
     const oldestKey = _invokeCounts.keys().next().value;
@@ -163,8 +190,10 @@ export function clearInvokeHistory() {
 }
 
 function percentile(sorted: number[], pct: number): number {
-  if (sorted.length === 0) { return 0; }
-  const idx = Math.ceil(pct / 100 * sorted.length) - 1;
+  if (sorted.length === 0) {
+    return 0;
+  }
+  const idx = Math.ceil((pct / 100) * sorted.length) - 1;
   return sorted[Math.max(0, idx)];
 }
 
@@ -172,20 +201,22 @@ function percentile(sorted: number[], pct: number): number {
  * Get a snapshot of invocation metrics for debugging and performance monitoring.
  */
 export function getInvokeMetrics(): InvokeMetricsSnapshot {
-  const byCommand = Array.from(_invokeCounts.entries()).map(([command, stats]) => {
-    const durations = _invokeHistory
-      .flatMap((r) => r.command === command ? [r.durationMs] : [])
-      .sort((a, b) => a - b);
-    return {
-      command,
-      total: stats.total,
-      failed: stats.failed,
-      avgDurationMs: stats.total > 0 ? Math.round(stats.totalDurationMs / stats.total) : 0,
-      p50Ms: percentile(durations, 50),
-      p95Ms: percentile(durations, 95),
-      p99Ms: percentile(durations, 99),
-    };
-  }).sort((a, b) => b.total - a.total);
+  const byCommand = Array.from(_invokeCounts.entries())
+    .map(([command, stats]) => {
+      const durations = _invokeHistory
+        .flatMap((r) => (r.command === command ? [r.durationMs] : []))
+        .sort((a, b) => a - b);
+      return {
+        command,
+        total: stats.total,
+        failed: stats.failed,
+        avgDurationMs: stats.total > 0 ? Math.round(stats.totalDurationMs / stats.total) : 0,
+        p50Ms: percentile(durations, 50),
+        p95Ms: percentile(durations, 95),
+        p99Ms: percentile(durations, 99),
+      };
+    })
+    .sort((a, b) => b.total - a.total);
 
   return {
     byCommand,
@@ -239,7 +270,9 @@ function initDiagState(): IpcDiagState {
 }
 
 function ensureDiag(): IpcDiagState {
-  if (typeof window === "undefined") { return initDiagState(); }
+  if (typeof window === "undefined") {
+    return initDiagState();
+  }
   const key = "__AXAGENT_IPC_DIAG__" as keyof Window & "__AXAGENT_IPC_DIAG__";
   if (!(window as unknown as Record<string, unknown>)[key]) {
     (window as unknown as Record<string, unknown>)[key] = initDiagState();
@@ -278,30 +311,47 @@ function recordDiag(
     }
     if (!success && error) {
       const msg = error.toLowerCase();
-      if (msg.includes("connection") || msg.includes("refused") || msg.includes("fetch")) {
+      if (
+        msg.includes("connection")
+        || msg.includes("refused")
+        || msg.includes("fetch")
+      ) {
         if (diag.connectionErrors.length < 50) {
           const internalsObj = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
-            ? (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as Record<string, unknown>
+            ? ((window as unknown as Record<string, unknown>)
+              .__TAURI_INTERNALS__ as Record<string, unknown>)
             : undefined;
           diag.connectionErrors.push({
             timestamp: Date.now(),
             cmd,
             error: error.slice(0, 300),
-            tauriInternalsKeys: internalsObj ? Object.keys(internalsObj).slice(0, 20) : undefined,
+            tauriInternalsKeys: internalsObj
+              ? Object.keys(internalsObj).slice(0, 20)
+              : undefined,
           });
         }
       }
     }
-  } catch { /* diagnostic: ignore self-check errors */ }
+  } catch {
+    /* diagnostic: ignore self-check errors */
+  }
 }
 
 /**
  * 检查 IPC 通道健康状态。
  * 在 Tauri 环境尝试一次轻量 IPC，带 5 秒超时。
  */
-export async function checkIpcHealth(): Promise<{ ok: boolean; detail: string; isTauri: boolean }> {
+export async function checkIpcHealth(): Promise<{
+  ok: boolean;
+  detail: string;
+  isTauri: boolean;
+}> {
   if (!isTauri()) {
-    return { ok: false, detail: "Not a Tauri environment, __TAURI_INTERNALS__ not injected", isTauri: false };
+    return {
+      ok: false,
+      detail: "Not a Tauri environment, __TAURI_INTERNALS__ not injected",
+      isTauri: false,
+    };
   }
   try {
     await invoke<unknown>("get_settings", undefined, 5000);
@@ -313,14 +363,20 @@ export async function checkIpcHealth(): Promise<{ ok: boolean; detail: string; i
 }
 
 export function isTauri(): boolean {
-  return !!globalThis.isTauri || !!(typeof window !== "undefined" && window.isTauri);
+  return (
+    !!globalThis.isTauri || !!(typeof window !== "undefined" && window.isTauri)
+  );
 }
 
 /**
  * Invoke a Tauri command with optional timeout.
  * If the timeout elapses, the promise rejects with a TimeoutError.
  */
-export async function invoke<T>(cmd: string, args?: Record<string, unknown>, timeoutMs?: number): Promise<T> {
+export async function invoke<T>(
+  cmd: string,
+  args?: Record<string, unknown>,
+  timeoutMs?: number,
+): Promise<T> {
   const start = performance.now();
   try {
     let result: T;
@@ -387,7 +443,10 @@ async function withTimeout<T>(
     const msg = String(e).toLowerCase();
     if (
       !timedOut
-      && (msg.includes("connection") || msg.includes("refused") || msg.includes("fetch") || msg.includes("ipc")
+      && (msg.includes("connection")
+        || msg.includes("refused")
+        || msg.includes("fetch")
+        || msg.includes("ipc")
         || msg.includes("protocol"))
     ) {
       throw new Error(
@@ -421,6 +480,8 @@ export async function listen<T>(
     return tauriListen<T>(event, handler);
   }
   // Browser mode: no-op listener
-  console.warn("[invoke] listen() called in browser mode - events will not fire");
+  console.warn(
+    "[invoke] listen() called in browser mode - events will not fire",
+  );
   return () => {};
 }

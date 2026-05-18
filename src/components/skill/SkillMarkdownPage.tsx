@@ -25,10 +25,11 @@ export function SkillMarkdownPage({ skillName }: SkillMarkdownPageProps) {
 
     async function loadContent() {
       try {
-        const detail = await invoke<{ info: unknown; content: string; files: string[] }>(
-          "get_skill",
-          { name: skillName },
-        );
+        const detail = await invoke<{
+          info: unknown;
+          content: string;
+          files: string[];
+        }>("get_skill", { name: skillName });
         if (!cancelled) {
           setRawContent(detail.content || "");
         }
@@ -37,7 +38,9 @@ export function SkillMarkdownPage({ skillName }: SkillMarkdownPageProps) {
           setError(String(e));
         }
       } finally {
-        if (!cancelled) { setLoading(false); }
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -48,7 +51,9 @@ export function SkillMarkdownPage({ skillName }: SkillMarkdownPageProps) {
   }, [skillName]);
 
   const nodes = useMemo<BaseNode[] | null>(() => {
-    if (!rawContent) { return null; }
+    if (!rawContent) {
+      return null;
+    }
     try {
       return parseMarkdownToStructure(rawContent, skillMarkdown, {
         customHtmlTags: [],

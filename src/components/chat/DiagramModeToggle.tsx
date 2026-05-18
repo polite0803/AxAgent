@@ -8,7 +8,10 @@ interface Props {
   onSwitchMode: (mode: "preview" | "source") => void;
 }
 
-export const DiagramModeToggle: React.FC<Props> = ({ showSource, onSwitchMode }) => {
+export const DiagramModeToggle: React.FC<Props> = ({
+  showSource,
+  onSwitchMode,
+}) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
@@ -20,7 +23,9 @@ export const DiagramModeToggle: React.FC<Props> = ({ showSource, onSwitchMode })
       options={[
         {
           label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
               <Eye size={12} />
               {t("common.preview")}
             </span>
@@ -29,7 +34,9 @@ export const DiagramModeToggle: React.FC<Props> = ({ showSource, onSwitchMode })
         },
         {
           label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
               <Code2 size={12} />
               {t("common.source")}
             </span>

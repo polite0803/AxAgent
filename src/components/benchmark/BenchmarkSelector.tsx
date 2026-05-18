@@ -38,7 +38,9 @@ export function BenchmarkSelector() {
           <div>
             <div>{option.data.label}</div>
             <Text type="secondary" className="text-xs">
-              {t("benchmark.taskCount", { count: option.data.benchmark.tasks.length })}
+              {t("benchmark.taskCount", {
+                count: option.data.benchmark.tasks.length,
+              })}
             </Text>
           </div>
         )}
@@ -51,7 +53,10 @@ export function BenchmarkSelector() {
           </Text>
           <div className="mt-2">
             <Text className="text-xs">
-              {t("benchmark.tags", { tags: selectedBenchmark.metadata.tags.join(", ") || t("benchmark.none") })}
+              {t("benchmark.tags", {
+                tags: selectedBenchmark.metadata.tags.join(", ")
+                  || t("benchmark.none"),
+              })}
             </Text>
           </div>
         </div>

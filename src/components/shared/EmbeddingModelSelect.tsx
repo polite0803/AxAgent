@@ -8,16 +8,22 @@ import { parseModelValue, useProviderNameMap } from "./ModelSelect";
 function useEmbeddingModelOptions() {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
-    return providers
-      .flatMap((p) => {
-        if (!p.enabled) { return []; }
-        const embeddingModels = p.models.filter(
-          (m) => m.enabled && m.model_type === "Embedding",
-        );
-        if (embeddingModels.length === 0) { return []; }
-        return [{
+    return providers.flatMap((p) => {
+      if (!p.enabled) {
+        return [];
+      }
+      const embeddingModels = p.models.filter(
+        (m) => m.enabled && m.model_type === "Embedding",
+      );
+      if (embeddingModels.length === 0) {
+        return [];
+      }
+      return [
+        {
           label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
               <ModelIcon model={p.name} size={16} type="avatar" />
               {p.name}
             </span>
@@ -29,8 +35,9 @@ function useEmbeddingModelOptions() {
             model_id: m.model_id,
             providerName: p.name,
           })),
-        }];
-      });
+        },
+      ];
+    });
   }, [providers]);
 }
 
@@ -56,7 +63,10 @@ export function EmbeddingModelSelect({
   const providerNameMap = useProviderNameMap();
 
   const optionRender = useCallback(
-    (oriOption: { label?: React.ReactNode; value?: string | number }, _info: { index: number }) => {
+    (
+      oriOption: { label?: React.ReactNode; value?: string | number },
+      _info: { index: number },
+    ) => {
       const model_id = String(oriOption.value ?? "").split("::")[1] ?? "";
       return (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -71,7 +81,9 @@ export function EmbeddingModelSelect({
   const labelRender = useCallback(
     (props: { label?: React.ReactNode; value?: string | number }) => {
       const parsed = parseModelValue(String(props.value ?? ""));
-      if (!parsed) { return <span>{props.label}</span>; }
+      if (!parsed) {
+        return <span>{props.label}</span>;
+      }
       const providerName = providerNameMap.get(parsed.providerId) ?? "";
       return (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>

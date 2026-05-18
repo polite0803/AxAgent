@@ -82,7 +82,9 @@ export const useRecommendationStore = create<RecommendationState>((set) => ({
 
   getToolsByCategory: async (category: string) => {
     try {
-      const tools = await invoke<ToolInfo[]>("get_tools_by_category", { category });
+      const tools = await invoke<ToolInfo[]>("get_tools_by_category", {
+        category,
+      });
       return tools;
     } catch (error) {
       set({ error: String(error) });

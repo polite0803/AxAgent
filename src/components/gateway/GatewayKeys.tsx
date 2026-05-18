@@ -12,7 +12,15 @@ const { Text } = Typography;
 export function GatewayKeys() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const { keys, loading, fetchKeys, createKey, deleteKey, toggleKey, decryptKey } = useGatewayStore();
+  const {
+    keys,
+    loading,
+    fetchKeys,
+    createKey,
+    deleteKey,
+    toggleKey,
+    decryptKey,
+  } = useGatewayStore();
   const { copy: copyCreatedKey, isCopied: createdKeyCopied } = useCopyToClipboard();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -26,7 +34,9 @@ export function GatewayKeys() {
   }, [fetchKeys]);
 
   const filteredKeys = useMemo(() => {
-    if (!searchText.trim()) { return keys; }
+    if (!searchText.trim()) {
+      return keys;
+    }
     const lower = searchText.toLowerCase();
     return keys.filter(
       (k) =>
@@ -36,7 +46,9 @@ export function GatewayKeys() {
   }, [keys, searchText]);
 
   const handleCreate = async () => {
-    if (!keyName.trim()) { return; }
+    if (!keyName.trim()) {
+      return;
+    }
     setCreating(true);
     try {
       const result = await createKey(keyName.trim());
@@ -109,7 +121,12 @@ export function GatewayKeys() {
             title={t("gateway.deleteKeyConfirm")}
             onConfirm={() => deleteKey(record.id)}
           >
-            <Button type="text" danger icon={<Trash2 size={14} />} size="small" />
+            <Button
+              type="text"
+              danger
+              icon={<Trash2 size={14} />}
+              size="small"
+            />
           </Popconfirm>
         </div>
       ),
@@ -118,7 +135,14 @@ export function GatewayKeys() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
         <Button
           type="primary"
           icon={<Plus size={16} />}
@@ -158,7 +182,9 @@ export function GatewayKeys() {
               onClick={async () => {
                 if (createdKey) {
                   const ok = await copyCreatedKey(createdKey);
-                  if (ok) { message.success(t("common.copySuccess")); }
+                  if (ok) {
+                    message.success(t("common.copySuccess"));
+                  }
                 }
               }}
             >
@@ -186,11 +212,7 @@ export function GatewayKeys() {
         {createdKey
           ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <Alert
-                message={t("gateway.copyWarning")}
-                type="warning"
-                showIcon
-              />
+              <Alert message={t("gateway.copyWarning")} type="warning" showIcon />
               <Input.TextArea
                 id="gateway-keys-input-textarea-41"
                 value={createdKey}

@@ -14,7 +14,9 @@ describe("browserMock gateway templates", () => {
   });
 
   it("returns Claude and Cursor templates that match AxAgent runtime contracts", async () => {
-    const templates = await handleCommand<GatewayTemplate[]>("list_gateway_templates");
+    const templates = await handleCommand<GatewayTemplate[]>(
+      "list_gateway_templates",
+    );
 
     const cursor = templates.find((template) => template.target === "cursor");
     expect(cursor).toBeDefined();
@@ -23,7 +25,9 @@ describe("browserMock gateway templates", () => {
     expect(cursor?.content).not.toContain('"api_key"');
     expect(cursor?.content).not.toContain('"api_base"');
 
-    const claude = templates.find((template) => template.target === "claude_code");
+    const claude = templates.find(
+      (template) => template.target === "claude_code",
+    );
     expect(claude).toBeDefined();
     expect(claude?.content).toContain("ANTHROPIC_BASE_URL=");
     expect(claude?.content).toContain("ANTHROPIC_AUTH_TOKEN=");
@@ -33,13 +37,17 @@ describe("browserMock gateway templates", () => {
   it("maps backup manifests into files-page backup rows and cleans up missing entries", async () => {
     await handleCommand("create_backup", { format: "sqlite" });
 
-    const rows = await handleCommand<any[]>("list_files_page_entries", { category: "backups" });
+    const rows = await handleCommand<any[]>("list_files_page_entries", {
+      category: "backups",
+    });
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toMatch(/^backup_manifest::/);
     expect(rows[0].category).toBe("backups");
     expect(rows[0].path).toContain("/mock/path/");
 
-    await handleCommand("cleanup_missing_files_page_entry", { entryId: rows[0].id });
+    await handleCommand("cleanup_missing_files_page_entry", {
+      entryId: rows[0].id,
+    });
 
     const backups = await handleCommand<any[]>("list_backups");
     expect(backups).toHaveLength(0);

@@ -20,22 +20,22 @@ export function SkillPanels() {
   const mainPanels = panels.filter((p) => p.position === "Main");
   const sidebarPanels = panels.filter((p) => p.position === "Sidebar");
 
-  if (panels.length === 0) { return null; }
+  if (panels.length === 0) {
+    return null;
+  }
 
-  const renderPanel = (panel: typeof panels[number]) => (
+  const renderPanel = (panel: (typeof panels)[number]) => (
     <CollapsiblePanel key={`${panel.skillName}:${panel.id}`} panel={panel} />
   );
 
   return (
     <>
-      {headerPanels.length > 0 && (
-        <div style={{ flexShrink: 0 }}>
-          {headerPanels.map(renderPanel)}
-        </div>
-      )}
+      {headerPanels.length > 0 && <div style={{ flexShrink: 0 }}>{headerPanels.map(renderPanel)}</div>}
 
       {(mainPanels.length > 0 || sidebarPanels.length > 0) && (
-        <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <div
+          style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}
+        >
           {mainPanels.length > 0 && (
             <div style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
               {mainPanels.map(renderPanel)}
@@ -52,7 +52,10 @@ export function SkillPanels() {
               {sidebarPanels.map((panel) => {
                 const size = SIZE_MAP[panel.size] || 320;
                 return (
-                  <div key={`${panel.skillName}:${panel.id}`} style={{ width: size > 0 ? size : "100%" }}>
+                  <div
+                    key={`${panel.skillName}:${panel.id}`}
+                    style={{ width: size > 0 ? size : "100%" }}
+                  >
                     <CollapsiblePanel panel={panel} />
                   </div>
                 );
@@ -62,17 +65,19 @@ export function SkillPanels() {
         </div>
       )}
 
-      {footerPanels.length > 0 && (
-        <div style={{ flexShrink: 0 }}>
-          {footerPanels.map(renderPanel)}
-        </div>
-      )}
+      {footerPanels.length > 0 && <div style={{ flexShrink: 0 }}>{footerPanels.map(renderPanel)}</div>}
     </>
   );
 }
 
-function CollapsiblePanel({ panel }: { panel: ReturnType<typeof useSkillExtensionStore.getState>["panels"][number] }) {
-  const [collapsed, setCollapsed] = useState(panel.collapsible ? panel.defaultCollapsed : false);
+function CollapsiblePanel({
+  panel,
+}: {
+  panel: ReturnType<typeof useSkillExtensionStore.getState>["panels"][number];
+}) {
+  const [collapsed, setCollapsed] = useState(
+    panel.collapsible ? panel.defaultCollapsed : false,
+  );
 
   if (!panel.collapsible) {
     return (
@@ -98,14 +103,22 @@ function CollapsiblePanel({ panel }: { panel: ReturnType<typeof useSkillExtensio
           fontSize: 12,
           fontWeight: 500,
           color: "var(--color-text-secondary)",
-          borderBottom: collapsed ? "none" : "1px solid var(--color-border-secondary)",
+          borderBottom: collapsed
+            ? "none"
+            : "1px solid var(--color-border-secondary)",
         }}
         onClick={() => setCollapsed(!collapsed)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { setCollapsed(!collapsed); }
+          if (e.key === "Enter" || e.key === " ") {
+            setCollapsed(!collapsed);
+          }
         }}
       >
-        <Button type="text" size="small" icon={collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />} />
+        <Button
+          type="text"
+          size="small"
+          icon={collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+        />
         {panel.title}
       </div>
       {!collapsed && (

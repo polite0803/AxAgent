@@ -39,13 +39,19 @@ export function GatewayMonitor() {
     try {
       const [m, l] = await Promise.all([
         invoke<GatewayMetrics>("get_gateway_metrics").catch((e) => {
-          if (import.meta.env.DEV) { console.warn("Failed to load gateway metrics:", e); }
+          if (import.meta.env.DEV) {
+            console.warn("Failed to load gateway metrics:", e);
+          }
           return null;
         }),
-        invoke<RequestLog[]>("list_gateway_request_logs", { limit: 50 }).catch((e) => {
-          if (import.meta.env.DEV) { console.warn("Failed to load gateway request logs:", e); }
-          return [];
-        }),
+        invoke<RequestLog[]>("list_gateway_request_logs", { limit: 50 }).catch(
+          (e) => {
+            if (import.meta.env.DEV) {
+              console.warn("Failed to load gateway request logs:", e);
+            }
+            return [];
+          },
+        ),
       ]);
       setMetrics(m);
       setLogs(l);
@@ -92,7 +98,12 @@ export function GatewayMonitor() {
       width: 70,
       render: (m: string) => <Tag color={m === "POST" ? "blue" : "green"}>{m}</Tag>,
     },
-    { title: t("gatewayMonitor.colPath"), dataIndex: "path", key: "path", ellipsis: true },
+    {
+      title: t("gatewayMonitor.colPath"),
+      dataIndex: "path",
+      key: "path",
+      ellipsis: true,
+    },
     {
       title: t("gatewayMonitor.colStatus"),
       dataIndex: "status",
@@ -117,12 +128,21 @@ export function GatewayMonitor() {
 
   return (
     <div style={{ padding: "16px 24px", maxWidth: 1200, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
           <Server size={18} style={{ marginRight: 8 }} />
           {t("gatewayMonitor.title")}
         </h2>
-        <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>{t("gatewayMonitor.refresh")}</Button>
+        <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
+          {t("gatewayMonitor.refresh")}
+        </Button>
       </div>
 
       {/* 指标卡片 */}
@@ -135,70 +155,87 @@ export function GatewayMonitor() {
         : error
         ? (
           <Card>
-            <div style={{ textAlign: "center", padding: 12, color: "var(--color-text-secondary)" }}>{error}</div>
+            <div
+              style={{
+                textAlign: "center",
+                padding: 12,
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              {error}
+            </div>
           </Card>
         )
-        : metrics && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 12,
-              marginBottom: 20,
-            }}
-          >
-            <Card size="small">
-              <Statistic
-                title={t("gatewayMonitor.totalRequests")}
-                value={metrics.total_requests}
-                prefix={<Activity size={16} />}
-              />
-            </Card>
-            <Card size="small">
-              <Statistic
-                title={t("gatewayMonitor.totalTokens")}
-                value={metrics.total_tokens}
-                prefix={<BarChart3 size={16} />}
-              />
-            </Card>
-            <Card size="small">
-              <Statistic
-                title={t("gatewayMonitor.activeConnections")}
-                value={metrics.active_connections}
-                prefix={<Server size={16} />}
-              />
-            </Card>
-            <Card size="small">
-              <Statistic
-                title={t("gatewayMonitor.avgLatency")}
-                value={metrics.avg_latency_ms}
-                suffix="ms"
-                precision={0}
-              />
-            </Card>
-            <Card size="small">
-              <Statistic
-                title={t("gatewayMonitor.errorCount")}
-                value={metrics.error_count}
-                valueStyle={{ color: metrics.error_count > 0 ? "#ff4d4f" : undefined }}
-              />
-            </Card>
-            <Card size="small">
-              <Statistic
-                title={t("gatewayMonitor.uptime")}
-                value={formatUptime(metrics.uptime_seconds)}
-                prefix={<Clock size={16} />}
-              />
-            </Card>
-          </div>
+        : (
+          metrics && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              <Card size="small">
+                <Statistic
+                  title={t("gatewayMonitor.totalRequests")}
+                  value={metrics.total_requests}
+                  prefix={<Activity size={16} />}
+                />
+              </Card>
+              <Card size="small">
+                <Statistic
+                  title={t("gatewayMonitor.totalTokens")}
+                  value={metrics.total_tokens}
+                  prefix={<BarChart3 size={16} />}
+                />
+              </Card>
+              <Card size="small">
+                <Statistic
+                  title={t("gatewayMonitor.activeConnections")}
+                  value={metrics.active_connections}
+                  prefix={<Server size={16} />}
+                />
+              </Card>
+              <Card size="small">
+                <Statistic
+                  title={t("gatewayMonitor.avgLatency")}
+                  value={metrics.avg_latency_ms}
+                  suffix="ms"
+                  precision={0}
+                />
+              </Card>
+              <Card size="small">
+                <Statistic
+                  title={t("gatewayMonitor.errorCount")}
+                  value={metrics.error_count}
+                  valueStyle={{
+                    color: metrics.error_count > 0 ? "#ff4d4f" : undefined,
+                  }}
+                />
+              </Card>
+              <Card size="small">
+                <Statistic
+                  title={t("gatewayMonitor.uptime")}
+                  value={formatUptime(metrics.uptime_seconds)}
+                  prefix={<Clock size={16} />}
+                />
+              </Card>
+            </div>
+          )
         )}
 
       {/* 请求日志 */}
       <Card
         title={t("gatewayMonitor.requestLogs")}
         extra={
-          <Popconfirm title={t("gatewayMonitor.clearLogsConfirm")} onConfirm={handleClearLogs}>
-            <Button size="small" danger>{t("gatewayMonitor.clear")}</Button>
+          <Popconfirm
+            title={t("gatewayMonitor.clearLogsConfirm")}
+            onConfirm={handleClearLogs}
+          >
+            <Button size="small" danger>
+              {t("gatewayMonitor.clear")}
+            </Button>
           </Popconfirm>
         }
       >

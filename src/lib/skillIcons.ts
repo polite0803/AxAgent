@@ -95,7 +95,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
 export function resolveIconComponent(iconStr: string): LucideIcon {
   const name = iconStr.startsWith("lucide:") ? iconStr.slice(7) : iconStr;
   const component = ICON_MAP[name];
-  if (component) { return component; }
+  if (component) {
+    return component;
+  }
   console.warn(`[skillIcons] 未识别的图标 "${iconStr}"，回退到 Puzzle`);
   return Puzzle;
 }

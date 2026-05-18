@@ -55,7 +55,9 @@ export function useChatViewScroll({
 
   const scrollBoxRef = useRef<HTMLElement | null>(null);
   const scrollContentRef = useRef<HTMLElement | null>(null);
-  const pendingScrollConversationIdRef = useRef<string | null>(activeConversationId ?? null);
+  const pendingScrollConversationIdRef = useRef<string | null>(
+    activeConversationId ?? null,
+  );
   const stickToBottomRef = useRef(stickToBottom);
   const scrollLayoutMetricsRef = useRef({ scrollHeight: 0, clientHeight: 0 });
   const lastUserScrollIntentAtRef = useRef(0);
@@ -75,16 +77,24 @@ export function useChatViewScroll({
 
   useEffect(() => {
     const scrollBox = scrollBoxRef.current;
-    if (!scrollBox) { return; }
+    if (!scrollBox) {
+      return;
+    }
 
     const handleUserIntent = () => {
       markUserScrollIntent();
     };
 
     scrollBox.addEventListener("wheel", handleUserIntent, { passive: true });
-    scrollBox.addEventListener("touchstart", handleUserIntent, { passive: true });
-    scrollBox.addEventListener("touchmove", handleUserIntent, { passive: true });
-    scrollBox.addEventListener("pointerdown", handleUserIntent, { passive: true });
+    scrollBox.addEventListener("touchstart", handleUserIntent, {
+      passive: true,
+    });
+    scrollBox.addEventListener("touchmove", handleUserIntent, {
+      passive: true,
+    });
+    scrollBox.addEventListener("pointerdown", handleUserIntent, {
+      passive: true,
+    });
 
     return () => {
       scrollBox.removeEventListener("wheel", handleUserIntent);
@@ -92,23 +102,38 @@ export function useChatViewScroll({
       scrollBox.removeEventListener("touchmove", handleUserIntent);
       scrollBox.removeEventListener("pointerdown", handleUserIntent);
     };
-  }, [activeConversationId, bubbleListThemeKey, markUserScrollIntent, messageCount]);
+  }, [
+    activeConversationId,
+    bubbleListThemeKey,
+    markUserScrollIntent,
+    messageCount,
+  ]);
 
   const minimapScrollTo = useCallback((messageId: string) => {
     let scrollBox = scrollBoxRef.current;
     if (!scrollBox) {
       scrollBox = (bubbleListRef.current?.scrollBoxNativeElement as HTMLElement)
         ?? document.querySelector<HTMLElement>(".ant-bubble-list-scroll-box");
-      if (scrollBox) { scrollBoxRef.current = scrollBox; }
+      if (scrollBox) {
+        scrollBoxRef.current = scrollBox;
+      }
     }
-    if (!scrollBox) { return; }
+    if (!scrollBox) {
+      return;
+    }
     const marker = scrollBox.querySelector(`[data-axagent-msg="${messageId}"]`);
-    if (!marker) { return; }
+    if (!marker) {
+      return;
+    }
     let el: Element = marker;
     for (;;) {
       const parent = el.parentElement;
-      if (!parent || parent === scrollBox) { break; }
-      if (parent.parentElement === scrollBox) { break; }
+      if (!parent || parent === scrollBox) {
+        break;
+      }
+      if (parent.parentElement === scrollBox) {
+        break;
+      }
       el = parent;
     }
     el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -123,24 +148,31 @@ export function useChatViewScroll({
 
   const syncScrollToBottomVisibility = useCallback(() => {
     const target = scrollBoxRef.current;
-    if (!target) { return; }
+    if (!target) {
+      return;
+    }
     const nextShowScrollToBottom = shouldShowScrollToBottom(
       target.scrollHeight,
       target.scrollTop,
       target.clientHeight,
       CHAT_SCROLL_IS_REVERSED,
     );
-    setShowScrollToBottom((prev) => (prev === nextShowScrollToBottom ? prev : nextShowScrollToBottom));
+    setShowScrollToBottom((prev) => prev === nextShowScrollToBottom ? prev : nextShowScrollToBottom);
   }, []);
 
   const handleLoadOlderMessages = useCallback(async () => {
-    const scrollContainer = bubbleListRef.current?.scrollBoxNativeElement as HTMLDivElement | null | undefined;
+    const scrollContainer = bubbleListRef.current?.scrollBoxNativeElement as
+      | HTMLDivElement
+      | null
+      | undefined;
     const previousScrollHeight = scrollContainer?.scrollHeight ?? 0;
     const previousScrollTop = scrollContainer?.scrollTop ?? 0;
     await loadOlderMessages();
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        if (!scrollContainer) { return; }
+        if (!scrollContainer) {
+          return;
+        }
         scrollContainer.scrollTop = getScrollTopAfterPrepend(
           previousScrollTop,
           previousScrollHeight,
@@ -151,48 +183,55 @@ export function useChatViewScroll({
     });
   }, [loadOlderMessages]);
 
-  const handleBubbleListScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-    const target = event.currentTarget;
-    setShowScrollToBottom(
-      shouldShowScrollToBottom(
+  const handleBubbleListScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const target = event.currentTarget;
+      setShowScrollToBottom(
+        shouldShowScrollToBottom(
+          target.scrollHeight,
+          target.scrollTop,
+          target.clientHeight,
+          CHAT_SCROLL_IS_REVERSED,
+        ),
+      );
+      const keepAutoScroll = shouldKeepAutoScroll(
         target.scrollHeight,
         target.scrollTop,
         target.clientHeight,
         CHAT_SCROLL_IS_REVERSED,
-      ),
-    );
-    const keepAutoScroll = shouldKeepAutoScroll(
-      target.scrollHeight,
-      target.scrollTop,
-      target.clientHeight,
-      CHAT_SCROLL_IS_REVERSED,
-      1,
-    );
-    const hadRecentUserScrollIntent = Date.now() - lastUserScrollIntentAtRef.current < 250;
-    if (
-      shouldIgnoreScrollDepartureFromBottom(
-        keepAutoScroll,
-        stickToBottomRef.current,
-        hadRecentUserScrollIntent,
-      )
-    ) {
-      bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "auto" });
-      setShowScrollToBottom(false);
-      return;
-    }
-    if (keepAutoScroll !== stickToBottomRef.current) {
-      setStickToBottom(keepAutoScroll);
-    }
-    if (!hasOlderMessages || loading || loadingOlder) { return; }
-    const distanceToHistoryTop = getDistanceToHistoryTop(
-      target.scrollHeight,
-      target.scrollTop,
-      target.clientHeight,
-      CHAT_SCROLL_IS_REVERSED,
-    );
-    if (distanceToHistoryTop > 24) { return; }
-    void handleLoadOlderMessages();
-  }, [handleLoadOlderMessages, hasOlderMessages, loading, loadingOlder]);
+        1,
+      );
+      const hadRecentUserScrollIntent = Date.now() - lastUserScrollIntentAtRef.current < 250;
+      if (
+        shouldIgnoreScrollDepartureFromBottom(
+          keepAutoScroll,
+          stickToBottomRef.current,
+          hadRecentUserScrollIntent,
+        )
+      ) {
+        bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "auto" });
+        setShowScrollToBottom(false);
+        return;
+      }
+      if (keepAutoScroll !== stickToBottomRef.current) {
+        setStickToBottom(keepAutoScroll);
+      }
+      if (!hasOlderMessages || loading || loadingOlder) {
+        return;
+      }
+      const distanceToHistoryTop = getDistanceToHistoryTop(
+        target.scrollHeight,
+        target.scrollTop,
+        target.clientHeight,
+        CHAT_SCROLL_IS_REVERSED,
+      );
+      if (distanceToHistoryTop > 24) {
+        return;
+      }
+      void handleLoadOlderMessages();
+    },
+    [handleLoadOlderMessages, hasOlderMessages, loading, loadingOlder],
+  );
 
   const handleScrollToBottom = useCallback(() => {
     bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "smooth" });
@@ -203,7 +242,9 @@ export function useChatViewScroll({
   useEffect(() => {
     const scrollBox = scrollBoxRef.current;
     const scrollContent = scrollContentRef.current;
-    if (!scrollBox || !scrollContent || typeof ResizeObserver === "undefined") { return; }
+    if (!scrollBox || !scrollContent || typeof ResizeObserver === "undefined") {
+      return;
+    }
 
     scrollLayoutMetricsRef.current = {
       scrollHeight: scrollBox.scrollHeight,
@@ -215,7 +256,9 @@ export function useChatViewScroll({
     const handleLayoutResize = () => {
       frameId = 0;
       const target = scrollBoxRef.current;
-      if (!target) { return; }
+      if (!target) {
+        return;
+      }
 
       const nextMetrics = {
         scrollHeight: target.scrollHeight,
@@ -229,7 +272,13 @@ export function useChatViewScroll({
 
       scrollLayoutMetricsRef.current = nextMetrics;
 
-      if (shouldStickToBottomOnLayoutChange(previousMetrics, nextMetrics, stickToBottomRef.current)) {
+      if (
+        shouldStickToBottomOnLayoutChange(
+          previousMetrics,
+          nextMetrics,
+          stickToBottomRef.current,
+        )
+      ) {
         bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "auto" });
         setShowScrollToBottom(false);
         return;
@@ -254,7 +303,12 @@ export function useChatViewScroll({
         window.cancelAnimationFrame(frameId);
       }
     };
-  }, [activeConversationId, bubbleListThemeKey, messageCount, syncScrollToBottomVisibility]);
+  }, [
+    activeConversationId,
+    bubbleListThemeKey,
+    messageCount,
+    syncScrollToBottomVisibility,
+  ]);
 
   const prevStreamingRef = useRef(false);
   const streamingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -288,8 +342,12 @@ export function useChatViewScroll({
   }, [allBubbleItems, stickToBottom, syncScrollToBottomVisibility]);
 
   useEffect(() => {
-    if (!activeConversationId || allBubbleItems.length === 0) { return; }
-    if (pendingScrollConversationIdRef.current !== activeConversationId) { return; }
+    if (!activeConversationId || allBubbleItems.length === 0) {
+      return;
+    }
+    if (pendingScrollConversationIdRef.current !== activeConversationId) {
+      return;
+    }
 
     let frame1 = 0;
     let frame2 = 0;
