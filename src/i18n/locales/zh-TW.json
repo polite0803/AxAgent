@@ -2493,7 +2493,8 @@
     "openSettings": "開啟設定",
     "conflictApp1": "飛書/微信/企業微信/釘釘",
     "conflictApp2": "QQ/微信",
-    "conflictApp3": "微信 (Windows)"
+    "conflictApp3": "微信 (Windows)",
+    "conflictError": "快捷鍵已被其他應用程式佔用，請嘗試更換快捷鍵"
   },
   "tray": {
     "show": "顯示",

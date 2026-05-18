@@ -2493,7 +2493,8 @@
     "openSettings": "設定を開く",
     "conflictApp1": "飞书/微信/企业微信/钉钉",
     "conflictApp2": "QQ/微信",
-    "conflictApp3": "微信 (Windows)"
+    "conflictApp3": "微信 (Windows)",
+    "conflictError": "ショートカットは別のアプリケーションで使用されています。別のキーをお試しください"
   },
   "tray": {
     "show": "表示",

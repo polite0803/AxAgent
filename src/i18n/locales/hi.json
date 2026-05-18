@@ -2464,7 +2464,8 @@
     "openSettings": "सेटिंग्स खोलें",
     "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
-    "conflictApp3": "WeChat (Windows)"
+    "conflictApp3": "WeChat (Windows)",
+    "conflictError": "शॉर्टकट पहले से उपयोग में है, कृपया अन्य कुंजी आज़माएं"
   },
   "tray": {
     "show": "दिखाएँ",

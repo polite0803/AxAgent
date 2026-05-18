@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { isTauri } from "@/lib/invoke";
 import { executeShortcutAction } from "@/lib/shortcutActions";
 import {
@@ -182,7 +183,7 @@ export function useGlobalShortcutManager() {
                 } catch (error) {
                   let reason = String(error);
                   if (reason.indexOf("HotKey already registered") !== -1) {
-                    reason = "快捷键已被其他应用程序占用，请尝试更换快捷键";
+                    reason = i18n.t("shortcuts.conflictError");
                   } else if (reason.indexOf("Invalid shortcut") !== -1) {
                     reason = "快捷键格式无效";
                   } else if (reason.indexOf(" accelerators are not supported") !== -1) {
@@ -206,7 +207,7 @@ export function useGlobalShortcutManager() {
       } catch (error) {
         let reason = String(error);
         if (reason.includes("HotKey already registered")) {
-          reason = "快捷键已被其他应用程序占用，请尝试更换快捷键";
+          reason = i18n.t("shortcuts.conflictError");
         }
         failed.push({ shortcut: "*", reason });
         pushDiagnostic({

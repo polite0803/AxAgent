@@ -2493,7 +2493,8 @@
     "openSettings": "Einstellungen öffnen",
     "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
-    "conflictApp3": "WeChat (Windows)"
+    "conflictApp3": "WeChat (Windows)",
+    "conflictError": "Tastenkombination wird bereits verwendet, bitte andere Tasten wählen"
   },
   "tray": {
     "show": "Anzeigen",

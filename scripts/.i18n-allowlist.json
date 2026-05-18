@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-18",
-  "total_entries": 269,
+  "total_entries": 267,
   "total_files": 127,
   "entries": [
     {
@@ -439,12 +439,6 @@
     {
       "file": "src/data/expertPresets.ts",
       "lines": "5,7,13,22,24,28,31,41,43,47,50,60,62,66,69,79,81,85,88,98,100,104,107,117,119,123,126,136,138,142,145,155,157,161,164,173,175,179,182,192,194,198,201,211,213,217,220",
-      "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/hooks/useGlobalShortcutManager.ts",
-      "lines": "183,185,187,204",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -1244,11 +1238,6 @@
       "file": "src/components/wiki/WikiNodeContextMenu.tsx",
       "lines": "72",
       "reason": "{/* 菜单 — 玻璃态 */}"
-    },
-    {
-      "file": "src/hooks/useGlobalShortcutManager.ts",
-      "lines": "205",
-      "reason": "reason = \"快捷键已被其他应用程序占用，请尝试更换快捷键\";"
     },
     {
       "file": "src/lib/browserMock.ts",

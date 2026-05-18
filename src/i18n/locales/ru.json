@@ -2464,7 +2464,8 @@
     "openSettings": "Открыть настройки",
     "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
-    "conflictApp3": "WeChat (Windows)"
+    "conflictApp3": "WeChat (Windows)",
+    "conflictError": "Сочетание уже используется, попробуйте другие клавиши"
   },
   "tray": {
     "show": "Показать",

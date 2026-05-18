@@ -2493,7 +2493,8 @@
     "openSettings": "설정 열기",
     "conflictApp1": "Feishu/WeChat/Enterprise WeChat/DingTalk",
     "conflictApp2": "QQ/WeChat",
-    "conflictApp3": "WeChat (Windows)"
+    "conflictApp3": "WeChat (Windows)",
+    "conflictError": "단축키가 다른 애플리케이션에서 사용 중입니다. 다른 키를 시도하세요"
   },
   "tray": {
     "show": "표시",
