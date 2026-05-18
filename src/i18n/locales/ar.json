@@ -3947,6 +3947,18 @@
       "contextPrediction": "تنبؤ",
       "teammate": "فريق"
     },
+    "report": {
+      "sourceType": {
+        "web": "ويب",
+        "academic": "أكاديمي",
+        "wikipedia": "ويكيبيديا",
+        "documentation": "وثيقة",
+        "news": "أخبار",
+        "blog": "مدونة",
+        "forum": "منتدى",
+        "unknown": "غيرمعروف"
+      }
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",

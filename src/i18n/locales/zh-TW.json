@@ -3553,6 +3553,18 @@
       "contextPrediction": "上下文預測",
       "teammate": "協作"
     },
+    "report": {
+      "sourceType": {
+        "web": "網頁",
+        "academic": "學術",
+        "wikipedia": "維基百科",
+        "documentation": "文件",
+        "news": "新聞",
+        "blog": "部落格",
+        "forum": "論壇",
+        "unknown": "未知"
+      }
+    },
     "rightPanel": {
       "addTagsPlaceholder": "添加標籤...",
       "deleteEdge": "刪除連線",

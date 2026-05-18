@@ -3354,6 +3354,18 @@
       "contextPrediction": "Prediction",
       "teammate": "Team"
     },
+    "report": {
+      "sourceType": {
+        "web": "Web",
+        "academic": "Academic",
+        "wikipedia": "Wikipedia",
+        "documentation": "Doc",
+        "news": "News",
+        "blog": "Blog",
+        "forum": "Forum",
+        "unknown": "Unknown"
+      }
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",

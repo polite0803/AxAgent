@@ -3553,6 +3553,18 @@
       "contextPrediction": "予測",
       "teammate": "チーム"
     },
+    "report": {
+      "sourceType": {
+        "web": "ウェブ",
+        "academic": "学術",
+        "wikipedia": "ウィキペディア",
+        "documentation": "文書",
+        "news": "ニュース",
+        "blog": "ブログ",
+        "forum": "フォーラム",
+        "unknown": "不明"
+      }
+    },
     "rightPanel": {
       "addTagsPlaceholder": "添加标签...",
       "deleteEdge": "エッジを削除",

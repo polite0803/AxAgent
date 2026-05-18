@@ -3553,6 +3553,18 @@
       "contextPrediction": "Прогноз",
       "teammate": "Команда"
     },
+    "report": {
+      "sourceType": {
+        "web": "Веб",
+        "academic": "Академ.",
+        "wikipedia": "Википедия",
+        "documentation": "Документ",
+        "news": "Новости",
+        "blog": "Блог",
+        "forum": "Форум",
+        "unknown": "Неизв."
+      }
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",

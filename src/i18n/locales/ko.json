@@ -3553,6 +3553,18 @@
       "contextPrediction": "예측",
       "teammate": "팀"
     },
+    "report": {
+      "sourceType": {
+        "web": "웹",
+        "academic": "학술",
+        "wikipedia": "위키백과",
+        "documentation": "문서",
+        "news": "뉴스",
+        "blog": "블로그",
+        "forum": "포럼",
+        "unknown": "알수없음"
+      }
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",

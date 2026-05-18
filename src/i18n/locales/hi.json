@@ -3947,6 +3947,18 @@
       "contextPrediction": "पूर्वानुमान",
       "teammate": "टीम"
     },
+    "report": {
+      "sourceType": {
+        "web": "वेब",
+        "academic": "अकादमिक",
+        "wikipedia": "विकिपीडिया",
+        "documentation": "दस्तावेज़",
+        "news": "समाचार",
+        "blog": "ब्लॉग",
+        "forum": "फ़ोरम",
+        "unknown": "अज्ञात"
+      }
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",

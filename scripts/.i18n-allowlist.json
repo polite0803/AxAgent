@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-18",
-  "total_entries": 157,
+  "total_entries": 154,
   "total_files": 127,
   "entries": [
     {
@@ -897,16 +897,6 @@
     },
     {
       "file": "src/components/chat/ReportViewer.tsx",
-      "lines": "31",
-      "reason": "web: \"网页\","
-    },
-    {
-      "file": "src/components/chat/ReportViewer.tsx",
-      "lines": "32",
-      "reason": "academic: \"学术\","
-    },
-    {
-      "file": "src/components/chat/ReportViewer.tsx",
       "lines": "33",
       "reason": "wikipedia: \"维基百科\","
     },
@@ -914,11 +904,6 @@
       "file": "src/components/chat/ReportViewer.tsx",
       "lines": "35",
       "reason": "documentation: \"文档\","
-    },
-    {
-      "file": "src/components/chat/ReportViewer.tsx",
-      "lines": "36",
-      "reason": "news: \"新闻\","
     }
   ]
 }

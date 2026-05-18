@@ -26,23 +26,10 @@ interface ReportViewerProps {
   onReset?: () => void;
 }
 
-function getSourceTypeName(sourceType: string): string {
-  const nameMap: Record<string, string> = {
-    web: "网页",
-    academic: "学术",
-    wikipedia: "维基百科",
-    github: "GitHub",
-    documentation: "文档",
-    news: "新闻",
-    blog: "博客",
-    forum: "论坛",
-    unknown: "未知",
-  };
-  return nameMap[sourceType.toLowerCase()] || sourceType;
-}
-
 export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewerProps) {
   const { t } = useTranslation();
+  const getSourceTypeName = (sourceType: string): string =>
+    t(`report.sourceType.${sourceType.toLowerCase()}`, sourceType);
   const [selectedFormat, setSelectedFormat] = useState<ReportFormat>("markdown");
 
   if (!report) {
