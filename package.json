@@ -112,7 +112,7 @@
     "globals": "^17.6.0",
     "jsdom": "^29.0.2",
     "oxlint": "^1.65.0",
-    "playwright": "^1.59.1",
+    "playwright": "^1.60.0",
     "simple-git-hooks": "^2.13.1",
     "tailwindcss": "^4.2.4",
     "typedoc": "^0.28.19",
