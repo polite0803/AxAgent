@@ -74,6 +74,13 @@ echo "--- Rule 1: Hardcoded Chinese (CJK) strings ---"
 for f in $CHANGED_FILES; do
   [ -f "$f" ] || continue
   grep -nP '[\x{4e00}-\x{9fff}\x{3400}-\x{4dbf}]' "$f" 2>/dev/null | while IFS=: read -r lnum content; do
+    # Strip inline // comments before CJK check
+    stripped=$(echo "$content" | sed 's|//[^/]*$||')
+    if ! echo "$stripped" | grep -qP '[\x{4e00}-\x{9fff}\x{3400}-\x{4dbf}]'; then
+      continue
+    fi
+    # Skip JSDoc/block comment opening lines
+    [[ "$content" =~ ^[[:space:]]*/\*\* ]] && continue
     # Skip comments (line, block, JSX)
     [[ "$content" =~ ^[[:space:]]*// ]] && continue
     [[ "$content" =~ ^[[:space:]]*\* ]] && continue

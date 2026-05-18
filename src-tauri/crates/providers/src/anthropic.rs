@@ -325,6 +325,7 @@ mod tests {
                 { "type": "text", "text": "Describe this image" },
                 {
                     "type": "image",
+                    "cache_control": { "type": "ephemeral" },
                     "source": {
                         "type": "base64",
                         "media_type": "image/png",
