@@ -375,23 +375,19 @@ export function ModelSelector(
   const filteredProviders = useMemo(() => {
     const q = search.toLowerCase().trim();
     return providers
-      .flatMap((p) =>
-        p.enabled
-          ? [{
-            ...p,
-            models: p.models.filter(
-              (m) => {
-                if (!m.enabled) { return false; }
-                if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) { return false; }
-                if (!q) { return true; }
-                return m.name.toLowerCase().includes(q) || m.model_id.toLowerCase().includes(q)
-                  || p.name.toLowerCase().includes(q);
-              },
-            ),
-          }]
-          : []
-      )
-      .filter((p) => p.models.length > 0);
+      .flatMap((p) => {
+        if (!p.enabled) { return []; }
+        const models = p.models.filter(
+          (m) => {
+            if (!m.enabled) { return false; }
+            if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) { return false; }
+            if (!q) { return true; }
+            return m.name.toLowerCase().includes(q) || m.model_id.toLowerCase().includes(q)
+              || p.name.toLowerCase().includes(q);
+          },
+        );
+        return models.length > 0 ? [{ ...p, models }] : [];
+      });
   }, [providers, search, excludeModelKeys]);
 
   const handleSelect = useCallback(

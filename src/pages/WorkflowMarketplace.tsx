@@ -451,23 +451,27 @@ export function WorkflowMarketplace() {
               label: t("marketplace.featured"),
               children: (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-                  {templates
-                    .filter((t) => t.isFeatured)
-                    .map((t) => (
-                      <div key={t.id} style={{ position: "relative" }}>
-                        <TemplateCard template={t} onTemplateClick={handleTemplateClick} />
-                        <Button
-                          type="primary"
-                          icon={<DLOutlined />}
-                          style={{ position: "absolute", top: 8, right: 8 }}
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(t);
-                          }}
-                        />
-                      </div>
-                    ))}
+                  {templates.flatMap((t) =>
+                    t.isFeatured
+                      ? [
+                        (
+                          <div key={t.id} style={{ position: "relative" }}>
+                            <TemplateCard template={t} onTemplateClick={handleTemplateClick} />
+                            <Button
+                              type="primary"
+                              icon={<DLOutlined />}
+                              style={{ position: "absolute", top: 8, right: 8 }}
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(t);
+                              }}
+                            />
+                          </div>
+                        ),
+                      ]
+                      : []
+                  )}
                 </div>
               ),
             },

@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-18",
-  "total_entries": 272,
+  "total_entries": 273,
   "total_files": 127,
   "entries": [
     {
@@ -1494,6 +1494,11 @@
       "file": "src/components/workflow/Panels/PropertyPanels/TriggerPropertyPanel.tsx",
       "lines": "122",
       "reason": "placeholder=\"message.created\""
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "94",
+      "reason": "Debug log: IPC retry message"
     }
   ]
 }

@@ -98,9 +98,9 @@ export function PlanCard({ plan, conversationId, isHistorical = false }: PlanCar
   const handleApproveAll = useCallback(async () => {
     // Mark all pending steps as approved in parallel
     await Promise.all(
-      localSteps
-        .filter((step) => step.status === "pending")
-        .map((step) => modifyStep(conversationId, plan.id, step.id, { approved: true })),
+      localSteps.flatMap((step) =>
+        step.status === "pending" ? [modifyStep(conversationId, plan.id, step.id, { approved: true })] : []
+      ),
     );
     // Execute
     await approvePlan(conversationId, plan.id);
