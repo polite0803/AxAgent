@@ -1236,7 +1236,6 @@ mod tests {
             instructions: None,
             previous_response_id: None,
             store: None,
-            response_format: None,
         };
         let built = build_request(&request, false);
         assert_eq!(built.max_output_tokens, Some(100));
