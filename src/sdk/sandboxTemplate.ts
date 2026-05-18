@@ -12,7 +12,7 @@
 import type { SkillPermissions } from "./types";
 
 /** RPC 调用默认超时（毫秒） */
-export const DEFAULT_RPC_TIMEOUT_MS = 15000;
+const DEFAULT_RPC_TIMEOUT_MS = 15000;
 
 export interface SandboxTemplateOptions {
   skillName: string;

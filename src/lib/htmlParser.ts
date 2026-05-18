@@ -23,16 +23,7 @@ export function parseHtmlContent(content: string): ParsedHtml {
   return { html, css, js, full: content };
 }
 
-let _sandboxEnforced = false;
-
-export function enableHtmlCompose() {
-  _sandboxEnforced = true;
-}
-
 export function composeHtml(parts: Partial<ParsedHtml>): string {
-  if (!_sandboxEnforced) {
-    return "<!-- HTML composition disabled: call enableHtmlCompose() from sandbox context first -->";
-  }
   // ⚠️ SECURITY WARNING: The output of this function contains raw HTML, CSS, and JS
   // which may include user-generated or AI-generated content. This output MUST only be
   // rendered inside a sandboxed iframe (sandbox="" attribute) to prevent XSS attacks,

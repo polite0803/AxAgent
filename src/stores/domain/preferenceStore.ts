@@ -109,16 +109,6 @@ export function getEffectiveThinkingBudget(
   return supportsReasoning(model) ? thinkingBudget : undefined;
 }
 
-// Re-export for use in conversationStore's setActiveConversation
-export {
-  clearStagedPrefs,
-  conversationPreferenceStateFromConversation,
-  conversationPreferenceUpdateFromState,
-  getStagedPreferenceUpdate,
-  mergeConversationCollections,
-} from "./conversationPreferences";
-export { categoryTemplateUpdateFromCategory } from "./conversationPreferences";
-
 interface PreferenceState {
   searchEnabled: boolean;
   searchProviderId: string | null;

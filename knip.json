@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": [
+    "scripts/**",
+    "extension/**",
+    "public/audio-processor.js",
+    "check-lang-mix.cjs",
+    "src-tauri/scripts/**",
+    "src/__tests__/e2e/**",
+    "src/i18n/compare_locales.js",
+    "src/components/benchmark/index.ts",
+    "src/components/chat/index.ts",
+    "src/components/devtools/index.ts",
+    "src/components/layout/index.ts",
+    "src/components/proactive/index.ts",
+    "src/components/workflow/Canvas/index.ts",
+    "src/lib/index.ts",
+    "src/components/settings/ProfileManager.tsx",
+    "src/components/settings/ProfileSelector.tsx",
+    "src/components/workflow/Canvas/AlignmentGuides.tsx",
+    "src/lib/schemas.ts"
+  ],
+  "ignoreDependencies": []
+}

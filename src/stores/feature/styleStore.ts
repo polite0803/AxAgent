@@ -1,32 +1,8 @@
 import { invoke, isTauri } from "@/lib/invoke";
-import type {
-  CodeStyleTemplate,
-  CodeTemplate,
-  DocumentFormat,
-  DocumentStyleProfile,
-  LearnedPattern,
-  LearnedPatternType,
-  PatternType,
-  StyleDimensions,
-  StylePattern,
-  StyleVector,
-  UserStyleProfile,
-} from "@/types";
+import type { DocumentStyleProfile, StyleDimensions, StyleVector, UserStyleProfile } from "@/types";
 import { create } from "zustand";
 
-export type {
-  CodeStyleTemplate,
-  CodeTemplate,
-  DocumentFormat,
-  DocumentStyleProfile,
-  LearnedPattern,
-  LearnedPatternType,
-  PatternType,
-  StyleDimensions,
-  StylePattern,
-  StyleVector,
-  UserStyleProfile,
-};
+export type { DocumentStyleProfile, StyleDimensions, StyleVector, UserStyleProfile };
 
 export interface StyleMigratorStats {
   total_profiles: number;

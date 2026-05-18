@@ -35,11 +35,6 @@ async function readLifecycleData(
   }
 }
 
-/** 清除指定 skill 的缓存 */
-export function invalidateLifecycleCache(skillName: string): void {
-  lifecycleCache.delete(skillName);
-}
-
 async function executeHooks(
   actions: SkillCommandAction[],
   skillName: string,

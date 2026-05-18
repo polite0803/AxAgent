@@ -32,9 +32,9 @@ import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
-export type GraphNodeType = "note" | "concept" | "entity" | "source";
+type GraphNodeType = "note" | "concept" | "entity" | "source";
 
-export type GraphEdgeType =
+type GraphEdgeType =
   | "link"
   | "backlink"
   | "reference"
@@ -53,7 +53,7 @@ export interface GraphNode {
   y?: number;
 }
 
-export interface GraphEdge {
+interface GraphEdge {
   source: string;
   target: string;
   type: GraphEdgeType;
@@ -64,7 +64,7 @@ export interface GraphData {
   edges: GraphEdge[];
 }
 
-export type LayoutMode = "force" | "radial" | "hierarchy";
+type LayoutMode = "force" | "radial" | "hierarchy";
 
 export interface GraphViewProps {
   data: GraphData;

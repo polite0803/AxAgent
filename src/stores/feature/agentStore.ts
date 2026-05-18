@@ -33,7 +33,7 @@ interface QueryStats {
   costUsd?: number;
 }
 
-export interface WorkflowMatchSuggestion {
+interface WorkflowMatchSuggestion {
   conversationId: string;
   templateId: string;
   templateName: string;

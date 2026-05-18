@@ -13,7 +13,7 @@ export interface FeatureFlags {
 }
 
 export type ModelTier = "opus" | "sonnet" | "haiku";
-export type PermissionMode = SystemPermissionMode;
+type PermissionMode = SystemPermissionMode;
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   forkSubagent: false,

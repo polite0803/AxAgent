@@ -113,7 +113,7 @@ export const SHORTCUT_ACTION_LABEL_KEYS: Record<ShortcutAction, string> = {
   showQuickBar: "settings.shortcutAction.showQuickBar",
 };
 
-export const GLOBAL_SHORTCUT_ACTIONS: ShortcutAction[] = [
+const GLOBAL_SHORTCUT_ACTIONS: ShortcutAction[] = [
   "toggleCurrentWindow",
   "toggleAllWindows",
   "closeWindow",

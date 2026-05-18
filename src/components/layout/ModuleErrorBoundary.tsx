@@ -140,5 +140,3 @@ function DefaultModuleFallback({
 }
 
 export { ModuleErrorBoundary };
-export { DefaultModuleFallback };
-export type { ModuleErrorBoundaryProps };

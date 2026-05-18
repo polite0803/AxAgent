@@ -1,4 +1,3 @@
-import i18n from "@/i18n";
 import { invoke, isTauri, type UnlistenFn } from "@/lib/invoke";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { Conversation, Message } from "@/types";
@@ -11,75 +10,6 @@ export let _unlisten: UnlistenFn | null = null;
 /** Generation counter to prevent stale listeners from processing events
  *  (fixes React StrictMode double-effect causing duplicate stream processing) */
 export let _listenerGen = 0;
-
-// ─── 卡住的流看门狗 ───
-
-// 流超过此毫秒数无更新则视为卡住，自动取消
-const STUCK_STREAM_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
-/** 看门狗检查间隔 */
-// 看门狗检查间隔: 30 秒
-const WATCHDOG_INTERVAL_MS = 30 * 1000;
-
-let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
-
-// 启动流看门狗：定期检查 streamingStartTimestamps，
-// 超过 STUCK_STREAM_TIMEOUT_MS 未结束则自动取消并标记错误。
-export function startStreamWatchdog() {
-  if (_watchdogTimer !== null) {
-    return;
-  }
-
-  _watchdogTimer = setInterval(() => {
-    const state = useStreamStore.getState();
-    const now = Date.now();
-    const stuckConversationIds: string[] = [];
-
-    for (
-      const [convId, startTime] of Object.entries(
-        state.streamingStartTimestamps,
-      )
-    ) {
-      if (now - startTime > STUCK_STREAM_TIMEOUT_MS) {
-        stuckConversationIds.push(convId);
-      }
-    }
-
-    for (const convId of stuckConversationIds) {
-      console.warn(
-        `[StreamWatchdog] stream stuck: conversationId=${convId}, running ${
-          Math.round(
-            (now - state.streamingStartTimestamps[convId]) / 1000,
-          )
-        }s, auto-cancelling`,
-      );
-
-      const msgId = state.activeStreams[convId];
-      if (msgId && _conversationStoreRef) {
-        _conversationStoreRef.setState((s) => ({
-          messages: s.messages.map((m: Message) =>
-            m.id === msgId && m.status === "partial"
-              ? {
-                ...m,
-                content: m.content + "\n\n> " + i18n.t("stream.timeout"),
-                status: "error" as const,
-              }
-              : m
-          ),
-        }));
-      }
-
-      state.cancelCurrentStream(convId);
-    }
-  }, WATCHDOG_INTERVAL_MS);
-}
-
-// 停止流看门狗（应用退出时调用）
-export function stopStreamWatchdog() {
-  if (_watchdogTimer !== null) {
-    clearInterval(_watchdogTimer);
-    _watchdogTimer = null;
-  }
-}
 
 // ─── Stream buffer ───
 
@@ -119,11 +49,11 @@ export const _pendingConversationRefresh = new Set<string>();
 //   which maps naturally to human reading cadence.
 
 export const STREAM_UI_FLUSH_INTERVAL_MS = 50;
-export const STREAM_MAX_CHUNK_SIZE = 500;
+const STREAM_MAX_CHUNK_SIZE = 500;
 
 let _flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-export function cancelScheduledFlush() {
+function cancelScheduledFlush() {
   if (_flushTimer !== null) {
     clearTimeout(_flushTimer);
     _flushTimer = null;
@@ -166,7 +96,7 @@ function resolveSessionKey(conversationId?: string): string {
   return conversationId ?? DEFAULT_SESSION_KEY;
 }
 
-export function getOrCreateSession(conversationId: string): StreamSessionState {
+function getOrCreateSession(conversationId: string): StreamSessionState {
   let session = _streamSessions.get(conversationId);
   if (!session) {
     session = {
@@ -187,7 +117,7 @@ export function getOrCreateSession(conversationId: string): StreamSessionState {
   return session;
 }
 
-export function removeSession(conversationId: string): void {
+function removeSession(conversationId: string): void {
   const session = _streamSessions.get(conversationId);
   if (session) {
     if (session.streamUiFlushTimer !== null) {
@@ -436,7 +366,7 @@ export function resetMultiModelState(conversationId?: string) {
   }
 }
 
-export function preserveOrphanedBuffer(conversationId?: string) {
+function preserveOrphanedBuffer(conversationId?: string) {
   const key = resolveSessionKey(conversationId);
   const session = _streamSessions.get(key);
   if (session && session.streamBuffer && session.streamBuffer.content) {
@@ -444,51 +374,6 @@ export function preserveOrphanedBuffer(conversationId?: string) {
       ...session.streamBuffer,
     });
   }
-}
-
-export function takeOrphanedBuffer(
-  conversationId: string,
-): StreamBuffer | undefined {
-  const buf = _orphanedBuffers.get(conversationId);
-  if (buf) {
-    _orphanedBuffers.delete(conversationId);
-  }
-  return buf;
-}
-
-export function clearOrphanedBuffer(conversationId: string) {
-  _orphanedBuffers.delete(conversationId);
-}
-
-// 完整重置所有模块级可变状态。仅供测试使用。
-// 这些变量放在模块级而非 Zustand store 中，
-// 因为流式处理每 50ms 到达一个 chunk，
-// Zustand 不可变更新周期会增加 CPU 开销。
-// resetStreamRuntime 保证测试隔离。
-export function resetStreamRuntime() {
-  _unlisten?.();
-  _unlisten = null;
-  _listenerGen = 0;
-  _streamBuffer = null;
-  _streamPrefix = "";
-  _pendingConversationRefresh.clear();
-  cancelScheduledFlush();
-  _pendingUiChunk = null;
-  if (_streamUiFlushTimer !== null) {
-    clearTimeout(_streamUiFlushTimer);
-    _streamUiFlushTimer = null;
-  }
-  _activeMessageLoadSeq = 0;
-  _messageIndex.clear();
-  _conversationStoreRef = null;
-  resetMultiModelState();
-  _orphanedBuffers.clear();
-  for (const session of _streamSessions.values()) {
-    if (session.streamUiFlushTimer !== null) {
-      clearTimeout(session.streamUiFlushTimer);
-    }
-  }
-  _streamSessions.clear();
 }
 
 // ─── Generic type for set/get that can update messages ───

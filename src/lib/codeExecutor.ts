@@ -7,7 +7,7 @@ export interface ExecutionResult {
   duration_ms?: number;
 }
 
-export interface CodeExecutorOptions {
+interface CodeExecutorOptions {
   language: "javascript" | "typescript" | "python";
   code: string;
   timeout?: number;
@@ -19,7 +19,7 @@ declare global {
   }
 }
 
-export interface PyodideInterface {
+interface PyodideInterface {
   runPythonAsync: (code: string) => Promise<string>;
 }
 

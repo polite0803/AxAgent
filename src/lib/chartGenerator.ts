@@ -8,7 +8,7 @@ export interface ChartGenRequest {
   title?: string;
 }
 
-export type ChartType =
+type ChartType =
   | "line"
   | "bar"
   | "pie"
@@ -20,7 +20,7 @@ export type ChartType =
   | "funnel"
   | "gauge";
 
-export interface ChartGenResult {
+interface ChartGenResult {
   option: Record<string, unknown>;
   chartType: ChartType;
   title: string;

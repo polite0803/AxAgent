@@ -20,39 +20,11 @@ export interface RagContextRetrievedEvent {
 export type MemoryTier = "short_term" | "working" | "long_term" | "core";
 export type MemoryNature = "episodic" | "semantic";
 
-export interface MemoryEntry {
-  id: string;
-  content: string;
-  memory_type: string;
-  tier: MemoryTier;
-  importance: number;
-  access_count: number;
-  last_accessed: number;
-  decay_rate: number;
-  created_at: number;
-  updated_at: number;
-  expires_at: number | null;
-  nature: MemoryNature;
-  provenance: {
-    conversation_id: string | null;
-    message_id: string | null;
-    extraction_method: string;
-  } | null;
-  tags: string[];
-}
-
-export interface MemoryUsageStats {
-  memory_count: number;
-  user_count: number;
-  total_tokens: number;
-  tier_counts: Record<string, number>;
-}
-
 /**
  * 记忆层级标签映射（i18n key）。
  * 调用方需用 t() 包装后显示。
  */
-export const TIER_LABELS: Record<MemoryTier, string> = {
+const TIER_LABELS: Record<MemoryTier, string> = {
   short_term: "memoryLabels.tier.shortTerm",
   working: "memoryLabels.tier.working",
   long_term: "memoryLabels.tier.longTerm",
@@ -70,7 +42,7 @@ export const TIER_COLORS: Record<MemoryTier, string> = {
  * 记忆性质标签映射（i18n key）。
  * 调用方需用 t() 包装后显示。
  */
-export const NATURE_LABELS: Record<MemoryNature, string> = {
+const NATURE_LABELS: Record<MemoryNature, string> = {
   episodic: "memoryLabels.nature.episodic",
   semantic: "memoryLabels.nature.semantic",
 };
@@ -113,27 +85,6 @@ export function formatImportance(importance: number): string {
     return "memoryLabels.importance.minor";
   }
   return "memoryLabels.importance.low";
-}
-
-export function isExpired(entry: MemoryEntry): boolean {
-  if (entry.expires_at == null) {
-    return false;
-  }
-  let expiresAt = entry.expires_at;
-  if (expiresAt > 1e12) {
-    expiresAt = expiresAt / 1000;
-  }
-  return Date.now() / 1000 > expiresAt;
-}
-
-export function effectiveScore(entry: MemoryEntry): number {
-  const now = Math.floor(Date.now() / 1000);
-  const hoursElapsed = Math.max(0, now - entry.last_accessed) / 3600;
-  const timeDecay = Math.exp(-entry.decay_rate * hoursElapsed);
-  const accessBoost = 1.0 + Math.log(1.0 + entry.access_count);
-  const tierBonus = { short_term: 0.1, working: 0.2, long_term: 0.3, core: 0.4 }[entry.tier]
-    ?? 0.2;
-  return entry.importance * timeDecay * accessBoost + tierBonus;
 }
 
 export function buildKnowledgeTag(

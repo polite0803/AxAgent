@@ -1,7 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import { create } from "zustand";
 
-export type PtySessionStatus = "starting" | "running" | "exited" | "error";
+type PtySessionStatus = "starting" | "running" | "exited" | "error";
 
 export interface PtySessionInfo {
   id: string;
@@ -12,7 +12,7 @@ export interface PtySessionInfo {
   cols: number;
 }
 
-export interface TerminalError {
+interface TerminalError {
   line_number: number;
   error_type: string;
   message: string;

@@ -16,7 +16,7 @@ export interface ValidationNodeData {
   maxRetries: number;
 }
 
-export interface Assertion {
+interface Assertion {
   type: "equals" | "contains" | "matches" | "exists" | "custom";
   expected?: string;
   actual?: string;

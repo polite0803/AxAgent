@@ -11,7 +11,7 @@ import type {
 } from "@/types";
 import { create } from "zustand";
 
-export interface MergedNavItem {
+interface MergedNavItem {
   id: string;
   label: string;
   icon: string;
@@ -20,7 +20,7 @@ export interface MergedNavItem {
   skillName: string;
 }
 
-export interface MergedPage {
+interface MergedPage {
   id: string;
   title: string;
   componentType: string;
@@ -42,7 +42,7 @@ export interface MergedCommand {
   skillName: string;
 }
 
-export interface MergedPanel {
+interface MergedPanel {
   id: string;
   title: string;
   componentType: string;
@@ -55,7 +55,7 @@ export interface MergedPanel {
   sourcePath: string;
 }
 
-export interface MergedSettingsSection {
+interface MergedSettingsSection {
   id: string;
   title: string;
   icon?: string;

@@ -1411,10 +1411,6 @@ export function isSidebarAutoSelectSuppressed(): boolean {
   return _suppressSidebarAutoSelect;
 }
 
-export function setSidebarAutoSelectSuppressed(val: boolean): void {
-  _suppressSidebarAutoSelect = val;
-}
-
 let _sideBarSuppressTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Reset the sidebar auto-select suppression flag (called by ChatSidebar after consuming). */
@@ -1426,7 +1422,7 @@ export function resetSidebarAutoSelectSuppression() {
   }
 }
 
-export function setSidebarAutoSelectSuppression() {
+function setSidebarAutoSelectSuppression() {
   _suppressSidebarAutoSelect = true;
   if (_sideBarSuppressTimer) {
     clearTimeout(_sideBarSuppressTimer);

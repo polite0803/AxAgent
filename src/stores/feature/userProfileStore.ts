@@ -11,12 +11,12 @@ export type NamingConvention =
   | "kebab_case";
 export type IndentationStyle = "spaces" | "tabs";
 export type CommentStyle = "minimal" | "documented" | "verbose";
-export type ModuleOrgStyle = "by_feature" | "by_type" | "by_layer" | "flat";
+type ModuleOrgStyle = "by_feature" | "by_type" | "by_layer" | "flat";
 export type DetailLevel = "concise" | "moderate" | "detailed";
 export type Tone = "formal" | "neutral" | "casual";
-export type SkillLevel = "beginner" | "intermediate" | "advanced" | "expert";
+type SkillLevel = "beginner" | "intermediate" | "advanced" | "expert";
 
-export interface CodingStylePreferences {
+interface CodingStylePreferences {
   namingConvention: NamingConvention;
   indentationStyle: IndentationStyle;
   indentationSize: number;
@@ -27,7 +27,7 @@ export interface CodingStylePreferences {
   confidence: number;
 }
 
-export interface CommunicationPreferences {
+interface CommunicationPreferences {
   detailLevel: DetailLevel;
   tone: Tone;
   language: string;
@@ -36,7 +36,7 @@ export interface CommunicationPreferences {
   confidence: number;
 }
 
-export interface WorkHabitPreferences {
+interface WorkHabitPreferences {
   peakHours: { start: number; end: number };
   lowActivityHours: { start: number; end: number };
   preferredDays: string[];
@@ -46,7 +46,7 @@ export interface WorkHabitPreferences {
   confidence: number;
 }
 
-export interface DomainKnowledgeProfile {
+interface DomainKnowledgeProfile {
   expertiseAreas: Array<{
     name: string;
     level: SkillLevel;
@@ -56,7 +56,7 @@ export interface DomainKnowledgeProfile {
   confidence: number;
 }
 
-export interface LearningStateProfile {
+interface LearningStateProfile {
   totalInteractions: number;
   explicitSettings: string[];
   lastUpdated: string;
