@@ -1090,38 +1090,38 @@ fn start_trajectory_cleanup(state: &AppState) {
     let config_for_log = config.clone();
     let interval = std::time::Duration::from_secs(24 * 3600);
 
-    let task = tokio::spawn(async move {
-        let mut tick = tokio::time::interval(interval);
-        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-        loop {
-            tokio::select! {
-                _ = tick.tick() => {
-                    match trajectory_storage.cleanup(&config) {
-                        Ok(count) if count > 0 => {
-                            tracing::info!(
-                                "[trajectory_cleanup] Cleaned up {} old trajectories",
-                                count
-                            );
-                        }
-                        Ok(_) => {}
-                        Err(e) => {
-                            tracing::warn!(
-                                "[trajectory_cleanup] cleanup failed: {}",
-                                e
-                            );
+    tauri::async_runtime::spawn(async move {
+        let task = tokio::spawn(async move {
+            let mut tick = tokio::time::interval(interval);
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            loop {
+                tokio::select! {
+                    _ = tick.tick() => {
+                        match trajectory_storage.cleanup(&config) {
+                            Ok(count) if count > 0 => {
+                                tracing::info!(
+                                    "[trajectory_cleanup] Cleaned up {} old trajectories",
+                                    count
+                                );
+                            }
+                            Ok(_) => {}
+                            Err(e) => {
+                                tracing::warn!(
+                                    "[trajectory_cleanup] cleanup failed: {}",
+                                    e
+                                );
+                            }
                         }
                     }
-                }
-                _ = shutdown_token.cancelled() => {
-                    tracing::info!(
-                        "[trajectory_cleanup] Received shutdown signal, stopping"
-                    );
-                    break;
+                    _ = shutdown_token.cancelled() => {
+                        tracing::info!(
+                            "[trajectory_cleanup] Received shutdown signal, stopping"
+                        );
+                        break;
+                    }
                 }
             }
-        }
-    });
-    tauri::async_runtime::spawn(async move {
+        });
         *handle.lock().await = Some(task);
     });
     tracing::info!(
