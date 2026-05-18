@@ -56,14 +56,17 @@ pub fn run() {
         // 此标记在 `android_utils::mark_startup_phase` 可用之前写入，
         // 直接写入外部可访问路径（用户可通过文件管理器读取）。
         tracing::info!("=== AxAgent Android START ===");
-        let _ = std::fs::write(
+        // 注意：使用 append 而非 overwrite，防止跨启动丢失日志
+        let boot_msg = "[BOOT] run() entered\n";
+        let boot_paths = [
             "/storage/emulated/0/Download/axagent-crash.log",
-            "[BOOT] run() entered\n",
-        );
-        let _ = std::fs::write(
             "/storage/emulated/0/Android/data/top.axagent.desktop/files/axagent-crash.log",
-            "[BOOT] run() entered\n",
-        );
+        ];
+        for bp in &boot_paths {
+            // 追加而非覆盖
+            let existing = std::fs::read_to_string(bp).unwrap_or_default();
+            let _ = std::fs::write(bp, existing + &boot_msg);
+        }
     }
     #[cfg(not(target_os = "android"))]
     {
