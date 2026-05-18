@@ -106,6 +106,12 @@ export default defineConfig(async () => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  css: {
+    transformer: "lightningcss",
+    lightningcss: {
+      errorRecovery: true, // Tailwind v4 CSS var() 在 @media 中会触发 strict 模式错误
+    },
+  },
   build: {
     sourcemap: false, // 生产构建不暴露源码
     modulePreload: { polyfill: false },

@@ -905,8 +905,8 @@ mod tests {
         let previous = std::env::current_dir().expect("cwd");
         let original_home = std::env::var("HOME").ok();
         let original_claw_home = std::env::var("CLAW_CONFIG_HOME").ok();
-        std::env::set_var("HOME", &root);
-        std::env::set_var("CLAW_CONFIG_HOME", root.join("missing-home"));
+        unsafe { std::env::set_var("HOME", &root) };
+        unsafe { std::env::set_var("CLAW_CONFIG_HOME", root.join("missing-home")) };
         std::env::set_current_dir(&root).expect("change cwd");
         let prompt = super::load_system_prompt(&root, "2026-03-31", "linux", "6.8")
             .expect("system prompt should load")
@@ -917,14 +917,14 @@ mod tests {
             );
         std::env::set_current_dir(previous).expect("restore cwd");
         if let Some(value) = original_home {
-            std::env::set_var("HOME", value);
+            unsafe { std::env::set_var("HOME", value) };
         } else {
-            std::env::remove_var("HOME");
+            unsafe { std::env::remove_var("HOME") };
         }
         if let Some(value) = original_claw_home {
-            std::env::set_var("CLAW_CONFIG_HOME", value);
+            unsafe { std::env::set_var("CLAW_CONFIG_HOME", value) };
         } else {
-            std::env::remove_var("CLAW_CONFIG_HOME");
+            unsafe { std::env::remove_var("CLAW_CONFIG_HOME") };
         }
 
         assert!(prompt.contains("Project rules"));

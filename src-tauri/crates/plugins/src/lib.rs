@@ -4176,7 +4176,7 @@ mod tests {
         let bundled_root = temp_dir("isolated-bundled");
 
         // Set CLAW_CONFIG_HOME to our temp directory
-        std::env::set_var("CLAW_CONFIG_HOME", &config_home);
+        unsafe { std::env::set_var("CLAW_CONFIG_HOME", &config_home) };
 
         // Create a test fixture plugin in the isolated config home
         let install_root = config_home.join("plugins").join("installed");
@@ -4212,7 +4212,7 @@ mod tests {
         );
 
         // Cleanup
-        std::env::remove_var("CLAW_CONFIG_HOME");
+        unsafe { std::env::remove_var("CLAW_CONFIG_HOME") };
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
     }
