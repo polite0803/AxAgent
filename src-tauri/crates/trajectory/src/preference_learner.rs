@@ -1,6 +1,6 @@
 use crate::behavior_tracker::BehaviorEvent;
 use crate::pattern_analyzer::PatternAnalyzer;
-use crate::user_profile::{calculate_confidence, ProfileUpdate, UpdateSource, UserProfile};
+use crate::user_profile::{ProfileUpdate, UpdateSource, UserProfile, calculate_confidence};
 use chrono::{DateTime, Duration, Utc};
 
 pub struct PreferenceLearner {

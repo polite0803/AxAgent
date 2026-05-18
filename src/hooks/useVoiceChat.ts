@@ -35,6 +35,8 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
 
   const [state, setState] = useState<VoiceSessionState>("Idle");
   const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(false);
+  isMutedRef.current = isMuted;
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -199,7 +201,7 @@ export function useVoiceChat({ port = 8080, host = "127.1.0.0", config }: UseVoi
     const worklet = workletRef.current;
     if (worklet) {
       worklet.port.onmessage = (e: MessageEvent) => {
-        if (ws.readyState === WebSocket.OPEN && !isMuted) {
+        if (ws.readyState === WebSocket.OPEN && !isMutedRef.current) {
           ws.send(e.data as ArrayBuffer);
         }
       };

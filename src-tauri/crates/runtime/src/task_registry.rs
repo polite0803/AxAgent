@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{validate_packet, TaskPacket, TaskPacketValidationError};
+use crate::{TaskPacket, TaskPacketValidationError, validate_packet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -355,9 +355,11 @@ mod tests {
         assert!(registry.update("nonexistent", "msg").is_err());
         assert!(registry.output("nonexistent").is_err());
         assert!(registry.append_output("nonexistent", "data").is_err());
-        assert!(registry
-            .set_status("nonexistent", TaskStatus::Running)
-            .is_err());
+        assert!(
+            registry
+                .set_status("nonexistent", TaskStatus::Running)
+                .is_err()
+        );
     }
 
     #[test]

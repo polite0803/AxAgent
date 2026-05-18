@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import { Button, Input } from "antd";
+import { Button, Input, message } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -14,6 +14,9 @@ export function SteerInput() {
     try {
       await invoke("agent_steer", { instruction });
       setInstruction("");
+      message.success(t("chat.steerSent") || "Steer instruction sent");
+    } catch (e) {
+      message.error(t("chat.steerError") || String(e));
     } finally {
       setSending(false);
     }

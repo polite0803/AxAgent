@@ -1,4 +1,5 @@
 import { App, type InputRef } from "antd";
+import type { MenuProps } from "antd";
 import { Copy, FileCode, FileImage, FileText, FileType, Globe } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -51,7 +52,7 @@ export interface UseChatViewActionsReturn {
   handleStatsOpenChange: (open: boolean) => void;
   statsOpen: boolean;
   stats: ConversationStats | null;
-  exportMenuItems: Array<Record<string, unknown>>;
+  exportMenuItems: MenuProps["items"];
   extractMemoriesOpen: boolean;
   setExtractMemoriesOpen: (v: boolean) => void;
   toolCount: number;

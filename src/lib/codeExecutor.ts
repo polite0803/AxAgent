@@ -24,6 +24,7 @@ export interface PyodideInterface {
 }
 
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/";
+// TODO: Set SRI hash for the Pyodide script to prevent supply-chain attacks
 const PYODIDE_SRI = "";
 const PYTHON_EXECUTION_TIMEOUT_MS = 30_000;
 
@@ -112,7 +113,9 @@ class CodeExecutor {
       });
 
       const execPromise = (async () => {
-        const encodedCode = btoa(unescape(encodeURIComponent(code)));
+        const encodedCode = btoa(
+          Array.from(new TextEncoder().encode(code), byte => String.fromCharCode(byte)).join(""),
+        );
         const result = await this.pyodide!.runPythonAsync(`
 import sys, json, base64
 from io import StringIO

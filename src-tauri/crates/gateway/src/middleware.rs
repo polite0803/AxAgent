@@ -81,14 +81,13 @@ impl RateLimiter {
             return bucket.try_consume();
         }
 
-        if buckets.len() >= MAX_ENTRIES {
-            if let Some(oldest_key) = buckets
+        if buckets.len() >= MAX_ENTRIES
+            && let Some(oldest_key) = buckets
                 .iter()
                 .min_by_key(|(_, b)| b.last_access)
                 .map(|(k, _)| k.clone())
-            {
-                buckets.remove(&oldest_key);
-            }
+        {
+            buckets.remove(&oldest_key);
         }
 
         let bucket = buckets

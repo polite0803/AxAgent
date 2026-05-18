@@ -114,10 +114,10 @@ impl MarketplaceService {
         review_id: &str,
         req: UpdateReviewRequest,
     ) -> Result<ReviewResponse, String> {
-        if let Some(rating) = req.rating {
-            if !(1..=5).contains(&rating) {
-                return Err("Rating must be between 1 and 5".to_string());
-            }
+        if let Some(rating) = req.rating
+            && !(1..=5).contains(&rating)
+        {
+            return Err("Rating must be between 1 and 5".to_string());
         }
 
         let review = workflow_marketplace_review::Entity::find()

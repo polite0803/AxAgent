@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useScrollToMessage } from "./ScrollToMessageContext";
+import { SubAgentCard } from "./SubAgentCard";
 import "./AgentPoolPanel.css";
 
 // ---------------------------------------------------------------------------
@@ -343,10 +344,27 @@ export function AgentPoolPanel({ conversationId, visible = true }: AgentPoolPane
     <div className="agent-pool-panel" data-component="agent-pool-panel">
       <PoolSummaryBar summary={summary} />
       <div className="pool-items">
-        {sorted.map((item) => <PoolItemCard key={item.id} item={item} />)}
+        {sorted.map((item) =>
+          item.type === "sub_agent"
+            ? (
+              <SubAgentCard
+                key={item.id}
+                card={{
+                  id: item.id,
+                  conversationId: item.conversationId,
+                  agentType: item.agentType || "general",
+                  agentName: item.name,
+                  description: item.summary || item.taskDescription || "",
+                  status: item.status as "running" | "completed" | "failed",
+                  childConversationId: item.childConversationId,
+                  childSessionId: item.childSessionId,
+                  isFork: item.isFork,
+                }}
+              />
+            )
+            : <PoolItemCard key={item.id} item={item} />
+        )}
       </div>
     </div>
   );
 }
-
-export default AgentPoolPanel;

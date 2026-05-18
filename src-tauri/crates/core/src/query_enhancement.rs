@@ -23,9 +23,9 @@ impl QueryEnhancer {
     pub fn new(
         config: EnhancementConfig,
         llm_fn: impl Fn(String) -> Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>
-            + Send
-            + Sync
-            + 'static,
+        + Send
+        + Sync
+        + 'static,
     ) -> Self {
         Self {
             config,

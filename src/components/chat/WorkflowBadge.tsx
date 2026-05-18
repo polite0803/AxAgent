@@ -2,7 +2,7 @@ import { Button, Spin, Tag, theme } from "antd";
 import { CheckCircle, Loader2, Workflow } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import WorkflowTemplateSelector from "./WorkflowTemplateSelector";
+import { WorkflowTemplateSelector } from "./WorkflowTemplateSelector";
 import type { WorkflowTemplate } from "./WorkflowTemplateSelector";
 
 export interface WorkflowBadgeProps {

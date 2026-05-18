@@ -1,29 +1,33 @@
 import { Tag } from "antd";
 
-const platformColors: Record<string, string> = {
-  telegram: "#2AABEE",
-  discord: "#5865F2",
-  api_server: "#10B981",
-  web: "#F59E0B",
-  local: "#8B5CF6",
+export interface PlatformConfig {
+  color: string;
+  label: string;
+}
+
+export const DEFAULT_PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
+  telegram: { color: "#2AABEE", label: "TG" },
+  discord: { color: "#5865F2", label: "DC" },
+  api_server: { color: "#10B981", label: "API" },
+  web: { color: "#F59E0B", label: "Web" },
+  local: { color: "#8B5CF6", label: "Local" },
 };
 
-const platformLabels: Record<string, string> = {
-  telegram: "TG",
-  discord: "DC",
-  api_server: "API",
-  web: "Web",
-  local: "Local",
-};
+const FALLBACK_CONFIG: PlatformConfig = { color: "#6B7280", label: "???" };
 
 interface GatewaySessionBadgeProps {
   platform: string;
   size?: "small" | "default";
+  platforms?: Record<string, PlatformConfig>;
 }
 
-export function GatewaySessionBadge({ platform, size = "default" }: GatewaySessionBadgeProps) {
-  const color = platformColors[platform] ?? "#6B7280";
-  const label = platformLabels[platform] ?? platform;
+export function GatewaySessionBadge({
+  platform,
+  size = "default",
+  platforms,
+}: GatewaySessionBadgeProps) {
+  const merged = { ...DEFAULT_PLATFORM_CONFIGS, ...platforms };
+  const config = merged[platform] ?? FALLBACK_CONFIG;
 
   if (size === "small") {
     return (
@@ -33,17 +37,18 @@ export function GatewaySessionBadge({ platform, size = "default" }: GatewaySessi
           width: 8,
           height: 8,
           borderRadius: "50%",
-          backgroundColor: color,
+          backgroundColor: config.color,
           marginRight: 4,
         }}
         title={platform}
+        aria-label={platform}
       />
     );
   }
 
   return (
-    <Tag color={color} style={{ margin: 0 }}>
-      {label}
+    <Tag color={config.color} style={{ margin: 0 }} aria-label={platform}>
+      {config.label}
     </Tag>
   );
 }

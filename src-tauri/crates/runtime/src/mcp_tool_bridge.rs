@@ -305,25 +305,25 @@ impl McpToolRegistry {
         drop(inner);
 
         // If we have transport config, use the unified client
-        if let Some(ref transport) = transport {
-            if transport != "builtin" {
-                let result = axagent_core::mcp_client::call_tool_unified(
-                    transport,
-                    command.as_deref(),
-                    args.as_deref(),
-                    env.as_ref(),
-                    endpoint.as_deref(),
-                    tool_name,
-                    arguments.clone(),
-                )
-                .await
-                .map_err(|e| format!("MCP 工具调用失败: {e}"))?;
+        if let Some(ref transport) = transport
+            && transport != "builtin"
+        {
+            let result = axagent_core::mcp_client::call_tool_unified(
+                transport,
+                command.as_deref(),
+                args.as_deref(),
+                env.as_ref(),
+                endpoint.as_deref(),
+                tool_name,
+                arguments.clone(),
+            )
+            .await
+            .map_err(|e| format!("MCP 工具调用失败: {e}"))?;
 
-                if result.is_error {
-                    return Err(format!("MCP 工具返回错误: {}", result.content));
-                }
-                return Ok(serde_json::Value::String(result.content));
+            if result.is_error {
+                return Err(format!("MCP 工具返回错误: {}", result.content));
             }
+            return Ok(serde_json::Value::String(result.content));
         }
 
         // Fallback: try legacy McpServerManager
@@ -556,10 +556,12 @@ mod tests {
             assert!(error.contains("MCP server manager is not configured"));
 
             // Unknown tool should fail
-            assert!(registry
-                .call_tool("srv", "missing", &serde_json::json!({}))
-                .await
-                .is_err());
+            assert!(
+                registry
+                    .call_tool("srv", "missing", &serde_json::json!({}))
+                    .await
+                    .is_err()
+            );
         });
     }
 
@@ -637,10 +639,12 @@ mod tests {
                 None,
             );
 
-            assert!(registry
-                .call_tool("srv", "greet", &serde_json::json!({}))
-                .await
-                .is_err());
+            assert!(
+                registry
+                    .call_tool("srv", "greet", &serde_json::json!({}))
+                    .await
+                    .is_err()
+            );
         });
     }
 
@@ -671,13 +675,17 @@ mod tests {
             assert!(registry.list_resources("missing").is_err());
             assert!(registry.read_resource("missing", "uri").is_err());
             assert!(registry.list_tools("missing").is_err());
-            assert!(registry
-                .call_tool("missing", "tool", &serde_json::json!({}))
-                .await
-                .is_err());
-            assert!(registry
-                .set_auth_status("missing", McpConnectionStatus::Connected)
-                .is_err());
+            assert!(
+                registry
+                    .call_tool("missing", "tool", &serde_json::json!({}))
+                    .await
+                    .is_err()
+            );
+            assert!(
+                registry
+                    .set_auth_status("missing", McpConnectionStatus::Connected)
+                    .is_err()
+            );
         });
     }
 

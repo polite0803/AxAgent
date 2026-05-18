@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
@@ -158,7 +158,7 @@ async fn start_customer_service_polling(
 
             if let Ok(msgs) = poll_wechat_cs_messages(&client, &access_token).await {
                 for (openid, text) in msgs {
-                    tracing::info!("WeChat CS msg: {} from {}", text, openid);
+                    tracing::debug!("WeChat CS msg: {} chars from {}", text.len(), openid);
 
                     if let Some(cb) = crate::message_gateway::platforms::get_message_callback() {
                         let at = access_token.clone();
@@ -342,14 +342,14 @@ async fn send_wechat_custom_message(
     let resp = client.post(&url).json(&body).send().await?;
     let resp_body: serde_json::Value = resp.json().await?;
 
-    if let Some(errcode) = resp_body.get("errcode").and_then(|v| v.as_i64()) {
-        if errcode != 0 {
-            anyhow::bail!(
-                "WeChat send failed: errcode={}, errmsg={:?}",
-                errcode,
-                resp_body.get("errmsg")
-            );
-        }
+    if let Some(errcode) = resp_body.get("errcode").and_then(|v| v.as_i64())
+        && errcode != 0
+    {
+        anyhow::bail!(
+            "WeChat send failed: errcode={}, errmsg={:?}",
+            errcode,
+            resp_body.get("errmsg")
+        );
     }
     Ok(())
 }

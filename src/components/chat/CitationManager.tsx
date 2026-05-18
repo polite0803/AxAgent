@@ -1,29 +1,11 @@
+import { useCitationStore } from "@/stores/feature/citationStore";
+import type { Citation, CitationStatsData } from "@/types";
 import { CheckCircleOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, List, Space, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
 
 const { Text, Title } = Typography;
-
-interface Citation {
-  id: string;
-  sourceUrl: string;
-  sourceTitle: string;
-  sourceType: string;
-  credibility: number;
-  inReport: boolean;
-  accessedAt?: string;
-  usedInSection?: string;
-}
-
-interface CitationManagerProps {
-  citations: Citation[];
-  onCitationSelect?: (citation: Citation) => void;
-  onCitationRemove?: (citationId: string) => void;
-  onToggleInReport?: (citationId: string) => void;
-  onAddNew?: () => void;
-  selectedCitationId?: string | null;
-}
 
 function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
   const nameMap: Record<string, string> = {
@@ -40,17 +22,53 @@ function getSourceTypeName(sourceType: string, t: (key: string) => string): stri
   return nameMap[sourceType.toLowerCase()] || sourceType;
 }
 
+interface CitationManagerProps {
+  citations?: Citation[];
+  onCitationSelect?: (citation: Citation) => void;
+  onCitationRemove?: (citationId: string) => void;
+  onToggleInReport?: (citationId: string) => void;
+  onAddNew?: () => void;
+  selectedCitationId?: string | null;
+}
+
 export function CitationManager({
-  citations,
+  citations: externalCitations,
   onCitationSelect,
   onCitationRemove,
   onToggleInReport,
   onAddNew,
-  selectedCitationId,
+  selectedCitationId: externalSelectedId,
 }: CitationManagerProps) {
   const { t } = useTranslation();
+  const store = useCitationStore();
+  const citations = externalCitations ?? store.citations;
+  const selectedCitationId = externalSelectedId ?? store.selectedCitationId;
   const citationsInReport = citations.filter((c) => c.inReport);
   const citationsNotInReport = citations.filter((c) => !c.inReport);
+
+  const handleSelect = (citation: Citation) => {
+    if (onCitationSelect) {
+      onCitationSelect(citation);
+    } else {
+      store.selectCitation(citation.id);
+    }
+  };
+
+  const handleRemove = (citationId: string) => {
+    if (onCitationRemove) {
+      onCitationRemove(citationId);
+    } else {
+      store.removeCitation(citationId);
+    }
+  };
+
+  const handleToggle = (citationId: string) => {
+    if (onToggleInReport) {
+      onToggleInReport(citationId);
+    } else {
+      store.toggleInReport(citationId);
+    }
+  };
 
   return (
     <div className="citation-manager">
@@ -76,7 +94,7 @@ export function CitationManager({
             renderItem={(item) => (
               <List.Item
                 className={`cursor-pointer hover:bg-gray-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
-                onClick={() => onCitationSelect?.(item)}
+                onClick={() => handleSelect(item)}
                 actions={[
                   <Button
                     type="text"
@@ -85,7 +103,7 @@ export function CitationManager({
                     icon={<DeleteOutlined />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onCitationRemove?.(item.id);
+                      handleRemove(item.id);
                     }}
                   />,
                 ]}
@@ -96,7 +114,7 @@ export function CitationManager({
                       style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onToggleInReport?.(item.id);
+                        handleToggle(item.id);
                       }}
                       className="cursor-pointer"
                     />
@@ -126,7 +144,7 @@ export function CitationManager({
             renderItem={(item) => (
               <List.Item
                 className={`cursor-pointer hover:bg-gray-50 ${selectedCitationId === item.id ? "bg-blue-50" : ""}`}
-                onClick={() => onCitationSelect?.(item)}
+                onClick={() => handleSelect(item)}
                 actions={[
                   <Button
                     type="text"
@@ -134,7 +152,7 @@ export function CitationManager({
                     icon={<CheckCircleOutlined />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onToggleInReport?.(item.id);
+                      handleToggle(item.id);
                     }}
                     title={t("citationManager.addToReport")}
                   />,
@@ -145,7 +163,7 @@ export function CitationManager({
                     icon={<DeleteOutlined />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onCitationRemove?.(item.id);
+                      handleRemove(item.id);
                     }}
                   />,
                 ]}
@@ -156,7 +174,7 @@ export function CitationManager({
                       style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onToggleInReport?.(item.id);
+                        handleToggle(item.id);
                       }}
                       className="cursor-pointer"
                     />
@@ -185,22 +203,26 @@ export function CitationManager({
 }
 
 interface CitationStatsProps {
-  citations: Citation[];
+  citations?: Citation[];
 }
 
-export function CitationStats({ citations }: CitationStatsProps) {
+export function CitationStats({ citations: externalCitations }: CitationStatsProps) {
   const { t } = useTranslation();
-  const stats = {
-    total: citations.length,
-    inReport: citations.filter((c) => c.inReport).length,
-    byType: citations.reduce((acc, c) => {
-      acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    avgCredibility: citations.length > 0
-      ? citations.reduce((sum, c) => sum + c.credibility, 0) / citations.length
-      : 0,
-  };
+  const storeStats = useCitationStore((s) => s.getStats());
+  const stats: CitationStatsData = externalCitations
+    ? (() => {
+      const total = externalCitations.length;
+      const inReport = externalCitations.filter((c) => c.inReport).length;
+      const byType = externalCitations.reduce<Partial<Record<string, number>>>((acc, c) => {
+        acc[c.sourceType] = (acc[c.sourceType] || 0) + 1;
+        return acc;
+      }, {});
+      const avgCredibility = total > 0
+        ? externalCitations.reduce((sum, c) => sum + c.credibility, 0) / total
+        : 0;
+      return { total, inReport, byType, avgCredibility };
+    })()
+    : storeStats;
 
   return (
     <div className="citation-stats">
@@ -233,5 +255,3 @@ export function CitationStats({ citations }: CitationStatsProps) {
     </div>
   );
 }
-
-export default CitationManager;

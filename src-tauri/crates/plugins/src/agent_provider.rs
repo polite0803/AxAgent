@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+// SAFETY: PluginAgentRegistry methods (register, unregister, all) are all
+// synchronous. The RwLock is never held across .await points. Callers
+// (register_plugin_agents, unregister_plugin_agents) are also sync.
 use std::sync::RwLock;
 
 use crate::PluginAgentDefInternal;

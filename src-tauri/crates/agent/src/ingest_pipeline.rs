@@ -193,7 +193,7 @@ impl IngestPipeline {
 
         let mut pages_generated = 0usize;
 
-        if let (Some(ref adapter), Some(ref ctx), Some(ref model)) =
+        if let (Some(adapter), Some(ctx), Some(model)) =
             (&self.llm_adapter, &self.llm_ctx, &self.llm_model)
         {
             let purpose = self.load_purpose(wiki_id).await.ok();
@@ -291,7 +291,7 @@ impl IngestPipeline {
 
         let mut pages_generated = 0usize;
 
-        if let (Some(ref adapter), Some(ref ctx), Some(ref model)) =
+        if let (Some(adapter), Some(ctx), Some(model)) =
             (&self.llm_adapter, &self.llm_ctx, &self.llm_model)
         {
             let purpose = self.load_purpose(wiki_id).await.ok();

@@ -141,7 +141,7 @@ export function DisplaySettings() {
                   boxShadow: settings.primary_color === color
                     ? `0 0 0 1px ${color}`
                     : "none",
-                  transition: "all 0.2s",
+                  transition: "box-shadow 0.2s, transform 0.2s",
                 }}
               />
             ))}

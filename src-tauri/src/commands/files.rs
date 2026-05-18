@@ -1,6 +1,8 @@
 use crate::AppState;
+use axagent_core::file_authorizer::{AuthorizationRequest, AuthorizationResponse, PermissionLevel};
 use axagent_core::repo::stored_file::StoredFile;
-use tauri::State;
+use serde::Serialize;
+use tauri::{Emitter, State};
 
 #[tauri::command]
 pub async fn upload_file(
@@ -10,6 +12,10 @@ pub async fn upload_file(
     mime_type: String,
     conversation_id: Option<String>,
 ) -> Result<StoredFile, String> {
+    const MAX_BASE64_SIZE: usize = 100 * 1024 * 1024;
+    if data.len() > MAX_BASE64_SIZE {
+        return Err(format!("file too large (max {} MB)", MAX_BASE64_SIZE / (1024 * 1024)));
+    }
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(&data)
@@ -75,16 +81,53 @@ pub async fn delete_file(state: State<'_, AppState>, file_id: String) -> Result<
     super::file_cleanup::delete_attachment_reference(&state.sea_db, &file_store, &file_id).await
 }
 
-/// 撤销文件授权（前端 FilePermissionDialog 调用）
+/// 文件访问授权
+#[tauri::command]
+pub async fn file_authorize(
+    state: State<'_, AppState>,
+    request: AuthorizationRequest,
+) -> Result<AuthorizationResponse, String> {
+    let response = state.file_authorizer.request_authorization(request);
+    Ok(response)
+}
+
+/// 检查文件是否有授权
+#[tauri::command]
+pub async fn file_check_authorization(
+    state: State<'_, AppState>,
+    path: String,
+    level: PermissionLevel,
+) -> Result<bool, String> {
+    Ok(state.file_authorizer.check_authorization(&path, &level))
+}
+
+/// 撤销文件授权
 #[tauri::command]
 pub async fn file_revoke_authorization(
-    _state: State<'_, AppState>,
-    file_id: String,
+    state: State<'_, AppState>,
+    auth_id: String,
 ) -> Result<(), String> {
-    let authorizer = axagent_core::file_authorizer::FileAuthorizer::new();
-    if authorizer.revoke_authorization(&file_id) {
+    if state.file_authorizer.revoke_authorization(&auth_id) {
         Ok(())
     } else {
-        Err(format!("Authorization not found: {}", file_id))
+        Err(format!("Authorization not found: {}", auth_id))
     }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FilePermissionRequestEvent {
+    pub path: String,
+    pub reason: String,
+}
+
+/// 请求文件访问权限——向后端事件系统发送请求，触发前端弹窗
+#[tauri::command]
+pub async fn request_file_permission(
+    app: tauri::AppHandle,
+    path: String,
+    reason: String,
+) -> Result<(), String> {
+    let event = FilePermissionRequestEvent { path, reason };
+    app.emit("file-permission-request", event)
+        .map_err(|e| format!("Failed to emit event: {}", e))
 }

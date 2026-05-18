@@ -1,4 +1,4 @@
-import MemorySettings from "@/components/settings/MemorySettings";
+import { MemorySettings } from "@/components/settings/MemorySettings";
 import { theme } from "antd";
 
 export function MemoryPage() {

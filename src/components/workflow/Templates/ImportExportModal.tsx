@@ -2,9 +2,18 @@ import { invoke } from "@/lib/invoke";
 import { Alert, Button, Descriptions, Divider, Input, message, Modal, Select, Tabs, Typography, Upload } from "antd";
 import type { UploadProps } from "antd";
 import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
+
+interface N8nConnectionGroup {
+  node: string;
+  index: number;
+}
+
+interface N8nConnection {
+  main?: N8nConnectionGroup[][];
+}
 
 function getImportPreview(
   jsonStr: string,
@@ -16,9 +25,9 @@ function getImportPreview(
     const nodeCount = json.nodes?.length || 0;
     let edgeCount = 0;
     if (isN8n) {
-      const connections = json.connections || {};
+      const connections: Record<string, N8nConnection> = json.connections || {};
       for (const conn of Object.values(connections)) {
-        const main = (conn as any)?.main;
+        const main = conn?.main;
         if (Array.isArray(main)) {
           for (const group of main) {
             if (Array.isArray(group)) { edgeCount += group.length; }
@@ -245,6 +254,10 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    return () => clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const preview = useMemo(() => {
     if (!importData.trim()) { return null; }
@@ -313,7 +326,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
       navigator.clipboard.writeText(exportResult);
       setCopied(true);
       message.success(t("workflow.importExport.copiedToClipboard"));
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     }
   };
 

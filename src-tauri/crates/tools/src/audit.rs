@@ -156,17 +156,15 @@ impl ToolAuditor {
             for pat in &patterns {
                 if let Some(start) = sanitized.find(pat) {
                     let val_start = start + pat.len();
-                    if let Some(remaining) = sanitized.get(val_start..) {
-                        if let Some(end) = remaining.find('"') {
-                            let val_len = end;
-                            if val_len > 4 {
-                                sanitized.replace_range(
-                                    val_start..val_start + val_len,
-                                    "***REDACTED***",
-                                );
-                            } else {
-                                sanitized.replace_range(val_start..val_start + val_len, "***");
-                            }
+                    if let Some(remaining) = sanitized.get(val_start..)
+                        && let Some(end) = remaining.find('"')
+                    {
+                        let val_len = end;
+                        if val_len > 4 {
+                            sanitized
+                                .replace_range(val_start..val_start + val_len, "***REDACTED***");
+                        } else {
+                            sanitized.replace_range(val_start..val_start + val_len, "***");
                         }
                     }
                 }

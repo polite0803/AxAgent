@@ -18,7 +18,7 @@ export type PermissionMode = SystemPermissionMode;
 const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   forkSubagent: false,
   coordinatorMode: false,
-  proactiveMode: false,
+  proactiveMode: true,
   swarmMode: false,
   toolConcurrency: true,
   verificationAgent: false,
@@ -62,9 +62,17 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
   },
 
   toggleFeature: (name) =>
-    set((state) => ({
-      features: { ...state.features, [name]: !state.features[name] },
-    })),
+    set((state) => {
+      const newValue = !state.features[name];
+      if (name === "proactiveMode") {
+        invoke("proactive_set_enabled", { enabled: newValue }).catch((e) =>
+          console.warn("[appConfigStore] 同步 proactive 状态失败:", e)
+        );
+      }
+      return {
+        features: { ...state.features, [name]: newValue },
+      };
+    }),
 
   loadConfig: async () => {
     set({ loading: true, error: null });

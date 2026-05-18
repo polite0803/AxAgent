@@ -118,7 +118,7 @@ export const PermissionModal: React.FC = () => {
     } else if (currentIndex >= pendingEntries.length) {
       setCurrentIndex(0);
     }
-  }, [pendingEntries.length]);
+  }, [pendingEntries, currentIndex]);
 
   const currentEntry = pendingEntries.length > 0 && currentIndex < pendingEntries.length
     ? pendingEntries[currentIndex]
@@ -342,5 +342,3 @@ export const PermissionModal: React.FC = () => {
     </Modal>
   );
 };
-
-export default PermissionModal;

@@ -145,10 +145,10 @@ impl PlatformManager {
         db: Option<&sea_orm::DatabaseConnection>,
     ) -> Option<String> {
         let router = self.session_router.read().await;
-        if let Some(session) = router.get_session(platform, user_id) {
-            if let Some(ref agent_id) = session.agent_session_id {
-                return Some(agent_id.clone());
-            }
+        if let Some(session) = router.get_session(platform, user_id)
+            && let Some(ref agent_id) = session.agent_session_id
+        {
+            return Some(agent_id.clone());
         }
         drop(router);
 

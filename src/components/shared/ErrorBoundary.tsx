@@ -41,10 +41,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         <Result
           status="error"
           title={i18next.t("errorBoundary.title")}
-          subTitle={this.state.error?.message || "An unexpected error occurred"}
+          subTitle={this.state.error?.message || i18next.t("errorBoundary.unexpectedError")}
           extra={
             <Button type="primary" onClick={this.handleReset}>
-              Try Again
+              {i18next.t("errorBoundary.tryAgain")}
             </Button>
           }
         />
@@ -68,10 +68,10 @@ export function PageErrorBoundary({ children, title = "Page Error" }: PageErrorB
           <Result
             status="error"
             title={title}
-            subTitle="This page encountered an error. Please try refreshing."
+            subTitle={i18next.t("errorBoundary.pageError")}
             extra={
               <Button type="primary" onClick={() => window.location.reload()}>
-                Refresh Page
+                {i18next.t("errorBoundary.refreshPage")}
               </Button>
             }
           />

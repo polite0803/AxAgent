@@ -195,15 +195,15 @@ impl HierarchicalPlanner {
 
         plan.status = PlanStatus::Executing;
 
-        if let Some(first_phase) = plan.phases.first_mut() {
-            if first_phase.dependencies.is_empty() {
-                first_phase.status = PhaseStatus::InProgress;
-                for task in &mut first_phase.tasks {
-                    if task.dependencies.is_empty() {
-                        task.status = TaskStatus::Pending;
-                    } else {
-                        task.status = TaskStatus::Blocked;
-                    }
+        if let Some(first_phase) = plan.phases.first_mut()
+            && first_phase.dependencies.is_empty()
+        {
+            first_phase.status = PhaseStatus::InProgress;
+            for task in &mut first_phase.tasks {
+                if task.dependencies.is_empty() {
+                    task.status = TaskStatus::Pending;
+                } else {
+                    task.status = TaskStatus::Blocked;
                 }
             }
         }
@@ -382,7 +382,7 @@ impl HierarchicalPlanner {
                     in_progress_tasks: 0,
                     pending_tasks: 0,
                     percentage: 0.0,
-                }
+                };
             },
         };
 
@@ -659,31 +659,31 @@ impl HierarchicalPlanner {
                     for phase in &mut plan.phases {
                         for task in &mut phase.tasks {
                             if task.id == *task_id {
-                                if let Some(desc) = modifications.get("description") {
-                                    if let Some(desc_str) = desc.as_str() {
-                                        task.description = desc_str.to_string();
-                                    }
+                                if let Some(desc) = modifications.get("description")
+                                    && let Some(desc_str) = desc.as_str()
+                                {
+                                    task.description = desc_str.to_string();
                                 }
                                 if let Some(params) = modifications.get("parameters") {
                                     task.parameters = params.clone();
                                 }
-                                if let Some(retries) = modifications.get("max_retries") {
-                                    if let Some(retries_num) = retries.as_u64() {
-                                        task.max_retries = retries_num as u32;
-                                    }
+                                if let Some(retries) = modifications.get("max_retries")
+                                    && let Some(retries_num) = retries.as_u64()
+                                {
+                                    task.max_retries = retries_num as u32;
                                 }
-                                if let Some(role) = modifications.get("assigned_role") {
-                                    if let Some(role_str) = role.as_str() {
-                                        task.assigned_role = Some(role_str.to_string());
-                                    }
+                                if let Some(role) = modifications.get("assigned_role")
+                                    && let Some(role_str) = role.as_str()
+                                {
+                                    task.assigned_role = Some(role_str.to_string());
                                 }
-                                if let Some(deps) = modifications.get("dependencies") {
-                                    if let Some(deps_arr) = deps.as_array() {
-                                        task.dependencies = deps_arr
-                                            .iter()
-                                            .filter_map(|d| d.as_str().map(String::from))
-                                            .collect();
-                                    }
+                                if let Some(deps) = modifications.get("dependencies")
+                                    && let Some(deps_arr) = deps.as_array()
+                                {
+                                    task.dependencies = deps_arr
+                                        .iter()
+                                        .filter_map(|d| d.as_str().map(String::from))
+                                        .collect();
                                 }
                                 break;
                             }

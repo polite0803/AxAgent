@@ -1,14 +1,21 @@
-use crate::commands::proactive::ProactiveService;
 use crate::AppState;
+#[cfg(test)]
+use crate::app_state::SemanticCacheState;
+#[cfg(test)]
+use crate::commands::proactive::ProactiveService;
 use axagent_core::types::*;
 use axagent_providers::{
-    extract_reasoning_from_text, registry::ProviderRegistry, resolve_base_url_for_type,
-    ProviderRequestContext,
+    ProviderRequestContext, extract_reasoning_from_text, registry::ProviderRegistry,
+    resolve_base_url_for_type,
 };
+#[cfg(test)]
+use axagent_runtime_core::prompt_cache::PromptCache;
 use base64::Engine;
 use sea_orm::*;
-use std::sync::atomic::AtomicBool;
+#[cfg(test)]
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use tauri::{Emitter, State};
 
 fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
@@ -511,11 +518,16 @@ async fn delete_conversation_with_attachments_using(
     }
 
     // 清理关联数据（无 FK 约束，需手动删除避免孤行）
-    let _ = axagent_core::repo::conversation::delete_summary(db, conversation_id).await;
-    let _ = axagent_core::entity::agent_sessions::Entity::delete_many()
+    if let Err(e) = axagent_core::repo::conversation::delete_summary(db, conversation_id).await {
+        tracing::warn!("Failed to delete conversation summary: {}", e);
+    }
+    if let Err(e) = axagent_core::entity::agent_sessions::Entity::delete_many()
         .filter(axagent_core::entity::agent_sessions::Column::ConversationId.eq(conversation_id))
         .exec(db)
-        .await;
+        .await
+    {
+        tracing::warn!("Failed to delete agent sessions: {}", e);
+    }
 
     axagent_core::repo::conversation::delete_conversation(db, conversation_id)
         .await
@@ -1097,9 +1109,9 @@ fn close_unmatched_think_tags(content: &str) -> String {
         let tag_section = &remaining[pos..];
 
         // ── < / think >  (closing tag) — pass through ──────────────────────
-        if tag_section.starts_with("</think>") {
+        if let Some(stripped) = tag_section.strip_prefix("</think>") {
             result.push_str("</think>");
-            remaining = &tag_section["</think>".len()..];
+            remaining = stripped;
             continue;
         }
 
@@ -1109,9 +1121,7 @@ fn close_unmatched_think_tags(content: &str) -> String {
         // The closing `>` of the opening tag must appear *before* `</think>`
         // (if a </think> exists at all).  Otherwise the tag is malformed /
         // fragmented, and we insert `>` right after `<think`.
-        let search_bound = tag_section
-            .find("</think>")
-            .unwrap_or(tag_section.len());
+        let search_bound = tag_section.find("</think>").unwrap_or(tag_section.len());
 
         if let Some(gt_pos) = tag_section[..search_bound].find('>') {
             // Properly formed opening tag — preserve as-is.
@@ -1147,7 +1157,10 @@ mod tests {
 
     #[test]
     fn close_unmatched_think_tags_appends_closure() {
-        assert_eq!(close_unmatched_think_tags("prefix<think>body"), "prefix<think>body</think>\n\n");
+        assert_eq!(
+            close_unmatched_think_tags("prefix<think>body"),
+            "prefix<think>body</think>\n\n"
+        );
     }
 
     #[test]
@@ -1288,7 +1301,7 @@ async fn execute_tool_call(
                     return (
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
-                    )
+                    );
                 },
             }
         },
@@ -1324,7 +1337,7 @@ async fn execute_tool_call(
                     return (
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
-                    )
+                    );
                 },
             }
         },
@@ -1349,7 +1362,7 @@ async fn execute_tool_call(
                     return (
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
-                    )
+                    );
                 },
             }
         },
@@ -1374,7 +1387,7 @@ async fn execute_tool_call(
                     return (
                         format!("Error: Tool execution timed out after {}s", timeout_secs),
                         true,
-                    )
+                    );
                 },
             }
         },
@@ -1441,7 +1454,7 @@ pub async fn generate_ai_title(
     };
 
     // Resolve title summary provider/model: settings override → fallback to conversation model
-    if let (Some(ref pid), Some(ref mid)) =
+    if let (Some(pid), Some(mid)) =
         (&settings.title_summary_provider_id, &settings.title_summary_model_id)
     {
         // Try to use the configured title summary provider
@@ -3724,38 +3737,38 @@ async fn do_compress(
 ) -> Result<String, String> {
     // Resolve compression model: settings override → fallback to conversation model
     let (comp_provider, comp_key, comp_key_id, comp_proxy, comp_model_id, comp_use_max) = if let (
-        Some(ref pid),
-        Some(ref mid),
+        Some(pid),
+        Some(mid),
     ) =
         (&settings.compression_provider_id, &settings.compression_model_id)
     {
         match axagent_core::repo::provider::get_provider(db, pid).await {
-            Ok(p) => {
-                match p.keys.first() {
-                    Some(k) => {
-                        let dk = axagent_core::crypto::decrypt_key(&k.key_encrypted, master_key)
-                            .map_err(|e| e.to_string())?;
-                        let kid = k.id.clone();
-                        let proxy = ProviderProxyConfig::resolve(&p.proxy_config, settings);
-                        let override_umc = axagent_core::repo::provider::get_model(db, pid, mid)
-                            .await
-                            .ok()
-                            .and_then(|m| m.param_overrides)
-                            .and_then(|po| po.use_max_completion_tokens);
-                        (p, dk, kid, proxy, mid.clone(), override_umc)
-                    },
-                    None => {
-                        tracing::warn!("Compression model provider has no key, falling back to conversation model");
-                        (
-                            provider.clone(),
-                            decrypted_key.to_string(),
-                            key_id.to_string(),
-                            proxy_config.clone(),
-                            model_id.to_string(),
-                            use_max_completion_tokens,
-                        )
-                    },
-                }
+            Ok(p) => match p.keys.first() {
+                Some(k) => {
+                    let dk = axagent_core::crypto::decrypt_key(&k.key_encrypted, master_key)
+                        .map_err(|e| e.to_string())?;
+                    let kid = k.id.clone();
+                    let proxy = ProviderProxyConfig::resolve(&p.proxy_config, settings);
+                    let override_umc = axagent_core::repo::provider::get_model(db, pid, mid)
+                        .await
+                        .ok()
+                        .and_then(|m| m.param_overrides)
+                        .and_then(|po| po.use_max_completion_tokens);
+                    (p, dk, kid, proxy, mid.clone(), override_umc)
+                },
+                None => {
+                    tracing::warn!(
+                        "Compression model provider has no key, falling back to conversation model"
+                    );
+                    (
+                        provider.clone(),
+                        decrypted_key.to_string(),
+                        key_id.to_string(),
+                        proxy_config.clone(),
+                        model_id.to_string(),
+                        use_max_completion_tokens,
+                    )
+                },
             },
             Err(_) => {
                 tracing::warn!(
@@ -4060,11 +4073,11 @@ pub async fn send_system_message(
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_conversation {
     use super::*;
     use std::fs;
-    use std::sync::atomic::AtomicBool;
     use std::sync::Arc;
+    use std::sync::atomic::AtomicBool;
     use tokio::sync::Mutex;
 
     #[test]
@@ -4289,14 +4302,17 @@ mod tests {
         ));
         let trajectory_storage =
             Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone())));
-        let semantic_cache = Arc::new(tokio::sync::Mutex::new(
-            crate::semantic_cache::SemanticCache::new(
+        let semantic_cache = Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
+            cache: crate::semantic_cache::SemanticCache::new(
                 db.clone(),
                 crate::semantic_cache::CacheConfig::default(),
             )
             .await
             .expect("Failed to create semantic cache"),
-        ));
+            enabled: true,
+            in_memory_entries: Vec::new(),
+            similarity_threshold: 0.85,
+        }));
         let state = crate::AppState {
             sea_db: db.clone(),
             master_key: [0; 32],
@@ -4320,6 +4336,7 @@ mod tests {
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
+            reflector: Arc::new(axagent_agent::Reflector::new()),
             shared_memory: Arc::new(tokio::sync::RwLock::new(
                 axagent_runtime::shared_memory::SharedMemory::new(),
             )),
@@ -4407,6 +4424,9 @@ mod tests {
             dashboard_registry: None,
             webhook_subscription_manager: None,
             semantic_cache,
+            prompt_cache: Arc::new(PromptCache::new()),
+            tot_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            planner_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             #[cfg(not(target_os = "android"))]
             browser_client: Arc::new(tokio::sync::Mutex::new(None)),
             #[cfg(target_os = "android")]
@@ -4461,6 +4481,7 @@ mod tests {
                 axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),
             )),
             shutdown_token: tokio_util::sync::CancellationToken::new(),
+            file_authorizer: Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
         };
 
         let attachments = vec![AttachmentInput {

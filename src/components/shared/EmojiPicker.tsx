@@ -5,6 +5,17 @@ import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "emoji-picker-element";
 
+declare module "react" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "emoji-picker": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { class?: string; ref?: React.Ref<HTMLElement> },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 interface EmojiPickerElement extends HTMLElement {
   locale: string;
   i18n: object;
@@ -86,7 +97,6 @@ export function EmojiPicker({ open, onClose, onEmojiSelect }: EmojiPickerProps) 
           overflow: "hidden",
         }}
       >
-        {/* @ts-ignore - web component */}
         <emoji-picker
           ref={setPickerRef}
           class={isDark ? "dark" : "light"}

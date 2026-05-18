@@ -18,7 +18,7 @@ interface UserProfileData {
   behavior_patterns: { pattern: string; frequency: number; confidence: number }[];
 }
 
-export default function UserProfilePanel() {
+export function UserProfilePanel() {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [profile, setProfile] = useState<UserProfileData | null>(null);
@@ -188,12 +188,14 @@ export default function UserProfilePanel() {
           value={newPrefKey}
           onChange={(e) => setNewPrefKey(e.target.value)}
           placeholder="key"
+          aria-label={t("userProfile.prefKey")}
           className="flex-1 text-[11px] px-1.5 py-0.5 rounded bg-muted/30 border-none outline-none placeholder:text-muted-foreground/40"
         />
         <input
           value={newPrefValue}
           onChange={(e) => setNewPrefValue(e.target.value)}
           placeholder="value"
+          aria-label={t("userProfile.prefValue")}
           className="flex-1 text-[11px] px-1.5 py-0.5 rounded bg-muted/30 border-none outline-none placeholder:text-muted-foreground/40"
           onKeyDown={(e) => e.key === "Enter" && addPreference()}
         />

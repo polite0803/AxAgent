@@ -38,7 +38,6 @@ import {
   Modal,
   Radio,
   Space,
-  Tag,
   theme,
   Tooltip,
 } from "antd";
@@ -73,6 +72,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CategoryManagerModal } from "./CategoryManagerModal";
+import { GatewaySessionBadge } from "./GatewaySessionBadge";
 
 function getDateGroup(timestamp: number): string {
   const now = new Date();
@@ -143,9 +144,17 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
       setFts5ResultIds(null);
       return;
     }
+    let cancelled = false;
     invoke<Array<{ id: string }>>("search_conversations", { query: debouncedSearch })
-      .then((results) => setFts5ResultIds(results.map((r) => r.id)))
-      .catch(() => setFts5ResultIds(null));
+      .then((results) => {
+        if (!cancelled) { setFts5ResultIds(results.map((r) => r.id)); }
+      })
+      .catch(() => {
+        if (!cancelled) { setFts5ResultIds(null); }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [debouncedSearch]);
   const [searchVisible, setSearchVisible] = useState(false);
   const [advancedSearchVisible, setAdvancedSearchVisible] = useState(false);
@@ -162,6 +171,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
   const [archiveTargetIds, setArchiveTargetIds] = useState<string[]>([]);
   const [selectedKbId, setSelectedKbId] = useState<string | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const conversationsLoading = useConversationStore((s) => s.loading);
 
   // Auto-expand parent when active conversation is a child
@@ -567,12 +577,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                 />
               )}
               {conv.mode === "gateway" && (
-                <Tag
-                  style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }}
-                  color="blue"
-                >
-                  {t("settings.messageChannels")}
-                </Tag>
+                <GatewaySessionBadge
+                  platform={(() => {
+                    const m = conv.title.match(/^\[(\w+)\]/);
+                    return m ? m[1] : "";
+                  })()}
+                />
               )}
               <Pin size={12} style={{ color: token.colorTextQuaternary, flexShrink: 0 }} />
             </span>
@@ -588,12 +598,12 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                 />
               )}
               {conv.mode === "gateway" && (
-                <Tag
-                  style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", margin: 0, flexShrink: 0 }}
-                  color="blue"
-                >
-                  {t("settings.messageChannels")}
-                </Tag>
+                <GatewaySessionBadge
+                  platform={(() => {
+                    const m = conv.title.match(/^\[(\w+)\]/);
+                    return m ? m[1] : "";
+                  })()}
+                />
               )}
             </span>
           );
@@ -1130,7 +1140,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
             return;
           }
           if (menuInfo.key === "detach-parent") {
-            void updateConversation(conv.id, { parent_conversation_id: null as unknown as string });
+            void updateConversation(conv.id, { parent_conversation_id: null });
             return;
           }
           if (menuInfo.key === "go-parent" && parentId) {
@@ -1305,7 +1315,7 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
           return;
         }
         if (menuInfo.key === "detach-parent") {
-          void updateConversation(conv.id, { parent_conversation_id: null as unknown as string });
+          void updateConversation(conv.id, { parent_conversation_id: null });
           return;
         }
         if (menuInfo.key === "go-parent" && parentId) {
@@ -1501,6 +1511,15 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
                     icon={<ListTodo size={16} />}
                     size="small"
                     onClick={() => setMultiSelectMode(true)}
+                    style={{ color: token.colorPrimary }}
+                  />
+                </Tooltip>
+                <Tooltip title={t("chat.manageCategories")}>
+                  <Button
+                    type="text"
+                    icon={<FolderOpen size={16} />}
+                    size="small"
+                    onClick={() => setCategoryManagerOpen(true)}
                     style={{ color: token.colorPrimary }}
                   />
                 </Tooltip>
@@ -1844,6 +1863,11 @@ export function ChatSidebar({ onCollapseChange }: { onCollapseChange?: (collapse
           setActiveConversation(result.session_id);
           setAdvancedSearchVisible(false);
         }}
+      />
+
+      <CategoryManagerModal
+        open={categoryManagerOpen}
+        onClose={() => setCategoryManagerOpen(false)}
       />
     </div>
   );

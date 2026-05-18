@@ -82,9 +82,9 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import CommandSuggest from "./CommandSuggest";
+import { CommandSuggest } from "./CommandSuggest";
 import { ConversationSettingsModal } from "./ConversationSettingsModal";
-import ModelRoutingConfigPanel from "./ModelRoutingConfigPanel";
+import { ModelRoutingConfigPanel } from "./ModelRoutingConfigPanel";
 import { ModelSelector } from "./ModelSelector";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { PromptTemplateSelector } from "./PromptTemplateSelector";
@@ -1780,6 +1780,7 @@ export function InputArea() {
         multiple
         style={{ display: "none" }}
         onChange={handleFileChange}
+        aria-label={t("input.uploadFile")}
       />
       <input
         ref={photoInputRef}
@@ -1788,6 +1789,7 @@ export function InputArea() {
         capture="environment"
         style={{ display: "none" }}
         onChange={handlePhotoChange}
+        aria-label={t("input.takePhoto")}
       />
       <input
         ref={audioInputRef}
@@ -1796,6 +1798,7 @@ export function InputArea() {
         capture
         style={{ display: "none" }}
         onChange={handleAudioChange}
+        aria-label={t("input.recordAudio")}
       />
       <input
         ref={videoInputRef}

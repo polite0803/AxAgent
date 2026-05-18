@@ -1,5 +1,5 @@
-use crate::paths::axagent_home;
 use crate::AppState;
+use crate::paths::axagent_home;
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::*;
 use axagent_plugins::PluginManager;
@@ -525,7 +525,10 @@ async fn install_from_github_zipball(
 ) -> Result<(String, String), String> {
     let url = format!("https://api.github.com/repos/{}/{}/zipball", owner, repo);
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -561,6 +564,23 @@ async fn install_from_github_zipball(
         .next_back()
         .unwrap_or("unknown")
         .to_string();
+
+    let dest_canonical = temp_dir
+        .path()
+        .canonicalize()
+        .map_err(|e| format!("Failed to canonicalize temp dir: {}", e))?;
+    for i in 0..archive.len() {
+        let entry = archive
+            .by_index(i)
+            .map_err(|e| format!("Failed to read zip entry: {}", e))?;
+        let entry_path = entry.mangled_name();
+        let resolved = temp_dir.path().join(&entry_path);
+        if let Ok(canonical) = resolved.canonicalize() {
+            if !canonical.starts_with(&dest_canonical) {
+                return Err("Path traversal detected in zip".into());
+            }
+        }
+    }
 
     archive
         .extract(temp_dir.path())
@@ -957,7 +977,10 @@ async fn check_github_update(
 ) -> Option<(String, String)> {
     let url = format!("https://api.github.com/repos/{}/{}/commits?per_page=1", owner, repo);
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .ok()?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -1046,7 +1069,10 @@ async fn search_github_marketplace(
         page
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -1126,7 +1152,10 @@ async fn search_skillhub_marketplace(
         offset
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(&url)
         .header("User-Agent", "AxAgent")
@@ -1213,7 +1242,10 @@ async fn search_skillhub_marketplace(
 pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, String> {
     let url = "https://skillshub.wtf/api/v1/categories";
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
     let response = client
         .get(url)
         .header("User-Agent", "AxAgent")
@@ -1288,7 +1320,10 @@ pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
         let url =
             format!("https://api.github.com/repos/{}/{}/commits?per_page=1", parts[0], parts[1]);
 
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .map_err(|e| e.to_string())?;
         let response = client
             .get(&url)
             .header("User-Agent", "AxAgent")

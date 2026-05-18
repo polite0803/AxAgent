@@ -10,7 +10,7 @@
 //! - Queries use `filter_by_extension()`, `filter_by_modified_since()`, `filter_by_size_range()`
 //! - Results are returned as `FileEntry` structs sorted by modification time descending
 
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::time::UNIX_EPOCH;

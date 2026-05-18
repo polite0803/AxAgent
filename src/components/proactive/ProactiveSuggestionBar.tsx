@@ -1,12 +1,43 @@
+import { useAppConfigStore } from "@/stores/feature/appConfigStore";
 import { useProactiveStore } from "@/stores/feature/proactiveStore";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { SuggestionCard } from "./SuggestionCard";
 
+function buildDefaultContext(): Record<string, unknown> {
+  const now = new Date();
+  return {
+    current_file: null,
+    current_language: null,
+    recent_actions: [],
+    time_of_day: now.getHours(),
+    day_of_week: now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase(),
+    project_type: null,
+    user_activity_level: "medium",
+    detected_errors: [],
+    detected_patterns: [],
+  };
+}
+
 export function ProactiveSuggestionBar() {
   const { t } = useTranslation();
-  const { suggestions, isEnabled, setEnabled, isLoading } = useProactiveStore();
+  const { suggestions, refreshSuggestions, fetchSuggestions, isLoading } = useProactiveStore();
+  const proactiveMode = useAppConfigStore((s) => s.features.proactiveMode);
+  const toggleFeature = useAppConfigStore((s) => s.toggleFeature);
 
-  if (!isEnabled || suggestions.length === 0) {
+  useEffect(() => {
+    if (proactiveMode) {
+      fetchSuggestions().then(() => {
+        const current = useProactiveStore.getState().suggestions;
+        if (current.length === 0) {
+          const ctx = buildDefaultContext();
+          refreshSuggestions(ctx);
+        }
+      });
+    }
+  }, [proactiveMode]);
+
+  if (!proactiveMode || suggestions.length === 0) {
     return null;
   }
 
@@ -23,7 +54,7 @@ export function ProactiveSuggestionBar() {
           </div>
 
           <button
-            onClick={() => setEnabled(false)}
+            onClick={() => toggleFeature("proactiveMode")}
             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
             title={t("proactive.dismissAll")}
           >

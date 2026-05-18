@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import { useConversationStore } from "@/stores";
+import { Button, message, Spin } from "antd";
 import {
   AlertTriangle,
   CheckCircle,
@@ -9,10 +9,22 @@ import {
   GitBranch,
   Loader2,
   SkipForward,
+  StopCircle,
   XCircle,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import ReactFlow, {
+  Background,
+  type Edge,
+  Handle,
+  type Node,
+  type NodeProps,
+  Position,
+  ReactFlowProvider,
+  useReactFlow,
+} from "reactflow";
+import "reactflow/dist/style.css";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,84 +49,291 @@ interface WorkflowData {
   status: "created" | "running" | "completed" | "partially_completed" | "failed" | "cancelled";
   steps: WorkflowStep[];
   max_concurrent: number;
+  created_at?: number;
+  completed_at?: number;
+}
+
+interface WorkflowProgressPanelProps {
+  conversationId: string;
 }
 
 // ---------------------------------------------------------------------------
-// Status helpers (i18n-aware)
+// Constants
 // ---------------------------------------------------------------------------
 
-const getStatusConfig = (
-  t: (key: string) => string,
-): Record<string, { icon: React.ReactNode; color: string; label: string }> => ({
-  pending: { icon: <Clock size={14} />, color: "#8c8c8c", label: t("chat.workflow.status.pending") },
-  running: {
-    icon: <Loader2 size={14} className="animate-spin" />,
-    color: "#1890ff",
-    label: t("chat.workflow.status.running"),
-  },
-  completed: { icon: <CheckCircle size={14} />, color: "#52c41a", label: t("chat.workflow.status.completed") },
-  failed: { icon: <XCircle size={14} />, color: "#ff4d4f", label: t("chat.workflow.status.failed") },
-  skipped: { icon: <SkipForward size={14} />, color: "#faad14", label: t("chat.workflow.status.skipped") },
-});
+const TERMINAL_STATUSES = new Set<WorkflowData["status"]>([
+  "completed",
+  "partially_completed",
+  "failed",
+  "cancelled",
+]);
 
-const getWorkflowStatusConfig = (t: (key: string) => string): Record<string, { color: string; label: string }> => ({
-  created: { color: "#8c8c8c", label: t("chat.workflow.workflowStatus.created") },
-  running: { color: "#1890ff", label: t("chat.workflow.workflowStatus.running") },
-  completed: { color: "#52c41a", label: t("chat.workflow.workflowStatus.completed") },
-  partially_completed: { color: "#faad14", label: t("chat.workflow.workflowStatus.partiallyCompleted") },
-  failed: { color: "#ff4d4f", label: t("chat.workflow.workflowStatus.failed") },
-  cancelled: { color: "#8c8c8c", label: t("chat.workflow.workflowStatus.cancelled") },
-});
+const POLL_INTERVAL_MS = 2000;
+
+const NODE_WIDTH = 160;
+const NODE_HEIGHT = 56;
+const H_GAP = 36;
+const V_GAP = 28;
+const DAG_HEIGHT = 220;
 
 // ---------------------------------------------------------------------------
-// Mermaid DAG generator
+// Utilities
 // ---------------------------------------------------------------------------
 
-function generateMermaidDag(steps: WorkflowStep[]): string {
-  const lines: string[] = ["graph TD"];
-  const added = new Set<string>();
+function truncate(str: string | null, maxLen: number): string {
+  if (!str) { return ""; }
+  if (str.length <= maxLen) { return str; }
+  return str.slice(0, maxLen) + "...";
+}
+
+function getStorageKey(conversationId: string): string {
+  return `axagent:workflow-id:${conversationId}`;
+}
+
+function getWorkflowIdFromStorage(conversationId: string): string | null {
+  try {
+    return localStorage.getItem(getStorageKey(conversationId));
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status utilities
+// ---------------------------------------------------------------------------
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "pending":
+    case "created":
+      return "#8c8c8c";
+    case "running":
+      return "#1890ff";
+    case "completed":
+      return "#52c41a";
+    case "failed":
+      return "#ff4d4f";
+    case "skipped":
+    case "partially_completed":
+      return "#faad14";
+    case "cancelled":
+      return "#8c8c8c";
+    default:
+      return "#8c8c8c";
+  }
+};
+
+function isDone(status: WorkflowStep["status"]): boolean {
+  return status === "completed" || status === "failed" || status === "skipped";
+}
+
+// ---------------------------------------------------------------------------
+// DAG Layout
+// ---------------------------------------------------------------------------
+
+interface WorkflowDagNodeData {
+  stepId: string;
+  goal: string;
+  agentRole: string;
+  status: WorkflowStep["status"];
+}
+
+function computeDagLayout(steps: WorkflowStep[]): { nodes: Node<WorkflowDagNodeData>[]; edges: Edge[] } {
+  if (steps.length === 0) { return { nodes: [], edges: [] }; }
+
+  const stepMap = new Map(steps.map((s) => [s.id, s]));
+  const layerCache = new Map<string, number>();
+
+  function getLayer(id: string): number {
+    if (layerCache.has(id)) { return layerCache.get(id)!; }
+    const step = stepMap.get(id);
+    if (!step || step.needs.length === 0) {
+      layerCache.set(id, 0);
+      return 0;
+    }
+    const maxDep = Math.max(...step.needs.map((depId) => getLayer(depId)));
+    const layer = maxDep + 1;
+    layerCache.set(id, layer);
+    return layer;
+  }
 
   for (const step of steps) {
-    if (!added.has(step.id)) {
-      lines.push(`  ${step.id}["${step.id}<br/>${step.goal.slice(0, 30)}${step.goal.length > 30 ? "..." : ""}"]`);
-      added.add(step.id);
+    getLayer(step.id);
+  }
+
+  const layerGroups = new Map<number, WorkflowStep[]>();
+  for (const step of steps) {
+    const layer = layerCache.get(step.id)!;
+    if (!layerGroups.has(layer)) { layerGroups.set(layer, []); }
+    layerGroups.get(layer)!.push(step);
+  }
+
+  const sortedLayers = [...layerGroups.keys()].sort((a, b) => a - b);
+  const nodes: Node<WorkflowDagNodeData>[] = [];
+
+  for (const layer of sortedLayers) {
+    const group = layerGroups.get(layer)!;
+    const totalWidth = group.length * NODE_WIDTH + (group.length - 1) * H_GAP;
+    const startX = -totalWidth / 2;
+
+    for (let i = 0; i < group.length; i++) {
+      nodes.push({
+        id: group[i].id,
+        type: "workflowStep",
+        position: {
+          x: startX + i * (NODE_WIDTH + H_GAP),
+          y: layer * (NODE_HEIGHT + V_GAP),
+        },
+        data: {
+          stepId: group[i].id,
+          goal: group[i].goal,
+          agentRole: group[i].agent_role,
+          status: group[i].status,
+        },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+      });
     }
+  }
+
+  const nodeIds = new Set(steps.map((s) => s.id));
+  const edges: Edge[] = [];
+
+  for (const step of steps) {
     for (const dep of step.needs) {
-      if (!added.has(dep)) {
-        const depStep = steps.find(s => s.id === dep);
-        const depGoal = depStep ? depStep.goal.slice(0, 30) : dep;
-        lines.push(`  ${dep}["${dep}<br/>${depGoal}${depStep && depStep.goal.length > 30 ? "..." : ""}"]`);
-        added.add(dep);
+      if (nodeIds.has(dep)) {
+        edges.push({
+          id: `${dep}->${step.id}`,
+          source: dep,
+          target: step.id,
+          animated: step.status === "running",
+          style: { stroke: step.status === "failed" ? "#ff4d4f" : "#b1b1b7", strokeWidth: 1.5 },
+        });
       }
-      lines.push(`  ${dep} --> ${step.id}`);
     }
   }
 
-  // Add style classes for each status
-  const byStatus: Record<string, string[]> = {};
-  for (const step of steps) {
-    (byStatus[step.status] ??= []).push(step.id);
-  }
-  if (byStatus.running?.length) { lines.push(`  style ${byStatus.running.join(",")} fill:#e6f7ff,stroke:#1890ff`); }
-  if (byStatus.completed?.length) { lines.push(`  style ${byStatus.completed.join(",")} fill:#f6ffed,stroke:#52c41a`); }
-  if (byStatus.failed?.length) { lines.push(`  style ${byStatus.failed.join(",")} fill:#fff2f0,stroke:#ff4d4f`); }
-  if (byStatus.skipped?.length) { lines.push(`  style ${byStatus.skipped.join(",")} fill:#fffbe6,stroke:#faad14`); }
-
-  return lines.join("\n");
+  return { nodes, edges };
 }
 
 // ---------------------------------------------------------------------------
-// Step detail row
+// WorkflowDagNode
 // ---------------------------------------------------------------------------
 
-function StepRow({ step, expanded, onToggle, statusConfig, t }: {
+const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(({ data, selected }) => {
+  const color = getStatusColor(data.status);
+  const isRunning = data.status === "running";
+  const isFailed = data.status === "failed";
+
+  return (
+    <div
+      className="rounded-md border px-2 py-1.5 bg-white dark:bg-gray-800 shadow-sm"
+      style={{
+        width: NODE_WIDTH,
+        borderColor: selected ? "#1890ff" : color,
+        borderWidth: selected ? 2 : 1,
+        opacity: data.status === "skipped" ? 0.65 : 1,
+      }}
+    >
+      <Handle type="target" position={Position.Top} style={{ visibility: "hidden" }} />
+      <div className="flex items-center gap-1">
+        {isRunning
+          ? <Loader2 size={10} className="animate-spin shrink-0" style={{ color }} />
+          : isFailed
+          ? <XCircle size={10} className="shrink-0" style={{ color }} />
+          : <CheckCircle size={10} className="shrink-0" style={{ color }} />}
+        <span className="text-[10px] font-mono font-medium truncate" style={{ color }}>
+          {data.stepId}
+        </span>
+      </div>
+      <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5 leading-tight">
+        {truncate(data.goal, 28)}
+      </div>
+      <div className="text-[9px] text-gray-400 dark:text-gray-500 truncate">
+        {data.agentRole}
+      </div>
+      <Handle type="source" position={Position.Bottom} style={{ visibility: "hidden" }} />
+    </div>
+  );
+});
+WorkflowDagNode.displayName = "WorkflowDagNode";
+
+const nodeTypes = { workflowStep: WorkflowDagNode };
+
+// ---------------------------------------------------------------------------
+// WorkflowDagView (inner - needs ReactFlowProvider)
+// ---------------------------------------------------------------------------
+
+const WorkflowDagView: React.FC<{ steps: WorkflowStep[] }> = memo(({ steps }) => {
+  const { fitView } = useReactFlow();
+  const { nodes, edges } = useMemo(() => computeDagLayout(steps), [steps]);
+
+  useEffect(() => {
+    if (nodes.length > 0) {
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.3, duration: 200 });
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [nodes, fitView]);
+
+  if (nodes.length === 0) { return null; }
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      nodesFocusable={false}
+      elementsSelectable={false}
+      panOnDrag={false}
+      zoomOnScroll={false}
+      zoomOnDoubleClick={false}
+      preventScrolling={false}
+      fitView
+      proOptions={{ hideAttribution: true }}
+      style={{ background: "transparent" }}
+    >
+      <Background color="#e5e5e5" gap={16} size={0.5} />
+    </ReactFlow>
+  );
+});
+WorkflowDagView.displayName = "WorkflowDagView";
+
+// ---------------------------------------------------------------------------
+// StepRow (memoized)
+// ---------------------------------------------------------------------------
+
+interface StepRowProps {
   step: WorkflowStep;
   expanded: boolean;
   onToggle: () => void;
-  statusConfig: Record<string, { icon: React.ReactNode; color: string; label: string }>;
-  t: (key: string, options?: Record<string, unknown>) => string;
-}) {
-  const cfg = statusConfig[step.status] ?? statusConfig.pending;
+}
+
+const StepRow = memo(function StepRow({ step, expanded, onToggle }: StepRowProps) {
+  const { t } = useTranslation();
+  const color = getStatusColor(step.status);
+
+  const StatusIcon = useMemo(() => {
+    switch (step.status) {
+      case "pending":
+        return Clock;
+      case "running":
+        return Loader2;
+      case "completed":
+        return CheckCircle;
+      case "failed":
+        return XCircle;
+      case "skipped":
+        return SkipForward;
+      default:
+        return Clock;
+    }
+  }, [step.status]);
+
+  const iconClass = step.status === "running" ? "animate-spin" : "";
 
   return (
     <div className="border-b border-gray-100 dark:border-gray-800 last:border-b-0">
@@ -122,10 +341,10 @@ function StepRow({ step, expanded, onToggle, statusConfig, t }: {
         className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
         onClick={onToggle}
       >
-        <span style={{ color: cfg.color, display: "flex", alignItems: "center", flexShrink: 0 }}>
-          {cfg.icon}
+        <span style={{ color, display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <StatusIcon size={14} className={iconClass} />
         </span>
-        <span className="text-xs font-mono font-medium shrink-0" style={{ color: cfg.color }}>
+        <span className="text-xs font-mono font-medium shrink-0" style={{ color }}>
           {step.id}
         </span>
         <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">
@@ -142,9 +361,7 @@ function StepRow({ step, expanded, onToggle, statusConfig, t }: {
             <AlertTriangle size={12} />
           </span>
         )}
-        <span
-          style={{ display: "flex", alignItems: "center", flexShrink: 0, color: "var(--color-text-secondary, #999)" }}
-        >
+        <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
       </div>
@@ -152,7 +369,7 @@ function StepRow({ step, expanded, onToggle, statusConfig, t }: {
         <div className="px-3 pb-2 text-xs space-y-1">
           <div className="flex gap-4">
             <span className="text-gray-500">{t("chat.workflow.stepStatus")}</span>
-            <span style={{ color: cfg.color }}>{cfg.label}</span>
+            <span style={{ color }}>{t(`chat.workflow.status.${step.status}`)}</span>
           </div>
           {step.needs.length > 0 && (
             <div className="flex gap-4">
@@ -162,13 +379,15 @@ function StepRow({ step, expanded, onToggle, statusConfig, t }: {
           )}
           <div className="flex gap-4">
             <span className="text-gray-500">{t("chat.workflow.retries")}</span>
-            <span>{step.attempts}/{step.max_retries + 1}</span>
+            <span>
+              {step.attempts}/{step.max_retries + 1}
+            </span>
           </div>
           {step.result && (
             <div>
               <span className="text-gray-500">{t("chat.workflow.result")}</span>
               <pre className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs max-h-32 overflow-auto whitespace-pre-wrap">
-                {step.result.length > 500 ? step.result.slice(0, 500) + '...' : step.result}
+                {truncate(step.result, 500)}
               </pre>
             </div>
           )}
@@ -176,7 +395,7 @@ function StepRow({ step, expanded, onToggle, statusConfig, t }: {
             <div>
               <span className="text-red-500">{t("chat.workflow.error")}</span>
               <pre className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs max-h-32 overflow-auto whitespace-pre-wrap text-red-600 dark:text-red-400">
-                {step.error}
+                {truncate(step.error, 500)}
               </pre>
             </div>
           )}
@@ -184,103 +403,253 @@ function StepRow({ step, expanded, onToggle, statusConfig, t }: {
       )}
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
-// Main component
+// Main Component
 // ---------------------------------------------------------------------------
 
-const WorkflowProgressPanel: React.FC = () => {
+export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({ conversationId }) => {
   const { t } = useTranslation();
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
 
   const [workflow, setWorkflow] = useState<WorkflowData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [showDag, setShowDag] = useState(true);
   const [dagCollapsed, setDagCollapsed] = useState(false);
 
-  const statusConfig = useMemo(() => getStatusConfig(t), [t]);
-  const workflowStatusConfig = useMemo(() => getWorkflowStatusConfig(t), [t]);
+  const [workflowId, setWorkflowId] = useState<string | null>(() => getWorkflowIdFromStorage(conversationId));
 
-  // Read workflow ID from localStorage (set by WorkflowTemplateSelector)
-  const workflowId = useMemo(() => {
-    if (!activeConversationId) { return null; }
-    return localStorage.getItem(`axagent:workflow-id:${activeConversationId}`);
-  }, [activeConversationId]);
+  const fetchIdRef = useRef(0);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Poll workflow status
+  // --- Sync: custom event for same-tab changes (from ChatViewToolbar) ---
   useEffect(() => {
+    const handler = (e: Event) => {
+      const { conversationId: cid, workflowId: wid } = (e as CustomEvent<{
+        conversationId: string;
+        workflowId: string | null;
+      }>).detail;
+      if (cid === conversationId) {
+        setWorkflowId(wid);
+      }
+    };
+    window.addEventListener("axagent:workflow-changed", handler);
+    return () => window.removeEventListener("axagent:workflow-changed", handler);
+  }, [conversationId]);
+
+  // --- Sync: cross-tab storage event ---
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === getStorageKey(conversationId)) {
+        setWorkflowId(e.newValue);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [conversationId]);
+
+  // --- Re-read storage when conversationId changes ---
+  useEffect(() => {
+    setWorkflowId(getWorkflowIdFromStorage(conversationId));
+  }, [conversationId]);
+
+  // --- Reset internal state on workflowId change ---
+  useEffect(() => {
+    setWorkflow(null);
+    setLoading(false);
+    setError(null);
+    setExpandedSteps(new Set());
+    setShowDag(true);
+    setDagCollapsed(false);
+  }, [workflowId]);
+
+  // --- Poll workflow status with race-condition protection & terminal stop ---
+  const workflowRef = useRef(workflow);
+  workflowRef.current = workflow;
+
+  useEffect(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+
     if (!workflowId) {
       setWorkflow(null);
       return;
     }
 
-    const fetchStatus = async () => {
+    let stoppedByTerminal = false;
+
+    const poll = async () => {
+      if (stoppedByTerminal) { return; }
+      const requestId = ++fetchIdRef.current;
+
+      if (requestId === 1) {
+        setLoading(true);
+      }
+
       try {
         const data = await invoke<WorkflowData>("workflow_get_status", { workflowId });
+        if (fetchIdRef.current !== requestId) { return; }
         setWorkflow(data);
-      } catch {
-        // Workflow may not exist yet
+        setError(null);
+
+        if (TERMINAL_STATUSES.has(data.status)) {
+          stoppedByTerminal = true;
+          if (pollTimerRef.current) {
+            clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
+          }
+        }
+      } catch (e) {
+        if (fetchIdRef.current !== requestId) { return; }
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
+        if (workflowRef.current) {
+          message.warning(msg);
+        }
+        console.error("[WorkflowProgressPanel] Failed to fetch workflow status:", e);
+      } finally {
+        if (fetchIdRef.current === requestId) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 2000);
-    return () => clearInterval(interval);
+    poll();
+    pollTimerRef.current = setInterval(poll, POLL_INTERVAL_MS);
+
+    return () => {
+      stoppedByTerminal = true;
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
   }, [workflowId]);
 
+  // --- Step toggle ---
   const toggleStep = useCallback((stepId: string) => {
-    setExpandedSteps(prev => {
+    setExpandedSteps((prev) => {
       const next = new Set(prev);
-      if (next.has(stepId)) { next.delete(stepId); }
-      else { next.add(stepId); }
+      if (next.has(stepId)) {
+        next.delete(stepId);
+      } else {
+        next.add(stepId);
+      }
       return next;
     });
   }, []);
 
-  // Don't render if no workflow
-  if (!workflowId || !workflow) { return null; }
+  // --- Cancel ---
+  const handleCancel = useCallback(async () => {
+    if (!workflowId) { return; }
+    setCancelling(true);
+    try {
+      await invoke("workflow_cancel", { workflowId });
+      message.success(t("chat.workflow.cancelled"));
+      const data = await invoke<WorkflowData>("workflow_get_status", { workflowId });
+      setWorkflow(data);
+      setError(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      message.error(t("chat.workflow.cancelFailed") + ": " + msg);
+    } finally {
+      setCancelling(false);
+    }
+  }, [workflowId, t]);
 
-  const wsCfg = workflowStatusConfig[workflow.status] ?? workflowStatusConfig.created;
-  const completedCount = workflow.steps.filter(s => s.status === "completed").length;
+  // --- Render ---
+
+  if (!workflowId) {
+    return null;
+  }
+
+  if (loading && !workflow) {
+    return (
+      <div className="mx-3 my-1.5 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/50 dark:bg-purple-900/10 p-4">
+        <div className="flex items-center gap-2">
+          <Spin size="small" />
+          <span className="text-sm text-gray-500">{t("chat.workflow.loading")}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !workflow) {
+    return (
+      <div className="mx-3 my-1.5 border border-red-200 dark:border-red-800 rounded-lg bg-red-50/50 dark:bg-red-900/10 p-4">
+        <div className="flex items-center gap-2">
+          <XCircle size={16} className="text-red-500" />
+          <span className="text-sm text-red-600">{error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!workflow) {
+    return null;
+  }
+
+  const workflowColor = getStatusColor(workflow.status);
+  const doneCount = workflow.steps.filter((s) => isDone(s.status)).length;
   const totalCount = workflow.steps.length;
-  const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-
-  const mermaidCode = useMemo(() => generateMermaidDag(workflow.steps), [workflow.steps]);
+  const progressPct = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
+  const canCancel = workflow.status === "running" && !cancelling;
 
   return (
     <div className="mx-3 my-1.5 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/50 dark:bg-purple-900/10 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-purple-200 dark:border-purple-800">
-        <GitBranch size={14} style={{ color: wsCfg.color }} />
-        <span className="text-xs font-medium" style={{ color: wsCfg.color }}>
+        <GitBranch size={14} style={{ color: workflowColor }} />
+        <span className="text-xs font-medium" style={{ color: workflowColor }}>
           {workflow.name}
         </span>
         <span className="text-xs text-gray-500 dark:text-gray-400">
-          {wsCfg.label}
+          {t(`chat.workflow.workflowStatus.${workflow.status}`)}
         </span>
+
         {/* Progress bar */}
         <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden ml-2">
           <div
             className="h-full rounded-full transition-all duration-300"
-            style={{
-              width: `${progressPct}%`,
-              backgroundColor: wsCfg.color,
-            }}
+            style={{ width: `${progressPct}%`, backgroundColor: workflowColor }}
           />
         </div>
         <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-          {completedCount}/{totalCount}
+          {doneCount}/{totalCount}
         </span>
-        <button
+
+        {/* Polling indicator */}
+        {loading && <Spin size="small" />}
+
+        <Button
+          type="text"
+          size="small"
           onClick={() => setShowDag(!showDag)}
           className="text-xs px-1.5 py-0.5 rounded border border-purple-300 dark:border-purple-700 hover:bg-purple-100 dark:hover:bg-purple-800/30 transition-colors"
         >
           {showDag ? t("chat.workflow.listView") : t("chat.workflow.dagView")}
-        </button>
+        </Button>
+        {canCancel && (
+          <Button
+            type="text"
+            size="small"
+            icon={<StopCircle size={12} />}
+            loading={cancelling}
+            onClick={handleCancel}
+            className="text-xs px-1.5 py-0.5 text-red-500 hover:text-red-600"
+            danger
+          >
+            {t("chat.workflow.cancel")}
+          </Button>
+        )}
       </div>
 
-      {/* DAG view (Mermaid) */}
+      {/* DAG View */}
       {showDag && (
         <div className="border-b border-purple-200 dark:border-purple-800">
           <button
@@ -290,36 +659,48 @@ const WorkflowProgressPanel: React.FC = () => {
             {dagCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
             {t("chat.workflow.dagVisualization")}
           </button>
-          {!dagCollapsed && (
-            <div className="px-3 pb-2">
-              <pre className="text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded p-2 overflow-auto max-h-48">
-                {mermaidCode}
-              </pre>
-              <p className="text-xs text-gray-400 mt-1">
-                {t("chat.workflow.dagHint")}
-              </p>
-            </div>
-          )}
+          {!dagCollapsed
+            && (workflow.steps.length === 0
+              ? (
+                <div className="px-3 py-4 text-xs text-gray-400 text-center">
+                  {t("chat.workflow.noSteps")}
+                </div>
+              )
+              : (
+                <div className="px-3 pb-2">
+                  <div
+                    className="border border-gray-200 dark:border-gray-700 rounded overflow-hidden"
+                    style={{ height: DAG_HEIGHT }}
+                  >
+                    <ReactFlowProvider>
+                      <WorkflowDagView steps={workflow.steps} />
+                    </ReactFlowProvider>
+                  </div>
+                </div>
+              ))}
         </div>
       )}
 
-      {/* Step list */}
-      {!showDag && (
-        <div className="max-h-64 overflow-auto">
-          {workflow.steps.map(step => (
-            <StepRow
-              key={step.id}
-              step={step}
-              expanded={expandedSteps.has(step.id)}
-              onToggle={() => toggleStep(step.id)}
-              statusConfig={statusConfig}
-              t={t}
-            />
+      {/* Step List View */}
+      {!showDag
+        && (workflow.steps.length === 0
+          ? (
+            <div className="px-3 py-4 text-xs text-gray-400 text-center">
+              {t("chat.workflow.noSteps")}
+            </div>
+          )
+          : (
+            <div className="max-h-64 overflow-auto">
+              {workflow.steps.map((step) => (
+                <StepRow
+                  key={step.id}
+                  step={step}
+                  expanded={expandedSteps.has(step.id)}
+                  onToggle={() => toggleStep(step.id)}
+                />
+              ))}
+            </div>
           ))}
-        </div>
-      )}
     </div>
   );
 };
-
-export default WorkflowProgressPanel;

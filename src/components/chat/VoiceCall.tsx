@@ -1,6 +1,6 @@
 import { useVoiceChat } from "@/hooks/useVoiceChat";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
-import { Button, Spin, Typography } from "antd";
+import { Button, Spin, theme, Typography } from "antd";
 import { Loader, Mic, MicOff, Phone, Volume2 } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,14 +15,16 @@ interface VoiceCallProps {
 
 function StatusDisplay({ state }: { state: VoiceSessionState }) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const textColor = token.colorWhite;
 
   const content = useMemo(() => {
     switch (state) {
       case "Connecting":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Spin indicator={<Loader size={48} style={{ color: "#fff", animation: "spin 1s linear infinite" }} />} />
-            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+            <Spin indicator={<Loader size={48} style={{ color: textColor, animation: "spin 1s linear infinite" }} />} />
+            <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.connecting")}
             </Typography.Text>
           </div>
@@ -31,7 +33,7 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
         return (
           <div className="flex flex-col items-center gap-4">
             <Mic size={48} style={{ color: "#52c41a" }} />
-            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+            <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.connected")}
             </Typography.Text>
           </div>
@@ -50,7 +52,7 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
                 />
               ))}
             </div>
-            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+            <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.speaking")}
             </Typography.Text>
           </div>
@@ -59,7 +61,7 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
         return (
           <div className="flex flex-col items-center gap-4">
             <Volume2 size={48} style={{ color: "#1677ff" }} className="animate-pulse" />
-            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+            <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.listening")}
             </Typography.Text>
           </div>
@@ -67,8 +69,8 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
       case "Disconnecting":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Spin indicator={<Loader size={48} style={{ color: "#fff", animation: "spin 1s linear infinite" }} />} />
-            <Typography.Text style={{ color: "#fff", fontSize: 18 }}>
+            <Spin indicator={<Loader size={48} style={{ color: textColor, animation: "spin 1s linear infinite" }} />} />
+            <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.disconnecting")}
             </Typography.Text>
           </div>
@@ -83,6 +85,8 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
 
 export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallProps) {
   const { t } = useTranslation();
+  const { token: controlToken } = theme.useToken();
+  const btnTextColor = controlToken.colorWhite;
   const { state, isMuted, start, stop, toggleMute } = useVoiceChat({ port, host, config });
 
   // Auto-start when overlay becomes visible
@@ -119,7 +123,7 @@ export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallPro
             height: 56,
             background: isMuted ? "#ff4d4f" : "rgba(255,255,255,0.2)",
             border: "none",
-            color: "#fff",
+            color: btnTextColor,
           }}
           title={t("voice.toggleMute")}
         />
@@ -133,7 +137,7 @@ export function VoiceCall({ visible, onClose, port, host, config }: VoiceCallPro
             height: 72,
             background: "#ff4d4f",
             border: "none",
-            color: "#fff",
+            color: btnTextColor,
             fontSize: 24,
           }}
           title={t("voice.endCall")}

@@ -14,18 +14,27 @@ fn is_safe_url(url: &str) -> Result<(), ToolError> {
     let parsed = url::Url::parse(url).map_err(|_| ToolError::invalid_input("无效的 URL"))?;
     let host = parsed.host_str().unwrap_or("");
     let blocked_hosts = [
-        "127.0.0.1", "0.0.0.0", "localhost", "::1",
+        "127.0.0.1",
+        "0.0.0.0",
+        "localhost",
+        "::1",
         "169.254.169.254",
     ];
     for blocked in &blocked_hosts {
         if host == *blocked {
-            return Err(ToolError::permission_denied("Network", &format!("不允许访问内部地址: {}", host)));
+            return Err(ToolError::permission_denied(
+                "Network",
+                &format!("不允许访问内部地址: {}", host),
+            ));
         }
     }
-    if let Some(ip) = host.parse::<std::net::IpAddr>().ok() {
-        if ip.is_loopback() || is_link_local_ip(&ip) || is_private_ip(&ip) {
-            return Err(ToolError::permission_denied("Network", &format!("不允许访问内部地址: {}", host)));
-        }
+    if let Ok(ip) = host.parse::<std::net::IpAddr>()
+        && (ip.is_loopback() || is_link_local_ip(&ip) || is_private_ip(&ip))
+    {
+        return Err(ToolError::permission_denied(
+            "Network",
+            &format!("不允许访问内部地址: {}", host),
+        ));
     }
     Ok(())
 }
@@ -115,10 +124,10 @@ impl Tool for HttpRequestTool {
         }
 
         // Body
-        if let Some(body) = input["body"].as_str() {
-            if !body.is_empty() {
-                req = req.body(body.to_string());
-            }
+        if let Some(body) = input["body"].as_str()
+            && !body.is_empty()
+        {
+            req = req.body(body.to_string());
         }
 
         match req.send().await {
@@ -234,7 +243,15 @@ impl Tool for PingTool {
         }
 
         // 过滤危险字符，防止命令注入
-        if host.contains(';') || host.contains('|') || host.contains('&') || host.contains('$') || host.contains('`') || host.contains('\n') || host.contains('\r') || host.contains(' ') {
+        if host.contains(';')
+            || host.contains('|')
+            || host.contains('&')
+            || host.contains('$')
+            || host.contains('`')
+            || host.contains('\n')
+            || host.contains('\r')
+            || host.contains(' ')
+        {
             return Ok(ToolResult::error("Error: host 包含非法字符"));
         }
 
@@ -287,12 +304,12 @@ impl Tool for PingTool {
 fn parse_ping_loss(output: &str) -> Option<f64> {
     for line in output.lines() {
         let lower = line.to_lowercase();
-        if lower.contains("loss") || lower.contains("丢失") || lower.contains("lost") {
-            if let Some(pct) = lower.split('%').next() {
-                let num: Vec<&str> = pct.split_whitespace().collect();
-                if let Some(last) = num.last() {
-                    return last.parse::<f64>().ok();
-                }
+        if (lower.contains("loss") || lower.contains("丢失") || lower.contains("lost"))
+            && let Some(pct) = lower.split('%').next()
+        {
+            let num: Vec<&str> = pct.split_whitespace().collect();
+            if let Some(last) = num.last() {
+                return last.parse::<f64>().ok();
             }
         }
     }
@@ -529,10 +546,10 @@ impl Tool for JsonApiTool {
 
         if let Some(body) = input["body"].as_object() {
             req = req.json(body);
-        } else if let Some(body_str) = input["body"].as_str() {
-            if !body_str.is_empty() {
-                req = req.body(body_str.to_string());
-            }
+        } else if let Some(body_str) = input["body"].as_str()
+            && !body_str.is_empty()
+        {
+            req = req.body(body_str.to_string());
         }
 
         match req.send().await {

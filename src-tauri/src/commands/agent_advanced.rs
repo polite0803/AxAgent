@@ -1,8 +1,8 @@
-use crate::app_state::{
-    InMemoryCacheEntry, PlannerAction, PlannerSession, PlannerVersion, PlannerVersionDiff,
-    TotNode, TotSession,
-};
 use crate::AppState;
+use crate::app_state::{
+    InMemoryCacheEntry, PlannerAction, PlannerSession, PlannerVersion, PlannerVersionDiff, TotNode,
+    TotSession,
+};
 use serde_json::Value;
 use std::collections::{HashMap, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -89,7 +89,9 @@ pub async fn tot_explore(
     } else {
         let root_node = TotNode {
             id: node_id.clone(),
-            content: prompt.clone().unwrap_or_else(|| format!("Root node: {}", node_id)),
+            content: prompt
+                .clone()
+                .unwrap_or_else(|| format!("Root node: {}", node_id)),
             score: Some(0.5),
             ..TotNode::default()
         };
@@ -249,16 +251,14 @@ fn compute_heuristic_score(node: &TotNode, criteria: Option<&Value>) -> f64 {
 
     let criteria_bonus = if let Some(c) = criteria {
         let weight = c.get("weight").and_then(|w| w.as_f64()).unwrap_or(0.0);
-        let relevance = c
-            .get("relevance")
-            .and_then(|r| r.as_f64())
-            .unwrap_or(0.5);
+        let relevance = c.get("relevance").and_then(|r| r.as_f64()).unwrap_or(0.5);
         weight * relevance
     } else {
         0.0
     };
 
-    (content_score + type_bonus + has_children_bonus + criteria_bonus - depth_penalty).clamp(0.0, 1.0)
+    (content_score + type_bonus + has_children_bonus + criteria_bonus - depth_penalty)
+        .clamp(0.0, 1.0)
 }
 
 #[tauri::command]
@@ -280,16 +280,21 @@ pub async fn tot_traverse(
 
     let root_id = match &session.root_node_id {
         Some(id) => id.clone(),
-        None => return Ok(serde_json::json!({"nodes": [], "strategy": "none", "message": "No root node found"})),
+        None => {
+            return Ok(
+                serde_json::json!({"nodes": [], "strategy": "none", "message": "No root node found"}),
+            );
+        },
     };
 
     let strat = strategy
         .as_deref()
-        .unwrap_or(&session.traversal_strategy);
-    session.traversal_strategy = strat.to_string();
+        .unwrap_or(&session.traversal_strategy)
+        .to_string();
+    session.traversal_strategy = strat.clone();
 
     let limit = max_nodes.unwrap_or(usize::MAX);
-    let visited = match strat {
+    let visited = match strat.as_str() {
         "bfs" => traverse_bfs(&session.nodes, &root_id, limit),
         "dfs" => traverse_dfs(&session.nodes, &root_id, limit),
         "best_first" => traverse_best_first(&session.nodes, &root_id, limit),
@@ -298,13 +303,7 @@ pub async fn tot_traverse(
 
     let scored_count = visited
         .iter()
-        .filter(|id| {
-            session
-                .nodes
-                .get(*id)
-                .and_then(|n| n.score)
-                .is_some()
-        })
+        .filter(|id| session.nodes.get(*id).and_then(|n| n.score).is_some())
         .count();
 
     Ok(serde_json::json!({
@@ -315,11 +314,7 @@ pub async fn tot_traverse(
     }))
 }
 
-fn traverse_bfs(
-    nodes: &HashMap<String, TotNode>,
-    root_id: &str,
-    limit: usize,
-) -> Vec<String> {
+fn traverse_bfs(nodes: &HashMap<String, TotNode>, root_id: &str, limit: usize) -> Vec<String> {
     let mut result = Vec::new();
     let mut queue = VecDeque::new();
     queue.push_back(root_id.to_string());
@@ -339,11 +334,7 @@ fn traverse_bfs(
     result
 }
 
-fn traverse_dfs(
-    nodes: &HashMap<String, TotNode>,
-    root_id: &str,
-    limit: usize,
-) -> Vec<String> {
+fn traverse_dfs(nodes: &HashMap<String, TotNode>, root_id: &str, limit: usize) -> Vec<String> {
     let mut result = Vec::new();
     dfs_recursive(nodes, root_id, &mut result, limit);
     result
@@ -484,11 +475,8 @@ pub async fn tot_get_best_path(
     let mut scores = Vec::new();
     let mut current_id = root_id;
 
-    loop {
-        let children = match session.nodes.get(&current_id) {
-            Some(n) => n.children.clone(),
-            None => break,
-        };
+    while let Some(n) = session.nodes.get(&current_id) {
+        let children = n.children.clone();
 
         if children.is_empty() {
             break;
@@ -502,15 +490,11 @@ pub async fn tot_get_best_path(
 
         match best_child {
             Some(id) => {
-                let score = session
-                    .nodes
-                    .get(id)
-                    .and_then(|n| n.score)
-                    .unwrap_or(0.0);
+                let score = session.nodes.get(id).and_then(|n| n.score).unwrap_or(0.0);
                 scores.push(score);
                 path.push(id.clone());
                 current_id = id.clone();
-            }
+            },
             None => break,
         }
     }
@@ -784,6 +768,10 @@ pub async fn semantic_cache_lookup(
     let now = now_epoch_secs();
     let threshold = cache_state.similarity_threshold;
 
+    cache_state
+        .in_memory_entries
+        .retain(|entry| (now - entry.created_at) as u64 <= entry.ttl_secs);
+
     let mut best_entry: Option<&mut InMemoryCacheEntry> = None;
     let mut best_similarity = 0.0f32;
 
@@ -816,7 +804,7 @@ pub async fn semantic_cache_lookup(
                 "similarity": best_similarity,
                 "access_count": entry.access_count,
             }))
-        }
+        },
         None => Ok(serde_json::json!({
             "hit": false,
             "best_similarity": best_similarity,
@@ -1075,12 +1063,10 @@ fn get_severity(category: &ErrorCategory, error_json: &Value) -> &'static str {
         ErrorCategory::Unknown => {
             if error_code >= 500 {
                 "critical"
-            } else if error_code >= 400 {
-                "medium"
             } else {
                 "medium"
             }
-        }
+        },
     }
 }
 
@@ -1188,13 +1174,7 @@ pub async fn error_get_report(error_json: Value) -> Result<Value, String> {
             .get("retry_after")
             .or_else(|| error_json.get("retryAfter"))
             .and_then(|v| v.as_i64())
-            .or_else(|| {
-                if error_code == 429 {
-                    Some(60)
-                } else {
-                    None
-                }
-            }),
+            .or(if error_code == 429 { Some(60) } else { None }),
         ErrorCategory::Timeout => Some(5),
         ErrorCategory::Network => Some(10),
         _ => None,
@@ -1213,4 +1193,21 @@ pub async fn error_get_report(error_json: Value) -> Result<Value, String> {
         },
         "timestamp": now_epoch_secs(),
     }))
+}
+
+// ---------------------------------------------------------------------------
+// Prompt Cache commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn get_prompt_cache_state(app_state: State<'_, AppState>) -> Result<Value, String> {
+    let state = app_state.prompt_cache.get_state().await;
+    let pending = app_state.prompt_cache.has_pending_changes().await;
+    serde_json::to_value(serde_json::json!({
+        "cacheValid": state.cache_valid,
+        "hasPendingChanges": pending,
+        "tokensSaved": state.tokens_saved_estimate,
+        "cacheHits": state.cache_hits,
+    }))
+    .map_err(|e| format!("Serialization error: {}", e))
 }

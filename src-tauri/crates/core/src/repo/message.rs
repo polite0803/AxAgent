@@ -390,21 +390,22 @@ pub async fn delete_message(db: &DatabaseConnection, id: &str) -> Result<()> {
 
     let txn = db.begin().await?;
 
-    if target.role == "assistant" && target.is_active == 1 {
-        if let Some(parent_message_id) = target.parent_message_id.as_ref() {
-            let sibling_versions = messages::Entity::find()
-                .filter(messages::Column::ConversationId.eq(&target.conversation_id))
-                .filter(messages::Column::ParentMessageId.eq(parent_message_id))
-                .filter(messages::Column::Role.eq("assistant"))
-                .filter(messages::Column::VersionIndex.gte(0))
-                .all(&txn)
-                .await?;
+    if target.role == "assistant"
+        && target.is_active == 1
+        && let Some(parent_message_id) = target.parent_message_id.as_ref()
+    {
+        let sibling_versions = messages::Entity::find()
+            .filter(messages::Column::ConversationId.eq(&target.conversation_id))
+            .filter(messages::Column::ParentMessageId.eq(parent_message_id))
+            .filter(messages::Column::Role.eq("assistant"))
+            .filter(messages::Column::VersionIndex.gte(0))
+            .all(&txn)
+            .await?;
 
-            if let Some(next_version) = select_next_active_version(&target, &sibling_versions) {
-                let mut next_active: messages::ActiveModel = next_version.into();
-                next_active.is_active = Set(1);
-                next_active.update(&txn).await?;
-            }
+        if let Some(next_version) = select_next_active_version(&target, &sibling_versions) {
+            let mut next_active: messages::ActiveModel = next_version.into();
+            next_active.is_active = Set(1);
+            next_active.update(&txn).await?;
         }
     }
 

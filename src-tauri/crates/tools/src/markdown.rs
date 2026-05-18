@@ -404,14 +404,13 @@ fn flush_inlines(
 fn flush_and_store(current_block: &mut Option<MdBlock>, doc: &mut MdDocument) {
     if let Some(block) = current_block.take() {
         // 跳过空段落
-        if let MdBlock::Paragraph { ref inlines } = block {
-            if inlines.is_empty()
+        if let MdBlock::Paragraph { ref inlines } = block
+            && (inlines.is_empty()
                 || inlines
                     .iter()
-                    .all(|i| matches!(i, MdInline::Text(t) if t.trim().is_empty()))
-            {
-                return;
-            }
+                    .all(|i| matches!(i, MdInline::Text(t) if t.trim().is_empty())))
+        {
+            return;
         }
         doc.blocks.push(block);
     }

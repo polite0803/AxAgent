@@ -20,7 +20,18 @@ export function ChatInspector({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  const conversation = useConversationStore((s) => s.conversations.find((c) => c.id === s.activeConversationId));
+  const conversation = useConversationStore((s) => {
+    const c = s.conversations.find((c) => c.id === s.activeConversationId);
+    return c
+      ? {
+        id: c.id,
+        provider_id: c.provider_id,
+        model_id: c.model_id,
+        created_at: c.created_at,
+        message_count: c.message_count,
+      }
+      : undefined;
+  });
   const workspaceSnapshot = useConversationStore((s) => s.workspaceSnapshot);
   const messages = useConversationStore((s) => s.messages);
   const { artifacts } = useArtifactStore();

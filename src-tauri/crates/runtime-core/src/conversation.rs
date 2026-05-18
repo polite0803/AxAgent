@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
@@ -9,7 +9,7 @@ use axagent_telemetry::SessionTracer;
 use serde_json::{Map, Value};
 
 use crate::compact::{
-    compact_session, estimate_session_tokens, CompactionConfig, CompactionResult,
+    CompactionConfig, CompactionResult, compact_session, estimate_session_tokens,
 };
 use crate::config::RuntimeFeatureConfig;
 use crate::hooks::{HookAbortSignal, HookProgressReporter, HookRunResult, HookRunner};
@@ -50,21 +50,20 @@ impl PauseState {
     pub fn wait_while_paused(&self, cancel_token: Option<&AtomicBool>) {
         let mut paused = self.is_paused.lock().unwrap();
         while *paused {
-            if let Some(token) = cancel_token {
-                if token.load(Ordering::Relaxed) {
-                    return;
-                }
+            if let Some(token) = cancel_token
+                && token.load(Ordering::Relaxed)
+            {
+                return;
             }
             let result = self.condvar.wait_timeout(paused, Duration::from_secs(1));
             match result {
                 Ok((guard, wait_result)) => {
                     paused = guard;
-                    if wait_result.timed_out() {
-                        if let Some(token) = cancel_token {
-                            if token.load(Ordering::Relaxed) {
-                                return;
-                            }
-                        }
+                    if wait_result.timed_out()
+                        && let Some(token) = cancel_token
+                        && token.load(Ordering::Relaxed)
+                    {
+                        return;
                     }
                 },
                 Err(_) => {
@@ -517,14 +516,14 @@ where
         let user_input = user_input.into();
 
         // ROADMAP #38: Session-health canary - probe if context was compacted
-        if self.session.compaction.is_some() {
-            if let Err(error) = self.run_session_health_probe() {
-                return Err(RuntimeError::new(format!(
-                    "Session health probe failed after compaction: {error}. \
+        if self.session.compaction.is_some()
+            && let Err(error) = self.run_session_health_probe()
+        {
+            return Err(RuntimeError::new(format!(
+                "Session health probe failed after compaction: {error}. \
                      The session may be in an inconsistent state. \
                      Consider starting a fresh session with /session new."
-                )));
-            }
+            )));
         }
 
         self.record_turn_started(&user_input);
@@ -549,22 +548,22 @@ where
             iterations += 1;
 
             // Check cancel token
-            if let Some(ref token) = self.cancel_token {
-                if token.load(std::sync::atomic::Ordering::Relaxed) {
-                    let error = RuntimeError::new("Agent cancelled by user".to_string());
-                    self.record_turn_failed(iterations, &error);
-                    return Err(error);
-                }
+            if let Some(ref token) = self.cancel_token
+                && token.load(std::sync::atomic::Ordering::Acquire)
+            {
+                let error = RuntimeError::new("Agent cancelled by user".to_string());
+                self.record_turn_failed(iterations, &error);
+                return Err(error);
             }
 
             if let Some(ref pause_state) = self.pause_state {
                 pause_state.wait_while_paused(self.cancel_token.as_ref().map(|t| t.as_ref()));
-                if let Some(ref token) = self.cancel_token {
-                    if token.load(Ordering::Relaxed) {
-                        let error = RuntimeError::new("Agent cancelled while paused".to_string());
-                        self.record_turn_failed(iterations, &error);
-                        return Err(error);
-                    }
+                if let Some(ref token) = self.cancel_token
+                    && token.load(Ordering::Acquire)
+                {
+                    let error = RuntimeError::new("Agent cancelled while paused".to_string());
+                    self.record_turn_failed(iterations, &error);
+                    return Err(error);
                 }
             }
 
@@ -603,13 +602,13 @@ where
                                 return Err(error);
                             }
                             // Check cancel token before sleeping
-                            if let Some(ref token) = self.cancel_token {
-                                if token.load(std::sync::atomic::Ordering::Relaxed) {
-                                    let cancel_err =
-                                        RuntimeError::new("Agent cancelled by user".to_string());
-                                    self.record_turn_failed(iterations, &cancel_err);
-                                    return Err(cancel_err);
-                                }
+                            if let Some(ref token) = self.cancel_token
+                                && token.load(std::sync::atomic::Ordering::Acquire)
+                            {
+                                let cancel_err =
+                                    RuntimeError::new("Agent cancelled by user".to_string());
+                                self.record_turn_failed(iterations, &cancel_err);
+                                return Err(cancel_err);
                             }
                             std::thread::sleep(std::time::Duration::from_millis(
                                 RETRY_DELAY_MS * retry_count as u64,
@@ -709,13 +708,13 @@ where
 
                 if *repeat_count == MAX_IDENTICAL_CALLS {
                     // Soft warning: inject a hint into the session so the LLM sees it
-                    let warning_msg = ConversationMessage::assistant(vec![
-                        ContentBlock::Text {
-                            text: format!("[System] You have called '{}' {} times with the same arguments. \
+                    let warning_msg = ConversationMessage::assistant(vec![ContentBlock::Text {
+                        text: format!(
+                            "[System] You have called '{}' {} times with the same arguments. \
                                           If it keeps failing, try a different approach or respond directly to the user.",
-                                         tool_name, repeat_count),
-                        },
-                    ]);
+                            tool_name, repeat_count
+                        ),
+                    }]);
                     self.session
                         .push_message(warning_msg)
                         .map_err(|error| RuntimeError::new(error.to_string()))?;
@@ -844,14 +843,13 @@ where
                                                 break (err_str, true);
                                             }
                                             // Check cancel token before sleeping
-                                            if let Some(ref token) = self.cancel_token {
-                                                if token.load(std::sync::atomic::Ordering::Relaxed)
-                                                {
-                                                    break (
-                                                        "Agent cancelled by user".to_string(),
-                                                        true,
-                                                    );
-                                                }
+                                            if let Some(ref token) = self.cancel_token
+                                                && token.load(std::sync::atomic::Ordering::Acquire)
+                                            {
+                                                break (
+                                                    "Agent cancelled by user".to_string(),
+                                                    true,
+                                                );
                                             }
                                             std::thread::sleep(std::time::Duration::from_millis(
                                                 TOOL_RETRY_DELAY_MS * retry_count as u64,
@@ -1405,10 +1403,11 @@ impl ToolExecutor for StaticToolExecutor {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_assistant_message, parse_auto_compaction_threshold, ApiClient, ApiRequest,
-        AssistantEvent, AutoCompactionEvent, ConversationRuntime, PromptCacheEvent, RuntimeError,
-        StaticToolExecutor, ToolExecutor, DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD,
+        ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
+        DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD, PromptCacheEvent, RuntimeError,
+        StaticToolExecutor, ToolExecutor, build_assistant_message, parse_auto_compaction_threshold,
     };
+    use crate::ToolError;
     use crate::compact::CompactionConfig;
     use crate::config::{RuntimeFeatureConfig, RuntimeHookConfig};
     use crate::permissions::{
@@ -1417,7 +1416,6 @@ mod tests {
     };
     use crate::session::{ContentBlock, MessageRole, Session};
     use crate::usage::TokenUsage;
-    use crate::ToolError;
     use axagent_telemetry::{MemoryTelemetrySink, SessionTracer, TelemetryEvent};
     use std::fs;
     use std::path::PathBuf;
@@ -1433,10 +1431,12 @@ mod tests {
             self.call_count += 1;
             match self.call_count {
                 1 => {
-                    assert!(request
-                        .messages
-                        .iter()
-                        .any(|message| message.role == MessageRole::User));
+                    assert!(
+                        request
+                            .messages
+                            .iter()
+                            .any(|message| message.role == MessageRole::User)
+                    );
                     Ok(vec![
                         AssistantEvent::TextDelta("Let me calculate that.".to_string()),
                         AssistantEvent::ToolUse {
@@ -1759,10 +1759,12 @@ mod tests {
                         AssistantEvent::MessageStop,
                     ]),
                     2 => {
-                        assert!(request
-                            .messages
-                            .iter()
-                            .any(|message| message.role == MessageRole::Tool));
+                        assert!(
+                            request
+                                .messages
+                                .iter()
+                                .any(|message| message.role == MessageRole::Tool)
+                        );
                         Ok(vec![
                             AssistantEvent::TextDelta("done".to_string()),
                             AssistantEvent::MessageStop,
@@ -1828,10 +1830,12 @@ mod tests {
                         AssistantEvent::MessageStop,
                     ]),
                     2 => {
-                        assert!(request
-                            .messages
-                            .iter()
-                            .any(|message| message.role == MessageRole::Tool));
+                        assert!(
+                            request
+                                .messages
+                                .iter()
+                                .any(|message| message.role == MessageRole::Tool)
+                        );
                         Ok(vec![
                             AssistantEvent::TextDelta("done".to_string()),
                             AssistantEvent::MessageStop,
@@ -2291,9 +2295,11 @@ mod tests {
             .expect_err("empty stream without stop event should error");
 
         // then
-        assert!(error
-            .to_string()
-            .contains("assistant stream ended without a message stop event"));
+        assert!(
+            error
+                .to_string()
+                .contains("assistant stream ended without a message stop event")
+        );
     }
 
     #[test]
@@ -2306,9 +2312,11 @@ mod tests {
             build_assistant_message(events).expect_err("assistant messages should require content");
 
         // then
-        assert!(error
-            .to_string()
-            .contains("assistant stream produced no content"));
+        assert!(
+            error
+                .to_string()
+                .contains("assistant stream produced no content")
+        );
     }
 
     #[test]
@@ -2361,9 +2369,11 @@ mod tests {
             .expect_err("conversation loop should stop after the configured limit");
 
         // then
-        assert!(error
-            .to_string()
-            .contains("conversation loop exceeded the maximum number of iterations"));
+        assert!(
+            error
+                .to_string()
+                .contains("conversation loop exceeded the maximum number of iterations")
+        );
     }
 
     #[test]

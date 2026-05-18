@@ -1,7 +1,7 @@
 import { useNudgeStore } from "@/stores";
 import type { InsightCategory } from "@/types";
 import { Lightbulb } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const CATEGORY_COLORS: Record<InsightCategory, string> = {
@@ -18,19 +18,37 @@ const CATEGORY_LABELS: Record<InsightCategory, string> = {
   warning: "Warn",
 };
 
-export default function InsightPanel() {
+export function InsightPanel() {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [flushContent, setFlushContent] = useState("");
   const [flushTarget, setFlushTarget] = useState<"memory" | "user">("memory");
+  const [error, setError] = useState(false);
+  const mountedRef = useRef(true);
   const insights = useNudgeStore((s) => s.insights);
   const fetchInsights = useNudgeStore((s) => s.fetchInsights);
   const memoryFlush = useNudgeStore((s) => s.memoryFlush);
 
   useEffect(() => {
-    if (expanded) {
-      fetchInsights();
-    }
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!expanded) { return; }
+    const fetch = async () => {
+      try {
+        await fetchInsights();
+        if (mountedRef.current) { setError(false); }
+      } catch {
+        if (mountedRef.current) { setError(true); }
+      }
+    };
+    fetch();
+    const interval = setInterval(fetch, 30_000);
+    return () => clearInterval(interval);
   }, [expanded, fetchInsights]);
 
   const handleFlush = useCallback(async () => {
@@ -49,6 +67,7 @@ export default function InsightPanel() {
         >
           <Lightbulb size={14} />
           {t("chat.insightsMemory")} ({insights.length})
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
         </button>
       </div>
     );
@@ -58,20 +77,22 @@ export default function InsightPanel() {
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground/80">{t("chat.learningInsights")}</span>
-        <button
-          onClick={() => {
-            setExpanded(false);
-            setFlushContent("");
-          }}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          <button
+            onClick={() => {
+              setExpanded(false);
+              setFlushContent("");
+            }}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Insights list */}
       {insights.length > 0
         ? (
           <div className="max-h-32 overflow-y-auto space-y-1">
@@ -93,9 +114,8 @@ export default function InsightPanel() {
             ))}
           </div>
         )
-        : <div className="text-xs text-muted-foreground/60">{t("chat.noInsights")}</div>}
+        : <div className="text-xs text-muted-foreground/60">{error ? t("chat.loadError") : t("chat.noInsights")}</div>}
 
-      {/* Memory flush input */}
       <div className="space-y-1">
         <div className="text-[10px] text-muted-foreground">{t("chat.flushToMemory")}</div>
         <div className="flex items-center gap-1.5">

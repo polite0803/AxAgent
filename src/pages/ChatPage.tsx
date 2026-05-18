@@ -1,7 +1,7 @@
-import { AgentExecutionPanel } from "@/components/chat/AgentExecutionPanel";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import type { ChatViewScrollApi } from "@/components/chat/ChatView";
 import { ChatView } from "@/components/chat/ChatView";
+import { RightPanelContainer } from "@/components/chat/RightPanelContainer";
 import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
 import { TabBar } from "@/components/chat/TabBar";
 import { useConversationStore, useProviderStore, useSettingsStore, useTabStore } from "@/stores";
@@ -187,7 +187,7 @@ export function ChatPage() {
   const rightPanelContent = showRightPanel && scrollApi && activeConversationId
     ? (
       <ScrollToMessageProvider scrollTo={scrollApi.scrollTo} scrollBoxRef={scrollApi.scrollBoxRef}>
-        <AgentExecutionPanel
+        <RightPanelContainer
           conversationId={activeConversationId}
           compactMode={rightPanelCollapsed}
           onToggleCompact={toggleRightPanel}
@@ -311,7 +311,7 @@ export function ChatPage() {
           >
             {rightPanelCollapsed ? <ChevronRight size={14} /> : <PanelRight size={14} />}
           </button>
-          {/* 始终渲染 AgentExecutionPanel，由 compactMode 控制内部展示 */}
+          {/* 始终渲染右侧面板，由 compactMode 控制内部展示 */}
           {rightPanelContent || (
             <div
               style={{

@@ -2,18 +2,9 @@ import { PlusOutlined } from "@ant-design/icons";
 import { Button, Card, List, Space, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
+import { getSourceTypeColor, getSourceTypeName, type SearchResult } from "./researchUtils";
 
 const { Text, Title, Paragraph } = Typography;
-
-interface SearchResult {
-  id: string;
-  sourceType: string;
-  url: string;
-  title: string;
-  snippet: string;
-  credibilityScore: number | null;
-  relevanceScore: number;
-}
 
 interface ResearchSourcesProps {
   sources: SearchResult[];
@@ -21,36 +12,6 @@ interface ResearchSourcesProps {
   onAddToCitation?: (source: SearchResult) => void;
   selectedSourceId?: string | null;
   maxDisplay?: number;
-}
-
-function getSourceTypeColor(sourceType: string): string {
-  const colorMap: Record<string, string> = {
-    web: "blue",
-    academic: "green",
-    wikipedia: "cyan",
-    github: "purple",
-    documentation: "orange",
-    news: "magenta",
-    blog: "gold",
-    forum: "default",
-    unknown: "default",
-  };
-  return colorMap[sourceType.toLowerCase()] || "default";
-}
-
-function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
-  const nameMap: Record<string, string> = {
-    web: t("research.sourceTypeWeb"),
-    academic: t("research.sourceTypeAcademic"),
-    wikipedia: t("research.sourceTypeWikipedia"),
-    github: "GitHub",
-    documentation: t("research.sourceTypeDocumentation"),
-    news: t("research.sourceTypeNews"),
-    blog: t("research.sourceTypeBlog"),
-    forum: t("research.sourceTypeForum"),
-    unknown: t("research.sourceTypeUnknown"),
-  };
-  return nameMap[sourceType.toLowerCase()] || sourceType;
 }
 
 export function ResearchSources({
@@ -75,21 +36,28 @@ export function ResearchSources({
               selectedSourceId === item.id ? "bg-blue-50 border-l-4 border-blue-500" : ""
             }`}
             onClick={() => onSourceSelect?.(item)}
+            aria-label={`${item.title} - ${getSourceTypeName(item.sourceType, t)}`}
           >
             <List.Item.Meta
               title={
                 <Space>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={item.title}
+                  >
                     {item.title}
                   </a>
                   <Tag color={getSourceTypeColor(item.sourceType)}>
                     {getSourceTypeName(item.sourceType, t)}
                   </Tag>
-                  {item.relevanceScore > 0 && (
-                    <Tag color={item.relevanceScore > 0.7 ? "green" : item.relevanceScore > 0.4 ? "orange" : "red"}>
-                      {t("research.relevance")}: {Math.round(item.relevanceScore * 100)}%
-                    </Tag>
-                  )}
+                  <Tag color={item.relevanceScore > 0.7 ? "green" : item.relevanceScore > 0.4 ? "orange" : "red"}>
+                    {item.relevanceScore > 0
+                      ? `${t("research.relevance")}: ${Math.round(item.relevanceScore * 100)}%`
+                      : t("research.notEvaluated")}
+                  </Tag>
                 </Space>
               }
               description={
@@ -157,7 +125,7 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             {t("research.sourceTitle")}
           </Text>
           <div>
-            <a href={source.url} target="_blank" rel="noopener noreferrer">
+            <a href={source.url} target="_blank" rel="noopener noreferrer" aria-label={source.title}>
               {source.title}
             </a>
           </div>
@@ -179,7 +147,7 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
             URL
           </Text>
           <div className="truncate">
-            <a href={source.url} target="_blank" rel="noopener noreferrer">
+            <a href={source.url} target="_blank" rel="noopener noreferrer" aria-label={`URL: ${source.url}`}>
               {source.url}
             </a>
           </div>
@@ -231,4 +199,4 @@ export function SourceDetailPanel({ source, onAddToCitation }: SourceDetailPanel
   );
 }
 
-export default ResearchSources;
+export type { SearchResult };

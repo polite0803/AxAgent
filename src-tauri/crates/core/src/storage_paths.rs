@@ -1,4 +1,7 @@
 use std::path::{Path, PathBuf};
+// SAFETY: This RwLock is only accessed from synchronous code paths (init, set,
+// clear, and read in documents_root()). None of the callers hold the lock across
+// .await points, so std::sync::RwLock is safe here.
 use std::sync::RwLock;
 
 static DOCUMENTS_ROOT_OVERRIDE: RwLock<Option<PathBuf>> = RwLock::new(None);
@@ -6,10 +9,10 @@ static DOCUMENTS_ROOT_OVERRIDE: RwLock<Option<PathBuf>> = RwLock::new(None);
 /// Initialise the custom documents root from a stored setting.
 /// Call once during app startup; ignored if `custom` is `None`.
 pub fn init_documents_root(custom: Option<PathBuf>) {
-    if let Some(path) = custom {
-        if let Ok(mut guard) = DOCUMENTS_ROOT_OVERRIDE.write() {
-            *guard = Some(path);
-        }
+    if let Some(path) = custom
+        && let Ok(mut guard) = DOCUMENTS_ROOT_OVERRIDE.write()
+    {
+        *guard = Some(path);
     }
 }
 
@@ -32,10 +35,10 @@ pub fn clear_documents_root_override() {
 /// Returns the active documents root — custom override if set, otherwise the
 /// platform default (`~/Documents/axagent/`).
 pub fn documents_root() -> PathBuf {
-    if let Ok(guard) = DOCUMENTS_ROOT_OVERRIDE.read() {
-        if let Some(ref custom) = *guard {
-            return custom.clone();
-        }
+    if let Ok(guard) = DOCUMENTS_ROOT_OVERRIDE.read()
+        && let Some(ref custom) = *guard
+    {
+        return custom.clone();
     }
     default_documents_root()
 }

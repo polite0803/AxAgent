@@ -23,6 +23,7 @@ impl RAGPipeline {
     }
 
     /// 完整管线：检索 → 重排序 → 质检 → 返回上下文
+    #[allow(clippy::too_many_arguments)]
     pub async fn execute<S: rag::RAGSource + ?Sized>(
         &self,
         source: &S,

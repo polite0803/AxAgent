@@ -52,10 +52,10 @@ pub trait CacheLayer: Send + Sync {
 impl CacheLayer for InMemoryCache {
     async fn get(&self, key: &str) -> Option<Vec<u8>> {
         let store = self.store.read().await;
-        if let Some((value, expiry)) = store.get(key) {
-            if Instant::now() < *expiry {
-                return Some(value.clone());
-            }
+        if let Some((value, expiry)) = store.get(key)
+            && Instant::now() < *expiry
+        {
+            return Some(value.clone());
         }
         None
     }

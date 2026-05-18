@@ -24,7 +24,7 @@ pub async fn set_always_on_top(window: tauri::Window, enabled: bool) -> Result<(
 #[tauri::command]
 pub async fn set_close_to_tray(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let state = app.state::<AppState>();
-    state.close_to_tray.store(enabled, Ordering::Relaxed);
+    state.close_to_tray.store(enabled, Ordering::Release);
     Ok(())
 }
 
@@ -114,7 +114,35 @@ pub async fn test_proxy(
 ) -> Result<serde_json::Value, String> {
     use std::time::Instant;
     use tokio::net::TcpStream;
-    use tokio::time::{timeout, Duration};
+    use tokio::time::{Duration, timeout};
+
+    let is_private = proxy_address == "127.0.0.1"
+        || proxy_address == "localhost"
+        || proxy_address == "0.0.0.0"
+        || proxy_address == "::1"
+        || proxy_address.starts_with("10.")
+        || proxy_address.starts_with("192.168.")
+        || proxy_address.starts_with("169.254.")
+        || proxy_address.contains(':')
+        || !proxy_address
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_');
+
+    if !is_private {
+        if let Some(second_octet) = proxy_address
+            .strip_prefix("172.")
+            .and_then(|rest| rest.split('.').next())
+            .and_then(|s| s.parse::<u32>().ok())
+        {
+            if (16..=31).contains(&second_octet) {
+                return Err("Cannot test proxy with internal/private addresses".into());
+            }
+        }
+    }
+
+    if is_private {
+        return Err("Cannot test proxy with internal/private addresses".into());
+    }
 
     let addr = format!("{}:{}", proxy_address, proxy_port);
     let start = Instant::now();

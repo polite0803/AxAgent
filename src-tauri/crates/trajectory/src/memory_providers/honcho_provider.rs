@@ -46,10 +46,10 @@ impl MemoryProvider for HonchoProvider {
             return Ok(());
         }
 
-        if self.config.api_key.is_some() {
-            if let Err(e) = self.sync_to_remote(session_id, &entries).await {
-                tracing::warn!("Honcho remote sync failed, falling back to local cache: {}", e);
-            }
+        if self.config.api_key.is_some()
+            && let Err(e) = self.sync_to_remote(session_id, &entries).await
+        {
+            tracing::warn!("Honcho remote sync failed, falling back to local cache: {}", e);
         }
 
         let cache_key = format!("{}:{}", self.config.user_id, session_id);
@@ -90,25 +90,25 @@ impl MemoryProvider for HonchoProvider {
         let filtered: Vec<MemoryEntry> = cached
             .into_iter()
             .filter(|e| {
-                if let Some(types) = &query.memory_types {
-                    if !types.contains(&e.memory_type) {
-                        return false;
-                    }
+                if let Some(types) = &query.memory_types
+                    && !types.contains(&e.memory_type)
+                {
+                    return false;
                 }
-                if let Some(tags) = &query.tags {
-                    if !tags.iter().any(|t| e.tags.contains(t)) {
-                        return false;
-                    }
+                if let Some(tags) = &query.tags
+                    && !tags.iter().any(|t| e.tags.contains(t))
+                {
+                    return false;
                 }
-                if let Some(min_imp) = query.min_importance {
-                    if e.importance < min_imp {
-                        return false;
-                    }
+                if let Some(min_imp) = query.min_importance
+                    && e.importance < min_imp
+                {
+                    return false;
                 }
-                if let Some(tier) = &query.tier_filter {
-                    if e.tier != *tier {
-                        return false;
-                    }
+                if let Some(tier) = &query.tier_filter
+                    && e.tier != *tier
+                {
+                    return false;
                 }
                 true
             })

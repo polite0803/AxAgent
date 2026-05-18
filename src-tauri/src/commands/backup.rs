@@ -3,7 +3,7 @@ use axagent_core::repo::backup;
 use axagent_core::repo::settings::get_settings;
 use axagent_core::types::*;
 use sea_orm::DatabaseConnection;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;

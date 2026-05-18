@@ -319,13 +319,13 @@ fn render_project_context(project_context: &ProjectContext) -> String {
         lines.push("Git status snapshot:".to_string());
         lines.push(status.clone());
     }
-    if let Some(ref gc) = project_context.git_context {
-        if !gc.recent_commits.is_empty() {
-            lines.push(String::new());
-            lines.push("Recent commits (last 5):".to_string());
-            for c in &gc.recent_commits {
-                lines.push(format!("  {} {}", c.hash, c.subject));
-            }
+    if let Some(ref gc) = project_context.git_context
+        && !gc.recent_commits.is_empty()
+    {
+        lines.push(String::new());
+        lines.push("Recent commits (last 5):".to_string());
+        for c in &gc.recent_commits {
+            lines.push(format!("  {} {}", c.hash, c.subject));
         }
     }
     if let Some(diff) = &project_context.git_diff {
@@ -633,9 +633,9 @@ fn get_actions_section() -> String {
 #[cfg(test)]
 mod tests {
     use super::{
+        ContextFile, ProjectContext, SYSTEM_PROMPT_DYNAMIC_BOUNDARY, SystemPromptBuilder,
         collapse_blank_lines, display_context_path, normalize_instruction_content,
         render_instruction_content, render_instruction_files, truncate_instruction_content,
-        ContextFile, ProjectContext, SystemPromptBuilder, SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
     };
     use crate::config::ConfigLoader;
     use std::fs;
@@ -979,10 +979,12 @@ mod tests {
             .expect("write instructions.md");
 
         let context = ProjectContext::discover(&nested, "2026-03-31").expect("context should load");
-        assert!(context
-            .instruction_files
-            .iter()
-            .any(|file| file.path.ends_with(".claw/instructions.md")));
+        assert!(
+            context
+                .instruction_files
+                .iter()
+                .any(|file| file.path.ends_with(".claw/instructions.md"))
+        );
         assert!(
             render_instruction_files(&context.instruction_files).contains("instruction markdown")
         );

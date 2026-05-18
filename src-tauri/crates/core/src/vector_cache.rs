@@ -32,11 +32,12 @@ impl VectorSearchCache {
 
     pub async fn get(&self, key: &str, query_hash: u64) -> Option<Vec<VectorSearchResult>> {
         let cache = self.cache.read().await;
-        if let Some(entry) = cache.get(key) {
-            if entry.timestamp.elapsed() < self.ttl && entry.query_hash == query_hash {
-                self.hits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                return Some(entry.results.clone());
-            }
+        if let Some(entry) = cache.get(key)
+            && entry.timestamp.elapsed() < self.ttl
+            && entry.query_hash == query_hash
+        {
+            self.hits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            return Some(entry.results.clone());
         }
         self.misses
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);

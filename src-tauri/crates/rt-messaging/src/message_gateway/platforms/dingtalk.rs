@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
@@ -75,42 +75,39 @@ impl PlatformAdapter for DingtalkAdapter {
                     break;
                 }
 
-                if let Some(ref rc) = robot_code {
-                    if let Ok(msgs) =
+                if let Some(ref rc) = robot_code
+                    && let Ok(msgs) =
                         poll_dingtalk_robot_msgs(&client, &token, rc, last_msg_time).await
-                    {
-                        for (sender_id, text, conversation_id) in msgs {
-                            last_msg_time = chrono::Utc::now().timestamp_millis();
-                            tracing::info!(
-                                "Dingtalk msg: {} in {}: {}",
-                                sender_id,
-                                conversation_id,
-                                text
-                            );
+                {
+                    for (sender_id, text, conversation_id) in msgs {
+                        last_msg_time = chrono::Utc::now().timestamp_millis();
+                        tracing::debug!(
+                            "Dingtalk msg: {} chars from {} in {}",
+                            text.len(),
+                            sender_id,
+                            conversation_id,
+                        );
 
-                            if let Some(cb) =
-                                crate::message_gateway::platforms::get_message_callback()
-                            {
-                                let bt = token.clone();
-                                let sid = sender_id.clone();
-                                let t = text.clone();
-                                let agent = rc.clone();
-                                let cid = conversation_id.clone();
-                                tokio::spawn(async move {
-                                    let reply =
-                                        cb.on_message("dingtalk", &sid, None, &cid, &t).await;
-                                    if let Some(reply_text) = reply {
-                                        let _ = send_dingtalk_message(
-                                            &reqwest::Client::new(),
-                                            &bt,
-                                            &agent,
-                                            &sid,
-                                            &reply_text,
-                                        )
-                                        .await;
-                                    }
-                                });
-                            }
+                        if let Some(cb) = crate::message_gateway::platforms::get_message_callback()
+                        {
+                            let bt = token.clone();
+                            let sid = sender_id.clone();
+                            let t = text.clone();
+                            let agent = rc.clone();
+                            let cid = conversation_id.clone();
+                            tokio::spawn(async move {
+                                let reply = cb.on_message("dingtalk", &sid, None, &cid, &t).await;
+                                if let Some(reply_text) = reply {
+                                    let _ = send_dingtalk_message(
+                                        &reqwest::Client::new(),
+                                        &bt,
+                                        &agent,
+                                        &sid,
+                                        &reply_text,
+                                    )
+                                    .await;
+                                }
+                            });
                         }
                     }
                 }
@@ -194,14 +191,14 @@ pub async fn fetch_dingtalk_token(
     let resp = client.get(&url).send().await?;
     let body: serde_json::Value = resp.json().await?;
 
-    if let Some(errcode) = body.get("errcode").and_then(|v| v.as_i64()) {
-        if errcode != 0 {
-            let errmsg = body
-                .get("errmsg")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown");
-            anyhow::bail!("Dingtalk token error: errcode={}, errmsg={}", errcode, errmsg);
-        }
+    if let Some(errcode) = body.get("errcode").and_then(|v| v.as_i64())
+        && errcode != 0
+    {
+        let errmsg = body
+            .get("errmsg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        anyhow::bail!("Dingtalk token error: errcode={}, errmsg={}", errcode, errmsg);
     }
 
     body.get("access_token")
@@ -279,14 +276,14 @@ async fn send_dingtalk_message(
         .await?;
 
     let json: serde_json::Value = resp.json().await?;
-    if let Some(errcode) = json.get("errcode").and_then(|v| v.as_i64()) {
-        if errcode != 0 {
-            let errmsg = json
-                .get("errmsg")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown");
-            anyhow::bail!("Dingtalk send failed: errcode={}, errmsg={}", errcode, errmsg);
-        }
+    if let Some(errcode) = json.get("errcode").and_then(|v| v.as_i64())
+        && errcode != 0
+    {
+        let errmsg = json
+            .get("errmsg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        anyhow::bail!("Dingtalk send failed: errcode={}, errmsg={}", errcode, errmsg);
     }
     Ok(())
 }

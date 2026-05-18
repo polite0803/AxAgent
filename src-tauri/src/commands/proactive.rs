@@ -4,8 +4,9 @@ use axagent_trajectory::{
     ContextFeatures, ContextPredictor, PredictionResult as TrajectoryPredictionResult,
     ProactiveAssistant, ProactiveConfig as TrajProactiveConfig,
     ProactiveSuggestion as TrajProactiveSuggestion, Reminder as TrajReminder, ReminderRecurrence,
-    SuggestionAction,
+    SuggestionAction, SuggestionEngine, TaskPrefetcher,
 };
+use axagent_trajectory::{PrefetchResult, PrefetchResults, PrefetchType};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -242,18 +243,12 @@ impl From<ProactiveConfig> for TrajProactiveConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PrefetchResults {
-    pub results: Vec<serde_json::Value>,
-    #[serde(rename = "total_estimated_time_ms")]
-    pub total_estimated_time_ms: i64,
-    #[serde(rename = "critical_path")]
-    pub critical_path: Vec<String>,
-}
-
 pub struct ProactiveService {
     assistant: ProactiveAssistant,
     predictor: ContextPredictor,
+    suggestion_engine: SuggestionEngine,
+    #[allow(dead_code)]
+    prefetcher: TaskPrefetcher,
 }
 
 impl ProactiveService {
@@ -261,6 +256,8 @@ impl ProactiveService {
         Self {
             assistant: ProactiveAssistant::new(),
             predictor: ContextPredictor::new(),
+            suggestion_engine: SuggestionEngine::new(),
+            prefetcher: TaskPrefetcher::new(),
         }
     }
 
@@ -270,6 +267,27 @@ impl ProactiveService {
             .iter()
             .map(|s| ProactiveSuggestion::from(*s))
             .collect()
+    }
+
+    pub fn refresh_suggestions(&mut self, features: ContextFeatures) -> Vec<ProactiveSuggestion> {
+        if !self.assistant.is_enabled() {
+            return vec![];
+        }
+
+        self.assistant.cleanup_expired();
+
+        let prediction_result = self.predictor.predict(&features);
+
+        for prediction in &prediction_result.predictions {
+            let new_suggestions = self
+                .suggestion_engine
+                .generate_suggestions(&features, prediction, None);
+            for suggestion in new_suggestions {
+                self.assistant.add_suggestion(suggestion);
+            }
+        }
+
+        self.get_suggestions()
     }
 
     pub fn dismiss_suggestion(&mut self, id: &str) -> bool {
@@ -325,6 +343,58 @@ impl ProactiveService {
     pub fn is_enabled(&self) -> bool {
         self.assistant.is_enabled()
     }
+
+    pub fn prefetch_for_predictions(
+        &mut self,
+        predictions: &[serde_json::Value],
+    ) -> PrefetchResults {
+        let mut results = PrefetchResults::new();
+
+        for pred in predictions {
+            let intent_type = pred
+                .get("predicted_intent")
+                .and_then(|v| v.get("type"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+
+            let id = pred
+                .get("resource_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+
+            let (prefetch_type, estimated_ms) = match intent_type {
+                "CodeCompletion" => (PrefetchType::CodeCompletion, 200),
+                "Search" => (PrefetchType::SearchResults, 200),
+                "Documentation" => (PrefetchType::Documentation, 500),
+                "Refactoring" => (PrefetchType::ContextAnalysis, 800),
+                "TestGeneration" => (PrefetchType::ContextAnalysis, 600),
+                "Debug" => (PrefetchType::ContextAnalysis, 300),
+                _ => continue,
+            };
+
+            if let Some(cached) = self.prefetcher.get_cached(&id) {
+                results.add(cached.clone());
+                results.critical_path.push(id.clone());
+                continue;
+            }
+
+            let result = PrefetchResult {
+                prefetch_type,
+                resource_id: id.clone(),
+                data: None,
+                ready: false,
+                estimated_prepare_time_ms: estimated_ms,
+                created_at: Utc::now(),
+            };
+
+            self.prefetcher.cache_result(result.clone());
+            results.add(result);
+            results.critical_path.push(id);
+        }
+
+        results
+    }
 }
 
 impl Default for ProactiveService {
@@ -339,6 +409,18 @@ pub async fn proactive_list_suggestions(
 ) -> Result<Vec<ProactiveSuggestion>, String> {
     let service = state.proactive_service.read().await;
     Ok(service.get_suggestions())
+}
+
+#[tauri::command]
+pub async fn proactive_refresh_suggestions(
+    state: State<'_, AppState>,
+    context: serde_json::Value,
+) -> Result<Vec<ProactiveSuggestion>, String> {
+    let features: ContextFeatures = serde_json::from_value(context)
+        .map_err(|e| format!("Failed to parse context features: {}", e))?;
+
+    let mut service = state.proactive_service.write().await;
+    Ok(service.refresh_suggestions(features))
 }
 
 #[tauri::command]
@@ -488,30 +570,9 @@ pub async fn proactive_update_config(
 
 #[tauri::command]
 pub async fn proactive_prefetch(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     predictions: Vec<serde_json::Value>,
 ) -> Result<PrefetchResults, String> {
-    let mut results = Vec::new();
-    let start = std::time::Instant::now();
-
-    for pred in &predictions {
-        let intent = pred
-            .get("intent")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
-        let id = pred.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
-        let prefetched = matches!(intent, "code_completion" | "file_access" | "search");
-        results.push(serde_json::json!({
-            "prediction_id": id,
-            "prefetched": prefetched,
-            "resource_type": intent,
-            "duration_ms": 0,
-        }));
-    }
-
-    Ok(PrefetchResults {
-        results: vec![],
-        total_estimated_time_ms: start.elapsed().as_millis() as i64,
-        critical_path: vec![],
-    })
+    let mut service = state.proactive_service.write().await;
+    Ok(service.prefetch_for_predictions(&predictions))
 }

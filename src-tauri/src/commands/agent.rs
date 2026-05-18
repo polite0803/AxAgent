@@ -7,7 +7,7 @@ use axagent_core::types::{
     ProviderProxyConfig,
 };
 use axagent_core::workspace_uri::WorkspaceUri;
-use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext};
+use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use axagent_runtime::workflow_engine::SessionCallback;
 use axagent_tools::context_keys;
 use base64::Engine;
@@ -211,10 +211,15 @@ impl Drop for AsyncRunningAgentGuard {
     fn drop(&mut self) {
         let running_agents = self.running_agents.clone();
         let conversation_id = self.conversation_id.clone();
-        tokio::spawn(async move {
-            let mut agents = running_agents.write().await;
+        if let Ok(_handle) = tokio::runtime::Handle::try_current() {
+            tokio::spawn(async move {
+                let mut agents = running_agents.write().await;
+                agents.remove(&conversation_id);
+            });
+        } else {
+            let mut agents = running_agents.blocking_write();
             agents.remove(&conversation_id);
-        });
+        }
     }
 }
 
@@ -281,6 +286,7 @@ pub struct AgentErrorPayload {
     pub message: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentToolStartPayload {
     #[serde(rename = "conversationId")]
@@ -309,6 +315,7 @@ pub struct AgentToolUsePayload {
     pub execution_id: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentToolResultPayload {
     #[serde(rename = "conversationId")]
@@ -344,6 +351,7 @@ pub struct AgentStreamThinkingPayload {
     pub thinking: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentPermissionPayload {
     #[serde(rename = "conversationId")]
@@ -359,6 +367,7 @@ pub struct AgentPermissionPayload {
     pub request_id: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubAgentCardPayload {
     #[serde(rename = "conversationId")]
@@ -514,6 +523,7 @@ pub struct AgentGetSessionResponse {
 #[derive(Debug, Deserialize)]
 pub struct AgentEnsureWorkspaceRequest {
     #[serde(rename = "conversationId")]
+    #[allow(dead_code)]
     pub conversation_id: String,
     #[serde(rename = "workspaceUri")]
     pub workspace_uri: Option<String>,
@@ -646,7 +656,7 @@ pub async fn agent_query(
     // Insert into running_agents and create the RAII guard atomically
     // (within the same lock scope) to prevent a race where another
     // agent_query could slip in between the insert and guard creation.
-    let _guard = {
+    let mut _guard = Some({
         let mut running = app_state.running_agents.write().await;
         if running.contains(&conversation_id) {
             return Err("Agent already running for this conversation".to_string());
@@ -656,7 +666,7 @@ pub async fn agent_query(
             conversation_id: conversation_id.clone(),
             running_agents: app_state.running_agents.clone(),
         }
-    };
+    });
 
     // Set workflow_status to "running" for workflow-type sessions
     if conversation.session_type == "workflow" {
@@ -1341,11 +1351,7 @@ pub async fn agent_query(
     let working_memory_text = {
         let ms = app_state.memory_service.read().await;
         let wm = ms.format_for_prompt();
-        if wm.is_empty() {
-            None
-        } else {
-            Some(wm)
-        }
+        if wm.is_empty() { None } else { Some(wm) }
     };
 
     // Generate nudge messages from NudgeService (skill creation reminders, memory save suggestions, etc.)
@@ -1453,11 +1459,7 @@ pub async fn agent_query(
     let user_profile_text = {
         let profile = app_state.user_profile.read().await;
         let text = profile.format_for_prompt();
-        if text.is_empty() {
-            None
-        } else {
-            Some(text)
-        }
+        if text.is_empty() { None } else { Some(text) }
     };
     let adaptation_hint_text = {
         let mut rl = app_state.realtime_learning.lock().await;
@@ -1513,11 +1515,7 @@ pub async fn agent_query(
                 hint.push_str(&format!("Additional adjustments: {}", adjustments.join("; ")));
             }
         }
-        if hint.is_empty() {
-            None
-        } else {
-            Some(hint)
-        }
+        if hint.is_empty() { None } else { Some(hint) }
     };
 
     // Retrieve workspace root from agent session DB record before building system prompt
@@ -1568,6 +1566,23 @@ pub async fn agent_query(
         adaptation_hint_text.as_deref(),
         workspace_root_for_prompt.as_deref(),
         app_language.as_deref(),
+        {
+            let mut q = steer_queue().lock().await;
+            if q.is_empty() {
+                None
+            } else {
+                let instructions = std::mem::take(&mut *q);
+                drop(q);
+                let formatted: String = instructions
+                    .iter()
+                    .enumerate()
+                    .map(|(i, inst)| format!("- [steer-{}] {}", i, inst))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                info!("[agent_query] Injecting {} steer instruction(s)", instructions.len());
+                Some(formatted)
+            }
+        },
     );
 
     // Attach image URLs to the API client for multimodal support
@@ -1648,6 +1663,37 @@ pub async fn agent_query(
         tokens.insert(conversation_id.clone(), cancel_token.clone());
     }
 
+    // Drain steer queue and inject instructions into the prompt
+    let augmented_input = {
+        let mut queue = steer_queue().lock().await;
+        if queue.is_empty() {
+            request.input.clone()
+        } else {
+            let instructions: Vec<String> = queue.drain(..).collect();
+            info!(
+                "[agent_query] Injecting {} steer instruction(s): {:?}",
+                instructions.len(),
+                instructions
+            );
+            emit_status(
+                &app,
+                &conversation_id,
+                "steer_applied",
+                &format!("已应用 {} 条引导指令", instructions.len()),
+            );
+            format!(
+                "{}\n[系统提示：用户发送了以下引导指令，请在后续操作中遵循这些指引]\n{}",
+                request.input,
+                instructions
+                    .iter()
+                    .enumerate()
+                    .map(|(i, instr)| format!("{}. {}", i + 1, instr))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            )
+        }
+    };
+
     // P4: Save input for trajectory recording (request.input is moved below)
     let trajectory_input = request.input.clone();
 
@@ -1657,7 +1703,7 @@ pub async fn agent_query(
     > = session_manager
         .run_turn_with_tools(
             &session_id,
-            request.input.clone(),
+            augmented_input,
             api_client,
             tool_registry,
             system_prompt,
@@ -1677,13 +1723,13 @@ pub async fn agent_query(
 
     // Eagerly and synchronously remove from running_agents to close the
     // race window where a second agent_query could slip in before the
-    // RAII guard's tokio::spawn runs.  Forget the guard afterwards so its
-    // Drop doesn't double-remove.
+    // RAII guard's tokio::spawn runs.  Consume the guard via Option::take()
+    // so its Drop doesn't double-remove.
     {
         let mut running = app_state.running_agents.write().await;
         running.remove(&conversation_id);
     }
-    std::mem::forget(_guard);
+    _guard.take();
 
     // Persist the updated always-allowed set back to AppState
     {
@@ -1753,22 +1799,28 @@ pub async fn agent_query(
             .map_err(|e| e.to_string())?;
 
             // Update token usage stats on the assistant message
-            let _ = message::update_message_usage(
+            if let Err(e) = message::update_message_usage(
                 &app_state.sea_db,
                 &assistant_message.id,
                 Some(summary.usage.input_tokens as i64),
                 Some(summary.usage.output_tokens as i64),
             )
-            .await;
+            .await
+            {
+                tracing::warn!("Failed to update message usage: {}", e);
+            }
 
             // Persist thinking content to the message record
             if !summary.thinking.is_empty() {
-                let _ = message::update_message_thinking(
+                if let Err(e) = message::update_message_thinking(
                     &app_state.sea_db,
                     &assistant_message.id,
                     Some(&summary.thinking),
                 )
-                .await;
+                .await
+                {
+                    tracing::warn!("Failed to update message thinking: {}", e);
+                }
             }
 
             // Emit agent-message-id event so the frontend can remap the
@@ -2040,7 +2092,9 @@ pub async fn agent_query(
                             let mut updated = trajectory.clone();
                             updated.rewards = rewards;
                             updated.value_score = (updated.value_score + total_reward) / 2.0;
-                            let _ = storage.save_trajectory(&updated);
+                            if let Err(e) = storage.save_trajectory(&updated) {
+                                tracing::warn!("Failed to save trajectory: {}", e);
+                            }
                         }
                     }
 
@@ -2048,8 +2102,12 @@ pub async fn agent_query(
                     {
                         let mut proposal_service = app_state.skill_proposal_service.write().await;
                         if let Some(proposal) = proposal_service.analyze_and_propose(&trajectory) {
-                            tracing::info!("[P4-Skill] Proposed new skill '{}' from trajectory {} (confidence={:.2})",
-                                proposal.suggested_name, &trajectory.id[..8], proposal.confidence);
+                            tracing::info!(
+                                "[P4-Skill] Proposed new skill '{}' from trajectory {} (confidence={:.2})",
+                                proposal.suggested_name,
+                                &trajectory.id[..8],
+                                proposal.confidence
+                            );
                             let mut is = app_state.insight_system.write().await;
                             is.add_insight(axagent_trajectory::LearningInsight {
                                 id: format!(
@@ -2620,7 +2678,7 @@ fn create_llm_step_executor(
                 // 3. Fallback: step.agent_role default system_prompt
                 let effective_role = step.agent_role_override.unwrap_or(step.agent_role);
 
-                let system_prompt = if let (Some(ref profile_id), Some(db)) =
+                let system_prompt = if let (Some(profile_id), Some(db)) =
                     (&step.agent_profile_id, &db)
                 {
                     match axagent_core::repo::agent_profile::get_agent_profile(
@@ -3165,11 +3223,11 @@ async fn execute_skill_async(
                         Ok(workflow) => match runner.run(&workflow.id).await {
                             Ok(completed_workflow) => {
                                 message = format!(
-                                        "Skill '{}' workflow completed (editor opened for saving). {} steps executed. Task: {}",
-                                        skill_name,
-                                        completed_workflow.steps.len(),
-                                        task
-                                    );
+                                    "Skill '{}' workflow completed (editor opened for saving). {} steps executed. Task: {}",
+                                    skill_name,
+                                    completed_workflow.steps.len(),
+                                    task
+                                );
                             },
                             Err(e) => {
                                 message = format!(
@@ -3324,10 +3382,17 @@ fn execute_skill_sync(
     ctx: &SkillExecutionContext,
 ) -> Result<String, String> {
     let ctx = ctx.clone();
-    let handle = tokio::runtime::Handle::current();
-    tokio::task::block_in_place(|| {
-        handle.block_on(execute_skill_async(skill_id, skill_name, skill_content, input, &ctx))
-    })
+    let s_id = skill_id.to_string();
+    let s_name = skill_name.to_string();
+    let s_content = skill_content.to_string();
+    let s_input = input.to_string();
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        handle.block_on(execute_skill_async(&s_id, &s_name, &s_content, &s_input, &ctx))
+    } else {
+        let rt =
+            tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {e}"))?;
+        rt.block_on(execute_skill_async(&s_id, &s_name, &s_content, &s_input, &ctx))
+    }
 }
 
 /// Build the system prompt for the agent mode.
@@ -3348,6 +3413,7 @@ fn build_agent_system_prompt(
     adaptation_hint: Option<&str>,
     workspace_root: Option<&str>,
     output_language: Option<&str>,
+    steer_instructions: Option<String>,
 ) -> Vec<String> {
     let mut prompts = Vec::new();
 
@@ -3467,6 +3533,16 @@ fn build_agent_system_prompt(
         }
     }
 
+    // Inject steer instructions — real-time human steering commands
+    if let Some(ref steer) = steer_instructions {
+        if !steer.is_empty() {
+            prompts.push(format!(
+                "<steer-instructions type=\"temporary\">\n# Steer Instructions\n\nThe following steering instructions were provided by the user in real time. They take priority over any conflicting default behavior. Follow them carefully:\n\n{}\n</steer-instructions>",
+                steer
+            ));
+        }
+    }
+
     if let Some(lang) = output_language {
         if !lang.is_empty() {
             let already_present = prompts
@@ -3509,7 +3585,10 @@ pub async fn agent_approve(
     if let Some(prompter) = prompters.get(&request.conversation_id) {
         let delivered = prompter.deliver_decision(&request.tool_use_id, decision);
         if !delivered {
-            info!("[agent_approve] No pending sender for toolUseId={}, may have already been resolved", request.tool_use_id);
+            info!(
+                "[agent_approve] No pending sender for toolUseId={}, may have already been resolved",
+                request.tool_use_id
+            );
         }
     } else {
         info!(
@@ -3520,20 +3599,26 @@ pub async fn agent_approve(
     drop(prompters);
 
     // If "allow_always", add the tool to the always-allowed set for this conversation
+    // Lock ordering: agent_prompters → agent_always_allowed (never hold both simultaneously)
     if request.decision == "allow_always" {
         // Use the tool_name (sent by frontend) as the key for always_allowed,
         // because ChannelPermissionPrompter::decide() checks by tool_name.
         // Fall back to tool_use_id if tool_name is not provided (backward compat).
         let always_key = request.tool_name.as_deref().unwrap_or(&request.tool_use_id);
 
-        let mut always = app_state.agent_always_allowed.lock().await;
-        let entry = always.entry(request.conversation_id.clone()).or_default();
-        entry.insert(always_key.to_string());
+        // Update the prompter's always_allowed set first (lock ordering: prompters before always_allowed)
+        {
+            let prompters = app_state.agent_prompters.lock().await;
+            if let Some(prompter) = prompters.get(&request.conversation_id) {
+                prompter.add_always_allowed(always_key);
+            }
+        }
 
-        // Also update the prompter's always_allowed set if it exists
-        let prompters = app_state.agent_prompters.lock().await;
-        if let Some(prompter) = prompters.get(&request.conversation_id) {
-            prompter.add_always_allowed(always_key);
+        // Then update the global always_allowed map (prompters lock already dropped)
+        {
+            let mut always = app_state.agent_always_allowed.lock().await;
+            let entry = always.entry(request.conversation_id.clone()).or_default();
+            entry.insert(always_key.to_string());
         }
     }
 
@@ -3585,7 +3670,10 @@ pub async fn agent_cancel(
             token.store(true, std::sync::atomic::Ordering::Release);
             info!("[agent_cancel] Set cancel token for conversationId={}", request.conversation_id);
         } else {
-            info!("[agent_cancel] No cancel token found for conversationId={} (may have already completed)", request.conversation_id);
+            info!(
+                "[agent_cancel] No cancel token found for conversationId={} (may have already completed)",
+                request.conversation_id
+            );
         }
     }
 
@@ -3754,11 +3842,7 @@ pub async fn agent_runtime_stats(
         // An agent is actively processing tool calls if it's running and has
         // pending permission requests (tools waiting for approval) or if it's
         // running but not paused (tools executing after approval).
-        if running && !paused {
-            1
-        } else {
-            0
-        }
+        if running && !paused { 1 } else { 0 }
     };
 
     Ok(AgentRuntimeStats {
@@ -5271,7 +5355,10 @@ pub async fn agent_steer(
     _state: tauri::State<'_, AppState>,
     instruction: String,
 ) -> Result<(), String> {
-    tracing::info!("[agent_steer] instruction queued: {}", instruction);
+    if instruction.len() > 10_000 {
+        return Err("instruction too long (max 10KB)".into());
+    }
+    tracing::debug!("[agent_steer] instruction queued ({} bytes)", instruction.len());
     steer_queue().lock().await.push(instruction);
     Ok(())
 }

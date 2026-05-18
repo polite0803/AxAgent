@@ -165,7 +165,7 @@ impl Tool for ComputerUseTool {
                         "未知操作: {}。支持: screenshot, click, type, key, scroll, move",
                         action
                     ),
-                ))
+                ));
             },
         };
 

@@ -13,6 +13,11 @@ interface AuthorizationResponse {
   message: string;
 }
 
+export interface FilePermissionRequest {
+  path: string;
+  reason?: string;
+}
+
 interface FilePermissionDialogProps {
   open: boolean;
   onClose: () => void;
@@ -37,6 +42,8 @@ export function FilePermissionDialog({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AuthorizationResponse | null>(null);
 
+  const clampedDuration = Math.max(5, Math.min(1440, duration));
+
   const handleAuthorize = async () => {
     setLoading(true);
     try {
@@ -45,7 +52,7 @@ export function FilePermissionDialog({
           path,
           level,
           reason: customReason,
-          duration_minutes: level === "temp" ? duration : undefined,
+          duration_minutes: level === "temp" ? clampedDuration : undefined,
           auto_renew: true,
         },
       });
@@ -77,12 +84,26 @@ export function FilePermissionDialog({
     }
   };
 
+  const handleClose = () => {
+    setResult(null);
+    setLevel("temp");
+    setDuration(30);
+    onClose();
+  };
+
   const levelLabels: Record<PermissionLevel, { label: string; desc: string }> = {
     read: { label: t("filePermission.levelRead"), desc: t("filePermission.levelReadDesc") },
     write: { label: t("filePermission.levelWrite"), desc: t("filePermission.levelWriteDesc") },
     readwrite: { label: t("filePermission.levelReadWrite"), desc: t("filePermission.levelReadWriteDesc") },
     temp: { label: t("filePermission.levelTemp"), desc: t("filePermission.levelTempDesc") },
   };
+
+  const onDurationChange = (value: number) => {
+    if (isNaN(value)) { return; }
+    setDuration(value);
+  };
+
+  const isAuthorized = result?.authorized;
 
   return (
     <Modal
@@ -93,9 +114,11 @@ export function FilePermissionDialog({
         </Space>
       }
       open={open}
-      onCancel={onClose}
+      onCancel={handleClose}
       footer={null}
       width={500}
+      destroyOnClose
+      maskClosable={!loading}
     >
       {!result
         ? (
@@ -118,7 +141,6 @@ export function FilePermissionDialog({
             <Descriptions column={1} size="small">
               <Descriptions.Item label={t("filePermission.requestReason")}>
                 <Input.TextArea
-                  id="file-permission-dialog-input-textarea-21"
                   value={customReason}
                   onChange={(e) => setCustomReason(e.target.value)}
                   placeholder={t("filePermission.purposePlaceholder")}
@@ -151,10 +173,10 @@ export function FilePermissionDialog({
                 <Typography.Text strong>{t("filePermission.authDuration")}</Typography.Text>
                 <Space style={{ marginTop: 8 }}>
                   <Input
-                    id="file-permission-dialog-input-22"
                     type="number"
                     value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
+                    onChange={(e) => onDurationChange(Number(e.target.value))}
+                    onBlur={() => setDuration(clampedDuration)}
                     style={{ width: 80 }}
                     min={5}
                     max={1440}
@@ -193,7 +215,9 @@ export function FilePermissionDialog({
             )}
 
             <Space style={{ width: "100%", justifyContent: "flex-end" }}>
-              <Button onClick={onClose}>{t("filePermission.deny")}</Button>
+              <Button onClick={handleClose} disabled={loading}>
+                {t("filePermission.deny")}
+              </Button>
               <Button type="primary" onClick={handleAuthorize} loading={loading}>
                 {t("filePermission.authorize")}
               </Button>
@@ -202,7 +226,7 @@ export function FilePermissionDialog({
         )
         : (
           <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            {result.authorized
+            {isAuthorized
               ? (
                 <>
                   <Alert
@@ -230,7 +254,7 @@ export function FilePermissionDialog({
                     <Button onClick={handleRevoke} danger>
                       {t("filePermission.revoke")}
                     </Button>
-                    <Button type="primary" onClick={onClose}>
+                    <Button type="primary" onClick={handleClose}>
                       {t("filePermission.done")}
                     </Button>
                   </Space>
@@ -245,7 +269,7 @@ export function FilePermissionDialog({
                     description={result.message}
                   />
                   <Space style={{ width: "100%", justifyContent: "flex-end" }}>
-                    <Button onClick={onClose}>{t("filePermission.close")}</Button>
+                    <Button onClick={handleClose}>{t("filePermission.close")}</Button>
                   </Space>
                 </>
               )}

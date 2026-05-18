@@ -29,6 +29,7 @@ fn model_to_stored_file(m: stored_files::Model) -> StoredFile {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_stored_file(
     db: &DatabaseConnection,
     id: &str,

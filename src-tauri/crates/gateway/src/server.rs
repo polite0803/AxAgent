@@ -1,16 +1,16 @@
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use axum::{
+    Router,
     body::Body,
     extract::State as AxumState,
-    http::{header, Request, StatusCode},
+    http::{Request, StatusCode, header},
     response::{IntoResponse, Response},
-    Router,
 };
-use axum_server::{tls_rustls::RustlsConfig, Handle};
+use axum_server::{Handle, tls_rustls::RustlsConfig};
 use sea_orm::DatabaseConnection;
 use tokio::task::JoinHandle;
 

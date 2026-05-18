@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
+use portable_pty::{CommandBuilder, MasterPty, PtySize, native_pty_system};
 use std::collections::HashMap;
 use std::io::Write;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 
 use super::backend_trait::{
     BackendType, SpawnConfig, TerminalBackend, TerminalExit, TerminalOutput,

@@ -41,7 +41,7 @@ pub struct CacheEntry {
     pub hit_count: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct CacheStats {
     pub total_entries: usize,
     pub active_entries: usize,

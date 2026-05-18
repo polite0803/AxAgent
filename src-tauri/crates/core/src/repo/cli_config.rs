@@ -113,11 +113,7 @@ fn run_version_command(cmd: &str, arg: &str) -> Option<String> {
         .filter(|o| o.status.success())
         .and_then(|o| {
             let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
-            if out.is_empty() {
-                None
-            } else {
-                Some(out)
-            }
+            if out.is_empty() { None } else { Some(out) }
         })
 }
 
@@ -934,10 +930,10 @@ fn remove_json_provider(path: &Path, provider_name: &str) -> Result<()> {
         .map_err(|e| AxAgentError::Gateway(format!("Failed to read: {}", e)))?;
     let mut json: serde_json::Value = serde_json::from_str(&content)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to parse JSON: {}", e)))?;
-    if let Some(obj) = json.as_object_mut() {
-        if let Some(provider) = obj.get_mut("provider").and_then(|p| p.as_object_mut()) {
-            provider.remove(provider_name);
-        }
+    if let Some(obj) = json.as_object_mut()
+        && let Some(provider) = obj.get_mut("provider").and_then(|p| p.as_object_mut())
+    {
+        provider.remove(provider_name);
     }
     let output = serde_json::to_string_pretty(&json)
         .map_err(|e| AxAgentError::Gateway(format!("Failed to serialize JSON: {}", e)))?;
@@ -988,11 +984,11 @@ fn remove_claude_settings_gateway_fields(path: &Path, gateway_url: &str) -> Resu
             .and_then(|env| env.get("ANTHROPIC_BASE_URL"))
             .and_then(|v| v.as_str())
             == Some(gateway_url);
-        if remove_anthropic_env {
-            if let Some(env) = obj.get_mut("env").and_then(|value| value.as_object_mut()) {
-                env.remove("ANTHROPIC_BASE_URL");
-                env.remove("ANTHROPIC_AUTH_TOKEN");
-            }
+        if remove_anthropic_env
+            && let Some(env) = obj.get_mut("env").and_then(|value| value.as_object_mut())
+        {
+            env.remove("ANTHROPIC_BASE_URL");
+            env.remove("ANTHROPIC_AUTH_TOKEN");
         }
     }
 
@@ -1012,18 +1008,18 @@ fn remove_gemini_settings_selected_type(path: &Path) -> Result<()> {
 
     if let Some(obj) = json.as_object_mut() {
         // Only remove selectedType if it's "gemini-api-key"
-        if let Some(security) = obj.get_mut("security").and_then(|s| s.as_object_mut()) {
-            if let Some(auth) = security.get_mut("auth").and_then(|a| a.as_object_mut()) {
-                if auth.get("selectedType").and_then(|v| v.as_str()) == Some("gemini-api-key") {
-                    auth.remove("selectedType");
-                    // Clean up empty auth and security objects
-                    if auth.is_empty() {
-                        security.remove("auth");
-                    }
+        if let Some(security) = obj.get_mut("security").and_then(|s| s.as_object_mut())
+            && let Some(auth) = security.get_mut("auth").and_then(|a| a.as_object_mut())
+        {
+            if auth.get("selectedType").and_then(|v| v.as_str()) == Some("gemini-api-key") {
+                auth.remove("selectedType");
+                // Clean up empty auth and security objects
+                if auth.is_empty() {
+                    security.remove("auth");
                 }
-                if security.is_empty() {
-                    obj.remove("security");
-                }
+            }
+            if security.is_empty() {
+                obj.remove("security");
             }
         }
     }

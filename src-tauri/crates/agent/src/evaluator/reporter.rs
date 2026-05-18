@@ -369,21 +369,21 @@ mod tests {
 
     #[test]
     fn test_report_generator_new() {
-        let gen = ReportGenerator::new();
-        assert!(gen.include_recommendations);
+        let generator = ReportGenerator::new();
+        assert!(generator.include_recommendations);
     }
 
     #[test]
     fn test_report_generator_with_recommendations_false() {
-        let gen = ReportGenerator::new().with_recommendations(false);
-        assert!(!gen.include_recommendations);
+        let generator = ReportGenerator::new().with_recommendations(false);
+        assert!(!generator.include_recommendations);
     }
 
     #[test]
     fn test_report_generator_generate() {
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         assert_eq!(report.benchmark_id, "test");
         assert_eq!(report.summary.total_tasks, 2);
         assert_eq!(report.summary.passed_tasks, 1);
@@ -393,26 +393,26 @@ mod tests {
 
     #[test]
     fn test_report_generator_generate_without_recommendations() {
-        let gen = ReportGenerator::new().with_recommendations(false);
+        let generator = ReportGenerator::new().with_recommendations(false);
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         assert!(report.recommendations.is_empty());
     }
 
     #[test]
     fn test_report_generator_generate_with_recommendations() {
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         assert!(!report.recommendations.is_empty());
     }
 
     #[test]
     fn test_report_generator_to_markdown() {
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
-        let md = gen.to_markdown(&report);
+        let report = generator.generate(&result);
+        let md = generator.to_markdown(&report);
         assert!(md.contains("基准测试报告"));
         assert!(md.contains("总体概览"));
         assert!(md.contains("任务详情"));
@@ -420,10 +420,10 @@ mod tests {
 
     #[test]
     fn test_report_generator_to_json() {
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
-        let json = gen.to_json(&report);
+        let report = generator.generate(&result);
+        let json = generator.to_json(&report);
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed["benchmark_id"], "test");
     }
@@ -438,9 +438,9 @@ mod tests {
     #[test]
     fn test_report_history_add_and_get() {
         let mut history = ReportHistory::new();
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         history.add(report.clone());
         assert_eq!(history.len(), 1);
         assert!(!history.is_empty());
@@ -452,9 +452,9 @@ mod tests {
     #[test]
     fn test_report_history_clear() {
         let mut history = ReportHistory::new();
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         history.add(report);
         history.clear();
         assert!(history.is_empty());
@@ -468,27 +468,27 @@ mod tests {
 
     #[test]
     fn test_report_summary_fields() {
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         assert!((report.summary.pass_rate - 0.5).abs() < 0.001);
         assert_eq!(report.summary.total_duration_ms, 300);
     }
 
     #[test]
     fn test_task_breakdown_difficulty_labels() {
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         assert_eq!(report.task_breakdown[0].difficulty, "简单");
         assert_eq!(report.task_breakdown[1].difficulty, "困难");
     }
 
     #[test]
     fn test_report_category_scores() {
-        let gen = ReportGenerator::new();
+        let generator = ReportGenerator::new();
         let result = make_benchmark_result();
-        let report = gen.generate(&result);
+        let report = generator.generate(&result);
         assert!(!report.category_scores.is_empty());
     }
 

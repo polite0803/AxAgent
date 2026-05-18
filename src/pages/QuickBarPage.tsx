@@ -302,8 +302,7 @@ export function QuickBarPage() {
   /* Resolve i18n labels into CommandDef */
   const COMMANDS: CommandDef[] = useMemo(
     () => COMMAND_DEFS.map((d) => ({ ...d, labelKey: t(d.labelKey), descKey: t(d.descKey) }) as unknown as CommandDef),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [t],
   );
 
   const [input, setInput] = useState("");
@@ -320,6 +319,8 @@ export function QuickBarPage() {
 
   const inputRef = useRef<any>(null);
   const unlistenRef = useRef<UnlistenFn[]>([]);
+  const resultTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const settings = useSettingsStore((s) => s.settings);
   const activeProviderId = settings.default_provider_id;
@@ -338,6 +339,13 @@ export function QuickBarPage() {
 
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 150);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(resultTimerRef.current);
+      clearTimeout(copiedTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -577,7 +585,8 @@ export function QuickBarPage() {
     store.saveSettings({ default_model_id: modelId });
     setShowModelList(false);
     setResult(`✅ ${t("quickbar.result.modelSwitched")}`);
-    setTimeout(() => setResult(""), 1500);
+    clearTimeout(resultTimerRef.current);
+    resultTimerRef.current = setTimeout(() => setResult(""), 1500);
   };
 
   const runNewConversation = useCallback(async () => {
@@ -744,7 +753,8 @@ export function QuickBarPage() {
     try {
       await navigator.clipboard.writeText(result);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1500);
     } catch {}
   }, [result]);
 
@@ -848,7 +858,7 @@ export function QuickBarPage() {
                     borderRadius: 8,
                     cursor: "pointer",
                     textAlign: "left" as const,
-                    transition: "all 0.15s ease",
+                    transition: "box-shadow 0.15s ease, transform 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = cmd.color;
@@ -1255,9 +1265,9 @@ export function QuickBarPage() {
                 }}
               >
                 <span style={{ flexShrink: 0 }}>{t("quickbar.recent")}:</span>
-                {recentItems.map((item, i) => (
+                {recentItems.map((item) => (
                   <span
-                    key={i}
+                    key={item}
                     onClick={() => {
                       setCommandMode(true);
                       setInput(item);

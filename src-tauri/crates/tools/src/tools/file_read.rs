@@ -191,7 +191,10 @@ fn read_image(path: &str) -> Result<ToolResult, ToolError> {
 
     use base64::Engine;
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-    let ext = Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or("");
+    let ext = Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
 
     Ok(ToolResult::success(format!(
         "[图片] {} ({:.1} KB)\ndata:image/{};base64,{}",

@@ -121,9 +121,24 @@ pub fn get_preset_templates() -> Vec<PresetTemplate> {
 
 Format findings by severity: 🔴 Critical → 🟠 High → 🟡 Medium → 🟢 Low"#,
             steps: vec![
-                PresetStep { id: "explore", goal: "Explore codebase structure and identify key files", role: "researcher", needs: vec![] },
-                PresetStep { id: "review", goal: "Review code for bugs, security issues, and best practices", role: "reviewer", needs: vec!["explore"] },
-                PresetStep { id: "summarize", goal: "Synthesize review findings into a structured report", role: "synthesizer", needs: vec!["review"] },
+                PresetStep {
+                    id: "explore",
+                    goal: "Explore codebase structure and identify key files",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "review",
+                    goal: "Review code for bugs, security issues, and best practices",
+                    role: "reviewer",
+                    needs: vec!["explore"],
+                },
+                PresetStep {
+                    id: "summarize",
+                    goal: "Synthesize review findings into a structured report",
+                    role: "synthesizer",
+                    needs: vec!["review"],
+                },
             ],
         },
         PresetTemplate {
@@ -141,10 +156,30 @@ Format findings by severity: 🔴 Critical → 🟠 High → 🟡 Medium → �
 
 Always explain your reasoning at each step. Prefer minimal, targeted fixes over large refactors."#,
             steps: vec![
-                PresetStep { id: "reproduce", goal: "Understand and reproduce the bug", role: "researcher", needs: vec![] },
-                PresetStep { id: "diagnose", goal: "Identify root cause through analysis", role: "planner", needs: vec!["reproduce"] },
-                PresetStep { id: "fix", goal: "Implement the minimal fix", role: "developer", needs: vec!["diagnose"] },
-                PresetStep { id: "verify", goal: "Verify the fix and suggest regression tests", role: "reviewer", needs: vec!["fix"] },
+                PresetStep {
+                    id: "reproduce",
+                    goal: "Understand and reproduce the bug",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "diagnose",
+                    goal: "Identify root cause through analysis",
+                    role: "planner",
+                    needs: vec!["reproduce"],
+                },
+                PresetStep {
+                    id: "fix",
+                    goal: "Implement the minimal fix",
+                    role: "developer",
+                    needs: vec!["diagnose"],
+                },
+                PresetStep {
+                    id: "verify",
+                    goal: "Verify the fix and suggest regression tests",
+                    role: "reviewer",
+                    needs: vec!["fix"],
+                },
             ],
         },
         PresetTemplate {
@@ -161,9 +196,24 @@ Always explain your reasoning at each step. Prefer minimal, targeted fixes over 
 
 Use markdown formatting. Include code blocks with proper language tags."#,
             steps: vec![
-                PresetStep { id: "explore", goal: "Explore project structure and identify documentation targets", role: "researcher", needs: vec![] },
-                PresetStep { id: "generate", goal: "Generate documentation content", role: "developer", needs: vec!["explore"] },
-                PresetStep { id: "review", goal: "Review documentation quality and completeness", role: "reviewer", needs: vec!["generate"] },
+                PresetStep {
+                    id: "explore",
+                    goal: "Explore project structure and identify documentation targets",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "generate",
+                    goal: "Generate documentation content",
+                    role: "developer",
+                    needs: vec!["explore"],
+                },
+                PresetStep {
+                    id: "review",
+                    goal: "Review documentation quality and completeness",
+                    role: "reviewer",
+                    needs: vec!["generate"],
+                },
             ],
         },
         PresetTemplate {
@@ -181,9 +231,24 @@ Use markdown formatting. Include code blocks with proper language tags."#,
 
 Use the project's existing test framework. Follow existing test patterns and naming conventions."#,
             steps: vec![
-                PresetStep { id: "analyze", goal: "Analyze existing code and test patterns", role: "researcher", needs: vec![] },
-                PresetStep { id: "generate", goal: "Generate comprehensive test suites", role: "developer", needs: vec!["analyze"] },
-                PresetStep { id: "verify", goal: "Verify tests compile and cover edge cases", role: "reviewer", needs: vec!["generate"] },
+                PresetStep {
+                    id: "analyze",
+                    goal: "Analyze existing code and test patterns",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "generate",
+                    goal: "Generate comprehensive test suites",
+                    role: "developer",
+                    needs: vec!["analyze"],
+                },
+                PresetStep {
+                    id: "verify",
+                    goal: "Verify tests compile and cover edge cases",
+                    role: "reviewer",
+                    needs: vec!["generate"],
+                },
             ],
         },
         PresetTemplate {
@@ -200,10 +265,30 @@ Use the project's existing test framework. Follow existing test patterns and nam
 
 Follow the "Strangler Fig" pattern for large refactors. Never change behavior and structure simultaneously."#,
             steps: vec![
-                PresetStep { id: "analyze", goal: "Identify code smells and refactoring opportunities", role: "researcher", needs: vec![] },
-                PresetStep { id: "plan", goal: "Create refactoring plan with safe transformation steps", role: "planner", needs: vec!["analyze"] },
-                PresetStep { id: "execute", goal: "Apply refactoring transformations one at a time", role: "developer", needs: vec!["plan"] },
-                PresetStep { id: "verify", goal: "Verify behavior is preserved after refactoring", role: "reviewer", needs: vec!["execute"] },
+                PresetStep {
+                    id: "analyze",
+                    goal: "Identify code smells and refactoring opportunities",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "plan",
+                    goal: "Create refactoring plan with safe transformation steps",
+                    role: "planner",
+                    needs: vec!["analyze"],
+                },
+                PresetStep {
+                    id: "execute",
+                    goal: "Apply refactoring transformations one at a time",
+                    role: "developer",
+                    needs: vec!["plan"],
+                },
+                PresetStep {
+                    id: "verify",
+                    goal: "Verify behavior is preserved after refactoring",
+                    role: "reviewer",
+                    needs: vec!["execute"],
+                },
             ],
         },
         PresetTemplate {
@@ -221,9 +306,24 @@ Follow the "Strangler Fig" pattern for large refactors. Never change behavior an
 
 Use diagrams (mermaid) when helpful. Explain in terms a new team member would understand."#,
             steps: vec![
-                PresetStep { id: "explore", goal: "Explore project structure and entry points", role: "researcher", needs: vec![] },
-                PresetStep { id: "analyze", goal: "Analyze architecture and data flow", role: "planner", needs: vec!["explore"] },
-                PresetStep { id: "document", goal: "Create comprehensive codebase overview", role: "synthesizer", needs: vec!["analyze"] },
+                PresetStep {
+                    id: "explore",
+                    goal: "Explore project structure and entry points",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "analyze",
+                    goal: "Analyze architecture and data flow",
+                    role: "planner",
+                    needs: vec!["explore"],
+                },
+                PresetStep {
+                    id: "document",
+                    goal: "Create comprehensive codebase overview",
+                    role: "synthesizer",
+                    needs: vec!["analyze"],
+                },
             ],
         },
         PresetTemplate {
@@ -241,10 +341,30 @@ Use diagrams (mermaid) when helpful. Explain in terms a new team member would un
 
 Focus on high-impact, measurable improvements. Avoid premature optimization."#,
             steps: vec![
-                PresetStep { id: "profile", goal: "Identify performance bottlenecks and hot paths", role: "researcher", needs: vec![] },
-                PresetStep { id: "analyze", goal: "Analyze root causes of performance issues", role: "planner", needs: vec!["profile"] },
-                PresetStep { id: "optimize", goal: "Apply targeted performance optimizations", role: "developer", needs: vec!["analyze"] },
-                PresetStep { id: "verify", goal: "Verify performance improvements with benchmarks", role: "reviewer", needs: vec!["optimize"] },
+                PresetStep {
+                    id: "profile",
+                    goal: "Identify performance bottlenecks and hot paths",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "analyze",
+                    goal: "Analyze root causes of performance issues",
+                    role: "planner",
+                    needs: vec!["profile"],
+                },
+                PresetStep {
+                    id: "optimize",
+                    goal: "Apply targeted performance optimizations",
+                    role: "developer",
+                    needs: vec!["analyze"],
+                },
+                PresetStep {
+                    id: "verify",
+                    goal: "Verify performance improvements with benchmarks",
+                    role: "reviewer",
+                    needs: vec!["optimize"],
+                },
             ],
         },
         PresetTemplate {
@@ -263,9 +383,24 @@ Focus on high-impact, measurable improvements. Avoid premature optimization."#,
 
 Provide severity ratings and remediation steps for each finding."#,
             steps: vec![
-                PresetStep { id: "scan", goal: "Scan for security vulnerabilities and entry points", role: "researcher", needs: vec![] },
-                PresetStep { id: "analyze", goal: "Analyze security risks and OWASP compliance", role: "reviewer", needs: vec!["scan"] },
-                PresetStep { id: "report", goal: "Generate security audit report with remediation", role: "synthesizer", needs: vec!["analyze"] },
+                PresetStep {
+                    id: "scan",
+                    goal: "Scan for security vulnerabilities and entry points",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "analyze",
+                    goal: "Analyze security risks and OWASP compliance",
+                    role: "reviewer",
+                    needs: vec!["scan"],
+                },
+                PresetStep {
+                    id: "report",
+                    goal: "Generate security audit report with remediation",
+                    role: "synthesizer",
+                    needs: vec!["analyze"],
+                },
             ],
         },
         PresetTemplate {
@@ -283,10 +418,30 @@ Provide severity ratings and remediation steps for each finding."#,
 
 Prioritize backward compatibility and provide fallback options."#,
             steps: vec![
-                PresetStep { id: "assess", goal: "Assess current state and migration requirements", role: "researcher", needs: vec![] },
-                PresetStep { id: "plan", goal: "Create detailed migration plan with steps", role: "planner", needs: vec!["assess"] },
-                PresetStep { id: "execute", goal: "Execute migration steps incrementally", role: "developer", needs: vec!["plan"] },
-                PresetStep { id: "validate", goal: "Validate migration with tests and checks", role: "reviewer", needs: vec!["execute"] },
+                PresetStep {
+                    id: "assess",
+                    goal: "Assess current state and migration requirements",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "plan",
+                    goal: "Create detailed migration plan with steps",
+                    role: "planner",
+                    needs: vec!["assess"],
+                },
+                PresetStep {
+                    id: "execute",
+                    goal: "Execute migration steps incrementally",
+                    role: "developer",
+                    needs: vec!["plan"],
+                },
+                PresetStep {
+                    id: "validate",
+                    goal: "Validate migration with tests and checks",
+                    role: "reviewer",
+                    needs: vec!["execute"],
+                },
             ],
         },
         PresetTemplate {
@@ -304,10 +459,30 @@ Prioritize backward compatibility and provide fallback options."#,
 
 Ensure consistency, backward compatibility, and good developer experience."#,
             steps: vec![
-                PresetStep { id: "analyze", goal: "Analyze requirements and use cases", role: "researcher", needs: vec![] },
-                PresetStep { id: "design", goal: "Design API endpoints and schemas", role: "planner", needs: vec!["analyze"] },
-                PresetStep { id: "implement", goal: "Implement API endpoints", role: "developer", needs: vec!["design"] },
-                PresetStep { id: "document", goal: "Generate API documentation", role: "synthesizer", needs: vec!["implement"] },
+                PresetStep {
+                    id: "analyze",
+                    goal: "Analyze requirements and use cases",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "design",
+                    goal: "Design API endpoints and schemas",
+                    role: "planner",
+                    needs: vec!["analyze"],
+                },
+                PresetStep {
+                    id: "implement",
+                    goal: "Implement API endpoints",
+                    role: "developer",
+                    needs: vec!["design"],
+                },
+                PresetStep {
+                    id: "document",
+                    goal: "Generate API documentation",
+                    role: "synthesizer",
+                    needs: vec!["implement"],
+                },
             ],
         },
         PresetTemplate {
@@ -325,9 +500,24 @@ Ensure consistency, backward compatibility, and good developer experience."#,
 
 Focus on reproducibility and cross-platform compatibility."#,
             steps: vec![
-                PresetStep { id: "diagnose", goal: "Diagnose environment issue from error messages", role: "researcher", needs: vec![] },
-                PresetStep { id: "investigate", goal: "Investigate root cause in config and environment", role: "planner", needs: vec!["diagnose"] },
-                PresetStep { id: "fix", goal: "Provide solution and fix steps", role: "developer", needs: vec!["investigate"] },
+                PresetStep {
+                    id: "diagnose",
+                    goal: "Diagnose environment issue from error messages",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "investigate",
+                    goal: "Investigate root cause in config and environment",
+                    role: "planner",
+                    needs: vec!["diagnose"],
+                },
+                PresetStep {
+                    id: "fix",
+                    goal: "Provide solution and fix steps",
+                    role: "developer",
+                    needs: vec!["investigate"],
+                },
             ],
         },
         PresetTemplate {
@@ -346,10 +536,30 @@ Focus on reproducibility and cross-platform compatibility."#,
 
 Follow TDD when appropriate. Ensure backward compatibility."#,
             steps: vec![
-                PresetStep { id: "understand", goal: "Understand and clarify feature requirements", role: "researcher", needs: vec![] },
-                PresetStep { id: "design", goal: "Create technical design and architecture", role: "planner", needs: vec!["understand"] },
-                PresetStep { id: "implement", goal: "Implement feature with tests", role: "developer", needs: vec!["design"] },
-                PresetStep { id: "review", goal: "Review implementation quality and completeness", role: "reviewer", needs: vec!["implement"] },
+                PresetStep {
+                    id: "understand",
+                    goal: "Understand and clarify feature requirements",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "design",
+                    goal: "Create technical design and architecture",
+                    role: "planner",
+                    needs: vec!["understand"],
+                },
+                PresetStep {
+                    id: "implement",
+                    goal: "Implement feature with tests",
+                    role: "developer",
+                    needs: vec!["design"],
+                },
+                PresetStep {
+                    id: "review",
+                    goal: "Review implementation quality and completeness",
+                    role: "reviewer",
+                    needs: vec!["implement"],
+                },
             ],
         },
         PresetTemplate {
@@ -390,12 +600,42 @@ Use these tools to save knowledge:
 4. **create_knowledge_interface**: Save API contracts
 5. **add_knowledge_document**: Save complete Markdown report"#,
             steps: vec![
-                PresetStep { id: "parse", goal: "Agent1: Parse codebase AST, structure, call relationships, branch logic - output pure logical intermediate text", role: "researcher", needs: vec![] },
-                PresetStep { id: "extract-entities", goal: "Agent2: Extract domain concepts, entities, business rules - save using create_knowledge_entity", role: "planner", needs: vec!["parse"] },
-                PresetStep { id: "extract-flows", goal: "Agent2: Extract business flows, state transitions, call chains - save using create_knowledge_flow", role: "planner", needs: vec!["parse"] },
-                PresetStep { id: "extract-interfaces", goal: "Agent2: Extract interfaces, data口径, API contracts - save using create_knowledge_interface", role: "planner", needs: vec!["parse"] },
-                PresetStep { id: "validate", goal: "Agent3: Validate extraction completeness, accuracy, consistency against code - flag issues", role: "reviewer", needs: vec!["extract-entities", "extract-flows", "extract-interfaces"] },
-                PresetStep { id: "consolidate", goal: "Agent4: Consolidate knowledge, unify terminology, generate validation report with quantified metrics - save report using add_knowledge_document", role: "synthesizer", needs: vec!["validate"] },
+                PresetStep {
+                    id: "parse",
+                    goal: "Agent1: Parse codebase AST, structure, call relationships, branch logic - output pure logical intermediate text",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "extract-entities",
+                    goal: "Agent2: Extract domain concepts, entities, business rules - save using create_knowledge_entity",
+                    role: "planner",
+                    needs: vec!["parse"],
+                },
+                PresetStep {
+                    id: "extract-flows",
+                    goal: "Agent2: Extract business flows, state transitions, call chains - save using create_knowledge_flow",
+                    role: "planner",
+                    needs: vec!["parse"],
+                },
+                PresetStep {
+                    id: "extract-interfaces",
+                    goal: "Agent2: Extract interfaces, data口径, API contracts - save using create_knowledge_interface",
+                    role: "planner",
+                    needs: vec!["parse"],
+                },
+                PresetStep {
+                    id: "validate",
+                    goal: "Agent3: Validate extraction completeness, accuracy, consistency against code - flag issues",
+                    role: "reviewer",
+                    needs: vec!["extract-entities", "extract-flows", "extract-interfaces"],
+                },
+                PresetStep {
+                    id: "consolidate",
+                    goal: "Agent4: Consolidate knowledge, unify terminology, generate validation report with quantified metrics - save report using add_knowledge_document",
+                    role: "synthesizer",
+                    needs: vec!["validate"],
+                },
             ],
         },
         PresetTemplate {
@@ -403,7 +643,13 @@ Use these tools to save knowledge:
             name: "Knowledge to Code",
             description: "Generate production code from business knowledge",
             icon: "Layers",
-            tags: vec!["knowledge", "code", "generation", "migration", "cross-language"],
+            tags: vec![
+                "knowledge",
+                "code",
+                "generation",
+                "migration",
+                "cross-language",
+            ],
             system_prompt: r#"You are a cross-language code generation specialist. Your task is to generate production-quality code from business knowledge stored in the knowledge base.
 
 ## 4-Agent Architecture
@@ -434,18 +680,78 @@ Use these tools to save knowledge:
 - Ensure consistency across the codebase
 - Generate final validation report"#,
             steps: vec![
-                PresetStep { id: "collect-inputs", goal: "Request required information from user: target language, framework, knowledge base ID, output directory, project type. Do NOT proceed until all required inputs are provided.", role: "researcher", needs: vec![] },
-                PresetStep { id: "retrieve", goal: "Retrieve all relevant business knowledge from specified knowledge base: entities, flows, interfaces. Present retrieved content to user for confirmation.", role: "researcher", needs: vec!["collect-inputs"] },
-                PresetStep { id: "design", goal: "Agent1: Analyze knowledge and design target architecture with component mapping. Present architecture specification to user for confirmation before proceeding.", role: "planner", needs: vec!["retrieve"] },
-                PresetStep { id: "generate-entities", goal: "Agent2: Generate data models/classes from business entities using target language conventions - use write_file tool to output code", role: "developer", needs: vec!["design"] },
-                PresetStep { id: "generate-logic", goal: "Agent2: Implement business logic from business flows using target language - use write_file tool to output code", role: "developer", needs: vec!["design"] },
-                PresetStep { id: "generate-api", goal: "Agent2: Create API layer from interface definitions using target language/framework - use write_file tool to output code", role: "developer", needs: vec!["design"] },
-                PresetStep { id: "verify-entities", goal: "Agent3: Verify entity code matches knowledge entity definitions - read generated files, output verification report in specified format", role: "reviewer", needs: vec!["generate-entities"] },
-                PresetStep { id: "verify-logic", goal: "Agent3: Verify logic code implements all business rules from knowledge flows - read generated files, output verification report", role: "reviewer", needs: vec!["generate-logic"] },
-                PresetStep { id: "verify-api", goal: "Agent3: Verify API code matches interface definitions - read generated files, output verification report", role: "reviewer", needs: vec!["generate-api"] },
-                PresetStep { id: "handle-failures", goal: "If any verification failed (coverage <95% or accuracy <98%), request Agent2 fixes for specific issues. Re-verify after fixes. Escalate to user if still failing after 2 iterations.", role: "reviewer", needs: vec!["verify-entities", "verify-logic", "verify-api"] },
-                PresetStep { id: "integrate", goal: "Agent4: Integrate all components, resolve dependencies, ensure consistency - produce final integrated codebase in output directory", role: "synthesizer", needs: vec!["handle-failures"] },
-                PresetStep { id: "report", goal: "Agent4: Generate final validation report with quality metrics, verification results, and generated file list - save using add_knowledge_document", role: "synthesizer", needs: vec!["integrate"] },
+                PresetStep {
+                    id: "collect-inputs",
+                    goal: "Request required information from user: target language, framework, knowledge base ID, output directory, project type. Do NOT proceed until all required inputs are provided.",
+                    role: "researcher",
+                    needs: vec![],
+                },
+                PresetStep {
+                    id: "retrieve",
+                    goal: "Retrieve all relevant business knowledge from specified knowledge base: entities, flows, interfaces. Present retrieved content to user for confirmation.",
+                    role: "researcher",
+                    needs: vec!["collect-inputs"],
+                },
+                PresetStep {
+                    id: "design",
+                    goal: "Agent1: Analyze knowledge and design target architecture with component mapping. Present architecture specification to user for confirmation before proceeding.",
+                    role: "planner",
+                    needs: vec!["retrieve"],
+                },
+                PresetStep {
+                    id: "generate-entities",
+                    goal: "Agent2: Generate data models/classes from business entities using target language conventions - use write_file tool to output code",
+                    role: "developer",
+                    needs: vec!["design"],
+                },
+                PresetStep {
+                    id: "generate-logic",
+                    goal: "Agent2: Implement business logic from business flows using target language - use write_file tool to output code",
+                    role: "developer",
+                    needs: vec!["design"],
+                },
+                PresetStep {
+                    id: "generate-api",
+                    goal: "Agent2: Create API layer from interface definitions using target language/framework - use write_file tool to output code",
+                    role: "developer",
+                    needs: vec!["design"],
+                },
+                PresetStep {
+                    id: "verify-entities",
+                    goal: "Agent3: Verify entity code matches knowledge entity definitions - read generated files, output verification report in specified format",
+                    role: "reviewer",
+                    needs: vec!["generate-entities"],
+                },
+                PresetStep {
+                    id: "verify-logic",
+                    goal: "Agent3: Verify logic code implements all business rules from knowledge flows - read generated files, output verification report",
+                    role: "reviewer",
+                    needs: vec!["generate-logic"],
+                },
+                PresetStep {
+                    id: "verify-api",
+                    goal: "Agent3: Verify API code matches interface definitions - read generated files, output verification report",
+                    role: "reviewer",
+                    needs: vec!["generate-api"],
+                },
+                PresetStep {
+                    id: "handle-failures",
+                    goal: "If any verification failed (coverage <95% or accuracy <98%), request Agent2 fixes for specific issues. Re-verify after fixes. Escalate to user if still failing after 2 iterations.",
+                    role: "reviewer",
+                    needs: vec!["verify-entities", "verify-logic", "verify-api"],
+                },
+                PresetStep {
+                    id: "integrate",
+                    goal: "Agent4: Integrate all components, resolve dependencies, ensure consistency - produce final integrated codebase in output directory",
+                    role: "synthesizer",
+                    needs: vec!["handle-failures"],
+                },
+                PresetStep {
+                    id: "report",
+                    goal: "Agent4: Generate final validation report with quality metrics, verification results, and generated file list - save using add_knowledge_document",
+                    role: "synthesizer",
+                    needs: vec!["integrate"],
+                },
             ],
         },
     ]

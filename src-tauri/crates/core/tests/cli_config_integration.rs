@@ -1,10 +1,10 @@
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use axagent_core::repo::cli_config::{connect, get_config_path, CliTool};
-use serde_json::{json, Value};
+use axagent_core::repo::cli_config::{CliTool, connect, get_config_path};
+use serde_json::{Value, json};
 
 static ENV_MUTEX: Mutex<()> = Mutex::new(());
 static TEMP_HOME_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -712,10 +712,12 @@ fn gemini_disconnect_minimal_cleanup_removes_only_axagent_keys() {
 
         // Verify selectedType removed but other settings preserved
         let settings = read_json(&settings_path);
-        assert!(!settings["security"]["auth"]
-            .as_object()
-            .unwrap()
-            .contains_key("selectedType"));
+        assert!(
+            !settings["security"]["auth"]
+                .as_object()
+                .unwrap()
+                .contains_key("selectedType")
+        );
         assert_eq!(settings["security"]["auth"]["oauthToken"], "keep-this-token");
         assert_eq!(settings["otherSetting"], "keep-this");
     });

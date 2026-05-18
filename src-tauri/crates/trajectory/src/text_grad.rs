@@ -540,7 +540,7 @@ impl TextGradEngine {
                 return ForwardResult {
                     output: String::new(),
                     node_outputs,
-                }
+                };
             },
         };
 
@@ -1136,12 +1136,14 @@ mod tests {
 
         let modifications = engine.apply_gradients();
         assert!(!modifications.is_empty());
-        assert!(engine
-            .graph()
-            .get_node("a")
-            .unwrap()
-            .content
-            .contains("TextGrad revision"));
+        assert!(
+            engine
+                .graph()
+                .get_node("a")
+                .unwrap()
+                .content
+                .contains("TextGrad revision")
+        );
         assert!(engine.graph().get_node("a").unwrap().gradient.is_none());
     }
 

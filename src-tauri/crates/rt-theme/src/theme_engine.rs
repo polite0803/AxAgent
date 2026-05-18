@@ -357,10 +357,10 @@ impl ThemeEngine {
         }
 
         let custom_path = self.themes_dir.join(format!("{}.json", name));
-        if custom_path.exists() {
-            if let Ok(content) = fs::read_to_string(&custom_path) {
-                return Theme::from_json(&content).ok();
-            }
+        if custom_path.exists()
+            && let Ok(content) = fs::read_to_string(&custom_path)
+        {
+            return Theme::from_json(&content).ok();
         }
 
         None
@@ -376,12 +376,11 @@ impl ThemeEngine {
         if let Ok(entries) = fs::read_dir(&self.themes_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().map(|e| e == "json").unwrap_or(false) {
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(theme) = Theme::from_json(&content) {
-                            themes.push(theme.metadata);
-                        }
-                    }
+                if path.extension().map(|e| e == "json").unwrap_or(false)
+                    && let Ok(content) = fs::read_to_string(&path)
+                    && let Ok(theme) = Theme::from_json(&content)
+                {
+                    themes.push(theme.metadata);
                 }
             }
         }
@@ -395,12 +394,11 @@ impl ThemeEngine {
         if let Ok(entries) = fs::read_dir(&self.themes_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().map(|e| e == "yaml").unwrap_or(false) {
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        if let Ok(theme) = Theme::from_json(&content) {
-                            themes.push(theme);
-                        }
-                    }
+                if path.extension().map(|e| e == "yaml").unwrap_or(false)
+                    && let Ok(content) = fs::read_to_string(&path)
+                    && let Ok(theme) = Theme::from_json(&content)
+                {
+                    themes.push(theme);
                 }
             }
         }

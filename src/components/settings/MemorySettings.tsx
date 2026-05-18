@@ -1662,7 +1662,7 @@ function MemoryItemsPanel({
 
 // ── Main Component ────────────────────────────────────────
 
-export default function MemorySettings() {
+export function MemorySettings() {
   const { t } = useTranslation();
   const { namespaces, loadNamespaces, createNamespace, setSelectedNamespaceId } = useMemoryStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);

@@ -1,10 +1,10 @@
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { useSkillExtensionStore } from "@/stores";
-import { Spin } from "antd";
+import { Button, Result, Spin } from "antd";
 import { lazy, Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 const LazyChatPage = lazy(() => import("@/pages/ChatPage").then((m) => ({ default: m.ChatPage })));
 const LazyKnowledgeHubPage = lazy(() =>
@@ -76,6 +76,21 @@ function SkillRoutePage() {
 
 const SkillPageByParam = lazy(() => import("@/components/skill/SkillPageByParam"));
 
+function NotFoundRoute() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <div style={{ padding: 48, textAlign: "center" }}>
+      <Result
+        status="404"
+        title="404"
+        subTitle={t("error.pageNotFound")}
+        extra={<Button type="primary" onClick={() => navigate("/")}>{t("common.back")}</Button>}
+      />
+    </div>
+  );
+}
+
 export function ContentArea() {
   const skillPages = useSkillExtensionStore((s) => s.pages);
 
@@ -115,6 +130,7 @@ export function ContentArea() {
       {/* 技能 catch-all 路由 */}
       <Route path="/skill/:skillName" element={<SafeLazyPage Page={SkillPageByParam} />} />
       <Route path="/skill/:skillName/:pageId" element={<SafeLazyPage Page={SkillPageByParam} />} />
+      <Route path="*" element={<NotFoundRoute />} />
     </Routes>
   );
 }

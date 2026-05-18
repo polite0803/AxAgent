@@ -17,7 +17,7 @@ export function ProxySettings() {
     const { proxy_type, proxy_address, proxy_port } = settings;
 
     if (!proxy_address) {
-      message.warning(t("settings.proxyAddressRequired") || "请先填写代理地址");
+      message.warning(t("settings.proxyAddressRequired"));
       return;
     }
 
@@ -31,13 +31,13 @@ export function ProxySettings() {
 
       if (result.ok) {
         message.success(
-          `${t("settings.proxyTestSuccess") || "代理连接成功"}${result.latency_ms ? ` (${result.latency_ms}ms)` : ""}`,
+          `${t("settings.proxyTestSuccess")}${result.latency_ms ? ` (${result.latency_ms}ms)` : ""}`,
         );
       } else {
-        message.error(result.error || t("settings.proxyTestFailed") || "代理连接失败");
+        message.error(result.error || t("settings.proxyTestFailed"));
       }
     } catch {
-      message.error(t("settings.proxyTestFailed") || "代理连接失败");
+      message.error(t("settings.proxyTestFailed"));
     } finally {
       setTesting(false);
     }

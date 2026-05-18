@@ -1,7 +1,7 @@
 use crate::AppState;
 use axagent_core::types::*;
 use axagent_providers::{
-    registry::ProviderRegistry, resolve_base_url_for_type, ProviderRequestContext,
+    ProviderRequestContext, registry::ProviderRegistry, resolve_base_url_for_type,
 };
 use sea_orm::ActiveModelTrait;
 use tauri::{AppHandle, Emitter, State};
@@ -417,7 +417,7 @@ pub async fn auto_extract_incremental_memories(
     let conv = match conv {
         Some(c) => c,
         None => {
-            return Ok(serde_json::json!({"skipped": true, "reason": "conversation not found"}))
+            return Ok(serde_json::json!({"skipped": true, "reason": "conversation not found"}));
         },
     };
 
@@ -442,7 +442,7 @@ pub async fn auto_extract_incremental_memories(
                     return Ok(serde_json::json!({
                         "skipped": true,
                         "reason": format!("specified namespace '{}' not found", provided_id)
-                    }))
+                    }));
                 },
             }
         }
@@ -468,7 +468,7 @@ pub async fn auto_extract_incremental_memories(
                     return Ok(serde_json::json!({
                         "skipped": true,
                         "reason": "no default/auto memory namespace found"
-                    }))
+                    }));
                 },
             }
         },

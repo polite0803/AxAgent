@@ -525,13 +525,15 @@ mod tests {
     #[test]
     fn test_get_high_credibility_results_none_match() {
         let orch = SearchOrchestrator::new();
-        let results = vec![SearchResult::new(
-            SourceType::Web,
-            "https://a.com".to_string(),
-            "A".to_string(),
-            "s".to_string(),
-        )
-        .with_credibility(0.3)];
+        let results = vec![
+            SearchResult::new(
+                SourceType::Web,
+                "https://a.com".to_string(),
+                "A".to_string(),
+                "s".to_string(),
+            )
+            .with_credibility(0.3),
+        ];
         let high = orch.get_high_credibility_results(&results, 0.8);
         assert!(high.is_empty());
     }

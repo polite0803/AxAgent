@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use tracing::info;
 
@@ -18,6 +19,8 @@ impl NpmRegistry {
             registry_url: DEFAULT_REGISTRY.to_string(),
             client: reqwest::Client::builder()
                 .user_agent("axagent-npm/0.1.0")
+                .timeout(Duration::from_secs(30))
+                .connect_timeout(Duration::from_secs(10))
                 .build()
                 .expect("reqwest client build"),
         }
@@ -26,13 +29,13 @@ impl NpmRegistry {
     /// 解析包名: "@scope/name@version" → ("@scope/name", Option<"version">)
     /// 也支持无 scope: "plain-package@1.0.0"
     pub fn parse_package_spec(spec: &str) -> (&str, Option<&str>) {
-        if let Some(at_pos) = spec.rfind('@') {
-            if at_pos > 0 {
-                let name = &spec[..at_pos];
-                let version = &spec[at_pos + 1..];
-                if !version.is_empty() && !version.contains('/') {
-                    return (name, Some(version));
-                }
+        if let Some(at_pos) = spec.rfind('@')
+            && at_pos > 0
+        {
+            let name = &spec[..at_pos];
+            let version = &spec[at_pos + 1..];
+            if !version.is_empty() && !version.contains('/') {
+                return (name, Some(version));
             }
         }
         (spec, None)

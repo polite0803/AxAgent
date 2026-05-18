@@ -50,7 +50,7 @@ interface ToolUpgradeResponse {
   suggestion: ToolUpgradeSuggestion;
 }
 
-export default function ToolSemanticCheck() {
+export function ToolSemanticCheck() {
   const { t } = useTranslation();
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");

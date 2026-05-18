@@ -6,7 +6,7 @@
 //! - L1: In-memory, TTL-based, persisted via CacheSnapshot on shutdown
 //! - L2: SQLite-backed, time-partitioned, auto-eviction of stale entries
 
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -339,9 +339,11 @@ mod tests {
     fn test_summary_store_and_load() {
         let cache = test_cache();
         // Use explicit timestamps to control ordering
-        assert!(cache
-            .store_summary("conv1", "Fixed authentication bug", 5)
-            .is_ok());
+        assert!(
+            cache
+                .store_summary("conv1", "Fixed authentication bug", 5)
+                .is_ok()
+        );
         std::thread::sleep(std::time::Duration::from_secs(1));
         assert!(cache.store_summary("conv1", "Added unit tests", 3).is_ok());
 
@@ -361,13 +363,17 @@ mod tests {
     #[test]
     fn test_snapshot_recording() {
         let cache = test_cache();
-        assert!(cache
-            .record_snapshot("snap1", 100, 500, "/cache/snap1.json")
-            .is_ok());
+        assert!(
+            cache
+                .record_snapshot("snap1", 100, 500, "/cache/snap1.json")
+                .is_ok()
+        );
         std::thread::sleep(std::time::Duration::from_secs(1));
-        assert!(cache
-            .record_snapshot("snap2", 200, 800, "/cache/snap2.json")
-            .is_ok());
+        assert!(
+            cache
+                .record_snapshot("snap2", 200, 800, "/cache/snap2.json")
+                .is_ok()
+        );
 
         let snapshots = cache.list_snapshots().unwrap();
         assert_eq!(snapshots.len(), 2);

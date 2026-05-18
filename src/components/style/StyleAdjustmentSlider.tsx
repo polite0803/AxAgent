@@ -9,7 +9,7 @@ interface StyleAdjustmentSliderProps {
   disabled?: boolean;
 }
 
-export default function StyleAdjustmentSlider({
+export function StyleAdjustmentSlider({
   dimension,
   value,
   onChange,

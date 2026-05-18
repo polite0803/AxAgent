@@ -218,9 +218,7 @@ approach, perspective, or sub-problem decomposition. Be concise and focused.",
             let tokens = estimate_tokens(&child_node.content);
             trace!(
                 "Generated child node {} with {} tokens from parent {}",
-                child_id,
-                tokens,
-                parent_id
+                child_id, tokens, parent_id
             );
 
             child_node.evaluation_score = 0.0;
@@ -321,11 +319,7 @@ Respond with only a number between 0.0 and 1.0.",
                 || node.content.contains("however")
                 || node.content.contains("first")
                 || node.content.contains("next");
-            if has_structure {
-                0.4
-            } else {
-                0.2
-            }
+            if has_structure { 0.4 } else { 0.2 }
         };
 
         (length_score + diversity_score + structure_score).clamp(0.0, 1.0)
@@ -355,10 +349,11 @@ Respond with only a number between 0.0 and 1.0.",
             if node_id == self.root_id {
                 continue;
             }
-            if let Some(node) = self.tree.get(&node_id) {
-                if node.status == ThoughtStatus::Generated && node.evaluation_score < threshold {
-                    pruned.push(node_id.clone());
-                }
+            if let Some(node) = self.tree.get(&node_id)
+                && node.status == ThoughtStatus::Generated
+                && node.evaluation_score < threshold
+            {
+                pruned.push(node_id.clone());
             }
         }
 

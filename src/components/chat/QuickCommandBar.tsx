@@ -159,5 +159,3 @@ export const QuickCommandBar: React.FC = () => {
     </div>
   );
 };
-
-export default QuickCommandBar;

@@ -1,8 +1,8 @@
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use opentelemetry_sdk::trace::TracerProvider as SdkTracerProvider;
-use opentelemetry_sdk::Resource;
 use std::sync::Arc;
 
 pub struct OtelConfig {
@@ -85,15 +85,15 @@ impl OtelProviders {
     }
 
     pub fn shutdown(&self) {
-        if let Some(ref tracer_provider) = self.tracer_provider {
-            if let Err(e) = tracer_provider.shutdown() {
-                tracing::warn!("Failed to shutdown tracer provider: {:?}", e);
-            }
+        if let Some(ref tracer_provider) = self.tracer_provider
+            && let Err(e) = tracer_provider.shutdown()
+        {
+            tracing::warn!("Failed to shutdown tracer provider: {:?}", e);
         }
-        if let Some(ref meter_provider) = self.meter_provider {
-            if let Err(e) = meter_provider.shutdown() {
-                tracing::warn!("Failed to shutdown meter provider: {:?}", e);
-            }
+        if let Some(ref meter_provider) = self.meter_provider
+            && let Err(e) = meter_provider.shutdown()
+        {
+            tracing::warn!("Failed to shutdown meter provider: {:?}", e);
         }
     }
 

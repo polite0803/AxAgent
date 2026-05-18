@@ -238,7 +238,7 @@ function McpServerDetail({
     } catch {
       setLocalEnv("");
     }
-  }, [server.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [server]);
 
   useEffect(() => {
     loadToolDescriptors(server.id);

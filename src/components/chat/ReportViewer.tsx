@@ -1,3 +1,4 @@
+import type { Citation } from "@/types";
 import { CheckCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined } from "@ant-design/icons";
 import { Button, Card, Divider, Select, Space, Tabs, Tag, Typography } from "antd";
 import DOMPurify from "dompurify";
@@ -8,14 +9,6 @@ import { CredibilityBadge } from "./CredibilityBadge";
 const { Text, Title } = Typography;
 
 type ReportFormat = "markdown" | "html" | "json";
-
-interface Citation {
-  id: string;
-  sourceUrl: string;
-  sourceTitle: string;
-  sourceType: string;
-  credibility: number;
-}
 
 interface ResearchReport {
   id: string;
@@ -148,7 +141,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
           "sub",
           "sup",
         ],
-        ALLOWED_ATTR: ["href", "src", "alt", "title", "class", "id", "target", "rel"],
+        ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
       });
     }, [report.content]);
 
@@ -310,5 +303,3 @@ export function ReportOutlineView({ outline, onSectionClick }: ReportOutlineView
     </Card>
   );
 }
-
-export default ReportViewer;

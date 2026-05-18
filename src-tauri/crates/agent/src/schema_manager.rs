@@ -193,14 +193,14 @@ impl SchemaManager {
 
         let mut changed_fields = Vec::new();
         for name in from_names.intersection(&to_names) {
-            if let (Some(from), Some(to)) = (from_by_name.get(name), to_by_name.get(name)) {
-                if from.field_type != to.field_type {
-                    changed_fields.push(FieldChange {
-                        field: name.clone(),
-                        old_type: from.field_type.clone(),
-                        new_type: to.field_type.clone(),
-                    });
-                }
+            if let (Some(from), Some(to)) = (from_by_name.get(name), to_by_name.get(name))
+                && from.field_type != to.field_type
+            {
+                changed_fields.push(FieldChange {
+                    field: name.clone(),
+                    old_type: from.field_type.clone(),
+                    new_type: to.field_type.clone(),
+                });
             }
         }
 
@@ -310,13 +310,11 @@ impl SchemaManager {
                 .chain(template.optional.iter())
                 .find(|f| &f.name == key);
 
-            if let Some(def) = field_def {
-                if !self.validate_field_type(&def.field_type, value) {
-                    errors.push(format!(
-                        "Field '{}' has invalid type, expected {}",
-                        key, def.field_type
-                    ));
-                }
+            if let Some(def) = field_def
+                && !self.validate_field_type(&def.field_type, value)
+            {
+                errors
+                    .push(format!("Field '{}' has invalid type, expected {}", key, def.field_type));
             }
         }
 
@@ -341,24 +339,22 @@ impl SchemaManager {
                 continue;
             }
 
-            if in_frontmatter {
-                if let Some((key, rest)) = line.split_once(':') {
-                    let key = key.trim();
-                    let field_type = rest.trim().to_string();
+            if in_frontmatter && let Some((key, rest)) = line.split_once(':') {
+                let key = key.trim();
+                let field_type = rest.trim().to_string();
 
-                    if let Some(stripped) = key.strip_prefix('?') {
-                        optional.push(FieldDef {
-                            name: stripped.to_string(),
-                            field_type,
-                            description: None,
-                        });
-                    } else {
-                        required.push(FieldDef {
-                            name: key.to_string(),
-                            field_type,
-                            description: None,
-                        });
-                    }
+                if let Some(stripped) = key.strip_prefix('?') {
+                    optional.push(FieldDef {
+                        name: stripped.to_string(),
+                        field_type,
+                        description: None,
+                    });
+                } else {
+                    required.push(FieldDef {
+                        name: key.to_string(),
+                        field_type,
+                        description: None,
+                    });
                 }
             }
         }

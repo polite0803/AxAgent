@@ -76,7 +76,7 @@ impl Tool for REPLTool {
                         return Err(ToolError::execution_failed(format!(
                             "编译失败:\n{}",
                             String::from_utf8_lossy(&o.stderr)
-                        )))
+                        )));
                     },
                     Err(e) => return Err(ToolError::execution_failed(e.to_string())),
                 }

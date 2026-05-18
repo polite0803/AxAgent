@@ -199,7 +199,7 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
         >
           {results.map((r, i) => (
             <div
-              key={i}
+              key={r.url}
               style={{
                 marginBottom: i < results.length - 1 ? 8 : 0,
                 fontSize: 12,

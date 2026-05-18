@@ -103,8 +103,13 @@ impl Tool for FileEditTool {
     fn check_permissions(&self, input: &Value, _ctx: &ToolContext) -> PermissionResult {
         let path = input["file_path"].as_str().unwrap_or("");
         let dangerous_prefixes = [
-            "/etc", "/boot", "/sys", "/proc", "/dev",
-            "C:\\Windows", "C:\\Program Files",
+            "/etc",
+            "/boot",
+            "/sys",
+            "/proc",
+            "/dev",
+            "C:\\Windows",
+            "C:\\Program Files",
         ];
         for prefix in &dangerous_prefixes {
             if path.starts_with(prefix) {
@@ -147,15 +152,18 @@ impl Tool for FileEditTool {
                 return write_and_diff(file_path, &original, &new_content, matches_norm);
             }
             return Err(ToolError::invalid_input(
-                "在文件中未找到 old_string。请确认 old_string 与文件内容完全一致（包括空格和缩进）。"
+                "在文件中未找到 old_string。请确认 old_string 与文件内容完全一致（包括空格和缩进）。",
             ));
         }
 
         if matches > 1 && !replace_all {
-            return Err(ToolError::invalid_input_for("FileEdit", format!(
-                "old_string 匹配了 {} 次（非唯一匹配）。请设置 replace_all: true 替换所有匹配项，或提供更多上下文使匹配唯一。",
-                matches
-            )));
+            return Err(ToolError::invalid_input_for(
+                "FileEdit",
+                format!(
+                    "old_string 匹配了 {} 次（非唯一匹配）。请设置 replace_all: true 替换所有匹配项，或提供更多上下文使匹配唯一。",
+                    matches
+                ),
+            ));
         }
 
         let new_content = if replace_all {

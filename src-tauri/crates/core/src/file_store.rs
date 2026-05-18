@@ -134,8 +134,8 @@ impl FileStore {
 
     fn resolve_path(&self, storage_path: &str) -> PathBuf {
         let resolved = self.base_dir.join(storage_path);
-        let normalized = resolved.components().collect::<PathBuf>();
-        normalized
+
+        resolved.components().collect::<PathBuf>()
     }
 
     fn compute_hash(data: &[u8]) -> String {

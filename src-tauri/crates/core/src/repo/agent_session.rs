@@ -239,13 +239,13 @@ pub async fn restore_sdk_context_from_backup_by_conversation_id(
         .one(db)
         .await?;
 
-    if let Some(model) = session {
-        if model.sdk_context_backup_json.is_some() {
-            let mut am: agent_sessions::ActiveModel = model.clone().into();
-            am.sdk_context_json = Set(model.sdk_context_backup_json);
-            am.sdk_context_backup_json = Set(None);
-            am.update(db).await?;
-        }
+    if let Some(model) = session
+        && model.sdk_context_backup_json.is_some()
+    {
+        let mut am: agent_sessions::ActiveModel = model.clone().into();
+        am.sdk_context_json = Set(model.sdk_context_backup_json);
+        am.sdk_context_backup_json = Set(None);
+        am.update(db).await?;
     }
     Ok(())
 }

@@ -113,9 +113,11 @@ fn test_mark_task_lifecycle() {
     };
 
     assert!(planner.mark_task_started(&task_id).is_ok());
-    assert!(planner
-        .mark_task_completed(&task_id, json!({"status": "ok"}))
-        .is_ok());
+    assert!(
+        planner
+            .mark_task_completed(&task_id, json!({"status": "ok"}))
+            .is_ok()
+    );
 }
 
 #[test]
@@ -134,9 +136,11 @@ fn test_mark_task_failed() {
     };
 
     planner.mark_task_started(&task_id).unwrap();
-    assert!(planner
-        .mark_task_failed(&task_id, "simulated error")
-        .is_ok());
+    assert!(
+        planner
+            .mark_task_failed(&task_id, "simulated error")
+            .is_ok()
+    );
 }
 
 #[test]
@@ -163,9 +167,11 @@ fn test_plan_builder() {
             "First Phase",
             "Description of first phase",
             vec![],
-            vec![TaskBuilder::new("Do something", "action_type")
-                .with_max_retries(3)
-                .build()],
+            vec![
+                TaskBuilder::new("Do something", "action_type")
+                    .with_max_retries(3)
+                    .build(),
+            ],
         )
         .build(&mut planner);
 

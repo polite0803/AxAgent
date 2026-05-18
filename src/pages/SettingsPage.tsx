@@ -1,3 +1,4 @@
+import { NotificationCenter } from "@/components/notification/NotificationCenter";
 import {
   AboutPage,
   AcpSettings,
@@ -9,6 +10,7 @@ import {
   DisplaySettings,
   EvolutionSettings,
   GeneralSettings,
+  KnowledgeSettings,
   LocalToolSettings,
   McpServerSettings,
   MessageChannelSettings,
@@ -63,7 +65,9 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   userProfile: UserProfileSettings,
   skillsHub: SkillsPage,
   plugins: PluginMarketplace,
+  knowledgeSettings: KnowledgeSettings,
   dashboardPlugins: DashboardPluginsSettings,
+  notificationCenter: () => <NotificationCenter trigger={<span />} />,
   webhooks: WebhookSettings,
   messageChannels: MessageChannelSettings,
   advanced: AdvancedSettings,

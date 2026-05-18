@@ -214,14 +214,13 @@ impl Tool for BundleAnalyzeTool {
                         let p = entry.path();
                         if p.is_dir() {
                             walk_dir(&p, files, total_size);
-                        } else if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
-                            if matches!(ext, "js" | "css" | "wasm" | "map") {
-                                if let Ok(meta) = p.metadata() {
-                                    let size = meta.len();
-                                    *total_size += size;
-                                    files.push((p.to_string_lossy().to_string(), size));
-                                }
-                            }
+                        } else if let Some(ext) = p.extension().and_then(|e| e.to_str())
+                            && matches!(ext, "js" | "css" | "wasm" | "map")
+                            && let Ok(meta) = p.metadata()
+                        {
+                            let size = meta.len();
+                            *total_size += size;
+                            files.push((p.to_string_lossy().to_string(), size));
                         }
                     }
                 }

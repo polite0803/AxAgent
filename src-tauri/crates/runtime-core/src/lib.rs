@@ -37,41 +37,41 @@ pub use cache_guard::CacheGuard;
 pub use cron_job::{CronJob, CronJobStatus, CronJobStore, TaskConfig, TaskRunResult};
 
 pub use compact::{
-    adaptive_compaction_config, cleanup_task_boundary, compact_session, decay_weight,
-    detect_task_boundary, estimate_message_tokens, estimate_session_tokens,
-    evaluate_compact_threshold, format_compact_summary, get_compact_continuation_message,
-    should_compact, smart_compact, summarize_turn, CompactionConfig, CompactionResult,
+    CompactionConfig, CompactionResult, adaptive_compaction_config, cleanup_task_boundary,
+    compact_session, decay_weight, detect_task_boundary, estimate_message_tokens,
+    estimate_session_tokens, evaluate_compact_threshold, format_compact_summary,
+    get_compact_continuation_message, should_compact, smart_compact, summarize_turn,
 };
 
 pub use compact_thresholds::{
-    recommended_compaction_config, should_auto_compact, should_reactive_compact,
-    AutoCompactTracking, CompactThresholdState, AUTOCOMPACT_BUFFER_TOKENS,
+    AUTOCOMPACT_BUFFER_TOKENS, AutoCompactTracking, CompactThresholdState,
     ERROR_THRESHOLD_BUFFER_TOKENS, MANUAL_COMPACT_BUFFER_TOKENS,
     MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES, WARNING_THRESHOLD_BUFFER_TOKENS,
+    recommended_compaction_config, should_auto_compact, should_reactive_compact,
 };
 
 pub use compact_warning::{
-    compute_warning_level, CompactWarning, CompactWarningState, WarningLevel,
-    DEFAULT_SUPPRESSION_TTL_SECS, MIN_WARNING_INTERVAL_SECS,
+    CompactWarning, CompactWarningState, DEFAULT_SUPPRESSION_TTL_SECS, MIN_WARNING_INTERVAL_SECS,
+    WarningLevel, compute_warning_level,
 };
 
 pub use config::{
-    ConfigEntry, ConfigError, ConfigLoader, ConfigSource, McpConfigCollection,
-    McpManagedProxyServerConfig, McpOAuthConfig, McpRemoteServerConfig, McpSdkServerConfig,
-    McpServerConfig, McpStdioServerConfig, McpTransport, McpWebSocketServerConfig, OAuthConfig,
-    ProviderFallbackConfig, ResolvedPermissionMode, RuntimeConfig, RuntimeFeatureConfig,
-    RuntimeHookConfig, RuntimePermissionRuleConfig, RuntimePluginConfig, ScopedMcpServerConfig,
-    CLAW_SETTINGS_SCHEMA_NAME,
+    CLAW_SETTINGS_SCHEMA_NAME, ConfigEntry, ConfigError, ConfigLoader, ConfigSource,
+    McpConfigCollection, McpManagedProxyServerConfig, McpOAuthConfig, McpRemoteServerConfig,
+    McpSdkServerConfig, McpServerConfig, McpStdioServerConfig, McpTransport,
+    McpWebSocketServerConfig, OAuthConfig, ProviderFallbackConfig, ResolvedPermissionMode,
+    RuntimeConfig, RuntimeFeatureConfig, RuntimeHookConfig, RuntimePermissionRuleConfig,
+    RuntimePluginConfig, ScopedMcpServerConfig,
 };
 
 pub use conversation::{
-    auto_compaction_threshold_from_env, ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent,
-    ConversationRuntime, PromptCacheEvent, RuntimeError, StaticToolExecutor, ToolError,
-    ToolErrorKind, ToolExecutor, TurnSummary,
+    ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
+    PromptCacheEvent, RuntimeError, StaticToolExecutor, ToolError, ToolErrorKind, ToolExecutor,
+    TurnSummary, auto_compaction_threshold_from_env,
 };
 
 pub use feature_flags::{
-    global_feature_flags, init_global_feature_flags, FeatureFlagDef, FeatureFlags,
+    FeatureFlagDef, FeatureFlags, global_feature_flags, init_global_feature_flags,
 };
 
 pub use hooks::{
@@ -88,10 +88,10 @@ pub use prompt_cache::{
 };
 
 pub use sandbox::{
-    build_linux_sandbox_command, detect_container_environment, detect_container_environment_from,
-    resolve_sandbox_status, resolve_sandbox_status_for_request, ContainerEnvironment,
-    FilesystemIsolationMode, LinuxSandboxCommand, SandboxConfig, SandboxDetectionInputs,
-    SandboxRequest, SandboxStatus,
+    ContainerEnvironment, FilesystemIsolationMode, LinuxSandboxCommand, SandboxConfig,
+    SandboxDetectionInputs, SandboxRequest, SandboxStatus, build_linux_sandbox_command,
+    detect_container_environment, detect_container_environment_from, resolve_sandbox_status,
+    resolve_sandbox_status_for_request,
 };
 
 pub use session::{
@@ -100,17 +100,17 @@ pub use session::{
 };
 
 pub use usage::{
-    format_usd, pricing_for_model, ModelPricing, TokenUsage, UsageCostEstimate, UsageTracker,
+    ModelPricing, TokenUsage, UsageCostEstimate, UsageTracker, format_usd, pricing_for_model,
 };
 
 pub use config_validate::{
-    check_unsupported_format, format_diagnostics, validate_config_file, ConfigDiagnostic,
-    DiagnosticKind, ValidationResult,
+    ConfigDiagnostic, DiagnosticKind, ValidationResult, check_unsupported_format,
+    format_diagnostics, validate_config_file,
 };
 
 pub use session_memory_compact::{
-    to_compaction_result, try_session_memory_compact, SessionMemoryCompactConfig,
-    SessionMemoryCompactResult, StructuredMemory,
+    SessionMemoryCompactConfig, SessionMemoryCompactResult, StructuredMemory, to_compaction_result,
+    try_session_memory_compact,
 };
 
 pub use session_control::SessionStore;

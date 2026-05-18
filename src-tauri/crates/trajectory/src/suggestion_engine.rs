@@ -213,11 +213,11 @@ impl SuggestionEngine {
         let predictions_suggestions = self.generate_from_prediction(prediction, context);
         suggestions.extend(predictions_suggestions);
 
-        if self.config.habit_based_suggestions {
-            if let Some(profile) = user_profile {
-                let habit_suggestions = self.generate_habit_based_suggestions(context, profile);
-                suggestions.extend(habit_suggestions);
-            }
+        if self.config.habit_based_suggestions
+            && let Some(profile) = user_profile
+        {
+            let habit_suggestions = self.generate_habit_based_suggestions(context, profile);
+            suggestions.extend(habit_suggestions);
         }
 
         suggestions.sort_by_key(|b| std::cmp::Reverse(b.priority.as_u32()));

@@ -233,7 +233,7 @@ fn dedupe_key(line: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{compress_summary, compress_summary_text, SummaryCompressionBudget};
+    use super::{SummaryCompressionBudget, compress_summary, compress_summary_text};
 
     #[test]
     fn collapses_whitespace_and_duplicate_lines() {
@@ -245,9 +245,11 @@ mod tests {
 
         // then
         assert_eq!(result.removed_duplicate_lines, 1);
-        assert!(result
-            .summary
-            .contains("- Scope: compact earlier messages."));
+        assert!(
+            result
+                .summary
+                .contains("- Scope: compact earlier messages.")
+        );
         assert!(!result.summary.contains("  compact   earlier"));
     }
 
@@ -277,12 +279,16 @@ mod tests {
 
         // then
         assert!(result.summary.contains("Conversation summary:"));
-        assert!(result
-            .summary
-            .contains("- Scope: 18 earlier messages compacted."));
-        assert!(result
-            .summary
-            .contains("- Current work: finish summary compression."));
+        assert!(
+            result
+                .summary
+                .contains("- Scope: 18 earlier messages compacted.")
+        );
+        assert!(
+            result
+                .summary
+                .contains("- Current work: finish summary compression.")
+        );
         assert!(result.omitted_lines > 0);
     }
 

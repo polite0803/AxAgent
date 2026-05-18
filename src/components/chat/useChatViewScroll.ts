@@ -257,15 +257,21 @@ export function useChatViewScroll({
   }, [activeConversationId, bubbleListThemeKey, messageCount, syncScrollToBottomVisibility]);
 
   const prevStreamingRef = useRef(false);
+  const streamingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (streaming && !prevStreamingRef.current) {
-      setTimeout(() => {
+      streamingTimerRef.current = setTimeout(() => {
         bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "smooth" });
         setShowScrollToBottom(false);
         setStickToBottom(true);
       }, 50);
     }
     prevStreamingRef.current = streaming;
+    return () => {
+      if (streamingTimerRef.current) {
+        clearTimeout(streamingTimerRef.current);
+      }
+    };
   }, [streaming]);
 
   useEffect(() => {

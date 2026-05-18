@@ -1,5 +1,5 @@
-import { invoke } from "@/lib/invoke";
-import { useEffect, useState } from "react";
+import { invoke, isTauri } from "@/lib/invoke";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface RLConfig {
@@ -27,32 +27,72 @@ interface TrajectoryStats {
   avg_quality: number;
 }
 
-export default function RLPanel() {
+export function RLPanel() {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [config, setConfig] = useState<RLConfig | null>(null);
   const [stats, setStats] = useState<TrajectoryStats | null>(null);
+  const [error, setError] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!expanded) { return; }
     const fetch = async () => {
+      let hasError = false;
       try {
         const c = await invoke<RLConfig>("rl_config", {});
-        setConfig(c);
+        if (mountedRef.current) { setConfig(c); }
       } catch (e) {
         console.warn("[rl] config fetch failed:", e);
+        hasError = true;
       }
       try {
         const s = await invoke<TrajectoryStats>("trajectory_stats", {});
-        setStats(s);
+        if (mountedRef.current) { setStats(s); }
       } catch (e) {
         console.warn("[rl] stats fetch failed:", e);
+        hasError = true;
       }
+      if (mountedRef.current) { setError(hasError); }
     };
     fetch();
     const interval = setInterval(fetch, 30000);
     return () => clearInterval(interval);
   }, [expanded]);
+
+  const handleExport = async () => {
+    try {
+      const data = await invoke<unknown[]>("rl_export_training_data", { minQuality: 0.3, limit: 20 });
+      const json = JSON.stringify(data, null, 2);
+      if (isTauri()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+        const filePath = await save({
+          defaultPath: "rl_training_data.json",
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        });
+        if (!filePath) { return; }
+        await writeTextFile(filePath, json);
+      } else {
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "rl_training_data.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      console.warn("[rl] export failed:", e);
+    }
+  };
 
   if (!expanded) {
     return (
@@ -69,6 +109,7 @@ export default function RLPanel() {
             />
           </svg>
           {t("chat.rlEngine")}
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
         </button>
       </div>
     );
@@ -78,17 +119,22 @@ export default function RLPanel() {
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground/80">{t("chat.rlEngine")}</span>
-        <button
-          onClick={() => setExpanded(false)}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          <button
+            onClick={() => setExpanded(false)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Stats grid */}
+      {error && (!stats || !config) && <div className="text-[10px] text-muted-foreground/60">{t("chat.loadError")}
+      </div>}
+
       {stats && (
         <div className="grid grid-cols-3 gap-1.5">
           <div className="text-center p-1 rounded bg-muted/30">
@@ -106,7 +152,6 @@ export default function RLPanel() {
         </div>
       )}
 
-      {/* Config */}
       {config && (
         <div className="space-y-1">
           <div className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">
@@ -140,22 +185,8 @@ export default function RLPanel() {
         </div>
       )}
 
-      {/* Export button */}
       <button
-        onClick={async () => {
-          try {
-            const data = await invoke<unknown[]>("rl_export_training_data", { minQuality: 0.3, limit: 20 });
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "rl_training_data.json";
-            a.click();
-            URL.revokeObjectURL(url);
-          } catch (e) {
-            console.warn("[rl] export failed:", e);
-          }
-        }}
+        onClick={handleExport}
         className="w-full text-[11px] py-1 rounded bg-muted/30 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
       >
         {t("chat.exportTrainingData")}

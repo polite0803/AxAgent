@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { App, Button, Input, Modal, Spin, theme } from "antd";
 import DOMPurify from "dompurify";
 import { ChevronDown } from "lucide-react";
@@ -8,12 +9,14 @@ import { useTranslation } from "react-i18next";
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { logIpcError } from "@/lib/invoke";
+import { estimateTokens } from "@/lib/tokenEstimator";
 import {
   setupAgentEventListeners,
   setupDreamEventListeners,
   setupPlanEventListeners,
   syncAllStoresToDomain,
   useAgentStore,
+  useCacheStore,
   useCompressStore,
   useConversationStore,
   useExpertStore,
@@ -22,14 +25,21 @@ import {
   useSettingsStore,
   useStreamStore,
 } from "@/stores";
+import { useAppConfigStore } from "@/stores/feature/appConfigStore";
+import { useProactiveStore } from "@/stores/feature/proactiveStore";
 import { useTopicGroupStore } from "@/stores/feature/topicGroupStore";
 
 import { registerHighlight } from "stream-markdown";
 
 import Bubble from "@ant-design/x/es/bubble";
+import { ContextPredictionPanel } from "../proactive/ContextPredictionPanel";
+import { PrefetchIndicator } from "../proactive/PrefetchIndicator";
 import { ProactiveSuggestionBar } from "../proactive/ProactiveSuggestionBar";
+import { ReminderList } from "../proactive/ReminderList";
 import { AgentProgressBar } from "./AgentProgressBar";
+import { AgentStatsPanel } from "./AgentStatsPanel";
 import { BreadcrumbBar } from "./BreadcrumbBar";
+import { CacheIndicator } from "./CacheIndicator";
 import {
   type CodeBlockPreviewPayload,
   getChatCodeThemes,
@@ -40,6 +50,8 @@ import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import { ChatScrollIndicator } from "./ChatScrollIndicator";
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
+import { ContextClassificationBar } from "./ContextClassificationBar";
+import type { ContextSegment } from "./ContextClassificationBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
 import { ExpertSelector } from "./ExpertSelector";
 import { ExtractMemoriesModal } from "./ExtractMemoriesModal";
@@ -47,13 +59,17 @@ import { InputArea } from "./InputArea";
 import { PermissionModal } from "./PermissionModal";
 import { PlanCard } from "./PlanCard";
 import { QuickCommandBar } from "./QuickCommandBar";
+import { SteerInput } from "./SteerInput";
 import { WorkflowEndMarker } from "./WorkflowEndMarker";
+import { WorkflowProgressPanel } from "./WorkflowProgressPanel";
 import { WorkflowSuggestionCard } from "./WorkflowSuggestionCard";
 
 import { useChatViewMessages } from "./ChatViewMessages";
 import { BubbleStyleOverrides, StreamingStyles } from "./ChatViewStreaming";
 import { ChatViewToolbar } from "./ChatViewToolbar";
 import { ChatViewWelcome } from "./ChatViewWelcome";
+import { FilePermissionDialog } from "./FilePermissionDialog";
+import type { FilePermissionRequest } from "./FilePermissionDialog";
 import { useChatViewActions } from "./useChatViewActions";
 import { useChatViewScroll } from "./useChatViewScroll";
 
@@ -86,6 +102,8 @@ function ChatViewInner({ onScrollToReady }: {
   const toggleArchive = useConversationStore((s) => s.toggleArchive);
   const loadOlderMessages = useConversationStore((s) => s.loadOlderMessages);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
+  const cacheStore = useCacheStore();
+  const fetchCacheState = useCacheStore((s) => s.fetchCacheState);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
@@ -93,6 +111,9 @@ function ChatViewInner({ onScrollToReady }: {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [mermaidPreviewSvg, setMermaidPreviewSvg] = useState<string | null>(null);
   const [mermaidPreviewOpen, setMermaidPreviewOpen] = useState(false);
+
+  const [filePermDialogOpen, setFilePermDialogOpen] = useState(false);
+  const [filePermRequest, setFilePermRequest] = useState<FilePermissionRequest | null>(null);
 
   const { darkTheme: codeBlockDarkTheme, lightTheme: codeBlockLightTheme, themes: codeBlockThemes } = useMemo(
     () => getChatCodeThemes(settings.code_theme, settings.code_theme_light),
@@ -132,6 +153,10 @@ function ChatViewInner({ onScrollToReady }: {
   }, []);
 
   useEffect(() => {
+    fetchCacheState();
+  }, [fetchCacheState, activeConversationId]);
+
+  useEffect(() => {
     if (!activeConversationId) { return; }
     const conversation = conversations.find((c) => c.id === activeConversationId);
     if (conversation?.mode === "agent") {
@@ -167,6 +192,150 @@ function ChatViewInner({ onScrollToReady }: {
     };
   }, []);
 
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen<FilePermissionRequest>("file-permission-request", (event) => {
+      setFilePermRequest(event.payload);
+      setFilePermDialogOpen(true);
+    }).then((fn) => {
+      unlisten = fn;
+    });
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
+  const prevMessageCount = useRef(messages.length);
+
+  const buildChatContext = (): Record<string, unknown> => {
+    const now = new Date();
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    const content = lastUserMsg?.content || "";
+
+    const fileRegex = /[\w/\\-]+\.(tsx?|jsx?|py|rs|go|java|rb|php|html|css|json|yml|yaml|md|sql|sh)/gi;
+    const fileMatches = content.match(fileRegex) || [];
+
+    const langMap: Record<string, string> = {
+      ts: "typescript",
+      tsx: "typescript",
+      js: "javascript",
+      jsx: "javascript",
+      py: "python",
+      rs: "rust",
+      go: "go",
+      java: "java",
+      rb: "ruby",
+      php: "php",
+      html: "html",
+      css: "css",
+      json: "json",
+      yml: "yaml",
+      yaml: "yaml",
+      md: "markdown",
+      sql: "sql",
+      sh: "shell",
+    };
+
+    const current_file = fileMatches.length > 0 ? fileMatches[0] : null;
+    let current_language = null;
+    if (current_file) {
+      const ext = current_file.split(".").pop()?.toLowerCase() || "";
+      current_language = langMap[ext] || null;
+    }
+
+    const recent_actions: string[] = [];
+    if (messages.length > 0) { recent_actions.push("UserMessaged"); }
+    if (
+      content.includes("error") || content.includes("Error") || content.includes("bug") || content.includes("修复")
+      || content.includes("报错")
+    ) {
+      recent_actions.push("ErrorDetected");
+    }
+    if (
+      content.includes("refactor") || content.includes("优化") || content.includes("重构")
+      || content.includes("improve")
+    ) {
+      recent_actions.push("RefactorKeyword");
+    }
+    if (content.includes("test") || content.includes("测试") || content.includes("spec")) {
+      recent_actions.push("TestKeyword");
+    }
+    if (
+      content.includes("document") || content.includes("文档") || content.includes("readme") || content.includes("doc")
+    ) {
+      recent_actions.push("DocKeyword");
+    }
+    if (fileMatches.length > 0) { recent_actions.push("FileOpened"); }
+
+    const detected_errors = content.toLowerCase().includes("error") || content.includes("报错")
+      ? ["error_detected_in_context"]
+      : [];
+    const detected_patterns = fileMatches.map((f) => ({
+      pattern: `file_reference_${f}`,
+      match_type: "file_reference",
+    }));
+
+    const activity = messages.length > 0 && now.getTime() / 1000 - (lastUserMsg?.created_at || 0) < 60
+      ? "high" as const
+      : "medium" as const;
+
+    const projectTypeMap: Record<string, string> = {
+      ts: "typescript",
+      tsx: "typescript",
+      js: "javascript",
+      jsx: "javascript",
+      py: "python",
+      rs: "rust",
+      go: "go",
+      java: "java",
+      rb: "ruby",
+      php: "php",
+    };
+    let project_type: string | null = null;
+    if (fileMatches.length > 0) {
+      const exts = fileMatches.map((f) => f.split(".").pop()?.toLowerCase() || "").filter(Boolean);
+      const counts = new Map<string, number>();
+      for (const ext of exts) {
+        counts.set(ext, (counts.get(ext) || 0) + 1);
+      }
+      let dominantExt = "";
+      let dominantCount = 0;
+      for (const [ext, cnt] of counts) {
+        if (cnt > dominantCount) {
+          dominantCount = cnt;
+          dominantExt = ext;
+        }
+      }
+      if (dominantExt && projectTypeMap[dominantExt]) {
+        project_type = projectTypeMap[dominantExt];
+      }
+    }
+
+    return {
+      current_file,
+      current_language,
+      recent_actions,
+      time_of_day: now.getHours(),
+      day_of_week: now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase(),
+      project_type,
+      user_activity_level: activity,
+      detected_errors,
+      detected_patterns,
+    };
+  };
+
+  useEffect(() => {
+    if (
+      useAppConfigStore.getState().features.proactiveMode
+      && messages.length > prevMessageCount.current
+      && activeConversationId
+    ) {
+      const { refreshSuggestions } = useProactiveStore.getState();
+      refreshSuggestions(buildChatContext());
+    }
+    prevMessageCount.current = messages.length;
+  }, [messages.length, activeConversationId]);
+
   const currentAgentStatus = useAgentStore(
     (s) => (activeConversationId ? s.agentStatus[activeConversationId] : undefined),
   );
@@ -182,6 +351,16 @@ function ChatViewInner({ onScrollToReady }: {
     messageAreaRef,
     loadOlderMessages,
   });
+
+  const contextBarModel = useMemo(() => {
+    if (!activeConversation) { return null; }
+    const provider = providers.find((p) => p.id === activeConversation.provider_id);
+    const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
+    return {
+      name: model?.name ?? activeConversation.model_id,
+      maxTokens: model?.max_tokens ?? activeConversation.max_tokens ?? undefined,
+    };
+  }, [activeConversation, providers]);
 
   const topicGroupEnabled = useTopicGroupStore((s) =>
     activeConversationId ? s.enabledByConversation[activeConversationId] : false
@@ -221,6 +400,74 @@ function ChatViewInner({ onScrollToReady }: {
     [messages],
   );
 
+  const tokenUsed = activeMessages.length > 0
+    ? estimateConversationTokens(activeMessages.map(m => ({ role: m.role, content: m.content })))
+    : 0;
+
+  const [showTokenDetail, setShowTokenDetail] = useState(false);
+
+  const classificationSegments = useMemo<ContextSegment[]>(() => {
+    const segments: ContextSegment[] = [
+      {
+        key: "messages",
+        labelKey: "chat.context.messages",
+        tokens: tokenUsed,
+        color: "#1677ff",
+      },
+    ];
+
+    const systemPrompt = activeConversation?.system_prompt;
+    if (systemPrompt) {
+      segments.push({
+        key: "system_prompt",
+        labelKey: "chat.context.systemPrompt",
+        tokens: estimateTokens(systemPrompt),
+        color: "#52c41a",
+      });
+    }
+
+    const knowledgeCount = activeConversation?.enabled_knowledge_base_ids?.length ?? 0;
+    if (knowledgeCount > 0) {
+      segments.push({
+        key: "knowledge",
+        labelKey: "chat.context.knowledge",
+        tokens: knowledgeCount * 500,
+        color: "#fa8c16",
+      });
+    }
+
+    const memoryCount = activeConversation?.enabled_memory_namespace_ids?.length ?? 0;
+    if (memoryCount > 0) {
+      segments.push({
+        key: "memory",
+        labelKey: "chat.context.memory",
+        tokens: memoryCount * 200,
+        color: "#eb2f96",
+      });
+    }
+
+    if (actions.toolCount > 0) {
+      segments.push({
+        key: "tools",
+        labelKey: "chat.context.tools",
+        tokens: actions.toolCount * 200,
+        color: "#722ed1",
+      });
+    }
+
+    const skillCount = activeConversation?.enabled_skill_ids?.length ?? 0;
+    if (skillCount > 0) {
+      segments.push({
+        key: "skills",
+        labelKey: "chat.context.skills",
+        tokens: skillCount * 300,
+        color: "#13c2c2",
+      });
+    }
+
+    return segments;
+  }, [tokenUsed, activeConversation, actions.toolCount]);
+
   return (
     <div className="ax-cyber-grid flex flex-col h-full min-h-0">
       <StreamingStyles />
@@ -256,32 +503,34 @@ function ChatViewInner({ onScrollToReady }: {
         setActiveConversation={setActiveConversation}
       />
 
-      {(() => {
-        const contextBarModel = activeConversation
-          ? (() => {
-            const provider = providers.find((p) => p.id === activeConversation.provider_id);
-            const model = provider?.models.find((m) => m.model_id === activeConversation.model_id);
-            return {
-              name: model?.name ?? activeConversation.model_id,
-              maxTokens: model?.max_tokens ?? activeConversation.max_tokens ?? undefined,
-            };
-          })()
-          : null;
+      {contextBarModel && (
+        <ContextBar
+          modelName={contextBarModel.name}
+          searchEnabled={activeConversation?.search_enabled ?? false}
+          toolCount={actions.toolCount}
+          knowledgeCount={activeConversation?.enabled_knowledge_base_ids?.length ?? 0}
+          memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
+          tokenUsed={tokenUsed > 0 ? tokenUsed : undefined}
+          tokenMax={contextBarModel.maxTokens}
+          onTokenClick={() => setShowTokenDetail((v) => !v)}
+        />
+      )}
 
-        return (
-          <ContextBar
-            modelName={contextBarModel?.name}
-            searchEnabled={activeConversation?.search_enabled ?? false}
-            toolCount={actions.toolCount}
-            knowledgeCount={activeConversation?.enabled_knowledge_base_ids?.length ?? 0}
-            memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
-            tokenUsed={activeMessages.length > 0
-              ? estimateConversationTokens(activeMessages.map(m => ({ role: m.role, content: m.content })))
-              : undefined}
-            tokenMax={contextBarModel?.maxTokens}
-          />
-        );
-      })()}
+      {showTokenDetail && classificationSegments.length > 0 && (
+        <ContextClassificationBar
+          segments={classificationSegments}
+          maxTokens={contextBarModel?.maxTokens}
+        />
+      )}
+
+      <AgentStatsPanel />
+
+      <CacheIndicator
+        cacheValid={cacheStore.cacheValid}
+        hasPendingChanges={cacheStore.hasPendingChanges}
+        tokensSaved={cacheStore.tokensSaved}
+        cacheHits={cacheStore.cacheHits}
+      />
 
       <div
         ref={messageAreaRef}
@@ -427,9 +676,14 @@ function ChatViewInner({ onScrollToReady }: {
         </div>
       )}
       <ProactiveSuggestionBar />
+      <ProactivePanelsSection context={buildChatContext()} />
 
       {activeConversation?.mode === "agent" && activeConversationId && (
         <AgentProgressBar conversationId={activeConversationId} />
+      )}
+
+      {activeConversation?.mode === "agent" && activeConversationId && (
+        <WorkflowProgressPanel conversationId={activeConversationId} />
       )}
 
       {activeConversation?.mode === "agent" && activeConversationId && (
@@ -437,6 +691,8 @@ function ChatViewInner({ onScrollToReady }: {
       )}
 
       {activeConversation?.mode === "agent" && <QuickCommandBar />}
+
+      {activeConversation?.mode === "agent" && activeConversationId && streaming && <SteerInput />}
 
       <div className="relative">
         {scroll.showScrollToBottom && (
@@ -462,6 +718,17 @@ function ChatViewInner({ onScrollToReady }: {
       </div>
 
       <PermissionModal />
+      {filePermRequest && (
+        <FilePermissionDialog
+          open={filePermDialogOpen}
+          onClose={() => {
+            setFilePermDialogOpen(false);
+            setFilePermRequest(null);
+          }}
+          path={filePermRequest.path}
+          reason={filePermRequest.reason}
+        />
+      )}
       <ExpertSelector
         open={actions.expertOpen}
         onClose={() => actions.setExpertOpen(false)}
@@ -588,6 +855,7 @@ function ChatViewInner({ onScrollToReady }: {
         onClose={() => actions.setExtractMemoriesOpen(false)}
         conversationId={activeConversationId ?? ""}
       />
+      <PrefetchIndicator />
     </div>
   );
 }
@@ -613,6 +881,26 @@ function PlanCardWrapper({ conversationId }: { conversationId: string }) {
   return (
     <div style={{ padding: "8px 16px" }}>
       <PlanCard plan={plan} conversationId={conversationId} />
+    </div>
+  );
+}
+
+function ProactivePanelsSection({ context }: { context: Record<string, unknown> }) {
+  const proactiveMode = useAppConfigStore((s) => s.features.proactiveMode);
+
+  if (!proactiveMode) { return null; }
+
+  return (
+    <div className="border-b border-border px-4 py-2">
+      <details className="group">
+        <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none">
+          Proactive Insights &amp; Reminders
+        </summary>
+        <div className="mt-2 space-y-2">
+          <ContextPredictionPanel context={context} />
+          <ReminderList />
+        </div>
+      </details>
     </div>
   );
 }

@@ -8,7 +8,7 @@
 
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 use anyhow::{Context, Result};
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -83,7 +83,7 @@ impl FTS5Search {
 
     pub async fn create_fts_tables(&self) -> Result<()> {
         let conn = self.conn.clone();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
             conn.execute_batch(
                 r#"
@@ -143,7 +143,7 @@ impl FTS5Search {
         let conn = self.conn.clone();
         let trajectory = trajectory.clone();
         let session_id = session_id.to_string();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
 
             let content = trajectory
@@ -194,7 +194,7 @@ impl FTS5Search {
         let memory_type = memory_type.to_string();
         let content = content.to_string();
         let entities = entities.to_vec();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
 
             conn.execute(
@@ -232,7 +232,7 @@ impl FTS5Search {
         let content = content.to_string();
         let category = category.to_string();
         let tags = tags.to_vec();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
 
             conn.execute(
@@ -259,7 +259,7 @@ impl FTS5Search {
     pub async fn index_message(&self, msg: &crate::storage::Message) -> Result<()> {
         let conn = self.conn.clone();
         let msg = msg.clone();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
             conn.execute(
                 r#"INSERT INTO trajectory_messages_fts (id, session_id, role, content, created_at)
@@ -279,13 +279,22 @@ impl FTS5Search {
         Ok(())
     }
 
+    fn validate_table_name(name: &str) -> anyhow::Result<()> {
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            anyhow::bail!("Invalid table name: {}", name);
+        }
+        Ok(())
+    }
+
     pub async fn delete_from_fts(&self, table: &str, id: &str) -> Result<()> {
+        Self::validate_table_name(table)?;
         let conn = self.conn.clone();
         let table = table.to_string();
         let id = id.to_string();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
-            let sql = format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)", table, table);
+            let sql =
+                format!("INSERT INTO {}({}, id, content) VALUES('delete', ?1, ?2)", table, table);
             conn.execute(&sql, params![id, ""])?;
             debug!("Deleted {} from FTS5 table {}", id, table);
             Ok(())
@@ -297,7 +306,7 @@ impl FTS5Search {
     pub async fn search(&self, query: FTS5Query) -> Result<Vec<FTS5Result>> {
         let conn = self.conn.clone();
         let config = self.config.clone();
-        tokio::task::spawn_blocking(move || {
+        let results = tokio::task::spawn_blocking(move || -> Result<Vec<FTS5Result>> {
             let conn = conn.blocking_lock();
             let mut results = Vec::new();
 
@@ -425,7 +434,8 @@ impl FTS5Search {
 
             Ok(results)
         })
-        .await??
+        .await??;
+        Ok(results)
     }
 
     pub async fn search_phrase(&self, phrase: &str, in_field: &str) -> Result<Vec<FTS5Result>> {
@@ -433,12 +443,12 @@ impl FTS5Search {
         let config = self.config.clone();
         let phrase = phrase.to_string();
         let in_field = in_field.to_string();
-        tokio::task::spawn_blocking(move || {
+        let results = tokio::task::spawn_blocking(move || -> Result<Vec<FTS5Result>> {
             let conn = conn.blocking_lock();
 
             let mut stmt = conn.prepare(&format!(
                 r#"
-                SELECT 
+                SELECT
                     id,
                     '{}' as doc_type,
                     {field},
@@ -479,7 +489,8 @@ impl FTS5Search {
 
             Ok(results)
         })
-        .await??
+        .await??;
+        Ok(results)
     }
 
     pub async fn search_proximity(
@@ -492,7 +503,7 @@ impl FTS5Search {
         let config = self.config.clone();
         let term1 = term1.to_string();
         let term2 = term2.to_string();
-        tokio::task::spawn_blocking(move || {
+        let results = tokio::task::spawn_blocking(move || -> Result<Vec<FTS5Result>> {
             let conn = conn.blocking_lock();
 
             let query = format!("\"{}\" NEAR/{} \"{}\"", term1, distance, term2);
@@ -540,7 +551,8 @@ impl FTS5Search {
 
             Ok(results)
         })
-        .await??
+        .await??;
+        Ok(results)
     }
 
     fn generate_snippet(content: &str, query: &str, config: &FTS5Config) -> String {
@@ -573,10 +585,7 @@ impl FTS5Search {
                 snippet = re
                     .replace_all(
                         &snippet,
-                        format!(
-                            "{}{}{}",
-                            config.highlight_open, term, config.highlight_close
-                        ),
+                        format!("{}{}{}", config.highlight_open, term, config.highlight_close),
                     )
                     .to_string();
             }
@@ -594,7 +603,7 @@ impl FTS5Search {
 
     pub async fn optimize(&self) -> Result<()> {
         let conn = self.conn.clone();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
             conn.execute_batch(
                 r#"
@@ -613,7 +622,7 @@ impl FTS5Search {
 
     pub async fn vacuum(&self) -> Result<()> {
         let conn = self.conn.clone();
-        tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn.blocking_lock();
             conn.execute_batch(
                 r#"

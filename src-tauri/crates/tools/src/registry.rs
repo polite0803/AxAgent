@@ -3,7 +3,7 @@
 //! 管理所有已注册工具的生命周期：注册、查找、列举、启用/禁用。
 //! 集成 MCP 执行、DB 审计记录、缓存、使用统计。
 
-use crate::audit::{shared_auditor, AuditEntry, ToolAuditor};
+use crate::audit::{AuditEntry, ToolAuditor, shared_auditor};
 use crate::hooks::executors::execute_hook;
 use crate::hooks::registry::HookRegistry;
 use crate::hooks::{HookAction, HookConfig, HookEventType};
@@ -510,10 +510,10 @@ impl UnifiedToolRegistry {
             .one(db)
             .await;
 
-        if let Ok(Some(record)) = result {
-            if let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&record.value) {
-                self.group_enabled = map;
-            }
+        if let Ok(Some(record)) = result
+            && let Ok(map) = serde_json::from_str::<HashMap<String, bool>>(&record.value)
+        {
+            self.group_enabled = map;
         }
 
         // 加载单工具禁用列表
@@ -523,10 +523,10 @@ impl UnifiedToolRegistry {
             .one(db)
             .await;
 
-        if let Ok(Some(record)) = dt_result {
-            if let Ok(list) = serde_json::from_str::<Vec<String>>(&record.value) {
-                self.disabled_tools = list.into_iter().collect();
-            }
+        if let Ok(Some(record)) = dt_result
+            && let Ok(list) = serde_json::from_str::<Vec<String>>(&record.value)
+        {
+            self.disabled_tools = list.into_iter().collect();
         }
 
         // 初始化默认组名

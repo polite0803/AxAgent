@@ -33,7 +33,7 @@ const ELEMENT_ICONS: Record<string, React.ReactNode> = {
 const ACTIONABLE_COLOR = "#52c41a";
 const NON_ACTIONABLE_COLOR = "#8c8c8c";
 
-function UISnapshotViewer({
+export function UISnapshotViewer({
   imageUrl,
   elements,
   rawDescription,
@@ -162,5 +162,3 @@ function UISnapshotViewer({
     </Card>
   );
 }
-
-export default UISnapshotViewer;

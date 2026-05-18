@@ -7,9 +7,9 @@ use axagent_core::workflow_types::{SubWorkflowNode, WorkflowNode};
 use itertools::Itertools;
 use serde_json::Value;
 
+use crate::work_engine::ExecutionState;
 use crate::work_engine::cache_layer::{CacheLayer, InMemoryCache};
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
-use crate::work_engine::ExecutionState;
 
 #[derive(Debug, Clone)]
 pub struct SubWorkflowExecutorConfig {
@@ -76,15 +76,12 @@ impl SubWorkflowExecutor {
         let mapped_input = self.map_inputs(node, context)?;
         let cache_key = self.compute_cache_key(node, context);
 
-        if self.config.cache_enabled {
-            if let Some(cached) = self.cache.get(&cache_key).await {
-                return serde_json::from_slice(&cached).map_err(|e| {
-                    NodeError::ExecutionFailed(format!(
-                        "Failed to deserialize cached result: {}",
-                        e
-                    ))
-                });
-            }
+        if self.config.cache_enabled
+            && let Some(cached) = self.cache.get(&cache_key).await
+        {
+            return serde_json::from_slice(&cached).map_err(|e| {
+                NodeError::ExecutionFailed(format!("Failed to deserialize cached result: {}", e))
+            });
         }
 
         let result = self.execute_with_retry(node, mapped_input).await?;

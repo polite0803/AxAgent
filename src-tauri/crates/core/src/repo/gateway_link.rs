@@ -509,25 +509,25 @@ pub async fn get_gateway_link_skill_syncs(
     match link_get(&link.endpoint, api_key, "/v1/skills").await {
         Ok(body) => {
             // Try to parse as an array of skill objects
-            if let Ok(skills_json) = serde_json::from_str::<serde_json::Value>(&body) {
-                if let Some(arr) = skills_json.as_array() {
-                    return Ok(arr
-                        .iter()
-                        .map(|s| GatewayLinkSkillSync {
-                            skill_name: s
-                                .get("name")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("unknown")
-                                .to_string(),
-                            skill_version: s
-                                .get("version")
-                                .and_then(|v| v.as_str())
-                                .map(|v| v.to_string()),
-                            sync_status: "synced".to_string(),
-                            last_sync_at: Some(now_ts()),
-                        })
-                        .collect());
-                }
+            if let Ok(skills_json) = serde_json::from_str::<serde_json::Value>(&body)
+                && let Some(arr) = skills_json.as_array()
+            {
+                return Ok(arr
+                    .iter()
+                    .map(|s| GatewayLinkSkillSync {
+                        skill_name: s
+                            .get("name")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown")
+                            .to_string(),
+                        skill_version: s
+                            .get("version")
+                            .and_then(|v| v.as_str())
+                            .map(|v| v.to_string()),
+                        sync_status: "synced".to_string(),
+                        last_sync_at: Some(now_ts()),
+                    })
+                    .collect());
             }
             Ok(vec![])
         },
@@ -768,7 +768,7 @@ pub async fn check_gateway_health(
     let link = match link {
         Some(l) => l,
         None => {
-            return Err(HealthCheckError::Permanent(format!("GatewayLink {} not found", link_id)))
+            return Err(HealthCheckError::Permanent(format!("GatewayLink {} not found", link_id)));
         },
     };
     let timeouts = GatewayLinkTimeouts::default();

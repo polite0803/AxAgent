@@ -365,10 +365,12 @@ mod tests {
         analyzer.push_output("running 3 tests\nFAILED test_addition\nassertion failed");
         let analysis = analyzer.analyze();
         assert!(analysis.has_errors);
-        assert!(analysis
-            .errors
-            .iter()
-            .any(|e| e.error_type == TerminalErrorType::TestFailure));
+        assert!(
+            analysis
+                .errors
+                .iter()
+                .any(|e| e.error_type == TerminalErrorType::TestFailure)
+        );
     }
 
     #[test]

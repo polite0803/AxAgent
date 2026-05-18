@@ -226,10 +226,10 @@ $results | ConvertTo-Json -Compress
         let mut elements = Vec::new();
         for raw in raw_elements {
             let name = raw["name"].as_str().unwrap_or("").to_string();
-            if let Some(ref name_filter) = query.name_contains {
-                if !name.contains(name_filter) {
-                    continue;
-                }
+            if let Some(ref name_filter) = query.name_contains
+                && !name.contains(name_filter)
+            {
+                continue;
             }
 
             elements.push(UIElement {

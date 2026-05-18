@@ -9,7 +9,7 @@ interface CodeStyleSampleProps {
   maxDisplayed?: number;
 }
 
-export default function CodeStyleSample({
+export function CodeStyleSample({
   templates,
   patterns,
   language = "typescript",

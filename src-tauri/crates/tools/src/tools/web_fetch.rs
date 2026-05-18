@@ -420,11 +420,11 @@ fn decode_body(raw: &[u8], content_type: &str) -> String {
         return s.to_string();
     }
 
-    if let Some(meta_charset) = detect_html_charset(raw) {
-        if let Some(enc) = encoding_rs::Encoding::for_label(meta_charset.as_bytes()) {
-            let (decoded, _, _) = enc.decode(raw);
-            return decoded.into_owned();
-        }
+    if let Some(meta_charset) = detect_html_charset(raw)
+        && let Some(enc) = encoding_rs::Encoding::for_label(meta_charset.as_bytes())
+    {
+        let (decoded, _, _) = enc.decode(raw);
+        return decoded.into_owned();
     }
 
     let (decoded, _) = encoding_rs::UTF_8.decode_with_bom_removal(raw);

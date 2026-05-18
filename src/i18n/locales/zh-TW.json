@@ -148,6 +148,8 @@
     "moveToCategory": "移動到分類",
     "removeFromCategory": "移出分類",
     "categoryNamePlaceholder": "分類名稱",
+    "manageCategories": "管理分類",
+    "noCategories": "暫無分類，點擊上方按鈕創建",
     "inspector": {
       "title": "檢查器",
       "sources": "來源",
@@ -598,7 +600,10 @@
         "shareMode": "分享模式",
         "terminalAccess": "終端訪問",
         "title": "會話共享",
-        "codePlaceholder": "XXXX-XXXX"
+        "codePlaceholder": "XXXX-XXXX",
+        "copyFailed": "複製失敗",
+        "joinFailed": "加入失敗",
+        "maxParticipants": "最大參與者數"
       },
       "sharedResources": "共享資源",
       "title": "協作"
@@ -3477,6 +3482,77 @@
     "noUndoAvailable": "無可撤銷操作",
     "noRedoAvailable": "無可重做操作",
     "nodeDropFailed": "節點放置失敗",
+    "knowledgeSettings": {
+      "title": "知識庫"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "chatRightPanel": {
+      "agent": "智能體",
+      "hierarchy": "層級",
+      "research": "調研",
+      "git": "Git",
+      "task": "任務",
+      "code": "程式碼",
+      "artifact": "產出",
+      "imageGen": "生圖",
+      "report": "報告",
+      "citation": "引用",
+      "inspector": "檢查",
+      "errorRecovery": "恢復",
+      "teammate": "協作",
+      "browser": "瀏覽器",
+      "computer": "桌面",
+      "benchmark": "評測",
+      "chart": "圖表",
+      "snapshot": "快照",
+      "profile": "用戶"
+    },
+    "knowledgeSettings": {
+      "title": "知識庫"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "chatRightPanel": {
+      "agent": "智能體",
+      "hierarchy": "層級",
+      "research": "調研",
+      "git": "Git",
+      "task": "任務",
+      "code": "程式碼",
+      "artifact": "產出",
+      "imageGen": "生圖",
+      "visionAnalysis": "視覺分析",
+      "report": "報告",
+      "citation": "引用",
+      "inspector": "檢查",
+      "browser": "瀏覽器",
+      "computer": "桌面",
+      "benchmark": "評測",
+      "chart": "圖表",
+      "snapshot": "快照",
+      "profile": "用戶",
+      "errorRecovery": "恢復",
+      "collaboration": "協作",
+      "evolution": "進化",
+      "steer": "引導",
+      "cache": "快取",
+      "branchCompare": "分支對比",
+      "gateway": "網關",
+      "contextClass": "上下文",
+      "cronResult": "定時結果",
+      "reflection": "反思",
+      "researchSources": "研究來源",
+      "categoryEdit": "分類編輯",
+      "filePermission": "檔案權限",
+      "sessionShare": "工作階段分享",
+      "prefetch": "預取",
+      "reminders": "提醒",
+      "contextPrediction": "上下文預測",
+      "teammate": "協作"
+    },
     "rightPanel": {
       "addTagsPlaceholder": "添加標籤...",
       "deleteEdge": "刪除連線",
@@ -5344,6 +5420,7 @@
     "sourceTypeWeb": "Web",
     "sourceTypeAcademic": "Academic",
     "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "Documentation",
     "sourceTypeNews": "News",
     "sourceTypeBlog": "Blog",
@@ -5924,11 +6001,15 @@
     "time": "Time"
   },
   "cronResult": {
-    "success": "Success",
-    "failed": "Failed",
-    "schedule": "Schedule",
-    "platform": "Platform",
-    "time": "Time"
+    "success": "成功",
+    "failed": "失敗",
+    "schedule": "排程",
+    "scheduleDescription": "描述",
+    "platform": "平台",
+    "time": "時間",
+    "loading": "正在載入定時任務結果…",
+    "prefix": "定時任務: {{jobName}}",
+    "emptyResult": "無執行結果"
   },
   "errorBoundary": {
     "title": "Something went wrong",

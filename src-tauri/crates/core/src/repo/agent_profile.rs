@@ -215,6 +215,7 @@ pub async fn upsert_agent_profile(
     get_agent_profile(db, id).await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn update_agent_profile(
     db: &DatabaseConnection,
     id: &str,

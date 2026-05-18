@@ -98,7 +98,10 @@ pub async fn skill_upgrade_propose(
 
         let upgrade_proposal = axagent_trajectory::SkillUpgradeProposal {
             target_skill_id: skill_id,
-            suggested_improvements: format!("Based on recent usage, consider enhancing the skill '{}' with additional capabilities or error handling", skill.name),
+            suggested_improvements: format!(
+                "Based on recent usage, consider enhancing the skill '{}' with additional capabilities or error handling",
+                skill.name
+            ),
             additional_scenarios: vec![],
             confidence,
             trigger_event: "manual_proposal".to_string(),
@@ -155,11 +158,22 @@ pub fn get_invoke_metrics() -> Result<serde_json::Value, String> {
 /// 将主动建议转换为 Nudge（nudgeStore 调用）
 #[tauri::command]
 pub async fn proactive_convert_to_nudge(
-    _state: tauri::State<'_, crate::AppState>,
+    state: tauri::State<'_, crate::AppState>,
     suggestion_id: String,
 ) -> Result<(), String> {
     tracing::info!("[nudge] converting suggestion to nudge: {}", suggestion_id);
-    // NudgeService 创建由 closed_loop 系统触发，
-    // 前端通过此命令标记建议已被用户确认
+
+    let mut proactive_service = state.proactive_service.write().await;
+    let accepted = proactive_service.accept_suggestion(&suggestion_id);
+
+    if accepted {
+        tracing::info!(
+            "[nudge] suggestion {} accepted and marked for nudge conversion",
+            suggestion_id
+        );
+    } else {
+        tracing::warn!("[nudge] suggestion {} not found or already accepted", suggestion_id);
+    }
+
     Ok(())
 }

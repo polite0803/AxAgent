@@ -1,16 +1,16 @@
 //! Session Manager for AxAgent Agent
 
+use crate::ToolRegistry;
 use crate::event_bus::AgentPermissionPayload;
 use crate::provider_adapter::AxAgentApiClient;
 use crate::shared_blackboard::SharedBlackboard;
-use crate::ToolRegistry;
 use axagent_core::repo::agent_session;
 use axagent_prompt_guard::{GuardConfig, PromptGuardPipeline};
 use axagent_runtime_core::{
-    compact_session, should_compact, CompactionConfig, ContentBlock, ConversationMessage,
-    ConversationRuntime, HookEvent, HookProgressEvent, HookProgressReporter, MessageRole,
-    PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
-    PermissionRequest, RuntimeError, Session,
+    CompactionConfig, ContentBlock, ConversationMessage, ConversationRuntime, HookEvent,
+    HookProgressEvent, HookProgressReporter, MessageRole, PermissionMode, PermissionPolicy,
+    PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
+    compact_session, should_compact,
 };
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -206,15 +206,15 @@ impl AgentSession {
 
     /// 记录此 Agent 的决策到 Blackboard
     pub fn record_to_blackboard(&self, field: &str, value: &str) {
-        if let Some(ref bb) = self.blackboard {
-            if let Ok(mut board) = bb.write() {
-                board.record_decision(
-                    &self.axagent_session_id.clone().unwrap_or_default(),
-                    &self.conversation_id,
-                    field,
-                    value,
-                );
-            }
+        if let Some(ref bb) = self.blackboard
+            && let Ok(mut board) = bb.write()
+        {
+            board.record_decision(
+                &self.axagent_session_id.clone().unwrap_or_default(),
+                &self.conversation_id,
+                field,
+                value,
+            );
         }
     }
 }
@@ -320,10 +320,10 @@ impl SessionManager {
         };
 
         // 将解析出的 workspace_root 同步到运行时 Session 对象
-        if let Some(ref cwd) = cwd_to_use {
-            if !cwd.is_empty() {
-                session.session_mut().workspace_root = Some(std::path::PathBuf::from(cwd.as_str()));
-            }
+        if let Some(ref cwd) = cwd_to_use
+            && !cwd.is_empty()
+        {
+            session.session_mut().workspace_root = Some(std::path::PathBuf::from(cwd.as_str()));
         }
 
         let axagent_session = agent_session::upsert_agent_session(
@@ -609,7 +609,11 @@ impl SessionManager {
                     .collect();
                 info!("Compression integrity warning: failed checks: {:?}", failed_checks);
             } else {
-                info!("Compression integrity verified: all {} checks passed ({} key entities tracked)", integrity.checks.len(), key_entities.len());
+                info!(
+                    "Compression integrity verified: all {} checks passed ({} key entities tracked)",
+                    integrity.checks.len(),
+                    key_entities.len()
+                );
             }
 
             let mut compacted = session;
@@ -815,14 +819,14 @@ impl Clone for ChannelPermissionPrompter {
 impl PermissionPrompter for ChannelPermissionPrompter {
     fn decide(&mut self, request: &PermissionRequest) -> PermissionPromptDecision {
         // Check "always allowed" first
-        if let Ok(set) = self.inner.always_allowed.lock() {
-            if set.contains(&request.tool_name) {
-                info!(
-                    "[ChannelPermissionPrompter] Auto-allowing '{}' (always allowed)",
-                    request.tool_name
-                );
-                return PermissionPromptDecision::Allow;
-            }
+        if let Ok(set) = self.inner.always_allowed.lock()
+            && set.contains(&request.tool_name)
+        {
+            info!(
+                "[ChannelPermissionPrompter] Auto-allowing '{}' (always allowed)",
+                request.tool_name
+            );
+            return PermissionPromptDecision::Allow;
         }
 
         // Fine-grained enforcement checks before prompting the user.
@@ -874,29 +878,28 @@ impl PermissionPrompter for ChannelPermissionPrompter {
         }
 
         // Check bash command safety
-        if tool_name_lower.contains("bash")
+        if (tool_name_lower.contains("bash")
             || tool_name_lower.contains("shell")
             || tool_name_lower.contains("exec")
-            || tool_name_lower.contains("run")
+            || tool_name_lower.contains("run"))
+            && let Ok(input_val) = serde_json::from_str::<serde_json::Value>(&request.input)
         {
-            if let Ok(input_val) = serde_json::from_str::<serde_json::Value>(&request.input) {
-                let command = input_val
-                    .get("command")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                if !command.is_empty() {
-                    let result = enforcer.check_bash(command);
-                    if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
-                        reason,
-                        ..
-                    } = result
-                    {
-                        info!(
-                            "[ChannelPermissionPrompter] Bash command denied by enforcer: {}",
-                            reason
-                        );
-                        return PermissionPromptDecision::Deny { reason };
-                    }
+            let command = input_val
+                .get("command")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if !command.is_empty() {
+                let result = enforcer.check_bash(command);
+                if let axagent_runtime_core::permission_enforcer::EnforcementResult::Denied {
+                    reason,
+                    ..
+                } = result
+                {
+                    info!(
+                        "[ChannelPermissionPrompter] Bash command denied by enforcer: {}",
+                        reason
+                    );
+                    return PermissionPromptDecision::Deny { reason };
                 }
             }
         }

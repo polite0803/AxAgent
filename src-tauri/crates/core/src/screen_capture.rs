@@ -47,8 +47,8 @@ fn is_black_frame(image: &image::RgbaImage) -> bool {
 #[cfg(target_os = "windows")]
 fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
     use windows::Win32::Graphics::Gdi::{
-        BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC,
-        GetDIBits, ReleaseDC, SelectObject, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, SRCCOPY,
+        BITMAPINFO, BITMAPINFOHEADER, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC,
+        DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits, ReleaseDC, SRCCOPY, SelectObject,
     };
     use windows::Win32::UI::WindowsAndMessaging::GetDesktopWindow;
 
@@ -68,11 +68,12 @@ fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
         let hdc = GetDC(Some(hwnd));
         let mem_dc = CreateCompatibleDC(Some(hdc));
         let bitmap = CreateCompatibleBitmap(hdc, width, height);
-        SelectObject(mem_dc, bitmap.into());
+        let old_bitmap = SelectObject(mem_dc, bitmap.into());
 
         let result = BitBlt(mem_dc, 0, 0, width, height, Some(hdc), x, y, SRCCOPY);
 
         if result.is_err() {
+            SelectObject(mem_dc, old_bitmap);
             let _ = DeleteDC(mem_dc);
             let _ = ReleaseDC(Some(hwnd), hdc);
             let _ = DeleteObject(bitmap.into());
@@ -105,6 +106,7 @@ fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
             DIB_RGB_COLORS,
         );
 
+        SelectObject(mem_dc, old_bitmap);
         let _ = DeleteDC(mem_dc);
         let _ = ReleaseDC(Some(hwnd), hdc);
         let _ = DeleteObject(bitmap.into());
@@ -127,8 +129,6 @@ fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
 
 impl ScreenCapture {
     pub fn new() -> Self {
-        let temp_dir = std::env::temp_dir().join("axagent_captures");
-        let _ = std::fs::create_dir_all(&temp_dir);
         Self
     }
 

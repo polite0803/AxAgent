@@ -37,7 +37,7 @@ const CHART_TYPE_ICONS: Record<string, React.ReactNode> = {
   area: <TrendingUp size={14} />,
 };
 
-function ChartInterpreter({
+export function ChartInterpreter({
   imageUrl,
   chartData,
   rawAnalysis,
@@ -188,5 +188,3 @@ function ChartInterpreter({
     </Card>
   );
 }
-
-export default ChartInterpreter;

@@ -1,9 +1,10 @@
-use crate::commands::conversations_search::{
-    session_search as inner_session_search, SessionSearchResult,
-};
 use crate::AppState;
+use crate::commands::conversations_search::{
+    SessionSearchResult, session_search as inner_session_search,
+};
 use tauri::State;
 
+#[allow(dead_code)]
 pub async fn session_search(
     state: State<'_, AppState>,
     query: String,

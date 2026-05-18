@@ -70,13 +70,13 @@ impl ProviderProxyConfig {
     /// If provider has explicit proxy_type, use it (even "none" to disable).
     /// Otherwise fall back to global settings.
     pub fn resolve(provider: &Option<Self>, global_settings: &AppSettings) -> Option<Self> {
-        if let Some(config) = provider {
-            if config.proxy_type.is_some() {
-                if config.proxy_type.as_deref() == Some("none") {
-                    return None;
-                }
-                return Some(config.clone());
+        if let Some(config) = provider
+            && config.proxy_type.is_some()
+        {
+            if config.proxy_type.as_deref() == Some("none") {
+                return None;
             }
+            return Some(config.clone());
         }
         // Fall back to global proxy
         match global_settings.proxy_type.as_deref() {

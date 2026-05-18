@@ -808,11 +808,13 @@ mod test_hierarchical_planner_dynamic_replanning {
         assert_eq!(planner.get_plan_versions().len(), 2);
 
         let plan_after_replan = planner.get_plan().unwrap();
-        assert!(plan_after_replan
-            .phases
-            .iter()
-            .flat_map(|p| p.tasks.iter())
-            .all(|t| t.id != task1_id));
+        assert!(
+            plan_after_replan
+                .phases
+                .iter()
+                .flat_map(|p| p.tasks.iter())
+                .all(|t| t.id != task1_id)
+        );
 
         planner.rollback(0).unwrap();
 

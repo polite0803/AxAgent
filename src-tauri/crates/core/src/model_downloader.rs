@@ -220,16 +220,14 @@ impl ModelDownloader {
 
         let mut request = client.get(url);
         let has_partial = tmp_path.exists();
-        if has_partial {
-            if let Ok(meta) = tokio::fs::metadata(&tmp_path).await {
-                let range = format!("bytes={}-", meta.len());
-                request = request.header("Range", range);
-                tracing::info!(
-                    filename = %filename,
-                    bytes = meta.len(),
-                    "Resuming download"
-                );
-            }
+        if has_partial && let Ok(meta) = tokio::fs::metadata(&tmp_path).await {
+            let range = format!("bytes={}-", meta.len());
+            request = request.header("Range", range);
+            tracing::info!(
+                filename = %filename,
+                bytes = meta.len(),
+                "Resuming download"
+            );
         }
 
         let response = request.send().await.map_err(|e| {

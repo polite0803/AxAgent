@@ -1,10 +1,10 @@
-import { ModelParamSliders } from "@/components/common/ModelParamSliders";
+import { ModelParamSliders, type ModelParamValues } from "@/components/common/ModelParamSliders";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { ModelSelect, parseModelValue } from "@/components/shared/ModelSelect";
 import { useSettingsStore } from "@/stores";
 import { Avatar, Divider, Input, Modal, theme, Typography } from "antd";
 import { FolderOpen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { TextArea } = Input;
@@ -37,6 +37,7 @@ interface CategoryEditModalProps {
   initialDefaultTopP?: number | null;
   initialDefaultFrequencyPenalty?: number | null;
   title?: string;
+  confirmLoading?: boolean;
 }
 
 export function CategoryEditModal({
@@ -54,60 +55,60 @@ export function CategoryEditModal({
   initialDefaultTopP = null,
   initialDefaultFrequencyPenalty = null,
   title,
+  confirmLoading = false,
 }: CategoryEditModalProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const settings = useSettingsStore((s) => s.settings);
-  const [name, setName] = useState(initialName);
-  const [iconType, setIconType] = useState<string | null>(initialIconType);
-  const [iconValue, setIconValue] = useState<string | null>(initialIconValue);
-  const [systemPrompt, setSystemPrompt] = useState(initialSystemPrompt ?? "");
-  const [defaultProviderId, setDefaultProviderId] = useState<string | null>(initialDefaultProviderId);
-  const [defaultModelId, setDefaultModelId] = useState<string | null>(initialDefaultModelId);
-  const [defaultTemperature, setDefaultTemperature] = useState<number | null>(initialDefaultTemperature);
-  const [defaultMaxTokens, setDefaultMaxTokens] = useState<number | null>(initialDefaultMaxTokens);
-  const [defaultTopP, setDefaultTopP] = useState<number | null>(initialDefaultTopP);
-  const [defaultFrequencyPenalty, setDefaultFrequencyPenalty] = useState<number | null>(initialDefaultFrequencyPenalty);
+
+  const [name, setName] = useState("");
+  const [iconType, setIconType] = useState<string | null>(null);
+  const [iconValue, setIconValue] = useState<string | null>(null);
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [defaultProviderId, setDefaultProviderId] = useState<string | null>(null);
+  const [defaultModelId, setDefaultModelId] = useState<string | null>(null);
+  const [defaultTemperature, setDefaultTemperature] = useState<number | null>(null);
+  const [defaultMaxTokens, setDefaultMaxTokens] = useState<number | null>(null);
+  const [defaultTopP, setDefaultTopP] = useState<number | null>(null);
+  const [defaultFrequencyPenalty, setDefaultFrequencyPenalty] = useState<number | null>(null);
 
   useEffect(() => {
-    if (open) {
-      setName(initialName);
-      setIconType(initialIconType ?? null);
-      setIconValue(initialIconValue ?? null);
-      setSystemPrompt(initialSystemPrompt ?? "");
-      setDefaultProviderId(initialDefaultProviderId ?? null);
-      setDefaultModelId(initialDefaultModelId ?? null);
-      setDefaultTemperature(initialDefaultTemperature ?? null);
-      setDefaultMaxTokens(initialDefaultMaxTokens ?? null);
-      setDefaultTopP(initialDefaultTopP ?? null);
-      setDefaultFrequencyPenalty(initialDefaultFrequencyPenalty ?? null);
-    }
-  }, [
-    open,
-    initialName,
-    initialIconType,
-    initialIconValue,
-    initialSystemPrompt,
-    initialDefaultProviderId,
-    initialDefaultModelId,
-    initialDefaultTemperature,
-    initialDefaultMaxTokens,
-    initialDefaultTopP,
-    initialDefaultFrequencyPenalty,
-  ]);
+    if (!open) { return; }
+    setName(initialName);
+    setIconType(initialIconType);
+    setIconValue(initialIconValue);
+    setSystemPrompt(initialSystemPrompt ?? "");
+    setDefaultProviderId(initialDefaultProviderId);
+    setDefaultModelId(initialDefaultModelId);
+    setDefaultTemperature(initialDefaultTemperature);
+    setDefaultMaxTokens(initialDefaultMaxTokens);
+    setDefaultTopP(initialDefaultTopP);
+    setDefaultFrequencyPenalty(initialDefaultFrequencyPenalty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const selectedModelValue = defaultProviderId && defaultModelId
     ? `${defaultProviderId}::${defaultModelId}`
     : undefined;
 
-  const handleDefaultModelChange = (value: string | undefined) => {
+  const handleDefaultModelChange = useCallback((value: string | undefined) => {
     const parsed = parseModelValue(value);
     setDefaultProviderId(parsed?.providerId ?? null);
     setDefaultModelId(parsed?.model_id ?? null);
-  };
+  }, []);
 
-  const handleOk = () => {
-    if (!name.trim()) { return; }
+  const handleParamsChange = useCallback(
+    (values: Partial<ModelParamValues>) => {
+      const { temperature, topP, maxTokens, frequencyPenalty } = values;
+      if (temperature !== undefined) { setDefaultTemperature(temperature ?? null); }
+      if (topP !== undefined) { setDefaultTopP(topP ?? null); }
+      if (maxTokens !== undefined) { setDefaultMaxTokens(maxTokens ?? null); }
+      if (frequencyPenalty !== undefined) { setDefaultFrequencyPenalty(frequencyPenalty ?? null); }
+    },
+    [],
+  );
+
+  const handleOk = useCallback(() => {
     onOk({
       name: name.trim(),
       icon_type: iconType,
@@ -120,8 +121,21 @@ export function CategoryEditModal({
       default_top_p: defaultTopP,
       default_frequency_penalty: defaultFrequencyPenalty,
     });
-    onClose();
-  };
+  }, [
+    name,
+    iconType,
+    iconValue,
+    systemPrompt,
+    defaultProviderId,
+    defaultModelId,
+    defaultTemperature,
+    defaultMaxTokens,
+    defaultTopP,
+    defaultFrequencyPenalty,
+    onOk,
+  ]);
+
+  const canSubmit = name.trim().length > 0;
 
   return (
     <Modal
@@ -129,8 +143,8 @@ export function CategoryEditModal({
       open={open}
       onCancel={onClose}
       onOk={handleOk}
-      okButtonProps={{ disabled: !name.trim() }}
-      destroyOnHidden
+      okButtonProps={{ disabled: !canSubmit || confirmLoading }}
+      confirmLoading={confirmLoading}
       width={560}
       mask={{ enabled: true, blur: true }}
     >
@@ -153,7 +167,6 @@ export function CategoryEditModal({
         />
 
         <Input
-          id="category-edit-modal-input-3"
           placeholder={t("chat.categoryNamePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -195,12 +208,7 @@ export function CategoryEditModal({
               maxTokens: defaultMaxTokens,
               frequencyPenalty: defaultFrequencyPenalty,
             }}
-            onChange={(values) => {
-              if ("temperature" in values) { setDefaultTemperature(values.temperature ?? null); }
-              if ("topP" in values) { setDefaultTopP(values.topP ?? null); }
-              if ("maxTokens" in values) { setDefaultMaxTokens(values.maxTokens ?? null); }
-              if ("frequencyPenalty" in values) { setDefaultFrequencyPenalty(values.frequencyPenalty ?? null); }
-            }}
+            onChange={handleParamsChange}
             defaults={{
               temperature: settings.default_temperature ?? 0.7,
               topP: settings.default_top_p ?? 1,

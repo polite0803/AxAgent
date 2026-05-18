@@ -187,14 +187,15 @@ fn parse_tokens(tokens: &[Token]) -> Result<ParsedCommand, String> {
         match &tokens[i] {
             Token::Word(w) => {
                 // 检测环境变量赋值 (KEY=VALUE)
-                if let Some(eq_pos) = w.find('=') {
-                    if eq_pos > 0 && w[..eq_pos].chars().all(|c| c.is_alphanumeric() || c == '_') {
-                        let key = w[..eq_pos].to_string();
-                        let value = w[eq_pos + 1..].to_string();
-                        env_vars.insert(key, value);
-                        i += 1;
-                        continue;
-                    }
+                if let Some(eq_pos) = w.find('=')
+                    && eq_pos > 0
+                    && w[..eq_pos].chars().all(|c| c.is_alphanumeric() || c == '_')
+                {
+                    let key = w[..eq_pos].to_string();
+                    let value = w[eq_pos + 1..].to_string();
+                    env_vars.insert(key, value);
+                    i += 1;
+                    continue;
                 }
                 argv.push(w.clone());
             },
@@ -226,14 +227,14 @@ fn parse_tokens(tokens: &[Token]) -> Result<ParsedCommand, String> {
                     Token::RedirectIn => RedirectKind::Input,
                     _ => unreachable!(),
                 };
-                if i + 1 < tokens.len() {
-                    if let Token::Word(target) = &tokens[i + 1] {
-                        redirects.push(Redirect {
-                            kind,
-                            target: target.clone(),
-                        });
-                        i += 1;
-                    }
+                if i + 1 < tokens.len()
+                    && let Token::Word(target) = &tokens[i + 1]
+                {
+                    redirects.push(Redirect {
+                        kind,
+                        target: target.clone(),
+                    });
+                    i += 1;
                 }
             },
         }

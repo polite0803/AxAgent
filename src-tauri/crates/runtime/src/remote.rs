@@ -250,8 +250,8 @@ fn env_truthy(value: Option<&String>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        inherited_upstream_proxy_env, no_proxy_list, read_token, upstream_proxy_ws_url,
-        RemoteSessionContext, UpstreamProxyBootstrap,
+        RemoteSessionContext, UpstreamProxyBootstrap, inherited_upstream_proxy_env, no_proxy_list,
+        read_token, upstream_proxy_ws_url,
     };
     use std::collections::BTreeMap;
     use std::fs;

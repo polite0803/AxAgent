@@ -314,7 +314,7 @@ pub async fn validate_workflow_template(
     let mut warnings = Vec::new();
     let node_ids: std::collections::HashSet<String> = nodes
         .iter()
-        .map(|n| match n {
+        .flat_map(|n| match n {
             WorkflowNode::Trigger(t) => Some(t.base.id.clone()),
             WorkflowNode::Agent(t) => Some(t.base.id.clone()),
             WorkflowNode::Llm(t) => Some(t.base.id.clone()),
@@ -331,7 +331,6 @@ pub async fn validate_workflow_template(
             WorkflowNode::VectorRetrieve(t) => Some(t.base.id.clone()),
             WorkflowNode::End(t) => Some(t.base.id.clone()),
         })
-        .flatten()
         .collect();
 
     if nodes.is_empty() {
@@ -574,7 +573,12 @@ fn infer_agent_from_n8n(
         || t.contains("graphql")
         || t.contains("request")
     {
-        ("devops-engineer", "executor", "devops-engineer", "DevOps Engineer: Responsible for API integration, CI/CD pipelines, HTTP request automation. Ensure reliability and error handling of interface calls.")
+        (
+            "devops-engineer",
+            "executor",
+            "devops-engineer",
+            "DevOps Engineer: Responsible for API integration, CI/CD pipelines, HTTP request automation. Ensure reliability and error handling of interface calls.",
+        )
     } else if t.contains("database")
         || t.contains("sql")
         || t.contains("postgres")

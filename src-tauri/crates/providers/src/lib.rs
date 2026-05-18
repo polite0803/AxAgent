@@ -150,18 +150,18 @@ pub fn extract_reasoning_from_text(text: &str) -> (String, Option<String>) {
         result.push_str(&remaining[..start]);
         let after_open = &remaining[start..];
         let tag_end = if let Some(close_bracket) = after_open.find('>') {
-            if after_open.starts_with("<think") {
-                if let Some(think_close_pos) = after_open.find(THINK_CLOSE) {
-                    let content_start = close_bracket + 1;
-                    let reasoning = after_open[content_start..think_close_pos]
-                        .trim()
-                        .to_string();
-                    if !reasoning.is_empty() {
-                        reasoning_parts.push(reasoning);
-                    }
-                    remaining = &after_open[think_close_pos + THINK_CLOSE.len()..];
-                    continue;
+            if after_open.starts_with("<think")
+                && let Some(think_close_pos) = after_open.find(THINK_CLOSE)
+            {
+                let content_start = close_bracket + 1;
+                let reasoning = after_open[content_start..think_close_pos]
+                    .trim()
+                    .to_string();
+                if !reasoning.is_empty() {
+                    reasoning_parts.push(reasoning);
                 }
+                remaining = &after_open[think_close_pos + THINK_CLOSE.len()..];
+                continue;
             }
             close_bracket + 1
         } else {
@@ -486,10 +486,10 @@ pub fn resolve_chat_url(
                 };
                 // Auto dedup: if base ends with a version prefix that matches
                 // the start of api_path, strip it from api_path
-                if let Some(ver) = extract_version_prefix(base) {
-                    if p.starts_with(&ver) {
-                        return format!("{}{}", base, &p[ver.len()..]);
-                    }
+                if let Some(ver) = extract_version_prefix(base)
+                    && p.starts_with(&ver)
+                {
+                    return format!("{}{}", base, &p[ver.len()..]);
                 }
                 format!("{}{}", base, p)
             }
@@ -627,7 +627,10 @@ pub fn redact_api_key_from_url(url: &str) -> String {
     if let Ok(mut parsed) = reqwest::Url::parse(url) {
         let mut pairs: Vec<_> = parsed.query_pairs().into_owned().collect();
         for (key, value) in pairs.iter_mut() {
-            if key.eq_ignore_ascii_case("key") || key.eq_ignore_ascii_case("api_key") || key.eq_ignore_ascii_case("apikey") {
+            if key.eq_ignore_ascii_case("key")
+                || key.eq_ignore_ascii_case("api_key")
+                || key.eq_ignore_ascii_case("apikey")
+            {
                 *value = "[REDACTED]".to_string();
             }
         }

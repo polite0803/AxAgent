@@ -18,6 +18,7 @@ export const ReactPreview = memo(function ReactPreview({
 <html>
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-eval' https://unpkg.com; style-src 'unsafe-inline';">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 16px; }
@@ -25,12 +26,17 @@ ${css || ""}
 </style>
 <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+<!-- TODO: Add SRI integrity hashes for all unpkg scripts -->
+<script src="https://unpkg.com/@babel/standalone@7.25.0/babel.min.js"><\/script>
 </head>
 <body>
 <div id="root"></div>
 <script>
+var _lastPostMessage = 0;
 window.onerror = function(msg, src, line, col, err) {
+  var now = Date.now();
+  if (now - _lastPostMessage < 500) { return; }
+  _lastPostMessage = now;
   window.parent.postMessage({ type: 'react-preview-error', message: String(msg) }, window.location.origin);
 };
 try {
@@ -42,7 +48,11 @@ try {
   fn(React, ReactDOM);
 } catch(e) {
   document.getElementById('root').innerHTML = '<pre style="color:red;padding:16px">' + e.message + '</pre>';
-  window.parent.postMessage({ type: 'react-preview-error', message: e.message }, window.location.origin);
+  var now2 = Date.now();
+  if (now2 - _lastPostMessage >= 500) {
+    _lastPostMessage = now2;
+    window.parent.postMessage({ type: 'react-preview-error', message: e.message }, window.location.origin);
+  }
 }
 <\/script>
 </body>

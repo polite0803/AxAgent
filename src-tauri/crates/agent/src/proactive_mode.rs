@@ -115,10 +115,10 @@ impl ProactiveMode {
             return false;
         }
         // 最近有 API 错误则跳过（5 分钟内）
-        if let Some(err_time) = self.last_api_error {
-            if err_time.elapsed() < Duration::from_secs(300) {
-                return false;
-            }
+        if let Some(err_time) = self.last_api_error
+            && err_time.elapsed() < Duration::from_secs(300)
+        {
+            return false;
         }
         self.last_user_input.elapsed() >= self.tick_interval
     }

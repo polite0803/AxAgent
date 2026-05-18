@@ -3,7 +3,7 @@ import { Tabs, theme, Tooltip } from "antd";
 import { Bot, GitBranch, History } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import AgentPoolPanel from "./AgentPoolPanel";
+import { AgentPoolPanel } from "./AgentPoolPanel";
 import { ExecutionTimeline } from "./ExecutionTimeline";
 import { TrajectoryReplay } from "./TrajectoryReplay";
 import "./AgentExecutionPanel.css";
@@ -301,5 +301,3 @@ export function AgentExecutionPanel({
     </div>
   );
 }
-
-export default AgentExecutionPanel;

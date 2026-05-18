@@ -386,41 +386,41 @@ impl AcademicSearchProvider {
     ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
         let mut results = Vec::new();
 
-        if let Ok(data) = serde_json::from_str::<serde_json::Value>(json) {
-            if let Some(organic_results) = data.get("organic_results").and_then(|r| r.as_array()) {
-                for item in organic_results {
-                    let title = item
-                        .get("title")
-                        .and_then(|t| t.as_str())
-                        .unwrap_or_default()
-                        .to_string();
-                    let snippet = item
-                        .get("snippet")
-                        .and_then(|s| s.as_str())
-                        .unwrap_or_default()
-                        .to_string();
-                    let link = item
-                        .get("link")
-                        .and_then(|l| l.as_str())
-                        .unwrap_or_default()
-                        .to_string();
-                    let _publication_info = item
-                        .get("publication_info")
-                        .and_then(|p| p.get("summary"))
-                        .and_then(|s| s.as_str())
-                        .unwrap_or_default()
-                        .to_string();
+        if let Ok(data) = serde_json::from_str::<serde_json::Value>(json)
+            && let Some(organic_results) = data.get("organic_results").and_then(|r| r.as_array())
+        {
+            for item in organic_results {
+                let title = item
+                    .get("title")
+                    .and_then(|t| t.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                let snippet = item
+                    .get("snippet")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                let link = item
+                    .get("link")
+                    .and_then(|l| l.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                let _publication_info = item
+                    .get("publication_info")
+                    .and_then(|p| p.get("summary"))
+                    .and_then(|s| s.as_str())
+                    .unwrap_or_default()
+                    .to_string();
 
-                    if title.is_empty() {
-                        continue;
-                    }
-
-                    let result = SearchResult::new(SourceType::Academic, link, title, snippet)
-                        .with_credibility(0.88)
-                        .with_relevance(0.85);
-
-                    results.push(result);
+                if title.is_empty() {
+                    continue;
                 }
+
+                let result = SearchResult::new(SourceType::Academic, link, title, snippet)
+                    .with_credibility(0.88)
+                    .with_relevance(0.85);
+
+                results.push(result);
             }
         }
 
@@ -438,8 +438,7 @@ impl AcademicSearchProvider {
         let query_encoded = urlencoding::encode(&query.query);
         let url = format!(
             "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term={}&retmax={}&retmode=json",
-            query_encoded,
-            query.max_results
+            query_encoded, query.max_results
         );
 
         let client = reqwest::Client::builder()
@@ -468,26 +467,25 @@ impl AcademicSearchProvider {
     ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
         let mut results = Vec::new();
 
-        if let Ok(data) = serde_json::from_str::<serde_json::Value>(json) {
-            if let Some(id_list) = data
+        if let Ok(data) = serde_json::from_str::<serde_json::Value>(json)
+            && let Some(id_list) = data
                 .get("esearchresult")
                 .and_then(|r| r.get("idlist"))
                 .and_then(|r| r.as_array())
-            {
-                for id in id_list {
-                    if let Some(id_str) = id.as_str() {
-                        let link = format!("https://pubmed.ncbi.nlm.nih.gov/{}/", id_str);
-                        let result = SearchResult::new(
-                            SourceType::Academic,
-                            link,
-                            format!("PubMed Article: {}", id_str),
-                            format!("Abstract available at PubMed for article {}", id_str),
-                        )
-                        .with_credibility(0.90)
-                        .with_relevance(0.80);
+        {
+            for id in id_list {
+                if let Some(id_str) = id.as_str() {
+                    let link = format!("https://pubmed.ncbi.nlm.nih.gov/{}/", id_str);
+                    let result = SearchResult::new(
+                        SourceType::Academic,
+                        link,
+                        format!("PubMed Article: {}", id_str),
+                        format!("Abstract available at PubMed for article {}", id_str),
+                    )
+                    .with_credibility(0.90)
+                    .with_relevance(0.80);
 
-                        results.push(result);
-                    }
+                    results.push(result);
                 }
             }
         }

@@ -180,7 +180,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
     borderRadius: 8,
     opacity: appeared ? 1 : 0,
     transform: appeared ? "translateY(0)" : "translateY(-10px)",
-    transition: "all 0.3s ease-out",
+    transition: "box-shadow 0.3s ease-out, transform 0.3s ease-out",
     boxShadow: status === "pending" && isDangerous ? `0 0 0 1px ${token.colorErrorBorder}` : undefined,
   };
 

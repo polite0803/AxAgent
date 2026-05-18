@@ -3,7 +3,7 @@ use axagent_core::crypto::decrypt_key;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ProviderType};
 use axagent_core::workflow_types::*;
 use axagent_providers::registry::ProviderRegistry;
-use axagent_providers::{resolve_base_url_for_type, ProviderRequestContext};
+use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -808,7 +808,9 @@ fn fallback_recommendations(context: &str) -> Vec<NodeRecommendation> {
     }
 
     recommendations.sort_by(|a, b| {
-        b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal)
+        b.confidence
+            .partial_cmp(&a.confidence)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
     recommendations.truncate(5);
 

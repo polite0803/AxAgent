@@ -84,7 +84,7 @@ export const CodeBlockPreviewModal: React.FC<Props> = ({ payload, open, onClose 
     >
       {payload && (
         <iframe
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
           src="about:blank"
           srcDoc={srcdoc}
           title={title}

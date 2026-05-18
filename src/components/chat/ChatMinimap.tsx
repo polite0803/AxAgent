@@ -347,7 +347,7 @@ function FaqItem({ entry, isActive, token }: {
           color: isActive ? "#fff" : token.colorTextSecondary,
           backgroundColor: isActive ? token.colorPrimary : token.colorFillQuaternary,
           border: `1px solid ${isActive ? token.colorPrimary : token.colorBorderSecondary}`,
-          transition: "all 0.2s",
+          transition: "box-shadow 0.2s, transform 0.2s",
           margin: "0 auto",
           overflow: "hidden",
           ...(hovered && !isActive

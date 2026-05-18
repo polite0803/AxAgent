@@ -75,12 +75,11 @@ impl PlatformAdapter for TelegramAdapter {
                             if let Some(msg) = update.message {
                                 last_update_id = last_update_id.max(update.update_id);
 
-                                if let Some(ref allowed) = allowed_users {
-                                    if let Some(ref user) = msg.from {
-                                        if !allowed.contains(&user.id) {
-                                            continue;
-                                        }
-                                    }
+                                if let Some(ref allowed) = allowed_users
+                                    && let Some(ref user) = msg.from
+                                    && !allowed.contains(&user.id)
+                                {
+                                    continue;
                                 }
 
                                 let username = msg.from.as_ref().and_then(|u| u.username.clone());
@@ -95,16 +94,15 @@ impl PlatformAdapter for TelegramAdapter {
                                 let _msg_date = msg.date;
 
                                 if !text.is_empty() {
-                                    if text.starts_with('/') {
-                                        if let Some(cmd_reply) =
+                                    if text.starts_with('/')
+                                        && let Some(cmd_reply) =
                                             handle_telegram_command(&text, &username, &user_id)
-                                        {
-                                            send_telegram_message(
-                                                &client, &bot_token, chat_id, &cmd_reply,
-                                            )
-                                            .await;
-                                            continue;
-                                        }
+                                    {
+                                        send_telegram_message(
+                                            &client, &bot_token, chat_id, &cmd_reply,
+                                        )
+                                        .await;
+                                        continue;
                                     }
                                     let cb =
                                         crate::message_gateway::platforms::get_message_callback();

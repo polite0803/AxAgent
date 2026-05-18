@@ -1,6 +1,6 @@
 use crate::AppState;
 use axagent_core::hybrid_search::{HybridSearchOptions, HybridSearcher};
-use axagent_core::rag::{collection_id, RAGSource, WikiVaultRAG};
+use axagent_core::rag::{RAGSource, WikiVaultRAG, collection_id};
 use axagent_core::repo::louvain::{self, LouvainResult};
 use axagent_core::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
 use axagent_core::repo::note_graph::LinkGraph;
@@ -598,7 +598,7 @@ pub async fn sync_knowledge_document_to_wiki(
                         "Document file not found at '{}' and no indexed chunks available. \
                          The document may have been deleted or the source is a remote URL.",
                         doc.source_path
-                    ))
+                    ));
                 },
             }
         }
@@ -900,10 +900,7 @@ pub async fn wiki_import_obsidian_vault(
     })
 }
 
-fn collect_md_files(
-    current: &std::path::Path,
-    files: &mut Vec<std::path::PathBuf>,
-) {
+fn collect_md_files(current: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
     if let Ok(entries) = std::fs::read_dir(current) {
         for entry in entries.flatten() {
             let path = entry.path();

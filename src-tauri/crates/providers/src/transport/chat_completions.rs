@@ -156,24 +156,24 @@ fn parse_sse_chunk(line: &str) -> anyhow::Result<Option<TransportStreamChunk>> {
         if let Some(data) = segment.strip_prefix("data: ") {
             let json: Value = serde_json::from_str(data)?;
             let choices = json["choices"].as_array();
-            if let Some(choices) = choices {
-                if let Some(first) = choices.first() {
-                    let content = first["delta"]["content"].as_str().map(|s| s.to_string());
-                    let finish_reason = first["finish_reason"].as_str().map(|s| s.to_string());
-                    let usage = json["usage"].as_object().map(|u| TransportUsage {
-                        prompt_tokens: u["prompt_tokens"].as_u64().unwrap_or(0) as u32,
-                        completion_tokens: u["completion_tokens"].as_u64().unwrap_or(0) as u32,
-                        total_tokens: u["total_tokens"].as_u64().unwrap_or(0) as u32,
-                    });
+            if let Some(choices) = choices
+                && let Some(first) = choices.first()
+            {
+                let content = first["delta"]["content"].as_str().map(|s| s.to_string());
+                let finish_reason = first["finish_reason"].as_str().map(|s| s.to_string());
+                let usage = json["usage"].as_object().map(|u| TransportUsage {
+                    prompt_tokens: u["prompt_tokens"].as_u64().unwrap_or(0) as u32,
+                    completion_tokens: u["completion_tokens"].as_u64().unwrap_or(0) as u32,
+                    total_tokens: u["total_tokens"].as_u64().unwrap_or(0) as u32,
+                });
 
-                    if content.is_some() || finish_reason.is_some() || usage.is_some() {
-                        return Ok(Some(TransportStreamChunk {
-                            content,
-                            tool_calls: None,
-                            finish_reason,
-                            usage,
-                        }));
-                    }
+                if content.is_some() || finish_reason.is_some() || usage.is_some() {
+                    return Ok(Some(TransportStreamChunk {
+                        content,
+                        tool_calls: None,
+                        finish_reason,
+                        usage,
+                    }));
                 }
             }
         }

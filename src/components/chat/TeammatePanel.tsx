@@ -3,7 +3,7 @@ import type { AgentPoolItem, TeammateStatus, WorkerMessage } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, TeamOutlined } from "@ant-design/icons";
 
 const _EMPTY: never[] = [];
-import { Button, Collapse, message, Tag, Typography } from "antd";
+import { Button, Collapse, message, Tag, theme, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type CreateTeamData, CreateTeamModal, type TeammateBackendType } from "./CreateTeamModal";
@@ -91,6 +91,7 @@ export function TeammatePanel({
   const pool = useExecutionStore((s) => s.agentPool[conversationId] || _EMPTY);
   const upsertPoolItem = useExecutionStore((s) => s.upsertPoolItem);
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);
 
@@ -190,11 +191,11 @@ export function TeammatePanel({
   return (
     <div
       className="mb-2 rounded border"
-      style={{ borderColor: "#d9d9d9", backgroundColor: "#fff" }}
+      style={{ borderColor: token.colorBorderSecondary, backgroundColor: token.colorBgContainer }}
     >
       <div
         className="border-b px-3 py-2 flex items-center justify-between"
-        style={{ borderColor: "#f0f0f0" }}
+        style={{ borderColor: token.colorBorderSecondary }}
       >
         <Text strong style={{ fontSize: 13 }}>
           <TeamOutlined className="mr-1" />
@@ -247,5 +248,3 @@ export function TeammatePanel({
     </div>
   );
 }
-
-export default TeammatePanel;

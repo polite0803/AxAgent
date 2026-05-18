@@ -1,6 +1,6 @@
 use futures::{SinkExt, StreamExt};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::Message;

@@ -211,39 +211,39 @@ impl PatternAnalyzer {
             }
         }
 
-        if hour_vec.len() > 1 {
-            if let Some(&(low_hour, low_count)) = hour_vec.last() {
-                if *low_count >= 3 && peak_count > 0 && *low_count < peak_count / 2 {
-                    patterns.push(TemporalPattern {
-                        pattern_type: TemporalPatternType::LowActivityHours,
-                        time_range: TimeRange {
-                            start_hour: *low_hour,
-                            end_hour: (*low_hour + 2).min(23),
-                            timezone: "UTC".to_string(),
-                        },
-                        confidence: 0.5,
-                    });
-                }
-            }
+        if hour_vec.len() > 1
+            && let Some(&(low_hour, low_count)) = hour_vec.last()
+            && *low_count >= 3
+            && peak_count > 0
+            && *low_count < peak_count / 2
+        {
+            patterns.push(TemporalPattern {
+                pattern_type: TemporalPatternType::LowActivityHours,
+                time_range: TimeRange {
+                    start_hour: *low_hour,
+                    end_hour: (*low_hour + 2).min(23),
+                    timezone: "UTC".to_string(),
+                },
+                confidence: 0.5,
+            });
         }
 
         let mut day_vec: Vec<_> = day_counts.iter().collect();
         day_vec.sort_by(|a, b| b.1.cmp(a.1));
 
-        if let Some(&(preferred_day, day_count)) = day_vec.first() {
-            if *day_count >= 10
-                && *day_count as f32 > day_vec.iter().map(|&(_, c)| *c).sum::<u32>() as f32 * 0.4
-            {
-                patterns.push(TemporalPattern {
-                    pattern_type: TemporalPatternType::PreferredDays,
-                    time_range: TimeRange {
-                        start_hour: *preferred_day * 24,
-                        end_hour: *preferred_day * 24 + 23,
-                        timezone: "UTC".to_string(),
-                    },
-                    confidence: (*day_count as f32 / 30.0).min(1.0),
-                });
-            }
+        if let Some(&(preferred_day, day_count)) = day_vec.first()
+            && *day_count >= 10
+            && *day_count as f32 > day_vec.iter().map(|&(_, c)| *c).sum::<u32>() as f32 * 0.4
+        {
+            patterns.push(TemporalPattern {
+                pattern_type: TemporalPatternType::PreferredDays,
+                time_range: TimeRange {
+                    start_hour: *preferred_day * 24,
+                    end_hour: *preferred_day * 24 + 23,
+                    timezone: "UTC".to_string(),
+                },
+                confidence: (*day_count as f32 / 30.0).min(1.0),
+            });
         }
 
         patterns

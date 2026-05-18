@@ -4,6 +4,14 @@ use crate::style_extractor::{
 use crate::style_vectorizer::StyleVector;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
+
+static SINGLE_LINE_COMMENT_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"//[^\n]*").unwrap());
+static MULTI_LINE_COMMENT_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").unwrap());
+static HEADING_MARKUP_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^#+\s+").unwrap());
+static BOLD_HEADERS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.+)$").unwrap());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeStyleTemplate {
@@ -288,12 +296,9 @@ impl StyleApplier {
     }
 
     fn remove_comments(&self, code: &str) -> String {
-        let single_line = Regex::new(r"//[^\n]*").unwrap();
-        let multi_line = Regex::new(r"/\*[\s\S]*?\*/").unwrap();
-
         let mut result = code.to_string();
-        result = single_line.replace_all(&result, "").to_string();
-        result = multi_line.replace_all(&result, "").to_string();
+        result = SINGLE_LINE_COMMENT_RE.replace_all(&result, "").to_string();
+        result = MULTI_LINE_COMMENT_RE.replace_all(&result, "").to_string();
 
         result
     }
@@ -364,8 +369,7 @@ impl StyleApplier {
 
     fn apply_structure_markup(&self, content: &str, structure: f32) -> String {
         if structure < 0.3 {
-            let re = Regex::new(r"^#+\s+").unwrap();
-            return re.replace_all(content, "").to_string();
+            return HEADING_MARKUP_RE.replace_all(content, "").to_string();
         }
 
         content.to_string()
@@ -532,13 +536,12 @@ impl DocumentStyleApplicator {
     }
 
     fn make_bold_headers(&self, content: &str) -> String {
-        let re = Regex::new(r"^(#{1,6})\s+(.+)$").unwrap();
-
-        re.replace_all(content, |caps: &regex::Captures| {
-            let hashes = &caps[1];
-            let title = &caps[2];
-            format!("{} **{}**", hashes, title)
-        })
-        .to_string()
+        BOLD_HEADERS_RE
+            .replace_all(content, |caps: &regex::Captures| {
+                let hashes = &caps[1];
+                let title = &caps[2];
+                format!("{} **{}**", hashes, title)
+            })
+            .to_string()
     }
 }

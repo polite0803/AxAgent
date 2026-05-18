@@ -386,10 +386,12 @@ mod tests {
         let outline = builder.build(&state).await;
 
         assert!(outline.title.contains("Research Report"));
-        assert!(outline
-            .sections
-            .iter()
-            .any(|s| s.title.contains("Abstract")));
+        assert!(
+            outline
+                .sections
+                .iter()
+                .any(|s| s.title.contains("Abstract"))
+        );
     }
 
     #[tokio::test]

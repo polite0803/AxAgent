@@ -264,6 +264,7 @@ pub fn collection_id(prefix: &str, container_id: &str) -> String {
 /// This is the generic replacement for the separate `search_knowledge` /
 /// `search_memory` functions.  The concrete `EmbedFn` is injected by the
 /// caller (typically `crate::indexing::generate_embeddings`).
+#[allow(clippy::too_many_arguments)]
 pub async fn search<S: RAGSource + ?Sized>(
     source: &S,
     db: &DatabaseConnection,
@@ -457,10 +458,10 @@ pub async fn collect_knowledge_graph_context(
         let mut section = format!("[Knowledge Graph - {}]\n", kb_id);
         for entity in &entities {
             section.push_str(&format!("- {} ({})", entity.name, entity.entity_type));
-            if let Some(ref desc) = entity.description {
-                if !desc.is_empty() {
-                    section.push_str(&format!(" — {}", desc));
-                }
+            if let Some(ref desc) = entity.description
+                && !desc.is_empty()
+            {
+                section.push_str(&format!(" — {}", desc));
             }
             section.push('\n');
         }

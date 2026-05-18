@@ -22,7 +22,7 @@ import {
 import { CloudUpload, FileJson, FolderOpen, HardDrive, Settings2, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import WebDavSync from "./WebDavSync";
+import { WebDavSync } from "./WebDavSync";
 
 const { Text } = Typography;
 

@@ -46,6 +46,7 @@ pub enum ModelTier {
 }
 
 impl ModelTier {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             ModelTier::Budget => "budget",

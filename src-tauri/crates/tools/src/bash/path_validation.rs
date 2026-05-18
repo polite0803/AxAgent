@@ -68,15 +68,11 @@ impl PathValidator {
         // 检查路径遍历攻击
         if path.contains("..") {
             // 允许 .. 但检查解析后是否在工作目录内
-            if let Ok(canonical) = std::fs::canonicalize(&normalized) {
-                if let Ok(canonical_wd) = std::fs::canonicalize(&self.working_dir) {
-                    if !canonical.starts_with(&canonical_wd) {
-                        return PathResult::Blocked(format!(
-                            "路径 '{}' 解析后在工作目录之外",
-                            path
-                        ));
-                    }
-                }
+            if let Ok(canonical) = std::fs::canonicalize(&normalized)
+                && let Ok(canonical_wd) = std::fs::canonicalize(&self.working_dir)
+                && !canonical.starts_with(&canonical_wd)
+            {
+                return PathResult::Blocked(format!("路径 '{}' 解析后在工作目录之外", path));
             }
         }
 

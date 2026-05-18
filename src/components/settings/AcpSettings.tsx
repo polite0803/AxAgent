@@ -323,5 +323,3 @@ export function AcpSettings() {
     </div>
   );
 }
-
-export default AcpSettings;

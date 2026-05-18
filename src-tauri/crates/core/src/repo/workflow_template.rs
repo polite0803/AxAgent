@@ -164,10 +164,10 @@ pub async fn get_template_versions(db: &DatabaseConnection, id: &str) -> Result<
         .map(|v| v.version)
         .collect();
 
-    if let Some(current) = current_version {
-        if !versions.contains(&current) {
-            versions.push(current);
-        }
+    if let Some(current) = current_version
+        && !versions.contains(&current)
+    {
+        versions.push(current);
     }
     versions.sort_by(|a, b| b.cmp(a));
     Ok(versions)

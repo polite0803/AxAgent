@@ -697,6 +697,8 @@ export type SettingsSection =
   | "evolution"
   | "cloudWorkspace"
   | "plugins"
+  | "knowledgeSettings"
+  | "notificationCenter"
   | string;
 
 // === Generated Tool ===
@@ -1034,6 +1036,7 @@ export * from "./agent";
 export * from "./agentProfile";
 export * from "./artifact";
 export * from "./backup";
+export * from "./citation";
 export * from "./evaluator";
 export * from "./expert";
 export * from "./knowledge";

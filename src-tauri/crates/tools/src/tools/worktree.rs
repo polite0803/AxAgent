@@ -4,7 +4,7 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::process::Command;
 
 fn fire_hook(event: axagent_runtime_core::HookEvent, data: &serde_json::Value) {
@@ -204,7 +204,7 @@ impl Tool for ExitWorktreeTool {
                 return Err(ToolError::execution_failed(format!(
                     "当前目录 '{}' 不在 worktree 中",
                     cwd
-                )))
+                )));
             },
         };
         let root = git_root()?;

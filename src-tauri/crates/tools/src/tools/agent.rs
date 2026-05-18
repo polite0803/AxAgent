@@ -6,7 +6,7 @@ use crate::agent_def_types::{AgentDefSource, AgentDefinition};
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_plugins::agent_provider::global_plugin_agents;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::{LazyLock, Mutex, RwLock};
 
 /// 待处理子 Agent 卡片: (child_conversation_id, agent_type, description)

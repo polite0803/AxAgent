@@ -72,7 +72,8 @@ impl TrajectoryStorage {
             conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;")
                 .context("Failed to set FTS5 connection pragmas")?;
             Ok::<_, anyhow::Error>(conn)
-        }).await??;
+        })
+        .await??;
         let conn = Arc::new(Mutex::new(conn));
         let fts = FTS5Search::new(conn, FTS5Config::default());
         fts.create_fts_tables().await?;
@@ -245,7 +246,7 @@ impl TrajectoryStorage {
                 .exec(self.db.as_ref())
                 .await?;
             // Delete from FTS index if available
-            let _ = self.delete_trajectory_fts(id);
+            let _ = self.delete_trajectory_fts(id).await;
             info!("Deleted trajectory {}", id);
             Ok(())
         })
@@ -1142,12 +1143,12 @@ impl TrajectoryStorage {
             .collect())
     }
 
-    pub fn search_trajectories(&self, fts_query: &FTS5Query) -> Result<Vec<String>> {
+    pub async fn search_trajectories(&self, fts_query: &FTS5Query) -> Result<Vec<String>> {
         // 优先使用 FTS5 全文搜索，不可用时降级为 LIKE 查询
         if let Some(ref fts) = self.fts_searcher {
             let mut query = fts_query.clone();
             query.filter_type = Some("trajectories_fts".to_string());
-            match fts.search(query) {
+            match fts.search(query).await {
                 Ok(results) if !results.is_empty() => {
                     return Ok(results.into_iter().map(|r| r.id).collect());
                 },
@@ -1216,7 +1217,8 @@ impl TrajectoryStorage {
                 &skill.content,
                 &skill.category,
                 &skill.tags,
-            ).await
+            )
+            .await
         } else {
             Ok(())
         }
@@ -1639,5 +1641,3 @@ pub struct TrajectoryStatistics {
     pub success_rate: f64,
     pub recent_trajectories: usize,
 }
-
-

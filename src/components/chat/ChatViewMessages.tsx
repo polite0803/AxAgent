@@ -49,6 +49,7 @@ import type { Message } from "@/types";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { AskUserCard } from "./AskUserCard";
 import { AttachmentPreview } from "./AttachmentPreview";
+import { BranchCompareDialog } from "./BranchCompareDialog";
 import { AssistantMarkdown, getChatCodeThemes, THINKING_LOADING_MARKER } from "./ChatMarkdownNodes";
 import { getStreamingLoadingState, shouldRenderAssistantMarkdownFromContent } from "./chatStreaming";
 import { DeleteLastVersionPopover } from "./DeleteLastVersionPopover";
@@ -71,6 +72,11 @@ function AssistantFooter({
   displayMode,
   onDisplayModeChange,
   onMultiModelDetected,
+  isDarkMode,
+  codeBlockDarkTheme,
+  codeBlockLightTheme,
+  codeBlockThemes,
+  codeFontFamily,
 }: {
   msg: Message;
   conversationId: string;
@@ -84,6 +90,11 @@ function AssistantFooter({
   displayMode?: MultiModelDisplayMode;
   onDisplayModeChange?: (parentMsgId: string, mode: MultiModelDisplayMode) => void;
   onMultiModelDetected?: (parentMsgId: string, versions: Message[]) => void;
+  isDarkMode: boolean;
+  codeBlockDarkTheme: string;
+  codeBlockLightTheme: string;
+  codeBlockThemes: string[];
+  codeFontFamily?: string;
 }) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
@@ -97,18 +108,24 @@ function AssistantFooter({
   const branchConversation = useConversationStore((s) => s.branchConversation);
   const { copy: copyAssistant, isCopied: assistantCopied } = useCopyToClipboard();
   const [branchModalOpen, setBranchModalOpen] = useState(false);
-  const [branchAsChild, _setBranchAsChild] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [branchAsChild] = useState(false);
   const [branchTitle, setBranchTitle] = useState("");
-  const conversations = useConversationStore((s) => s.conversations);
-  const currentConvTitle = conversations.find((c) => c.id === conversationId)?.title ?? "";
+  const currentConvTitle = useConversationStore((s) =>
+    s.conversations.find((c) => c.id === conversationId)?.title ?? ""
+  );
   const messagesLength = useConversationStore((s) => s.messages.length);
   const storeMessages = useConversationStore((s) => s.messages);
 
   useEffect(() => {
     if (msg.parent_message_id && conversationId) {
+      let cancelled = false;
       listMessageVersions(conversationId, msg.parent_message_id).then((v) => {
-        if (v) { setAllVersions(v); }
+        if (!cancelled && v) { setAllVersions(v); }
       });
+      return () => {
+        cancelled = true;
+      };
     }
   }, [msg.parent_message_id, msg.id, conversationId, listMessageVersions, messagesLength]);
 
@@ -277,12 +294,32 @@ function AssistantFooter({
                 key: "branch",
                 actionRender: () => (
                   <Tooltip title={t("chat.branchConversation")}>
-                    <span className="axagent-action-item" style={{ color: token.colorTextSecondary }}>
+                    <span
+                      className="axagent-action-item"
+                      style={{ color: token.colorTextSecondary }}
+                      onClick={() => setBranchModalOpen(true)}
+                    >
                       <GitBranch size={14} />
                     </span>
                   </Tooltip>
                 ),
               },
+              ...(mergedVersions.length >= 2
+                ? [{
+                  key: "compare",
+                  actionRender: () => (
+                    <Tooltip title={t("chat.branch.compare")}>
+                      <span
+                        className="axagent-action-item"
+                        style={{ color: token.colorTextSecondary }}
+                        onClick={() => setCompareOpen(true)}
+                      >
+                        <ArrowLeftRight size={14} />
+                      </span>
+                    </Tooltip>
+                  ),
+                }]
+                : []),
               {
                 key: "delete",
                 actionRender: () => {
@@ -374,6 +411,16 @@ function AssistantFooter({
           }}
         />
       </Modal>
+      <BranchCompareDialog
+        open={compareOpen}
+        onClose={() => setCompareOpen(false)}
+        versions={mergedVersions}
+        isDarkMode={isDarkMode}
+        codeBlockDarkTheme={codeBlockDarkTheme}
+        codeBlockLightTheme={codeBlockLightTheme}
+        codeBlockThemes={codeBlockThemes}
+        codeFontFamily={codeFontFamily}
+      />
     </div>
   );
 }
@@ -397,7 +444,6 @@ export function useChatViewMessages({
   streaming,
   compressing,
   bubbleStyle,
-  // @ts-ignore -   bubbleListThemeKey,
   bubbleListRef,
   handleEditMessage,
 }: ChatViewMessagesProps) {
@@ -1260,6 +1306,11 @@ export function useChatViewMessages({
               displayMode={effectiveDisplayMode}
               onDisplayModeChange={handleDisplayModeOverride}
               onMultiModelDetected={handleMultiModelDetected}
+              isDarkMode={isDarkMode}
+              codeBlockDarkTheme={codeBlockDarkTheme}
+              codeBlockLightTheme={codeBlockLightTheme}
+              codeBlockThemes={codeBlockThemes}
+              codeFontFamily={settings.code_font_family || undefined}
             />
           </div>
         )

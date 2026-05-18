@@ -52,61 +52,61 @@ impl Tool for SkillTool {
 
         for (source_kind, dir) in &dirs {
             let skill_md = dir.join(skill_name).join("SKILL.md");
-            if skill_md.exists() {
-                if let Ok(content) = std::fs::read_to_string(skill_md) {
-                    let mut output = format!(
-                        "# Skill: {}\n\n以下是从 SKILL.md 加载的技能指令。请严格按照这些指令执行任务，按需使用其他工具。\n\n---\n\n{}",
-                        skill_name, content
-                    );
-                    if !args.is_empty() {
-                        output.push_str(&format!("\n\n---\n**用户参数**: {}", args));
-                        output.push_str("\n请将上述参数应用到技能指令中。");
-                    }
-
-                    return Ok(ToolResult {
-                        content: output,
-                        is_error: false,
-                        truncated: false,
-                        metadata: Some(serde_json::json!({
-                            "skill_name": skill_name,
-                            "args": args,
-                            "source": "SKILL.md",
-                            "source_kind": source_kind,
-                            "source_dir": dir.to_string_lossy().to_string(),
-                        })),
-                        duration_ms: None,
-                        progress: Vec::new(),
-                    });
+            if skill_md.exists()
+                && let Ok(content) = std::fs::read_to_string(skill_md)
+            {
+                let mut output = format!(
+                    "# Skill: {}\n\n以下是从 SKILL.md 加载的技能指令。请严格按照这些指令执行任务，按需使用其他工具。\n\n---\n\n{}",
+                    skill_name, content
+                );
+                if !args.is_empty() {
+                    output.push_str(&format!("\n\n---\n**用户参数**: {}", args));
+                    output.push_str("\n请将上述参数应用到技能指令中。");
                 }
+
+                return Ok(ToolResult {
+                    content: output,
+                    is_error: false,
+                    truncated: false,
+                    metadata: Some(serde_json::json!({
+                        "skill_name": skill_name,
+                        "args": args,
+                        "source": "SKILL.md",
+                        "source_kind": source_kind,
+                        "source_dir": dir.to_string_lossy().to_string(),
+                    })),
+                    duration_ms: None,
+                    progress: Vec::new(),
+                });
             }
 
             let skill_md_alt = dir.join(format!("{}.md", skill_name));
-            if skill_md_alt.exists() {
-                if let Ok(content) = std::fs::read_to_string(skill_md_alt) {
-                    let mut output = format!(
-                        "# Skill: {}\n\n以下是从 SKILL.md 加载的技能指令。请严格按照这些指令执行任务，按需使用其他工具。\n\n---\n\n{}",
-                        skill_name, content
-                    );
-                    if !args.is_empty() {
-                        output.push_str(&format!("\n\n---\n**用户参数**: {}", args));
-                        output.push_str("\n请将上述参数应用到技能指令中。");
-                    }
-
-                    return Ok(ToolResult {
-                        content: output,
-                        is_error: false,
-                        truncated: false,
-                        metadata: Some(serde_json::json!({
-                            "skill_name": skill_name,
-                            "args": args,
-                            "source": "SKILL.md",
-                            "source_kind": source_kind,
-                            "source_dir": dir.to_string_lossy().to_string(),
-                        })),
-                        duration_ms: None,
-                        progress: Vec::new(),
-                    });
+            if skill_md_alt.exists()
+                && let Ok(content) = std::fs::read_to_string(skill_md_alt)
+            {
+                let mut output = format!(
+                    "# Skill: {}\n\n以下是从 SKILL.md 加载的技能指令。请严格按照这些指令执行任务，按需使用其他工具。\n\n---\n\n{}",
+                    skill_name, content
+                );
+                if !args.is_empty() {
+                    output.push_str(&format!("\n\n---\n**用户参数**: {}", args));
+                    output.push_str("\n请将上述参数应用到技能指令中。");
                 }
+
+                return Ok(ToolResult {
+                    content: output,
+                    is_error: false,
+                    truncated: false,
+                    metadata: Some(serde_json::json!({
+                        "skill_name": skill_name,
+                        "args": args,
+                        "source": "SKILL.md",
+                        "source_kind": source_kind,
+                        "source_dir": dir.to_string_lossy().to_string(),
+                    })),
+                    duration_ms: None,
+                    progress: Vec::new(),
+                });
             }
         }
 

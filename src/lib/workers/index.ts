@@ -132,7 +132,9 @@ function parseMarkdownInline(content: string): string {
   return html;
 }
 
-/** Terminate the worker (e.g., on app close). */
+/** Terminate the worker (e.g., on app close).
+ *  In this Tauri app, workers stay alive for the full app lifecycle.
+ *  Cleanup happens implicitly via OS process termination on app exit. */
 export function terminateWorker() {
   if (_worker) {
     _worker.terminate();

@@ -59,7 +59,7 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({ data
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
-          transition: "all 0.2s",
+          transition: "box-shadow 0.2s, transform 0.2s",
         }}
       >
         <div

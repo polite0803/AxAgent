@@ -52,15 +52,14 @@ impl CodeBlock {
                         {
                             deps.push(module.to_string());
                         }
-                    } else if trimmed.starts_with("from ") {
-                        if let Some(module) = trimmed
+                    } else if trimmed.starts_with("from ")
+                        && let Some(module) = trimmed
                             .strip_prefix("from ")
                             .and_then(|s| s.split_whitespace().next())
-                        {
-                            if module != "typing" && module != "collections" {
-                                deps.push(module.to_string());
-                            }
-                        }
+                        && module != "typing"
+                        && module != "collections"
+                    {
+                        deps.push(module.to_string());
                     }
                 }
             },
@@ -71,26 +70,23 @@ impl CodeBlock {
                         || trimmed.starts_with("let ")
                         || trimmed.starts_with("var "))
                         && trimmed.contains("require(")
-                    {
-                        if let Some(module) = trimmed
+                        && let Some(module) = trimmed
                             .split("require(")
                             .nth(1)
                             .and_then(|s| s.split(')').next())
-                        {
-                            let module = module.trim().trim_matches(|c| c == '\'' || c == '"');
-                            deps.push(module.to_string());
-                        }
+                    {
+                        let module = module.trim().trim_matches(|c| c == '\'' || c == '"');
+                        deps.push(module.to_string());
                     }
-                    if trimmed.starts_with("import ") {
-                        if let Some(module) = trimmed
+                    if trimmed.starts_with("import ")
+                        && let Some(module) = trimmed
                             .strip_prefix("import ")
                             .and_then(|s| s.split_whitespace().next())
-                        {
-                            if !module.starts_with('.') && module != "react" && module != "node:fs"
-                            {
-                                deps.push(module.to_string());
-                            }
-                        }
+                        && !module.starts_with('.')
+                        && module != "react"
+                        && module != "node:fs"
+                    {
+                        deps.push(module.to_string());
                     }
                 }
             },
@@ -553,10 +549,10 @@ impl SkillDecomposer {
                                 &loop_body_lines,
                                 &composite.name,
                             );
-                            if let Some(ref mut last_step) = steps.last_mut() {
-                                if last_step.is_loop {
-                                    last_step.loop_body_steps.push(body_step);
-                                }
+                            if let Some(ref mut last_step) = steps.last_mut()
+                                && last_step.is_loop
+                            {
+                                last_step.loop_body_steps.push(body_step);
                             }
                             loop_body_lines.clear();
                         } else {
@@ -689,26 +685,26 @@ impl SkillDecomposer {
                             "target": block_node_id,
                             "edge_type": "code_block",
                         }));
-                    } else if block.is_config() {
-                        if let Some(schema) = block.infer_schema() {
-                            let config_node_id = format!("{}_config_{}", node_id, block_idx);
-                            workflow_nodes.push(serde_json::json!({
-                                "id": config_node_id,
-                                "type": "config",
-                                "data": {
-                                    "language": block.language,
-                                    "config_content": block.content,
-                                    "schema": schema,
-                                }
-                            }));
+                    } else if block.is_config()
+                        && let Some(schema) = block.infer_schema()
+                    {
+                        let config_node_id = format!("{}_config_{}", node_id, block_idx);
+                        workflow_nodes.push(serde_json::json!({
+                            "id": config_node_id,
+                            "type": "config",
+                            "data": {
+                                "language": block.language,
+                                "config_content": block.content,
+                                "schema": schema,
+                            }
+                        }));
 
-                            workflow_edges.push(serde_json::json!({
-                                "id": format!("edge_{}_config_{}", i, block_idx),
-                                "source": node_id.clone(),
-                                "target": config_node_id,
-                                "edge_type": "config_block",
-                            }));
-                        }
+                        workflow_edges.push(serde_json::json!({
+                            "id": format!("edge_{}_config_{}", i, block_idx),
+                            "source": node_id.clone(),
+                            "target": config_node_id,
+                            "edge_type": "config_block",
+                        }));
                     }
                 }
             }

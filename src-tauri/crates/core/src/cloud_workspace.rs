@@ -20,9 +20,9 @@ use std::time::Instant;
 use crate::cloud_storage::StorageBackend;
 use crate::error::AxAgentError;
 use crate::sync_conflict::{
-    compute_content_hash, epoch_ms_to_rfc3339, parse_rfc3339_to_ms, ConflictInfo, ConflictKind,
-    ConflictResolution, ConflictStrategy, ConflictSummary, ConflictVersion, SyncReport, SyncState,
-    TrackedFileEntry,
+    ConflictInfo, ConflictKind, ConflictResolution, ConflictStrategy, ConflictSummary,
+    ConflictVersion, SyncReport, SyncState, TrackedFileEntry, compute_content_hash,
+    epoch_ms_to_rfc3339, parse_rfc3339_to_ms,
 };
 use crate::workspace_uri::WorkspaceUri;
 
@@ -293,17 +293,18 @@ impl CloudWorkspace {
         // Check if remote file exists and get its current etag
         let remote_meta = self.backend.head(&remote_key).await.ok();
 
-        if let Some(existing) = self.sync_state.get_entry(key) {
-            if existing.last_sync_remote_etag.is_some() && remote_meta.is_some() {
-                // File exists both locally and remotely - check if remote changed
-                let remote_etag = remote_meta.as_ref().and_then(|m| m.etag.clone());
-                let last_sync_etag = existing.last_sync_remote_etag.clone();
+        if let Some(existing) = self.sync_state.get_entry(key)
+            && existing.last_sync_remote_etag.is_some()
+            && remote_meta.is_some()
+        {
+            // File exists both locally and remotely - check if remote changed
+            let remote_etag = remote_meta.as_ref().and_then(|m| m.etag.clone());
+            let last_sync_etag = existing.last_sync_remote_etag.clone();
 
-                if remote_etag != last_sync_etag {
-                    // Remote changed since last sync → conflict!
-                    // This will be handled by three_way_diff, skip here
-                    return Ok(false);
-                }
+            if remote_etag != last_sync_etag {
+                // Remote changed since last sync → conflict!
+                // This will be handled by three_way_diff, skip here
+                return Ok(false);
             }
         }
 
@@ -520,13 +521,14 @@ impl CloudWorkspace {
                     continue;
                 }
                 diff.to_download.insert(remote_info.key.clone());
-            } else if let Some(local_info) = local_files.get(key) {
-                if remote_info.is_newer_than(local_info) && !self.sync_state.is_tombstoned(key) {
-                    tracing::debug!(
-                        "[CloudWorkspace] Remote file '{}' is newer than local",
-                        remote_info.key
-                    );
-                }
+            } else if let Some(local_info) = local_files.get(key)
+                && remote_info.is_newer_than(local_info)
+                && !self.sync_state.is_tombstoned(key)
+            {
+                tracing::debug!(
+                    "[CloudWorkspace] Remote file '{}' is newer than local",
+                    remote_info.key
+                );
             }
         }
 
@@ -634,10 +636,10 @@ impl CloudWorkspace {
         // For manual conflicts, create a .conflict file
         if resolution.is_none() {
             self.create_conflict_marker(&entry.key, &conflict_info)?;
-        } else if let Some(res) = resolution {
-            if res == ConflictResolution::KeepBoth {
-                self.create_conflict_copy(&entry.key)?;
-            }
+        } else if let Some(res) = resolution
+            && res == ConflictResolution::KeepBoth
+        {
+            self.create_conflict_copy(&entry.key)?;
         }
 
         Ok(ConflictSummary {
@@ -788,10 +790,10 @@ impl CloudWorkspace {
 
             if path.is_dir() {
                 // Skip .axagent directory
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if name.starts_with(".axagent") {
-                        continue;
-                    }
+                if let Some(name) = path.file_name().and_then(|n| n.to_str())
+                    && name.starts_with(".axagent")
+                {
+                    continue;
                 }
                 let new_prefix = if prefix.is_empty() {
                     entry.file_name().to_string_lossy().to_string()
@@ -920,12 +922,12 @@ impl CloudWorkspace {
         key: &str,
         resolution: ConflictResolution,
     ) -> Result<(), AxAgentError> {
-        if let Some(entry) = self.sync_state.files.get_mut(key) {
-            if let Some(ref mut conflict) = entry.conflict {
-                conflict.resolved = true;
-                conflict.resolution = Some(resolution);
-                self.save_sync_state()?;
-            }
+        if let Some(entry) = self.sync_state.files.get_mut(key)
+            && let Some(ref mut conflict) = entry.conflict
+        {
+            conflict.resolved = true;
+            conflict.resolution = Some(resolution);
+            self.save_sync_state()?;
         }
         Ok(())
     }

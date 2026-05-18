@@ -68,7 +68,7 @@ pub async fn test_mcp_server(
 
     let timeout_duration = std::time::Duration::from_secs(TEST_TIMEOUT_SECS);
 
-    let result = tokio::time::timeout(timeout_duration, async {
+    tokio::time::timeout(timeout_duration, async {
         match server.transport.as_str() {
             "stdio" => {
                 let command = server
@@ -122,9 +122,7 @@ pub async fn test_mcp_server(
         }
     })
     .await
-    .map_err(|_| format!("连接测试超时（{} 秒）", TEST_TIMEOUT_SECS))?;
-
-    result
+    .map_err(|_| format!("连接测试超时（{} 秒）", TEST_TIMEOUT_SECS))?
 }
 
 #[tauri::command]

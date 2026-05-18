@@ -276,19 +276,19 @@ impl SourceClassifier {
         }
 
         for pattern in &self.patterns {
-            if let Ok(regex) = regex_lite::Regex::new(&pattern.pattern) {
-                if regex.is_match(&domain) {
-                    return SourceClassification {
-                        url: url.to_string(),
-                        source_type: pattern.source_type,
-                        category: pattern.category,
-                        domain,
-                        subdomains,
-                        path_depth,
-                        is_verified: false,
-                        classification_confidence: pattern.confidence,
-                    };
-                }
+            if let Ok(regex) = regex_lite::Regex::new(&pattern.pattern)
+                && regex.is_match(&domain)
+            {
+                return SourceClassification {
+                    url: url.to_string(),
+                    source_type: pattern.source_type,
+                    category: pattern.category,
+                    domain,
+                    subdomains,
+                    path_depth,
+                    is_verified: false,
+                    classification_confidence: pattern.confidence,
+                };
             }
         }
 

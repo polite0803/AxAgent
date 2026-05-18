@@ -340,7 +340,7 @@ const CustomNode = ({
           minWidth: size * 0.6,
           maxWidth: size,
           cursor: "pointer",
-          transition: "all 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+          transition: "box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
           transform: entranceVisible
             ? (isSelected ? "scale(1.05)" : "scale(1)")
             : "scale(0.3)",
@@ -903,7 +903,7 @@ function GraphViewInner({
                   display: "flex",
                   alignItems: "center",
                   color: token.colorTextSecondary,
-                  transition: "all 0.2s",
+                  transition: "box-shadow 0.2s, transform 0.2s",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = token.colorBgTextHover;
@@ -927,7 +927,7 @@ function GraphViewInner({
                   display: "flex",
                   alignItems: "center",
                   color: token.colorTextSecondary,
-                  transition: "all 0.2s",
+                  transition: "box-shadow 0.2s, transform 0.2s",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = token.colorBgTextHover;
@@ -951,7 +951,7 @@ function GraphViewInner({
                   display: "flex",
                   alignItems: "center",
                   color: token.colorTextSecondary,
-                  transition: "all 0.2s",
+                  transition: "box-shadow 0.2s, transform 0.2s",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = token.colorBgTextHover;
@@ -976,7 +976,7 @@ function GraphViewInner({
                     display: "flex",
                     alignItems: "center",
                     color: token.colorPrimary,
-                    transition: "all 0.2s",
+                    transition: "box-shadow 0.2s, transform 0.2s",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = token.colorBgTextHover;
@@ -1003,5 +1003,3 @@ export function GraphView(props: GraphViewProps) {
     </ReactFlowProvider>
   );
 }
-
-export default GraphView;

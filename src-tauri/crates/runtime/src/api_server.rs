@@ -1,8 +1,8 @@
 use axum::{
+    Json, Router,
     extract::State,
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
 };
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -16,7 +16,9 @@ fn get_api_token() -> &'static str {
     API_TOKEN.get_or_init(|| {
         std::env::var("AXAGENT_API_TOKEN").unwrap_or_else(|_| {
             let token = uuid::Uuid::new_v4().to_string();
-            tracing::info!("Generated random API token (set AXAGENT_API_TOKEN env var to customize)");
+            tracing::info!(
+                "Generated random API token (set AXAGENT_API_TOKEN env var to customize)"
+            );
             token
         })
     })
@@ -55,11 +57,18 @@ impl ApiServer {
 
         let cors = CorsLayer::new()
             .allow_origin([
-                "http://localhost".parse::<axum::http::HeaderValue>().unwrap(),
-                "http://127.0.0.1".parse::<axum::http::HeaderValue>().unwrap(),
+                "http://localhost"
+                    .parse::<axum::http::HeaderValue>()
+                    .unwrap(),
+                "http://127.0.0.1"
+                    .parse::<axum::http::HeaderValue>()
+                    .unwrap(),
             ])
             .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
-            .allow_headers([axum::http::header::CONTENT_TYPE, axum::http::header::AUTHORIZATION]);
+            .allow_headers([
+                axum::http::header::CONTENT_TYPE,
+                axum::http::header::AUTHORIZATION,
+            ]);
 
         let app = Router::new()
             .route("/health", get(health_handler))
@@ -79,7 +88,10 @@ impl ApiServer {
 
         tracing::info!("API Server listening on {}", addr);
 
-        let shutdown_rx = self.shutdown_rx.take().ok_or("shutdown_rx already consumed")?;
+        let shutdown_rx = self
+            .shutdown_rx
+            .take()
+            .ok_or("shutdown_rx already consumed")?;
         axum::serve(listener, app)
             .with_graceful_shutdown(async {
                 let _ = shutdown_rx.await;

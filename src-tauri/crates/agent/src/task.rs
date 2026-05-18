@@ -189,7 +189,7 @@ impl TaskGraph {
         while visited.len() < self.tasks.len() {
             let batch: Vec<String> = in_degree
                 .iter()
-                .filter(|(id, &degree)| degree == 0 && !visited.contains(*id))
+                .filter(|(id, degree)| **degree == 0 && !visited.contains(*id))
                 .map(|(id, _)| id.clone())
                 .collect();
 
@@ -210,10 +210,10 @@ impl TaskGraph {
             for task_id in &batch {
                 visited.insert(task_id.clone());
                 for task in &self.tasks {
-                    if task.dependencies.contains(task_id) {
-                        if let Some(degree) = in_degree.get_mut(&task.id) {
-                            *degree -= 1;
-                        }
+                    if task.dependencies.contains(task_id)
+                        && let Some(degree) = in_degree.get_mut(&task.id)
+                    {
+                        *degree -= 1;
                     }
                 }
             }

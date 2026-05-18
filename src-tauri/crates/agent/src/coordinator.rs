@@ -2,7 +2,7 @@ use crate::event_bus::{AgentEventBus, AgentEventType, UnifiedAgentEvent};
 use crate::steer_manager::SteerManager;
 use crate::tree_of_thoughts::{LlmReasoningProvider as ToTReasoningProvider, TreeOfThoughtsEngine};
 use async_trait::async_trait;
-use axagent_runtime_core::{prompt_cache::PromptCache, CacheGuard, HookChain};
+use axagent_runtime_core::{CacheGuard, HookChain, prompt_cache::PromptCache};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use thiserror::Error;
@@ -522,13 +522,19 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         drop(status);
 
         let mut input = input;
-        if self.steer_manager.has_pending().await {
-            if let Some(steer_block) = self.steer_manager.format_steer_block().await {
-                input.context = Some(serde_json::json!({
-                    "steer": steer_block,
-                }));
-                tracing::info!("Injecting steer instructions into agent turn");
-            }
+        if self.steer_manager.has_pending().await
+            && let Some(steer_block) = self.steer_manager.format_steer_block().await
+        {
+            let mut ctx = input
+                .context
+                .take()
+                .and_then(|v| {
+                    serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(v).ok()
+                })
+                .unwrap_or_default();
+            ctx.insert("steer".to_string(), serde_json::json!(steer_block));
+            input.context = Some(serde_json::Value::Object(ctx));
+            tracing::info!("Injecting steer instructions into agent turn");
         }
 
         // For complex tasks, use Tree of Thoughts to explore multiple reasoning paths

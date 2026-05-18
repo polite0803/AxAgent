@@ -1645,7 +1645,7 @@ function KnowledgeBaseDetail({
 
 // ── Main Component ────────────────────────────────────────
 
-export default function KnowledgeSettings() {
+export function KnowledgeSettings() {
   const { t } = useTranslation();
   const { bases, loadBases, createBase, setSelectedBaseId } = useKnowledgeStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);

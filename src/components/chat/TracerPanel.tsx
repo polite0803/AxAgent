@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { Bug, Clock, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface TraceSummary {
@@ -12,10 +12,19 @@ interface TraceSummary {
   error_count: number;
 }
 
-export default function TracerPanel() {
+export function TracerPanel() {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [traces, setTraces] = useState<TraceSummary[]>([]);
+  const [error, setError] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fetchTraces = useCallback(async () => {
     try {
@@ -23,9 +32,12 @@ export default function TracerPanel() {
         limit: 10,
         offset: 0,
       });
-      setTraces(list);
+      if (mountedRef.current) {
+        setTraces(list);
+        setError(false);
+      }
     } catch {
-      // ignore
+      if (mountedRef.current) { setError(true); }
     }
   }, []);
 
@@ -54,6 +66,7 @@ export default function TracerPanel() {
         >
           <Bug size={14} />
           {t("chat.tracer")} ({traces.length})
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
         </button>
       </div>
     );
@@ -66,17 +79,22 @@ export default function TracerPanel() {
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground/80">{t("chat.tracerTitle")}</span>
-        <button
-          onClick={() => setExpanded(false)}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
+          <button
+            onClick={() => setExpanded(false)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Summary stats */}
+      {error && traces.length === 0 && <div className="text-[10px] text-muted-foreground/60">{t("chat.loadError")}
+      </div>}
+
       <div className="grid grid-cols-2 gap-1.5">
         <div className="text-center p-1 rounded bg-muted/30">
           <div className="text-[10px] text-muted-foreground">{t("chat.traces")}</div>
@@ -100,7 +118,6 @@ export default function TracerPanel() {
         </div>
       </div>
 
-      {/* Trace list */}
       {traces.length > 0
         ? (
           <div className="max-h-48 overflow-y-auto space-y-1">

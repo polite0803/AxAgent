@@ -79,10 +79,10 @@ impl ShellHookExecutor {
                 .spawn()
             {
                 Ok(mut child) => {
-                    if let Some(mut stdin) = child.stdin.take() {
-                        if stdin.write_all(json_input.as_bytes()).await.is_err() {
-                            drop(stdin);
-                        }
+                    if let Some(mut stdin) = child.stdin.take()
+                        && stdin.write_all(json_input.as_bytes()).await.is_err()
+                    {
+                        drop(stdin);
                     }
                     match child.wait_with_output().await {
                         Ok(output) => ShellHookOutput::from_raw(

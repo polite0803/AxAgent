@@ -216,7 +216,7 @@ impl UsageTracker {
 
 #[cfg(test)]
 mod tests {
-    use super::{format_usd, pricing_for_model, TokenUsage, UsageTracker};
+    use super::{TokenUsage, UsageTracker, format_usd, pricing_for_model};
     use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
 
     #[test]

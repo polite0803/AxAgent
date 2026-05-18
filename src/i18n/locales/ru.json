@@ -145,6 +145,8 @@
     "moveToCategory": "Переместить в категорию",
     "removeFromCategory": "Убрать из категории",
     "categoryNamePlaceholder": "Название категории",
+    "manageCategories": "Управление категориями",
+    "noCategories": "Категорий пока нет. Создайте новую.",
     "inspector": {
       "title": "Инспектор",
       "sources": "Источники",
@@ -598,7 +600,10 @@
         "shareMode": "Share Mode",
         "terminalAccess": "Terminal Access",
         "title": "Session Sharing",
-        "codePlaceholder": "XXXX-XXXX"
+        "codePlaceholder": "XXXX-XXXX",
+        "copyFailed": "Ошибка копирования",
+        "joinFailed": "Ошибка присоединения",
+        "maxParticipants": "Макс. участников"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"
@@ -3477,6 +3482,77 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
+    "knowledgeSettings": {
+      "title": "Знания"
+    },
+    "notificationCenter": {
+      "title": "Уведомления"
+    },
+    "chatRightPanel": {
+      "agent": "Агент",
+      "hierarchy": "Иерархия",
+      "research": "Исслед.",
+      "git": "Git",
+      "task": "Задачи",
+      "code": "Код",
+      "artifact": "Артефакты",
+      "imageGen": "Изобр.",
+      "report": "Отчёт",
+      "citation": "Цитаты",
+      "inspector": "Инспектор",
+      "errorRecovery": "Восстан.",
+      "teammate": "Команда",
+      "browser": "Браузер",
+      "computer": "Раб.стол",
+      "benchmark": "Бенч",
+      "chart": "График",
+      "snapshot": "Снимок",
+      "profile": "Профиль"
+    },
+    "knowledgeSettings": {
+      "title": "Знания"
+    },
+    "notificationCenter": {
+      "title": "Уведомления"
+    },
+    "chatRightPanel": {
+      "agent": "Агент",
+      "hierarchy": "Иерархия",
+      "research": "Исслед.",
+      "git": "Git",
+      "task": "Задачи",
+      "code": "Код",
+      "artifact": "Артефакты",
+      "imageGen": "Изобр.",
+      "visionAnalysis": "Зрение",
+      "report": "Отчёт",
+      "citation": "Цитаты",
+      "inspector": "Инспектор",
+      "browser": "Браузер",
+      "computer": "Раб.стол",
+      "benchmark": "Бенч",
+      "chart": "График",
+      "snapshot": "Снимок",
+      "profile": "Профиль",
+      "errorRecovery": "Восстан.",
+      "collaboration": "Совм.",
+      "evolution": "Эволюция",
+      "steer": "Курс",
+      "cache": "Кэш",
+      "branchCompare": "Ветка",
+      "gateway": "GW",
+      "contextClass": "Контекст",
+      "cronResult": "Крон",
+      "reflection": "Анализ",
+      "researchSources": "Источники",
+      "categoryEdit": "Катег.",
+      "filePermission": "Файл",
+      "sessionShare": "Доступ",
+      "prefetch": "Предзагр.",
+      "reminders": "Напомин.",
+      "contextPrediction": "Прогноз",
+      "teammate": "Команда"
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",
@@ -5344,6 +5420,7 @@
     "sourceTypeWeb": "Web",
     "sourceTypeAcademic": "Academic",
     "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "Documentation",
     "sourceTypeNews": "News",
     "sourceTypeBlog": "Blog",
@@ -5924,11 +6001,15 @@
     "time": "Time"
   },
   "cronResult": {
-    "success": "Success",
-    "failed": "Failed",
-    "schedule": "Schedule",
-    "platform": "Platform",
-    "time": "Time"
+    "success": "Успех",
+    "failed": "Ошибка",
+    "schedule": "Расписание",
+    "scheduleDescription": "Описание",
+    "platform": "Платформа",
+    "time": "Время",
+    "loading": "Загрузка результата Cron-задачи…",
+    "prefix": "Cron: {{jobName}}",
+    "emptyResult": "Нет результата"
   },
   "errorBoundary": {
     "title": "Something went wrong",

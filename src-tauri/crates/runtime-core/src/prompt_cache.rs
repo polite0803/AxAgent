@@ -345,11 +345,7 @@ impl PromptCache {
         // 重置预期值（每次请求后清零）
         state.expected_cache_read_tokens = 0;
 
-        if is_break {
-            Some(event)
-        } else {
-            None
-        }
+        if is_break { Some(event) } else { None }
     }
 
     /// 获取缓存断点分析摘要。

@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface TrajectoryPattern {
@@ -12,20 +12,35 @@ interface TrajectoryPattern {
   average_quality: number;
 }
 
-export default function PatternPanel() {
+type FilterMode = "all" | "success" | "medium" | "failure";
+
+export function PatternPanel() {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [patterns, setPatterns] = useState<TrajectoryPattern[]>([]);
-  const [filter, setFilter] = useState<"all" | "success" | "failure">("all");
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [error, setError] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!expanded) { return; }
     const fetch = async () => {
       try {
         const p = await invoke<TrajectoryPattern[]>("pattern_list", {});
-        setPatterns(p);
+        if (mountedRef.current) {
+          setPatterns(p);
+          setError(false);
+        }
       } catch (e) {
         console.warn("[pattern] Failed to fetch patterns:", e);
+        if (mountedRef.current) { setError(true); }
       }
     };
     fetch();
@@ -35,6 +50,7 @@ export default function PatternPanel() {
 
   const filtered = patterns.filter((p) => {
     if (filter === "success") { return p.success_rate >= 0.6; }
+    if (filter === "medium") { return p.success_rate >= 0.4 && p.success_rate < 0.6; }
     if (filter === "failure") { return p.success_rate < 0.4; }
     return true;
   });
@@ -54,6 +70,7 @@ export default function PatternPanel() {
             />
           </svg>
           {t("chat.patterns")} ({patterns.length})
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
         </button>
       </div>
     );
@@ -66,13 +83,15 @@ export default function PatternPanel() {
         <div className="flex items-center gap-1">
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as "all" | "success" | "failure")}
+            onChange={(e) => setFilter(e.target.value as FilterMode)}
             className="text-[10px] bg-muted/30 rounded px-1 py-0.5 border-none outline-none"
           >
             <option value="all">All</option>
             <option value="success">Success</option>
+            <option value="medium">Medium</option>
             <option value="failure">Failure</option>
           </select>
+          {error && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={t("chat.error")} />}
           <button
             onClick={() => setExpanded(false)}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -113,7 +132,9 @@ export default function PatternPanel() {
         )
         : (
           <div className="text-xs text-muted-foreground/60">
-            {patterns.length === 0
+            {error && patterns.length === 0
+              ? t("chat.loadError")
+              : patterns.length === 0
               ? t("chat.noPatternsYet")
               : t("chat.noPatternsFilter")}
           </div>

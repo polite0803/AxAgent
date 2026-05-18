@@ -33,8 +33,26 @@ impl Default for SandboxRunner {
 #[cfg(not(target_os = "android"))]
 impl SandboxRunner {
     pub fn new() -> Self {
-        Self {
-            node_path: std::env::var("NODE_PATH").unwrap_or_else(|_| "node".to_string()),
+        let node_path = std::env::var("NODE_PATH").unwrap_or_else(|_| "node".to_string());
+        if node_path.contains('/') || node_path.contains('\\') {
+            let resolved = std::fs::canonicalize(&node_path)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or(node_path);
+            let exe_name = std::path::Path::new(&resolved)
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            if !exe_name.contains("node") && !exe_name.contains("bun") {
+                tracing::warn!(
+                    "NODE_PATH does not appear to be a Node.js executable: {}",
+                    resolved
+                );
+            }
+            Self {
+                node_path: resolved,
+            }
+        } else {
+            Self { node_path }
         }
     }
 

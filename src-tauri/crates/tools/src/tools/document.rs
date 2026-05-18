@@ -6,7 +6,7 @@
 //!
 //! 全部纯 Rust 实现，无需安装 Python/LibreOffice。
 
-use crate::{markdown, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
+use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult, markdown};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
@@ -138,7 +138,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                         .line_rule(LineSpacingType::Auto)
                         .line(276),
                 )
-                
+
                 .outline_lvl(0),
         )
         .add_style(
@@ -157,7 +157,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                         .line_rule(LineSpacingType::Auto)
                         .line(276),
                 )
-                
+
                 .outline_lvl(1),
         )
         .add_style(
@@ -176,7 +176,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                         .line_rule(LineSpacingType::Auto)
                         .line(276),
                 )
-                
+
                 .outline_lvl(2),
         );
     doc = doc.styles(styles);
@@ -505,7 +505,7 @@ fn build_docx_from_md(markdown_text: &str, title: &str) -> docx_rs::Docx {
                         let label = if code_lang.is_empty() {
                             "代码".to_string()
                         } else {
-                            format!("{}", &code_lang)
+                            code_lang.to_string()
                         };
                         doc = doc.add_paragraph(
                             Paragraph::new()
@@ -954,21 +954,21 @@ impl Tool for RenderMarkdownTool {
 
         let html = markdown::render_to_html(markdown_text);
 
-        if let Some(path_str) = input.get("output_path").and_then(|v| v.as_str()) {
-            if !path_str.is_empty() {
-                let path = Path::new(path_str);
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent)
-                        .map_err(|e| ToolError::execution_failed(format!("创建目录失败: {}", e)))?;
-                }
-                std::fs::write(path, &html)
-                    .map_err(|e| ToolError::execution_failed(format!("写入文件失败: {}", e)))?;
-                return Ok(ToolResult::success(format!(
-                    "HTML 已保存: {} ({} 字符)",
-                    path_str,
-                    html.len()
-                )));
+        if let Some(path_str) = input.get("output_path").and_then(|v| v.as_str())
+            && !path_str.is_empty()
+        {
+            let path = Path::new(path_str);
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| ToolError::execution_failed(format!("创建目录失败: {}", e)))?;
             }
+            std::fs::write(path, &html)
+                .map_err(|e| ToolError::execution_failed(format!("写入文件失败: {}", e)))?;
+            return Ok(ToolResult::success(format!(
+                "HTML 已保存: {} ({} 字符)",
+                path_str,
+                html.len()
+            )));
         }
 
         Ok(ToolResult::success(html))
@@ -1045,7 +1045,7 @@ impl Tool for ExportPdfTool {
 }
 
 fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Result<(), String> {
-    use lopdf::{dictionary, Document, Object, ObjectId, Stream};
+    use lopdf::{Document, Object, ObjectId, Stream, dictionary};
 
     let mut pdf = Document::new();
 
@@ -1178,7 +1178,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                 let cols = headers.len().max(1) as f64;
                 let cw = tw / cols;
                 cur.push(Line {
-                    text: format_row(&headers, cw),
+                    text: format_row(headers, cw),
                     font: "F2",
                     size: 8.0,
                     x: ml,
@@ -1186,7 +1186,7 @@ fn build_pdf(doc: &markdown::MdDocument, title: &str, output_path: &str) -> Resu
                 });
                 for row in rows {
                     cur.push(Line {
-                        text: format_row(&row, cw),
+                        text: format_row(row, cw),
                         font: "F1",
                         size: 8.0,
                         x: ml,
@@ -1392,11 +1392,7 @@ fn format_row(cells: &[String], col_w: f64) -> String {
             } else {
                 c.clone()
             };
-            if i == 0 {
-                s
-            } else {
-                format!("  {}", s)
-            }
+            if i == 0 { s } else { format!("  {}", s) }
         })
         .collect::<Vec<_>>()
         .join("")

@@ -15,9 +15,9 @@
 
 use std::io;
 
-use serde_json::{json, Value as JsonValue};
+use serde_json::{Value as JsonValue, json};
 use tokio::io::{
-    stdin, stdout, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Stdin, Stdout,
+    AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Stdin, Stdout, stdin, stdout,
 };
 
 use crate::mcp_stdio::{
@@ -266,14 +266,14 @@ async fn read_frame(reader: &mut BufReader<Stdin>) -> io::Result<Option<Vec<u8>>
             break;
         }
         let header = line.trim_end_matches(['\r', '\n']);
-        if let Some((name, value)) = header.split_once(':') {
-            if name.trim().eq_ignore_ascii_case("Content-Length") {
-                let parsed = value
-                    .trim()
-                    .parse::<usize>()
-                    .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
-                content_length = Some(parsed);
-            }
+        if let Some((name, value)) = header.split_once(':')
+            && name.trim().eq_ignore_ascii_case("Content-Length")
+        {
+            let parsed = value
+                .trim()
+                .parse::<usize>()
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+            content_length = Some(parsed);
         }
     }
 
@@ -385,10 +385,12 @@ mod tests {
         let result = response.result.expect("tools/call result");
         assert_eq!(result["isError"], false);
         assert_eq!(result["content"][0]["type"], "text");
-        assert!(result["content"][0]["text"]
-            .as_str()
-            .unwrap()
-            .starts_with("called echo"));
+        assert!(
+            result["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .starts_with("called echo")
+        );
     }
 
     #[test]

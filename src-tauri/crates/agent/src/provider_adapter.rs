@@ -367,19 +367,34 @@ impl AxAgentApiClient {
 impl ApiClient for AxAgentApiClient {
     fn stream(&mut self, request: ApiRequest) -> Result<Vec<AssistantEvent>, RuntimeError> {
         // Apply request delay to avoid rate limits
-        if let Some(delay_ms) = self.request_delay_ms {
-            if delay_ms > 0 {
-                let delay = std::time::Duration::from_millis(delay_ms);
-                if let Ok(handle) = tokio::runtime::Handle::try_current() {
-                    handle.block_on(tokio::time::sleep(delay));
-                } else {
-                    std::thread::sleep(delay);
-                }
+        if let Some(delay_ms) = self.request_delay_ms
+            && delay_ms > 0
+        {
+            let delay = std::time::Duration::from_millis(delay_ms);
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                handle.block_on(tokio::time::sleep(delay));
+            } else {
+                std::thread::sleep(delay);
             }
         }
 
         // Convert Runtime's ApiRequest to AxAgent's ChatRequest
-        let chat_messages = Self::convert_messages(&request.messages, &self.image_urls);
+        // Prepend system_prompt as System messages so they reach the LLM.
+        // The runtime separates system_prompt from messages for caching purposes;
+        // we merge them here before conversion.
+        let mut all_conv_messages: Vec<ConversationMessage> =
+            Vec::with_capacity(request.system_prompt.len() + request.messages.len());
+        for prompt_text in &request.system_prompt {
+            all_conv_messages.push(ConversationMessage {
+                role: MessageRole::System,
+                blocks: vec![ContentBlock::Text {
+                    text: prompt_text.clone(),
+                }],
+                usage: None,
+            });
+        }
+        all_conv_messages.extend_from_slice(&request.messages);
+        let chat_messages = Self::convert_messages(&all_conv_messages, &self.image_urls);
 
         let chat_request = ChatRequest {
             model: self.model.clone(),
@@ -408,24 +423,24 @@ impl ApiClient for AxAgentApiClient {
             while let Some(result) = stream.next().await {
                 match result {
                     Ok(chunk) => {
-                        if let Some(ref text) = chunk.content {
-                            if !text.is_empty() {
-                                let event = AssistantEvent::TextDelta(text.clone());
-                                if let Some(ref cb) = on_event {
-                                    cb(&event);
-                                }
-                                events.push(event);
+                        if let Some(ref text) = chunk.content
+                            && !text.is_empty()
+                        {
+                            let event = AssistantEvent::TextDelta(text.clone());
+                            if let Some(ref cb) = on_event {
+                                cb(&event);
                             }
+                            events.push(event);
                         }
 
-                        if let Some(ref thinking) = chunk.thinking {
-                            if !thinking.is_empty() {
-                                let event = AssistantEvent::ThinkingDelta(thinking.clone());
-                                if let Some(ref cb) = on_event {
-                                    cb(&event);
-                                }
-                                events.push(event);
+                        if let Some(ref thinking) = chunk.thinking
+                            && !thinking.is_empty()
+                        {
+                            let event = AssistantEvent::ThinkingDelta(thinking.clone());
+                            if let Some(ref cb) = on_event {
+                                cb(&event);
                             }
+                            events.push(event);
                         }
 
                         if let Some(ref tool_calls) = chunk.tool_calls {
@@ -474,7 +489,7 @@ impl ApiClient for AxAgentApiClient {
             tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
-                .unwrap()
+                .map_err(|e| RuntimeError::new(format!("Failed to create runtime: {e}")))?
                 .block_on(process_stream)
         }
     }

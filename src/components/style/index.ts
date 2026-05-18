@@ -1,4 +1,4 @@
-export { default as CodeStyleSample } from "./CodeStyleSample";
-export { default as StyleAdjustmentSlider, StyleAdjustmentPanel } from "./StyleAdjustmentSlider";
-export { default as StyleComparison } from "./StyleComparison";
-export { default as StylePreviewPanel } from "./StylePreviewPanel";
+export { CodeStyleSample } from "./CodeStyleSample";
+export { StyleAdjustmentPanel, StyleAdjustmentSlider } from "./StyleAdjustmentSlider";
+export { StyleComparison } from "./StyleComparison";
+export { StylePreviewPanel } from "./StylePreviewPanel";

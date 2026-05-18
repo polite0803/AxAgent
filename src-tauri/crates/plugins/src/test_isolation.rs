@@ -3,8 +3,8 @@
 
 use std::env;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 static ENV_LOCK: Mutex<()> = Mutex::new(());

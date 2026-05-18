@@ -1087,6 +1087,7 @@ fn start_trajectory_cleanup(state: &AppState) {
     let handle = state.trajectory_cleanup_handle.clone();
     let shutdown_token = state.shutdown_token.clone();
     let config = axagent_trajectory::TrajectoryCleanupConfig::default();
+    let config_for_log = config.clone();
     let interval = std::time::Duration::from_secs(24 * 3600);
 
     let task = tokio::spawn(async move {
@@ -1125,7 +1126,7 @@ fn start_trajectory_cleanup(state: &AppState) {
     });
     tracing::info!(
         "[trajectory_cleanup] Started with max_age_days={:?}, max_trajectories={:?}, interval=24h",
-        config.max_age_days,
-        config.max_trajectories
+        config_for_log.max_age_days,
+        config_for_log.max_trajectories
     );
 }

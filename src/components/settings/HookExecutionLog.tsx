@@ -248,5 +248,3 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
     </div>
   );
 }
-
-export default HookExecutionLog;

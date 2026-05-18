@@ -286,11 +286,11 @@ impl Skill {
 
         content += "## Procedure\n";
         for (i, step) in trajectory.steps.iter().enumerate() {
-            if step.role == crate::trajectory::MessageRole::Assistant {
-                if let Some(ref tool_calls) = step.tool_calls {
-                    for tc in tool_calls {
-                        content += &format!("{}. Use {} with args: {}\n", i, tc.name, tc.arguments);
-                    }
+            if step.role == crate::trajectory::MessageRole::Assistant
+                && let Some(ref tool_calls) = step.tool_calls
+            {
+                for tc in tool_calls {
+                    content += &format!("{}. Use {} with args: {}\n", i, tc.name, tc.arguments);
                 }
             }
         }
@@ -389,23 +389,21 @@ impl Skill {
                 "required": vec!["task"]
             }),
         );
-        if !self.metadata.hermes.config.is_empty() {
-            if let Some(input_obj) = props.get_mut("input").and_then(|v| v.as_object_mut()) {
-                if let Some(props_obj) = input_obj
-                    .get_mut("properties")
-                    .and_then(|v| v.as_object_mut())
-                {
-                    for config in &self.metadata.hermes.config {
-                        props_obj.insert(
-                            config.key.clone(),
-                            serde_json::json!({
-                                "type": "string",
-                                "description": config.description,
-                                "default": config.default
-                            }),
-                        );
-                    }
-                }
+        if !self.metadata.hermes.config.is_empty()
+            && let Some(input_obj) = props.get_mut("input").and_then(|v| v.as_object_mut())
+            && let Some(props_obj) = input_obj
+                .get_mut("properties")
+                .and_then(|v| v.as_object_mut())
+        {
+            for config in &self.metadata.hermes.config {
+                props_obj.insert(
+                    config.key.clone(),
+                    serde_json::json!({
+                        "type": "string",
+                        "description": config.description,
+                        "default": config.default
+                    }),
+                );
             }
         }
         serde_json::json!({
@@ -441,7 +439,7 @@ impl Skill {
                     satisfied: true,
                     missing_dependencies: Vec::new(),
                     satisfied_dependencies: Vec::new(),
-                }
+                };
             },
         };
 

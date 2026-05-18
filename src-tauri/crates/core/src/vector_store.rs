@@ -263,10 +263,7 @@ impl VectorStore {
 
         let hnsw_sql = format!(
             "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{}], hnsw(ef_construction={}, m={}, ef_search={}))",
-            dimensions,
-            hnsw_config.ef_construction,
-            hnsw_config.m,
-            hnsw_config.ef_search
+            dimensions, hnsw_config.ef_construction, hnsw_config.m, hnsw_config.ef_search
         );
 
         if let Err(e) = self.exec(&hnsw_sql).await {
@@ -620,14 +617,14 @@ impl VectorStore {
         let _ = self.exec(&format!("DROP TABLE IF EXISTS {name}")).await;
 
         // Recreate vec0 if we know the dimensions
-        if let Some(row) = dim_row {
-            if let Ok(dim) = row.try_get::<i32>("", "dim") {
-                let _ = self
-                    .exec(&format!(
-                        "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dim}])"
-                    ))
-                    .await;
-            }
+        if let Some(row) = dim_row
+            && let Ok(dim) = row.try_get::<i32>("", "dim")
+        {
+            let _ = self
+                .exec(&format!(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS {name} USING vec0(embedding float[{dim}])"
+                ))
+                .await;
         }
 
         Ok(())

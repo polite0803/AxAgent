@@ -18,7 +18,7 @@ interface ModelRoutingConfigProps {
   onClose: () => void;
 }
 
-const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
+export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
   conversationId,
   open,
   onClose,
@@ -230,5 +230,4 @@ const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
   );
 };
 
-export default ModelRoutingConfigPanel;
 export type { ModelRoutingConfig };

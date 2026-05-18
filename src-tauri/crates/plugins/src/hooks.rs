@@ -490,10 +490,9 @@ mod tests {
         {
             use std::os::unix::fs::PermissionsExt;
             let perms = fs::Permissions::from_mode(0o755);
-            fs::set_permissions(path, perms)
-                .unwrap_or_else(|e| {
-                    tracing::error!("chmod +x {}: {e}", path.display());
-                });
+            fs::set_permissions(path, perms).unwrap_or_else(|e| {
+                tracing::error!("chmod +x {}: {e}", path.display());
+            });
         }
         #[cfg(not(unix))]
         let _ = path;
@@ -635,14 +634,18 @@ mod tests {
         let result = runner.run_pre_tool_use("Bash", r#"{"command":"pwd"}"#);
 
         assert!(result.is_failed());
-        assert!(result
-            .messages()
-            .iter()
-            .any(|message| message.contains("broken plugin hook")));
-        assert!(!result
-            .messages()
-            .iter()
-            .any(|message| message == "later plugin hook"));
+        assert!(
+            result
+                .messages()
+                .iter()
+                .any(|message| message.contains("broken plugin hook"))
+        );
+        assert!(
+            !result
+                .messages()
+                .iter()
+                .any(|message| message == "later plugin hook")
+        );
     }
 
     #[test]

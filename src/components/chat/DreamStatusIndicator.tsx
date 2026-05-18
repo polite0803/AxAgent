@@ -91,5 +91,3 @@ export function DreamStatusIndicator() {
 
   return null;
 }
-
-export default DreamStatusIndicator;

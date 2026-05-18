@@ -18,8 +18,8 @@
 //! and react to the returned `ResourceState` by pausing or resuming background tasks.
 
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use sysinfo::System;
 
 /// The current system resource state.
@@ -119,7 +119,7 @@ impl ResourceGovernor {
             used_memory_mb: used_memory / (1024 * 1024),
             free_memory_mb: free_memory / (1024 * 1024),
             state: self.current_state,
-            background_tasks_frozen: self.background_tasks_frozen.load(Ordering::Relaxed),
+            background_tasks_frozen: self.background_tasks_frozen.load(Ordering::Acquire),
         }
     }
 
@@ -147,7 +147,7 @@ impl ResourceGovernor {
         let should_freeze =
             matches!(self.current_state, ResourceState::High | ResourceState::Critical);
         self.background_tasks_frozen
-            .store(should_freeze, Ordering::Relaxed);
+            .store(should_freeze, Ordering::Release);
 
         if matches!(self.current_state, ResourceState::Critical) {
             tracing::warn!(
@@ -160,7 +160,7 @@ impl ResourceGovernor {
 
     /// Check whether background tasks should be paused.
     pub fn should_pause_background_tasks(&self) -> bool {
-        self.background_tasks_frozen.load(Ordering::Relaxed)
+        self.background_tasks_frozen.load(Ordering::Acquire)
     }
 
     /// Get a shared flag that external components can check to decide whether

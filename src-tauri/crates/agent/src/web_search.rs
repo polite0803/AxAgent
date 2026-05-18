@@ -61,10 +61,10 @@ impl WebSearchProvider {
         &self,
         query: &SearchQuery,
     ) -> Result<Vec<SearchResult>, crate::search_provider::SearchError> {
-        if let Some(ref api_key) = self.config.api_key {
-            if let Some(ref endpoint) = self.config.endpoint {
-                return self.search_via_api(query, endpoint, api_key).await;
-            }
+        if let Some(ref api_key) = self.config.api_key
+            && let Some(ref endpoint) = self.config.endpoint
+        {
+            return self.search_via_api(query, endpoint, api_key).await;
         }
         self.search_via_ddg(query).await
     }
@@ -289,11 +289,7 @@ impl WebSearchProvider {
             }
         }
 
-        if domain.is_empty() {
-            0.5
-        } else {
-            0.7
-        }
+        if domain.is_empty() { 0.5 } else { 0.7 }
     }
 }
 

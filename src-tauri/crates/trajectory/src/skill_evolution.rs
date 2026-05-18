@@ -492,49 +492,49 @@ impl SkillEvolutionEngine {
         }
 
         if let Some(ref mut pop) = self.population {
-            if self.config.use_llm_mutation {
-                if let Some(ref provider) = self.llm_provider {
-                    for individual in &mut pop.individuals {
-                        let failure_evidence: Vec<String> = test_trajectories
-                            .iter()
-                            .filter(|t| {
-                                matches!(
-                                    t.outcome,
-                                    TrajectoryOutcome::Failure | TrajectoryOutcome::Abandoned
-                                ) && t
-                                    .topic
+            if self.config.use_llm_mutation
+                && let Some(ref provider) = self.llm_provider
+            {
+                for individual in &mut pop.individuals {
+                    let failure_evidence: Vec<String> = test_trajectories
+                        .iter()
+                        .filter(|t| {
+                            matches!(
+                                t.outcome,
+                                TrajectoryOutcome::Failure | TrajectoryOutcome::Abandoned
+                            ) && t
+                                .topic
+                                .to_lowercase()
+                                .contains(&individual.description.to_lowercase())
+                        })
+                        .map(|t| t.summary.clone())
+                        .take(5)
+                        .collect();
+
+                    let success_evidence: Vec<String> = test_trajectories
+                        .iter()
+                        .filter(|t| {
+                            matches!(t.outcome, TrajectoryOutcome::Success)
+                                && t.topic
                                     .to_lowercase()
                                     .contains(&individual.description.to_lowercase())
-                            })
-                            .map(|t| t.summary.clone())
-                            .take(5)
-                            .collect();
+                        })
+                        .map(|t| t.summary.clone())
+                        .take(5)
+                        .collect();
 
-                        let success_evidence: Vec<String> = test_trajectories
-                            .iter()
-                            .filter(|t| {
-                                matches!(t.outcome, TrajectoryOutcome::Success)
-                                    && t.topic
-                                        .to_lowercase()
-                                        .contains(&individual.description.to_lowercase())
-                            })
-                            .map(|t| t.summary.clone())
-                            .take(5)
-                            .collect();
+                    let request = LlmMutationRequest {
+                        skill_name: individual.description.clone(),
+                        current_steps: individual.steps.clone(),
+                        failure_evidence,
+                        success_evidence,
+                    };
 
-                        let request = LlmMutationRequest {
-                            skill_name: individual.description.clone(),
-                            current_steps: individual.steps.clone(),
-                            failure_evidence,
-                            success_evidence,
-                        };
-
-                        if let Ok(response) = provider.generate_mutation(&request).await {
-                            if response.confidence > 0.5 {
-                                individual.steps = response.revised_steps;
-                                individual.content = serialize_steps(&individual.steps);
-                            }
-                        }
+                    if let Ok(response) = provider.generate_mutation(&request).await
+                        && response.confidence > 0.5
+                    {
+                        individual.steps = response.revised_steps;
+                        individual.content = serialize_steps(&individual.steps);
                     }
                 }
             }
@@ -543,25 +543,23 @@ impl SkillEvolutionEngine {
                 Self::evaluate_fitness_static(individual, test_trajectories);
             }
 
-            if self.config.use_execution_validation {
-                if let Some(ref sandbox) = self.sandbox {
-                    for individual in &mut pop.individuals.iter_mut() {
-                        let mut total_success = 0.0;
-                        let mut rounds = 0;
-                        for trajectory in
-                            test_trajectories.iter().take(self.config.validation_rounds)
+            if self.config.use_execution_validation
+                && let Some(ref sandbox) = self.sandbox
+            {
+                for individual in &mut pop.individuals.iter_mut() {
+                    let mut total_success = 0.0;
+                    let mut rounds = 0;
+                    for trajectory in test_trajectories.iter().take(self.config.validation_rounds) {
+                        if let Ok(result) =
+                            sandbox.execute_skill(individual, &trajectory.topic).await
                         {
-                            if let Ok(result) =
-                                sandbox.execute_skill(individual, &trajectory.topic).await
-                            {
-                                total_success += result.success_rate;
-                                rounds += 1;
-                            }
+                            total_success += result.success_rate;
+                            rounds += 1;
                         }
-                        if rounds > 0 {
-                            individual.fitness =
-                                individual.fitness * 0.6 + (total_success / rounds as f64) * 0.4;
-                        }
+                    }
+                    if rounds > 0 {
+                        individual.fitness =
+                            individual.fitness * 0.6 + (total_success / rounds as f64) * 0.4;
                     }
                 }
             }

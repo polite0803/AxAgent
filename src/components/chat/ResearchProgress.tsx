@@ -96,5 +96,3 @@ export function ResearchPhaseIndicator({ phase }: { phase: ResearchPhase }) {
     </Space>
   );
 }
-
-export default ResearchProgress;

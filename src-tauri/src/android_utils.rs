@@ -5,6 +5,7 @@
 //!
 //! 这等效于 windows_utils.rs 对 Windows 的作用。
 
+#[allow(unused_imports)]
 use std::path::PathBuf;
 
 #[cfg(target_os = "android")]
@@ -15,7 +16,8 @@ fn crash_log_path() -> Option<PathBuf> {
 }
 
 #[cfg(not(target_os = "android"))]
-fn crash_log_path() -> Option<PathBuf> {
+#[allow(dead_code)]
+pub(crate) fn crash_log_path() -> Option<PathBuf> {
     None
 }
 

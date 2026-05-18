@@ -51,7 +51,7 @@ pub fn clamp_window_state_to_monitor(
 #[cfg(test)]
 mod tests {
     use super::{
-        clamp_window_state_to_monitor, load_window_state, save_window_state, PersistedWindowState,
+        PersistedWindowState, clamp_window_state_to_monitor, load_window_state, save_window_state,
     };
 
     #[test]

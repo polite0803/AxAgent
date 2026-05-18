@@ -170,9 +170,11 @@ impl SearchPlanner {
     }
 
     fn generate_surface_queries(&self, topic: &str) -> Vec<SearchQuery> {
-        vec![SearchQuery::new(topic.to_string())
-            .with_sources(vec![SourceType::Wikipedia, SourceType::Web])
-            .with_max_results(3)]
+        vec![
+            SearchQuery::new(topic.to_string())
+                .with_sources(vec![SourceType::Wikipedia, SourceType::Web])
+                .with_max_results(3),
+        ]
     }
 
     fn create_parallel_groups(&self, queries: &[SearchQuery]) -> Vec<Vec<String>> {

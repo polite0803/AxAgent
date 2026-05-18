@@ -2,8 +2,7 @@ use std::collections::HashSet;
 
 use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
 
-const COMPACT_CONTINUATION_PREAMBLE: &str =
-    "This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.\n\n";
+const COMPACT_CONTINUATION_PREAMBLE: &str = "This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.\n\n";
 const COMPACT_RECENT_MESSAGES_NOTE: &str = "Recent messages are preserved verbatim.";
 const COMPACT_DIRECT_RESUME_INSTRUCTION: &str = "Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, and do not preface with continuation text.";
 
@@ -833,30 +832,32 @@ pub fn detect_task_boundary(messages: &[ConversationMessage]) -> Option<usize> {
 
     // Search from newest backwards for completion markers followed by new task
     for i in (1..messages.len()).rev() {
-        if messages[i].role == MessageRole::User {
-            if let Some(text) = first_text_block(&messages[i]) {
-                let lowered = text.to_lowercase();
-                // Check if this is a new task request
-                if new_task_markers.iter().any(|m| lowered.contains(m)) {
-                    return Some(i);
-                }
+        if messages[i].role == MessageRole::User
+            && let Some(text) = first_text_block(&messages[i])
+        {
+            let lowered = text.to_lowercase();
+            // Check if this is a new task request
+            if new_task_markers.iter().any(|m| lowered.contains(m)) {
+                return Some(i);
             }
         }
         // Check if the previous message pair signals completion
-        if i > 0 && messages[i - 1].role == MessageRole::User {
-            if let Some(text) = first_text_block(&messages[i - 1]) {
-                let lowered = text.to_lowercase();
-                if completion_markers.iter().any(|m| lowered.contains(m)) {
-                    // Found completion — check if next message is a new task
-                    if i < messages.len() && messages[i].role == MessageRole::User {
-                        if let Some(next_text) = first_text_block(&messages[i]) {
-                            let next_lower = next_text.to_lowercase();
-                            if new_task_markers.iter().any(|m| next_lower.contains(m))
-                                || !completion_markers.iter().any(|m| next_lower.contains(m))
-                            {
-                                return Some(i);
-                            }
-                        }
+        if i > 0
+            && messages[i - 1].role == MessageRole::User
+            && let Some(text) = first_text_block(&messages[i - 1])
+        {
+            let lowered = text.to_lowercase();
+            if completion_markers.iter().any(|m| lowered.contains(m)) {
+                // Found completion — check if next message is a new task
+                if i < messages.len()
+                    && messages[i].role == MessageRole::User
+                    && let Some(next_text) = first_text_block(&messages[i])
+                {
+                    let next_lower = next_text.to_lowercase();
+                    if new_task_markers.iter().any(|m| next_lower.contains(m))
+                        || !completion_markers.iter().any(|m| next_lower.contains(m))
+                    {
+                        return Some(i);
                     }
                 }
             }
@@ -881,8 +882,8 @@ pub fn cleanup_task_boundary(messages: &[ConversationMessage]) -> Option<usize> 
 #[cfg(test)]
 mod tests {
     use super::{
-        collect_key_files, compact_session, format_compact_summary,
-        get_compact_continuation_message, infer_pending_work, should_compact, CompactionConfig,
+        CompactionConfig, collect_key_files, compact_session, format_compact_summary,
+        get_compact_continuation_message, infer_pending_work, should_compact,
     };
     use crate::session::{ContentBlock, ConversationMessage, MessageRole, Session};
 
@@ -991,18 +992,26 @@ mod tests {
         second_session.messages = follow_up_messages;
         let second = compact_session(&second_session, config);
 
-        assert!(second
-            .formatted_summary
-            .contains("Previously compacted context:"));
-        assert!(second
-            .formatted_summary
-            .contains("Scope: 2 earlier messages compacted"));
-        assert!(second
-            .formatted_summary
-            .contains("Newly compacted context:"));
-        assert!(second
-            .formatted_summary
-            .contains("Also update rust/crates/runtime/src/conversation.rs"));
+        assert!(
+            second
+                .formatted_summary
+                .contains("Previously compacted context:")
+        );
+        assert!(
+            second
+                .formatted_summary
+                .contains("Scope: 2 earlier messages compacted")
+        );
+        assert!(
+            second
+                .formatted_summary
+                .contains("Newly compacted context:")
+        );
+        assert!(
+            second
+                .formatted_summary
+                .contains("Also update rust/crates/runtime/src/conversation.rs")
+        );
         assert!(matches!(
             &second.compacted_session.messages[0].blocks[0],
             ContentBlock::Text { text }

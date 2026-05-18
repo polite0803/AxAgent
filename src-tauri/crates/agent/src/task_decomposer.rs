@@ -102,10 +102,10 @@ impl TaskDecomposer {
     fn parse_response(&self, response: &str) -> Result<DecompositionResult, DecompositionError> {
         let response = response.trim();
 
-        if response.starts_with('{') {
-            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(response) {
-                return self.parse_json_value(&parsed);
-            }
+        if response.starts_with('{')
+            && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(response)
+        {
+            return self.parse_json_value(&parsed);
         }
 
         self.parse_fallback_response(response)

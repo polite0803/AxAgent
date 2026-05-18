@@ -29,17 +29,8 @@ import {
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { App as AntdApp, ConfigProvider, Layout, theme } from "antd";
-import deDE from "antd/locale/de_DE";
-import enUS from "antd/locale/en_US";
-import esES from "antd/locale/es_ES";
-import frFR from "antd/locale/fr_FR";
-import jaJP from "antd/locale/ja_JP";
-import koKR from "antd/locale/ko_KR";
-import ptBR from "antd/locale/pt_BR";
-import ruRU from "antd/locale/ru_RU";
-import zhCN from "antd/locale/zh_CN";
 import { enableD2, setDefaultI18nMap } from "markstream-react";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./i18n";
@@ -91,7 +82,7 @@ function AppInner() {
         } catch { /* not a Tauri webview window */ }
       });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   // These hooks use useNavigate() and must be inside BrowserRouter
   useKeyboardShortcuts();
@@ -219,7 +210,9 @@ function AppInner() {
                       flexShrink: 0,
                     }}
                   >
-                    <Sidebar />
+                    <ModuleErrorBoundary moduleName="Sidebar">
+                      <Sidebar />
+                    </ModuleErrorBoundary>
                   </div>
                 )}
                 <Content className="overflow-hidden">
@@ -251,6 +244,36 @@ function AppRoot() {
   const borderRadius = useSettingsStore((s) => s.settings.border_radius);
   const language = useSettingsStore((s) => s.settings.language);
   const isDark = useResolvedDarkMode(themeMode, themePreset);
+
+  const localeMap = useMemo<Record<string, string>>(() => ({
+    "zh-CN": "zh_CN",
+    "ja": "ja_JP",
+    "ko": "ko_KR",
+    "de": "de_DE",
+    "fr": "fr_FR",
+    "es": "es_ES",
+    "ru": "ru_RU",
+    "pt-BR": "pt_BR",
+  }), []);
+
+  const [antdLocale, setAntdLocale] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const localeCode = localeMap[language] || "en_US";
+    import(`antd/locale/${localeCode}`)
+      .then((mod) => {
+        if (!cancelled) { setAntdLocale(mod.default); }
+      })
+      .catch(() => {
+        import("antd/locale/en_US").then((m) => {
+          if (!cancelled) { setAntdLocale(m.default); }
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [language, localeMap]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = isDark ? "dark" : "light";
@@ -389,23 +412,7 @@ function AppRoot() {
     <GlobalErrorBoundary>
       <BrowserRouter>
         <ConfigProvider
-          locale={i18n.language === "zh-CN"
-            ? zhCN
-            : i18n.language === "ja"
-            ? jaJP
-            : i18n.language === "ko"
-            ? koKR
-            : i18n.language === "de"
-            ? deDE
-            : i18n.language === "fr"
-            ? frFR
-            : i18n.language === "es"
-            ? esES
-            : i18n.language === "ru"
-            ? ruRU
-            : i18n.language === "pt-BR"
-            ? ptBR
-            : enUS}
+          locale={antdLocale}
           theme={themeConfig}
           modal={{ centered: true, styles: { mask: { backdropFilter: "blur(4px)" } } }}
         >

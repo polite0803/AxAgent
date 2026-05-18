@@ -38,7 +38,9 @@ pub async fn dashboard_register_plugin(
             "props": props,
             "frontend_entry": frontend_entry,
         });
-        axagent_runtime::dashboard_plugin::RenderOutput::Html { content: panel_info.to_string() }
+        axagent_runtime::dashboard_plugin::RenderOutput::Html {
+            content: panel_info.to_string(),
+        }
     });
 
     registry.register(Box::new(plugin)).await
@@ -96,7 +98,9 @@ pub async fn dashboard_render_panel(
         .await
         .map(|r| match r {
             axagent_runtime::dashboard_plugin::RenderOutput::Html { content } => content,
-            axagent_runtime::dashboard_plugin::RenderOutput::Data { payload } => payload.to_string(),
+            axagent_runtime::dashboard_plugin::RenderOutput::Data { payload } => {
+                payload.to_string()
+            },
             axagent_runtime::dashboard_plugin::RenderOutput::Directive(d) => {
                 serde_json::to_string(&d).unwrap_or_default()
             },

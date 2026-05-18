@@ -490,10 +490,10 @@ impl SubAgentRegistry {
         let agent = SubAgent::new(name, description, parent_id.clone());
         self.message_bus.register(&agent.id);
         // If there's a parent, add this agent as a child
-        if let Some(ref pid) = parent_id {
-            if let Some(parent) = self.agents.iter_mut().find(|a| a.id == *pid) {
-                parent.add_child(agent.id.clone());
-            }
+        if let Some(ref pid) = parent_id
+            && let Some(parent) = self.agents.iter_mut().find(|a| a.id == *pid)
+        {
+            parent.add_child(agent.id.clone());
         }
         self.agents.push(agent.clone());
         self.dirty = true;
@@ -524,20 +524,20 @@ impl SubAgentRegistry {
             .iter()
             .filter(|a| {
                 if let Some(q) = query {
-                    if let Some(ref parent_id) = q.parent_id {
-                        if a.parent_id.as_ref() != Some(parent_id) {
-                            return false;
-                        }
+                    if let Some(ref parent_id) = q.parent_id
+                        && a.parent_id.as_ref() != Some(parent_id)
+                    {
+                        return false;
                     }
-                    if let Some(ref status) = q.status {
-                        if &a.status != status {
-                            return false;
-                        }
+                    if let Some(ref status) = q.status
+                        && &a.status != status
+                    {
+                        return false;
                     }
-                    if let Some(ref agent_type) = q.agent_type {
-                        if &a.metadata.agent_type != agent_type {
-                            return false;
-                        }
+                    if let Some(ref agent_type) = q.agent_type
+                        && &a.metadata.agent_type != agent_type
+                    {
+                        return false;
                     }
                 }
                 true
@@ -774,7 +774,11 @@ impl SubAgentRegistry {
         if let Some(pid) = parent_id {
             let msg = AgentMessage::new(child_id, &pid, AgentMessageKind::TaskResult, result);
             if let Err(e) = self.message_bus.send(msg) {
-                tracing::warn!("Failed to deliver completion notification for child {}: {:?}. Parent can poll registry.", child_id, e);
+                tracing::warn!(
+                    "Failed to deliver completion notification for child {}: {:?}. Parent can poll registry.",
+                    child_id,
+                    e
+                );
             }
         }
         Ok(())

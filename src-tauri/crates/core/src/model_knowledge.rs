@@ -15,8 +15,8 @@ fn normalize_model_id(model_id: &str) -> String {
     // 去除 Ollama 风格标签后缀：:latest, :3b, :7b, :q4_k_m 等
     let id = id.split(':').next().unwrap_or(&id).to_string();
     // 去除日期版本后缀：@2024-08-06, -20241022 等
-    let id = id.split('@').next().unwrap_or(&id).to_string();
-    id
+
+    id.split('@').next().unwrap_or(&id).to_string()
 }
 
 fn lookup_exact(model_id: &str) -> Option<u32> {

@@ -2,9 +2,9 @@ use crate::error::{AxAgentError, Result};
 #[cfg(not(target_os = "android"))]
 use rmcp::transport::TokioChildProcess;
 use rmcp::{
+    RoleClient, ServiceExt,
     model::{CallToolRequestParams, CallToolResult, Tool},
     transport::streamable_http_client::StreamableHttpClientWorker,
-    RoleClient, ServiceExt,
 };
 
 /// Type alias for a connected MCP client peer.
@@ -17,9 +17,9 @@ use serde_json::Value;
 use std::collections::HashMap;
 #[cfg(all(unix, not(target_os = "android")))]
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::Mutex;
 use tracing::info;
 
@@ -137,11 +137,7 @@ fn extract_marked_path(output: &[u8], start: &str, end: &str) -> Option<String> 
     let end_idx = stdout[start_idx..].find(end)? + start_idx;
     let path = stdout[start_idx..end_idx].trim().to_string();
 
-    if path.is_empty() {
-        None
-    } else {
-        Some(path)
-    }
+    if path.is_empty() { None } else { Some(path) }
 }
 
 #[cfg(all(unix, not(target_os = "android")))]
@@ -1164,16 +1160,16 @@ fn extract_sse_endpoint(buffer: &mut String, base_url: &str) -> Option<String> {
                 data = Some(val.trim());
             }
         }
-        if event_type == Some("endpoint") {
-            if let Some(path) = data {
-                let url = if path.starts_with("http://") || path.starts_with("https://") {
-                    path.to_string()
-                } else {
-                    format!("{}{}", base_url, path)
-                };
-                buffer.drain(..abs_block_end);
-                return Some(url);
-            }
+        if event_type == Some("endpoint")
+            && let Some(path) = data
+        {
+            let url = if path.starts_with("http://") || path.starts_with("https://") {
+                path.to_string()
+            } else {
+                format!("{}{}", base_url, path)
+            };
+            buffer.drain(..abs_block_end);
+            return Some(url);
         }
         search_start = abs_block_end;
     }
@@ -1199,10 +1195,10 @@ where
         match tokio::time::timeout(remaining, stream.next()).await {
             Err(_) => return Err(AxAgentError::Gateway("SSE response timed out".into())),
             Ok(None) => {
-                return Err(AxAgentError::Gateway("SSE stream ended before response".into()))
+                return Err(AxAgentError::Gateway("SSE stream ended before response".into()));
             },
             Ok(Some(Err(e))) => {
-                return Err(AxAgentError::Gateway(format!("SSE read error: {}", e)))
+                return Err(AxAgentError::Gateway(format!("SSE read error: {}", e)));
             },
             Ok(Some(Ok(chunk))) => {
                 let text = String::from_utf8_lossy(chunk.as_ref())
@@ -1245,12 +1241,13 @@ fn extract_sse_json_response(buffer: &mut String) -> Option<Value> {
 
         if is_message {
             let data = data_lines.join("");
-            if let Ok(value) = serde_json::from_str::<Value>(&data) {
-                if value.get("jsonrpc").is_some() && value.get("id").is_some() {
-                    // Remove everything up to and including this event
-                    buffer.drain(..abs_block_end);
-                    return Some(value);
-                }
+            if let Ok(value) = serde_json::from_str::<Value>(&data)
+                && value.get("jsonrpc").is_some()
+                && value.get("id").is_some()
+            {
+                // Remove everything up to and including this event
+                buffer.drain(..abs_block_end);
+                return Some(value);
             }
         }
 

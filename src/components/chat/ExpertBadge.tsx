@@ -30,7 +30,7 @@ export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
             cursor: "pointer",
             fontSize: 12,
             color: "var(--color-text-secondary)",
-            transition: "all 0.15s",
+            transition: "box-shadow 0.15s, transform 0.15s",
           }}
         >
           <span>{"\uD83E\uDD16"}</span>
@@ -56,7 +56,7 @@ export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
           cursor: "pointer",
           fontSize: 12,
           color: "var(--color-text-primary)",
-          transition: "all 0.15s",
+          transition: "box-shadow 0.15s, transform 0.15s",
         }}
       >
         <span>{role.icon}</span>

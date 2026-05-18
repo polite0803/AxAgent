@@ -43,7 +43,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({ data, selected }
           borderRadius: 8,
           padding: 0,
           boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
-          transition: "all 0.2s",
+          transition: "box-shadow 0.2s, transform 0.2s",
         }}
       >
         <div

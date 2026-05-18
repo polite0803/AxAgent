@@ -18,7 +18,7 @@ use axagent_core::types::*;
 use axagent_core::vector_store::{VectorSearchResult, VectorStore};
 
 use axagent_providers::{
-    registry::ProviderRegistry, resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext,
+    ProviderAdapter, ProviderRequestContext, registry::ProviderRegistry, resolve_base_url_for_type,
 };
 
 // ── AsyncEmbedFn implementation ──────────────────────────────────────────────
@@ -448,7 +448,7 @@ pub async fn index_source(
                 "{} '{}' has no embedding provider configured",
                 container.container_type_str(),
                 container.id
-            )))
+            )));
         },
     };
     let dimensions = config.embedding_dimensions.map(|d| d as usize);

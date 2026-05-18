@@ -47,10 +47,10 @@ impl Tool for GlobTool {
         let _pattern = input["pattern"]
             .as_str()
             .ok_or_else(|| ToolError::invalid_input_for("Glob", "缺少 pattern 参数"))?;
-        if let Some(path) = input["path"].as_str() {
-            if !Path::new(path).is_absolute() {
-                return Err(ToolError::invalid_input_for("Glob", "path 必须是绝对路径"));
-            }
+        if let Some(path) = input["path"].as_str()
+            && !Path::new(path).is_absolute()
+        {
+            return Err(ToolError::invalid_input_for("Glob", "path 必须是绝对路径"));
         }
         Ok(())
     }
@@ -69,7 +69,7 @@ impl Tool for GlobTool {
         let mut paths: Vec<PathBuf> = match glob::glob(&full_pattern) {
             Ok(iter) => iter.filter_map(|r| r.ok()).collect(),
             Err(e) => {
-                return Err(ToolError::invalid_input_for("Glob", format!("Glob 模式无效: {}", e)))
+                return Err(ToolError::invalid_input_for("Glob", format!("Glob 模式无效: {}", e)));
             },
         };
 

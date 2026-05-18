@@ -684,9 +684,11 @@ mod tests {
         let result = constitution.validate_evolution(&modification);
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(violations
-            .iter()
-            .any(|v| v.rule_name == "max_modification_size"));
+        assert!(
+            violations
+                .iter()
+                .any(|v| v.rule_name == "max_modification_size")
+        );
     }
 
     #[test]
@@ -703,9 +705,11 @@ mod tests {
         let result = constitution.validate_evolution(&modification);
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(violations
-            .iter()
-            .any(|v| v.severity == ViolationSeverity::Fatal));
+        assert!(
+            violations
+                .iter()
+                .any(|v| v.severity == ViolationSeverity::Fatal)
+        );
     }
 
     #[test]
@@ -722,9 +726,11 @@ mod tests {
         let result = constitution.validate_evolution(&modification);
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(violations
-            .iter()
-            .any(|v| v.rule_name == "preserve_user_intent"));
+        assert!(
+            violations
+                .iter()
+                .any(|v| v.rule_name == "preserve_user_intent")
+        );
     }
 
     #[test]
@@ -748,9 +754,11 @@ mod tests {
         );
         assert!(result.is_err());
         let violations = result.unwrap_err();
-        assert!(violations
-            .iter()
-            .any(|v| v.severity == ViolationSeverity::Fatal));
+        assert!(
+            violations
+                .iter()
+                .any(|v| v.severity == ViolationSeverity::Fatal)
+        );
     }
 
     #[test]

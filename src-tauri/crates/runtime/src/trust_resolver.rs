@@ -175,8 +175,8 @@ fn normalize_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::{
-        detect_trust_prompt, path_matches_trusted_root, TrustConfig, TrustDecision, TrustEvent,
-        TrustPolicy, TrustResolver,
+        TrustConfig, TrustDecision, TrustEvent, TrustPolicy, TrustResolver, detect_trust_prompt,
+        path_matches_trusted_root,
     };
 
     #[test]

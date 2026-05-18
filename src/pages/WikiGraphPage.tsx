@@ -20,7 +20,7 @@ const MAX_RIGHT_PANEL = 600;
 
 export function WikiGraphPage() {
   const { token } = theme.useToken();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { wikiId } = useParams<{ wikiId: string }>();
   const [searchParams] = useSearchParams();
@@ -174,7 +174,7 @@ export function WikiGraphPage() {
     const now = Date.now();
     const note = await createNote({
       vaultId: wikiIdFromUrl,
-      title: `${t("wiki.newNoteDefault")} ${new Date(now).toLocaleString("zh-CN")}`,
+      title: `${t("wiki.newNoteDefault")} ${new Date(now).toLocaleString(i18n.language)}`,
       filePath: `/new-note-${now}.md`,
       content: "",
       author: "user",

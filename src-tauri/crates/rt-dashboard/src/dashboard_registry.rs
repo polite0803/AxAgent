@@ -133,10 +133,10 @@ impl DashboardRegistry {
                 continue;
             }
             for panel in &entry.plugin.manifest().panels {
-                if let Some(pos) = position {
-                    if panel.position != pos {
-                        continue;
-                    }
+                if let Some(pos) = position
+                    && panel.position != pos
+                {
+                    continue;
                 }
                 result.push(DashboardPanelWithPlugin {
                     plugin_id: plugin_id.clone(),

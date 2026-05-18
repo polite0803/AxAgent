@@ -419,19 +419,22 @@ background: true
 你是一个测试 agent。"#;
 
         let fm = parse_frontmatter(content).expect("should parse");
-        assert!(fm
-            .fields
-            .iter()
-            .any(|(k, v)| k == "name" && v == "test-agent"));
-        assert!(fm
-            .fields
-            .iter()
-            .any(|(k, v)| k == "description" && v == "测试 agent"));
+        assert!(
+            fm.fields
+                .iter()
+                .any(|(k, v)| k == "name" && v == "test-agent")
+        );
+        assert!(
+            fm.fields
+                .iter()
+                .any(|(k, v)| k == "description" && v == "测试 agent")
+        );
         assert!(fm.fields.iter().any(|(k, v)| k == "model" && v == "haiku"));
-        assert!(fm
-            .fields
-            .iter()
-            .any(|(k, v)| k == "background" && v == "true"));
+        assert!(
+            fm.fields
+                .iter()
+                .any(|(k, v)| k == "background" && v == "true")
+        );
         assert!(fm.body.contains("你是一个测试 agent"));
     }
 

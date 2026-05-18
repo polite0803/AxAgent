@@ -225,7 +225,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           background: token.colorBgContainer,
           border: `1px solid ${token.colorBorderSecondary}`,
           cursor: "pointer",
-          transition: "all 0.2s",
+          transition: "box-shadow 0.2s, transform 0.2s",
         }}
         styles={{
           body: { padding: 12 },

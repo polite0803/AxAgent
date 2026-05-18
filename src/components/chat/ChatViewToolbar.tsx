@@ -1,5 +1,6 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Input, Popover, Spin, Tooltip, Typography } from "antd";
+import type { MenuProps } from "antd";
 import type { InputRef } from "antd";
 import {
   ArrowDownRight,
@@ -26,6 +27,7 @@ import type { ConversationStats } from "@/types";
 
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { ExpertBadge } from "./ExpertBadge";
+import { GatewaySessionBadge } from "./GatewaySessionBadge";
 import { AgentRoleSelect } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 import { WorkflowBadge } from "./WorkflowBadge";
@@ -114,7 +116,7 @@ function StatsPopoverContent({ stats, t, token }: {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {items.map((item, i) => (
-          <div key={i}>
+          <div key={item.label}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span
                 style={{
@@ -134,9 +136,9 @@ function StatsPopoverContent({ stats, t, token }: {
             </div>
             {item.sub && (
               <div style={{ marginLeft: 20, marginTop: 4, display: "flex", flexDirection: "column", gap: 3 }}>
-                {item.sub.map((s, j) => (
+                {item.sub.map((s) => (
                   <div
-                    key={j}
+                    key={s.label}
                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
                   >
                     <span
@@ -185,7 +187,7 @@ export interface ChatViewToolbarProps {
   statsOpen: boolean;
   stats: ConversationStats | null;
   handleStatsOpenChange: (open: boolean) => void;
-  exportMenuItems: Array<Record<string, unknown>>;
+  exportMenuItems: MenuProps["items"];
   setExtractMemoriesOpen: (v: boolean) => void;
   setExpertOpen: (v: boolean) => void;
   streamingMessageId: string | null;
@@ -271,6 +273,31 @@ export function ChatViewToolbar({
                 workflowTemplateId={activeConversation?.workflow_template_id}
                 workflowStatus={activeConversation?.workflow_status}
                 onSelectWorkflow={(templateId, workflowId) => {
+                  if (activeConversation.id) {
+                    if (workflowId) {
+                      try {
+                        localStorage.setItem(`axagent:workflow-id:${activeConversation.id}`, workflowId);
+                        window.dispatchEvent(
+                          new CustomEvent("axagent:workflow-changed", {
+                            detail: { conversationId: activeConversation.id, workflowId },
+                          }),
+                        );
+                      } catch {
+                        // Ignore storage errors
+                      }
+                    } else {
+                      try {
+                        localStorage.removeItem(`axagent:workflow-id:${activeConversation.id}`);
+                        window.dispatchEvent(
+                          new CustomEvent("axagent:workflow-changed", {
+                            detail: { conversationId: activeConversation.id, workflowId: null },
+                          }),
+                        );
+                      } catch {
+                        // Ignore storage errors
+                      }
+                    }
+                  }
                   if (templateId === "") {
                     void updateConversation(activeConversation.id, {
                       session_type: "conversation",
@@ -287,6 +314,18 @@ export function ChatViewToolbar({
                   fetchConversation();
                 }}
                 onRemoveWorkflow={() => {
+                  if (activeConversation.id) {
+                    try {
+                      localStorage.removeItem(`axagent:workflow-id:${activeConversation.id}`);
+                      window.dispatchEvent(
+                        new CustomEvent("axagent:workflow-changed", {
+                          detail: { conversationId: activeConversation.id, workflowId: null },
+                        }),
+                      );
+                    } catch {
+                      // Ignore storage errors
+                    }
+                  }
                   void updateConversation(activeConversation.id, {
                     session_type: "conversation",
                     workflow_template_id: null,
@@ -317,6 +356,14 @@ export function ChatViewToolbar({
                 />
               </>
             )}
+            {activeConversation?.mode === "gateway" && (
+              <GatewaySessionBadge
+                platform={(() => {
+                  const m = activeConversation.title.match(/^\[(\w+)\]/);
+                  return m ? m[1] : "";
+                })()}
+              />
+            )}
 
             <div className="flex-1" />
 
@@ -344,7 +391,7 @@ export function ChatViewToolbar({
                 <Button type="text" icon={<ChartNoAxesColumn size={14} />} size="small" />
               </Tooltip>
             </Popover>
-            <Dropdown menu={{ items: exportMenuItems as any }} trigger={["click"]}>
+            <Dropdown menu={{ items: exportMenuItems }} trigger={["click"]}>
               <Button type="text" icon={<Share2 size={14} />} size="small" />
             </Dropdown>
             <Tooltip title={t("chat.extractMemories")}>

@@ -1,4 +1,5 @@
 import { theme, Typography } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import { BookOpen, Brain, ChevronDown, ChevronUp, GitBranch, Link2, Puzzle, Search, Wrench, Zap } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +12,8 @@ import {
   MiniMap,
   type Node,
   type NodeTypes,
+  type OnEdgesChange,
+  type OnNodesChange,
   Position,
   ReactFlow,
   useEdgesState,
@@ -502,9 +505,9 @@ interface GraphCanvasProps {
   nodes: Node[];
   edges: Edge[];
   nodeTypes: NodeTypes;
-  onNodesChange: any;
-  onEdgesChange: any;
-  token: any;
+  onNodesChange: OnNodesChange;
+  onEdgesChange: OnEdgesChange;
+  token: GlobalToken;
 }
 
 /// 放在 <ReactFlow> 内部，筛选变化时自动 fitView

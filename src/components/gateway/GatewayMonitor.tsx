@@ -38,8 +38,14 @@ export function GatewayMonitor() {
     setError(null);
     try {
       const [m, l] = await Promise.all([
-        invoke<GatewayMetrics>("get_gateway_metrics").catch(() => null),
-        invoke<RequestLog[]>("list_gateway_request_logs", { limit: 50 }).catch(() => []),
+        invoke<GatewayMetrics>("get_gateway_metrics").catch((e) => {
+          if (import.meta.env.DEV) { console.warn("Failed to load gateway metrics:", e); }
+          return null;
+        }),
+        invoke<RequestLog[]>("list_gateway_request_logs", { limit: 50 }).catch((e) => {
+          if (import.meta.env.DEV) { console.warn("Failed to load gateway request logs:", e); }
+          return [];
+        }),
       ]);
       setMetrics(m);
       setLogs(l);

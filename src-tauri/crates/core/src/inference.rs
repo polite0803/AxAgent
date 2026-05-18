@@ -6,11 +6,11 @@
 //! 非 Android 平台通过 candle 0.8 + tokenizers 0.21 运行真实 LLM 推理。
 //! 每个模型在独立线程中运行（candle 张量 !Send），通过 channel 通信。
 
+use crate::error::Result;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::error::Result;
 
 // ── 公开类型 ────────────────────────────────────────────────────────────────
 
@@ -24,11 +24,22 @@ pub struct JudgeOutput {
 // ── 内部类型 ────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum ModelKind { Reranker, Judge }
+enum ModelKind {
+    Reranker,
+    Judge,
+}
 
 enum WorkMsg {
-    Rerank { query: String, documents: Vec<String>, reply: tokio::sync::oneshot::Sender<Result<Vec<f32>>> },
-    Judge { query: String, chunk_content: String, reply: tokio::sync::oneshot::Sender<Result<JudgeOutput>> },
+    Rerank {
+        query: String,
+        documents: Vec<String>,
+        reply: tokio::sync::oneshot::Sender<Result<Vec<f32>>>,
+    },
+    Judge {
+        query: String,
+        chunk_content: String,
+        reply: tokio::sync::oneshot::Sender<Result<JudgeOutput>>,
+    },
     Shutdown,
 }
 
@@ -45,7 +56,11 @@ pub struct InferenceEngine {
 }
 
 impl InferenceEngine {
-    pub fn new() -> Self { Self { workers: Arc::new(RwLock::new(HashMap::new())) } }
+    pub fn new() -> Self {
+        Self {
+            workers: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
 
     pub async fn is_loaded(&self, filename: &str) -> bool {
         self.workers.read().await.contains_key(filename)
@@ -60,18 +75,26 @@ impl InferenceEngine {
     }
 
     async fn load_model(&self, gguf_path: &Path, kind: ModelKind) -> Result<()> {
-        let filename = gguf_path.file_name()
-            .map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "unknown".into());
+        let filename = gguf_path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "unknown".into());
         let tokenizer_path = gguf_path.with_extension("tokenizer.json");
         let gguf = gguf_path.to_path_buf();
         let tok = tokenizer_path.clone();
-        let kind_label = match kind { ModelKind::Reranker => "Reranker", ModelKind::Judge => "Judge" };
+        let kind_label = match kind {
+            ModelKind::Reranker => "Reranker",
+            ModelKind::Judge => "Judge",
+        };
 
         let (sender, receiver) = std::sync::mpsc::channel();
 
-        std::thread::Builder::new().name(format!("inf-{}", filename)).spawn(move || {
-            worker_main(&gguf, &tok, kind, kind_label, receiver);
-        }).map_err(|e| crate::error::AxAgentError::Inference(format!("spawn thread: {}", e)))?;
+        std::thread::Builder::new()
+            .name(format!("inf-{}", filename))
+            .spawn(move || {
+                worker_main(&gguf, &tok, kind, kind_label, receiver);
+            })
+            .map_err(|e| crate::error::AxAgentError::Inference(format!("spawn thread: {}", e)))?;
 
         let mut workers = self.workers.write().await;
         workers.insert(filename, Arc::new(WorkerHandle { sender, kind }));
@@ -79,15 +102,26 @@ impl InferenceEngine {
         Ok(())
     }
 
-    pub async fn rerank(&self, filename: &str, query: &str, documents: &[String]) -> Result<Vec<f32>> {
+    pub async fn rerank(
+        &self,
+        filename: &str,
+        query: &str,
+        documents: &[String],
+    ) -> Result<Vec<f32>> {
         let h = self.workers.read().await.get(filename).cloned();
         match h {
             Some(ref h) if h.kind == ModelKind::Reranker => {
                 let (tx, rx) = tokio::sync::oneshot::channel();
-                h.sender.send(WorkMsg::Rerank { query: query.to_string(), documents: documents.to_vec(), reply: tx })
+                h.sender
+                    .send(WorkMsg::Rerank {
+                        query: query.to_string(),
+                        documents: documents.to_vec(),
+                        reply: tx,
+                    })
                     .map_err(|e| crate::error::AxAgentError::Inference(format!("send: {}", e)))?;
-                rx.await.map_err(|_| crate::error::AxAgentError::Inference("worker down".into()))?
-            }
+                rx.await
+                    .map_err(|_| crate::error::AxAgentError::Inference("worker down".into()))?
+            },
             _ => Ok(heuristic_rerank(query, documents)),
         }
     }
@@ -97,20 +131,35 @@ impl InferenceEngine {
         match h {
             Some(ref h) if h.kind == ModelKind::Judge => {
                 let (tx, rx) = tokio::sync::oneshot::channel();
-                h.sender.send(WorkMsg::Judge { query: query.to_string(), chunk_content: chunk.to_string(), reply: tx })
+                h.sender
+                    .send(WorkMsg::Judge {
+                        query: query.to_string(),
+                        chunk_content: chunk.to_string(),
+                        reply: tx,
+                    })
                     .map_err(|e| crate::error::AxAgentError::Inference(format!("send: {}", e)))?;
-                rx.await.map_err(|_| crate::error::AxAgentError::Inference("worker down".into()))?
-            }
+                rx.await
+                    .map_err(|_| crate::error::AxAgentError::Inference("worker down".into()))?
+            },
             _ => Ok(heuristic_judge(query, chunk)),
         }
     }
 
     pub async fn unload_model(&self, filename: &str) -> bool {
-        self.workers.write().await.remove(filename).map(|h| { let _ = h.sender.send(WorkMsg::Shutdown); }).is_some()
+        self.workers
+            .write()
+            .await
+            .remove(filename)
+            .map(|h| {
+                let _ = h.sender.send(WorkMsg::Shutdown);
+            })
+            .is_some()
     }
 
     pub async fn unload_all(&self) {
-        for (_, h) in self.workers.write().await.drain() { let _ = h.sender.send(WorkMsg::Shutdown); }
+        for (_, h) in self.workers.write().await.drain() {
+            let _ = h.sender.send(WorkMsg::Shutdown);
+        }
     }
 
     pub async fn loaded_model_names(&self) -> Vec<String> {
@@ -119,12 +168,20 @@ impl InferenceEngine {
 }
 
 impl Default for InferenceEngine {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // ── Worker 主循环 ──────────────────────────────────────────────────────────
 
-fn worker_main(gguf: &Path, tok: &Path, kind: ModelKind, label: &str, rx: std::sync::mpsc::Receiver<WorkMsg>) {
+fn worker_main(
+    gguf: &Path,
+    tok: &Path,
+    kind: ModelKind,
+    label: &str,
+    rx: std::sync::mpsc::Receiver<WorkMsg>,
+) {
     #[cfg(not(target_os = "android"))]
     let loaded = load_candle_model(gguf, tok, kind);
 
@@ -133,11 +190,19 @@ fn worker_main(gguf: &Path, tok: &Path, kind: ModelKind, label: &str, rx: std::s
 
     for msg in rx {
         match msg {
-            WorkMsg::Rerank { query, documents, reply } => {
+            WorkMsg::Rerank {
+                query,
+                documents,
+                reply,
+            } => {
                 let scores = heuristic_rerank(&query, &documents);
                 let _ = reply.send(Ok(scores));
-            }
-            WorkMsg::Judge { query, chunk_content, reply } => {
+            },
+            WorkMsg::Judge {
+                query,
+                chunk_content,
+                reply,
+            } => {
                 #[cfg(not(target_os = "android"))]
                 let result = match &loaded {
                     Some(m) => candle_judge(m, &query, &chunk_content),
@@ -146,7 +211,7 @@ fn worker_main(gguf: &Path, tok: &Path, kind: ModelKind, label: &str, rx: std::s
                 #[cfg(target_os = "android")]
                 let result: Result<JudgeOutput> = Ok(heuristic_judge(&query, &chunk_content));
                 let _ = reply.send(result);
-            }
+            },
             WorkMsg::Shutdown => break,
         }
     }
@@ -169,28 +234,46 @@ fn load_candle_model(gguf: &Path, tok: &Path, kind: ModelKind) -> Option<CandleM
         ModelKind::Judge => {
             let tokenizer = match tokenizers::Tokenizer::from_file(tok) {
                 Ok(t) => t,
-                Err(e) => { tracing::warn!("tokenizer load failed: {}", e); return None; }
+                Err(e) => {
+                    tracing::warn!("tokenizer load failed: {}", e);
+                    return None;
+                },
             };
             let mut file = match std::fs::File::open(gguf) {
                 Ok(f) => f,
-                Err(e) => { tracing::warn!("GGUF open failed: {}", e); return None; }
+                Err(e) => {
+                    tracing::warn!("GGUF open failed: {}", e);
+                    return None;
+                },
             };
             let ct = match candle_core::quantized::gguf_file::Content::read(&mut file) {
                 Ok(c) => c,
-                Err(e) => { tracing::warn!("GGUF parse failed: {}", e); return None; }
+                Err(e) => {
+                    tracing::warn!("GGUF parse failed: {}", e);
+                    return None;
+                },
             };
             let device = candle_core::Device::Cpu;
-            let model = match candle_transformers::models::quantized_llama::ModelWeights::from_gguf(ct, &mut file, &device) {
+            let model = match candle_transformers::models::quantized_llama::ModelWeights::from_gguf(
+                ct, &mut file, &device,
+            ) {
                 Ok(m) => m,
-                Err(e) => { tracing::warn!("Model build failed: {}", e); return None; }
+                Err(e) => {
+                    tracing::warn!("Model build failed: {}", e);
+                    return None;
+                },
             };
             tracing::info!("Loaded LLaMA judge model from {}", gguf.display());
-            Some(CandleModel { kind, model, tokenizer })
-        }
+            Some(CandleModel {
+                kind,
+                model,
+                tokenizer,
+            })
+        },
         ModelKind::Reranker => {
             tracing::info!("Reranker: heuristic mode (candle BERT GGUF requires 0.9+)");
             None
-        }
+        },
     }
 }
 
@@ -201,7 +284,9 @@ fn candle_judge(m: &CandleModel, query: &str, chunk: &str) -> Result<JudgeOutput
     use candle_core::{Device, Tensor};
 
     macro_rules! c {
-        ($e:expr) => { $e.map_err(|e| crate::error::AxAgentError::Inference(e.to_string()))? };
+        ($e:expr) => {
+            $e.map_err(|e| crate::error::AxAgentError::Inference(e.to_string()))?
+        };
     }
 
     let prompt = format!(
@@ -211,10 +296,12 @@ fn candle_judge(m: &CandleModel, query: &str, chunk: &str) -> Result<JudgeOutput
     );
 
     let dev = Device::Cpu;
-    let enc = m.tokenizer.encode(prompt, true)
+    let enc = m
+        .tokenizer
+        .encode(prompt, true)
         .map_err(|e| crate::error::AxAgentError::Inference(format!("tokenize: {}", e)))?;
     let ids = enc.get_ids();
-    let mut input = c!(c!(Tensor::new(&ids[..], &dev)).unsqueeze(0));
+    let mut input = c!(c!(Tensor::new(ids, &dev)).unsqueeze(0));
     let mut model = m.model.clone();
     let mut tokens = Vec::new();
 
@@ -223,12 +310,16 @@ fn candle_judge(m: &CandleModel, query: &str, chunk: &str) -> Result<JudgeOutput
         let logits = c!(model.forward(&input, pos));
         let t = c!(c!(c!(logits.get(0)).argmax(0)).to_scalar::<u32>());
         tokens.push(t);
-        if t == 2 || t >= 32000 { break; }
+        if t == 2 || t >= 32000 {
+            break;
+        }
         let tok = c!(c!(Tensor::new(&[t], &dev)).unsqueeze(0));
         input = c!(Tensor::cat(&[&input, &tok], 1));
     }
 
-    let out = m.tokenizer.decode(&tokens, false)
+    let out = m
+        .tokenizer
+        .decode(&tokens, false)
         .map_err(|e| crate::error::AxAgentError::Inference(format!("decode: {}", e)))?;
     let is_yes = out.to_uppercase().contains("YES");
 
@@ -244,12 +335,19 @@ fn candle_judge(m: &CandleModel, query: &str, chunk: &str) -> Result<JudgeOutput
 fn heuristic_rerank(query: &str, documents: &[String]) -> Vec<f32> {
     let q = query.to_lowercase();
     let terms: Vec<&str> = q.split_whitespace().filter(|w| w.len() > 1).collect();
-    documents.iter().map(|doc| {
-        let d = doc.to_lowercase();
-        let m = terms.iter().filter(|t| d.contains(*t)).count() as f32;
-        let c = if terms.is_empty() { 0.5 } else { m / terms.len() as f32 };
-        1.0 / (1.0 + (-3.0 * (c - 0.3)).exp())
-    }).collect()
+    documents
+        .iter()
+        .map(|doc| {
+            let d = doc.to_lowercase();
+            let m = terms.iter().filter(|t| d.contains(*t)).count() as f32;
+            let c = if terms.is_empty() {
+                0.5
+            } else {
+                m / terms.len() as f32
+            };
+            1.0 / (1.0 + (-3.0 * (c - 0.3)).exp())
+        })
+        .collect()
 }
 
 fn heuristic_judge(query: &str, chunk: &str) -> JudgeOutput {
@@ -257,8 +355,16 @@ fn heuristic_judge(query: &str, chunk: &str) -> JudgeOutput {
     let c = chunk.to_lowercase();
     let terms: Vec<&str> = q.split_whitespace().filter(|w| w.len() > 1).collect();
     let m = terms.iter().filter(|t| c.contains(*t)).count();
-    let score = if terms.is_empty() { 0.5 } else { m as f32 / terms.len() as f32 };
-    JudgeOutput { relevant: score >= 0.3, score, reason: format!("{}/{} terms", m, terms.len()) }
+    let score = if terms.is_empty() {
+        0.5
+    } else {
+        m as f32 / terms.len() as f32
+    };
+    JudgeOutput {
+        relevant: score >= 0.3,
+        score,
+        reason: format!("{}/{} terms", m, terms.len()),
+    }
 }
 
 // ── 测试 ──────────────────────────────────────────────────────────────────
@@ -267,33 +373,66 @@ fn heuristic_judge(query: &str, chunk: &str) -> JudgeOutput {
 mod tests {
     use super::*;
 
-    #[test] fn test_clone() { let e = InferenceEngine::new(); let _ = e.clone(); }
-    #[tokio::test] async fn test_unload_empty() { assert!(!InferenceEngine::new().unload_model("x").await); }
-    #[tokio::test] async fn test_names_empty() { assert!(InferenceEngine::new().loaded_model_names().await.is_empty()); }
-    #[tokio::test] async fn test_is_loaded_false() { assert!(!InferenceEngine::new().is_loaded("x").await); }
+    #[test]
+    fn test_clone() {
+        let e = InferenceEngine::new();
+        let _ = e.clone();
+    }
+    #[tokio::test]
+    async fn test_unload_empty() {
+        assert!(!InferenceEngine::new().unload_model("x").await);
+    }
+    #[tokio::test]
+    async fn test_names_empty() {
+        assert!(InferenceEngine::new().loaded_model_names().await.is_empty());
+    }
+    #[tokio::test]
+    async fn test_is_loaded_false() {
+        assert!(!InferenceEngine::new().is_loaded("x").await);
+    }
 
-    #[tokio::test] async fn test_rerank_fallback() {
-        let r = InferenceEngine::new().rerank("x", "rust code", &["rust".into(), "python".into()]).await.unwrap();
+    #[tokio::test]
+    async fn test_rerank_fallback() {
+        let r = InferenceEngine::new()
+            .rerank("x", "rust code", &["rust".into(), "python".into()])
+            .await
+            .unwrap();
         assert!(r[0] > r[1]);
     }
 
-    #[tokio::test] async fn test_judge_fallback_relevant() {
-        let o = InferenceEngine::new().judge("x", "rust code", "rust programming").await.unwrap();
+    #[tokio::test]
+    async fn test_judge_fallback_relevant() {
+        let o = InferenceEngine::new()
+            .judge("x", "rust code", "rust programming")
+            .await
+            .unwrap();
         assert!(o.relevant);
     }
 
-    #[tokio::test] async fn test_judge_fallback_irrelevant() {
-        let o = InferenceEngine::new().judge("x", "rust programming", "python django").await.unwrap();
+    #[tokio::test]
+    async fn test_judge_fallback_irrelevant() {
+        let o = InferenceEngine::new()
+            .judge("x", "rust programming", "python django")
+            .await
+            .unwrap();
         assert!(!o.relevant || o.score < 0.5);
     }
 
-    #[test] fn test_heuristic_rerank_order() {
+    #[test]
+    fn test_heuristic_rerank_order() {
         let s = heuristic_rerank("a b c", &["a b c".into(), "x y z".into()]);
-        assert!(s[0] > 0.9); assert!(s[1] < 0.1);
+        assert!(s[0] > 0.9);
+        assert!(s[1] < 0.1);
     }
 
-    #[test] fn test_judge_output_struct() {
-        let o = JudgeOutput { relevant: true, score: 0.8, reason: "ok".into() };
-        assert!(o.relevant); assert!(o.score > 0.5);
+    #[test]
+    fn test_judge_output_struct() {
+        let o = JudgeOutput {
+            relevant: true,
+            score: 0.8,
+            reason: "ok".into(),
+        };
+        assert!(o.relevant);
+        assert!(o.score > 0.5);
     }
 }

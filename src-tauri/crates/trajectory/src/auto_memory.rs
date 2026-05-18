@@ -155,54 +155,57 @@ impl AutoMemoryExtractor {
         }
 
         for (i, step) in assistant_messages.iter().enumerate() {
-            if let Some(ref tool_calls) = step.tool_calls {
-                if !tool_calls.is_empty() {
-                    let tool_names: Vec<String> =
-                        tool_calls.iter().map(|tc| tc.name.clone()).collect();
-                    let unique_tools: Vec<String> = tool_names
-                        .iter()
-                        .cloned()
-                        .collect::<std::collections::HashSet<_>>()
-                        .iter()
-                        .cloned()
-                        .collect();
+            if let Some(ref tool_calls) = step.tool_calls
+                && !tool_calls.is_empty()
+            {
+                let tool_names: Vec<String> = tool_calls.iter().map(|tc| tc.name.clone()).collect();
+                let unique_tools: Vec<String> = tool_names
+                    .iter()
+                    .cloned()
+                    .collect::<std::collections::HashSet<_>>()
+                    .iter()
+                    .cloned()
+                    .collect();
 
-                    if unique_tools.len() >= 2 {
-                        let pattern_key = unique_tools.join(",");
-                        let count = seen_content.entry(pattern_key.clone()).or_insert(0);
-                        *count += 1;
-
-                        if *count >= 2 {
-                            memories.push(ExtractedMemory {
-                                memory_type: MemoryType::Pattern,
-                                content: format!(
-                                    "User frequently uses tools together: {}",
-                                    unique_tools.join(" -> ")
-                                ),
-                                confidence: 0.8,
-                                source_trajectory: trajectory.id.clone(),
-                                extraction_reason: "Repeated tool combination detected".to_string(),
-                            });
-                        }
-                    }
-                }
-            }
-
-            if let Some(ref reasoning) = step.reasoning {
-                if reasoning.len() > 100 && i == 0 {
-                    let key = "detailed_reasoning".to_string();
-                    let count = seen_content.entry(key).or_insert(0);
+                if unique_tools.len() >= 2 {
+                    let pattern_key = unique_tools.join(",");
+                    let count = seen_content.entry(pattern_key.clone()).or_insert(0);
                     *count += 1;
 
                     if *count >= 2 {
                         memories.push(ExtractedMemory {
-                            memory_type: MemoryType::Preference,
-                            content: "User appreciates detailed reasoning and step-by-step problem solving".to_string(),
-                            confidence: 0.75,
+                            memory_type: MemoryType::Pattern,
+                            content: format!(
+                                "User frequently uses tools together: {}",
+                                unique_tools.join(" -> ")
+                            ),
+                            confidence: 0.8,
                             source_trajectory: trajectory.id.clone(),
-                            extraction_reason: "Multiple detailed reasoning chains observed".to_string(),
+                            extraction_reason: "Repeated tool combination detected".to_string(),
                         });
                     }
+                }
+            }
+
+            if let Some(ref reasoning) = step.reasoning
+                && reasoning.len() > 100
+                && i == 0
+            {
+                let key = "detailed_reasoning".to_string();
+                let count = seen_content.entry(key).or_insert(0);
+                *count += 1;
+
+                if *count >= 2 {
+                    memories.push(ExtractedMemory {
+                        memory_type: MemoryType::Preference,
+                        content:
+                            "User appreciates detailed reasoning and step-by-step problem solving"
+                                .to_string(),
+                        confidence: 0.75,
+                        source_trajectory: trajectory.id.clone(),
+                        extraction_reason: "Multiple detailed reasoning chains observed"
+                            .to_string(),
+                    });
                 }
             }
         }
@@ -339,18 +342,17 @@ impl Trajectory {
             }
         }
 
-        if let Some(last) = self.steps.last() {
-            if matches!(last.role, crate::trajectory::MessageRole::Assistant) {
-                if let Some(ref tool_calls) = last.tool_calls {
-                    for tc in tool_calls {
-                        if !tc.name.contains("read") && !tc.name.contains("write") {
-                            candidates.push(format!(
-                                "Tool used: {} with args: {}",
-                                tc.name,
-                                tc.arguments.chars().take(100).collect::<String>()
-                            ));
-                        }
-                    }
+        if let Some(last) = self.steps.last()
+            && matches!(last.role, crate::trajectory::MessageRole::Assistant)
+            && let Some(ref tool_calls) = last.tool_calls
+        {
+            for tc in tool_calls {
+                if !tc.name.contains("read") && !tc.name.contains("write") {
+                    candidates.push(format!(
+                        "Tool used: {} with args: {}",
+                        tc.name,
+                        tc.arguments.chars().take(100).collect::<String>()
+                    ));
                 }
             }
         }

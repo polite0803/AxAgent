@@ -2,6 +2,42 @@ use crate::style_vectorizer::{CodeSample, MessageSample};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::LazyLock;
+
+static INDENT_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\s+)\S").unwrap());
+
+static IDENTIFIER_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
+    [
+        r"\blet\s+(?:mut\s+)?(\w+)",
+        r"\bvar\s+(\w+)",
+        r"\bconst\s+(\w+)",
+        r"\bfn\s+(\w+)",
+        r"\bclass\s+(\w+)",
+        r"\bstruct\s+(\w+)",
+        r"\benum\s+(\w+)",
+        r"\btrait\s+(\w+)",
+        r"\bimpl\s+(\w+)",
+        r"\btype\s+(\w+)",
+    ]
+    .iter()
+    .map(|p| Regex::new(p).unwrap())
+    .collect()
+});
+
+static FN_REGEXES: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
+    vec![
+        (
+            Regex::new(r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?")
+                .unwrap(),
+            "rust",
+        ),
+        (
+            Regex::new(r"function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*(\w+))?").unwrap(),
+            "typescript",
+        ),
+        (Regex::new(r"def\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?:").unwrap(), "python"),
+    ]
+});
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedCodePatterns {
@@ -135,50 +171,42 @@ impl StyleExtractor {
             let code_lower = sample.code.to_lowercase();
             let lines: Vec<&str> = sample.code.lines().collect();
 
-            let fn_regexes = [
-                (r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?", "rust"),
-                (r"function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*(\w+))?", "typescript"),
-                (r"def\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?:", "python"),
-            ];
+            for (re, _lang) in FN_REGEXES.iter() {
+                for cap in re.captures_iter(&sample.code) {
+                    if let Some(name_match) = cap.get(1) {
+                        let name = name_match.as_str().to_string();
+                        let params = cap.get(2).map(|m| m.as_str()).unwrap_or("");
+                        let return_type = cap.get(3).is_some();
+                        let param_count = if params.is_empty() {
+                            0
+                        } else {
+                            params.split(',').filter(|p| !p.trim().is_empty()).count()
+                        };
 
-            for (pattern, _lang) in &fn_regexes {
-                if let Ok(re) = Regex::new(pattern) {
-                    for cap in re.captures_iter(&sample.code) {
-                        if let Some(name_match) = cap.get(1) {
-                            let name = name_match.as_str().to_string();
-                            let params = cap.get(2).map(|m| m.as_str()).unwrap_or("");
-                            let return_type = cap.get(3).is_some();
-                            let param_count = if params.is_empty() {
-                                0
-                            } else {
-                                params.split(',').filter(|p| !p.trim().is_empty()).count()
-                            };
+                        let is_async = code_lower.contains("async fn")
+                            || code_lower.contains("async function");
+                        let visibility = if sample.code.contains("pub fn")
+                            || sample.code.contains("pub async fn")
+                        {
+                            Visibility::Public
+                        } else {
+                            Visibility::Private
+                        };
 
-                            let is_async = code_lower.contains("async fn")
-                                || code_lower.contains("async function");
-                            let visibility = if sample.code.contains("pub fn")
-                                || sample.code.contains("pub async fn")
-                            {
-                                Visibility::Public
-                            } else {
-                                Visibility::Private
-                            };
+                        let signature = format!("{}_{}_{}", name, param_count, return_type);
+                        *seen_signatures.entry(signature.clone()).or_insert(0) += 1;
 
-                            let signature = format!("{}_{}_{}", name, param_count, return_type);
-                            *seen_signatures.entry(signature.clone()).or_insert(0) += 1;
-
-                            if seen_signatures.get(&signature).copied().unwrap_or(0)
-                                >= self.min_pattern_frequency
-                            {
-                                all_patterns.push(FunctionPattern {
-                                    name,
-                                    param_count,
-                                    has_return_type: return_type,
-                                    is_async,
-                                    visibility,
-                                    line_count: lines.len(),
-                                });
-                            }
+                        if seen_signatures.get(&signature).copied().unwrap_or(0)
+                            >= self.min_pattern_frequency
+                        {
+                            all_patterns.push(FunctionPattern {
+                                name,
+                                param_count,
+                                has_return_type: return_type,
+                                is_async,
+                                visibility,
+                                line_count: lines.len(),
+                            });
                         }
                     }
                 }
@@ -405,19 +433,18 @@ impl StyleExtractor {
 
     fn detect_indent_size(&self, samples: &[CodeSample]) -> usize {
         let mut sizes: Vec<usize> = Vec::new();
-        let indent_regex = Regex::new(r"^(\s+)\S").unwrap();
 
         for sample in samples {
             for line in sample.code.lines() {
-                if let Some(cap) = indent_regex.captures(line) {
-                    if let Some(indent) = cap.get(1) {
-                        let spaces = indent.as_str().chars().filter(|&c| c == ' ').count();
-                        let tabs = indent.as_str().chars().filter(|&c| c == '\t').count();
-                        if spaces > 0 {
-                            sizes.push(spaces);
-                        } else if tabs > 0 {
-                            sizes.push(tabs * 4);
-                        }
+                if let Some(cap) = INDENT_REGEX.captures(line)
+                    && let Some(indent) = cap.get(1)
+                {
+                    let spaces = indent.as_str().chars().filter(|&c| c == ' ').count();
+                    let tabs = indent.as_str().chars().filter(|&c| c == '\t').count();
+                    if spaces > 0 {
+                        sizes.push(spaces);
+                    } else if tabs > 0 {
+                        sizes.push(tabs * 4);
                     }
                 }
             }
@@ -718,27 +745,12 @@ pub struct DocumentStyleProfile {
 fn extract_identifiers(code: &str) -> Vec<String> {
     let mut identifiers = Vec::new();
 
-    let patterns = [
-        r"\blet\s+(?:mut\s+)?(\w+)",
-        r"\bvar\s+(\w+)",
-        r"\bconst\s+(\w+)",
-        r"\bfn\s+(\w+)",
-        r"\bclass\s+(\w+)",
-        r"\bstruct\s+(\w+)",
-        r"\benum\s+(\w+)",
-        r"\btrait\s+(\w+)",
-        r"\bimpl\s+(\w+)",
-        r"\btype\s+(\w+)",
-    ];
-
-    for pattern in &patterns {
-        if let Ok(re) = Regex::new(pattern) {
-            for cap in re.captures_iter(code) {
-                if let Some(name) = cap.get(1) {
-                    let name_str = name.as_str();
-                    if !is_rust_keyword(name_str) {
-                        identifiers.push(name_str.to_string());
-                    }
+    for re in IDENTIFIER_PATTERNS.iter() {
+        for cap in re.captures_iter(code) {
+            if let Some(name) = cap.get(1) {
+                let name_str = name.as_str();
+                if !is_rust_keyword(name_str) {
+                    identifiers.push(name_str.to_string());
                 }
             }
         }

@@ -864,7 +864,7 @@ export function SchedulerSettings() {
                         backgroundColor: selectedTemplate === template.template_type
                           ? "var(--color-bg-tertiary)"
                           : "var(--color-bg-secondary)",
-                        transition: "all 0.2s",
+                        transition: "box-shadow 0.2s, transform 0.2s",
                       }}
                     >
                       <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>
@@ -897,7 +897,7 @@ export function SchedulerSettings() {
                         backgroundColor: selectedTemplate === template.template_type
                           ? "var(--color-bg-tertiary)"
                           : "var(--color-bg-secondary)",
-                        transition: "all 0.2s",
+                        transition: "box-shadow 0.2s, transform 0.2s",
                       }}
                     >
                       <div style={{ fontWeight: 500, marginBottom: 2, fontSize: 13, color: "var(--color-text)" }}>

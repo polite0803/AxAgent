@@ -299,10 +299,10 @@ impl MessageGateway {
             })?;
 
         for agent_id in agent_ids {
-            if let Some(endpoint) = state.endpoints.get(agent_id) {
-                if let Some(handler) = self.transport_handlers.get(&endpoint.transport) {
-                    handler.send(agent_id, message).await?;
-                }
+            if let Some(endpoint) = state.endpoints.get(agent_id)
+                && let Some(handler) = self.transport_handlers.get(&endpoint.transport)
+            {
+                handler.send(agent_id, message).await?;
             }
         }
 

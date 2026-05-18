@@ -279,7 +279,7 @@ function MultiModelDisplayInner({
                     backgroundColor: isActive ? token.colorPrimary : "transparent",
                     color: isActive ? "#fff" : token.colorTextSecondary,
                     border: isActive ? "none" : `1px solid ${token.colorBorder}`,
-                    transition: "all 0.2s",
+                    transition: "box-shadow 0.2s, transform 0.2s",
                   }}
                 >
                   <Check size={14} />
@@ -333,7 +333,7 @@ export function LayoutSwitcher({
               cursor: currentMode === key ? "default" : "pointer",
               backgroundColor: currentMode === key ? token.colorPrimaryBg : "transparent",
               color: currentMode === key ? token.colorPrimary : token.colorTextQuaternary,
-              transition: "all 0.2s",
+              transition: "box-shadow 0.2s, transform 0.2s",
             }}
           >
             {icon}

@@ -418,7 +418,10 @@ impl PluginTool {
                         "plugin tool `{}` requires workspace-write permission, but plugin `{}` only declares {:?}",
                         self.definition.name,
                         self.plugin_id,
-                        declared_permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>()
+                        declared_permissions
+                            .iter()
+                            .map(|p| p.as_str())
+                            .collect::<Vec<_>>()
                     )))
                 }
             },
@@ -430,7 +433,10 @@ impl PluginTool {
                         "plugin tool `{}` requires danger-full-access permission, but plugin `{}` only declares {:?} (needs 'execute')",
                         self.definition.name,
                         self.plugin_id,
-                        declared_permissions.iter().map(|p| p.as_str()).collect::<Vec<_>>()
+                        declared_permissions
+                            .iter()
+                            .map(|p| p.as_str())
+                            .collect::<Vec<_>>()
                     )))
                 }
             },
@@ -1159,11 +1165,11 @@ impl Display for PluginManifestValidationError {
         match self {
             Self::EmptyField { field } => {
                 write!(f, "plugin manifest {field} cannot be empty")
-            }
+            },
             Self::EmptyEntryField { kind, field, name } => match name {
                 Some(name) if !name.is_empty() => {
                     write!(f, "plugin {kind} `{name}` {field} cannot be empty")
-                }
+                },
                 _ => write!(f, "plugin {kind} {field} cannot be empty"),
             },
             Self::InvalidPermission { permission } => {
@@ -1171,25 +1177,22 @@ impl Display for PluginManifestValidationError {
                     f,
                     "plugin manifest permission `{permission}` must be one of read, write, or execute"
                 )
-            }
+            },
             Self::DuplicatePermission { permission } => {
                 write!(f, "plugin manifest permission `{permission}` is duplicated")
-            }
+            },
             Self::DuplicateEntry { kind, name } => {
                 write!(f, "plugin {kind} `{name}` is duplicated")
-            }
+            },
             Self::MissingPath { kind, path } => {
                 write!(f, "{kind} path `{}` does not exist", path.display())
-            }
+            },
             Self::PathIsDirectory { kind, path } => {
                 write!(f, "{kind} path `{}` must point to a file", path.display())
-            }
+            },
             Self::InvalidToolInputSchema { tool_name } => {
-                write!(
-                    f,
-                    "plugin tool `{tool_name}` inputSchema must be a JSON object"
-                )
-            }
+                write!(f, "plugin tool `{tool_name}` inputSchema must be a JSON object")
+            },
             Self::InvalidToolRequiredPermission {
                 tool_name,
                 permission,
@@ -1198,14 +1201,25 @@ impl Display for PluginManifestValidationError {
                 "plugin tool `{tool_name}` requiredPermission `{permission}` must be read-only, workspace-write, or danger-full-access"
             ),
             Self::UnsupportedManifestContract { detail } => f.write_str(detail),
-            Self::DependencyNotSatisfied { plugin_name, min_version } => {
-                match min_version {
-                    Some(ver) => write!(f, "plugin dependency `{plugin_name}` (min version {ver}) is not satisfied"),
-                    None => write!(f, "plugin dependency `{plugin_name}` is not installed"),
-                }
+            Self::DependencyNotSatisfied {
+                plugin_name,
+                min_version,
+            } => match min_version {
+                Some(ver) => write!(
+                    f,
+                    "plugin dependency `{plugin_name}` (min version {ver}) is not satisfied"
+                ),
+                None => write!(f, "plugin dependency `{plugin_name}` is not installed"),
             },
-            Self::IntegrityCheckFailed { algorithm, expected, actual } => {
-                write!(f, "plugin integrity check failed ({algorithm}): expected {expected}, got {actual}")
+            Self::IntegrityCheckFailed {
+                algorithm,
+                expected,
+                actual,
+            } => {
+                write!(
+                    f,
+                    "plugin integrity check failed ({algorithm}): expected {expected}, got {actual}"
+                )
             },
         }
     }
@@ -1330,13 +1344,13 @@ impl PluginManager {
                     });
                 },
                 Some(&installed_version) => {
-                    if let Some(ref min_ver) = dep.min_version {
-                        if !version_satisfies(installed_version, min_ver) {
-                            errors.push(PluginManifestValidationError::DependencyNotSatisfied {
-                                plugin_name: dep.plugin_name.clone(),
-                                min_version: Some(min_ver.clone()),
-                            });
-                        }
+                    if let Some(ref min_ver) = dep.min_version
+                        && !version_satisfies(installed_version, min_ver)
+                    {
+                        errors.push(PluginManifestValidationError::DependencyNotSatisfied {
+                            plugin_name: dep.plugin_name.clone(),
+                            min_version: Some(min_ver.clone()),
+                        });
                     }
                 },
             }
@@ -1356,7 +1370,7 @@ impl PluginManager {
         match integrity.algorithm.as_str() {
             "sha256" => {
                 let manifest_path = plugin_manifest_path(plugin_root)?;
-                let data = fs::read(&manifest_path).map_err(|e| PluginError::Io(e))?;
+                let data = fs::read(&manifest_path).map_err(PluginError::Io)?;
                 let hash = sha256_hash(&data);
                 if hash.eq_ignore_ascii_case(&integrity.hash) {
                     Ok(())
@@ -2028,8 +2042,8 @@ fn load_manifest_from_skill_md(
             }
 
             if let Some(list_key) = &current_list_key {
-                if trimmed.starts_with("- ") {
-                    let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+                if let Some(stripped) = trimmed.strip_prefix("- ") {
+                    let item = stripped.trim().trim_matches('"').trim_matches('\'');
                     match list_key.as_str() {
                         "permissions" => permissions.push(item.to_string()),
                         "pre_tool_use" | "PreToolUse" => pre_tool_use.push(item.to_string()),
@@ -2066,10 +2080,10 @@ fn load_manifest_from_skill_md(
                     | "init"
                     | "Init"
                     | "shutdown"
-                    | "Shutdown" => {
-                        if val.is_empty() {
-                            current_list_key = Some(key.trim().to_string());
-                        }
+                    | "Shutdown"
+                        if val.is_empty() =>
+                    {
+                        current_list_key = Some(key.trim().to_string());
                     },
                     _ => {},
                 }
@@ -2900,12 +2914,10 @@ mod tests {
     use super::*;
 
     fn env_guard() -> std::sync::MutexGuard<'static, ()> {
-        env_lock()
-            .lock()
-            .unwrap_or_else(|e| {
-                tracing::warn!("env lock poisoned, recovering");
-                e.into_inner()
-            })
+        env_lock().lock().unwrap_or_else(|e| {
+            tracing::warn!("env lock poisoned, recovering");
+            e.into_inner()
+        })
     }
 
     fn temp_dir(label: &str) -> PathBuf {
@@ -2930,7 +2942,8 @@ mod tests {
 
     fn write_file(path: &Path, contents: &str) {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).unwrap_or_else(|e| panic!("Failed to create parent dir {parent:?}: {e}"));
+            fs::create_dir_all(parent)
+                .unwrap_or_else(|e| panic!("Failed to create parent dir {parent:?}: {e}"));
         }
         fs::write(path, contents).unwrap_or_else(|e| panic!("Failed to write file {path:?}: {e}"));
     }
@@ -3483,12 +3496,16 @@ mod tests {
         let _guard = env_guard();
         let manager = PluginManager::new(PluginManagerConfig::new(temp_dir("discover")));
         let plugins = manager.list_plugins().expect("plugins should list");
-        assert!(plugins
-            .iter()
-            .any(|plugin| plugin.metadata.kind == PluginKind::Builtin));
-        assert!(plugins
-            .iter()
-            .any(|plugin| plugin.metadata.kind == PluginKind::Bundled));
+        assert!(
+            plugins
+                .iter()
+                .any(|plugin| plugin.metadata.kind == PluginKind::Builtin)
+        );
+        assert!(
+            plugins
+                .iter()
+                .any(|plugin| plugin.metadata.kind == PluginKind::Bundled)
+        );
     }
 
     #[test]
@@ -3503,11 +3520,13 @@ mod tests {
             .install(source_root.to_str().expect("utf8 path"))
             .expect("install should succeed");
         assert_eq!(install.plugin_id, "demo@external");
-        assert!(manager
-            .list_plugins()
-            .expect("list plugins")
-            .iter()
-            .any(|plugin| plugin.metadata.id == "demo@external" && plugin.enabled));
+        assert!(
+            manager
+                .list_plugins()
+                .expect("list plugins")
+                .iter()
+                .any(|plugin| plugin.metadata.id == "demo@external" && plugin.enabled)
+        );
 
         let hooks = manager.aggregated_hooks().expect("hooks should aggregate");
         assert_eq!(hooks.pre_tool_use.len(), 1);
@@ -3516,10 +3535,12 @@ mod tests {
         manager
             .disable("demo@external")
             .expect("disable should work");
-        assert!(manager
-            .aggregated_hooks()
-            .expect("hooks after disable")
-            .is_empty());
+        assert!(
+            manager
+                .aggregated_hooks()
+                .expect("hooks after disable")
+                .is_empty()
+        );
         manager.enable("demo@external").expect("enable should work");
 
         write_external_plugin(&source_root, "demo", "2.0.0");
@@ -3530,11 +3551,13 @@ mod tests {
         manager
             .uninstall("demo@external")
             .expect("uninstall should work");
-        assert!(!manager
-            .list_plugins()
-            .expect("list plugins")
-            .iter()
-            .any(|plugin| plugin.metadata.id == "demo@external"));
+        assert!(
+            !manager
+                .list_plugins()
+                .expect("list plugins")
+                .iter()
+                .any(|plugin| plugin.metadata.id == "demo@external")
+        );
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(source_root);
@@ -3581,12 +3604,16 @@ mod tests {
         let installed = manager
             .list_installed_plugins()
             .expect("default bundled plugins should auto-install");
-        assert!(installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "example-bundled@bundled"));
-        assert!(installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "sample-hooks@bundled"));
+        assert!(
+            installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "example-bundled@bundled")
+        );
+        assert!(
+            installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "sample-hooks@bundled")
+        );
 
         let _ = fs::remove_dir_all(config_home);
     }
@@ -3640,12 +3667,16 @@ mod tests {
         let installed = manager
             .list_installed_plugins()
             .expect("bundled sync should succeed");
-        assert!(installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "active@bundled"));
-        assert!(!installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "stale@bundled"));
+        assert!(
+            installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "active@bundled")
+        );
+        assert!(
+            !installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "stale@bundled")
+        );
 
         let registry = manager.load_registry().expect("load registry");
         assert!(!registry.plugins.contains_key("stale@bundled"));
@@ -3701,9 +3732,11 @@ mod tests {
         let installed = manager
             .list_installed_plugins()
             .expect("registry fallback plugin should load");
-        assert!(installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "registry-fallback@external"));
+        assert!(
+            installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "registry-fallback@external")
+        );
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -3745,9 +3778,11 @@ mod tests {
         let installed = manager
             .list_installed_plugins()
             .expect("stale registry entries should be pruned");
-        assert!(!installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "stale-external@external"));
+        assert!(
+            !installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "stale-external@external")
+        );
 
         let registry = manager.load_registry().expect("load registry");
         assert!(!registry.plugins.contains_key("stale-external@external"));
@@ -3782,9 +3817,11 @@ mod tests {
         let reloaded = reloaded_manager
             .list_installed_plugins()
             .expect("bundled plugins should still be listed");
-        assert!(reloaded
-            .iter()
-            .any(|plugin| { plugin.metadata.id == "starter@bundled" && plugin.enabled }));
+        assert!(
+            reloaded
+                .iter()
+                .any(|plugin| { plugin.metadata.id == "starter@bundled" && plugin.enabled })
+        );
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -3816,9 +3853,11 @@ mod tests {
         let reloaded = reloaded_manager
             .list_installed_plugins()
             .expect("bundled plugins should still be listed");
-        assert!(reloaded
-            .iter()
-            .any(|plugin| { plugin.metadata.id == "starter@bundled" && !plugin.enabled }));
+        assert!(
+            reloaded
+                .iter()
+                .any(|plugin| { plugin.metadata.id == "starter@bundled" && !plugin.enabled })
+        );
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -3889,13 +3928,17 @@ mod tests {
         assert!(report.registry().contains("valid-report@external"));
         assert_eq!(report.failures().len(), 1);
         assert_eq!(report.failures()[0].kind, PluginKind::External);
-        assert!(report.failures()[0]
-            .plugin_root
-            .ends_with(Path::new("broken")));
-        assert!(report.failures()[0]
-            .error()
-            .to_string()
-            .contains("does not exist"));
+        assert!(
+            report.failures()[0]
+                .plugin_root
+                .ends_with(Path::new("broken"))
+        );
+        assert!(
+            report.failures()[0]
+                .error()
+                .to_string()
+                .contains("does not exist")
+        );
 
         let error = manager
             .plugin_registry()
@@ -3935,9 +3978,11 @@ mod tests {
         // then
         assert!(report.registry().contains("installed-valid@external"));
         assert_eq!(report.failures().len(), 1);
-        assert!(report.failures()[0]
-            .plugin_root
-            .ends_with(Path::new("broken")));
+        assert!(
+            report.failures()[0]
+                .plugin_root
+                .ends_with(Path::new("broken"))
+        );
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -4076,9 +4121,11 @@ mod tests {
         let installed = manager
             .list_installed_plugins()
             .expect("installed plugins should scan directories");
-        assert!(installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "scan-demo@external"));
+        assert!(
+            installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "scan-demo@external")
+        );
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -4108,9 +4155,11 @@ mod tests {
         let installed = manager
             .list_installed_plugins()
             .expect("installed plugins should scan packaged manifests");
-        assert!(installed
-            .iter()
-            .any(|plugin| plugin.metadata.id == "scan-packaged@external"));
+        assert!(
+            installed
+                .iter()
+                .any(|plugin| plugin.metadata.id == "scan-packaged@external")
+        );
 
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);
@@ -4170,8 +4219,8 @@ mod tests {
 
     #[test]
     fn plugin_lifecycle_handles_parallel_execution() {
-        use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
         use std::sync::Arc;
+        use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
         use std::thread;
 
         let _guard = env_guard();

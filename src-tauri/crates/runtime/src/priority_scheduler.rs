@@ -118,13 +118,13 @@ impl PriorityScheduler {
                 break;
             }
             if self.total_allocated + task.resource_weight > self.config.total_resource_capacity {
-                if self.config.preempt_enabled {
-                    if let Some(preempted) = self.try_preempt(&task) {
-                        self.running_tasks
-                            .retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
-                        self.total_allocated = self.running_tasks.iter().map(|(_, w)| *w).sum();
-                        continue;
-                    }
+                if self.config.preempt_enabled
+                    && let Some(preempted) = self.try_preempt(&task)
+                {
+                    self.running_tasks
+                        .retain(|(t, _)| !preempted.preempted_task_ids.contains(&t.id));
+                    self.total_allocated = self.running_tasks.iter().map(|(_, w)| *w).sum();
+                    continue;
                 }
                 break;
             }

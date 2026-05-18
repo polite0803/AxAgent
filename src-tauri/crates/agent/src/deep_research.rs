@@ -136,7 +136,7 @@ impl DeepResearcher {
 
         for round_num in 1..=self.config.max_rounds {
             let queries = if round_num == 1 {
-                if let (Some(ref adapter), Some(ref ctx), Some(model)) =
+                if let (Some(adapter), Some(ctx), Some(model)) =
                     (&llm_adapter, &llm_ctx, &llm_model)
                 {
                     self.generate_queries(topic, &context, adapter.as_ref(), ctx, model)
@@ -305,15 +305,15 @@ Output JSON array of {{"query": "...", "rationale": "..."}}:
     }
 
     fn extract_json(&self, text: &str) -> Result<String, String> {
-        if let Some(start) = text.find('[') {
-            if let Some(end) = text.rfind(']') {
-                return Ok(text[start..=end].to_string());
-            }
+        if let Some(start) = text.find('[')
+            && let Some(end) = text.rfind(']')
+        {
+            return Ok(text[start..=end].to_string());
         }
-        if let Some(start) = text.find('{') {
-            if let Some(end) = text.rfind('}') {
-                return Ok(text[start..=end].to_string());
-            }
+        if let Some(start) = text.find('{')
+            && let Some(end) = text.rfind('}')
+        {
+            return Ok(text[start..=end].to_string());
         }
         Err("No JSON array or object found in response".to_string())
     }

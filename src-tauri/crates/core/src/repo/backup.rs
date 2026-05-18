@@ -26,10 +26,10 @@ fn model_to_manifest(m: backup_manifests::Model) -> BackupManifest {
 
 /// Get the backup directory, using the configured path or defaulting to the AxAgent home backups dir.
 pub fn resolve_backup_dir(backup_dir_setting: Option<&str>, app_data_dir: &Path) -> PathBuf {
-    if let Some(dir) = backup_dir_setting {
-        if !dir.is_empty() {
-            return PathBuf::from(dir);
-        }
+    if let Some(dir) = backup_dir_setting
+        && !dir.is_empty()
+    {
+        return PathBuf::from(dir);
     }
     app_data_dir.join("backups")
 }

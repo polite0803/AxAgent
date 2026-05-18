@@ -62,15 +62,15 @@ impl SharedMemoryPool {
         let full_key = format!("{}:{}", namespace, key);
 
         // Check write permission if entry already exists and has writers set
-        if let Some(existing) = self.entries.get(&full_key) {
-            if !existing.writers.is_empty() {
-                if let Some(agent) = owner_agent {
-                    if !existing.writers.contains(agent) {
-                        return Err(MemoryError::PermissionDenied);
-                    }
-                } else {
+        if let Some(existing) = self.entries.get(&full_key)
+            && !existing.writers.is_empty()
+        {
+            if let Some(agent) = owner_agent {
+                if !existing.writers.contains(agent) {
                     return Err(MemoryError::PermissionDenied);
                 }
+            } else {
+                return Err(MemoryError::PermissionDenied);
             }
         }
 
@@ -183,10 +183,10 @@ impl SharedMemoryPool {
     pub fn delete(&mut self, key: &str, namespace: &str) -> Result<(), MemoryError> {
         let full_key = format!("{}:{}", namespace, key);
 
-        if let Some(entry) = self.entries.remove(&full_key) {
-            if let Some(ns) = self.namespaces.get_mut(&entry.namespace) {
-                ns.remove(&full_key);
-            }
+        if let Some(entry) = self.entries.remove(&full_key)
+            && let Some(ns) = self.namespaces.get_mut(&entry.namespace)
+        {
+            ns.remove(&full_key);
         }
 
         Ok(())
@@ -217,10 +217,10 @@ impl SharedMemoryPool {
             .collect();
 
         for key in &expired_keys {
-            if let Some(entry) = self.entries.remove(key) {
-                if let Some(ns) = self.namespaces.get_mut(&entry.namespace) {
-                    ns.remove(key);
-                }
+            if let Some(entry) = self.entries.remove(key)
+                && let Some(ns) = self.namespaces.get_mut(&entry.namespace)
+            {
+                ns.remove(key);
             }
         }
 
@@ -509,12 +509,11 @@ impl SharedMemory {
     }
 
     fn send_notification(&self, notification: MemoryNotification) -> Result<(), MemoryError> {
-        if let Ok(tx_guard) = self.notification_tx.read() {
-            if let Some(ref tx) = *tx_guard {
-                if let Err(e) = tx.try_send(notification) {
-                    tracing::debug!("Notification channel full, dropping notification: {}", e);
-                }
-            }
+        if let Ok(tx_guard) = self.notification_tx.read()
+            && let Some(ref tx) = *tx_guard
+            && let Err(e) = tx.try_send(notification)
+        {
+            tracing::debug!("Notification channel full, dropping notification: {}", e);
         }
         Ok(())
     }

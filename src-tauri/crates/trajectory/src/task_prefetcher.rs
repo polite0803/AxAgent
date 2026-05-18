@@ -14,7 +14,7 @@ pub struct PrefetchResult {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum PrefetchType {
     CodeCompletion,
     SearchResults,

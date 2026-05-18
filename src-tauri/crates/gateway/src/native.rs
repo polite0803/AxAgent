@@ -2,11 +2,11 @@ use axagent_core::{
     crypto::decrypt_key,
     types::{GatewayKey, ProviderConfig, ProviderProxyConfig, ProviderType, TokenUsage},
 };
-use axagent_providers::{build_http_client, resolve_base_url_for_type, ProviderRequestContext};
+use axagent_providers::{ProviderRequestContext, build_http_client, resolve_base_url_for_type};
 use axum::{
-    body::{to_bytes, Body, Bytes},
+    body::{Body, Bytes, to_bytes},
     extract::{Extension, Path, Request, State},
-    http::{header, HeaderMap, HeaderName, Method, StatusCode},
+    http::{HeaderMap, HeaderName, Method, StatusCode, header},
     response::IntoResponse,
 };
 use futures::StreamExt;
@@ -162,10 +162,10 @@ struct OpenAiResponsesStreamState {
 
 impl OpenAiResponsesStreamState {
     fn observe_sse_line(&mut self, line: &str) {
-        if let Some(value) = parse_sse_json_line(line) {
-            if value.get("type").and_then(|v| v.as_str()) == Some("response.completed") {
-                self.usage = extract_openai_response_usage(&value);
-            }
+        if let Some(value) = parse_sse_json_line(line)
+            && value.get("type").and_then(|v| v.as_str()) == Some("response.completed")
+        {
+            self.usage = extract_openai_response_usage(&value);
         }
     }
 
@@ -298,12 +298,20 @@ fn extract_openai_response_usage(value: &serde_json::Value) -> Option<TokenUsage
             .and_then(|response| response.get("usage"))
     })?;
 
-    let prompt_tokens = usage.get("input_tokens")?.as_u64()? as u32;
-    let completion_tokens = usage.get("output_tokens")?.as_u64()? as u32;
+    let prompt_tokens: u32 = usage
+        .get("input_tokens")?
+        .as_u64()?
+        .try_into()
+        .unwrap_or(u32::MAX);
+    let completion_tokens: u32 = usage
+        .get("output_tokens")?
+        .as_u64()?
+        .try_into()
+        .unwrap_or(u32::MAX);
     let total_tokens = usage
         .get("total_tokens")
         .and_then(|value| value.as_u64())
-        .map(|value| value as u32)
+        .map(|value| value.try_into().unwrap_or(u32::MAX))
         .unwrap_or(prompt_tokens + completion_tokens);
 
     Some(TokenUsage {
@@ -584,18 +592,19 @@ async fn record_native_outcome(
     error_message: Option<&str>,
     aggregate_usage: bool,
 ) {
-    if aggregate_usage && status_code < 400 {
-        if let Some(usage) = usage {
-            let _ = axagent_core::repo::gateway::record_usage(
-                db,
-                &gateway_key.id,
-                provider_id,
-                model_id,
-                usage.prompt_tokens as u64,
-                usage.completion_tokens as u64,
-            )
-            .await;
-        }
+    if aggregate_usage
+        && status_code < 400
+        && let Some(usage) = usage
+    {
+        let _ = axagent_core::repo::gateway::record_usage(
+            db,
+            &gateway_key.id,
+            provider_id,
+            model_id,
+            usage.prompt_tokens as u64,
+            usage.completion_tokens as u64,
+        )
+        .await;
     }
 
     let elapsed = start_time.elapsed().as_millis() as i32;
@@ -782,7 +791,9 @@ async fn proxy_stream_response(
                     }
                 },
                 Err(e) => {
-                    stream_error = Some(format!("Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."));
+                    stream_error = Some(format!(
+                        "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
+                    ));
                     break;
                 },
             }
@@ -831,7 +842,7 @@ async fn handle_native_request(
             return error_response(
                 StatusCode::BAD_REQUEST,
                 &format!("Failed to read request body: {e}"),
-            )
+            );
         },
     };
 
@@ -841,7 +852,7 @@ async fn handle_native_request(
         match serde_json::from_slice::<serde_json::Value>(&body) {
             Ok(value) => Some(value),
             Err(e) => {
-                return error_response(StatusCode::BAD_REQUEST, &format!("Invalid JSON body: {e}"))
+                return error_response(StatusCode::BAD_REQUEST, &format!("Invalid JSON body: {e}"));
             },
         }
     };
@@ -1020,16 +1031,16 @@ mod tests {
     use super::*;
     use axagent_core::{
         crypto::{encrypt_key, key_prefix},
-        db::{create_test_pool, DbHandle},
+        db::{DbHandle, create_test_pool},
         repo::{gateway, gateway_request_log, provider},
         types::{CreateProviderInput, Model, ModelCapability, ModelType, ProviderType, TokenUsage},
     };
     use axum::{
-        body::{to_bytes, Body},
-        extract::State,
-        http::{header, HeaderMap, Method, Request, Response, StatusCode},
-        routing::any,
         Router,
+        body::{Body, to_bytes},
+        extract::State,
+        http::{HeaderMap, Method, Request, Response, StatusCode, header},
+        routing::any,
     };
     use serde_json::json;
     use std::sync::{Arc, Mutex};

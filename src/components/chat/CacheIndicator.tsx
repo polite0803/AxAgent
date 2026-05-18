@@ -19,7 +19,12 @@ export function CacheIndicator({
   if (!cacheValid && !hasPendingChanges) {
     return (
       <Tooltip title={t("cacheIndicator.notEstablished")}>
-        <Tag icon={<Clock size={12} />} color="default" style={{ margin: 0 }}>
+        <Tag
+          icon={<Clock size={12} />}
+          color="default"
+          style={{ margin: 0 }}
+          data-testid="cache-indicator"
+        >
           Fresh
         </Tag>
       </Tooltip>
@@ -29,7 +34,12 @@ export function CacheIndicator({
   if (hasPendingChanges) {
     return (
       <Tooltip title={t("cacheIndicator.pendingChanges")}>
-        <Tag icon={<AlertTriangle size={12} />} color="warning" style={{ margin: 0 }}>
+        <Tag
+          icon={<AlertTriangle size={12} />}
+          color="warning"
+          style={{ margin: 0 }}
+          data-testid="cache-indicator"
+        >
           Pending
         </Tag>
       </Tooltip>
@@ -37,8 +47,13 @@ export function CacheIndicator({
   }
 
   return (
-    <Tooltip title={`Cache active. ${cacheHits} hits, ~${formatTokens(tokensSaved)} tokens saved.`}>
-      <Tag icon={<Database size={12} />} color="green" style={{ margin: 0 }}>
+    <Tooltip title={t("cacheIndicator.active", { hits: cacheHits, tokens: formatTokens(tokensSaved) })}>
+      <Tag
+        icon={<Database size={12} />}
+        color="green"
+        style={{ margin: 0 }}
+        data-testid="cache-indicator"
+      >
         Cached
       </Tag>
     </Tooltip>

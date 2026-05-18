@@ -928,7 +928,7 @@ interface WorkflowTemplateSelectorProps {
   expertCategory?: string | null;
 }
 
-const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
+export const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
   open,
   onClose,
   onSelect,
@@ -979,7 +979,7 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
   if (expertCategory && !searchQuery.trim()) {
     const targetScenario = EXPERT_TO_SCENARIO[expertCategory];
     if (targetScenario) {
-      filteredTemplates.sort((a, b) => {
+      [...filteredTemplates].sort((a, b) => {
         const aMatch = a.scenarios?.includes(targetScenario) ? 1 : 0;
         const bMatch = b.scenarios?.includes(targetScenario) ? 1 : 0;
         return bMatch - aMatch;
@@ -1115,6 +1115,5 @@ const WorkflowTemplateSelector: React.FC<WorkflowTemplateSelectorProps> = ({
   );
 };
 
-export default WorkflowTemplateSelector;
 export { getWorkflowTemplates };
 export type { WorkflowTemplate };

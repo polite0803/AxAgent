@@ -314,26 +314,26 @@ impl NudgeService {
 
     pub fn get_pending_nudges(&self, session_id: &str) -> Vec<&Nudge> {
         let max_nudges = self.config.max_nudges_per_session;
-        if let Some(session) = &self.session {
-            if session.session_id == session_id {
-                return session
-                    .nudges
-                    .iter()
-                    .filter(|n| !n.presented)
-                    .take(max_nudges)
-                    .collect();
-            }
+        if let Some(session) = &self.session
+            && session.session_id == session_id
+        {
+            return session
+                .nudges
+                .iter()
+                .filter(|n| !n.presented)
+                .take(max_nudges)
+                .collect();
         }
         Vec::new()
     }
 
     pub fn mark_nudge_presented(&mut self, nudge_id: &str) -> bool {
-        if let Some(session) = &mut self.session {
-            if let Some(nudge) = session.nudges.iter_mut().find(|n| n.id == nudge_id) {
-                nudge.presented = true;
-                nudge.presented_at = Some(chrono::Utc::now().timestamp_millis());
-                return true;
-            }
+        if let Some(session) = &mut self.session
+            && let Some(nudge) = session.nudges.iter_mut().find(|n| n.id == nudge_id)
+        {
+            nudge.presented = true;
+            nudge.presented_at = Some(chrono::Utc::now().timestamp_millis());
+            return true;
         }
         false
     }
@@ -347,22 +347,20 @@ impl NudgeService {
 
         let mut found = false;
 
-        if let Some(session) = &mut self.session {
-            if let Some(nudge) = session.nudges.iter_mut().find(|n| n.id == nudge_id) {
-                nudge.action_taken = Some(action);
-                if let Some(t) = dismiss_time {
-                    nudge.dismissed_at = Some(t);
-                }
-                found = true;
+        if let Some(session) = &mut self.session
+            && let Some(nudge) = session.nudges.iter_mut().find(|n| n.id == nudge_id)
+        {
+            nudge.action_taken = Some(action);
+            if let Some(t) = dismiss_time {
+                nudge.dismissed_at = Some(t);
             }
+            found = true;
         }
 
-        if found {
-            if let Some(nudge) = self.history.iter_mut().find(|n| n.id == nudge_id) {
-                nudge.action_taken = Some(action);
-                if let Some(t) = dismiss_time {
-                    nudge.dismissed_at = Some(t);
-                }
+        if found && let Some(nudge) = self.history.iter_mut().find(|n| n.id == nudge_id) {
+            nudge.action_taken = Some(action);
+            if let Some(t) = dismiss_time {
+                nudge.dismissed_at = Some(t);
             }
         }
 
@@ -370,11 +368,11 @@ impl NudgeService {
     }
 
     pub fn snooze_nudge(&mut self, nudge_id: &str, until: i64) -> bool {
-        if let Some(session) = &mut self.session {
-            if let Some(nudge) = session.nudges.iter_mut().find(|n| n.id == nudge_id) {
-                nudge.snoozed_until = Some(until);
-                return true;
-            }
+        if let Some(session) = &mut self.session
+            && let Some(nudge) = session.nudges.iter_mut().find(|n| n.id == nudge_id)
+        {
+            nudge.snoozed_until = Some(until);
+            return true;
         }
         false
     }

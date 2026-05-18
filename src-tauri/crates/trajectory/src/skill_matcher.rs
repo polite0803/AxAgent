@@ -148,14 +148,13 @@ fn calculate_match_score(
 
     let patterns = KeywordPatterns::get();
 
-    if skill_id_lower.contains("openclaw-") {
-        if let Some(skill_key) = skill_id_lower.replace("openclaw-", "").split('-').next() {
-            if let Some(keywords) = patterns.get(skill_key) {
-                for keyword in keywords {
-                    if input_lower.contains(keyword) {
-                        score += 0.3;
-                    }
-                }
+    if skill_id_lower.contains("openclaw-")
+        && let Some(skill_key) = skill_id_lower.replace("openclaw-", "").split('-').next()
+        && let Some(keywords) = patterns.get(skill_key)
+    {
+        for keyword in keywords {
+            if input_lower.contains(keyword) {
+                score += 0.3;
             }
         }
     }

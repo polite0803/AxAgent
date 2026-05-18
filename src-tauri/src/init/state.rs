@@ -1,16 +1,17 @@
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use tokio::sync::Mutex;
 use tokio::sync::RwLock as TokioRwLock;
 
 use super::database::DatabaseInitResult;
+use crate::AppState;
+use crate::app_state::SemanticCacheState;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
-use crate::AppState;
-use crate::app_state::{SemanticCacheState, TotSession, PlannerSession};
 use axagent_core::cloud_storage::{CloudStorageConfig, SyncEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
+use axagent_runtime_core::prompt_cache::PromptCache;
 use tokio_util::sync::CancellationToken;
 
 pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
@@ -87,16 +88,15 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
         let db_file_path = db_path.strip_prefix("sqlite:").unwrap_or(&db_path);
-        let storage = rt.block_on(
-            axagent_trajectory::TrajectoryStorage::with_fts_path(
+        let storage = rt
+            .block_on(axagent_trajectory::TrajectoryStorage::with_fts_path(
                 Arc::new(sea_db.clone()),
                 db_file_path,
-            )
-        )
-        .unwrap_or_else(|e| {
-            tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
-            axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
-        });
+            ))
+            .unwrap_or_else(|e| {
+                tracing::warn!("Failed to init trajectory FTS5, falling back to no-FTS: {}", e);
+                axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
+            });
         Arc::new(storage)
     };
 
@@ -176,6 +176,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
         workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
+        reflector: Arc::new(axagent_agent::Reflector::new()),
         shared_memory: Arc::new(TokioRwLock::new(
             axagent_runtime::shared_memory::SharedMemory::new(),
         )),
@@ -184,10 +185,10 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         )),
         memory_service: memory_service.clone(),
         nudge_service: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),
-        trajectory_storage: shared_trajectory_storage.clone(),
         closed_loop_service: Arc::new(axagent_trajectory::ClosedLoopService::new(
             shared_trajectory_storage.clone(),
         )),
+        trajectory_storage: shared_trajectory_storage.clone(),
         insight_system: Arc::new(TokioRwLock::new(
             axagent_trajectory::LearningInsightSystem::new().with_storage_limits(200, 30),
         )),
@@ -287,7 +288,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             axagent_runtime::dashboard_registry::DashboardRegistry::new_with_config(
                 axagent_runtime::dashboard_registry::DashboardRegistryConfig {
                     plugin_dirs: vec![
-                        axagent_core::storage_paths::documents_root().join("dashboard-plugins")
+                        axagent_core::storage_paths::documents_root().join("dashboard-plugins"),
                     ],
                     auto_load: true,
                 },
@@ -343,6 +344,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
                 similarity_threshold: 0.85,
             }))
         },
+        prompt_cache: Arc::new(PromptCache::new()),
         tot_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         planner_sessions: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         browser_client: Arc::new(tokio::sync::Mutex::new(None)),
@@ -397,6 +399,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         sandbox_executor: Arc::new(()),
         sync_engine,
         plugin_manager,
+        file_authorizer: Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
     }
 }
 

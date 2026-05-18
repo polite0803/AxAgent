@@ -5,9 +5,9 @@ use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 use tokio::time::timeout;
-use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 
 pub const DEFAULT_REALTIME_TIMEOUT: Duration = Duration::from_secs(30);
 pub const DEFAULT_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
@@ -196,12 +196,11 @@ impl RealtimeClient {
             loop {
                 tokio::select! {
                     Some(msg) = rx.recv() => {
-                        if let Ok(json) = serde_json::to_string(&msg) {
-                            if let Err(e) = write.send(Message::Text(json.into())).await {
+                        if let Ok(json) = serde_json::to_string(&msg)
+                            && let Err(e) = write.send(Message::Text(json.into())).await {
                                 tracing::error!("Failed to send message: {}", e);
                                 break;
                             }
-                        }
                     }
                     msg = read.next() => {
                         match msg {

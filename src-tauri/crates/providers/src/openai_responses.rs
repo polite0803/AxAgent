@@ -6,7 +6,7 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
-use crate::{build_http_client, resolve_chat_url, ProviderAdapter, ProviderRequestContext};
+use crate::{ProviderAdapter, ProviderRequestContext, build_http_client, resolve_chat_url};
 
 const DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
 
@@ -458,10 +458,10 @@ fn parse_response_output(output: &[serde_json::Value]) -> (String, Option<Vec<To
                             .get("type")
                             .and_then(|v| v.as_str())
                             .unwrap_or_default();
-                        if part_type == "output_text" {
-                            if let Some(text) = part.get("text").and_then(|v| v.as_str()) {
-                                text_parts.push(text.to_string());
-                            }
+                        if part_type == "output_text"
+                            && let Some(text) = part.get("text").and_then(|v| v.as_str())
+                        {
+                            text_parts.push(text.to_string());
                         }
                     }
                 }
@@ -623,12 +623,12 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                 std::collections::HashMap::new();
 
             while let Some(chunk) = byte_stream.next().await {
-                if let Some(ref token) = cancel_token {
-                    if token.load(std::sync::atomic::Ordering::Relaxed) {
-                        let _ = tx
-                            .try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
-                        return;
-                    }
+                if let Some(ref token) = cancel_token
+                    && token.load(std::sync::atomic::Ordering::Relaxed)
+                {
+                    let _ =
+                        tx.try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
+                    return;
                 }
                 match chunk {
                     Ok(bytes) => {
@@ -707,38 +707,33 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                 | "response.reasoning_summary_text.delta" => {
                                     if let Ok(evt) =
                                         serde_json::from_str::<StreamReasoningDeltaEvent>(data)
+                                        && evt.delta.is_some()
                                     {
-                                        if evt.delta.is_some() {
-                                            let _ = tx.try_send(Ok(ChatStreamChunk {
-                                                content: None,
-                                                thinking: evt.delta,
-                                                done: false,
-                                                is_final: None,
-                                                usage: None,
-                                                tool_calls: None,
-                                            }));
-                                        }
+                                        let _ = tx.try_send(Ok(ChatStreamChunk {
+                                            content: None,
+                                            thinking: evt.delta,
+                                            done: false,
+                                            is_final: None,
+                                            usage: None,
+                                            tool_calls: None,
+                                        }));
                                     }
                                 },
                                 "response.output_item.added" => {
                                     if let Ok(evt) =
                                         serde_json::from_str::<StreamOutputItemAdded>(data)
+                                        && let Some(item) = evt.item
+                                        && item.r#type.as_deref() == Some("function_call")
                                     {
-                                        if let Some(item) = evt.item {
-                                            if item.r#type.as_deref() == Some("function_call") {
-                                                let item_id = item.id.unwrap_or_default();
-                                                let call_id =
-                                                    item.call_id.unwrap_or_else(|| item_id.clone());
-                                                let name = item.name.unwrap_or_default();
-                                                if let Some(idx) = evt.output_index {
-                                                    index_to_item_id.insert(idx, item_id.clone());
-                                                }
-                                                pending_tool_calls.insert(
-                                                    item_id,
-                                                    (call_id, name, String::new()),
-                                                );
-                                            }
+                                        let item_id = item.id.unwrap_or_default();
+                                        let call_id =
+                                            item.call_id.unwrap_or_else(|| item_id.clone());
+                                        let name = item.name.unwrap_or_default();
+                                        if let Some(idx) = evt.output_index {
+                                            index_to_item_id.insert(idx, item_id.clone());
                                         }
+                                        pending_tool_calls
+                                            .insert(item_id, (call_id, name, String::new()));
                                     }
                                 },
                                 "response.function_call_arguments.delta" => {
@@ -750,13 +745,11 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                             evt.output_index
                                                 .and_then(|idx| index_to_item_id.get(&idx).cloned())
                                         });
-                                        if let Some(item_id) = &resolved_id {
-                                            if let Some(entry) = pending_tool_calls.get_mut(item_id)
-                                            {
-                                                if let Some(ref d) = evt.delta {
-                                                    entry.2.push_str(d);
-                                                }
-                                            }
+                                        if let Some(item_id) = &resolved_id
+                                            && let Some(entry) = pending_tool_calls.get_mut(item_id)
+                                            && let Some(ref d) = evt.delta
+                                        {
+                                            entry.2.push_str(d);
                                         }
                                     }
                                 },
@@ -770,11 +763,9 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                         });
                                         if let (Some(item_id), Some(args)) =
                                             (&resolved_id, &evt.arguments)
+                                            && let Some(entry) = pending_tool_calls.get_mut(item_id)
                                         {
-                                            if let Some(entry) = pending_tool_calls.get_mut(item_id)
-                                            {
-                                                entry.2 = args.clone();
-                                            }
+                                            entry.2 = args.clone();
                                         }
                                     }
                                 },
@@ -838,8 +829,8 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                                         (usage, fc_from_output)
                                     } else {
                                         tracing::warn!(
-                                                "[responses] Failed to deserialize response.completed event"
-                                            );
+                                            "[responses] Failed to deserialize response.completed event"
+                                        );
                                         (None, Vec::new())
                                     };
 

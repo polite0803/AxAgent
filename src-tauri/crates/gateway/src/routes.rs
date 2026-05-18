@@ -1,7 +1,6 @@
 use axum::{
-    middleware,
+    Router, middleware,
     routing::{delete, get, patch, post, put},
-    Router,
 };
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use tower_http::cors::CorsLayer;
@@ -32,7 +31,14 @@ pub fn create_router(state: GatewayAppState) -> Router {
             "http://127.0.0.1:1419".parse().unwrap(),
             "tauri://localhost".parse().unwrap(),
         ])
-        .allow_methods([http::Method::GET, http::Method::POST, http::Method::PUT, http::Method::PATCH, http::Method::DELETE, http::Method::OPTIONS])
+        .allow_methods([
+            http::Method::GET,
+            http::Method::POST,
+            http::Method::PUT,
+            http::Method::PATCH,
+            http::Method::DELETE,
+            http::Method::OPTIONS,
+        ])
         .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
 
     // Protected routes (require auth)

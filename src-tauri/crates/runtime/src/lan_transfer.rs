@@ -131,10 +131,9 @@ impl LanDiscovery {
                 Ok((len, _src)) => {
                     if let Ok(LanMessage::DiscoveryReply(peer)) =
                         serde_json::from_slice(&buf[..len])
+                        && !found.iter().any(|p: &LanPeer| p.id == peer.id)
                     {
-                        if !found.iter().any(|p: &LanPeer| p.id == peer.id) {
-                            found.push(peer);
-                        }
+                        found.push(peer);
                     }
                 },
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
@@ -196,7 +195,11 @@ impl LanFileServer {
                         tracing::info!("LAN transfer connection from {}", addr);
                         let dir = shared_dir.clone();
                         tokio::spawn(async move {
-                            handle_transfer_connection(&mut stream, &dir).await;
+                            let _ = tokio::time::timeout(
+                                Duration::from_secs(120),
+                                handle_transfer_connection(&mut stream, &dir),
+                            )
+                            .await;
                         });
                     },
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -230,7 +233,6 @@ impl Default for LanFileServer {
 async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::path::Path) {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(60)));
 
-    // Read message length prefix (4 bytes, big-endian)
     let mut len_buf = [0u8; 4];
     if stream.read_exact(&mut len_buf).is_err() {
         return;
@@ -251,8 +253,18 @@ async fn handle_transfer_connection(stream: &mut TcpStream, shared_dir: &std::pa
     };
 
     if let LanMessage::TransferRequest(req) = msg {
+        if req.file_name.contains(['\\', '/', '\0']) {
+            let _ = send_msg(stream, &LanMessage::TransferRejected("Invalid file name".into()));
+            return;
+        }
         let file_path = shared_dir.join(&req.file_name);
-        if !file_path.starts_with(shared_dir) {
+        let canonical_file = file_path
+            .canonicalize()
+            .unwrap_or_else(|_| file_path.clone());
+        let canonical_shared = shared_dir
+            .canonicalize()
+            .unwrap_or_else(|_| shared_dir.to_path_buf());
+        if !canonical_file.starts_with(&canonical_shared) {
             let _ = send_msg(stream, &LanMessage::TransferRejected("Invalid path".into()));
             return;
         }
@@ -332,8 +344,15 @@ impl LanFileClient {
                 let mut size_buf = [0u8; 8];
                 stream.read_exact(&mut size_buf)?;
                 let total = u64::from_be_bytes(size_buf) as usize;
+                const MAX_TRANSFER_SIZE: usize = 100 * 1024 * 1024;
+                if total > MAX_TRANSFER_SIZE {
+                    anyhow::bail!(
+                        "Transfer size {} exceeds maximum allowed {}",
+                        total,
+                        MAX_TRANSFER_SIZE
+                    );
+                }
 
-                // Read file data
                 let mut data = Vec::with_capacity(total);
                 let mut buf = [0u8; 65536];
                 while data.len() < total {

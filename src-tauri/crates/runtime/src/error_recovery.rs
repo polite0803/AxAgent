@@ -154,11 +154,11 @@ impl CircuitBreaker {
         match self.state {
             CircuitState::Closed => true,
             CircuitState::Open => {
-                if let Some(last) = self.last_failure {
-                    if last.elapsed() >= self.recovery_timeout {
-                        self.state = CircuitState::HalfOpen;
-                        return true; // 允许探测请求
-                    }
+                if let Some(last) = self.last_failure
+                    && last.elapsed() >= self.recovery_timeout
+                {
+                    self.state = CircuitState::HalfOpen;
+                    return true; // 允许探测请求
                 }
                 false
             },

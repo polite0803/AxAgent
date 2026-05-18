@@ -547,10 +547,10 @@ fn path_is_within_workspace(path: &Path, workspace_root: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
+        LATEST_SESSION_REFERENCE, ManagedSessionSummary, SessionControlError, SessionStore,
         create_managed_session_handle_for, fork_managed_session_for, is_session_reference_alias,
         list_managed_sessions_for, load_managed_session_for, resolve_session_reference_for,
-        workspace_fingerprint, ManagedSessionSummary, SessionControlError, SessionStore,
-        LATEST_SESSION_REFERENCE,
+        workspace_fingerprint,
     };
     use crate::session::Session;
     use std::fs;

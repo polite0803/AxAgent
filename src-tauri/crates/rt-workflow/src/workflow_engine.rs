@@ -937,12 +937,11 @@ impl WorkflowRunner {
                     // Also update circuit breaker state
                     {
                         let mut workflows = self.engine.workflows.write().ok();
-                        if let Some(wf) = workflows.as_mut().and_then(|w| w.get_mut(workflow_id)) {
-                            if let Some(step) =
+                        if let Some(wf) = workflows.as_mut().and_then(|w| w.get_mut(workflow_id))
+                            && let Some(step) =
                                 wf.steps.iter_mut().find(|s| s.id == outcome.step_id)
-                            {
-                                step.circuit_breaker.record_failure(current_epoch_ms());
-                            }
+                        {
+                            step.circuit_breaker.record_failure(current_epoch_ms());
                         }
                     }
                     continue;
@@ -955,29 +954,27 @@ impl WorkflowRunner {
                             let mut workflows = self.engine.workflows.write().ok();
                             if let Some(wf) =
                                 workflows.as_mut().and_then(|w| w.get_mut(workflow_id))
-                            {
-                                if let Some(step) =
+                                && let Some(step) =
                                     wf.steps.iter_mut().find(|s| s.id == outcome.step_id)
-                                {
-                                    step.circuit_breaker.record_success();
+                            {
+                                step.circuit_breaker.record_success();
 
-                                    // Schema 校验：验证步骤输出是否符合 expected_output_schema
-                                    if let Some(ref schema) = step.expected_output_schema {
-                                        let (valid, errors) = verify_step_output(&result, schema);
-                                        if !valid {
-                                            tracing::warn!(
-                                                step_id = %outcome.step_id,
-                                                workflow_id = %workflow_id,
-                                                errors = %errors.join("; "),
-                                                "步骤输出 Schema 校验未通过"
-                                            );
-                                        } else {
-                                            tracing::info!(
-                                                step_id = %outcome.step_id,
-                                                workflow_id = %workflow_id,
-                                                "步骤输出 Schema 校验通过"
-                                            );
-                                        }
+                                // Schema 校验：验证步骤输出是否符合 expected_output_schema
+                                if let Some(ref schema) = step.expected_output_schema {
+                                    let (valid, errors) = verify_step_output(&result, schema);
+                                    if !valid {
+                                        tracing::warn!(
+                                            step_id = %outcome.step_id,
+                                            workflow_id = %workflow_id,
+                                            errors = %errors.join("; "),
+                                            "步骤输出 Schema 校验未通过"
+                                        );
+                                    } else {
+                                        tracing::info!(
+                                            step_id = %outcome.step_id,
+                                            workflow_id = %workflow_id,
+                                            "步骤输出 Schema 校验通过"
+                                        );
                                     }
                                 }
                             }
@@ -998,12 +995,10 @@ impl WorkflowRunner {
                             let mut workflows = self.engine.workflows.write().ok();
                             if let Some(wf) =
                                 workflows.as_mut().and_then(|w| w.get_mut(workflow_id))
-                            {
-                                if let Some(step) =
+                                && let Some(step) =
                                     wf.steps.iter_mut().find(|s| s.id == outcome.step_id)
-                                {
-                                    step.circuit_breaker.record_failure(current_epoch_ms());
-                                }
+                            {
+                                step.circuit_breaker.record_failure(current_epoch_ms());
                             }
                         }
 

@@ -6,6 +6,7 @@ import { Menu, Tabs, theme, Tooltip } from "antd";
 import {
   ArrowLeft,
   Bell,
+  BookOpen,
   Bot,
   Boxes,
   Cable,
@@ -58,7 +59,9 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   acp: <Network size={16} color={SETTINGS_ICON_COLORS.Globe} />,
   skillsHub: <ShoppingBag size={16} color={SETTINGS_ICON_COLORS.ShoppingBag} />,
   plugins: <Puzzle size={16} color={SETTINGS_ICON_COLORS.Puzzle} />,
+  knowledgeSettings: <BookOpen size={16} color={SETTINGS_ICON_COLORS.BookOpen} />,
   dashboardPlugins: <LayoutDashboard size={16} color={SETTINGS_ICON_COLORS.LayoutDashboard} />,
+  notificationCenter: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
   webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
   messageChannels: <Send size={16} color={SETTINGS_ICON_COLORS.Send} />,
   advanced: <SlidersHorizontal size={16} color={SETTINGS_ICON_COLORS.Settings} />,
@@ -72,9 +75,18 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
 const TAB_GROUPS: Record<string, SettingsSection[]> = {
   model: ["providers", "defaultModel", "conversationSettings", "promptTemplates", "searchProviders"],
   appearance: ["general", "display", "shortcuts"],
-  extensions: ["tools", "skillsHub", "plugins", "dashboardPlugins", "workflow", "appConfig", "userProfile"],
+  extensions: [
+    "tools",
+    "skillsHub",
+    "plugins",
+    "knowledgeSettings",
+    "dashboardPlugins",
+    "workflow",
+    "appConfig",
+    "userProfile",
+  ],
   network: ["proxy", "messageChannels", "webhooks", "acp"],
-  data: ["data", "storage", "cloudWorkspace", "backup", "scheduler"],
+  data: ["data", "storage", "cloudWorkspace", "backup", "scheduler", "notificationCenter"],
   system: ["advanced", "evolution", "about"],
 };
 

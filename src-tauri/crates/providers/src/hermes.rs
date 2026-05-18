@@ -5,7 +5,7 @@ use futures::Stream;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::{build_http_client, ProviderAdapter, ProviderRequestContext};
+use crate::{ProviderAdapter, ProviderRequestContext, build_http_client};
 
 use crate::anthropic::AnthropicAdapter;
 use crate::openai::OpenAIAdapter;
@@ -51,10 +51,10 @@ impl HermesAdapter {
             match mode.to_lowercase().as_str() {
                 "chat_completions" | "chatcompletions" => return ApiMode::ChatCompletions,
                 "codex_responses" | "responses" | "openai_responses" => {
-                    return ApiMode::CodexResponses
+                    return ApiMode::CodexResponses;
                 },
                 "anthropic_messages" | "anthropic" | "messages" => {
-                    return ApiMode::AnthropicMessages
+                    return ApiMode::AnthropicMessages;
                 },
                 _ => {},
             }

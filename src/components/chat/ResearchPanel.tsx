@@ -1,3 +1,5 @@
+import { useCitationStore } from "@/stores/feature/citationStore";
+import type { Citation } from "@/types";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -12,31 +14,15 @@ import {
 import { Alert, Button, Card, Divider, Input, List, Progress, Space, Tag, Typography } from "antd";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CredibilityBadge } from "./CredibilityBadge";
+import { ResearchSources } from "./ResearchSources";
+import { getSourceTypeName, type SearchResult } from "./researchUtils";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 type ResearchPhase = "planning" | "searching" | "extracting" | "analyzing" | "synthesizing" | "reporting";
 type ResearchStatus = "pending" | "in_progress" | "paused" | "completed" | "failed";
-
-interface SearchResult {
-  id: string;
-  sourceType: string;
-  url: string;
-  title: string;
-  snippet: string;
-  credibilityScore: number | null;
-  relevanceScore: number;
-}
-
-interface Citation {
-  id: string;
-  sourceUrl: string;
-  sourceTitle: string;
-  sourceType: string;
-  credibility: number;
-  inReport: boolean;
-}
 
 interface ResearchProgress {
   phase: ResearchPhase;
@@ -78,47 +64,6 @@ const phaseSteps = (t: (key: string) => string): { key: ResearchPhase; label: st
   { key: "synthesizing", label: t("research.phaseSynthesizing"), icon: <CheckCircleOutlined /> },
   { key: "reporting", label: t("research.phaseReporting"), icon: <FileTextOutlined /> },
 ];
-
-function getSourceTypeColor(sourceType: string): string {
-  const colorMap: Record<string, string> = {
-    web: "blue",
-    academic: "green",
-    wikipedia: "cyan",
-    github: "purple",
-    documentation: "orange",
-    news: "magenta",
-    blog: "gold",
-    forum: "default",
-    unknown: "default",
-  };
-  return colorMap[sourceType.toLowerCase()] || "default";
-}
-
-function getSourceTypeName(sourceType: string, t: (key: string) => string): string {
-  const nameMap: Record<string, string> = {
-    web: t("research.sourceTypeWeb"),
-    academic: t("research.sourceTypeAcademic"),
-    wikipedia: t("research.sourceTypeWikipedia"),
-    github: "GitHub",
-    documentation: t("research.sourceTypeDocumentation"),
-    news: t("research.sourceTypeNews"),
-    blog: t("research.sourceTypeBlog"),
-    forum: t("research.sourceTypeForum"),
-    unknown: t("research.sourceTypeUnknown"),
-  };
-  return nameMap[sourceType.toLowerCase()] || sourceType;
-}
-
-function CredibilityBadge({ score }: { score: number }) {
-  const { t } = useTranslation();
-  if (score >= 0.8) {
-    return <Tag color="green">{t("research.highCredibility")}</Tag>;
-  } else if (score >= 0.5) {
-    return <Tag color="orange">{t("research.mediumCredibility")}</Tag>;
-  } else {
-    return <Tag color="red">{t("research.lowCredibility")}</Tag>;
-  }
-}
 
 function PhaseProgress(
   { currentPhase, percentage, t }: { currentPhase: ResearchPhase; percentage: number; t: (key: string) => string },
@@ -165,6 +110,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
   const [report, setReport] = useState<ResearchReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const syncCitations = useCitationStore((s) => s.setCitations);
 
   const startResearch = useCallback(async () => {
     if (!topic.trim()) { return; }
@@ -265,7 +211,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
         id: `citation-${idx}`,
         sourceUrl: r.url,
         sourceTitle: r.title,
-        sourceType: r.sourceType,
+        sourceType: r.sourceType as Citation["sourceType"],
         credibility: r.credibilityScore || 0.5,
         inReport: true,
       }));
@@ -279,6 +225,8 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           }
           : null
       );
+
+      syncCitations(mockCitations);
 
       setState((prev) =>
         prev
@@ -476,37 +424,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           {state.searchResults.length > 0 && (
             <div className="sources-section mb-4">
               <Title level={5}>{t("research.searchResults")} ({state.searchResults.length})</Title>
-              <List
-                size="small"
-                dataSource={state.searchResults}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={
-                        <Space>
-                          <a href={item.url} target="_blank" rel="noopener noreferrer">
-                            {item.title}
-                          </a>
-                          <Tag color={getSourceTypeColor(item.sourceType)}>
-                            {getSourceTypeName(item.sourceType, t)}
-                          </Tag>
-                        </Space>
-                      }
-                      description={
-                        <div>
-                          <Paragraph
-                            ellipsis={{ rows: 2 }}
-                            className="mb-1"
-                          >
-                            {item.snippet}
-                          </Paragraph>
-                          {item.credibilityScore !== null && <CredibilityBadge score={item.credibilityScore} />}
-                        </div>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
+              <ResearchSources sources={state.searchResults} />
             </div>
           )}
 
@@ -559,5 +477,3 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
     </Card>
   );
 }
-
-export default ResearchPanel;

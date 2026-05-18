@@ -74,7 +74,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
     borderColor: submitted ? token.colorSuccessBorder : token.colorPrimary,
     opacity: appeared ? 1 : 0,
     transform: appeared ? "translateY(0)" : "translateY(-10px)",
-    transition: "all 0.3s ease-out",
+    transition: "box-shadow 0.3s ease-out, transform 0.3s ease-out",
   };
 
   return (
@@ -146,7 +146,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
                           borderRadius: 6,
                           border: `1px solid ${selectedOption === opt ? token.colorPrimary : token.colorBorder}`,
                           backgroundColor: selectedOption === opt ? `${token.colorPrimary}10` : "transparent",
-                          transition: "all 0.2s",
+                          transition: "box-shadow 0.2s, transform 0.2s",
                         }}
                       >
                         <Text style={{ marginLeft: 6 }}>{opt}</Text>

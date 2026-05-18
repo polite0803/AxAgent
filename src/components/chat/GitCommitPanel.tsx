@@ -163,9 +163,9 @@ export function GitCommitPanel({ repoPath, onCommitSuccess }: GitCommitPanelProp
             </div>
 
             <div className="max-h-40 overflow-auto mb-3 border border-gray-200 dark:border-gray-700 rounded">
-              {diff.files.map((file, index) => (
+              {diff.files.map((file) => (
                 <div
-                  key={index}
+                  key={file.path}
                   className="flex items-center justify-between px-2 py-1 text-xs border-b border-gray-100 dark:border-gray-800 last:border-b-0"
                 >
                   <Space size="small">
@@ -329,8 +329,8 @@ export function GitBranchPanel({ repoPath, baseBranch, headBranch }: GitBranchPa
             <div className="mb-3">
               <Text type="secondary" className="text-xs block mb-1">{t("chat.git.commits")}:</Text>
               <div className="max-h-24 overflow-auto">
-                {commits.map((commit, index) => (
-                  <Text key={index} className="text-xs font-mono block">
+                {commits.map((commit) => (
+                  <Text key={commit} className="text-xs font-mono block">
                     {commit.slice(0, 7)}
                   </Text>
                 ))}
@@ -353,5 +353,3 @@ export function GitBranchPanel({ repoPath, baseBranch, headBranch }: GitBranchPa
     </Card>
   );
 }
-
-export default GitCommitPanel;

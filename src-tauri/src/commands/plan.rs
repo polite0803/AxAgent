@@ -415,7 +415,7 @@ async fn build_agent_context(
     provider_id: &str,
     model_id: &str,
 ) -> Result<AgentContext, String> {
-    use axagent_providers::{resolve_base_url_for_type, ProviderAdapter};
+    use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
 
     let db = &state.sea_db;
 

@@ -6,7 +6,7 @@ use futures::StreamExt;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::pin::Pin;
 
-use crate::{build_http_client, resolve_chat_url, ProviderAdapter, ProviderRequestContext};
+use crate::{ProviderAdapter, ProviderRequestContext, build_http_client, resolve_chat_url};
 
 const DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
 
@@ -221,11 +221,7 @@ fn extract_text_from_json(value: &serde_json::Value) -> Option<String> {
 
     let mut text = String::new();
     collect_text(value, &mut text);
-    if text.is_empty() {
-        None
-    } else {
-        Some(text)
-    }
+    if text.is_empty() { None } else { Some(text) }
 }
 
 fn extract_primary_content(
@@ -237,10 +233,10 @@ fn extract_primary_content(
     }
 
     for key in ["text", "part", "parts", "value", "output_text"] {
-        if let Some(value) = extra.get(key) {
-            if let Some(text) = extract_text_from_json(value) {
-                return Some(text);
-            }
+        if let Some(value) = extra.get(key)
+            && let Some(text) = extract_text_from_json(value)
+        {
+            return Some(text);
         }
     }
 
@@ -897,12 +893,12 @@ impl ProviderAdapter for OpenAIAdapter {
             };
 
             while let Some(chunk) = byte_stream.next().await {
-                if let Some(ref token) = cancel_token {
-                    if token.load(std::sync::atomic::Ordering::Relaxed) {
-                        let _ = tx
-                            .try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
-                        return;
-                    }
+                if let Some(ref token) = cancel_token
+                    && token.load(std::sync::atomic::Ordering::Relaxed)
+                {
+                    let _ =
+                        tx.try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
+                    return;
                 }
                 match chunk {
                     Ok(bytes) => {

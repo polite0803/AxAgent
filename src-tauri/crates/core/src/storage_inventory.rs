@@ -44,11 +44,11 @@ fn count_dir_contents(dir: &Path) -> (u64, u64) {
     let mut bytes = 0u64;
     if let Ok(entries) = std::fs::read_dir(dir) {
         for entry in entries.flatten() {
-            if let Ok(meta) = entry.metadata() {
-                if meta.is_file() {
-                    count += 1;
-                    bytes += meta.len();
-                }
+            if let Ok(meta) = entry.metadata()
+                && meta.is_file()
+            {
+                count += 1;
+                bytes += meta.len();
             }
         }
     }

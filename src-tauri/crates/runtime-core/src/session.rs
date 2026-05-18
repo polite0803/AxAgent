@@ -498,7 +498,7 @@ impl Session {
                     return Err(SessionError::Format(format!(
                         "unsupported JSONL record type at line {}: {other}",
                         line_number + 1
-                    )))
+                    )));
                 },
             }
         }
@@ -715,7 +715,7 @@ impl ConversationMessage {
             "assistant" => MessageRole::Assistant,
             "tool" => MessageRole::Tool,
             other => {
-                return Err(SessionError::Format(format!("unsupported message role: {other}")))
+                return Err(SessionError::Format(format!("unsupported message role: {other}")));
             },
         };
         let blocks = object
@@ -994,7 +994,7 @@ fn current_time_millis() -> u64 {
 
     let mut candidate = wall_clock;
     loop {
-        let previous = LAST_TIMESTAMP_MS.load(Ordering::Relaxed);
+        let previous = LAST_TIMESTAMP_MS.load(Ordering::Acquire);
         if candidate <= previous {
             candidate = previous.saturating_add(1);
         }
@@ -1099,8 +1099,8 @@ fn cleanup_rotated_logs(path: &Path) -> Result<(), SessionError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        cleanup_rotated_logs, current_time_millis, rotate_session_file_if_needed, ContentBlock,
-        ConversationMessage, MessageRole, Session, SessionFork,
+        ContentBlock, ConversationMessage, MessageRole, Session, SessionFork, cleanup_rotated_logs,
+        current_time_millis, rotate_session_file_if_needed,
     };
     use crate::json::JsonValue;
     use crate::usage::TokenUsage;

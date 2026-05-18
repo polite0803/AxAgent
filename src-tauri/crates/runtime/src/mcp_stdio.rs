@@ -668,10 +668,10 @@ impl McpServerManager {
                 .await
             };
 
-        if let Err(error) = &response {
-            if Self::should_reset_server(error) {
-                self.reset_server(&route.server_name).await?;
-            }
+        if let Err(error) = &response
+            && Self::should_reset_server(error)
+        {
+            self.reset_server(&route.server_name).await?;
         }
 
         response
@@ -1231,14 +1231,14 @@ impl McpStdioProcess {
                 break;
             }
             let header = line.trim_end_matches(['\r', '\n']);
-            if let Some((name, value)) = header.split_once(':') {
-                if name.trim().eq_ignore_ascii_case("Content-Length") {
-                    let parsed = value
-                        .trim()
-                        .parse::<usize>()
-                        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
-                    content_length = Some(parsed);
-                }
+            if let Some((name, value)) = header.split_once(':')
+                && name.trim().eq_ignore_ascii_case("Content-Length")
+            {
+                let parsed = value
+                    .trim()
+                    .parse::<usize>()
+                    .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+                content_length = Some(parsed);
             }
         }
 
@@ -1429,10 +1429,10 @@ mod tests {
     use crate::mcp_client::McpClientBootstrap;
 
     use super::{
-        spawn_mcp_stdio_process, unsupported_server_failed_server, JsonRpcId, JsonRpcRequest,
-        JsonRpcResponse, McpInitializeClientInfo, McpInitializeParams, McpInitializeResult,
-        McpInitializeServerInfo, McpListToolsResult, McpReadResourceParams, McpReadResourceResult,
-        McpServerManager, McpServerManagerError, McpStdioProcess, McpTool, McpToolCallParams,
+        JsonRpcId, JsonRpcRequest, JsonRpcResponse, McpInitializeClientInfo, McpInitializeParams,
+        McpInitializeResult, McpInitializeServerInfo, McpListToolsResult, McpReadResourceParams,
+        McpReadResourceResult, McpServerManager, McpServerManagerError, McpStdioProcess, McpTool,
+        McpToolCallParams, spawn_mcp_stdio_process, unsupported_server_failed_server,
     };
     use crate::McpLifecyclePhase;
 
@@ -2203,8 +2203,8 @@ mod tests {
     }
 
     #[test]
-    fn given_tool_call_disconnects_once_when_calling_twice_then_manager_resets_and_next_call_succeeds(
-    ) {
+    fn given_tool_call_disconnects_once_when_calling_twice_then_manager_resets_and_next_call_succeeds()
+     {
         let runtime = Builder::new_current_thread()
             .enable_all()
             .build()

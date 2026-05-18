@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 use tokio::time::timeout;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -855,10 +855,12 @@ mod tests {
         };
         let result = executor.execute_task(&context).await.unwrap();
         assert_eq!(result["task_id"], "r1");
-        assert!(result["output"]
-            .as_str()
-            .unwrap()
-            .contains("Reasoning completed"));
+        assert!(
+            result["output"]
+                .as_str()
+                .unwrap()
+                .contains("Reasoning completed")
+        );
     }
 
     #[tokio::test]
@@ -889,10 +891,12 @@ mod tests {
         };
         let result = executor.execute_task(&context).await.unwrap();
         assert_eq!(result["task_id"], "q1");
-        assert!(result["output"]
-            .as_str()
-            .unwrap()
-            .contains("Query executed"));
+        assert!(
+            result["output"]
+                .as_str()
+                .unwrap()
+                .contains("Query executed")
+        );
     }
 
     #[tokio::test]

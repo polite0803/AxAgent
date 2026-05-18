@@ -848,10 +848,10 @@ impl ParallelExecutionService {
         let exec_id = execution.id.clone();
 
         let mut executions = self.executions.write().unwrap();
-        if executions.len() >= self.max_executions {
-            if let Some(oldest) = executions.keys().next().cloned() {
-                executions.remove(&oldest);
-            }
+        if executions.len() >= self.max_executions
+            && let Some(oldest) = executions.keys().next().cloned()
+        {
+            executions.remove(&oldest);
         }
         executions.insert(exec_id.clone(), execution);
 

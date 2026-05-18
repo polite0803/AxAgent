@@ -888,12 +888,11 @@ pub async fn find_server_for_tool(
     server_ids: &[String],
 ) -> Result<Option<(McpServer, ToolDescriptor)>> {
     for server_id in server_ids {
-        if let Ok(tools) = list_tools_for_server(db, server_id).await {
-            if let Some(td) = tools.into_iter().find(|t| t.name == tool_name) {
-                if let Ok(server) = get_mcp_server(db, server_id).await {
-                    return Ok(Some((server, td)));
-                }
-            }
+        if let Ok(tools) = list_tools_for_server(db, server_id).await
+            && let Some(td) = tools.into_iter().find(|t| t.name == tool_name)
+            && let Ok(server) = get_mcp_server(db, server_id).await
+        {
+            return Ok(Some((server, td)));
         }
     }
     Ok(None)

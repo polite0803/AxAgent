@@ -392,10 +392,10 @@ fn export_to_markdown(prompts: &[ExportedPrompt]) -> String {
         if let Some(cat) = &p.category {
             md.push_str(&format!("**分类**: {}\n\n", cat));
         }
-        if let Some(tags) = &p.tags {
-            if !tags.is_empty() {
-                md.push_str(&format!("**标签**: {}\n\n", tags.join(", ")));
-            }
+        if let Some(tags) = &p.tags
+            && !tags.is_empty()
+        {
+            md.push_str(&format!("**标签**: {}\n\n", tags.join(", ")));
         }
         if let Some(author) = &p.author {
             md.push_str(&format!("**作者**: {}\n\n", author));
@@ -442,24 +442,23 @@ pub async fn import_from_url(
 
     let mut inputs = Vec::new();
     for file in files {
-        if file.name.ends_with(".md") {
-            if let Some(content_url) = file.download_url {
-                match fetch_and_parse_prompt(&client, &content_url).await {
-                    Ok(Some(parsed_input)) => {
-                        if let Some(ref filter) = input.category_filter {
-                            if let Some(ref cat) = parsed_input.category {
-                                if !cat.contains(filter) {
-                                    continue;
-                                }
-                            }
-                        }
-                        inputs.push(parsed_input);
-                    },
-                    Ok(None) => {},
-                    Err(e) => {
-                        tracing::warn!("跳过文件 {}: {}", file.name, e);
-                    },
-                }
+        if file.name.ends_with(".md")
+            && let Some(content_url) = file.download_url
+        {
+            match fetch_and_parse_prompt(&client, &content_url).await {
+                Ok(Some(parsed_input)) => {
+                    if let Some(ref filter) = input.category_filter
+                        && let Some(ref cat) = parsed_input.category
+                        && !cat.contains(filter)
+                    {
+                        continue;
+                    }
+                    inputs.push(parsed_input);
+                },
+                Ok(None) => {},
+                Err(e) => {
+                    tracing::warn!("跳过文件 {}: {}", file.name, e);
+                },
             }
         }
     }
@@ -520,12 +519,11 @@ pub async fn import_from_folder(
             Ok(content) => {
                 match parse_yao_prompt(&content) {
                     Ok(Some(parsed_input)) => {
-                        if let Some(ref filter) = category_filter {
-                            if let Some(ref cat) = parsed_input.category {
-                                if !cat.contains(filter) {
-                                    continue;
-                                }
-                            }
+                        if let Some(ref filter) = category_filter
+                            && let Some(ref cat) = parsed_input.category
+                            && !cat.contains(filter)
+                        {
+                            continue;
                         }
                         inputs.push(parsed_input);
                     },

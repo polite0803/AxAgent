@@ -302,7 +302,7 @@ async fn run_single(
                         id,
                         name,
                         result: Ok(r),
-                    }
+                    };
                 },
                 Err(e) => {
                     if matches!(
@@ -348,14 +348,14 @@ async fn run_single(
                     id,
                     name,
                     result: Ok(r),
-                }
+                };
             },
             Err(e) => {
                 return ToolCallResponse {
                     id,
                     name,
                     result: Err(e),
-                }
+                };
             },
         }
     }

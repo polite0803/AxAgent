@@ -7,7 +7,7 @@
 //! Stores extracted definitions in SQLite for fast semantic matching during
 //! the L2 phase of the three-level recall pipeline.
 
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

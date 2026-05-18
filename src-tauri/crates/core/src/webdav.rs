@@ -542,29 +542,29 @@ pub fn create_backup_zip(
     zip.write_all(metadata_json.as_bytes())
         .map_err(|e| AxAgentError::Gateway(format!("ZIP write error: {}", e)))?;
 
-    if let Some(key_path) = master_key_path {
-        if key_path.exists() {
-            let key_data = std::fs::read(key_path)
-                .map_err(|e| AxAgentError::Gateway(format!("Failed to read master.key: {}", e)))?;
-            let encrypted_key = crate::crypto::encrypt_backup_key(&key_data)
-                .map_err(|e| AxAgentError::Gateway(format!("Failed to encrypt backup key: {}", e)))?;
-            zip.start_file("master.key.enc", options)
-                .map_err(|e| AxAgentError::Gateway(format!("ZIP error: {}", e)))?;
-            zip.write_all(&encrypted_key)
-                .map_err(|e| AxAgentError::Gateway(format!("ZIP write error: {}", e)))?;
-        }
+    if let Some(key_path) = master_key_path
+        && key_path.exists()
+    {
+        let key_data = std::fs::read(key_path)
+            .map_err(|e| AxAgentError::Gateway(format!("Failed to read master.key: {}", e)))?;
+        let encrypted_key = crate::crypto::encrypt_backup_key(&key_data)
+            .map_err(|e| AxAgentError::Gateway(format!("Failed to encrypt backup key: {}", e)))?;
+        zip.start_file("master.key.enc", options)
+            .map_err(|e| AxAgentError::Gateway(format!("ZIP error: {}", e)))?;
+        zip.write_all(&encrypted_key)
+            .map_err(|e| AxAgentError::Gateway(format!("ZIP write error: {}", e)))?;
     }
 
-    if let Some(docs_dir) = documents_dir {
-        if docs_dir.exists() {
-            add_directory_to_zip(&mut zip, docs_dir, "documents", options)?;
-        }
+    if let Some(docs_dir) = documents_dir
+        && docs_dir.exists()
+    {
+        add_directory_to_zip(&mut zip, docs_dir, "documents", options)?;
     }
 
-    if let Some(ws_dir) = workspace_dir {
-        if ws_dir.exists() {
-            add_directory_to_zip(&mut zip, ws_dir, "workspace", options)?;
-        }
+    if let Some(ws_dir) = workspace_dir
+        && ws_dir.exists()
+    {
+        add_directory_to_zip(&mut zip, ws_dir, "workspace", options)?;
     }
 
     zip.finish()
@@ -687,10 +687,10 @@ pub fn generate_backup_filename() -> String {
 
 pub fn parse_hostname_from_filename(filename: &str) -> String {
     let name = filename.trim_end_matches(".zip");
-    if let Some(rest) = name.strip_prefix("axagent-backup-") {
-        if let Some(dot_pos) = rest.find('.') {
-            return rest[dot_pos + 1..].to_string();
-        }
+    if let Some(rest) = name.strip_prefix("axagent-backup-")
+        && let Some(dot_pos) = rest.find('.')
+    {
+        return rest[dot_pos + 1..].to_string();
     }
     "unknown".to_string()
 }

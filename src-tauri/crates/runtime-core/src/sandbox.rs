@@ -327,8 +327,8 @@ fn detect_docker_available() -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_linux_sandbox_command, detect_container_environment_from, FilesystemIsolationMode,
-        SandboxConfig, SandboxDetectionInputs,
+        FilesystemIsolationMode, SandboxConfig, SandboxDetectionInputs,
+        build_linux_sandbox_command, detect_container_environment_from,
     };
     use std::path::Path;
 
@@ -342,18 +342,24 @@ mod tests {
         });
 
         assert!(detected.in_container);
-        assert!(detected
-            .markers
-            .iter()
-            .any(|marker| marker == "/.dockerenv"));
-        assert!(detected
-            .markers
-            .iter()
-            .any(|marker| marker == "env:container=docker"));
-        assert!(detected
-            .markers
-            .iter()
-            .any(|marker| marker == "/proc/1/cgroup:docker"));
+        assert!(
+            detected
+                .markers
+                .iter()
+                .any(|marker| marker == "/.dockerenv")
+        );
+        assert!(
+            detected
+                .markers
+                .iter()
+                .any(|marker| marker == "env:container=docker")
+        );
+        assert!(
+            detected
+                .markers
+                .iter()
+                .any(|marker| marker == "/proc/1/cgroup:docker")
+        );
     }
 
     #[test]

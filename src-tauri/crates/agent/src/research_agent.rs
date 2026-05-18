@@ -8,7 +8,7 @@ use crate::search_planner::SearchPlanner;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 
 #[derive(Error, Debug)]
 pub enum ResearchError {

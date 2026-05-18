@@ -56,7 +56,7 @@ impl IncrementalIndexer {
         file_index: &FileIndex,
         ast_index: &AstIndex,
     ) -> Result<(), String> {
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = mpsc::sync_channel(1024);
         let root = root.to_path_buf();
 
         let mut watcher = notify::recommended_watcher(move |res: Result<Event, notify::Error>| {
@@ -130,10 +130,10 @@ impl IncrementalIndexer {
                         return true;
                     }
                 }
-                if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                    if self.watch_config.code_extensions.iter().any(|e| e == ext) {
-                        return false;
-                    }
+                if let Some(ext) = path.extension().and_then(|e| e.to_str())
+                    && self.watch_config.code_extensions.iter().any(|e| e == ext)
+                {
+                    return false;
                 }
                 if path.extension().is_none() && path.is_file() {
                     return false;
@@ -195,14 +195,15 @@ impl IncrementalIndexer {
         let entries = file_index.all_entries()?;
         for entry in &entries {
             let abs_path = root.join(&entry.path);
-            if abs_path.exists() && abs_path.is_file() {
-                if let Ok(content) = std::fs::read_to_string(&abs_path) {
-                    match ast_index.index_file(&entry.path, &content) {
-                        Ok(count) => ast_count += count,
-                        Err(e) => {
-                            tracing::debug!("AST index skipped for {}: {e}", entry.path);
-                        },
-                    }
+            if abs_path.exists()
+                && abs_path.is_file()
+                && let Ok(content) = std::fs::read_to_string(&abs_path)
+            {
+                match ast_index.index_file(&entry.path, &content) {
+                    Ok(count) => ast_count += count,
+                    Err(e) => {
+                        tracing::debug!("AST index skipped for {}: {e}", entry.path);
+                    },
                 }
             }
         }

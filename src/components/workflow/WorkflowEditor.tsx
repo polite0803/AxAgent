@@ -902,5 +902,3 @@ function createWorkflowNode(id: string, type: string, position: { x: number; y: 
       };
   }
 }
-
-export default WorkflowEditor;

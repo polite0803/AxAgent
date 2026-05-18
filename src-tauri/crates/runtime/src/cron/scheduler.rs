@@ -129,10 +129,10 @@ fn match_cron_field(field: &str, current: i64, _min: i64, _max: i64) -> bool {
         return true;
     }
 
-    if let Some(step) = field.strip_prefix("*/") {
-        if let Ok(interval) = step.parse::<i64>() {
-            return current % interval == 0;
-        }
+    if let Some(step) = field.strip_prefix("*/")
+        && let Ok(interval) = step.parse::<i64>()
+    {
+        return current % interval == 0;
     }
 
     if field.contains(',') {
@@ -143,10 +143,10 @@ fn match_cron_field(field: &str, current: i64, _min: i64, _max: i64) -> bool {
 
     if field.contains('-') {
         let parts: Vec<&str> = field.split('-').collect();
-        if parts.len() == 2 {
-            if let (Ok(lo), Ok(hi)) = (parts[0].parse::<i64>(), parts[1].parse::<i64>()) {
-                return current >= lo && current <= hi;
-            }
+        if parts.len() == 2
+            && let (Ok(lo), Ok(hi)) = (parts[0].parse::<i64>(), parts[1].parse::<i64>())
+        {
+            return current >= lo && current <= hi;
         }
     }
 

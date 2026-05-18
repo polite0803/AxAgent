@@ -2,8 +2,8 @@ use axum::{
     extract::{Extension, State},
     http::{HeaderMap, StatusCode},
     response::{
-        sse::{Event, KeepAlive, Sse},
         IntoResponse, Json,
+        sse::{Event, KeepAlive, Sse},
     },
 };
 use futures::StreamExt;
@@ -16,7 +16,7 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::*;
-use axagent_providers::{resolve_base_url_for_type, ProviderAdapter, ProviderRequestContext};
+use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 
 use crate::auth::AuthenticatedKey;
 use crate::server::GatewayAppState;
@@ -166,7 +166,9 @@ pub async fn get_response(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -192,7 +194,9 @@ pub async fn get_response(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get response: {}", e))
         },
@@ -297,7 +301,9 @@ pub async fn delete_response(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             Json(json!({ "deleted": true, "id": response_id })).into_response()
         },
@@ -317,7 +323,9 @@ pub async fn delete_response(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete response: {}", e))
         },
@@ -361,7 +369,9 @@ pub async fn list_jobs(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -387,7 +397,9 @@ pub async fn list_jobs(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list jobs: {}", e))
         },
@@ -415,7 +427,8 @@ pub async fn create_job(
         },
     };
 
-    let job_data_str = serde_json::to_string(&job_data).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
+    let job_data_str = serde_json::to_string(&job_data)
+        .unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter.create_job(&ctx, &job_data_str).await {
         Ok(response_body) => {
@@ -434,7 +447,9 @@ pub async fn create_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::CREATED)
@@ -460,7 +475,9 @@ pub async fn create_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to create job: {}", e))
         },
@@ -505,7 +522,9 @@ pub async fn get_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -531,7 +550,9 @@ pub async fn get_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job: {}", e))
         },
@@ -560,7 +581,8 @@ pub async fn update_job(
         },
     };
 
-    let job_data_str = serde_json::to_string(&job_data).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
+    let job_data_str = serde_json::to_string(&job_data)
+        .unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter.update_job(&ctx, &job_id, &job_data_str).await {
         Ok(response_body) => {
@@ -579,7 +601,9 @@ pub async fn update_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -605,7 +629,9 @@ pub async fn update_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to update job: {}", e))
         },
@@ -650,7 +676,9 @@ pub async fn delete_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             Json(json!({ "deleted": true, "id": job_id })).into_response()
         },
@@ -670,7 +698,9 @@ pub async fn delete_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete job: {}", e))
         },
@@ -715,7 +745,9 @@ pub async fn pause_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             Json(json!({ "paused": true, "id": job_id })).into_response()
         },
@@ -735,7 +767,9 @@ pub async fn pause_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to pause job: {}", e))
         },
@@ -780,7 +814,9 @@ pub async fn resume_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             Json(json!({ "resumed": true, "id": job_id })).into_response()
         },
@@ -800,7 +836,9 @@ pub async fn resume_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to resume job: {}", e))
         },
@@ -845,7 +883,9 @@ pub async fn trigger_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             Json(json!({ "triggered": true, "id": job_id })).into_response()
         },
@@ -865,7 +905,9 @@ pub async fn trigger_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger job: {}", e))
         },
@@ -910,7 +952,9 @@ pub async fn list_runs(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -936,7 +980,9 @@ pub async fn list_runs(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list runs: {}", e))
         },
     }
@@ -964,7 +1010,8 @@ pub async fn trigger_run(
         },
     };
 
-    let params_str = serde_json::to_string(&params).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
+    let params_str = serde_json::to_string(&params)
+        .unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter.trigger_run(&ctx, &job_id, Some(&params_str)).await {
         Ok(response_body) => {
@@ -983,7 +1030,9 @@ pub async fn trigger_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::CREATED)
@@ -1009,7 +1058,9 @@ pub async fn trigger_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger run: {}", e))
         },
     }
@@ -1053,7 +1104,9 @@ pub async fn get_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1079,7 +1132,9 @@ pub async fn get_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run: {}", e))
         },
     }
@@ -1123,7 +1178,9 @@ pub async fn cancel_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             Json(json!({ "cancelled": true, "job_id": job_id, "run_id": run_id })).into_response()
         },
         Err(e) => {
@@ -1142,7 +1199,9 @@ pub async fn cancel_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to cancel run: {}", e))
         },
     }
@@ -1186,7 +1245,9 @@ pub async fn get_run_logs(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1212,7 +1273,9 @@ pub async fn get_run_logs(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run logs: {}", e))
         },
     }
@@ -1256,7 +1319,9 @@ pub async fn retry_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1282,7 +1347,9 @@ pub async fn retry_run(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to retry run: {}", e))
         },
     }
@@ -1326,7 +1393,9 @@ pub async fn get_job_schedule(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1352,7 +1421,9 @@ pub async fn get_job_schedule(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job schedule: {}", e))
         },
     }
@@ -1380,7 +1451,8 @@ pub async fn update_job_schedule(
         },
     };
 
-    let schedule_str = serde_json::to_string(&schedule).unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
+    let schedule_str = serde_json::to_string(&schedule)
+        .unwrap_or_else(|e| format!("{{\"error\":\"Serialization failed: {}\"}}", e));
 
     match adapter
         .update_job_schedule(&ctx, &job_id, &schedule_str)
@@ -1402,7 +1474,9 @@ pub async fn update_job_schedule(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1428,7 +1502,9 @@ pub async fn update_job_schedule(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to update job schedule: {}", e),
@@ -1475,7 +1551,9 @@ pub async fn enable_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             Json(json!({ "enabled": true, "id": job_id })).into_response()
         },
         Err(e) => {
@@ -1494,7 +1572,9 @@ pub async fn enable_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to enable job: {}", e))
         },
     }
@@ -1538,7 +1618,9 @@ pub async fn disable_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             Json(json!({ "disabled": true, "id": job_id })).into_response()
         },
         Err(e) => {
@@ -1557,7 +1639,9 @@ pub async fn disable_job(
                 0,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to disable job: {}", e))
         },
     }
@@ -1790,7 +1874,9 @@ async fn handle_non_stream(
                 response.usage.completion_tokens as i64,
                 None,
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             Json(build_non_stream_response_body(&response)).into_response()
         },
@@ -1810,7 +1896,9 @@ async fn handle_non_stream(
                 0,
                 Some(&e.to_string()),
             )
-            .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+            .await
+            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+            .ok();
 
             error_response(StatusCode::BAD_GATEWAY, &e.to_string())
         },
@@ -1863,14 +1951,13 @@ async fn handle_stream(
                         break;
                     }
 
-                    if let Some(data) = build_stream_chunk_response_body(&model_str, &chunk) {
-                        if tx
+                    if let Some(data) = build_stream_chunk_response_body(&model_str, &chunk)
+                        && tx
                             .send(Ok(Event::default().data(data.to_string())))
                             .await
                             .is_err()
-                        {
-                            break;
-                        }
+                    {
+                        break;
                     }
                 },
                 Err(e) => {
@@ -1911,7 +1998,9 @@ async fn handle_stream(
             total_completion as i64,
             stream_error.as_deref(),
         )
-        .await.map_err(|e| tracing::warn!(%e, "Failed to record request log")).ok();
+        .await
+        .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+        .ok();
     });
 
     let sse_stream = ReceiverStream::new(rx);
@@ -2110,13 +2199,13 @@ pub(crate) struct ParsedModel {
 ///    `"accounts/fireworks/models/qwen3"`).
 /// 2. `model_id`                     — bare; resolved by unique match across providers
 pub(crate) fn parse_model_field(model: &str, known_public_ids: &HashSet<String>) -> ParsedModel {
-    if let Some((left, right)) = model.split_once('/') {
-        if known_public_ids.contains(left) {
-            return ParsedModel {
-                provider_hint: Some(left.to_string()),
-                model_id: right.to_string(),
-            };
-        }
+    if let Some((left, right)) = model.split_once('/')
+        && known_public_ids.contains(left)
+    {
+        return ParsedModel {
+            provider_hint: Some(left.to_string()),
+            model_id: right.to_string(),
+        };
     }
     ParsedModel {
         provider_hint: None,

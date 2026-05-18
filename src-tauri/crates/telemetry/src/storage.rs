@@ -158,28 +158,28 @@ impl TraceStorage for InMemoryTraceStorage {
         let mut summaries: Vec<TraceSummary> = traces
             .values()
             .filter(|trace| {
-                if let Some(ref session_id) = filter.session_id {
-                    if &trace.metadata.session_id != session_id {
-                        return false;
-                    }
+                if let Some(ref session_id) = filter.session_id
+                    && &trace.metadata.session_id != session_id
+                {
+                    return false;
                 }
 
-                if let Some(ref trace_id) = filter.trace_id {
-                    if &trace.trace_id != trace_id {
-                        return false;
-                    }
+                if let Some(ref trace_id) = filter.trace_id
+                    && &trace.trace_id != trace_id
+                {
+                    return false;
                 }
 
-                if let Some(from) = filter.from_date {
-                    if trace.spans.iter().map(|s| s.start_time).min() < Some(from) {
-                        return false;
-                    }
+                if let Some(from) = filter.from_date
+                    && trace.spans.iter().map(|s| s.start_time).min() < Some(from)
+                {
+                    return false;
                 }
 
-                if let Some(to) = filter.to_date {
-                    if trace.spans.iter().map(|s| s.start_time).max() > Some(to) {
-                        return false;
-                    }
+                if let Some(to) = filter.to_date
+                    && trace.spans.iter().map(|s| s.start_time).max() > Some(to)
+                {
+                    return false;
                 }
 
                 if let Some(has_errors) = filter.has_errors {

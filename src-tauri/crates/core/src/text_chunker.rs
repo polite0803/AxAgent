@@ -84,10 +84,10 @@ pub fn chunk_text_with_separator_and_markdown(
     }
 
     // If a custom separator is provided, use separator-first chunking
-    if let Some(sep) = separator {
-        if !sep.is_empty() {
-            return chunk_by_separator(text, chunk_size, overlap, sep);
-        }
+    if let Some(sep) = separator
+        && !sep.is_empty()
+    {
+        return chunk_by_separator(text, chunk_size, overlap, sep);
     }
 
     // If Markdown, use heading-aware chunking
@@ -318,17 +318,17 @@ fn find_break_point(text: &str, start: usize, target: usize) -> usize {
     let min_chunk = (target - start) / 2; // Don't break before half the chunk
 
     // Try paragraph break
-    if let Some(pos) = search_range.rfind("\n\n") {
-        if pos >= min_chunk {
-            return start + pos + 2; // After the double newline
-        }
+    if let Some(pos) = search_range.rfind("\n\n")
+        && pos >= min_chunk
+    {
+        return start + pos + 2; // After the double newline
     }
 
     // Try line break
-    if let Some(pos) = search_range.rfind('\n') {
-        if pos >= min_chunk {
-            return start + pos + 1;
-        }
+    if let Some(pos) = search_range.rfind('\n')
+        && pos >= min_chunk
+    {
+        return start + pos + 1;
     }
 
     // Try sentence end
@@ -343,10 +343,10 @@ fn find_break_point(text: &str, start: usize, target: usize) -> usize {
     }
 
     // Try word break (space)
-    if let Some(pos) = search_range.rfind(' ') {
-        if pos >= min_chunk {
-            return start + pos + 1;
-        }
+    if let Some(pos) = search_range.rfind(' ')
+        && pos >= min_chunk
+    {
+        return start + pos + 1;
     }
 
     // No good break found, just cut at target
@@ -358,16 +358,16 @@ fn find_code_break_point(text: &str, start: usize, target: usize) -> usize {
     let search_range = &text[start..target];
     let min_chunk = (target - start) / 3;
 
-    if let Some(pos) = search_range.rfind("\n\n") {
-        if pos >= min_chunk {
-            return start + pos + 2;
-        }
+    if let Some(pos) = search_range.rfind("\n\n")
+        && pos >= min_chunk
+    {
+        return start + pos + 2;
     }
 
-    if let Some(pos) = search_range.rfind('\n') {
-        if pos >= min_chunk {
-            return start + pos + 1;
-        }
+    if let Some(pos) = search_range.rfind('\n')
+        && pos >= min_chunk
+    {
+        return start + pos + 1;
     }
 
     // Prefer breaking after semicolons (statement end) or closing braces

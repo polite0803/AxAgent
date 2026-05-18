@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::attributes::{Attribute, Attributes};
-use super::species::{find_species, random_species, SpeciesDef};
+use super::species::{SpeciesDef, find_species, random_species};
 
 /// Buddy 实例 — 用户的陪伴角色
 #[derive(Debug, Clone, Serialize, Deserialize)]

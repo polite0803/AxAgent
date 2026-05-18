@@ -97,22 +97,20 @@ impl<'a> RecallPipeline<'a> {
         query: &str,
         vector_search_fn: Option<&VectorSearchFn>,
     ) -> Result<Vec<RecallResult>, String> {
-        if let Some(ref cache) = self.semantic_cache {
-            if let Ok(mut cache_guard) = cache.lock() {
-                if cache_guard.is_enabled() {
-                    if let Some(cached_entry) = cache_guard.search_by_text(query) {
-                        tracing::debug!(
-                            query = %query,
-                            access_count = cached_entry.access_count,
-                            "Semantic cache hit in recall pipeline"
-                        );
-                        if let Ok(cached_results) =
-                            serde_json::from_str::<Vec<RecallResult>>(&cached_entry.result)
-                        {
-                            return Ok(cached_results);
-                        }
-                    }
-                }
+        if let Some(ref cache) = self.semantic_cache
+            && let Ok(mut cache_guard) = cache.lock()
+            && cache_guard.is_enabled()
+            && let Some(cached_entry) = cache_guard.search_by_text(query)
+        {
+            tracing::debug!(
+                query = %query,
+                access_count = cached_entry.access_count,
+                "Semantic cache hit in recall pipeline"
+            );
+            if let Ok(cached_results) =
+                serde_json::from_str::<Vec<RecallResult>>(&cached_entry.result)
+            {
+                return Ok(cached_results);
             }
         }
 
@@ -210,28 +208,20 @@ impl<'a> RecallPipeline<'a> {
         };
         results.truncate(limit);
 
-        if let Some(ref cache) = self.semantic_cache {
-            if let Ok(mut cache_guard) = cache.lock() {
-                if cache_guard.is_enabled() && !results.is_empty() {
-                    if let Ok(serialized) = serde_json::to_string(&results) {
-                        let chunk_ids: Vec<String> =
-                            results.iter().map(|r| r.file_path.clone()).collect();
-                        let best_score = results.first().map(|r| r.combined_score).unwrap_or(0.0);
-                        cache_guard.insert_by_text(
-                            query.to_string(),
-                            serialized,
-                            chunk_ids,
-                            best_score,
-                            3600,
-                        );
-                        tracing::debug!(
-                            query = %query,
-                            result_count = results.len(),
-                            "Stored recall results in semantic cache"
-                        );
-                    }
-                }
-            }
+        if let Some(ref cache) = self.semantic_cache
+            && let Ok(mut cache_guard) = cache.lock()
+            && cache_guard.is_enabled()
+            && !results.is_empty()
+            && let Ok(serialized) = serde_json::to_string(&results)
+        {
+            let chunk_ids: Vec<String> = results.iter().map(|r| r.file_path.clone()).collect();
+            let best_score = results.first().map(|r| r.combined_score).unwrap_or(0.0);
+            cache_guard.insert_by_text(query.to_string(), serialized, chunk_ids, best_score, 3600);
+            tracing::debug!(
+                query = %query,
+                result_count = results.len(),
+                "Stored recall results in semantic cache"
+            );
         }
 
         Ok(results)

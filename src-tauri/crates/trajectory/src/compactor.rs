@@ -42,10 +42,9 @@ pub struct MessageImportance {
 
 struct ImportanceOrd(MessageImportance);
 
-#[allow(dead_code)]
 impl PartialEq for ImportanceOrd {
     fn eq(&self, other: &Self) -> bool {
-        self.0.score == other.0.score
+        self.0.score.total_cmp(&other.0.score) == std::cmp::Ordering::Equal
     }
 }
 
@@ -53,16 +52,13 @@ impl Eq for ImportanceOrd {}
 
 impl PartialOrd for ImportanceOrd {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.score.partial_cmp(&other.0.score)
+        Some(self.0.score.total_cmp(&other.0.score))
     }
 }
 
 impl Ord for ImportanceOrd {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.0
-            .score
-            .partial_cmp(&other.0.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        self.0.score.total_cmp(&other.0.score)
     }
 }
 

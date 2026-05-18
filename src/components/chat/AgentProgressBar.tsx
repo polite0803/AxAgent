@@ -183,5 +183,3 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
     </div>
   );
 };
-
-export default AgentProgressBar;

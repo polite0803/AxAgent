@@ -136,7 +136,12 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
   // ── RPC 基础设施 ──
 
   var pendingCalls = new Map();
+  var TARGET_ORIGIN = window.location.origin;
   var callIdCounter = 0;
+
+  function isValidOrigin(origin) {
+    return origin === TARGET_ORIGIN;
+  }
 
   function callHost(method, args) {
     return new Promise(function(resolve, reject) {
@@ -147,6 +152,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
       }, RPC_TIMEOUT_MS);
 
       var responseHandler = function(event) {
+        if (!isValidOrigin(event.origin)) { return; }
         var msg = event.data;
         if (msg && msg.type === "rpc:response" && msg.callId === callId) {
           window.removeEventListener("message", responseHandler);
@@ -171,7 +177,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
           callId: callId,
           method: method,
           args: args
-        }, "*");
+        }, TARGET_ORIGIN);
       } catch (e) {
         window.removeEventListener("message", responseHandler);
         clearTimeout(timer);
@@ -188,7 +194,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
         callId: callId,
         result: result,
         error: error
-      }, "*");
+      }, TARGET_ORIGIN);
     } catch(e) {}
   }
 
@@ -249,6 +255,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
   // ── 宿主消息监听 ──
 
   window.addEventListener("message", function(event) {
+    if (!isValidOrigin(event.origin)) { return; }
     var msg = event.data;
     if (!msg || typeof msg.type !== "string") { return; }
 
@@ -306,7 +313,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
         source: event.filename,
         line: event.lineno,
         col: event.colno
-      }, "*");
+      }, TARGET_ORIGIN);
     } catch(e) {}
   });
 
@@ -315,13 +322,13 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
       window.parent.postMessage({
         type: "skill:error",
         error: "Unhandled rejection: " + String(event.reason)
-      }, "*");
+      }, TARGET_ORIGIN);
     } catch(e) {}
   });
 
   // ── 向宿主报告就绪 ──
   try {
-    window.parent.postMessage({ type: "skill:ready" }, "*");
+    window.parent.postMessage({ type: "skill:ready" }, TARGET_ORIGIN);
   } catch(e) {}
 
   callHost("ui.getTheme").then(function(theme) {
@@ -335,7 +342,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
       window.onSkillInit(window.ctx);
     } catch(e) {
       try {
-        window.parent.postMessage({ type: "skill:error", error: String(e) }, "*");
+        window.parent.postMessage({ type: "skill:error", error: String(e) }, TARGET_ORIGIN);
       } catch(e2) {}
     }
   }

@@ -145,6 +145,8 @@
     "moveToCategory": "カテゴリに移動",
     "removeFromCategory": "カテゴリから削除",
     "categoryNamePlaceholder": "カテゴリ名",
+    "manageCategories": "カテゴリ管理",
+    "noCategories": "カテゴリがありません。作成してください。",
     "inspector": {
       "title": "インスペクター",
       "sources": "ソース",
@@ -598,9 +600,12 @@
         "shareMode": "分享模式",
         "terminalAccess": "终端访问",
         "title": "会话共享",
-        "codePlaceholder": "XXXX-XXXX"
+        "codePlaceholder": "XXXX-XXXX",
+        "copyFailed": "コピー失敗",
+        "joinFailed": "参加失敗",
+        "maxParticipants": "最大参加者数"
       },
-      "sharedResources": "共享资源",
+      "sharedResources": "共有リソース",
       "title": "协作"
     },
     "conversationNotFound": "对话未找到",
@@ -3477,6 +3482,77 @@
     "noUndoAvailable": "无可撤销操作",
     "noRedoAvailable": "无可重做操作",
     "nodeDropFailed": "节点放置失败",
+    "knowledgeSettings": {
+      "title": "ナレッジ"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "chatRightPanel": {
+      "agent": "エージェント",
+      "hierarchy": "階層",
+      "research": "リサーチ",
+      "git": "Git",
+      "task": "タスク",
+      "code": "コード",
+      "artifact": "成果物",
+      "imageGen": "画像",
+      "report": "レポート",
+      "citation": "引用",
+      "inspector": "検査",
+      "errorRecovery": "復旧",
+      "teammate": "チーム",
+      "browser": "ブラウザ",
+      "computer": "デスクトップ",
+      "benchmark": "ベンチ",
+      "chart": "チャート",
+      "snapshot": "スナップ",
+      "profile": "プロフィール"
+    },
+    "knowledgeSettings": {
+      "title": "ナレッジ"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "chatRightPanel": {
+      "agent": "エージェント",
+      "hierarchy": "階層",
+      "research": "リサーチ",
+      "git": "Git",
+      "task": "タスク",
+      "code": "コード",
+      "artifact": "成果物",
+      "imageGen": "画像",
+      "visionAnalysis": "視覚分析",
+      "report": "レポート",
+      "citation": "引用",
+      "inspector": "検査",
+      "browser": "ブラウザ",
+      "computer": "デスクトップ",
+      "benchmark": "ベンチ",
+      "chart": "チャート",
+      "snapshot": "スナップ",
+      "profile": "プロフィール",
+      "errorRecovery": "復旧",
+      "collaboration": "コラボ",
+      "evolution": "進化",
+      "steer": "ステア",
+      "cache": "キャッシュ",
+      "branchCompare": "分岐",
+      "gateway": "GW",
+      "contextClass": "コンテキスト",
+      "cronResult": "クロン",
+      "reflection": "リフレクション",
+      "researchSources": "ソース",
+      "categoryEdit": "カテゴリ",
+      "filePermission": "権限",
+      "sessionShare": "共有",
+      "prefetch": "プリフェッチ",
+      "reminders": "リマインダ",
+      "contextPrediction": "予測",
+      "teammate": "チーム"
+    },
     "rightPanel": {
       "addTagsPlaceholder": "添加标签...",
       "deleteEdge": "エッジを削除",
@@ -5344,6 +5420,7 @@
     "sourceTypeWeb": "Web",
     "sourceTypeAcademic": "Academic",
     "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "Documentation",
     "sourceTypeNews": "News",
     "sourceTypeBlog": "Blog",
@@ -5924,11 +6001,15 @@
     "time": "Time"
   },
   "cronResult": {
-    "success": "Success",
-    "failed": "Failed",
-    "schedule": "Schedule",
-    "platform": "Platform",
-    "time": "Time"
+    "success": "成功",
+    "failed": "失敗",
+    "schedule": "スケジュール",
+    "scheduleDescription": "説明",
+    "platform": "プラットフォーム",
+    "time": "時刻",
+    "loading": "Cronジョブの結果を読み込み中…",
+    "prefix": "Cron: {{jobName}}",
+    "emptyResult": "結果なし"
   },
   "errorBoundary": {
     "title": "Something went wrong",

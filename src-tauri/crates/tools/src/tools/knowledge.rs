@@ -157,6 +157,10 @@ impl Tool for SearchKnowledgeTool {
             return Ok(ToolResult::error("Error: query 参数是必需的"));
         }
 
+        if !base_id.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return Ok(ToolResult::error(format!("Invalid base_id: {}", base_id)));
+        }
+
         // 尝试回调优先（全 RAG pipeline）
         if let Some(cb) = crate::knowledge_callback::get_knowledge_search_callback() {
             match cb(&base_id, &query, top_k).await {
@@ -192,15 +196,14 @@ impl Tool for SearchKnowledgeTool {
             .map_err(|e| ToolError::execution_failed(format!("打开数据库失败: {}", e)))?;
 
         let meta_table = format!("vec_kb_{}_meta", base_id);
-        let sql =
-            format!("SELECT content FROM {} WHERE content LIKE ? LIMIT {}", meta_table, top_k);
+        let sql = format!("SELECT content FROM {} WHERE content LIKE ? LIMIT ?1", meta_table);
         let like_pattern = format!("%{}%", query);
         let mut stmt = conn.prepare(&sql).map_err(|e| {
             ToolError::execution_failed(format!("知识库 '{}' 可能不存在或未索引: {}", base_id, e))
         })?;
 
         let rows: Vec<String> = stmt
-            .query_map(rusqlite::params![like_pattern], |row| {
+            .query_map(rusqlite::params![like_pattern, top_k], |row| {
                 let content: String = row.get(0)?;
                 Ok(content)
             })

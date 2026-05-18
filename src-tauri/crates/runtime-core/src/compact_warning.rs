@@ -79,10 +79,10 @@ impl CompactWarningState {
         if !self.suppressed {
             return;
         }
-        if let Some(at) = self.suppressed_at {
-            if at.elapsed() >= self.suppression_ttl {
-                self.clear();
-            }
+        if let Some(at) = self.suppressed_at
+            && at.elapsed() >= self.suppression_ttl
+        {
+            self.clear();
         }
     }
 
@@ -110,10 +110,10 @@ impl CompactWarningState {
         }
 
         // 检查冷却期
-        if let Some(last) = self.last_warning_at {
-            if last.elapsed() < self.min_interval {
-                return false;
-            }
+        if let Some(last) = self.last_warning_at
+            && last.elapsed() < self.min_interval
+        {
+            return false;
         }
 
         // 记录本次警告时间
@@ -134,10 +134,10 @@ impl CompactWarningState {
             return false;
         }
 
-        if let Some(last) = self.last_warning_at {
-            if last.elapsed() < self.min_interval {
-                return false;
-            }
+        if let Some(last) = self.last_warning_at
+            && last.elapsed() < self.min_interval
+        {
+            return false;
         }
 
         true

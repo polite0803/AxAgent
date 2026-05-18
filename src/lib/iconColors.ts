@@ -40,6 +40,7 @@ export const SETTINGS_ICON_COLORS: Record<string, string> = {
   Puzzle: "#a855f7", // purple-500 — Plugins
   ShoppingBag: "#f59e0b", // amber-500 — Skills Hub
   LayoutDashboard: "#8b5cf6", // violet-500 — Dashboard Plugins
+  BookOpen: "#10b981", // emerald-500 — Knowledge Settings
 };
 
 // ── Title bar icons ─────────────────────────────────────────────────

@@ -138,14 +138,16 @@ impl LspRegistry {
     ) -> Result<Arc<LspProcess>, String> {
         let language = config.language.clone();
         let process = self.process_manager.start_server(config, root_path).await?;
-        
+
         let capabilities: Vec<String> = {
             let inner = process.inner.lock().await;
-            inner.capabilities.as_object()
+            inner
+                .capabilities
+                .as_object()
                 .map(|obj| obj.keys().cloned().collect())
                 .unwrap_or_default()
         };
-        
+
         let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
         inner.servers.insert(
             language.clone(),
@@ -157,13 +159,15 @@ impl LspRegistry {
                 diagnostics: Vec::new(),
             },
         );
-        
+
         Ok(process)
     }
 
     pub async fn stop_server(&self, language: &str) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
-        inner.servers.remove(language);
+        {
+            let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+            inner.servers.remove(language);
+        }
         self.process_manager.stop_server(language).await
     }
 
@@ -332,7 +336,10 @@ impl LspRegistry {
             ));
         }
 
-        let process = self.get_server_process(&server.language).await.ok_or("LSP process not available")?;
+        let process = self
+            .get_server_process(&server.language)
+            .await
+            .ok_or("LSP process not available")?;
 
         match lsp_action {
             LspAction::Hover => {
@@ -347,7 +354,7 @@ impl LspRegistry {
                     "language": server.language,
                     "result": result
                 }))
-            }
+            },
             LspAction::Definition => {
                 let line = line.ok_or("line is required for definition")?;
                 let character = character.ok_or("character is required for definition")?;
@@ -360,7 +367,7 @@ impl LspRegistry {
                     "language": server.language,
                     "result": result
                 }))
-            }
+            },
             LspAction::References => {
                 let line = line.ok_or("line is required for references")?;
                 let character = character.ok_or("character is required for references")?;
@@ -373,7 +380,7 @@ impl LspRegistry {
                     "language": server.language,
                     "result": result
                 }))
-            }
+            },
             LspAction::Completion => {
                 let line = line.ok_or("line is required for completion")?;
                 let character = character.ok_or("character is required for completion")?;
@@ -386,7 +393,7 @@ impl LspRegistry {
                     "language": server.language,
                     "result": result
                 }))
-            }
+            },
             LspAction::Symbols => {
                 let result = process.document_symbols(path).await?;
                 Ok(serde_json::json!({
@@ -395,7 +402,7 @@ impl LspRegistry {
                     "language": server.language,
                     "result": result
                 }))
-            }
+            },
             LspAction::Format => {
                 let result = process.formatting(path).await?;
                 Ok(serde_json::json!({
@@ -404,8 +411,8 @@ impl LspRegistry {
                     "language": server.language,
                     "result": result
                 }))
-            }
-            _ => Err(format!("unhandled LSP action: {}", action))
+            },
+            _ => Err(format!("unhandled LSP action: {}", action)),
         }
     }
 }
@@ -513,17 +520,21 @@ mod tests {
         let registry = LspRegistry::new();
         registry.register("rust", LspServerStatus::Disconnected, None, vec![]);
 
-        assert!(registry
-            .dispatch("hover", Some("src/main.rs"), Some(1), Some(0), None)
-            .is_err());
+        assert!(
+            registry
+                .dispatch("hover", Some("src/main.rs"), Some(1), Some(0), None)
+                .is_err()
+        );
     }
 
     #[test]
     fn rejects_unknown_action() {
         let registry = LspRegistry::new();
-        assert!(registry
-            .dispatch("unknown_action", Some("file.rs"), None, None, None)
-            .is_err());
+        assert!(
+            registry
+                .dispatch("unknown_action", Some("file.rs"), None, None, None)
+                .is_err()
+        );
     }
 
     #[test]
@@ -834,12 +845,16 @@ mod tests {
 
         // then
         assert_eq!(diagnostics.len(), 2);
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message == "warn"));
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message == "err"));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message == "warn")
+        );
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message == "err")
+        );
     }
 
     #[test]

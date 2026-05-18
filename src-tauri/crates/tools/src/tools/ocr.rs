@@ -70,14 +70,21 @@ impl Tool for OcrImageTool {
                 let stderr = String::from_utf8_lossy(&out.stderr);
                 let trimmed = text.trim();
                 if trimmed.is_empty() {
-                    let detail = if !stderr.is_empty() { format!(" Tesseract stderr: {}", stderr.trim()) } else { String::new() };
-                    return Ok(ToolResult::success(format!("OCR 未识别出文字。图片可能不含可识别文本，或语言包 '{}' 未安装。{} 使用 OcrDetectLangs 查看可用语言。", safe_lang, detail)));
+                    let detail = if !stderr.is_empty() {
+                        format!(" Tesseract stderr: {}", stderr.trim())
+                    } else {
+                        String::new()
+                    };
+                    return Ok(ToolResult::success(format!(
+                        "OCR 未识别出文字。图片可能不含可识别文本，或语言包 '{}' 未安装。{} 使用 OcrDetectLangs 查看可用语言。",
+                        safe_lang, detail
+                    )));
                 }
                 Ok(ToolResult::success(trimmed.to_string()))
             },
-            Ok(Err(e)) if e.kind() == std::io::ErrorKind::NotFound => {
-                Ok(ToolResult::error("Tesseract 未安装。安装方法:\n  - macOS: brew install tesseract tesseract-lang\n  - Ubuntu: sudo apt install tesseract-ocr\n  - Windows: https://github.com/UB-Mannheim/tesseract/wiki"))
-            },
+            Ok(Err(e)) if e.kind() == std::io::ErrorKind::NotFound => Ok(ToolResult::error(
+                "Tesseract 未安装。安装方法:\n  - macOS: brew install tesseract tesseract-lang\n  - Ubuntu: sudo apt install tesseract-ocr\n  - Windows: https://github.com/UB-Mannheim/tesseract/wiki",
+            )),
             Ok(Err(e)) => Ok(ToolResult::error(format!("运行 tesseract 失败: {}", e))),
             Err(_) => Ok(ToolResult::error("OCR 超时 (120 秒)")),
         }

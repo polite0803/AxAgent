@@ -158,7 +158,7 @@ export const LeftPanel: React.FC = () => {
                               textAlign: "center",
                               fontSize: 11,
                               color: "#ccc",
-                              transition: "all 0.2s",
+                              transition: "box-shadow 0.2s, transform 0.2s",
                               userSelect: "none",
                             }}
                             onMouseEnter={(e) => {

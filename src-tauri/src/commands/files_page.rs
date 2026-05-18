@@ -455,9 +455,11 @@ mod tests {
         assert_eq!(entries.len(), 2);
         assert!(entries.iter().all(|e| e.category == "backups"));
         assert!(entries.iter().all(|e| e.source_kind == "backup_manifest"));
-        assert!(entries
-            .iter()
-            .all(|e| e.id.starts_with("backup_manifest::")));
+        assert!(
+            entries
+                .iter()
+                .all(|e| e.id.starts_with("backup_manifest::"))
+        );
         assert!(entries.iter().any(|e| e.id == "backup_manifest::bk1"));
         assert!(entries.iter().any(|e| e.id == "backup_manifest::bk2"));
     }

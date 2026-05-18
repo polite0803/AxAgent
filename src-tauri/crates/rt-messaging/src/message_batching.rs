@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::sync::Arc;
 use std::time::Instant;
 
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 
 use crate::message_gateway::AgentMessage;
 

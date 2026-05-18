@@ -58,7 +58,9 @@ impl S3Client {
     }
 
     fn base_url(&self) -> String {
-        let endpoint = self.config.endpoint
+        let endpoint = self
+            .config
+            .endpoint
             .trim_start_matches("https://")
             .trim_start_matches("http://")
             .trim_end_matches('/');

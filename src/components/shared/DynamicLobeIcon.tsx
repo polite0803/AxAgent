@@ -1,9 +1,6 @@
-import { memo } from "react";
-// Static barrel import — all icon components are already mostly bundled
-// via providerConfig/modelConfig; marginal addition is small.
-import * as LobeIcons from "@lobehub/icons/es/icons.js";
+import { memo, useEffect, useState } from "react";
 
-const iconsMap = LobeIcons as unknown as Record<string, any>;
+const iconCache = new Map<string, any>();
 
 interface DynamicLobeIconProps {
   iconId: string;
@@ -13,7 +10,7 @@ interface DynamicLobeIconProps {
 
 /**
  * Renders a @lobehub/icons icon by its toc `id` (e.g., "Ai302", "OpenAI")
- * via direct component lookup, bypassing the incomplete keyword matching
+ * via lazy dynamic import, bypassing the incomplete keyword matching
  * in ProviderIcon/ModelIcon.
  */
 export const DynamicLobeIcon = memo(function DynamicLobeIcon({
@@ -21,7 +18,30 @@ export const DynamicLobeIcon = memo(function DynamicLobeIcon({
   size = 24,
   type = "avatar",
 }: DynamicLobeIconProps) {
-  const IconModule = iconsMap[iconId];
+  const [IconModule, setIconModule] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const cached = iconCache.get(iconId);
+    if (cached) {
+      setIconModule(cached);
+      return;
+    }
+
+    import(`@lobehub/icons/es/icons/${iconId}.js`)
+      .then((module) => {
+        if (!cancelled) {
+          iconCache.set(iconId, module);
+          setIconModule(module);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [iconId]);
+
   if (!IconModule) { return <div style={{ width: size, height: size }} />; }
 
   if (type === "color" && IconModule.Color) {

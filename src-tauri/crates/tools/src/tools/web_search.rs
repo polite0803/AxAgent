@@ -3,7 +3,7 @@ use crate::{ProgressEntry, Tool, ToolCategory, ToolContext, ToolError, ToolResul
 use async_trait::async_trait;
 use axagent_core::html_cleaner::HtmlCleaner;
 use axagent_core::search::{
-    estimate_credibility, execute_search_with_config, rerank_search_results, SearchServiceConfig,
+    SearchServiceConfig, estimate_credibility, execute_search_with_config, rerank_search_results,
 };
 use serde_json::Value;
 use std::collections::HashSet;

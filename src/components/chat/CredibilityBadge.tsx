@@ -135,5 +135,3 @@ export function CredibilityIndicator({ factors }: CredibilityIndicatorProps) {
     </Space>
   );
 }
-
-export default CredibilityBadge;

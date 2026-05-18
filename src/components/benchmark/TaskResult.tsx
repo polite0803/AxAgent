@@ -67,7 +67,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
       {result.response && (
         <div>
           <Typography.Text strong className="mb-2 block">
-            响应
+            {t("benchmark.response")}
           </Typography.Text>
           <pre className="block whitespace-pre-wrap bg-gray-50 p-2 rounded overflow-auto">{result.response}</pre>
         </div>

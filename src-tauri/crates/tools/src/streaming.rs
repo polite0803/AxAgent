@@ -4,7 +4,7 @@ use crate::registry::ToolRegistry;
 use crate::{ToolContext, ToolError, ToolResult};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Semaphore};
+use tokio::sync::{Semaphore, mpsc};
 
 pub struct StreamingToolExecutor {
     semaphore: Arc<Semaphore>,

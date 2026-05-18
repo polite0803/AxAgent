@@ -1,3 +1,5 @@
+import type { SkillPermissions } from "@/sdk/types";
+
 import { SkillMarkdownPage } from "./SkillMarkdownPage";
 import { SkillSandboxContainer } from "./SkillSandboxContainer";
 
@@ -18,13 +20,13 @@ export function SkillPageRenderer({ componentType, componentConfig, skillName }:
 
   // 默认走 Sandbox（包括 "Sandbox" 及历史 "Html" 等类型均映射到此）
   const componentId = (componentConfig.id as string) || "default";
-  const permissions = componentConfig.permissions as Record<string, string[]>;
+  const permissions = (componentConfig.permissions ?? {}) as SkillPermissions;
   return (
     <SkillSandboxContainer
       skillName={skillName}
       componentId={componentId}
       componentConfig={componentConfig}
-      permissions={permissions as any}
+      permissions={permissions}
     />
   );
 }

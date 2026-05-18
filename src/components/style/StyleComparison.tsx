@@ -7,7 +7,7 @@ interface StyleComparisonProps {
   title?: string;
 }
 
-export default function StyleComparison({
+export function StyleComparison({
   sourceStyle,
   targetStyle,
   title,

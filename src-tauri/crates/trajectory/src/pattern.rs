@@ -150,17 +150,17 @@ impl DetectedPattern {
             let mut has_reasoning = first_step.reasoning.is_some();
 
             for trajectory in trajectories.iter().skip(1) {
-                if let Some(step) = trajectory.steps.get(i) {
-                    if step.role == first_step.role {
-                        matching_count += 1;
-                        has_tool |= step.tool_calls.is_some();
-                        if let Some(tc) = step.tool_calls.as_ref().and_then(|c| c.first()) {
-                            if tool_name.as_ref() != Some(&tc.name) {
-                                tool_name = None;
-                            }
-                        }
-                        has_reasoning |= step.reasoning.is_some();
+                if let Some(step) = trajectory.steps.get(i)
+                    && step.role == first_step.role
+                {
+                    matching_count += 1;
+                    has_tool |= step.tool_calls.is_some();
+                    if let Some(tc) = step.tool_calls.as_ref().and_then(|c| c.first())
+                        && tool_name.as_ref() != Some(&tc.name)
+                    {
+                        tool_name = None;
                     }
+                    has_reasoning |= step.reasoning.is_some();
                 }
             }
 
@@ -186,10 +186,10 @@ impl DetectedPattern {
     fn generate_pattern_name(steps: &[PatternStep], pattern_type: PatternType) -> String {
         let tool_steps: Vec<_> = steps.iter().filter(|s| s.has_tool_call).collect();
 
-        if let Some(first_tool) = tool_steps.first() {
-            if let Some(ref name) = first_tool.tool_name {
-                return format!("{}-pattern", name);
-            }
+        if let Some(first_tool) = tool_steps.first()
+            && let Some(ref name) = first_tool.tool_name
+        {
+            return format!("{}-pattern", name);
         }
 
         format!("{}-{}", pattern_type.as_str(), steps.len())
@@ -372,18 +372,18 @@ impl PatternLearner {
         let mut recovery_indices = Vec::new();
 
         for (i, step) in trajectory.steps.iter().enumerate() {
-            if let Some(ref results) = step.tool_results {
-                if results.iter().any(|r| r.is_error) {
-                    error_indices.push(i);
-                }
+            if let Some(ref results) = step.tool_results
+                && results.iter().any(|r| r.is_error)
+            {
+                error_indices.push(i);
             }
 
-            if error_indices.len() > recovery_indices.len() {
-                if let Some(ref results) = step.tool_results {
-                    if results.iter().any(|r| !r.is_error) && !error_indices.contains(&i) {
-                        recovery_indices.push(i);
-                    }
-                }
+            if error_indices.len() > recovery_indices.len()
+                && let Some(ref results) = step.tool_results
+                && results.iter().any(|r| !r.is_error)
+                && !error_indices.contains(&i)
+            {
+                recovery_indices.push(i);
             }
         }
 

@@ -18,6 +18,10 @@
 //! | `SUBSCRIBE_PR` | true | PR 订阅通知 |
 
 use std::collections::{BTreeMap, HashMap};
+// SAFETY: FeatureFlags methods (is_enabled, enable, disable, refresh,
+// all_flags, clone, init_global_feature_flags) are all synchronous. The
+// RwLock is never held across .await points. The global singleton is
+// accessed via sync-only convenience functions (fork_subagent, etc.).
 use std::sync::RwLock;
 
 /// Feature Flag 的注册描述

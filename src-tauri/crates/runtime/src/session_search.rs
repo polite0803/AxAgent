@@ -93,10 +93,10 @@ impl SessionSearchEngine {
         };
 
         for (session_id, entries) in cache.iter() {
-            if let Some(ref filters) = query.session_filter {
-                if !filters.contains(session_id) {
-                    continue;
-                }
+            if let Some(ref filters) = query.session_filter
+                && !filters.contains(session_id)
+            {
+                continue;
             }
 
             for entry in entries {

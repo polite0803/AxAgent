@@ -31,6 +31,7 @@ import { useExecutionStore } from "@/stores/feature/executionStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration } from "../gateway/tokenFormat";
 import { CodeBlockHeaderActions } from "./CodeBlockHeaderActions";
+import { CronResultNode } from "./CronResultNode";
 import { DiagramModeToggle } from "./DiagramModeToggle";
 import { InfographicBlockHeaderActions } from "./InfographicBlockHeaderActions";
 import { KnowledgeRetrievalNode } from "./KnowledgeRetrievalNode";
@@ -979,6 +980,7 @@ setCustomComponents("chat", {
   "memory-retrieval": MemoryRetrievalNode,
   "wiki-retrieval": WikiRetrievalNode,
   "tool-call": ToolCallNode,
+  "cron-result": CronResultNode,
   d2: ChatD2Node,
   vmr_container: McpContainerNode,
 });

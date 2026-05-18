@@ -7,9 +7,9 @@ use std::time::Duration;
 
 use axagent_runtime::green_contract::{GreenContract, GreenContractOutcome, GreenLevel};
 use axagent_runtime::{
-    apply_policy, BranchFreshness, DiffScope, LaneBlocker, LaneContext, PolicyAction,
-    PolicyCondition, PolicyEngine, PolicyRule, ReconcileReason, ReviewStatus, StaleBranchAction,
-    StaleBranchPolicy,
+    BranchFreshness, DiffScope, LaneBlocker, LaneContext, PolicyAction, PolicyCondition,
+    PolicyEngine, PolicyRule, ReconcileReason, ReviewStatus, StaleBranchAction, StaleBranchPolicy,
+    apply_policy,
 };
 
 /// stale_branch + policy_engine integration:
@@ -288,8 +288,8 @@ fn fresh_approved_lane_gets_merge_action() {
 fn worker_provider_failure_flows_through_recovery_to_policy() {
     use axagent_runtime::recovery_recipes::RecoveryEvent;
     use axagent_runtime::{
-        attempt_recovery, FailureScenario, RecoveryContext, RecoveryResult, WorkerFailureKind,
-        WorkerRegistry, WorkerStatus,
+        FailureScenario, RecoveryContext, RecoveryResult, WorkerFailureKind, WorkerRegistry,
+        WorkerStatus, attempt_recovery,
     };
 
     // given — a worker that encounters a provider failure during session completion

@@ -372,18 +372,19 @@ impl PermissionRule {
         let open = find_first_unescaped(trimmed, '(');
         let close = find_last_unescaped(trimmed, ')');
 
-        if let (Some(open), Some(close)) = (open, close) {
-            if close == trimmed.len() - 1 && open < close {
-                let tool_name = trimmed[..open].trim();
-                let content = &trimmed[open + 1..close];
-                if !tool_name.is_empty() {
-                    let matcher = parse_rule_matcher(content);
-                    return Self {
-                        raw: trimmed.to_string(),
-                        tool_name: tool_name.to_string(),
-                        matcher,
-                    };
-                }
+        if let (Some(open), Some(close)) = (open, close)
+            && close == trimmed.len() - 1
+            && open < close
+        {
+            let tool_name = trimmed[..open].trim();
+            let content = &trimmed[open + 1..close];
+            if !tool_name.is_empty() {
+                let matcher = parse_rule_matcher(content);
+                return Self {
+                    raw: trimmed.to_string(),
+                    tool_name: tool_name.to_string(),
+                    matcher,
+                };
             }
         }
 
@@ -626,10 +627,12 @@ mod tests {
 
         assert_eq!(outcome, PermissionOutcome::Allow);
         assert_eq!(prompter.seen.len(), 1);
-        assert!(prompter.seen[0]
-            .reason
-            .as_deref()
-            .is_some_and(|reason| reason.contains("ask rule")));
+        assert!(
+            prompter.seen[0]
+                .reason
+                .as_deref()
+                .is_some_and(|reason| reason.contains("ask rule"))
+        );
     }
 
     #[test]

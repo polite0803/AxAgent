@@ -499,13 +499,13 @@ pub fn validate_config_file(
 
 /// Check whether a file path uses an unsupported config format (e.g. TOML).
 pub fn check_unsupported_format(file_path: &Path) -> Result<(), ConfigError> {
-    if let Some(ext) = file_path.extension().and_then(|e| e.to_str()) {
-        if ext.eq_ignore_ascii_case("toml") {
-            return Err(ConfigError::Parse(format!(
-                "{}: TOML config files are not supported. Use JSON (settings.json) instead",
-                file_path.display()
-            )));
-        }
+    if let Some(ext) = file_path.extension().and_then(|e| e.to_str())
+        && ext.eq_ignore_ascii_case("toml")
+    {
+        return Err(ConfigError::Parse(format!(
+            "{}: TOML config files are not supported. Use JSON (settings.json) instead",
+            file_path.display()
+        )));
     }
     Ok(())
 }

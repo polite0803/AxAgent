@@ -43,7 +43,7 @@ function formatSyncTime(value: string | null): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
 }
 
-export default function WebDavSync() {
+export function WebDavSync() {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const { settings, saveSettings } = useSettingsStore();

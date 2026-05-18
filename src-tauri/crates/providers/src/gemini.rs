@@ -6,7 +6,7 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 
-use crate::{build_http_client, parse_base64_data_url, ProviderAdapter, ProviderRequestContext};
+use crate::{ProviderAdapter, ProviderRequestContext, build_http_client, parse_base64_data_url};
 
 const DEFAULT_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -356,16 +356,16 @@ fn convert_messages(messages: &[ChatMessage]) -> (Option<GeminiContent>, Vec<Gem
                                         thought: None,
                                     });
                                 }
-                            } else if let Some(img) = &p.image_url {
-                                if let Some((mime_type, data)) = parse_base64_data_url(&img.url) {
-                                    parts.push(GeminiPart {
-                                        text: None,
-                                        inline_data: Some(GeminiInlineData { mime_type, data }),
-                                        function_call: None,
-                                        function_response: None,
-                                        thought: None,
-                                    });
-                                }
+                            } else if let Some(img) = &p.image_url
+                                && let Some((mime_type, data)) = parse_base64_data_url(&img.url)
+                            {
+                                parts.push(GeminiPart {
+                                    text: None,
+                                    inline_data: Some(GeminiInlineData { mime_type, data }),
+                                    function_call: None,
+                                    function_response: None,
+                                    thought: None,
+                                });
                             }
                         }
                     },
@@ -627,12 +627,12 @@ impl ProviderAdapter for GeminiAdapter {
             let mut buf = String::new();
 
             while let Some(chunk) = byte_stream.next().await {
-                if let Some(ref token) = cancel_token {
-                    if token.load(std::sync::atomic::Ordering::Relaxed) {
-                        let _ = tx
-                            .try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
-                        return;
-                    }
+                if let Some(ref token) = cancel_token
+                    && token.load(std::sync::atomic::Ordering::Relaxed)
+                {
+                    let _ =
+                        tx.try_send(Err(AxAgentError::Provider("Stream cancelled".to_string())));
+                    return;
                 }
                 match chunk {
                     Ok(bytes) => {
@@ -850,7 +850,10 @@ impl ProviderAdapter for GeminiAdapter {
             .await
             .map_err(|e| {
                 let redacted_url = crate::redact_api_key_from_url(&url);
-                AxAgentError::Provider(format!("Gemini embed request to {} failed: {}", redacted_url, e))
+                AxAgentError::Provider(format!(
+                    "Gemini embed request to {} failed: {}",
+                    redacted_url, e
+                ))
             })?;
 
         if !resp.status().is_success() {

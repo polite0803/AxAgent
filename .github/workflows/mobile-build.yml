@@ -61,6 +61,7 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: short
   NDK_VERSION: 'r27d'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ── Shared: Check version ──────────────────────────────

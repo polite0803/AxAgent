@@ -168,10 +168,8 @@ impl Tool for GitCommitTool {
         if message.is_empty() {
             return Ok(ToolResult::error("Error: message 参数是必需的"));
         }
-        if stage_all {
-            if let Err(e) = axagent_core::git_tools::GitTools::stage_all(repo_path) {
-                return Ok(ToolResult::error(format!("暂存文件失败: {}", e)));
-            }
+        if stage_all && let Err(e) = axagent_core::git_tools::GitTools::stage_all(repo_path) {
+            return Ok(ToolResult::error(format!("暂存文件失败: {}", e)));
         }
         match axagent_core::git_tools::GitTools::commit(repo_path, message) {
             Ok(output) => Ok(ToolResult::success(output)),

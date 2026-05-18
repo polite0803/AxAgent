@@ -4,6 +4,7 @@
 
 /* ── Base — dark-first defaults (paperclip-dark), overridden by JS on startup ──────── */
 :root {
+  --breakpoint-mobile: 768px;
   --border-color: #3f3f46;
   --color-bg-container: #18181b;
   --color-bg-elevated: #27272a;
@@ -545,7 +546,7 @@ html[data-theme="light"] .chat-scroll-indicator {
   justify-content: center;
   padding: 3px 5px;
   border-radius: 4px;
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 .axagent-action-item:hover {
   background: rgba(0, 240, 255, 0.08);
@@ -822,7 +823,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* ── Responsive: sidebar auto-collapse on small screens ──────── */
-@media (max-width: 768px) {
+@media (max-width: var(--breakpoint-mobile)) {
   .ax-sidebar {
     width: 56px !important;
     padding: 12px 4px 12px !important;
@@ -835,7 +836,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ── Mobile Landscape Mode (height <= 500px & width > 768px) ──
+/*   ── Mobile Landscape Mode (height <= 500px & width > var(--breakpoint-mobile)) ── */
    ═══════════════════════════════════════════════════════════════ */
 @media (max-height: 500px) and (orientation: landscape) {
   /* Font size adjustments for landscape reading */
@@ -948,7 +949,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── General Mobile Responsive (portrait & landscape) ──────────
    ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 768px), (max-height: 600px) {
+@media (max-width: var(--breakpoint-mobile)), (max-height: 600px) {
   /* Touch-friendly tap targets */
   .axagent-action-item {
     padding: 6px 8px !important;
@@ -1105,7 +1106,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── Performance: reduce animations on mobile ──────────────────
    ═══════════════════════════════════════════════════════════════ */
-@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+@media (prefers-reduced-motion: reduce), (max-width: var(--breakpoint-mobile)) {
   .ax-page-transition,
   .ax-cyber-fade-in {
     animation: none !important;

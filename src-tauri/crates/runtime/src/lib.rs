@@ -87,21 +87,21 @@ pub mod worker_boot;
 
 pub use api_docs::{ApiDocGenerator, OpenApiSpec};
 pub use axagent_runtime_core::*;
-pub use bash::{execute_bash, BashCommandInput, BashCommandOutput};
+pub use bash::{BashCommandInput, BashCommandOutput, execute_bash};
 pub use bootstrap::{BootstrapPhase, BootstrapPlan};
-pub use branch_lock::{detect_branch_lock_collisions, BranchLockCollision, BranchLockIntent};
+pub use branch_lock::{BranchLockCollision, BranchLockIntent, detect_branch_lock_collisions};
 
 pub use file_ops::{
-    edit_file, edit_file_in_workspace, glob_search, grep_search, is_symlink_escape, read_file,
-    read_file_in_workspace, validate_workspace_boundary, write_file, write_file_in_workspace,
     EditFileOutput, GlobSearchOutput, GrepSearchInput, GrepSearchOutput, ReadFileOutput,
-    StructuredPatchHunk, TextFilePayload, WriteFileOutput,
+    StructuredPatchHunk, TextFilePayload, WriteFileOutput, edit_file, edit_file_in_workspace,
+    glob_search, grep_search, is_symlink_escape, read_file, read_file_in_workspace,
+    validate_workspace_boundary, write_file, write_file_in_workspace,
 };
 pub use git_context::{GitCommitEntry, GitContext};
 
 pub use lane_events::{
-    dedupe_superseded_commit_events, LaneCommitProvenance, LaneEvent, LaneEventBlocker,
-    LaneEventName, LaneEventStatus, LaneFailureClass,
+    LaneCommitProvenance, LaneEvent, LaneEventBlocker, LaneEventName, LaneEventStatus,
+    LaneFailureClass, dedupe_superseded_commit_events,
 };
 pub use mcp::{
     mcp_server_signature, mcp_tool_name, mcp_tool_prefix, normalize_name_for_mcp,
@@ -115,22 +115,22 @@ pub use mcp_lifecycle_hardened::{
     McpDegradedReport, McpErrorSurface, McpFailedServer, McpLifecyclePhase, McpLifecycleState,
     McpLifecycleValidator, McpPhaseResult,
 };
-pub use mcp_server::{McpServer, McpServerSpec, ToolCallHandler, MCP_SERVER_PROTOCOL_VERSION};
+pub use mcp_server::{MCP_SERVER_PROTOCOL_VERSION, McpServer, McpServerSpec, ToolCallHandler};
 pub use mcp_stdio::{
-    spawn_mcp_stdio_process, JsonRpcError, JsonRpcId, JsonRpcRequest, JsonRpcResponse,
-    ManagedMcpTool, McpDiscoveryFailure, McpInitializeClientInfo, McpInitializeParams,
-    McpInitializeResult, McpInitializeServerInfo, McpListResourcesParams, McpListResourcesResult,
-    McpListToolsParams, McpListToolsResult, McpReadResourceParams, McpReadResourceResult,
-    McpResource, McpResourceContents, McpServerManager, McpServerManagerError, McpStdioProcess,
-    McpTool, McpToolCallContent, McpToolCallParams, McpToolCallResult, McpToolDiscoveryReport,
-    UnsupportedMcpServer,
+    JsonRpcError, JsonRpcId, JsonRpcRequest, JsonRpcResponse, ManagedMcpTool, McpDiscoveryFailure,
+    McpInitializeClientInfo, McpInitializeParams, McpInitializeResult, McpInitializeServerInfo,
+    McpListResourcesParams, McpListResourcesResult, McpListToolsParams, McpListToolsResult,
+    McpReadResourceParams, McpReadResourceResult, McpResource, McpResourceContents,
+    McpServerManager, McpServerManagerError, McpStdioProcess, McpTool, McpToolCallContent,
+    McpToolCallParams, McpToolCallResult, McpToolDiscoveryReport, UnsupportedMcpServer,
+    spawn_mcp_stdio_process,
 };
 pub use oauth::{
-    clear_oauth_credentials, code_challenge_s256, credentials_path, generate_pkce_pair,
-    generate_state, load_oauth_credentials, loopback_redirect_uri, parse_oauth_callback_query,
-    parse_oauth_callback_request_target, save_oauth_credentials, OAuthAuthorizationRequest,
-    OAuthCallbackParams, OAuthRefreshRequest, OAuthTokenExchangeRequest, OAuthTokenSet,
-    PkceChallengeMethod, PkceCodePair,
+    OAuthAuthorizationRequest, OAuthCallbackParams, OAuthRefreshRequest, OAuthTokenExchangeRequest,
+    OAuthTokenSet, PkceChallengeMethod, PkceCodePair, clear_oauth_credentials, code_challenge_s256,
+    credentials_path, generate_pkce_pair, generate_state, load_oauth_credentials,
+    loopback_redirect_uri, parse_oauth_callback_query, parse_oauth_callback_request_target,
+    save_oauth_credentials,
 };
 
 pub use plugin_hooks::{
@@ -140,34 +140,35 @@ pub use plugin_hooks::{
 
 // ── Plugin Agent 桥接 ──（从 plugins crate 重导出）
 pub use axagent_plugins::agent_provider::{
-    global_plugin_agents, PluginAgentDef, PluginAgentRegistry,
+    PluginAgentDef, PluginAgentRegistry, global_plugin_agents,
 };
 pub use plugin_lifecycle::{
     DegradedMode, DiscoveryResult, PluginHealthcheck, PluginLifecycle, PluginLifecycleEvent,
     PluginState, ResourceInfo, ServerHealth, ServerStatus, ToolInfo,
 };
 pub use policy_engine::{
-    evaluate, DiffScope, GreenLevel, LaneBlocker, LaneContext, PolicyAction, PolicyCondition,
-    PolicyEngine, PolicyRule, ReconcileReason, ReviewStatus,
+    DiffScope, GreenLevel, LaneBlocker, LaneContext, PolicyAction, PolicyCondition, PolicyEngine,
+    PolicyRule, ReconcileReason, ReviewStatus, evaluate,
 };
 pub use priority_scheduler::{PriorityScheduler, ScheduledTask, SchedulerConfig, TaskPriority};
 pub use prompt::{
-    load_system_prompt, prepend_bullets, ContextFile, ProjectContext, PromptBuildError,
-    SystemPromptBuilder, TaskScene, FRONTIER_MODEL_NAME, SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+    ContextFile, FRONTIER_MODEL_NAME, ProjectContext, PromptBuildError,
+    SYSTEM_PROMPT_DYNAMIC_BOUNDARY, SystemPromptBuilder, TaskScene, load_system_prompt,
+    prepend_bullets,
 };
 
 pub use reactive_compact::{
-    classify_trigger, is_context_overflow_error, is_media_size_error, try_reactive_compact,
-    ReactiveCompactResult, ReactiveTrigger,
+    ReactiveCompactResult, ReactiveTrigger, classify_trigger, is_context_overflow_error,
+    is_media_size_error, try_reactive_compact,
 };
 pub use recovery_recipes::{
-    attempt_recovery, recipe_for, EscalationPolicy, FailureScenario, RecoveryContext,
-    RecoveryEvent, RecoveryRecipe, RecoveryResult, RecoveryStep,
+    EscalationPolicy, FailureScenario, RecoveryContext, RecoveryEvent, RecoveryRecipe,
+    RecoveryResult, RecoveryStep, attempt_recovery, recipe_for,
 };
 pub use remote::{
+    DEFAULT_REMOTE_BASE_URL, DEFAULT_SESSION_TOKEN_PATH, DEFAULT_SYSTEM_CA_BUNDLE, NO_PROXY_HOSTS,
+    RemoteSessionContext, UPSTREAM_PROXY_ENV_KEYS, UpstreamProxyBootstrap, UpstreamProxyState,
     inherited_upstream_proxy_env, no_proxy_list, read_token, upstream_proxy_ws_url,
-    RemoteSessionContext, UpstreamProxyBootstrap, UpstreamProxyState, DEFAULT_REMOTE_BASE_URL,
-    DEFAULT_SESSION_TOKEN_PATH, DEFAULT_SYSTEM_CA_BUNDLE, NO_PROXY_HOSTS, UPSTREAM_PROXY_ENV_KEYS,
 };
 
 pub use session_search::{
@@ -175,14 +176,14 @@ pub use session_search::{
 };
 pub use sse::{IncrementalSseParser, SseEvent};
 pub use stale_base::{
-    check_base_commit, format_stale_base_warning, read_claw_base_file, resolve_expected_base,
-    BaseCommitSource, BaseCommitState,
+    BaseCommitSource, BaseCommitState, check_base_commit, format_stale_base_warning,
+    read_claw_base_file, resolve_expected_base,
 };
 pub use stale_branch::{
-    apply_policy, check_freshness, BranchFreshness, StaleBranchAction, StaleBranchEvent,
-    StaleBranchPolicy,
+    BranchFreshness, StaleBranchAction, StaleBranchEvent, StaleBranchPolicy, apply_policy,
+    check_freshness,
 };
-pub use task_packet::{validate_packet, TaskPacket, TaskPacketValidationError, ValidatedPacket};
+pub use task_packet::{TaskPacket, TaskPacketValidationError, ValidatedPacket, validate_packet};
 #[cfg(test)]
 pub use trust_resolver::{TrustConfig, TrustDecision, TrustEvent, TrustPolicy, TrustResolver};
 

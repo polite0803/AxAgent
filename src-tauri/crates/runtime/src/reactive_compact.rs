@@ -4,7 +4,7 @@
 //! 触发紧急压缩并重试，而非直接返回硬错误。
 //! 移植自 claude-code-main 的 reactiveCompact.ts。
 
-use crate::compact::{compact_session, CompactionConfig, CompactionResult};
+use crate::compact::{CompactionConfig, CompactionResult, compact_session};
 use crate::session::Session;
 
 /// 响应式压缩尝试的结果。

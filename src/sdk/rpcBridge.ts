@@ -64,7 +64,7 @@ export function createHostRpcBridge(
     if (!msg || typeof msg.type !== "string") { return; }
 
     if (msg.type === "skill:ready") {
-      console.log("[HostRpcBridge] Skill sandbox is ready");
+      if (import.meta.env.DEV) { console.log("[HostRpcBridge] Skill sandbox is ready"); }
     } else if (msg.type === "skill:error") {
       console.error("[HostRpcBridge] Skill error:", msg.error);
     }

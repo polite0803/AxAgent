@@ -76,8 +76,8 @@ pub use behavior_learner::*;
 pub use behavior_tracker::*;
 pub use coevolution::{CoevolutionConfig, CoevolutionEnvironment, DifficultyLevel};
 pub use compactor::{
-    verify_compression_integrity, IntegrityCheck, IntegrityCheckResult, MessageRecord,
-    SessionCompactor,
+    IntegrityCheck, IntegrityCheckResult, MessageRecord, SessionCompactor,
+    verify_compression_integrity,
 };
 pub use constitution::*;
 pub use context::*;
@@ -170,7 +170,7 @@ pub use task_prefetcher::{
 };
 pub use text_grad::*;
 pub use user_profile::{
-    calculate_confidence, ExpertiseLevel, ProfileUpdate, UpdateSource, UserProfile,
+    ExpertiseLevel, ProfileUpdate, UpdateSource, UserProfile, calculate_confidence,
 };
 
 pub mod prelude {
@@ -206,8 +206,10 @@ pub mod prelude {
         SkillMetadata, SkillModification, SkillOptimizer, SkillOutcome, SkillProposal,
         SkillReference, TaskComplexity, ValidationResult,
     };
-    pub use crate::skill_proposal::{create_skill_from_proposal, SkillProposalService};
-    pub use crate::storage::{TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectoryStatistics, TrajectoryStorage};
+    pub use crate::skill_proposal::{SkillProposalService, create_skill_from_proposal};
+    pub use crate::storage::{
+        TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectoryStatistics, TrajectoryStorage,
+    };
     pub use crate::sub_agent::{
         AgentMailbox, AgentMessage, AgentMessageError, AgentMessageKind, MessageBus, SubAgent,
         SubAgentMetadata, SubAgentQuery, SubAgentRegistry, SubAgentResult, SubAgentStatus,

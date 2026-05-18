@@ -316,19 +316,19 @@ impl SemanticCache {
             }
         }
 
-        if let Some(key) = matching_key {
-            if let Some(entry) = self.entries.get_mut(&key) {
-                entry.last_accessed = Utc::now();
-                entry.access_count += 1;
-                self.hits += 1;
-                debug!(
-                    key = %key,
-                    similarity = %best_sim,
-                    access_count = %entry.access_count,
-                    "Semantic cache hit"
-                );
-                return Some(entry);
-            }
+        if let Some(key) = matching_key
+            && let Some(entry) = self.entries.get_mut(&key)
+        {
+            entry.last_accessed = Utc::now();
+            entry.access_count += 1;
+            self.hits += 1;
+            debug!(
+                key = %key,
+                similarity = %best_sim,
+                access_count = %entry.access_count,
+                "Semantic cache hit"
+            );
+            return Some(entry);
         }
 
         debug!("Semantic cache miss");
@@ -880,9 +880,11 @@ mod tests {
         let evicted = cache.invalidate_least_used(1);
         assert_eq!(evicted, 1);
         assert_eq!(cache.entries.len(), 1);
-        assert!(cache
-            .entries
-            .contains_key(&embedding_hash(&create_test_embedding(0.2))));
+        assert!(
+            cache
+                .entries
+                .contains_key(&embedding_hash(&create_test_embedding(0.2)))
+        );
     }
 
     #[test]

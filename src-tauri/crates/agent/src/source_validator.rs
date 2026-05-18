@@ -170,11 +170,11 @@ impl SourceValidator {
             score -= 0.5;
         }
 
-        if let Some(domain_info) = self.get_domain_info(url) {
-            if domain_info.is_paywalled {
-                warnings.push("This source may be behind a paywall".to_string());
-                score -= 0.1;
-            }
+        if let Some(domain_info) = self.get_domain_info(url)
+            && domain_info.is_paywalled
+        {
+            warnings.push("This source may be behind a paywall".to_string());
+            score -= 0.1;
         }
 
         let domain = self.extract_domain(url);
@@ -294,10 +294,10 @@ impl SourceValidator {
                     });
                     score -= 0.5;
                 }
-                if let Some(domain_info) = self.known_domains.get(&domain) {
-                    if domain_info.is_paywalled {
-                        score -= 0.1;
-                    }
+                if let Some(domain_info) = self.known_domains.get(&domain)
+                    && domain_info.is_paywalled
+                {
+                    score -= 0.1;
                 }
                 score = score.max(0.0);
                 let is_valid = issues.iter().all(|i| i.severity != IssueSeverity::Error);
@@ -370,12 +370,11 @@ impl SourceFilter {
                     return false;
                 }
 
-                if !self.allowed_types.is_empty() {
-                    if let Some(source_type) =
+                if !self.allowed_types.is_empty()
+                    && let Some(source_type) =
                         SourceValidator::new().get_source_type_from_domain(url)
-                    {
-                        return self.allowed_types.contains(&source_type);
-                    }
+                {
+                    return self.allowed_types.contains(&source_type);
                 }
 
                 true
@@ -456,15 +455,21 @@ mod tests {
         assert!(!config.check_accessibility);
         assert_eq!(config.max_age_days, Some(365));
         assert_eq!(config.allowed_content_types.len(), 3);
-        assert!(config
-            .allowed_content_types
-            .contains(&"text/html".to_string()));
-        assert!(config
-            .allowed_content_types
-            .contains(&"application/pdf".to_string()));
-        assert!(config
-            .allowed_content_types
-            .contains(&"text/plain".to_string()));
+        assert!(
+            config
+                .allowed_content_types
+                .contains(&"text/html".to_string())
+        );
+        assert!(
+            config
+                .allowed_content_types
+                .contains(&"application/pdf".to_string())
+        );
+        assert!(
+            config
+                .allowed_content_types
+                .contains(&"text/plain".to_string())
+        );
     }
 
     #[test]
@@ -548,14 +553,18 @@ mod tests {
         let validator = SourceValidator::new();
         let result = validator.validate_url("not-a-valid-url").await;
         assert!(!result.is_valid);
-        assert!(result
-            .issues
-            .iter()
-            .any(|i| i.code == IssueCode::MalformedUrl));
-        assert!(result
-            .issues
-            .iter()
-            .any(|i| i.severity == IssueSeverity::Error));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.code == IssueCode::MalformedUrl)
+        );
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.severity == IssueSeverity::Error)
+        );
     }
 
     #[tokio::test]
@@ -622,10 +631,12 @@ mod tests {
             "".to_string(),
         );
         let result = validator.validate_content(&content).await;
-        assert!(result
-            .issues
-            .iter()
-            .any(|i| i.code == IssueCode::ParseError));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.code == IssueCode::ParseError)
+        );
         assert!(result.score < 1.0);
     }
 

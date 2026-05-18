@@ -428,9 +428,11 @@ mod tests {
             .collect::<Vec<_>>();
 
         // then
-        assert!(results
-            .iter()
-            .all(|result| matches!(result, McpPhaseResult::Success { .. })));
+        assert!(
+            results
+                .iter()
+                .all(|result| matches!(result, McpPhaseResult::Success { .. }))
+        );
         assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Cleanup));
         for phase in [
             McpLifecyclePhase::ConfigLoad,
@@ -676,10 +678,12 @@ mod tests {
         assert!(matches!(shutdown, McpPhaseResult::Success { .. }));
         assert!(matches!(cleanup, McpPhaseResult::Success { .. }));
         assert_eq!(validator.state().current_phase(), Some(McpLifecyclePhase::Cleanup));
-        assert!(validator
-            .state()
-            .phase_timestamp(McpLifecyclePhase::ErrorSurfacing)
-            .is_some());
+        assert!(
+            validator
+                .state()
+                .phase_timestamp(McpLifecyclePhase::ErrorSurfacing)
+                .is_some()
+        );
     }
 
     #[test]

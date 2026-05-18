@@ -23,7 +23,7 @@ interface NotificationCenterProps {
   trigger?: React.ReactNode;
 }
 
-export default function NotificationCenter({ trigger }: NotificationCenterProps) {
+export function NotificationCenter({ trigger }: NotificationCenterProps) {
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [visible, setVisible] = useState(false);

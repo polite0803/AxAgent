@@ -45,79 +45,77 @@ pub fn validate_recursive(
     }
 
     // required 关键字
-    if let Some(required) = schema.get("required").and_then(|r| r.as_array()) {
-        if let Some(obj) = value.as_object() {
-            for field in required {
-                if let Some(field_name) = field.as_str() {
-                    if !obj.contains_key(field_name) {
-                        let loc = if path.is_empty() { "root" } else { path };
-                        errors.push(format!("缺少必填字段 '{}' 于 '{}'", field_name, loc));
-                        valid = false;
-                    }
-                }
+    if let Some(required) = schema.get("required").and_then(|r| r.as_array())
+        && let Some(obj) = value.as_object()
+    {
+        for field in required {
+            if let Some(field_name) = field.as_str()
+                && !obj.contains_key(field_name)
+            {
+                let loc = if path.is_empty() { "root" } else { path };
+                errors.push(format!("缺少必填字段 '{}' 于 '{}'", field_name, loc));
+                valid = false;
             }
         }
     }
 
     // properties 关键字 —— 递归校验子属性
-    if let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) {
-        if let Some(obj) = value.as_object() {
-            for (key, prop_schema) in properties {
-                if let Some(child_value) = obj.get(key) {
-                    let child_path = if path.is_empty() {
-                        key.clone()
-                    } else {
-                        format!("{}.{}", path, key)
-                    };
-                    if !validate_recursive(child_value, prop_schema, &child_path, errors) {
-                        valid = false;
-                    }
-                }
-            }
-        }
-    }
-
-    // items 关键字 —— 递归校验数组元素
-    if let Some(items_schema) = schema.get("items") {
-        if let Some(arr) = value.as_array() {
-            for (i, item) in arr.iter().enumerate() {
-                let item_path = format!("{}[{}]", if path.is_empty() { "root" } else { path }, i);
-                if !validate_recursive(item, items_schema, &item_path, errors) {
+    if let Some(properties) = schema.get("properties").and_then(|p| p.as_object())
+        && let Some(obj) = value.as_object()
+    {
+        for (key, prop_schema) in properties {
+            if let Some(child_value) = obj.get(key) {
+                let child_path = if path.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{}.{}", path, key)
+                };
+                if !validate_recursive(child_value, prop_schema, &child_path, errors) {
                     valid = false;
                 }
             }
         }
     }
 
-    // minLength 关键字
-    if let Some(min) = schema.get("minLength").and_then(|v| v.as_u64()) {
-        if let Some(s) = value.as_str() {
-            if (s.len() as u64) < min {
-                let loc = if path.is_empty() { "root" } else { path };
-                errors.push(format!("字符串 '{}' 过短（最小长度: {}）", loc, min));
+    // items 关键字 —— 递归校验数组元素
+    if let Some(items_schema) = schema.get("items")
+        && let Some(arr) = value.as_array()
+    {
+        for (i, item) in arr.iter().enumerate() {
+            let item_path = format!("{}[{}]", if path.is_empty() { "root" } else { path }, i);
+            if !validate_recursive(item, items_schema, &item_path, errors) {
                 valid = false;
             }
         }
+    }
+
+    // minLength 关键字
+    if let Some(min) = schema.get("minLength").and_then(|v| v.as_u64())
+        && let Some(s) = value.as_str()
+        && (s.len() as u64) < min
+    {
+        let loc = if path.is_empty() { "root" } else { path };
+        errors.push(format!("字符串 '{}' 过短（最小长度: {}）", loc, min));
+        valid = false;
     }
 
     // maxLength 关键字
-    if let Some(max) = schema.get("maxLength").and_then(|v| v.as_u64()) {
-        if let Some(s) = value.as_str() {
-            if (s.len() as u64) > max {
-                let loc = if path.is_empty() { "root" } else { path };
-                errors.push(format!("字符串 '{}' 过长（最大长度: {}）", loc, max));
-                valid = false;
-            }
-        }
+    if let Some(max) = schema.get("maxLength").and_then(|v| v.as_u64())
+        && let Some(s) = value.as_str()
+        && (s.len() as u64) > max
+    {
+        let loc = if path.is_empty() { "root" } else { path };
+        errors.push(format!("字符串 '{}' 过长（最大长度: {}）", loc, max));
+        valid = false;
     }
 
     // enum 关键字
-    if let Some(enum_values) = schema.get("enum").and_then(|v| v.as_array()) {
-        if !enum_values.iter().any(|e| e == value) {
-            let loc = if path.is_empty() { "root" } else { path };
-            errors.push(format!("值 '{}' 不在允许的枚举值范围内", loc));
-            valid = false;
-        }
+    if let Some(enum_values) = schema.get("enum").and_then(|v| v.as_array())
+        && !enum_values.iter().any(|e| e == value)
+    {
+        let loc = if path.is_empty() { "root" } else { path };
+        errors.push(format!("值 '{}' 不在允许的枚举值范围内", loc));
+        valid = false;
     }
 
     valid
@@ -193,9 +191,11 @@ mod tests {
         });
         let (valid, errors) = validate_against_schema(&value, &schema);
         assert!(!valid);
-        assert!(errors
-            .iter()
-            .any(|e| e.contains("缺少必填字段") && e.contains("name")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("缺少必填字段") && e.contains("name"))
+        );
     }
 
     #[test]

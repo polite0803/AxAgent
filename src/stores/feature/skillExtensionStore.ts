@@ -450,7 +450,7 @@ function setupBrowserPolling(): void {
       const skills = await invoke<Array<{ name: string; enabled: boolean }>>("list_skills");
       const currentHash = JSON.stringify(skills.map((s) => `${s.name}:${s.enabled}`).sort());
       if (currentHash !== lastHash && lastHash !== "") {
-        console.log("[SkillHotReload] Skill list changed, refreshing...");
+        if (import.meta.env.DEV) { console.log("[SkillHotReload] Skill list changed, refreshing..."); }
         useSkillExtensionStore.getState().fetchSkills();
         await import("@/stores").then((s) => s.useSkillStore.getState().loadSkills());
       }

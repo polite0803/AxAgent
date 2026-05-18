@@ -145,6 +145,8 @@
     "moveToCategory": "श्रेणी में स्थानांतरित करें",
     "removeFromCategory": "श्रेणी से हटाएँ",
     "categoryNamePlaceholder": "श्रेणी का नाम",
+    "manageCategories": "श्रेणी प्रबंधित करें",
+    "noCategories": "अभी कोई श्रेणी नहीं है। एक बनाएँ।",
     "inspector": {
       "title": "निरीक्षक",
       "sources": "स्रोत",
@@ -598,7 +600,10 @@
         "shareMode": "Share Mode",
         "terminalAccess": "Terminal Access",
         "title": "Session Sharing",
-        "codePlaceholder": "XXXX-XXXX"
+        "codePlaceholder": "XXXX-XXXX",
+        "copyFailed": "कॉपी विफल",
+        "joinFailed": "शामिल होना विफल",
+        "maxParticipants": "अधिकतम प्रतिभागी"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"
@@ -3871,6 +3876,77 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
+    "knowledgeSettings": {
+      "title": "ज्ञान"
+    },
+    "notificationCenter": {
+      "title": "सूचनाएं"
+    },
+    "chatRightPanel": {
+      "agent": "एजेंट",
+      "hierarchy": "पदानुक्रम",
+      "research": "शोध",
+      "git": "Git",
+      "task": "कार्य",
+      "code": "कोड",
+      "artifact": "कलाकृतियाँ",
+      "imageGen": "छवि",
+      "report": "रिपोर्ट",
+      "citation": "उद्धरण",
+      "inspector": "निरीक्षक",
+      "errorRecovery": "पुनर्प्राप्ति",
+      "teammate": "टीम",
+      "browser": "ब्राउज़र",
+      "computer": "डेस्कटॉप",
+      "benchmark": "बेंच",
+      "chart": "चार्ट",
+      "snapshot": "स्नैपशॉट",
+      "profile": "प्रोफ़ाइल"
+    },
+    "knowledgeSettings": {
+      "title": "ज्ञान"
+    },
+    "notificationCenter": {
+      "title": "सूचनाएं"
+    },
+    "chatRightPanel": {
+      "agent": "एजेंट",
+      "hierarchy": "पदानुक्रम",
+      "research": "शोध",
+      "git": "Git",
+      "task": "कार्य",
+      "code": "कोड",
+      "artifact": "कलाकृतियाँ",
+      "imageGen": "छवि",
+      "visionAnalysis": "विज़न",
+      "report": "रिपोर्ट",
+      "citation": "उद्धरण",
+      "inspector": "निरीक्षक",
+      "browser": "ब्राउज़र",
+      "computer": "डेस्कटॉप",
+      "benchmark": "बेंच",
+      "chart": "चार्ट",
+      "snapshot": "स्नैपशॉट",
+      "profile": "प्रोफ़ाइल",
+      "errorRecovery": "पुनर्प्राप्ति",
+      "collaboration": "सहयोग",
+      "evolution": "विकास",
+      "steer": "स्टीयर",
+      "cache": "कैश",
+      "branchCompare": "शाखा",
+      "gateway": "GW",
+      "contextClass": "संदर्भ",
+      "cronResult": "क्रॉन",
+      "reflection": "चिंतन",
+      "researchSources": "स्रोत",
+      "categoryEdit": "श्रेणी",
+      "filePermission": "फ़ाइल",
+      "sessionShare": "शेयर",
+      "prefetch": "प्रीफ़ेच",
+      "reminders": "रिमाइंडर",
+      "contextPrediction": "पूर्वानुमान",
+      "teammate": "टीम"
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",
@@ -5344,6 +5420,7 @@
     "sourceTypeWeb": "Web",
     "sourceTypeAcademic": "Academic",
     "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "Documentation",
     "sourceTypeNews": "News",
     "sourceTypeBlog": "Blog",
@@ -5924,11 +6001,15 @@
     "time": "Time"
   },
   "cronResult": {
-    "success": "Success",
-    "failed": "Failed",
-    "schedule": "Schedule",
-    "platform": "Platform",
-    "time": "Time"
+    "success": "सफल",
+    "failed": "विफल",
+    "schedule": "शेड्यूल",
+    "scheduleDescription": "विवरण",
+    "platform": "प्लेटफ़ॉर्म",
+    "time": "समय",
+    "loading": "Cron कार्य परिणाम लोड हो रहा है…",
+    "prefix": "Cron: {{jobName}}",
+    "emptyResult": "कोई परिणाम नहीं"
   },
   "errorBoundary": {
     "title": "Something went wrong",

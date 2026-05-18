@@ -22,7 +22,7 @@ import {
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { McpServerSettings } from "./McpServerSettings";
-import ToolSemanticCheck from "./ToolSemanticCheck";
+import { ToolSemanticCheck } from "./ToolSemanticCheck";
 
 const { Text, Paragraph } = Typography;
 

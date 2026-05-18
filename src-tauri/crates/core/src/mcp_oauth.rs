@@ -140,13 +140,11 @@ impl McpOAuthStore {
             // 如果有 refresh_token 和 token_endpoint，尝试刷新
             if let (Some(refresh_token), Some(token_endpoint)) =
                 (&creds.refresh_token, &creds.token_endpoint)
-            {
-                if let Ok(new_creds) =
+                && let Ok(new_creds) =
                     Self::refresh_token(token_endpoint, &creds.client_id, refresh_token).await
-                {
-                    self.store(server_id, new_creds.clone()).await;
-                    return Some(new_creds.authorization_header());
-                }
+            {
+                self.store(server_id, new_creds.clone()).await;
+                return Some(new_creds.authorization_header());
             }
             // 无法刷新，返回 None（触发重新授权）
             return None;

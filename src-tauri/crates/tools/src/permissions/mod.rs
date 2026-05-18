@@ -205,18 +205,18 @@ impl PermissionPolicy {
         }
 
         // 4. 检查工具的最小模式要求
-        if let Some(required_mode) = self.tool_requirements.get(tool_name) {
-            if self.active_mode < *required_mode {
-                return PermissionDecision::new(
-                    PermissionBehavior::Ask,
-                    format!(
-                        "工具 '{}' 需要 {} 模式，当前为 {} 模式",
-                        tool_name,
-                        required_mode.as_str(),
-                        self.active_mode.as_str()
-                    ),
-                );
-            }
+        if let Some(required_mode) = self.tool_requirements.get(tool_name)
+            && self.active_mode < *required_mode
+        {
+            return PermissionDecision::new(
+                PermissionBehavior::Ask,
+                format!(
+                    "工具 '{}' 需要 {} 模式，当前为 {} 模式",
+                    tool_name,
+                    required_mode.as_str(),
+                    self.active_mode.as_str()
+                ),
+            );
         }
 
         // 5. 默认根据模式决定

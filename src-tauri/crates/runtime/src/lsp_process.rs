@@ -54,19 +54,22 @@ impl LspServerConfig {
     }
 }
 
-struct LspProcessInner {
-    child: Option<Child>,
-    stdin: Option<tokio::process::ChildStdin>,
-    request_id: i64,
-    pending_requests: HashMap<i64, tokio::sync::oneshot::Sender<Result<serde_json::Value, String>>>,
-    initialized: bool,
-    root_path: PathBuf,
-    capabilities: serde_json::Value,
+#[derive(Debug)]
+pub(crate) struct LspProcessInner {
+    pub(crate) child: Option<Child>,
+    pub(crate) stdin: Option<tokio::process::ChildStdin>,
+    pub(crate) request_id: i64,
+    pub(crate) pending_requests:
+        HashMap<i64, tokio::sync::oneshot::Sender<Result<serde_json::Value, String>>>,
+    pub(crate) initialized: bool,
+    pub(crate) root_path: PathBuf,
+    pub(crate) capabilities: serde_json::Value,
 }
 
+#[derive(Debug)]
 pub struct LspProcess {
     config: LspServerConfig,
-    inner: Arc<Mutex<LspProcessInner>>,
+    pub(crate) inner: Arc<Mutex<LspProcessInner>>,
     status: Arc<RwLock<LspServerStatus>>,
     diagnostics: Arc<RwLock<Vec<LspDiagnostic>>>,
     shutdown: Arc<std::sync::atomic::AtomicBool>,
@@ -434,7 +437,9 @@ impl LspProcess {
         let status = Arc::clone(&self.status);
 
         tokio::spawn(async move {
-            use super::lsp_protocol::{LspMessageReader, is_notification, get_method, get_params, parse_response};
+            use super::lsp_protocol::{
+                LspMessageReader, get_method, get_params, is_notification, parse_response,
+            };
             let mut reader = LspMessageReader::new(stdout);
 
             loop {
@@ -442,14 +447,15 @@ impl LspProcess {
 
                 match result {
                     Ok(msg) => {
-                        if let Ok((id_opt, response_result)) = parse_response(&msg) {
-                            if let Some(id) = id_opt {
-                                let value = response_result
-                                    .map_err(|e| format!("JSON-RPC error (code {}): {}", e.code, e.message));
-                                let mut inner = inner.lock().await;
-                                if let Some(tx) = inner.pending_requests.remove(&id) {
-                                    let _ = tx.send(value);
-                                }
+                        if let Ok((id_opt, response_result)) = parse_response(&msg)
+                            && let Some(id) = id_opt
+                        {
+                            let value = response_result.map_err(|e| {
+                                format!("JSON-RPC error (code {}): {}", e.code, e.message)
+                            });
+                            let mut inner = inner.lock().await;
+                            if let Some(tx) = inner.pending_requests.remove(&id) {
+                                let _ = tx.send(value);
                             }
                         }
                         if is_notification(&msg) {
@@ -461,7 +467,9 @@ impl LspProcess {
                                 if let Some(uri) = params.get("uri").and_then(|v| v.as_str()) {
                                     let path = uri.strip_prefix("file://").unwrap_or(uri);
                                     target_path = path.to_string();
-                                    if let Some(diags) = params.get("diagnostics").and_then(|v| v.as_array()) {
+                                    if let Some(diags) =
+                                        params.get("diagnostics").and_then(|v| v.as_array())
+                                    {
                                         for diag in diags {
                                             let empty_range = serde_json::json!({});
                                             let start = diag
@@ -470,17 +478,37 @@ impl LspProcess {
                                                 .unwrap_or(&empty_range);
                                             new_diags.push(LspDiagnostic {
                                                 path: path.to_string(),
-                                                line: start.get("line").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-                                                character: start.get("character").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-                                                severity: diag.get("severity").and_then(|v| v.as_u64()).map(|s| match s {
-                                                    1 => "error",
-                                                    2 => "warning",
-                                                    3 => "information",
-                                                    4 => "hint",
-                                                    _ => "unknown",
-                                                }).unwrap_or("unknown").to_string(),
-                                                message: diag.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                                                source: diag.get("source").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                                line: start
+                                                    .get("line")
+                                                    .and_then(|v| v.as_u64())
+                                                    .unwrap_or(0)
+                                                    as u32,
+                                                character: start
+                                                    .get("character")
+                                                    .and_then(|v| v.as_u64())
+                                                    .unwrap_or(0)
+                                                    as u32,
+                                                severity: diag
+                                                    .get("severity")
+                                                    .and_then(|v| v.as_u64())
+                                                    .map(|s| match s {
+                                                        1 => "error",
+                                                        2 => "warning",
+                                                        3 => "information",
+                                                        4 => "hint",
+                                                        _ => "unknown",
+                                                    })
+                                                    .unwrap_or("unknown")
+                                                    .to_string(),
+                                                message: diag
+                                                    .get("message")
+                                                    .and_then(|v| v.as_str())
+                                                    .unwrap_or("")
+                                                    .to_string(),
+                                                source: diag
+                                                    .get("source")
+                                                    .and_then(|v| v.as_str())
+                                                    .map(|s| s.to_string()),
                                             });
                                         }
                                     }
@@ -494,7 +522,7 @@ impl LspProcess {
                         if shutdown.load(std::sync::atomic::Ordering::SeqCst) {
                             break;
                         }
-                    }
+                    },
                     Err(e) => {
                         if e.kind() == std::io::ErrorKind::UnexpectedEof {
                             tracing::info!("LSP stdout EOF");
@@ -502,7 +530,7 @@ impl LspProcess {
                             tracing::warn!("LSP stdout read error: {}", e);
                         }
                         break;
-                    }
+                    },
                 }
             }
 
@@ -591,6 +619,7 @@ pub struct TextDocumentContentChangeEvent {
     pub text: String,
 }
 
+#[derive(Debug)]
 pub struct LspProcessManager {
     processes: Arc<RwLock<HashMap<String, Arc<LspProcess>>>>,
 }

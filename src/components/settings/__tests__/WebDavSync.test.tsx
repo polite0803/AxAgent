@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "antd";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import WebDavSync from "../WebDavSync";
+import { WebDavSync } from "../WebDavSync";
 
 const { invokeMock, saveSettingsMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(),

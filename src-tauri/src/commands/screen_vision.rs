@@ -32,14 +32,12 @@ fn resolve_provider_adapter(
         ProviderType::OpenAI => Ok(Arc::new(axagent_providers::openai::OpenAIAdapter::new())),
         ProviderType::OpenAIResponses => {
             Ok(Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new()))
-        }
+        },
         ProviderType::Anthropic => {
             Ok(Arc::new(axagent_providers::anthropic::AnthropicAdapter::new()))
-        }
+        },
         ProviderType::Gemini => Ok(Arc::new(axagent_providers::gemini::GeminiAdapter::new())),
-        ProviderType::OpenClaw => {
-            Ok(Arc::new(axagent_providers::openclaw::OpenClawAdapter::new()))
-        }
+        ProviderType::OpenClaw => Ok(Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())),
         ProviderType::Hermes => Ok(Arc::new(axagent_providers::hermes::HermesAdapter::new())),
         ProviderType::Ollama => Ok(Arc::new(axagent_providers::ollama::OllamaAdapter::new())),
     }
@@ -47,7 +45,7 @@ fn resolve_provider_adapter(
 
 async fn capture_screenshot(
     monitor_index: Option<u32>,
-) -> Result<axagent_core::screen_capture::Screenshot, String> {
+) -> Result<axagent_core::screen_capture::ScreenCaptureResult, String> {
     let capture = axagent_core::screen_capture::ScreenCapture::new();
     capture
         .capture_full(monitor_index)
@@ -73,9 +71,8 @@ async fn build_vision_context(
         .await
         .map_err(|e| e.to_string())?;
 
-    let decrypted_key =
-        axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key)
-            .map_err(|e| e.to_string())?;
+    let decrypted_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, master_key)
+        .map_err(|e| e.to_string())?;
 
     let global_settings = axagent_core::repo::settings::get_settings(db)
         .await
@@ -171,6 +168,40 @@ pub async fn analyze_screen(
 }
 
 #[tauri::command]
+pub async fn analyze_image(
+    state: State<'_, AppState>,
+    image_base64: String,
+    task: String,
+    provider_id: String,
+    model_id: String,
+) -> Result<axagent_agent::VisionResult, String> {
+    let task_enum: axagent_agent::VisionTask = serde_json::from_str(&format!("\"{}\"", task))
+        .map_err(|e| format!("Invalid vision task '{}': {}", task, e))?;
+
+    let image_data = if let Some(stripped) = image_base64.strip_prefix("data:image/png;base64,") {
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD
+            .decode(stripped)
+            .map_err(|e| format!("Failed to decode base64 image: {}", e))?
+    } else {
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD
+            .decode(&image_base64)
+            .map_err(|e| format!("Failed to decode base64 image: {}", e))?
+    };
+
+    let VisionContext { adapter, ctx } =
+        build_vision_context(&state.sea_db, &state.master_key, &provider_id).await?;
+
+    let pipeline = axagent_agent::VisionPipeline::new(adapter, ctx, model_id);
+
+    pipeline
+        .analyze(&image_data, task_enum)
+        .await
+        .map_err(|e| format!("Image analysis failed: {}", e))
+}
+
+#[tauri::command]
 pub async fn find_element_on_screen(
     state: State<'_, AppState>,
     element_description: String,
@@ -208,7 +239,7 @@ pub async fn suggest_screen_action(
     let actions = axagent_providers::screen_vision::suggest_next_action(
         adapter.as_ref(),
         &ctx,
-        model_id,
+        model_id.clone(),
         &screenshot.image_base64,
         &current_task,
     )
@@ -263,7 +294,7 @@ pub async fn execute_vision_action(
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
                 .await
                 .map_err(|e| format!("Click failed: {}", e))?;
-        }
+        },
         "double_click" | "doubleclick" => {
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
                 .await
@@ -272,27 +303,27 @@ pub async fn execute_vision_action(
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Left)
                 .await
                 .map_err(|e| format!("Double click failed: {}", e))?;
-        }
+        },
         "right_click" | "rightclick" => {
             UIAutomation::click(x, y, axagent_core::ui_automation::MouseButton::Right)
                 .await
                 .map_err(|e| format!("Right click failed: {}", e))?;
-        }
+        },
         "type" | "input" => {
             if let Some(text) = text {
                 UIAutomation::type_text(&text, Some(x), Some(y))
                     .await
                     .map_err(|e| format!("Type failed: {}", e))?;
             }
-        }
+        },
         "hover" => {
             UIAutomation::move_mouse(x, y)
                 .await
                 .map_err(|e| format!("Hover failed: {}", e))?;
-        }
+        },
         _ => {
             return Err(format!("Unknown action type: {}", action_type));
-        }
+        },
     }
 
     Ok(())

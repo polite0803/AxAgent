@@ -41,11 +41,21 @@ impl CachePersister {
     /// Callers should handle the `None` case gracefully — a missing snapshot
     /// is not an error, it just means a cold start.
     pub fn load(&self) -> Option<CacheSnapshot> {
+        const MAX_CACHE_FILE_SIZE: u64 = 100 * 1024 * 1024;
+
         let path = self.snapshot_path();
         if !path.exists() {
             tracing::debug!("No cache snapshot found at {}", path.display());
             return None;
         }
+
+        if let Ok(metadata) = std::fs::metadata(&path)
+            && metadata.len() > MAX_CACHE_FILE_SIZE
+        {
+            tracing::warn!("Cache file too large ({} bytes), skipping", metadata.len());
+            return None;
+        }
+
         let data = match std::fs::read_to_string(&path) {
             Ok(data) => data,
             Err(e) => {

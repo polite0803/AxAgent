@@ -149,16 +149,15 @@ impl WorkflowValidator {
                 }
             }
 
-            if let Some(map) = node.as_object_mut() {
-                if let Some(config) = map.get_mut("config") {
-                    if let Some(config_obj) = config.as_object_mut() {
-                        issues.extend(Self::validate_node_config(
-                            &node_type,
-                            config_obj,
-                            node_id.as_deref(),
-                        ));
-                    }
-                }
+            if let Some(map) = node.as_object_mut()
+                && let Some(config) = map.get_mut("config")
+                && let Some(config_obj) = config.as_object_mut()
+            {
+                issues.extend(Self::validate_node_config(
+                    &node_type,
+                    config_obj,
+                    node_id.as_deref(),
+                ));
             }
         } else {
             issues.push(ValidationIssue {
@@ -209,120 +208,118 @@ impl WorkflowValidator {
 
         match node_type {
             "trigger" => {
-                if let Some(trigger_type) = config.get("type").and_then(|v| v.as_str()) {
-                    if !VALID_TRIGGER_TYPES.contains(&trigger_type) {
-                        issues.push(ValidationIssue {
-                            severity: IssueSeverity::Warning,
-                            node_id: node_id.map(|s| s.to_string()),
-                            field: Some("config.type".to_string()),
-                            message: format!("无效触发类型 '{}'，降级为 'manual'", trigger_type),
-                            original_value: Some(trigger_type.to_string()),
-                            corrected_value: Some("manual".to_string()),
-                        });
-                        config.insert(
-                            "type".to_string(),
-                            serde_json::Value::String("manual".to_string()),
-                        );
-                    }
+                if let Some(trigger_type) = config.get("type").and_then(|v| v.as_str())
+                    && !VALID_TRIGGER_TYPES.contains(&trigger_type)
+                {
+                    issues.push(ValidationIssue {
+                        severity: IssueSeverity::Warning,
+                        node_id: node_id.map(|s| s.to_string()),
+                        field: Some("config.type".to_string()),
+                        message: format!("无效触发类型 '{}'，降级为 'manual'", trigger_type),
+                        original_value: Some(trigger_type.to_string()),
+                        corrected_value: Some("manual".to_string()),
+                    });
+                    config.insert(
+                        "type".to_string(),
+                        serde_json::Value::String("manual".to_string()),
+                    );
                 }
             },
             "agent" => {
-                if let Some(role) = config.get("role").and_then(|v| v.as_str()) {
-                    if !VALID_AGENT_ROLES.contains(&role) {
-                        issues.push(ValidationIssue {
-                            severity: IssueSeverity::Warning,
-                            node_id: node_id.map(|s| s.to_string()),
-                            field: Some("config.role".to_string()),
-                            message: format!("无效 Agent 角色 '{}'，降级为 'developer'", role),
-                            original_value: Some(role.to_string()),
-                            corrected_value: Some("developer".to_string()),
-                        });
-                        config.insert(
-                            "role".to_string(),
-                            serde_json::Value::String("developer".to_string()),
-                        );
-                    }
+                if let Some(role) = config.get("role").and_then(|v| v.as_str())
+                    && !VALID_AGENT_ROLES.contains(&role)
+                {
+                    issues.push(ValidationIssue {
+                        severity: IssueSeverity::Warning,
+                        node_id: node_id.map(|s| s.to_string()),
+                        field: Some("config.role".to_string()),
+                        message: format!("无效 Agent 角色 '{}'，降级为 'developer'", role),
+                        original_value: Some(role.to_string()),
+                        corrected_value: Some("developer".to_string()),
+                    });
+                    config.insert(
+                        "role".to_string(),
+                        serde_json::Value::String("developer".to_string()),
+                    );
                 }
-                if let Some(output_mode) = config.get("output_mode").and_then(|v| v.as_str()) {
-                    if !VALID_OUTPUT_MODES.contains(&output_mode) {
-                        issues.push(ValidationIssue {
-                            severity: IssueSeverity::Warning,
-                            node_id: node_id.map(|s| s.to_string()),
-                            field: Some("config.output_mode".to_string()),
-                            message: format!("无效输出模式 '{}'，降级为 'text'", output_mode),
-                            original_value: Some(output_mode.to_string()),
-                            corrected_value: Some("text".to_string()),
-                        });
-                        config.insert(
-                            "output_mode".to_string(),
-                            serde_json::Value::String("text".to_string()),
-                        );
-                    }
+                if let Some(output_mode) = config.get("output_mode").and_then(|v| v.as_str())
+                    && !VALID_OUTPUT_MODES.contains(&output_mode)
+                {
+                    issues.push(ValidationIssue {
+                        severity: IssueSeverity::Warning,
+                        node_id: node_id.map(|s| s.to_string()),
+                        field: Some("config.output_mode".to_string()),
+                        message: format!("无效输出模式 '{}'，降级为 'text'", output_mode),
+                        original_value: Some(output_mode.to_string()),
+                        corrected_value: Some("text".to_string()),
+                    });
+                    config.insert(
+                        "output_mode".to_string(),
+                        serde_json::Value::String("text".to_string()),
+                    );
                 }
             },
             "condition" => {
-                if let Some(conditions) = config.get_mut("conditions") {
-                    if let Some(conditions_arr) = conditions.as_array_mut() {
-                        for cond in conditions_arr.iter_mut() {
-                            if let Some(cond_obj) = cond.as_object_mut() {
-                                if let Some(operator) =
-                                    cond_obj.get("operator").and_then(|v| v.as_str())
-                                {
-                                    if !VALID_COMPARE_OPERATORS.contains(&operator) {
-                                        issues.push(ValidationIssue {
-                                            severity: IssueSeverity::Warning,
-                                            node_id: node_id.map(|s| s.to_string()),
-                                            field: Some("config.conditions[].operator".to_string()),
-                                            message: format!(
-                                                "无效比较操作符 '{}'，降级为 'isNotEmpty'",
-                                                operator
-                                            ),
-                                            original_value: Some(operator.to_string()),
-                                            corrected_value: Some("isNotEmpty".to_string()),
-                                        });
-                                        cond_obj.insert(
-                                            "operator".to_string(),
-                                            serde_json::Value::String("isNotEmpty".to_string()),
-                                        );
-                                    }
-                                }
-                            }
+                if let Some(conditions) = config.get_mut("conditions")
+                    && let Some(conditions_arr) = conditions.as_array_mut()
+                {
+                    for cond in conditions_arr.iter_mut() {
+                        if let Some(cond_obj) = cond.as_object_mut()
+                            && let Some(operator) =
+                                cond_obj.get("operator").and_then(|v| v.as_str())
+                            && !VALID_COMPARE_OPERATORS.contains(&operator)
+                        {
+                            issues.push(ValidationIssue {
+                                severity: IssueSeverity::Warning,
+                                node_id: node_id.map(|s| s.to_string()),
+                                field: Some("config.conditions[].operator".to_string()),
+                                message: format!(
+                                    "无效比较操作符 '{}'，降级为 'isNotEmpty'",
+                                    operator
+                                ),
+                                original_value: Some(operator.to_string()),
+                                corrected_value: Some("isNotEmpty".to_string()),
+                            });
+                            cond_obj.insert(
+                                "operator".to_string(),
+                                serde_json::Value::String("isNotEmpty".to_string()),
+                            );
                         }
                     }
                 }
-                if let Some(logical_op) = config.get("logical_op").and_then(|v| v.as_str()) {
-                    if !VALID_LOGICAL_OPERATORS.contains(&logical_op) {
-                        issues.push(ValidationIssue {
-                            severity: IssueSeverity::Warning,
-                            node_id: node_id.map(|s| s.to_string()),
-                            field: Some("config.logical_op".to_string()),
-                            message: format!("无效逻辑操作符 '{}'，降级为 'and'", logical_op),
-                            original_value: Some(logical_op.to_string()),
-                            corrected_value: Some("and".to_string()),
-                        });
-                        config.insert(
-                            "logical_op".to_string(),
-                            serde_json::Value::String("and".to_string()),
-                        );
-                    }
+                if let Some(logical_op) = config.get("logical_op").and_then(|v| v.as_str())
+                    && !VALID_LOGICAL_OPERATORS.contains(&logical_op)
+                {
+                    issues.push(ValidationIssue {
+                        severity: IssueSeverity::Warning,
+                        node_id: node_id.map(|s| s.to_string()),
+                        field: Some("config.logical_op".to_string()),
+                        message: format!("无效逻辑操作符 '{}'，降级为 'and'", logical_op),
+                        original_value: Some(logical_op.to_string()),
+                        corrected_value: Some("and".to_string()),
+                    });
+                    config.insert(
+                        "logical_op".to_string(),
+                        serde_json::Value::String("and".to_string()),
+                    );
                 }
             },
             "loop" => {
-                if let Some(loop_type) = config.get("loop_type").and_then(|v| v.as_str()) {
-                    if !VALID_LOOP_TYPES.contains(&loop_type) {
-                        issues.push(ValidationIssue {
-                            severity: IssueSeverity::Warning,
-                            node_id: node_id.map(|s| s.to_string()),
-                            field: Some("config.loop_type".to_string()),
-                            message: format!("无效循环类型 '{}'，降级为 'forEach'", loop_type),
-                            original_value: Some(loop_type.to_string()),
-                            corrected_value: Some("forEach".to_string()),
-                        });
-                        config.insert(
-                            "loop_type".to_string(),
-                            serde_json::Value::String("forEach".to_string()),
-                        );
-                    }
+                if let Some(loop_type) = config.get("loop_type").and_then(|v| v.as_str())
+                    && !VALID_LOOP_TYPES.contains(&loop_type)
+                {
+                    issues.push(ValidationIssue {
+                        severity: IssueSeverity::Warning,
+                        node_id: node_id.map(|s| s.to_string()),
+                        field: Some("config.loop_type".to_string()),
+                        message: format!("无效循环类型 '{}'，降级为 'forEach'", loop_type),
+                        original_value: Some(loop_type.to_string()),
+                        corrected_value: Some("forEach".to_string()),
+                    });
+                    config.insert(
+                        "loop_type".to_string(),
+                        serde_json::Value::String("forEach".to_string()),
+                    );
                 }
             },
             _ => {},
@@ -339,22 +336,22 @@ impl WorkflowValidator {
             .map(|s| s.to_string());
         let edge_type = edge.get("edge_type").and_then(|v| v.as_str());
 
-        if let Some(edge_type) = edge_type {
-            if !VALID_EDGE_TYPES.contains(&edge_type) {
-                issues.push(ValidationIssue {
-                    severity: IssueSeverity::Warning,
-                    node_id: None,
-                    field: Some("edge_type".to_string()),
-                    message: format!("无效边类型 '{}'，降级为 'direct'", edge_type),
-                    original_value: Some(edge_type.to_string()),
-                    corrected_value: Some("direct".to_string()),
-                });
-                if let Some(map) = edge.as_object_mut() {
-                    map.insert(
-                        "edge_type".to_string(),
-                        serde_json::Value::String("direct".to_string()),
-                    );
-                }
+        if let Some(edge_type) = edge_type
+            && !VALID_EDGE_TYPES.contains(&edge_type)
+        {
+            issues.push(ValidationIssue {
+                severity: IssueSeverity::Warning,
+                node_id: None,
+                field: Some("edge_type".to_string()),
+                message: format!("无效边类型 '{}'，降级为 'direct'", edge_type),
+                original_value: Some(edge_type.to_string()),
+                corrected_value: Some("direct".to_string()),
+            });
+            if let Some(map) = edge.as_object_mut() {
+                map.insert(
+                    "edge_type".to_string(),
+                    serde_json::Value::String("direct".to_string()),
+                );
             }
         }
 

@@ -229,5 +229,3 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
     </div>
   );
 };
-
-export default AlignmentGuides;

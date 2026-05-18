@@ -2,12 +2,14 @@ import { invoke } from "@/lib/invoke";
 import type {
   ContextPrediction,
   PredictionResult,
+  PrefetchResult,
   PrefetchResults,
   ProactiveConfig,
   ProactiveSuggestion,
   Reminder,
 } from "@/types";
 import { create } from "zustand";
+import { useAppConfigStore } from "./appConfigStore";
 
 // ─── Prefetch state: tracks what's been prefetched to avoid duplicates ───
 
@@ -107,6 +109,22 @@ function markPrefetched(type: string, ids: string[]) {
   }
 }
 
+/** Time to keep ready prefetch entries visible before cleanup (ms) */
+const PREFETCH_DISPLAY_DURATION_MS = 4000;
+
+/** Schedule removal of a prefetch indicator entry after display duration */
+function schedulePrefetchCleanup(resourceId: string) {
+  setTimeout(() => {
+    useProactiveStore.setState((state) => {
+      const remaining = state.prefetchResults.filter((r) => r.resource_id !== resourceId);
+      return {
+        prefetchResults: remaining,
+        isPrefetchActive: remaining.length > 0 && remaining.some((r) => !r.ready),
+      };
+    });
+  }, PREFETCH_DISPLAY_DURATION_MS);
+}
+
 interface ProactiveState {
   suggestions: ProactiveSuggestion[];
   predictions: ContextPrediction[];
@@ -114,9 +132,16 @@ interface ProactiveState {
   config: ProactiveConfig | null;
   isEnabled: boolean;
   isLoading: boolean;
+  isAdding: boolean;
   error: string | null;
 
+  /** Current prefetch results for the indicator UI */
+  prefetchResults: PrefetchResult[];
+  /** Whether prefetch is currently active */
+  isPrefetchActive: boolean;
+
   fetchSuggestions: () => Promise<void>;
+  refreshSuggestions: (context: Record<string, unknown>) => Promise<void>;
   fetchPredictions: (context: Record<string, unknown>) => Promise<void>;
   fetchReminders: () => Promise<void>;
   dismissSuggestion: (id: string) => Promise<void>;
@@ -143,6 +168,15 @@ interface ProactiveState {
 
   /** Clear the internal prefetch dedup state */
   resetPrefetchState: () => void;
+
+  /** Add a prefetch result entry to the indicator UI */
+  addPrefetchEntry: (result: PrefetchResult) => void;
+
+  /** Mark a prefetch entry as ready by resource ID */
+  markPrefetchEntryReady: (resourceId: string) => void;
+
+  /** Clear all prefetch indicator entries */
+  clearPrefetchEntries: () => void;
 }
 
 export interface ReminderInput {
@@ -162,7 +196,10 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   config: null,
   isEnabled: true,
   isLoading: false,
+  isAdding: false,
   error: null,
+  prefetchResults: [],
+  isPrefetchActive: false,
 
   fetchSuggestions: async () => {
     set({ isLoading: true, error: null });
@@ -172,6 +209,23 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to fetch suggestions",
+        isLoading: false,
+      });
+    }
+  },
+
+  refreshSuggestions: async (context: Record<string, unknown>) => {
+    if (!useAppConfigStore.getState().features.proactiveMode) { return; }
+    set({ isLoading: true, error: null });
+    try {
+      const suggestions = await invoke<ProactiveSuggestion[]>(
+        "proactive_refresh_suggestions",
+        { context },
+      );
+      set({ suggestions, isLoading: false });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Failed to refresh suggestions",
         isLoading: false,
       });
     }
@@ -246,17 +300,17 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   },
 
   addReminder: async (input: ReminderInput) => {
-    set({ isLoading: true, error: null });
+    set({ isAdding: true, error: null });
     try {
       const reminder = await invoke<Reminder>("proactive_add_reminder", { reminder: input });
       set((state) => ({
         reminders: [...state.reminders, reminder],
-        isLoading: false,
+        isAdding: false,
       }));
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to add reminder",
-        isLoading: false,
+        isAdding: false,
       });
     }
   },
@@ -266,6 +320,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       await invoke("proactive_delete_reminder", { id });
       set((state) => ({
         reminders: state.reminders.filter((r) => r.id !== id),
+        error: null,
       }));
     } catch (error) {
       set({
@@ -279,6 +334,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       await invoke("proactive_complete_reminder", { id });
       set((state) => ({
         reminders: state.reminders.map((r) => r.id === id ? { ...r, completed: true } : r),
+        error: null,
       }));
     } catch (error) {
       set({
@@ -345,10 +401,23 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   // ── P2 Smart Prefetch ──
 
   prefetchOnConversationSwitch: (conversationId: string) => {
-    if (!get().isEnabled || !canPrefetchNow("conversationSwitch")) { return; }
+    if (!useAppConfigStore.getState().features.proactiveMode || !canPrefetchNow("conversationSwitch")) { return; }
 
-    // Prefetch token counts for the conversation in background
     const type = "conversationSwitch";
+    const resourceId = `conv-${conversationId}`;
+
+    const entry: PrefetchResult = {
+      prefetch_type: "contextAnalysis",
+      resource_id: resourceId,
+      ready: false,
+      estimated_prepare_time_ms: 200,
+      created_at: new Date().toISOString(),
+    };
+    set((state) => ({
+      prefetchResults: [...state.prefetchResults, entry],
+      isPrefetchActive: true,
+    }));
+
     invoke("list_messages_page", {
       conversationId,
       limit: 1,
@@ -356,72 +425,174 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     })
       .then(() => {
         markPrefetched(type, [conversationId]);
+        set((state) => ({
+          prefetchResults: state.prefetchResults.map((r) => r.resource_id === resourceId ? { ...r, ready: true } : r),
+        }));
+        schedulePrefetchCleanup(resourceId);
       })
       .catch(() => {
         // Silent — prefetch is best-effort
+        schedulePrefetchCleanup(resourceId);
       });
 
     // Also prefetch compression summary if available
+    const compResourceId = `conv-${conversationId}-compression`;
+    const compEntry: PrefetchResult = {
+      prefetch_type: "contextAnalysis",
+      resource_id: compResourceId,
+      ready: false,
+      estimated_prepare_time_ms: 300,
+      created_at: new Date().toISOString(),
+    };
+    set((state) => ({
+      prefetchResults: [...state.prefetchResults, compEntry],
+      isPrefetchActive: true,
+    }));
+
     invoke("get_compression_summary", { conversationId })
       .then(() => {
         markPrefetched("compressionSummary", [conversationId]);
+        set((state) => ({
+          prefetchResults: state.prefetchResults.map((r) =>
+            r.resource_id === compResourceId ? { ...r, ready: true } : r
+          ),
+        }));
+        schedulePrefetchCleanup(compResourceId);
       })
       .catch((e: unknown) => {
         console.warn("[IPC]", e);
+        schedulePrefetchCleanup(compResourceId);
       });
   },
 
-  prefetchModelCosts: (_providerId: string, _modelId: string) => {
-    if (!get().isEnabled || !canPrefetchNow("modelCosts")) { return; }
+  prefetchModelCosts: (providerId: string, _modelId: string) => {
+    if (!useAppConfigStore.getState().features.proactiveMode || !canPrefetchNow("modelCosts")) { return; }
 
-    // Cost estimation is now config-based (pricing.toml) and computed locally.
-    // The backend has fast O(1) lookup via lookup_pricing_from_config().
-    // We still call it asynchronously to warm any cold caches.
     const type = "modelCosts";
+    const resourceId = `modelCosts-${providerId}`;
+
+    const entry: PrefetchResult = {
+      prefetch_type: "toolCache",
+      resource_id: resourceId,
+      ready: false,
+      estimated_prepare_time_ms: 100,
+      created_at: new Date().toISOString(),
+    };
+    set((state) => ({
+      prefetchResults: [...state.prefetchResults, entry],
+      isPrefetchActive: true,
+    }));
+
     invoke("get_invoke_metrics", {})
       .then(() => {
         markPrefetched(type, ["metrics"]);
+        set((state) => ({
+          prefetchResults: state.prefetchResults.map((r) => r.resource_id === resourceId ? { ...r, ready: true } : r),
+        }));
+        schedulePrefetchCleanup(resourceId);
       })
       .catch((e: unknown) => {
         console.warn("[IPC]", e);
+        schedulePrefetchCleanup(resourceId);
       });
   },
 
   predictAndPrefetch: (inputText: string): IntentPrediction[] => {
     const intents = predictIntentFromInput(inputText);
-    if (intents.length === 0 || !get().isEnabled) { return intents; }
+    if (intents.length === 0 || !useAppConfigStore.getState().features.proactiveMode) { return intents; }
 
-    // Trigger prefetch based on predicted intent
     for (const intent of intents) {
       const type = `intent:${intent.intent}`;
       if (!canPrefetchNow(type)) { continue; }
 
-      // Fire-and-forget prefetch based on intent type
       switch (intent.intent) {
-        case "search":
-          // Warm up search provider
+        case "search": {
+          const resourceId = `search-${intent.confidence}`;
+          const entry: PrefetchResult = {
+            prefetch_type: "searchResults",
+            resource_id: resourceId,
+            ready: false,
+            estimated_prepare_time_ms: 200,
+            created_at: new Date().toISOString(),
+          };
+          set((state) => ({
+            prefetchResults: [...state.prefetchResults, entry],
+            isPrefetchActive: true,
+          }));
           invoke("list_search_providers", {})
-            .then(() => markPrefetched(type, ["searchProviders"]))
+            .then(() => {
+              markPrefetched(type, ["searchProviders"]);
+              set((state) => ({
+                prefetchResults: state.prefetchResults.map((r) =>
+                  r.resource_id === resourceId ? { ...r, ready: true } : r
+                ),
+              }));
+              schedulePrefetchCleanup(resourceId);
+            })
             .catch((e: unknown) => {
               console.warn("[IPC]", e);
+              schedulePrefetchCleanup(resourceId);
             });
           break;
-        case "codeGeneration":
-          // Pre-warm code executor
+        }
+        case "codeGeneration": {
+          const resourceId = `codeGen-${intent.confidence}`;
+          const entry: PrefetchResult = {
+            prefetch_type: "codeCompletion",
+            resource_id: resourceId,
+            ready: false,
+            estimated_prepare_time_ms: 150,
+            created_at: new Date().toISOString(),
+          };
+          set((state) => ({
+            prefetchResults: [...state.prefetchResults, entry],
+            isPrefetchActive: true,
+          }));
           invoke("list_local_tools", {})
-            .then(() => markPrefetched(type, ["localTools"]))
+            .then(() => {
+              markPrefetched(type, ["localTools"]);
+              set((state) => ({
+                prefetchResults: state.prefetchResults.map((r) =>
+                  r.resource_id === resourceId ? { ...r, ready: true } : r
+                ),
+              }));
+              schedulePrefetchCleanup(resourceId);
+            })
             .catch((e: unknown) => {
               console.warn("[IPC]", e);
+              schedulePrefetchCleanup(resourceId);
             });
           break;
-        case "translation":
-          // Pre-warm language models list
+        }
+        case "translation": {
+          const resourceId = `translation-${intent.confidence}`;
+          const entry: PrefetchResult = {
+            prefetch_type: "toolCache",
+            resource_id: resourceId,
+            ready: false,
+            estimated_prepare_time_ms: 100,
+            created_at: new Date().toISOString(),
+          };
+          set((state) => ({
+            prefetchResults: [...state.prefetchResults, entry],
+            isPrefetchActive: true,
+          }));
           invoke("list_providers", {})
-            .then(() => markPrefetched(type, ["providers"]))
+            .then(() => {
+              markPrefetched(type, ["providers"]);
+              set((state) => ({
+                prefetchResults: state.prefetchResults.map((r) =>
+                  r.resource_id === resourceId ? { ...r, ready: true } : r
+                ),
+              }));
+              schedulePrefetchCleanup(resourceId);
+            })
             .catch((e: unknown) => {
               console.warn("[IPC]", e);
+              schedulePrefetchCleanup(resourceId);
             });
           break;
+        }
         default:
           break;
       }
@@ -433,5 +604,27 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
   resetPrefetchState: () => {
     _prefetchState.prefetchedIds.clear();
     _prefetchState.lastPrefetchTime = {};
+    set({ prefetchResults: [], isPrefetchActive: false });
+  },
+
+  addPrefetchEntry: (result: PrefetchResult) => {
+    set((state) => ({
+      prefetchResults: [...state.prefetchResults, result],
+      isPrefetchActive: true,
+    }));
+  },
+
+  markPrefetchEntryReady: (resourceId: string) => {
+    set((state) => ({
+      prefetchResults: state.prefetchResults.map((r) => r.resource_id === resourceId ? { ...r, ready: true } : r),
+    }));
+    const updated = get().prefetchResults;
+    if (updated.every((r) => r.ready)) {
+      set({ isPrefetchActive: false });
+    }
+  },
+
+  clearPrefetchEntries: () => {
+    set({ prefetchResults: [], isPrefetchActive: false });
   },
 }));

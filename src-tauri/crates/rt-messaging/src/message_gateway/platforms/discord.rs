@@ -1,6 +1,6 @@
 use futures::{SinkExt, StreamExt};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::Message;
@@ -241,10 +241,10 @@ async fn handle_dispatch(
     match event_type {
         "MESSAGE_CREATE" => {
             let channel_id = data["channel_id"].as_str().unwrap_or("").to_string();
-            if let Some(channels) = allowed_channels {
-                if !channels.contains(&channel_id) {
-                    return;
-                }
+            if let Some(channels) = allowed_channels
+                && !channels.contains(&channel_id)
+            {
+                return;
             }
 
             let author_id = data["author"]["id"].as_str().unwrap_or("").to_string();
@@ -258,10 +258,10 @@ async fn handle_dispatch(
                 return;
             }
 
-            if let Some(bot) = data["author"]["bot"].as_bool() {
-                if bot {
-                    return;
-                }
+            if let Some(bot) = data["author"]["bot"].as_bool()
+                && bot
+            {
+                return;
             }
 
             tracing::info!(

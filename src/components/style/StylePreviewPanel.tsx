@@ -8,7 +8,7 @@ interface StylePreviewPanelProps {
   onStyleApplied?: (styledCode: string) => void;
 }
 
-export default function StylePreviewPanel({
+export function StylePreviewPanel({
   code,
   language: _language = "typescript",
   onStyleApplied,

@@ -634,8 +634,8 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::{
-        edit_file, expand_braces, glob_search, grep_search, is_symlink_escape, read_file,
-        read_file_in_workspace, write_file, GrepSearchInput, MAX_WRITE_SIZE,
+        GrepSearchInput, MAX_WRITE_SIZE, edit_file, expand_braces, glob_search, grep_search,
+        is_symlink_escape, read_file, read_file_in_workspace, write_file,
     };
 
     fn temp_path(name: &str) -> std::path::PathBuf {

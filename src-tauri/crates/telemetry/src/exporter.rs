@@ -109,25 +109,28 @@ impl Default for ConsoleExporter {
 
 impl TraceExporter for ConsoleExporter {
     fn export(&self, trace: TraceExport) -> Result<(), TracerError> {
-        println!("=== Trace {} ===", trace.trace_id);
-        println!("Metadata: {:?}", trace.metadata);
+        tracing::debug!("=== Trace {} ===", trace.trace_id);
+        tracing::debug!("Metadata: {:?}", trace.metadata);
         for span in &trace.spans {
-            println!(
+            tracing::debug!(
                 "  Span [{}] {} ({:?}) - {:?}ms",
-                span.id, span.name, span.span_type, span.duration_ms
+                span.id,
+                span.name,
+                span.span_type,
+                span.duration_ms
             );
-            if let Some(inputs) = &span.inputs {
-                if self.include_inputs {
-                    println!("    Inputs: {}", inputs);
-                }
+            if let Some(inputs) = &span.inputs
+                && self.include_inputs
+            {
+                tracing::debug!("    Inputs: {}", inputs);
             }
-            if let Some(outputs) = &span.outputs {
-                if self.include_outputs {
-                    println!("    Outputs: {}", outputs);
-                }
+            if let Some(outputs) = &span.outputs
+                && self.include_outputs
+            {
+                tracing::debug!("    Outputs: {}", outputs);
             }
             for error in &span.errors {
-                println!("    Error: {} - {}", error.error_type, error.message);
+                tracing::debug!("    Error: {} - {}", error.error_type, error.message);
             }
         }
         Ok(())

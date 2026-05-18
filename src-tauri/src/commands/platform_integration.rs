@@ -8,6 +8,8 @@ use axagent_runtime::message_gateway::platform_manager::{
 use serde::Serialize;
 use tauri::State;
 
+const VALID_PLATFORMS: &[&str] = &["discord", "telegram", "slack", "webhook"];
+
 // ── IPC 返回类型（替代旧 axagent_trajectory 中的类型） ──
 
 #[derive(Debug, Clone, Serialize)]
@@ -121,6 +123,9 @@ pub async fn process_platform_message(
     platform: String,
     payload: serde_json::Value,
 ) -> Result<Option<OutgoingMessage>, String> {
+    if !VALID_PLATFORMS.contains(&platform.as_str()) {
+        return Err(format!("Unsupported platform: {}", platform));
+    }
     tracing::info!("process_platform_message: platform={}, payload={}", platform, payload);
     Ok(None)
 }
@@ -135,6 +140,9 @@ pub async fn send_platform_message(
     text: String,
     parse_mode: Option<String>,
 ) -> Result<(), String> {
+    if !VALID_PLATFORMS.contains(&platform.as_str()) {
+        return Err(format!("Unsupported platform: {}", platform));
+    }
     let config = axagent_core::repo::platform_config::get_platform_config(&state.sea_db).await;
 
     let adapter = state

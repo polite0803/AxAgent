@@ -45,7 +45,7 @@ interface BenchSuiteInfo {
   }>;
 }
 
-function BenchmarkPanel() {
+export function BenchmarkPanel() {
   const { t } = useTranslation();
   const [suites, setSuites] = useState<BenchSuiteInfo[]>([]);
   const [results, setResults] = useState<BenchResult[]>([]);
@@ -57,7 +57,10 @@ function BenchmarkPanel() {
       const { invoke } = await import("@/lib/invoke");
       const data = await invoke<BenchSuiteInfo[]>(
         "benchmark_list_suites",
-      ).catch(() => []);
+      ).catch((e) => {
+        if (import.meta.env.DEV) { console.warn("Failed to fetch benchmark suites:", e); }
+        return [];
+      });
       setSuites(data);
     } catch {
       // ignore
@@ -256,5 +259,3 @@ function BenchmarkPanel() {
     </Card>
   );
 }
-
-export default BenchmarkPanel;

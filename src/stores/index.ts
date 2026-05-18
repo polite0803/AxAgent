@@ -21,7 +21,9 @@ export type { FeatureFlags, ModelTier as AppConfigModelTier } from "./feature/ap
 export { useBackupStore } from "./feature/backupStore";
 export { useBuddyStore } from "./feature/buddyStore";
 export type { BuddyInfo, BuddyMessage, BuddyMood } from "./feature/buddyStore";
+export { useCacheStore } from "./feature/cacheStore";
 export { useCategoryStore } from "./feature/categoryStore";
+export { useCitationStore } from "./feature/citationStore";
 export { useContinuationStore } from "./feature/continuationStore";
 export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useExecutionStore } from "./feature/executionStore";

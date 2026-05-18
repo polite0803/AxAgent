@@ -7,6 +7,7 @@ const { Text, Paragraph } = Typography;
 interface CronResultMessageProps {
   jobName: string;
   schedule: string;
+  description?: string;
   result: string;
   success: boolean;
   timestamp: number;
@@ -16,12 +17,13 @@ interface CronResultMessageProps {
 export function CronResultMessage({
   jobName,
   schedule,
+  description,
   result,
   success,
   timestamp,
   platform,
 }: CronResultMessageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <Card
       size="small"
@@ -29,7 +31,7 @@ export function CronResultMessage({
       title={
         <div className="flex items-center gap-2">
           <Clock size={14} />
-          <span>Cron: {jobName}</span>
+          <span>{t("cronResult.prefix", { jobName })}</span>
           {success
             ? <Tag color="success" icon={<CheckCircle size={12} />}>{t("cronResult.success")}</Tag>
             : <Tag color="error" icon={<XCircle size={12} />}>{t("cronResult.failed")}</Tag>}
@@ -41,6 +43,12 @@ export function CronResultMessage({
           <Text type="secondary">{t("cronResult.schedule")}</Text>
           <Text code>{schedule}</Text>
         </div>
+        {description && (
+          <div className="flex items-center justify-between">
+            <Text type="secondary">{t("cronResult.scheduleDescription")}</Text>
+            <Text>{description}</Text>
+          </div>
+        )}
         {platform && (
           <div className="flex items-center justify-between">
             <Text type="secondary">{t("cronResult.platform")}</Text>
@@ -49,13 +57,13 @@ export function CronResultMessage({
         )}
         <div className="flex items-center justify-between">
           <Text type="secondary">{t("cronResult.time")}</Text>
-          <Text>{new Date(timestamp).toLocaleString()}</Text>
+          <Text>{new Date(timestamp).toLocaleString(i18n.language)}</Text>
         </div>
         <Paragraph
           ellipsis={{ rows: 3, expandable: true }}
           style={{ marginTop: 8, marginBottom: 0 }}
         >
-          {result}
+          {result || t("cronResult.emptyResult")}
         </Paragraph>
       </div>
     </Card>

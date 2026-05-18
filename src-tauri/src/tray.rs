@@ -1,9 +1,9 @@
 use std::sync::{LazyLock, Mutex};
 use tauri::{
+    AppHandle, Manager,
     image::Image,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Manager,
 };
 
 const TRAY_ID: &str = "axagent-tray";

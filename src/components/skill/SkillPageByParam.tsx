@@ -1,10 +1,12 @@
 import { useSkillExtensionStore } from "@/stores";
 import { Spin } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { SkillPageRenderer } from "./SkillPageRenderer";
 
-function SkillPageByParam() {
+export default function SkillPageByParam() {
+  const { t } = useTranslation();
   const { skillName, pageId } = useParams<{ skillName: string; pageId?: string }>();
   const pages = useSkillExtensionStore((s) => s.pages);
   const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
@@ -37,7 +39,7 @@ function SkillPageByParam() {
   if (!skillName) {
     return (
       <div style={{ padding: 24, textAlign: "center" }}>
-        未指定 skill 名称。
+        {t("skill.noSkillName")}
       </div>
     );
   }
@@ -60,7 +62,7 @@ function SkillPageByParam() {
     if (notFound) {
       return (
         <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-secondary)" }}>
-          Skill 页面 "{skillName}"{pageId ? `/${pageId}` : ""} 未找到。
+          {t("skill.notFound", { skillName, pageId: pageId ? `/${pageId}` : "" })}
         </div>
       );
     }
@@ -80,5 +82,4 @@ function SkillPageByParam() {
   );
 }
 
-export default SkillPageByParam;
 export { SkillPageByParam };

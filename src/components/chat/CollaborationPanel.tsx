@@ -1,7 +1,8 @@
 import { Badge, Button, Card, Space, Tag, Tooltip, Typography } from "antd";
-import { Clock, Copy, Link, UserPlus, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Clock, Copy, Link, Plus, UserPlus, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SessionShareDialog } from "./SessionShareDialog";
 
 const { Text, Title } = Typography;
 
@@ -35,11 +36,21 @@ interface SharedSession {
   is_active: boolean;
 }
 
-function CollaborationPanel() {
+interface CollaborationPanelProps {
+  conversationId: string;
+}
+
+export function CollaborationPanel({ conversationId }: CollaborationPanelProps) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<SharedSession[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => clearTimeout(copyTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -47,7 +58,10 @@ function CollaborationPanel() {
         const { invoke } = await import("@/lib/invoke");
         const data = await invoke<SharedSession[]>(
           "collaboration_list_sessions",
-        ).catch(() => []);
+        ).catch((e) => {
+          if (import.meta.env.DEV) { console.warn("Failed to fetch sessions:", e); }
+          return [];
+        });
         setSessions(data);
       } catch {
         // ignore
@@ -61,34 +75,93 @@ function CollaborationPanel() {
   const copyInviteCode = (code: string) => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     });
   };
+
+  const [dialogPermissions, setDialogPermissions] = useState({
+    allow_terminal_access: true,
+    allow_file_access: true,
+    allow_model_access: false,
+    require_approval_for_actions: true,
+    max_participants: 5,
+  });
+
+  const handleJoinSession = async (code: string) => {
+    try {
+      const { invoke } = await import("@/lib/invoke");
+      await invoke("collaboration_join_session", {
+        conversation_id: conversationId,
+        invite_code: code,
+      });
+      setDialogOpen(false);
+      const updated = await invoke<SharedSession[]>(
+        "collaboration_list_sessions",
+      ).catch(() => []);
+      setSessions(updated);
+    } catch (e) {
+      if (import.meta.env.DEV) { console.warn("Failed to join session:", e); }
+      throw e;
+    }
+  };
+
+  const shareDialog = (
+    <SessionShareDialog
+      open={dialogOpen}
+      sessionId={conversationId}
+      permissions={dialogPermissions}
+      onClose={() => setDialogOpen(false)}
+      onPermissionsChange={(perms) => setDialogPermissions(perms)}
+      onJoinSession={handleJoinSession}
+    />
+  );
 
   if (sessions.length === 0) {
     return (
       <Card size="small">
+        {shareDialog}
         <div className="flex items-center gap-2 mb-2">
           <Users size={16} className="text-blue-500" />
           <Title level={5} className="mb-0">
             {t("chat.collaboration.title")}
           </Title>
         </div>
-        <Text type="secondary" className="text-xs">
+        <Text type="secondary" className="text-xs block mb-3">
           {t("chat.collaboration.noSessions")}
         </Text>
+        <Button
+          type="primary"
+          size="small"
+          icon={<Plus size={14} />}
+          onClick={() => setDialogOpen(true)}
+          block
+        >
+          {t("chat.collaboration.sessionShare.title")}
+        </Button>
       </Card>
     );
   }
 
   return (
     <Card size="small" className="collaboration-panel">
-      <div className="flex items-center gap-2 mb-3">
-        <Users size={16} className="text-blue-500" />
-        <Title level={5} className="mb-0">
-          {t("chat.collaboration.title")}
-        </Title>
-        <Badge count={sessions.length} size="small" />
+      {shareDialog}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Users size={16} className="text-blue-500" />
+          <Title level={5} className="mb-0">
+            {t("chat.collaboration.title")}
+          </Title>
+          <Badge count={sessions.length} size="small" />
+        </div>
+        <Button
+          type="primary"
+          size="small"
+          icon={<Plus size={14} />}
+          onClick={() => setDialogOpen(true)}
+        >
+          {t("chat.collaboration.sessionShare.shareMode")}
+        </Button>
       </div>
 
       <div className="space-y-2">
@@ -191,5 +264,3 @@ function CollaborationPanel() {
     </Card>
   );
 }
-
-export default CollaborationPanel;

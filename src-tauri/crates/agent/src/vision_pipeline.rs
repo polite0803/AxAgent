@@ -18,25 +18,25 @@ impl VisionTask {
             VisionTask::ImageDescription => {
                 "You are an image analysis assistant. Describe the provided image in detail, \
                  covering all visible elements, colors, layout, text, and context."
-            }
+            },
             VisionTask::Ocr => {
                 "You are an OCR assistant. Extract all text from the provided image. \
                  Output only the extracted text, preserving the original formatting and line breaks."
-            }
+            },
             VisionTask::UiElementDetection => {
                 "You are a UI analysis assistant. Analyze the provided screenshot and list all \
                  interactive elements (buttons, inputs, links, menus, toggles, etc.) with their \
                  labels, types, and positions. Format as a structured list."
-            }
+            },
             VisionTask::ChartAnalysis => {
                 "You are a chart analysis assistant. Analyze the provided chart/graph image. \
                  Extract data points, labels, axes information, trends, and key insights. \
                  Provide both a summary and structured data when possible."
-            }
+            },
             VisionTask::CodeScreenshotReading => {
                 "You are a code reading assistant. Extract all code visible in the provided \
                  screenshot. Output only the code as plain text, preserving indentation and formatting."
-            }
+            },
         }
     }
 

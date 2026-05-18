@@ -33,10 +33,10 @@ fn dir_size_mb(dir: &str) -> f64 {
             for entry in entries.filter_map(|e| e.ok()) {
                 let p = entry.path();
                 if p.is_dir() {
-                    if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
-                        if name == ".git" || name == "node_modules" || name == "target" {
-                            continue;
-                        }
+                    if let Some(name) = p.file_name().and_then(|n| n.to_str())
+                        && (name == ".git" || name == "node_modules" || name == "target")
+                    {
+                        continue;
                     }
                     walk(&p, total);
                 } else {
@@ -150,13 +150,11 @@ impl Tool for CtxInspectTool {
             if let Ok(output) = Command::new("git")
                 .args(["log", "--oneline", "-5"])
                 .output()
+                && output.status.success()
+                && let Ok(text) = String::from_utf8(output.stdout)
             {
-                if output.status.success() {
-                    if let Ok(text) = String::from_utf8(output.stdout) {
-                        for l in text.lines() {
-                            lines.push(format!("  {}", l));
-                        }
-                    }
+                for l in text.lines() {
+                    lines.push(format!("  {}", l));
                 }
             }
 

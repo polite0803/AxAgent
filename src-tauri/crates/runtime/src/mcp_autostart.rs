@@ -111,15 +111,14 @@ fn collect_mcp_servers() -> BTreeMap<String, BTreeMap<String, String>> {
     let config_paths = discover_config_paths();
 
     for path in config_paths {
-        if let Ok(content) = std::fs::read_to_string(&path) {
-            if let Ok(root) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(mcp_servers) = root.get("mcpServers").and_then(|v| v.as_object()) {
-                    for (name, config_value) in mcp_servers {
-                        // 后面的配置覆盖前面的（项目 > 用户）
-                        if let Some(config) = parse_mcp_server_config(config_value) {
-                            all_servers.insert(name.clone(), config);
-                        }
-                    }
+        if let Ok(content) = std::fs::read_to_string(&path)
+            && let Ok(root) = serde_json::from_str::<serde_json::Value>(&content)
+            && let Some(mcp_servers) = root.get("mcpServers").and_then(|v| v.as_object())
+        {
+            for (name, config_value) in mcp_servers {
+                // 后面的配置覆盖前面的（项目 > 用户）
+                if let Some(config) = parse_mcp_server_config(config_value) {
+                    all_servers.insert(name.clone(), config);
                 }
             }
         }
@@ -136,15 +135,15 @@ fn parse_mcp_server_config(value: &serde_json::Value) -> Option<BTreeMap<String,
     if let Some(cmd) = obj.get("command").and_then(|v| v.as_str()) {
         config.insert("command".into(), cmd.to_string());
     }
-    if let Some(args) = obj.get("args") {
-        if let Ok(args_str) = serde_json::to_string(args) {
-            config.insert("args".into(), args_str);
-        }
+    if let Some(args) = obj.get("args")
+        && let Ok(args_str) = serde_json::to_string(args)
+    {
+        config.insert("args".into(), args_str);
     }
-    if let Some(env) = obj.get("env") {
-        if let Ok(env_str) = serde_json::to_string(env) {
-            config.insert("env".into(), env_str);
-        }
+    if let Some(env) = obj.get("env")
+        && let Ok(env_str) = serde_json::to_string(env)
+    {
+        config.insert("env".into(), env_str);
     }
     if let Some(enabled) = obj.get("enabled").and_then(|v| v.as_bool()) {
         config.insert("enabled".into(), enabled.to_string());

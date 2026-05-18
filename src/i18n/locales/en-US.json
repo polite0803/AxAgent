@@ -186,6 +186,8 @@
     "moveToCategory": "Move to Category",
     "removeFromCategory": "Remove from Category",
     "categoryNamePlaceholder": "Category name",
+    "manageCategories": "Manage Categories",
+    "noCategories": "No categories yet. Create one above.",
     "inspector": {
       "title": "Inspector",
       "sources": "Sources",
@@ -209,7 +211,10 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "count": "{{count}} items",
-      "tokenMax": "Token Limit"
+      "tokenMax": "Token Limit",
+      "messages": "Messages",
+      "systemPrompt": "System Prompt",
+      "skills": "Skills"
     },
     "contextGraph": {
       "title": "Context Graph",
@@ -244,8 +249,12 @@
     },
     "branch": {
       "compare": "Branch Compare",
+      "compareTitle": "Branch Compare",
       "left": "Left",
-      "right": "Right"
+      "right": "Right",
+      "current": "Current",
+      "unknownModel": "Unknown Model",
+      "selectVersion": "Select Version"
     },
     "search": {
       "title": "Web Search",
@@ -415,6 +424,11 @@
       "result": "Result:",
       "error": "Error:",
       "attempts": "{{count}} attempts",
+      "loading": "Loading...",
+      "cancelled": "Cancelled",
+      "cancelFailed": "Cancel failed",
+      "cancel": "Cancel",
+      "noSteps": "No steps",
       "decompositionSaved": "Decomposition workflow saved successfully",
       "semanticCheckTitle": "Similar Skills Found",
       "semanticCheckDescription": "The following generated atomic skills have high semantic similarity with existing skills. You can choose to use the existing skill or keep the generated one.",
@@ -618,6 +632,8 @@
     "tabCloseOthers": "Close Other Tabs",
     "tabCloseRight": "Close Tabs to the Right",
     "agentStats": {
+      "askUser": "questions",
+      "loading": "Loading...",
       "pause": "Pause",
       "paused": "Paused",
       "pending": "Pending",
@@ -655,29 +671,31 @@
       "renderError": "Chart generation failed: {{error}}"
     },
     "collaboration": {
+      "title": "Collaboration",
+      "noSessions": "No shared sessions",
       "copied": "Copied",
-      "copyCode": "Copy code",
-      "noSessions": "No collaboration sessions",
-      "participants": "Participants",
+      "copyCode": "Copy invite code",
       "session": "Session",
-      "sessionShare": {
-        "codePlaceholder": "XXXX-XXXX",
-        "copied": "Copied",
-        "copy": "Copy",
-        "enterInviteCode": "Enter invite code",
-        "fileAccess": "File Access",
-        "inviteCode": "Invite Code",
-        "joinMode": "Join Mode",
-        "joinSession": "Join Session",
-        "modelAccess": "Model Access",
-        "permissions": "Permissions",
-        "requireApproval": "Require Approval",
-        "shareMode": "Share Mode",
-        "terminalAccess": "Terminal Access",
-        "title": "Session Sharing"
-      },
+      "participants": "Participants",
       "sharedResources": "Shared Resources",
-      "title": "Collaboration"
+      "sessionShare": {
+        "title": "Session Sharing",
+        "shareMode": "Share",
+        "joinMode": "Join",
+        "inviteCode": "Invite Code",
+        "copy": "Copy",
+        "permissions": "Permissions",
+        "terminalAccess": "Terminal Access",
+        "fileAccess": "File Access",
+        "modelAccess": "Model Access",
+        "requireApproval": "Require Approval",
+        "enterInviteCode": "Enter invite code",
+        "codePlaceholder": "Enter invite code",
+        "joinSession": "Join Session",
+        "copyFailed": "Copy failed",
+        "joinFailed": "Join failed",
+        "maxParticipants": "Max Participants"
+      }
     },
     "conversationNotFound": "Conversation not found",
     "copyMarkdown": "Copy Markdown",
@@ -729,16 +747,28 @@
     },
     "steer": "Steer",
     "steerPlaceholder": "Enter steering instruction...",
+    "steerSent": "Steering instruction sent",
+    "steerError": "Failed to send steering instruction",
     "totalTokens": "Total Tokens",
     "tokens": "tokens",
     "vision": {
+      "analyze": "Analyze",
       "analyzedImage": "Analyzed image",
       "analyzing": "Analyzing...",
+      "confidence": "Confidence",
       "description": "Description",
       "elements": "Elements",
       "extractedText": "Extracted text",
       "imageAnalysis": "Image Analysis",
       "model": "Model",
+      "uploadImage": "Click or drag to upload an image",
+      "taskLabels": {
+        "ImageDescription": "Image Description",
+        "Ocr": "OCR / Text Extraction",
+        "UiElementDetection": "UI Element Detection",
+        "ChartAnalysis": "Chart Analysis",
+        "CodeScreenshotReading": "Code Reading"
+      },
       "ui": {
         "actionable": "Actionable",
         "analyzing": "Analyzing...",
@@ -2668,7 +2698,8 @@
     "proxyTestFailed": "Proxy test failed",
     "invalidFormat": "Invalid format",
     "page": "Error",
-    "message": "错误"
+    "message": "错误",
+    "pageNotFound": "Sorry, the page you visited does not exist."
   },
   "desktop": {
     "title": "Desktop Integration",
@@ -3249,6 +3280,79 @@
       "legacySuffix": "(Legacy)",
       "templatesTab": "Templates",
       "searchTemplates": "Search templates..."
+    },
+    "knowledgeSettings": {
+      "title": "Knowledge"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "chatRightPanel": {
+      "agent": "Agent",
+      "hierarchy": "Hierarchy",
+      "research": "Research",
+      "git": "Git",
+      "task": "Tasks",
+      "code": "Code",
+      "artifact": "Artifacts",
+      "imageGen": "Image",
+      "report": "Report",
+      "citation": "Citations",
+      "inspector": "Inspector",
+      "errorRecovery": "Recovery",
+      "teammate": "Team",
+      "browser": "Browser",
+      "computer": "Desktop",
+      "benchmark": "Bench",
+      "chart": "Chart",
+      "snapshot": "Snapshot",
+      "profile": "Profile",
+      "collaboration": "Collab",
+      "visionAnalysis": "Vision"
+    },
+    "knowledgeSettings": {
+      "title": "Knowledge"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    },
+    "chatRightPanel": {
+      "agent": "Agent",
+      "hierarchy": "Hierarchy",
+      "research": "Research",
+      "git": "Git",
+      "task": "Tasks",
+      "code": "Code",
+      "artifact": "Artifacts",
+      "imageGen": "Image",
+      "visionAnalysis": "Vision",
+      "report": "Report",
+      "citation": "Citations",
+      "inspector": "Inspector",
+      "browser": "Browser",
+      "computer": "Desktop",
+      "benchmark": "Bench",
+      "chart": "Chart",
+      "snapshot": "Snapshot",
+      "profile": "Profile",
+      "errorRecovery": "Recovery",
+      "collaboration": "Collab",
+      "evolution": "Evolution",
+      "steer": "Steer",
+      "cache": "Cache",
+      "branchCompare": "Branch",
+      "gateway": "Gateway",
+      "contextClass": "Context",
+      "cronResult": "Cron",
+      "reflection": "Reflection",
+      "researchSources": "Sources",
+      "categoryEdit": "Category",
+      "filePermission": "FilePerm",
+      "sessionShare": "Share",
+      "prefetch": "Prefetch",
+      "reminders": "Reminders",
+      "contextPrediction": "Prediction",
+      "teammate": "Team"
     },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
@@ -4527,21 +4631,32 @@
     "completed": "Completed",
     "contextPrediction": "Context Prediction",
     "delete": "Delete",
+    "deleteConfirm": "Are you sure you want to delete this reminder?",
     "description": "Description",
     "descriptionPlaceholder": "Enter description...",
     "dismiss": "Dismiss",
     "dismissAll": "Dismiss All",
     "estimatedTime": "Estimated Time",
+    "everyInterval": "Every {{interval}} {{unit}}",
+    "everySingle": "Every {{unit}}",
     "inDays": "In {{count}} days",
     "language": "Language",
     "loading": "Loading...",
     "moreSuggestions": "More Suggestions",
     "noPredictions": "No predictions",
     "noReminders": "No reminders",
+    "overdue": "Overdue",
     "prefetchReady": "Prefetch ready",
     "prefetching": "Prefetching...",
+    "recurrenceUnitDay": "day",
+    "recurrenceUnitDays": "days",
+    "recurrenceUnitMonth": "month",
+    "recurrenceUnitMonths": "months",
+    "recurrenceUnitWeek": "week",
+    "recurrenceUnitWeeks": "weeks",
     "reminders": "Reminders",
     "scheduledAt": "Scheduled at",
+    "scheduledWas": "Scheduled: {{time}}",
     "snooze": "Snooze",
     "suggestedActions": "Suggested Actions",
     "suggestions": "Suggestions",
@@ -4550,7 +4665,10 @@
     "today": "Today",
     "tomorrow": "Tomorrow",
     "unknown": "Unknown",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "retry": "Retry",
+    "applied": "Applied",
+    "copied": "Copied to clipboard"
   },
   "review": {
     "commentPlaceholder": "Enter comment...",
@@ -5410,6 +5528,7 @@
     "sourceTypeWeb": "Web",
     "sourceTypeAcademic": "Academic",
     "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "Documentation",
     "sourceTypeNews": "News",
     "sourceTypeBlog": "Blog",
@@ -5692,8 +5811,12 @@
     "success": "Success",
     "failed": "Failed",
     "schedule": "Schedule",
+    "scheduleDescription": "Description",
     "platform": "Platform",
-    "time": "Time"
+    "time": "Time",
+    "loading": "Loading cron job result…",
+    "prefix": "Cron: {{jobName}}",
+    "emptyResult": "No result"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -5701,7 +5824,8 @@
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",
-    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force."
+    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force.",
+    "active": "Cache active. {{hits}} hits, ~{{tokens}} tokens saved."
   },
   "artifactPanel": {
     "fullscreen": "Fullscreen"
@@ -5723,10 +5847,31 @@
   "reflection": {
     "noReflection": "No reflection available",
     "title": "Reflection",
+    "qualityScore": "Quality Score",
+    "excellent": "Excellent",
+    "good": "Good",
+    "needsImprovement": "Needs Improvement",
+    "startReflection": "Start Reflection",
+    "reflecting": "Reflecting...",
+    "analyzing": "Analyzing task execution...",
     "qualityAnalysis": "Quality Analysis",
     "efficiencyAnalysis": "Efficiency Analysis",
+    "errorPatterns": "Error Patterns",
+    "reusablePatterns": "Reusable Patterns",
+    "knowledgeSuggestions": "Knowledge Suggestions",
+    "improvementSuggestions": "Improvement Suggestions",
     "generatedInsights": "Generated Insights",
-    "usageCount": "Usage count"
+    "usageCount": "Usage count",
+    "summary": "Summary",
+    "qualityMetrics": "Quality Metrics",
+    "taskSuccessScore": "Task Success",
+    "toolEfficiencyScore": "Tool Efficiency",
+    "iterationEfficiencyScore": "Iteration Efficiency",
+    "timeEfficiencyScore": "Time Efficiency",
+    "errorRecoveryScore": "Error Recovery",
+    "goalCompletionScore": "Goal Completion",
+    "reflectError": "Reflection Failed",
+    "retry": "Retry"
   },
   "subAgentCard": {
     "fork": "Fork"

@@ -1,9 +1,20 @@
-import { Alert, Badge, Button, Card, Progress, Tag, Typography } from "antd";
+import { invoke } from "@/lib/invoke";
+import { Alert, Badge, Button, Card, Progress, Tag, Tooltip, Typography } from "antd";
 import { AlertTriangle, Brain, CheckCircle, Clock, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
+
+interface QualityMetricsData {
+  task_success_score: number;
+  tool_efficiency_score: number;
+  iteration_efficiency_score: number;
+  time_efficiency_score: number;
+  error_recovery_score: number;
+  goal_completion_score: number;
+  overall_weighted_score: number;
+}
 
 interface ReflectionData {
   task_id: string;
@@ -16,6 +27,7 @@ interface ReflectionData {
   knowledge_suggestions: string[];
   improvement_suggestions: string[];
   overall_summary: string;
+  quality_metrics: QualityMetricsData | null;
 }
 
 interface Insight {
@@ -23,18 +35,25 @@ interface Insight {
   category: string;
   title: string;
   content: string;
+  source_task_id: string;
   confidence: number;
   tags: string[];
-  usage_count: number;
   created_at: string;
+  usage_count: number;
+  last_used: string | null;
 }
 
 interface ReflectionPanelProps {
   taskId?: string;
   taskDescription?: string;
   onReflectionComplete?: (reflection: ReflectionData) => void;
-  initialReflection?: ReflectionData | null;
-  isRefecting?: boolean;
+  executionRecord?: {
+    success: boolean;
+    error?: string;
+    toolsUsed: string[];
+    iterations: number;
+    durationMs: number;
+  };
 }
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -55,22 +74,20 @@ const categoryColors: Record<string, string> = {
   tool_usage: "orange",
 };
 
-function QualityScore({ score }: { score: number }) {
+function QualityScore({ score, t }: { score: number; t: (key: string) => string }) {
   const color = score >= 7 ? "#52c41a" : score >= 4 ? "#faad14" : "#ff4d4f";
-  const label = score >= 7 ? "Excellent" : score >= 4 ? "Good" : "Needs Improvement";
+  const label = score >= 7
+    ? t("reflection.excellent")
+    : score >= 4
+    ? t("reflection.good")
+    : t("reflection.needsImprovement");
 
   return (
     <div className="flex items-center gap-3">
-      <Progress
-        type="circle"
-        percent={score * 10}
-        size={50}
-        strokeColor={color}
-        format={() => score}
-      />
+      <Progress type="circle" percent={score * 10} size={50} strokeColor={color} format={() => score} />
       <div>
         <Text strong style={{ fontSize: 16 }}>
-          Quality Score
+          {t("reflection.qualityScore")}
         </Text>
         <div>
           <Tag color={score >= 7 ? "green" : score >= 4 ? "gold" : "red"}>{label}</Tag>
@@ -100,7 +117,7 @@ function AnalysisSection({
           <Text strong>{title}</Text>
         </div>
       }
-      description={<Text className="text-sm">{content}</Text>}
+      description={<Text className="text-sm whitespace-pre-line">{content}</Text>}
       className="mb-3"
     />
   );
@@ -109,26 +126,31 @@ function AnalysisSection({
 function PatternList({
   patterns,
   type,
+  t,
 }: {
   patterns: string[];
   type: "error" | "success";
+  t: (key: string) => string;
 }) {
-  if (patterns.length === 0) { return null; }
+  if (patterns.length === 0) {
+    return null;
+  }
 
   return (
     <div className="mb-3">
       <Text strong className="mb-2 block">
-        {type === "error" ? "Error Patterns" : "Reusable Patterns"}
+        {type === "error" ? t("reflection.errorPatterns") : t("reflection.reusablePatterns")}
       </Text>
       <div className="flex flex-wrap gap-2">
-        {patterns.map((pattern, idx) => (
-          <Tag
-            key={idx}
-            color={type === "error" ? "red" : "green"}
-            icon={type === "error" ? <AlertTriangle size={12} /> : <CheckCircle size={12} />}
-          >
-            {pattern.length > 50 ? pattern.substring(0, 50) + "..." : pattern}
-          </Tag>
+        {patterns.map((pattern) => (
+          <Tooltip key={pattern} title={pattern.length > 50 ? pattern : undefined}>
+            <Tag
+              color={type === "error" ? "red" : "green"}
+              icon={type === "error" ? <AlertTriangle size={12} /> : <CheckCircle size={12} />}
+            >
+              {pattern.length > 50 ? pattern.substring(0, 50) + "..." : pattern}
+            </Tag>
+          </Tooltip>
         ))}
       </div>
     </div>
@@ -146,18 +168,14 @@ function InsightCard({ insight }: { insight: Insight }) {
             {insight.title}
           </Text>
         </div>
-        <Tag color={categoryColors[insight.category] || "default"}>
-          {(insight.confidence * 100).toFixed(0)}%
-        </Tag>
+        <Tag color={categoryColors[insight.category] || "default"}>{(insight.confidence * 100).toFixed(0)}%</Tag>
       </div>
       <Text type="secondary" className="text-xs block mt-1">
-        {insight.content.length > 100
-          ? insight.content.substring(0, 100) + "..."
-          : insight.content}
+        {insight.content.length > 100 ? insight.content.substring(0, 100) + "..." : insight.content}
       </Text>
       <div className="flex items-center gap-2 mt-2">
-        {insight.tags.slice(0, 3).map((tag, idx) => (
-          <Tag key={idx} className="text-xs">
+        {insight.tags.slice(0, 3).map((tag) => (
+          <Tag key={tag} className="text-xs">
             {tag}
           </Tag>
         ))}
@@ -169,95 +187,122 @@ function InsightCard({ insight }: { insight: Insight }) {
   );
 }
 
+function QualityMetricsBreakdown({ metrics, t }: { metrics: QualityMetricsData; t: (key: string) => string }) {
+  const dimensions = [
+    { key: "taskSuccessScore", value: metrics.task_success_score, color: "#1890ff" },
+    { key: "toolEfficiencyScore", value: metrics.tool_efficiency_score, color: "#52c41a" },
+    { key: "iterationEfficiencyScore", value: metrics.iteration_efficiency_score, color: "#722ed1" },
+    { key: "timeEfficiencyScore", value: metrics.time_efficiency_score, color: "#fa8c16" },
+    { key: "errorRecoveryScore", value: metrics.error_recovery_score, color: "#eb2f96" },
+    { key: "goalCompletionScore", value: metrics.goal_completion_score, color: "#13c2c2" },
+  ];
+
+  return (
+    <div className="mb-4">
+      <Text strong className="mb-2 block">
+        {t("reflection.qualityMetrics")}
+      </Text>
+      <div className="grid grid-cols-1 gap-2">
+        {dimensions.map((dim) => (
+          <div key={dim.key} className="flex items-center gap-2">
+            <Text className="text-xs w-24 flex-shrink-0">{t(`reflection.${dim.key}`)}</Text>
+            <Progress
+              percent={(dim.value / 10) * 100}
+              size="small"
+              strokeColor={dim.color}
+              format={() => dim.value.toFixed(1)}
+              className="flex-1"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ReflectionPanel({
   taskId,
   taskDescription,
   onReflectionComplete,
-  initialReflection = null,
-  isRefecting: initialIsRefecting = false,
+  executionRecord,
 }: ReflectionPanelProps) {
   const { t } = useTranslation();
-  const [isRefecting, setIsRefecting] = useState(initialIsRefecting);
-  const [reflection, setReflection] = useState<ReflectionData | null>(initialReflection);
+  const [isRefecting, setIsRefecting] = useState(false);
+  const [reflection, setReflection] = useState<ReflectionData | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
-  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const reflectedTaskId = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (isRefecting && progress < 100) {
-      const timer = setTimeout(() => {
-        setProgress((prev) => {
-          const newProgress = prev + 10;
-          if (newProgress >= 100) {
-            const newReflection: ReflectionData = {
-              task_id: taskId || "unknown",
-              timestamp: new Date().toISOString(),
-              quality_score: 7,
-              quality_analysis: "Task completed successfully with good efficiency. Some minor improvements possible.",
-              efficiency_analysis: "Total duration: 5000ms. Duration per iteration: 500ms. Execution was efficient.",
-              error_patterns: ["Consider adding retry logic for network operations"],
-              reusable_patterns: [
-                "Successfully completed task with tool combination: search -> analyze -> report",
-              ],
-              knowledge_suggestions: [
-                "Cache intermediate results for similar tasks",
-                "Document error handling patterns",
-              ],
-              improvement_suggestions: [
-                "Quality score is good but could be improved with better verification",
-                "Consider parallel execution for independent subtasks",
-              ],
-              overall_summary:
-                "Task 'Analysis' succeeded in 5000ms with quality score 7/10. 10 iterations, 3 tools used. 1 error patterns identified. 1 reusable patterns found.",
-            };
-            setReflection(newReflection);
-            setIsRefecting(false);
-            onReflectionComplete?.(newReflection);
-
-            const newInsights: Insight[] = [
-              {
-                id: "1",
-                category: "success_pattern",
-                title: "Tool Sequence Pattern",
-                content: "Successfully completed task with tool combination: search -> analyze -> report",
-                confidence: 0.8,
-                tags: ["reusable", "workflow"],
-                usage_count: 5,
-                created_at: new Date().toISOString(),
-              },
-              {
-                id: "2",
-                category: "optimization",
-                title: "Performance Optimization",
-                content: "Task took 5000ms. Consider caching, parallel execution, or algorithm optimization.",
-                confidence: 0.7,
-                tags: ["performance", "optimization"],
-                usage_count: 2,
-                created_at: new Date().toISOString(),
-              },
-            ];
-            setInsights(newInsights);
-          }
-          return newProgress;
-        });
-      }, 200);
-
-      return () => clearTimeout(timer);
+  const performReflection = useCallback(async () => {
+    if (!executionRecord || !taskId) {
+      return;
     }
-  }, [isRefecting, progress, taskId, onReflectionComplete]);
 
-  const handleStartReflection = () => {
+    if (reflectedTaskId.current === taskId) {
+      return;
+    }
+    reflectedTaskId.current = taskId;
+
     setIsRefecting(true);
     setReflection(null);
-    setProgress(0);
-    setInsights([]);
+    setError(null);
+
+    try {
+      const result = await invoke<ReflectionData>("reflect_on_task", {
+        taskId,
+        taskDescription: taskDescription || "",
+        success: executionRecord.success,
+        error: executionRecord.error || null,
+        toolsUsed: executionRecord.toolsUsed,
+        iterations: executionRecord.iterations,
+        durationMs: executionRecord.durationMs,
+      });
+
+      setReflection(result);
+      onReflectionComplete?.(result);
+
+      try {
+        const fetchedInsights = await invoke<Insight[]>("get_reflection_insights", { category: null });
+        setInsights(fetchedInsights.slice(-10));
+      } catch {
+        // insights fetch is non-critical
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsRefecting(false);
+    }
+  }, [executionRecord, taskId, taskDescription, onReflectionComplete]);
+
+  useEffect(() => {
+    if (executionRecord && taskId) {
+      performReflection();
+    }
+  }, [performReflection]);
+
+  const handleStartReflection = () => {
+    reflectedTaskId.current = null;
+    performReflection();
   };
 
   const handleReset = () => {
     setIsRefecting(false);
     setReflection(null);
-    setProgress(0);
+    setError(null);
     setInsights([]);
+    reflectedTaskId.current = null;
   };
+
+  if (error) {
+    return (
+      <Card size="small" className="reflection-panel">
+        <Alert type="error" message={t("reflection.reflectError")} description={error} />
+        <Button type="link" icon={<RefreshCw size={14} />} onClick={handleReset} className="mt-2">
+          {t("reflection.retry")}
+        </Button>
+      </Card>
+    );
+  }
 
   if (!reflection && !isRefecting) {
     return (
@@ -266,15 +311,10 @@ export function ReflectionPanel({
           <Brain size={24} className="mr-2" />
           <Text type="secondary">{t("reflection.noReflection")}</Text>
         </div>
-        {taskDescription && (
+        {(taskDescription || taskId) && (
           <div className="mt-4">
-            <Button
-              type="primary"
-              icon={<Brain size={14} />}
-              onClick={handleStartReflection}
-              block
-            >
-              Start Reflection
+            <Button type="primary" icon={<Brain size={14} />} onClick={handleStartReflection} block>
+              {t("reflection.startReflection")}
             </Button>
           </div>
         )}
@@ -290,21 +330,14 @@ export function ReflectionPanel({
         title={
           <div className="flex items-center gap-2">
             <Brain size={16} className="text-blue-500 animate-pulse" />
-            <span>Reflecting...</span>
+            <span>{t("reflection.reflecting")}</span>
           </div>
         }
       >
-        <div className="flex items-center justify-center h-40">
-          <Progress
-            type="circle"
-            percent={progress}
-            size={80}
-            strokeColor="#1890ff"
-          />
+        <div className="flex items-center justify-center h-40 flex-col gap-4">
+          <Brain size={48} className="text-blue-400 animate-pulse" />
+          <Text type="secondary">{t("reflection.analyzing")}</Text>
         </div>
-        <Text type="secondary" className="block text-center">
-          Analyzing task execution...
-        </Text>
       </Card>
     );
   }
@@ -318,39 +351,32 @@ export function ReflectionPanel({
           <div className="flex items-center gap-2">
             <Brain size={16} className="text-purple-500" />
             <span>{t("reflection.title")}</span>
-            <Tag color="purple">{taskId || "unknown"}</Tag>
+            <Tag color="purple">{reflection?.task_id || taskId || "unknown"}</Tag>
           </div>
-          <Button
-            type="text"
-            size="small"
-            icon={<RefreshCw size={14} />}
-            onClick={handleReset}
-          />
+          <Button type="text" size="small" icon={<RefreshCw size={14} />} onClick={handleReset} />
         </div>
       }
     >
       {reflection && (
         <>
           <div className="mb-4">
-            <QualityScore score={reflection.quality_score} />
+            <QualityScore score={reflection.quality_score} t={t} />
           </div>
+
+          {reflection.quality_metrics && <QualityMetricsBreakdown metrics={reflection.quality_metrics} t={t} />}
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <Text type="secondary" className="text-xs">
-                Error Patterns
+                {t("reflection.errorPatterns")}
               </Text>
-              <div className="text-lg font-medium text-red-500">
-                {reflection.error_patterns.length}
-              </div>
+              <div className="text-lg font-medium text-red-500">{reflection.error_patterns.length}</div>
             </div>
             <div>
               <Text type="secondary" className="text-xs">
-                Reusable Patterns
+                {t("reflection.reusablePatterns")}
               </Text>
-              <div className="text-lg font-medium text-green-500">
-                {reflection.reusable_patterns.length}
-              </div>
+              <div className="text-lg font-medium text-green-500">{reflection.reusable_patterns.length}</div>
             </div>
           </div>
 
@@ -368,21 +394,33 @@ export function ReflectionPanel({
             type="info"
           />
 
-          <PatternList patterns={reflection.error_patterns} type="error" />
-          <PatternList patterns={reflection.reusable_patterns} type="success" />
+          <PatternList patterns={reflection.error_patterns} type="error" t={t} />
+          <PatternList patterns={reflection.reusable_patterns} type="success" t={t} />
+
+          {reflection.knowledge_suggestions.length > 0 && (
+            <div className="mb-3">
+              <Text strong className="mb-2 block">
+                {t("reflection.knowledgeSuggestions")}
+              </Text>
+              {reflection.knowledge_suggestions.map((suggestion) => (
+                <Alert
+                  key={suggestion}
+                  type="info"
+                  message={suggestion}
+                  className="mb-2"
+                  icon={<Lightbulb size={14} />}
+                />
+              ))}
+            </div>
+          )}
 
           {reflection.improvement_suggestions.length > 0 && (
             <div className="mb-3">
               <Text strong className="mb-2 block">
-                Improvement Suggestions
+                {t("reflection.improvementSuggestions")}
               </Text>
-              {reflection.improvement_suggestions.map((suggestion, idx) => (
-                <Alert
-                  key={idx}
-                  type="warning"
-                  message={suggestion}
-                  className="mb-2"
-                />
+              {reflection.improvement_suggestions.map((suggestion) => (
+                <Alert key={suggestion} type="warning" message={suggestion} className="mb-2" />
               ))}
             </div>
           )}
@@ -401,7 +439,7 @@ export function ReflectionPanel({
 
           <Alert
             type="info"
-            message="Summary"
+            message={t("reflection.summary")}
             description={reflection.overall_summary}
             className="mt-4"
           />
@@ -415,30 +453,66 @@ export function useReflection() {
   const [reflection, setReflection] = useState<ReflectionData | null>(null);
   const [isRefecting, setIsRefecting] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const startReflection = (_taskId: string, _taskDescription: string) => {
-    setIsRefecting(true);
-    setReflection(null);
-  };
+  const startReflection = useCallback(
+    async (params: {
+      taskId: string;
+      taskDescription: string;
+      success: boolean;
+      error?: string;
+      toolsUsed: string[];
+      iterations: number;
+      durationMs: number;
+    }) => {
+      setIsRefecting(true);
+      setReflection(null);
+      setError(null);
 
-  const completeReflection = (refl: ReflectionData) => {
-    setReflection(refl);
-    setIsRefecting(false);
-  };
+      try {
+        const result = await invoke<ReflectionData>("reflect_on_task", {
+          task_id: params.taskId,
+          task_description: params.taskDescription,
+          success: params.success,
+          error: params.error || null,
+          tools_used: params.toolsUsed,
+          iterations: params.iterations,
+          duration_ms: params.durationMs,
+        });
 
-  const reset = () => {
+        setReflection(result);
+
+        try {
+          const fetchedInsights = await invoke<Insight[]>("get_reflection_insights", { category: null });
+          setInsights(fetchedInsights.slice(-10));
+        } catch {
+          // non-critical
+        }
+
+        return result;
+      } catch (e) {
+        setError(String(e));
+        throw e;
+      } finally {
+        setIsRefecting(false);
+      }
+    },
+    [],
+  );
+
+  const reset = useCallback(() => {
     setReflection(null);
     setIsRefecting(false);
     setInsights([]);
-  };
+    setError(null);
+  }, []);
 
   return {
     reflection,
     isRefecting,
     insights,
+    error,
     startReflection,
-    completeReflection,
     reset,
-    ReflectionPanel,
   };
 }

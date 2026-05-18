@@ -107,7 +107,8 @@ impl WebhookSubscriptionManager {
         events: Vec<WebhookEvent>,
         secret: Option<String>,
     ) -> Result<WebhookSubscription, String> {
-        let parsed_url = url::Url::parse(&url).map_err(|e| format!("Invalid webhook URL: {}", e))?;
+        let parsed_url =
+            url::Url::parse(&url).map_err(|e| format!("Invalid webhook URL: {}", e))?;
         if parsed_url.scheme() != "https" {
             return Err("Webhook URL must use HTTPS".to_string());
         }
@@ -115,14 +116,12 @@ impl WebhookSubscriptionManager {
         if host == "localhost" || host == "127.0.0.1" || host == "::1" {
             return Err("Webhook URL cannot point to localhost".to_string());
         }
-        if let Some(ip) = host.parse::<std::net::IpAddr>().ok() {
+        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
             let is_restricted = match ip {
                 std::net::IpAddr::V4(v4) => {
                     v4.is_loopback() || v4.is_private() || v4.is_link_local()
-                }
-                std::net::IpAddr::V6(v6) => {
-                    v6.is_loopback()
-                }
+                },
+                std::net::IpAddr::V6(v6) => v6.is_loopback(),
             };
             if is_restricted {
                 return Err("Webhook URL cannot point to a private/internal address".to_string());

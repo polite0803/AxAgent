@@ -67,7 +67,7 @@ function ThemePreview({ colors, name }: ThemePreviewProps) {
   );
 }
 
-export default function ThemeManager() {
+export function ThemeManager() {
   const { t } = useTranslation();
   const {
     currentTheme,

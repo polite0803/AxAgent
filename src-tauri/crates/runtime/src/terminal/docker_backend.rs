@@ -39,7 +39,10 @@ impl DockerBackend {
     ) -> anyhow::Result<serde_json::Value> {
         let base_url = format!("http://{}", self.socket_path);
         let url = format!("{}{}", base_url, path);
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
         let mut req = match method {
             "GET" => client.get(&url),
@@ -162,7 +165,7 @@ impl TerminalBackend for DockerBackend {
         let text = String::from_utf8_lossy(_data);
         let body = serde_json::json!({
             "AttachStdin": true,
-            "Cmd": ["sh", "-c", &text],
+            "Cmd": ["sh", "-c", text.as_ref()],
         });
 
         let exec_resp = self
@@ -237,14 +240,14 @@ impl TerminalBackend for DockerBackend {
         let mut outputs = Vec::new();
         let now = chrono::Utc::now().timestamp_millis();
 
-        if let Ok(json) = resp {
-            if let Some(log_str) = json.as_str() {
-                outputs.push(TerminalOutput {
-                    session_id: session_id.to_string(),
-                    data: log_str.to_string(),
-                    timestamp: now,
-                });
-            }
+        if let Ok(json) = resp
+            && let Some(log_str) = json.as_str()
+        {
+            outputs.push(TerminalOutput {
+                session_id: session_id.to_string(),
+                data: log_str.to_string(),
+                timestamp: now,
+            });
         }
 
         Ok(outputs)

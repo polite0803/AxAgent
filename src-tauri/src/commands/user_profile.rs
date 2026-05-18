@@ -191,7 +191,10 @@ pub async fn update_user_profile(
 
     if let Some(ref domain_knowledge) = updates.domain_knowledge {
         for area in &domain_knowledge.expertise_areas {
-            profile.set_preference("expertise_area".to_string(), serde_json::to_string(&area).unwrap_or_default());
+            profile.set_preference(
+                "expertise_area".to_string(),
+                serde_json::to_string(&area).unwrap_or_default(),
+            );
         }
         for topic in &domain_knowledge.interest_topics {
             profile.set_preference("interest_topic".to_string(), topic.clone());

@@ -54,8 +54,10 @@ pub mod proactive;
 pub mod profile;
 pub mod prompt_templates;
 pub mod providers;
+pub mod pty;
 #[cfg(not(mobile))]
 pub mod quickbar;
+pub mod reflection;
 pub mod rl;
 pub mod sandbox;
 pub mod scheduled_task;

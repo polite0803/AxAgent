@@ -827,7 +827,11 @@ mod tests {
     #[tokio::test]
     async fn test_check_content_quality_low_quality_phrases() {
         let checker = make_lint_checker().await;
-        let note = make_note("Low Quality", "llm", "The answer is unknown. I am not sure about this. TODO: fill in later. Cannot determine the result. I don't know the answer.");
+        let note = make_note(
+            "Low Quality",
+            "llm",
+            "The answer is unknown. I am not sure about this. TODO: fill in later. Cannot determine the result. I don't know the answer.",
+        );
         let mut issues = Vec::new();
         checker.check_content_quality(&note, &mut issues);
         let low_quality_issues: Vec<&LintIssue> = issues
@@ -835,9 +839,11 @@ mod tests {
             .filter(|i| i.code == "low-quality-phrase")
             .collect();
         assert!(!low_quality_issues.is_empty());
-        assert!(low_quality_issues
-            .iter()
-            .all(|i| i.severity == IssueSeverity::Warning));
+        assert!(
+            low_quality_issues
+                .iter()
+                .all(|i| i.severity == IssueSeverity::Warning)
+        );
     }
 
     #[tokio::test]
@@ -1013,16 +1019,20 @@ mod tests {
         let note_unknown = make_note("T", "llm", "The result is unknown at this time.");
         let mut issues = Vec::new();
         checker.check_content_quality(&note_unknown, &mut issues);
-        assert!(issues
-            .iter()
-            .any(|i| i.code == "low-quality-phrase" && i.message.contains("unknown")));
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.code == "low-quality-phrase" && i.message.contains("unknown"))
+        );
 
         let note_todo = make_note("T", "llm", "TODO: implement this feature later.");
         let mut issues2 = Vec::new();
         checker.check_content_quality(&note_todo, &mut issues2);
-        assert!(issues2
-            .iter()
-            .any(|i| i.code == "low-quality-phrase" && i.message.contains("todo")));
+        assert!(
+            issues2
+                .iter()
+                .any(|i| i.code == "low-quality-phrase" && i.message.contains("todo"))
+        );
     }
 
     #[tokio::test]

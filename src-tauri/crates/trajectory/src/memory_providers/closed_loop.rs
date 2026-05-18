@@ -4,8 +4,8 @@
 //! Replaces TypeScript `ClosedLoopLearning.ts` with Rust implementation.
 //! Leverages existing `skill_evolution` module for genetic algorithm-based skill optimization.
 
-use crate::skill::Skill;
 use crate::TrajectoryStorage;
+use crate::skill::Skill;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
@@ -161,75 +161,75 @@ impl ClosedLoopService {
     }
 
     pub async fn execute_upgrade_action(&self, auto_action: &AutoAction) {
-        if auto_action.action_type == "upgrade_skill" {
-            if let Ok(proposal) = serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target)
+        if auto_action.action_type == "upgrade_skill"
+            && let Ok(proposal) = serde_json::from_str::<SkillUpgradeProposal>(&auto_action.target)
+        {
+            if let Ok(Some(mut existing_skill)) = self.storage.get_skill(&proposal.target_skill_id)
             {
-                if let Ok(Some(mut existing_skill)) =
-                    self.storage.get_skill(&proposal.target_skill_id)
-                {
-                    let now = chrono::Utc::now();
+                let now = chrono::Utc::now();
 
-                    let mut updated_content = existing_skill.content.clone();
-                    updated_content.push_str("\n\n## Improvement Suggestions\n");
-                    updated_content.push_str(&proposal.suggested_improvements);
+                let mut updated_content = existing_skill.content.clone();
+                updated_content.push_str("\n\n## Improvement Suggestions\n");
+                updated_content.push_str(&proposal.suggested_improvements);
 
-                    let mut updated_scenarios = existing_skill.scenarios.clone();
-                    for scenario in &proposal.additional_scenarios {
-                        if !updated_scenarios.contains(scenario) {
-                            updated_scenarios.push(scenario.clone());
-                        }
+                let mut updated_scenarios = existing_skill.scenarios.clone();
+                for scenario in &proposal.additional_scenarios {
+                    if !updated_scenarios.contains(scenario) {
+                        updated_scenarios.push(scenario.clone());
                     }
+                }
 
-                    let old_version = existing_skill.version.clone();
-                    let version_parts: Vec<&str> = old_version.split('.').collect();
-                    let new_version = if version_parts.len() >= 2 {
-                        let minor: u32 = version_parts[1].parse().unwrap_or(0);
-                        format!("{}.{}.0", version_parts[0], minor + 1)
-                    } else {
-                        "1.1.0".to_string()
-                    };
-
-                    existing_skill.content = updated_content;
-                    existing_skill.scenarios = updated_scenarios;
-                    existing_skill.version = new_version.clone();
-                    existing_skill.updated_at = now;
-
-                    if let Err(e) = self.storage.save_skill(&existing_skill) {
-                        tracing::warn!("Failed to upgrade skill in storage: {}", e);
-                    } else {
-                        tracing::info!(
-                            "Upgraded skill in storage: {} from {} to {}",
-                            existing_skill.name,
-                            old_version,
-                            new_version
-                        );
-                    }
-
-                    if let Some(ref skills_dir) = self.skills_dir {
-                        let skill_dir = skills_dir.join(&existing_skill.name);
-                        let skill_md = format!(
-                            "---\nname: {}\ndescription: {}\nversion: {}\nscenarios:\n{}\nmetadata:\n  hermes:\n    tags: [auto-created, upgraded]\n    related_skills: []\n---\n\n{}",
-                            existing_skill.name,
-                            existing_skill.description,
-                            existing_skill.version,
-                            existing_skill.scenarios.iter().map(|s| format!("  - {}", s)).collect::<Vec<_>>().join("\n"),
-                            existing_skill.content
-                        );
-                        match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {
-                            Ok(_) => {
-                                tracing::info!("Updated skill file at {}", skill_dir.display());
-                            },
-                            Err(e) => {
-                                tracing::warn!("Failed to update skill file: {}", e);
-                            },
-                        }
-                    }
+                let old_version = existing_skill.version.clone();
+                let version_parts: Vec<&str> = old_version.split('.').collect();
+                let new_version = if version_parts.len() >= 2 {
+                    let minor: u32 = version_parts[1].parse().unwrap_or(0);
+                    format!("{}.{}.0", version_parts[0], minor + 1)
                 } else {
-                    tracing::warn!(
-                        "Target skill not found for upgrade: {}",
-                        proposal.target_skill_id
+                    "1.1.0".to_string()
+                };
+
+                existing_skill.content = updated_content;
+                existing_skill.scenarios = updated_scenarios;
+                existing_skill.version = new_version.clone();
+                existing_skill.updated_at = now;
+
+                if let Err(e) = self.storage.save_skill(&existing_skill) {
+                    tracing::warn!("Failed to upgrade skill in storage: {}", e);
+                } else {
+                    tracing::info!(
+                        "Upgraded skill in storage: {} from {} to {}",
+                        existing_skill.name,
+                        old_version,
+                        new_version
                     );
                 }
+
+                if let Some(ref skills_dir) = self.skills_dir {
+                    let skill_dir = skills_dir.join(&existing_skill.name);
+                    let skill_md = format!(
+                        "---\nname: {}\ndescription: {}\nversion: {}\nscenarios:\n{}\nmetadata:\n  hermes:\n    tags: [auto-created, upgraded]\n    related_skills: []\n---\n\n{}",
+                        existing_skill.name,
+                        existing_skill.description,
+                        existing_skill.version,
+                        existing_skill
+                            .scenarios
+                            .iter()
+                            .map(|s| format!("  - {}", s))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        existing_skill.content
+                    );
+                    match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {
+                        Ok(_) => {
+                            tracing::info!("Updated skill file at {}", skill_dir.display());
+                        },
+                        Err(e) => {
+                            tracing::warn!("Failed to update skill file: {}", e);
+                        },
+                    }
+                }
+            } else {
+                tracing::warn!("Target skill not found for upgrade: {}", proposal.target_skill_id);
             }
         }
     }
@@ -335,41 +335,40 @@ impl ClosedLoopService {
                 if let Some(similar) = similar_skills.first() {
                     if let Some((upgrade_proposal, _creation_proposal)) =
                         self.propose_skill_improvement(similar, task)
+                        && upgrade_proposal.confidence >= self.config.skill_creation_threshold
                     {
-                        if upgrade_proposal.confidence >= self.config.skill_creation_threshold {
-                            nudges.push(PeriodicNudge {
-                                id: format!(
-                                    "nudge_sc_{}_{}",
-                                    chrono::Utc::now().timestamp_millis(),
-                                    uuid::Uuid::new_v4()
-                                ),
-                                nudge_type: NudgeType::SkillCreation,
-                                title: "Skill Upgrade Suggestion".to_string(),
-                                description: format!(
-                                    "Consider upgrading skill \"{}\" with new scenarios and steps",
-                                    similar.name
-                                ),
-                                suggested_action: upgrade_proposal.suggested_improvements.clone(),
-                                urgency: if upgrade_proposal.confidence >= 0.9 {
-                                    "high".to_string()
-                                } else {
-                                    "medium".to_string()
-                                },
-                                auto_action: if upgrade_proposal.confidence
-                                    >= self.config.min_confidence_for_auto_action
-                                {
-                                    Some(AutoAction {
-                                        action_type: "upgrade_skill".to_string(),
-                                        target: serde_json::to_string(&upgrade_proposal)
-                                            .unwrap_or_default(),
-                                    })
-                                } else {
-                                    None
-                                },
-                                created_at: chrono::Utc::now().timestamp(),
-                                acknowledged: false,
-                            });
-                        }
+                        nudges.push(PeriodicNudge {
+                            id: format!(
+                                "nudge_sc_{}_{}",
+                                chrono::Utc::now().timestamp_millis(),
+                                uuid::Uuid::new_v4()
+                            ),
+                            nudge_type: NudgeType::SkillCreation,
+                            title: "Skill Upgrade Suggestion".to_string(),
+                            description: format!(
+                                "Consider upgrading skill \"{}\" with new scenarios and steps",
+                                similar.name
+                            ),
+                            suggested_action: upgrade_proposal.suggested_improvements.clone(),
+                            urgency: if upgrade_proposal.confidence >= 0.9 {
+                                "high".to_string()
+                            } else {
+                                "medium".to_string()
+                            },
+                            auto_action: if upgrade_proposal.confidence
+                                >= self.config.min_confidence_for_auto_action
+                            {
+                                Some(AutoAction {
+                                    action_type: "upgrade_skill".to_string(),
+                                    target: serde_json::to_string(&upgrade_proposal)
+                                        .unwrap_or_default(),
+                                })
+                            } else {
+                                None
+                            },
+                            created_at: chrono::Utc::now().timestamp(),
+                            acknowledged: false,
+                        });
                     }
                 } else {
                     let scenarios = self.extract_scenarios_from_topic(&task.topic);
@@ -543,7 +542,12 @@ impl ClosedLoopService {
                                             skill.name,
                                             skill.description,
                                             skill.version,
-                                            skill.scenarios.iter().map(|s| format!("  - {}", s)).collect::<Vec<_>>().join("\n"),
+                                            skill
+                                                .scenarios
+                                                .iter()
+                                                .map(|s| format!("  - {}", s))
+                                                .collect::<Vec<_>>()
+                                                .join("\n"),
                                             skill.content
                                         );
                                         match std::fs::write(skill_dir.join("SKILL.md"), &skill_md)
@@ -618,7 +622,12 @@ impl ClosedLoopService {
                                         existing_skill.name,
                                         existing_skill.description,
                                         existing_skill.version,
-                                        existing_skill.scenarios.iter().map(|s| format!("  - {}", s)).collect::<Vec<_>>().join("\n"),
+                                        existing_skill
+                                            .scenarios
+                                            .iter()
+                                            .map(|s| format!("  - {}", s))
+                                            .collect::<Vec<_>>()
+                                            .join("\n"),
                                         existing_skill.content
                                     );
                                     match std::fs::write(skill_dir.join("SKILL.md"), &skill_md) {

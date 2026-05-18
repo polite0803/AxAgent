@@ -145,6 +145,8 @@
     "moveToCategory": "نقل إلى فئة",
     "removeFromCategory": "إزالة من الفئة",
     "categoryNamePlaceholder": "اسم الفئة",
+    "manageCategories": "إدارة الفئات",
+    "noCategories": "لا توجد فئات بعد. أنشئ واحدة.",
     "inspector": {
       "title": "المفتش",
       "sources": "المصادر",
@@ -598,7 +600,10 @@
         "shareMode": "Share Mode",
         "terminalAccess": "Terminal Access",
         "title": "Session Sharing",
-        "codePlaceholder": "XXXX-XXXX"
+        "codePlaceholder": "XXXX-XXXX",
+        "copyFailed": "فشل النسخ",
+        "joinFailed": "فشل الانضمام",
+        "maxParticipants": "الحد الأقصى للمشاركين"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"
@@ -3871,6 +3876,77 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
+    "knowledgeSettings": {
+      "title": "المعرفة"
+    },
+    "notificationCenter": {
+      "title": "الإشعارات"
+    },
+    "chatRightPanel": {
+      "agent": "الوكيل",
+      "hierarchy": "التسلسل",
+      "research": "بحث",
+      "git": "Git",
+      "task": "مهام",
+      "code": "كود",
+      "artifact": "مخرجات",
+      "imageGen": "صورة",
+      "report": "تقرير",
+      "citation": "اقتباسات",
+      "inspector": "مفتش",
+      "errorRecovery": "استعادة",
+      "teammate": "فريق",
+      "browser": "متصفح",
+      "computer": "سطح مكتب",
+      "benchmark": "مقارنة",
+      "chart": "رسم",
+      "snapshot": "لقطة",
+      "profile": "ملف تعريف"
+    },
+    "knowledgeSettings": {
+      "title": "المعرفة"
+    },
+    "notificationCenter": {
+      "title": "الإشعارات"
+    },
+    "chatRightPanel": {
+      "agent": "الوكيل",
+      "hierarchy": "التسلسل",
+      "research": "بحث",
+      "git": "Git",
+      "task": "مهام",
+      "code": "كود",
+      "artifact": "مخرجات",
+      "imageGen": "صورة",
+      "visionAnalysis": "رؤية",
+      "report": "تقرير",
+      "citation": "اقتباسات",
+      "inspector": "مفتش",
+      "browser": "متصفح",
+      "computer": "سطح مكتب",
+      "benchmark": "مقارنة",
+      "chart": "رسم",
+      "snapshot": "لقطة",
+      "profile": "ملف تعريف",
+      "errorRecovery": "استعادة",
+      "collaboration": "تعاون",
+      "evolution": "تطور",
+      "steer": "توجيه",
+      "cache": "ذاكرة",
+      "branchCompare": "فرع",
+      "gateway": "بوابة",
+      "contextClass": "سياق",
+      "cronResult": "كرون",
+      "reflection": "تأمل",
+      "researchSources": "مصادر",
+      "categoryEdit": "فئة",
+      "filePermission": "ملف",
+      "sessionShare": "مشاركة",
+      "prefetch": "تحميل",
+      "reminders": "تذكير",
+      "contextPrediction": "تنبؤ",
+      "teammate": "فريق"
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",
@@ -5344,6 +5420,7 @@
     "sourceTypeWeb": "Web",
     "sourceTypeAcademic": "Academic",
     "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "Documentation",
     "sourceTypeNews": "News",
     "sourceTypeBlog": "Blog",
@@ -5924,11 +6001,15 @@
     "time": "Time"
   },
   "cronResult": {
-    "success": "Success",
-    "failed": "Failed",
-    "schedule": "Schedule",
-    "platform": "Platform",
-    "time": "Time"
+    "success": "نجاح",
+    "failed": "فشل",
+    "schedule": "الجدول",
+    "scheduleDescription": "الوصف",
+    "platform": "المنصة",
+    "time": "الوقت",
+    "loading": "جاري تحميل نتيجة مهمة Cron…",
+    "prefix": "Cron: {{jobName}}",
+    "emptyResult": "لا توجد نتيجة"
   },
   "errorBoundary": {
     "title": "Something went wrong",

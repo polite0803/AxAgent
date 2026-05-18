@@ -110,7 +110,7 @@ const Tab = memo(function Tab({
               customIcon.type === "emoji" ? <span style={{ fontSize: 12 }}>{customIcon.value}</span> : (
                 <img
                   src={customIcon.value}
-                  alt=""
+                  alt={model_id || ""}
                   style={{ width: 14, height: 14, borderRadius: 2, objectFit: "cover" }}
                 />
               )

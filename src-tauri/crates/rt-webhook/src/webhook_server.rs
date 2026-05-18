@@ -4,10 +4,10 @@ use axagent_rt_messaging::webhook_subscription::{
     WebhookEvent, WebhookSubscription, WebhookSubscriptionManager,
 };
 use axum::{
+    Json, Router,
     extract::State,
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
 };
 use std::sync::Arc;
 
@@ -21,17 +21,19 @@ pub struct WebhookServerState {
 pub struct WebhookServer {
     state: WebhookServerState,
     shutdown_tx: tokio::sync::oneshot::Sender<()>,
+    shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>,
 }
 
 impl WebhookServer {
     pub fn new(subscription_manager: Arc<WebhookSubscriptionManager>) -> Self {
-        let (shutdown_tx, _shutdown_rx) = tokio::sync::oneshot::channel();
+        let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
         Self {
             state: WebhookServerState {
                 subscription_manager,
                 platform_config: None,
             },
             shutdown_tx,
+            shutdown_rx: Some(shutdown_rx),
         }
     }
 
@@ -40,7 +42,7 @@ impl WebhookServer {
         self.state.platform_config = Some(config);
     }
 
-    pub async fn start(self, listener: tokio::net::TcpListener) -> Result<(), String> {
+    pub async fn start(mut self, listener: tokio::net::TcpListener) -> Result<(), String> {
         let app = Router::new()
             .route("/health", get(health_handler))
             .route("/subscriptions", get(list_subscriptions_handler))
@@ -60,7 +62,14 @@ impl WebhookServer {
             "Webhook server listening on port {}",
             listener.local_addr().unwrap().port()
         );
-        axum::serve(listener, app).await.map_err(|e| e.to_string())
+        let shutdown_rx = self.shutdown_rx.take().expect("shutdown_rx already taken");
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async {
+                let _ = shutdown_rx.await;
+                tracing::info!("Webhook server shutting down gracefully");
+            })
+            .await
+            .map_err(|e| e.to_string())
     }
 
     pub fn shutdown(self) {

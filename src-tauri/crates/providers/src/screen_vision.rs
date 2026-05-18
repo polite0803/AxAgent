@@ -1,7 +1,7 @@
-use axagent_core::error::{AxAgentError, Result};
-use axagent_core::screen_vision::{ScreenAnalysis, UIElementInfo, SuggestedAction};
-use axagent_core::types::*;
 use crate::{ProviderAdapter, ProviderRequestContext};
+use axagent_core::error::{AxAgentError, Result};
+use axagent_core::screen_vision::{ScreenAnalysis, SuggestedAction, UIElementInfo};
+use axagent_core::types::*;
 
 /// Analyze a screen using the given provider adapter, context, and model.
 pub async fn analyze_screen(
@@ -143,7 +143,9 @@ fn parse_analysis_response(response: &str) -> Result<ScreenAnalysis> {
                     .trim(),
             )
         })
-        .map_err(|e| AxAgentError::Provider(format!("Failed to parse JSON: {} - Response: {}", e, response)))?;
+        .map_err(|e| {
+            AxAgentError::Provider(format!("Failed to parse JSON: {} - Response: {}", e, response))
+        })?;
 
     let elements: Vec<UIElementInfo> = parsed["elements"]
         .as_array()
@@ -270,10 +272,10 @@ fn parse_actions_response(response: &str) -> Result<Vec<SuggestedAction>> {
 fn extract_json(text: &str) -> String {
     let trimmed = text.trim();
 
-    if trimmed.starts_with('{') {
-        if let Some(end) = trimmed.rfind('}') {
-            return trimmed[..=end].to_string();
-        }
+    if trimmed.starts_with('{')
+        && let Some(end) = trimmed.rfind('}')
+    {
+        return trimmed[..=end].to_string();
     }
 
     if let Some(json_start) = trimmed.find("```json") {

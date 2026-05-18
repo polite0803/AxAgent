@@ -145,6 +145,8 @@
     "moveToCategory": "移动到分类",
     "removeFromCategory": "移出分类",
     "categoryNamePlaceholder": "分类名称",
+    "manageCategories": "管理分类",
+    "noCategories": "暂无分类，点击上方按钮创建",
     "inspector": {
       "title": "检查器",
       "sources": "来源",
@@ -168,7 +170,10 @@
       "enabled": "已启用",
       "disabled": "已禁用",
       "count": "{{count}} 个",
-      "tokenMax": "Token上限"
+      "tokenMax": "Token上限",
+      "messages": "消息",
+      "systemPrompt": "系统提示",
+      "skills": "技能"
     },
     "artifacts": {
       "empty": "暂无制品",
@@ -178,8 +183,12 @@
     },
     "branch": {
       "compare": "分支对比",
+      "compareTitle": "分支对比",
       "left": "左侧",
-      "right": "右侧"
+      "right": "右侧",
+      "current": "当前",
+      "unknownModel": "未知模型",
+      "selectVersion": "选择版本"
     },
     "search": {
       "title": "联网搜索",
@@ -327,6 +336,11 @@
       "result": "结果",
       "error": "错误",
       "attempts": "尝试次数",
+      "loading": "加载中...",
+      "cancelled": "已取消",
+      "cancelFailed": "取消失败",
+      "cancel": "取消",
+      "noSteps": "暂无步骤",
       "performance": {
         "name": "性能优化",
         "description": "分析和优化代码性能瓶颈"
@@ -542,6 +556,8 @@
     "workspaceLocked": "会话开始后工作区目录不可修改",
     "lambda": "λ (TD)",
     "agentStats": {
+      "askUser": "个询问",
+      "loading": "加载中...",
       "pause": "暂停",
       "paused": "已暂停",
       "pending": "待处理",
@@ -579,29 +595,31 @@
       "renderError": "图表生成失败: {{error}}"
     },
     "collaboration": {
+      "title": "协作会话",
+      "noSessions": "暂无共享会话",
       "copied": "已复制",
-      "copyCode": "复制代码",
-      "noSessions": "暂无协作会话",
-      "participants": "参与者",
+      "copyCode": "复制邀请码",
       "session": "会话",
-      "sessionShare": {
-        "copied": "已复制",
-        "copy": "复制",
-        "enterInviteCode": "输入邀请码",
-        "fileAccess": "文件访问",
-        "inviteCode": "邀请码",
-        "joinMode": "加入模式",
-        "joinSession": "加入会话",
-        "modelAccess": "模型访问",
-        "permissions": "权限",
-        "requireApproval": "需要审批",
-        "shareMode": "分享模式",
-        "terminalAccess": "终端访问",
-        "title": "会话共享",
-        "codePlaceholder": "XXXX-XXXX"
-      },
+      "participants": "参与者",
       "sharedResources": "共享资源",
-      "title": "协作"
+      "sessionShare": {
+        "title": "会话分享",
+        "shareMode": "分享",
+        "joinMode": "加入",
+        "inviteCode": "邀请码",
+        "copy": "复制",
+        "permissions": "权限设置",
+        "terminalAccess": "终端访问",
+        "fileAccess": "文件访问",
+        "modelAccess": "模型访问",
+        "requireApproval": "需要审批",
+        "enterInviteCode": "输入邀请码",
+        "codePlaceholder": "请输入邀请码",
+        "joinSession": "加入会话",
+        "copyFailed": "复制失败",
+        "joinFailed": "加入失败",
+        "maxParticipants": "最大参与者数"
+      }
     },
     "conversationNotFound": "对话未找到",
     "copyMarkdown": "复制 Markdown",
@@ -653,16 +671,28 @@
     },
     "steer": "引导",
     "steerPlaceholder": "输入引导指令...",
+    "steerSent": "引导指令已发送",
+    "steerError": "引导指令发送失败",
     "totalTokens": "总 Tokens",
     "tokens": "个令牌",
     "vision": {
+      "analyze": "分析",
       "analyzedImage": "已分析图片",
       "analyzing": "分析中...",
+      "confidence": "置信度",
       "description": "描述",
       "elements": "元素",
       "extractedText": "提取文本",
       "imageAnalysis": "图片分析",
       "model": "模型",
+      "uploadImage": "点击或拖拽上传图片",
+      "taskLabels": {
+        "ImageDescription": "图片描述",
+        "Ocr": "OCR 文字提取",
+        "UiElementDetection": "UI 元素检测",
+        "ChartAnalysis": "图表分析",
+        "CodeScreenshotReading": "代码阅读"
+      },
       "ui": {
         "actionable": "可操作",
         "analyzing": "分析中...",
@@ -2473,7 +2503,8 @@
     "proxyTestFailed": "代理测试失败",
     "invalidFormat": "格式无效",
     "page": "出错了",
-    "message": "错误"
+    "message": "错误",
+    "pageNotFound": "抱歉，您访问的页面不存在。"
   },
   "desktop": {
     "title": "桌面集成",
@@ -3871,6 +3902,79 @@
     "noUndoAvailable": "无可撤销操作",
     "noRedoAvailable": "无可重做操作",
     "nodeDropFailed": "节点放置失败",
+    "knowledgeSettings": {
+      "title": "知识库"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "chatRightPanel": {
+      "agent": "智能体",
+      "hierarchy": "层级",
+      "research": "调研",
+      "git": "Git",
+      "task": "任务",
+      "code": "代码",
+      "artifact": "产出",
+      "imageGen": "生图",
+      "report": "报告",
+      "citation": "引用",
+      "inspector": "检查",
+      "errorRecovery": "恢复",
+      "teammate": "协作",
+      "browser": "浏览器",
+      "computer": "桌面",
+      "benchmark": "评测",
+      "chart": "图表",
+      "snapshot": "快照",
+      "profile": "用户",
+      "collaboration": "协作会话",
+      "visionAnalysis": "视觉分析"
+    },
+    "knowledgeSettings": {
+      "title": "知识库"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    },
+    "chatRightPanel": {
+      "agent": "智能体",
+      "hierarchy": "层级",
+      "research": "调研",
+      "git": "Git",
+      "task": "任务",
+      "code": "代码",
+      "artifact": "产出",
+      "imageGen": "生图",
+      "visionAnalysis": "视觉分析",
+      "report": "报告",
+      "citation": "引用",
+      "inspector": "检查",
+      "browser": "浏览器",
+      "computer": "桌面",
+      "benchmark": "评测",
+      "chart": "图表",
+      "snapshot": "快照",
+      "profile": "用户",
+      "errorRecovery": "恢复",
+      "collaboration": "协作",
+      "evolution": "进化",
+      "steer": "引导",
+      "cache": "缓存",
+      "branchCompare": "分支对比",
+      "gateway": "网关",
+      "contextClass": "上下文",
+      "cronResult": "定时结果",
+      "reflection": "反思",
+      "researchSources": "研究来源",
+      "categoryEdit": "分类编辑",
+      "filePermission": "文件权限",
+      "sessionShare": "会话分享",
+      "prefetch": "预取",
+      "reminders": "提醒",
+      "contextPrediction": "上下文预测",
+      "teammate": "协作"
+    },
     "rightPanel": {
       "addTagsPlaceholder": "添加标签...",
       "deleteEdge": "删除连线",
@@ -4450,21 +4554,32 @@
     "completed": "已完成",
     "contextPrediction": "上下文预测",
     "delete": "删除",
+    "deleteConfirm": "确定要删除此提醒吗？",
     "description": "描述",
     "descriptionPlaceholder": "输入描述...",
     "dismiss": "忽略",
     "dismissAll": "全部忽略",
     "estimatedTime": "预计时间",
+    "everyInterval": "每{{interval}}{{unit}}",
+    "everySingle": "每{{unit}}",
     "inDays": "{{count}} 天后",
     "language": "语言",
     "loading": "加载中...",
     "moreSuggestions": "更多建议",
     "noPredictions": "暂无预测",
     "noReminders": "暂无提醒",
+    "overdue": "已过期",
     "prefetchReady": "预取就绪",
     "prefetching": "预取中...",
+    "recurrenceUnitDay": "天",
+    "recurrenceUnitDays": "天",
+    "recurrenceUnitMonth": "月",
+    "recurrenceUnitMonths": "月",
+    "recurrenceUnitWeek": "周",
+    "recurrenceUnitWeeks": "周",
     "reminders": "提醒",
     "scheduledAt": "计划时间",
+    "scheduledWas": "计划时间: {{time}}",
     "snooze": "稍后提醒",
     "suggestedActions": "建议操作",
     "suggestions": "建议",
@@ -4473,7 +4588,10 @@
     "today": "今天",
     "tomorrow": "明天",
     "unknown": "未知",
-    "yesterday": "昨天"
+    "yesterday": "昨天",
+    "retry": "重试",
+    "applied": "已应用",
+    "copied": "已复制到剪贴板"
   },
   "review": {
     "commentPlaceholder": "输入评论...",
@@ -5410,6 +5528,7 @@
     "sourceTypeWeb": "网页",
     "sourceTypeAcademic": "学术",
     "sourceTypeWikipedia": "维基百科",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "文档",
     "sourceTypeNews": "新闻",
     "sourceTypeBlog": "博客",
@@ -5692,8 +5811,12 @@
     "success": "成功",
     "failed": "失败",
     "schedule": "调度",
+    "scheduleDescription": "描述",
     "platform": "平台",
-    "time": "时间"
+    "time": "时间",
+    "loading": "正在加载定时任务结果…",
+    "prefix": "定时任务: {{jobName}}",
+    "emptyResult": "无执行结果"
   },
   "errorBoundary": {
     "title": "出了点问题",
@@ -5701,7 +5824,8 @@
   },
   "cacheIndicator": {
     "notEstablished": "Prompt 缓存未建立。会话首轮。",
-    "pendingChanges": "检测到待生效变更。变更将在下次会话生效。使用 --now 强制生效。"
+    "pendingChanges": "检测到待生效变更。变更将在下次会话生效。使用 --now 强制生效。",
+    "active": "缓存已激活。{{hits}} 次命中，~{{tokens}} tokens 已节省。"
   },
   "artifactPanel": {
     "fullscreen": "全屏"
@@ -5723,10 +5847,31 @@
   "reflection": {
     "noReflection": "暂无反思结果",
     "title": "反思",
+    "qualityScore": "质量评分",
+    "excellent": "优秀",
+    "good": "良好",
+    "needsImprovement": "需要改进",
+    "startReflection": "开始反思",
+    "reflecting": "反思中...",
+    "analyzing": "正在分析任务执行...",
     "qualityAnalysis": "质量分析",
     "efficiencyAnalysis": "效率分析",
+    "errorPatterns": "错误模式",
+    "reusablePatterns": "可复用模式",
+    "knowledgeSuggestions": "知识建议",
+    "improvementSuggestions": "改进建议",
     "generatedInsights": "生成的洞察",
-    "usageCount": "使用次数"
+    "usageCount": "使用次数",
+    "summary": "摘要",
+    "qualityMetrics": "质量指标",
+    "taskSuccessScore": "任务成功率",
+    "toolEfficiencyScore": "工具效率",
+    "iterationEfficiencyScore": "迭代效率",
+    "timeEfficiencyScore": "时间效率",
+    "errorRecoveryScore": "错误恢复",
+    "goalCompletionScore": "目标完成度",
+    "reflectError": "反思失败",
+    "retry": "重试"
   },
   "subAgentCard": {
     "fork": "Fork"

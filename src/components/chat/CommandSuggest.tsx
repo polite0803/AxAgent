@@ -57,7 +57,7 @@ interface CommandSuggestProps {
   visible: boolean;
 }
 
-const CommandSuggest: React.FC<CommandSuggestProps> = ({
+export const CommandSuggest: React.FC<CommandSuggestProps> = ({
   value,
   cursorPosition,
   onSelect,
@@ -223,5 +223,3 @@ const CommandSuggest: React.FC<CommandSuggestProps> = ({
 export const isCommandSuggestHandlingKey = (): boolean => {
   return false; // Will be managed by parent
 };
-
-export default CommandSuggest;

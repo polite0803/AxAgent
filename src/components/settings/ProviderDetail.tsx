@@ -342,7 +342,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     } catch {
       setCustomHeadersLocal("");
     }
-  }, [provider?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [provider]);
 
   // Resolve actual request URLs for preview
   const resolvedUrls = useMemo(() => {

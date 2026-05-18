@@ -1,6 +1,6 @@
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
@@ -77,7 +77,12 @@ impl PlatformAdapter for FeishuAdapter {
                 match poll_feishu_messages(&client, &token, &mut seen_ids).await {
                     Ok(msgs) => {
                         for (user_id, text, chat_id, msg_id) in msgs {
-                            tracing::info!("Feishu msg [{}]: {} (from {})", msg_id, text, user_id);
+                            tracing::debug!(
+                                "Feishu msg [{}]: {} chars from {}",
+                                msg_id,
+                                text.len(),
+                                user_id
+                            );
 
                             if let Some(cb) =
                                 crate::message_gateway::platforms::get_message_callback()
@@ -180,14 +185,14 @@ async fn fetch_feishu_token(
     let resp = client.post(url).json(&body).send().await?;
     let body: serde_json::Value = resp.json().await?;
 
-    if let Some(code) = body.get("code").and_then(|v| v.as_i64()) {
-        if code != 0 {
-            let msg = body
-                .get("msg")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown error");
-            anyhow::bail!("Feishu API error: code={}, msg={}", code, msg);
-        }
+    if let Some(code) = body.get("code").and_then(|v| v.as_i64())
+        && code != 0
+    {
+        let msg = body
+            .get("msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown error");
+        anyhow::bail!("Feishu API error: code={}, msg={}", code, msg);
     }
 
     body.get("tenant_access_token")
@@ -215,14 +220,14 @@ async fn poll_feishu_messages(
 
     let json: serde_json::Value = resp.json().await?;
 
-    if let Some(code) = json.get("code").and_then(|v| v.as_i64()) {
-        if code != 0 {
-            let msg = json
-                .get("msg")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown");
-            anyhow::bail!("Feishu list messages failed: code={}, msg={}", code, msg);
-        }
+    if let Some(code) = json.get("code").and_then(|v| v.as_i64())
+        && code != 0
+    {
+        let msg = json
+            .get("msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        anyhow::bail!("Feishu list messages failed: code={}, msg={}", code, msg);
     }
 
     let mut results = Vec::new();
@@ -291,14 +296,14 @@ async fn send_feishu_text_message(
         .await?;
 
     let json: serde_json::Value = resp.json().await?;
-    if let Some(code) = json.get("code").and_then(|v| v.as_i64()) {
-        if code != 0 {
-            let msg = json
-                .get("msg")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown");
-            anyhow::bail!("Feishu send message failed: code={}, msg={}", code, msg);
-        }
+    if let Some(code) = json.get("code").and_then(|v| v.as_i64())
+        && code != 0
+    {
+        let msg = json
+            .get("msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        anyhow::bail!("Feishu send message failed: code={}, msg={}", code, msg);
     }
     Ok(())
 }

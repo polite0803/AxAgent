@@ -83,10 +83,10 @@ impl SkillSandboxExecutor {
             ));
         }
 
-        if let Some(ref tool) = step.tool {
-            if !self.policy.allowed_tools.contains(tool) {
-                violations.push(format!("tool '{}' is not in allowed list", tool));
-            }
+        if let Some(ref tool) = step.tool
+            && !self.policy.allowed_tools.contains(tool)
+        {
+            violations.push(format!("tool '{}' is not in allowed list", tool));
         }
 
         if step.action.is_empty() {
@@ -308,10 +308,10 @@ impl DryRunSandboxExecutor {
             ));
         }
 
-        if let Some(ref tool) = step.tool {
-            if !self.policy.allowed_tools.contains(tool) {
-                violations.push(format!("tool '{}' is not in allowed list", tool));
-            }
+        if let Some(ref tool) = step.tool
+            && !self.policy.allowed_tools.contains(tool)
+        {
+            violations.push(format!("tool '{}' is not in allowed list", tool));
         }
 
         if step.action.is_empty() {
@@ -450,10 +450,12 @@ mod tests {
         let step = make_step(0, "Use dangerous_tool with args", Some("dangerous_tool"));
         let result = executor.validate_step(&step);
         assert!(!result.allowed);
-        assert!(result
-            .violations
-            .iter()
-            .any(|v| v.contains("not in allowed list")));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.contains("not in allowed list"))
+        );
     }
 
     #[test]
@@ -466,10 +468,12 @@ mod tests {
         let step = make_step(5, "Use read_file", Some("read_file"));
         let result = executor.validate_step(&step);
         assert!(!result.allowed);
-        assert!(result
-            .violations
-            .iter()
-            .any(|v| v.contains("exceeds max_steps")));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.contains("exceeds max_steps"))
+        );
     }
 
     #[test]
@@ -478,10 +482,12 @@ mod tests {
         let step = make_step(0, "Use execute_bash with rm -rf /", Some("execute_bash"));
         let result = executor.validate_step(&step);
         assert!(!result.allowed);
-        assert!(result
-            .violations
-            .iter()
-            .any(|v| v.contains("dangerous pattern")));
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.contains("dangerous pattern"))
+        );
     }
 
     #[test]

@@ -142,13 +142,13 @@ pub use axagent_tools::{ToolContext, ToolError, ToolExecutionRecorder, ToolResul
 // LocalToolRegistry / LocalToolDef / LocalToolGroup 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
 // McpRegistry 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
 
-pub use llm_bridge::{build_llm_bridge_from_db, ProviderLlmBridge};
+pub use llm_bridge::{ProviderLlmBridge, build_llm_bridge_from_db};
 pub use loop_detector::{
     LoopDetector, LoopDetectorConfig, LoopWarning, LoopWarningLevel, ToolCallStats,
 };
 pub use metrics::{
-    log_with_fields, record_timing_async, MetricType, MetricValue, MetricsCollector,
-    StructuredLogEntry, TimedGuard, TimingStats,
+    MetricType, MetricValue, MetricsCollector, StructuredLogEntry, TimedGuard, TimingStats,
+    log_with_fields, record_timing_async,
 };
 pub use outline_builder::{OutlineBuilder, OutlineStyle, OutlineValidationError};
 pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
@@ -177,9 +177,9 @@ pub use search_provider::{
     SearchResultProcessor,
 };
 pub use self_verifier::{
-    detect_state_change, validate_json_output, FieldChange, JsonType, JsonValidationResult,
-    LlmSemanticValidator, OutputFormat, RuleBasedValidator, SelfVerifier, SemanticValidator,
-    StateDiff, VerificationError, VerificationResult,
+    FieldChange, JsonType, JsonValidationResult, LlmSemanticValidator, OutputFormat,
+    RuleBasedValidator, SelfVerifier, SemanticValidator, StateDiff, VerificationError,
+    VerificationResult, detect_state_change, validate_json_output,
 };
 pub use session_manager::{
     AgentSession, ChannelPermissionPrompter, SessionManager, TauriHookProgressReporter,
@@ -208,6 +208,7 @@ pub use tree_of_thoughts::{
     ProviderAdapterBridge, ThoughtNode, ThoughtStatus, ToTStateSummary, TreeOfThoughtsEngine,
 };
 pub use verification_agent::VerificationAgent;
+pub use vision_pipeline::{BoundingBox, UiElement, VisionPipeline, VisionResult, VisionTask};
 pub use web_search::{WebSearchConfig, WebSearchProvider, WebSearchProviderBuilder};
 
 pub use ingest_pipeline::{
@@ -219,8 +220,8 @@ pub use ingest_queue::{FolderImportPreviewItem, IngestQueue, IngestTaskStatus, Q
 pub use purpose_manager::PurposeManager;
 
 pub use graph_insights::{
-    analyze_graph, BridgeNode, GapType, GraphInsightAnalyzer, GraphInsightStats, GraphInsights,
-    KnowledgeGap, SurprisingConnection,
+    BridgeNode, GapType, GraphInsightAnalyzer, GraphInsightStats, GraphInsights, KnowledgeGap,
+    SurprisingConnection, analyze_graph,
 };
 
 pub use deep_research::{

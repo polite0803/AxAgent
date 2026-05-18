@@ -71,20 +71,20 @@ impl ContextFileResolver {
             } else {
                 dir.join(name)
             };
-            if path.exists() {
-                if let Ok(content) = std::fs::read_to_string(&path) {
-                    let format = match name {
-                        "AGENTS.md" => ContextFileFormat::AgentsMd,
-                        "CLAUDE.md" => ContextFileFormat::ClaudeMd,
-                        _ => ContextFileFormat::AxAgentMemory,
-                    };
-                    files.push(ContextFile {
-                        path: path.clone(),
-                        name: name.to_string(),
-                        content,
-                        format,
-                    });
-                }
+            if path.exists()
+                && let Ok(content) = std::fs::read_to_string(&path)
+            {
+                let format = match name {
+                    "AGENTS.md" => ContextFileFormat::AgentsMd,
+                    "CLAUDE.md" => ContextFileFormat::ClaudeMd,
+                    _ => ContextFileFormat::AxAgentMemory,
+                };
+                files.push(ContextFile {
+                    path: path.clone(),
+                    name: name.to_string(),
+                    content,
+                    format,
+                });
             }
         }
     }

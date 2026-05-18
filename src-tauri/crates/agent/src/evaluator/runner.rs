@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 
 use crate::evaluator::benchmark::{Benchmark, BenchmarkTask, Difficulty, EvaluationMetric};
 use crate::evaluator::metrics::{
-    contains_score, exact_match_score, levenshtein_similarity, AggregateMetrics, MetricsCalculator,
+    AggregateMetrics, MetricsCalculator, contains_score, exact_match_score, levenshtein_similarity,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,10 +97,10 @@ impl EvaluationRunner {
         let mut task_results = Vec::new();
 
         for task in &benchmark.tasks {
-            if let Some(max_difficulty) = self.config.max_difficulty {
-                if task.difficulty > max_difficulty {
-                    continue;
-                }
+            if let Some(max_difficulty) = self.config.max_difficulty
+                && task.difficulty > max_difficulty
+            {
+                continue;
             }
 
             let result = self.run_task(task).await;

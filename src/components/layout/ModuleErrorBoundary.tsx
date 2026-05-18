@@ -1,5 +1,6 @@
 import { ReloadOutlined, WarningOutlined } from "@ant-design/icons";
 import { Button, theme, Tooltip, Typography } from "antd";
+import i18next from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -92,7 +93,7 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
     >
       <WarningOutlined style={{ fontSize: 24, color: token.colorWarning, marginBottom: 8 }} />
       <Text type="secondary" style={{ marginBottom: 12, textAlign: "center" }}>
-        {moduleName} encountered an error
+        {i18next.t("errorBoundary.moduleError", { moduleName })}
       </Text>
       {error && (
         <Text
@@ -115,7 +116,7 @@ function DefaultModuleFallback({ moduleName, error, onRetry }: DefaultModuleFall
           icon={<ReloadOutlined />}
           onClick={onRetry}
         >
-          Retry
+          {t("errorBoundary.retryLoad")}
         </Button>
       </Tooltip>
     </div>

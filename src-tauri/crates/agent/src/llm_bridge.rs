@@ -9,7 +9,14 @@ use axagent_trajectory::{
 };
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
+
+static SCORE_NUMBER_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"(-?\d+\.?\d*)").unwrap());
+static CODE_BLOCK_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"(?s)```(?:javascript|js)?\s*\n(.*?)```").unwrap());
+static JSON_OBJECT_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"(?s)\{.*\}").unwrap());
 
 #[derive(Clone)]
 pub struct ProviderLlmBridge {
@@ -115,8 +122,8 @@ impl ProviderLlmBridge {
 }
 
 fn extract_score_from_text(text: &str) -> f64 {
-    let re = regex::Regex::new(r"(-?\d+\.?\d*)").unwrap();
-    re.captures(text)
+    SCORE_NUMBER_RE
+        .captures(text)
         .and_then(|cap| cap.get(1))
         .and_then(|m| m.as_str().parse::<f64>().ok())
         .unwrap_or(0.5)
@@ -142,11 +149,10 @@ fn heuristic_mutation(request: &LlmMutationRequest) -> LlmMutationResponse {
 }
 
 fn extract_code_from_response(text: &str) -> String {
-    let re = regex::Regex::new(r"(?s)```(?:javascript|js)?\s*\n(.*?)```").unwrap();
-    if let Some(cap) = re.captures(text) {
-        if let Some(m) = cap.get(1) {
-            return m.as_str().trim().to_string();
-        }
+    if let Some(cap) = CODE_BLOCK_RE.captures(text)
+        && let Some(m) = cap.get(1)
+    {
+        return m.as_str().trim().to_string();
     }
     text.trim().to_string()
 }
@@ -186,12 +192,11 @@ impl LlmEvolutionProvider for ProviderLlmBridge {
                     match serde_json::from_str::<LlmMutationResponse>(&text) {
                         Ok(resp) => Ok(resp),
                         Err(_) => {
-                            let json_re = regex::Regex::new(r"(?s)\{.*\}").unwrap();
-                            if let Some(cap) = json_re.captures(&text) {
-                                if let Ok(resp) = serde_json::from_str::<LlmMutationResponse>(cap.get(0).unwrap().as_str()) {
+                            let json_re = &*JSON_OBJECT_RE;
+                            if let Some(cap) = json_re.captures(&text)
+                                && let Ok(resp) = serde_json::from_str::<LlmMutationResponse>(cap.get(0).unwrap().as_str()) {
                                     return Ok(resp);
                                 }
-                            }
                             Ok(fallback)
                         }
                     }
@@ -373,9 +378,9 @@ impl PrmLlmProvider for ProviderLlmBridge {
                 &user_msg,
             ).await {
                 Ok(text) => {
-                    let json_re = regex::Regex::new(r"(?s)\{.*\}").unwrap();
-                    if let Some(cap) = json_re.captures(&text) {
-                        if let Ok(v) = serde_json::from_str::<serde_json::Value>(cap.get(0).unwrap().as_str()) {
+                    let json_re = &*JSON_OBJECT_RE;
+                    if let Some(cap) = json_re.captures(&text)
+                        && let Ok(v) = serde_json::from_str::<serde_json::Value>(cap.get(0).unwrap().as_str()) {
                             let correctness = v.get("correctness").and_then(|v| v.as_f64()).unwrap_or(0.5);
                             let coherence = v.get("coherence").and_then(|v| v.as_f64()).unwrap_or(0.5);
                             let completeness = v.get("completeness").and_then(|v| v.as_f64()).unwrap_or(0.5);
@@ -399,7 +404,6 @@ impl PrmLlmProvider for ProviderLlmBridge {
                                 categories,
                             });
                         }
-                    }
                     let score = extract_score_from_text(&text);
                     Ok(StepReward {
                         step_index: 0,

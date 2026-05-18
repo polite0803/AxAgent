@@ -6,6 +6,10 @@
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use std::sync::LazyLock;
+// SAFETY: These RwLock instances wrap global database state that is only
+// accessed from synchronous set/get helpers. No lock is ever held across an
+// .await boundary, and all access goes through the module-level functions
+// which are themselves synchronous.
 use std::sync::RwLock;
 
 // ── 数据库路径 ────────────────────────────────────────────────────────────

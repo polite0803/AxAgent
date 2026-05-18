@@ -4,7 +4,7 @@ use super::prompt_templates::PromptTemplates;
 use super::workflow_validator::WorkflowValidator;
 use crate::skill_decomposition::DecompositionResult;
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 pub trait LlmClient: Send + Sync {
     fn chat(

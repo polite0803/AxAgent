@@ -151,7 +151,7 @@ export function buildHtmlTranscript(messages: Message[], title: string, options?
       .replace(/\n/g, "<br>");
 
     const time = m.created_at
-      ? new Date(m.created_at).toLocaleString("zh-CN")
+      ? new Date(m.created_at).toLocaleString(i18n.language)
       : "";
 
     return `<div class="message ${alignClass}">
@@ -164,7 +164,7 @@ export function buildHtmlTranscript(messages: Message[], title: string, options?
   }).join("\n");
 
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="${i18n.language}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

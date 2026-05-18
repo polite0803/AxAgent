@@ -123,7 +123,7 @@ impl SharedBlackboard {
             let max_votes = votes.values().max().copied().unwrap_or(0);
             let winners: Vec<&&str> = votes
                 .iter()
-                .filter(|(_, &c)| c == max_votes)
+                .filter(|(_, c)| **c == max_votes)
                 .map(|(v, _)| v)
                 .collect();
             let resolution = if winners.len() == 1 {

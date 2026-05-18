@@ -145,6 +145,8 @@
     "moveToCategory": "In Kategorie verschieben",
     "removeFromCategory": "Aus Kategorie entfernen",
     "categoryNamePlaceholder": "Kategoriename",
+    "manageCategories": "Kategorien verwalten",
+    "noCategories": "Noch keine Kategorien. Erstellen Sie eine.",
     "inspector": {
       "title": "Inspektor",
       "sources": "Quellen",
@@ -598,7 +600,10 @@
         "shareMode": "Share Mode",
         "terminalAccess": "Terminal Access",
         "title": "Session Sharing",
-        "codePlaceholder": "XXXX-XXXX"
+        "codePlaceholder": "XXXX-XXXX",
+        "copyFailed": "Kopieren fehlgeschlagen",
+        "joinFailed": "Beitreten fehlgeschlagen",
+        "maxParticipants": "Max. Teilnehmer"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"
@@ -3871,6 +3876,77 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
+    "knowledgeSettings": {
+      "title": "Wissen"
+    },
+    "notificationCenter": {
+      "title": "Benachrichtigungen"
+    },
+    "chatRightPanel": {
+      "agent": "Agent",
+      "hierarchy": "Hierarchie",
+      "research": "Recherche",
+      "git": "Git",
+      "task": "Aufgaben",
+      "code": "Code",
+      "artifact": "Artefakte",
+      "imageGen": "Bild",
+      "report": "Bericht",
+      "citation": "Zitate",
+      "inspector": "Inspektor",
+      "errorRecovery": "Wiederherst.",
+      "teammate": "Team",
+      "browser": "Browser",
+      "computer": "Desktop",
+      "benchmark": "Bench",
+      "chart": "Diagramm",
+      "snapshot": "Snapshot",
+      "profile": "Profil"
+    },
+    "knowledgeSettings": {
+      "title": "Wissen"
+    },
+    "notificationCenter": {
+      "title": "Benachrichtigungen"
+    },
+    "chatRightPanel": {
+      "agent": "Agent",
+      "hierarchy": "Hierarchie",
+      "research": "Recherche",
+      "git": "Git",
+      "task": "Aufgaben",
+      "code": "Code",
+      "artifact": "Artefakte",
+      "imageGen": "Bild",
+      "visionAnalysis": "Vision",
+      "report": "Bericht",
+      "citation": "Zitate",
+      "inspector": "Inspektor",
+      "browser": "Browser",
+      "computer": "Desktop",
+      "benchmark": "Bench",
+      "chart": "Diagramm",
+      "snapshot": "Snapshot",
+      "profile": "Profil",
+      "errorRecovery": "Wiederherst.",
+      "collaboration": "Kollab",
+      "evolution": "Evolution",
+      "steer": "Lenken",
+      "cache": "Cache",
+      "branchCompare": "Branch",
+      "gateway": "GW",
+      "contextClass": "Kontext",
+      "cronResult": "Cron",
+      "reflection": "Reflexion",
+      "researchSources": "Quellen",
+      "categoryEdit": "Kategorie",
+      "filePermission": "Datei",
+      "sessionShare": "Teilen",
+      "prefetch": "Prefetch",
+      "reminders": "Erinner.",
+      "contextPrediction": "Vorhersage",
+      "teammate": "Team"
+    },
     "rightPanel": {
       "addTagsPlaceholder": "Add tags...",
       "deleteEdge": "Delete Edge",
@@ -5344,6 +5420,7 @@
     "sourceTypeWeb": "Web",
     "sourceTypeAcademic": "Academic",
     "sourceTypeWikipedia": "Wikipedia",
+    "sourceTypeGithub": "GitHub",
     "sourceTypeDocumentation": "Documentation",
     "sourceTypeNews": "News",
     "sourceTypeBlog": "Blog",
@@ -5924,11 +6001,15 @@
     "time": "Time"
   },
   "cronResult": {
-    "success": "Success",
-    "failed": "Failed",
-    "schedule": "Schedule",
-    "platform": "Platform",
-    "time": "Time"
+    "success": "Erfolg",
+    "failed": "Fehlgeschlagen",
+    "schedule": "Zeitplan",
+    "scheduleDescription": "Beschreibung",
+    "platform": "Plattform",
+    "time": "Zeit",
+    "loading": "Cron-Job-Ergebnis wird geladen…",
+    "prefix": "Cron: {{jobName}}",
+    "emptyResult": "Kein Ergebnis"
   },
   "errorBoundary": {
     "title": "Something went wrong",

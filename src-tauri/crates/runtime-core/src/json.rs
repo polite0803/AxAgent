@@ -324,7 +324,7 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{render_string, JsonValue};
+    use super::{JsonValue, render_string};
     use std::collections::BTreeMap;
 
     #[test]

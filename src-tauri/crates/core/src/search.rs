@@ -3,10 +3,19 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use chrono::Datelike;
+use regex::Regex;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
 
 use crate::error::{AxAgentError, Result};
+
+static DDG_TITLE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"class="result__a"[^>]*>(.*?)</a>"#).unwrap());
+static DDG_SNIPPET_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"class="result__snippet"(?:\s*[^>]*)?>(.*?)</"#).unwrap());
+static DDG_HREF_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"href="([^"]*)""#).unwrap());
+static DDG_TAG_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<[^>]+>").unwrap());
 
 /// SSRF protection: check if a URL points to a private/internal address
 pub fn is_safe_url(url_str: &str) -> bool {
@@ -41,14 +50,12 @@ pub fn is_safe_url(url_str: &str) -> bool {
     }
 
     // Check 172.16.0.0/12
-    if host_lower.starts_with("172.") {
-        if let Some(second) = host_lower.split('.').nth(1) {
-            if let Ok(n) = second.parse::<u32>() {
-                if (16..=31).contains(&n) {
-                    return false;
-                }
-            }
-        }
+    if host_lower.starts_with("172.")
+        && let Some(second) = host_lower.split('.').nth(1)
+        && let Ok(n) = second.parse::<u32>()
+        && (16..=31).contains(&n)
+    {
+        return false;
     }
 
     // Resolve hostname and check IP
@@ -794,11 +801,7 @@ pub fn estimate_credibility(url: &str) -> f32 {
         }
     }
 
-    if domain.is_empty() {
-        0.5
-    } else {
-        0.7
-    }
+    if domain.is_empty() { 0.5 } else { 0.7 }
 }
 
 /// DNS rebinding 防护：解析主机名后检查 IP 是否为私有/回环地址
@@ -832,7 +835,7 @@ pub async fn is_safe_url_deep(url_str: &str) -> bool {
                     return false;
                 },
                 std::net::IpAddr::V6(v6) if v6.is_loopback() || v6.is_unspecified() => {
-                    return false
+                    return false;
                 },
                 _ => {},
             }
@@ -1249,35 +1252,35 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
         urlencoding::encode(query)
     );
 
-    if let Ok(resp) = client.get(&api_url).send().await {
-        if let Ok(json) = resp.json::<serde_json::Value>().await {
-            if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str()) {
-                if !abs.is_empty() {
-                    let url = json
-                        .get("AbstractURL")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("");
+    if let Ok(resp) = client.get(&api_url).send().await
+        && let Ok(json) = resp.json::<serde_json::Value>().await
+    {
+        if let Some(abs) = json.get("AbstractText").and_then(|v| v.as_str())
+            && !abs.is_empty()
+        {
+            let url = json
+                .get("AbstractURL")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            results.push(SearchResult {
+                title: "摘要".to_string(),
+                content: abs.to_string(),
+                url: url.to_string(),
+                credibility: None,
+                relevance_score: None,
+            });
+        }
+        if let Some(topics) = json.get("RelatedTopics").and_then(|v| v.as_array()) {
+            for topic in topics.iter().take(max_results as usize) {
+                if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
+                    let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
                     results.push(SearchResult {
-                        title: "摘要".to_string(),
-                        content: abs.to_string(),
+                        title: text.chars().take(80).collect(),
+                        content: text.to_string(),
                         url: url.to_string(),
                         credibility: None,
                         relevance_score: None,
                     });
-                }
-            }
-            if let Some(topics) = json.get("RelatedTopics").and_then(|v| v.as_array()) {
-                for topic in topics.iter().take(max_results as usize) {
-                    if let Some(text) = topic.get("Text").and_then(|v| v.as_str()) {
-                        let url = topic.get("FirstURL").and_then(|v| v.as_str()).unwrap_or("");
-                        results.push(SearchResult {
-                            title: text.chars().take(80).collect(),
-                            content: text.to_string(),
-                            url: url.to_string(),
-                            credibility: None,
-                            relevance_score: None,
-                        });
-                    }
                 }
             }
         }
@@ -1294,81 +1297,75 @@ async fn search_duckduckgo(query: &str, max_results: i32) -> Result<Vec<SearchRe
             .send()
             .await;
 
-        if let Ok(resp) = resp {
-            if let Ok(html) = resp.text().await {
-                let title_re = regex::Regex::new(r#"class="result__a"[^>]*>(.*?)</a>"#).unwrap();
-                let snippet_re =
-                    regex::Regex::new(r#"class="result__snippet"(?:\s*[^>]*)?>(.*?)</"#).unwrap();
-                let href_re = regex::Regex::new(r#"href="([^"]*)""#).unwrap();
-                let tag_re = regex::Regex::new(r"<[^>]+>").unwrap();
+        if let Ok(resp) = resp
+            && let Ok(html) = resp.text().await
+        {
+            let title_caps: Vec<String> = DDG_TITLE_RE
+                .captures_iter(&html)
+                .filter_map(|c| {
+                    c.get(1)
+                        .map(|m| DDG_TAG_RE.replace_all(m.as_str(), "").trim().to_string())
+                })
+                .filter(|s| !s.is_empty())
+                .take(max_results as usize)
+                .collect();
 
-                let title_caps: Vec<String> = title_re
-                    .captures_iter(&html)
-                    .filter_map(|c| {
-                        c.get(1)
-                            .map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string())
-                    })
-                    .filter(|s| !s.is_empty())
-                    .take(max_results as usize)
-                    .collect();
+            let snippet_caps: Vec<String> = DDG_SNIPPET_RE
+                .captures_iter(&html)
+                .filter_map(|c| {
+                    c.get(1)
+                        .map(|m| DDG_TAG_RE.replace_all(m.as_str(), "").trim().to_string())
+                })
+                .filter(|s| !s.is_empty())
+                .take(max_results as usize)
+                .collect();
 
-                let snippet_caps: Vec<String> = snippet_re
-                    .captures_iter(&html)
-                    .filter_map(|c| {
-                        c.get(1)
-                            .map(|m| tag_re.replace_all(m.as_str(), "").trim().to_string())
-                    })
-                    .filter(|s| !s.is_empty())
-                    .take(max_results as usize)
-                    .collect();
+            let href_caps: Vec<String> = DDG_HREF_RE
+                .captures_iter(&html)
+                .take(max_results as usize * 3)
+                .filter_map(|c| c.get(1).map(|m| m.as_str().to_string()))
+                .filter(|u| u.contains("uddg=") || u.starts_with("http"))
+                .take(max_results as usize)
+                .collect();
 
-                let href_caps: Vec<String> = href_re
-                    .captures_iter(&html)
-                    .take(max_results as usize * 3)
-                    .filter_map(|c| c.get(1).map(|m| m.as_str().to_string()))
-                    .filter(|u| u.contains("uddg=") || u.starts_with("http"))
-                    .take(max_results as usize)
-                    .collect();
+            let count = title_caps
+                .len()
+                .max(snippet_caps.len())
+                .min(max_results as usize);
+            for i in 0..count {
+                let title = title_caps.get(i).cloned().unwrap_or_default();
+                let snippet = snippet_caps.get(i).cloned().unwrap_or_default();
+                let url = href_caps.get(i).cloned().unwrap_or_default();
 
-                let count = title_caps
-                    .len()
-                    .max(snippet_caps.len())
-                    .min(max_results as usize);
-                for i in 0..count {
-                    let title = title_caps.get(i).cloned().unwrap_or_default();
-                    let snippet = snippet_caps.get(i).cloned().unwrap_or_default();
-                    let url = href_caps.get(i).cloned().unwrap_or_default();
-
-                    if !title.is_empty() {
-                        results.push(SearchResult {
-                            title,
-                            content: snippet,
-                            url,
-                            credibility: None,
-                            relevance_score: None,
-                        });
-                    }
+                if !title.is_empty() {
+                    results.push(SearchResult {
+                        title,
+                        content: snippet,
+                        url,
+                        credibility: None,
+                        relevance_score: None,
+                    });
                 }
+            }
 
-                if results.is_empty() {
-                    for part in html
-                        .split("result__snippet")
-                        .skip(1)
-                        .take(max_results as usize)
+            if results.is_empty() {
+                for part in html
+                    .split("result__snippet")
+                    .skip(1)
+                    .take(max_results as usize)
+                {
+                    if let Some(start) = part.find('>')
+                        && let Some(end) = part[start + 1..].find("</")
                     {
-                        if let Some(start) = part.find('>') {
-                            if let Some(end) = part[start + 1..].find("</") {
-                                let text = part[start + 1..start + 1 + end].trim();
-                                if !text.is_empty() {
-                                    results.push(SearchResult {
-                                        title: text.chars().take(80).collect(),
-                                        content: text.to_string(),
-                                        url: String::new(),
-                                        credibility: None,
-                                        relevance_score: None,
-                                    });
-                                }
-                            }
+                        let text = part[start + 1..start + 1 + end].trim();
+                        if !text.is_empty() {
+                            results.push(SearchResult {
+                                title: text.chars().take(80).collect(),
+                                content: text.to_string(),
+                                url: String::new(),
+                                credibility: None,
+                                relevance_score: None,
+                            });
                         }
                     }
                 }

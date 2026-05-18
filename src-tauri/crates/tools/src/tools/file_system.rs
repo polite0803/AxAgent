@@ -415,12 +415,12 @@ impl Tool for MoveFileTool {
         let source_str = resolved_source.to_string_lossy();
         let dest_str = resolved_dest.to_string_lossy();
 
-        if let Some(parent) = Path::new(&*dest_str).parent() {
-            if !parent.as_os_str().is_empty() {
-                tokio::fs::create_dir_all(parent).await.map_err(|e| {
-                    ToolError::execution_failed(format!("创建目标父目录失败: {}", e))
-                })?;
-            }
+        if let Some(parent) = Path::new(&*dest_str).parent()
+            && !parent.as_os_str().is_empty()
+        {
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| ToolError::execution_failed(format!("创建目标父目录失败: {}", e)))?;
         }
 
         tokio::fs::rename(&*source_str, &*dest_str)

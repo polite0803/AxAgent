@@ -70,7 +70,9 @@ impl FluxProvider {
         Self {
             api_token,
             client: crate::build_default_http_client()
-                .map_err(|e| ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e)))
+                .map_err(|e| {
+                    ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e))
+                })
                 .expect("Failed to build default HTTP client"),
         }
     }
@@ -179,7 +181,9 @@ impl DallEProvider {
             api_key,
             base_url: base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string()),
             client: crate::build_default_http_client()
-                .map_err(|e| ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e)))
+                .map_err(|e| {
+                    ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e))
+                })
                 .expect("Failed to build default HTTP client"),
         }
     }

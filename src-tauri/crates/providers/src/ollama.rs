@@ -154,16 +154,16 @@ impl ProviderAdapter for OllamaAdapter {
                     ModelType::Voice => vec![ModelCapability::RealtimeVoice],
                 };
                 // 从 details.family 推断部分能力
-                if let Some(ref details) = m.details {
-                    if let Some(ref family) = details.family {
-                        let fam = family.to_lowercase();
-                        if fam.contains("llava")
-                            || fam.contains("bakllava")
-                            || fam.contains("minicpm")
-                            || fam.contains("moondream")
-                        {
-                            caps.push(ModelCapability::Vision);
-                        }
+                if let Some(ref details) = m.details
+                    && let Some(ref family) = details.family
+                {
+                    let fam = family.to_lowercase();
+                    if fam.contains("llava")
+                        || fam.contains("bakllava")
+                        || fam.contains("minicpm")
+                        || fam.contains("moondream")
+                    {
+                        caps.push(ModelCapability::Vision);
                     }
                 }
                 let group_name = m.details.as_ref().and_then(|d| d.family.clone());

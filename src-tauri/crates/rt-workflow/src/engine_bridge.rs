@@ -15,8 +15,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tokio::sync::mpsc;
 use tokio::sync::RwLock;
+use tokio::sync::mpsc;
 
 type EngineSenderMap = RwLock<HashMap<EngineId, mpsc::Sender<EngineMessage>>>;
 

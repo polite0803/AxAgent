@@ -49,6 +49,7 @@ pub async fn get_agent_role(db: &DatabaseConnection, id: &str) -> Result<Option<
     Ok(row.map(role_from_entity))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn upsert_agent_role(
     db: &DatabaseConnection,
     id: &str,

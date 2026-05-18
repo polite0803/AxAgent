@@ -9,7 +9,7 @@
 //! 同时包含熔断器，防止连续压缩失败导致无限重试。
 //! 移植自 claude-code-main 的 compact 阈值管理。
 
-use crate::compact::{estimate_session_tokens, CompactionConfig};
+use crate::compact::{CompactionConfig, estimate_session_tokens};
 use crate::session::Session;
 
 // ---------------------------------------------------------------------------

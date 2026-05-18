@@ -171,11 +171,7 @@ impl AgentArchitecture {
 
         fn find<'a>(parent: &HashMap<&'a str, &'a str>, x: &'a str) -> &'a str {
             let p = parent[x];
-            if p == x {
-                p
-            } else {
-                find(parent, p)
-            }
+            if p == x { p } else { find(parent, p) }
         }
 
         for edge in &self.edges {
@@ -595,20 +591,20 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         for edge in &parent1.edges {
             if let (Some(new_s), Some(new_t)) =
                 (id_map.get(&edge.source_id), id_map.get(&edge.target_id))
+                && child_ids.contains(new_s.as_str())
+                && child_ids.contains(new_t.as_str())
             {
-                if child_ids.contains(new_s.as_str()) && child_ids.contains(new_t.as_str()) {
-                    edges_to_add.push(AgentEdge::new(new_s, new_t));
-                }
+                edges_to_add.push(AgentEdge::new(new_s, new_t));
             }
         }
 
         for edge in &parent2.edges {
             if let (Some(new_s), Some(new_t)) =
                 (id_map.get(&edge.source_id), id_map.get(&edge.target_id))
+                && child_ids.contains(new_s.as_str())
+                && child_ids.contains(new_t.as_str())
             {
-                if child_ids.contains(new_s.as_str()) && child_ids.contains(new_t.as_str()) {
-                    edges_to_add.push(AgentEdge::new(new_s, new_t));
-                }
+                edges_to_add.push(AgentEdge::new(new_s, new_t));
             }
         }
 

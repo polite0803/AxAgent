@@ -83,7 +83,7 @@ interface CloudProviderPresetDto {
   use_path_style: boolean;
 }
 
-export default function CloudWorkspaceSelector() {
+export function CloudWorkspaceSelector() {
   const { t } = useTranslation();
   const { settings, saveSettings, fetchSettings } = useSettingsStore();
   const [storageType, setStorageType] = useState<CloudStorageType>("s3");

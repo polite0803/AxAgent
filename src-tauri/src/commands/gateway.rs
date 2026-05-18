@@ -817,9 +817,9 @@ pub async fn generate_self_signed_cert(
 #[cfg(test)]
 mod tests {
     use super::{
-        build_gateway_url_for_selected_protocol, build_gateway_url_options,
-        disconnect_gateway_url_for_cli_tool, gateway_api_base_path, list_gateway_templates,
-        resolve_cli_tool_connection_state, GatewayUrlOptions, QuickConnectProtocol,
+        GatewayUrlOptions, QuickConnectProtocol, build_gateway_url_for_selected_protocol,
+        build_gateway_url_options, disconnect_gateway_url_for_cli_tool, gateway_api_base_path,
+        list_gateway_templates, resolve_cli_tool_connection_state,
     };
     use axagent_core::repo::cli_config::CliTool;
 

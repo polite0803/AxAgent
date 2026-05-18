@@ -1,5 +1,5 @@
-use crate::paths::axagent_home;
 use crate::AppState;
+use crate::paths::axagent_home;
 use axagent_trajectory::{
     Skill, SkillsHubAdapter, SkillsHubClient, SkillsHubConfig, SkillsHubSearchResult,
 };

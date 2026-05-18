@@ -225,10 +225,10 @@ pub fn dedupe_superseded_commit_events(events: &[LaneEvent]) -> Vec<LaneEvent> {
             keep[index] = false;
             continue;
         }
-        if let Some(key) = key {
-            if let Some(previous) = latest_by_key.insert(key, index) {
-                keep[previous] = false;
-            }
+        if let Some(key) = key
+            && let Some(previous) = latest_by_key.insert(key, index)
+        {
+            keep[previous] = false;
         }
     }
 
@@ -245,8 +245,8 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        dedupe_superseded_commit_events, LaneCommitProvenance, LaneEvent, LaneEventBlocker,
-        LaneEventName, LaneEventStatus, LaneFailureClass,
+        LaneCommitProvenance, LaneEvent, LaneEventBlocker, LaneEventName, LaneEventStatus,
+        LaneFailureClass, dedupe_superseded_commit_events,
     };
 
     #[test]

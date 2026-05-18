@@ -1,14 +1,16 @@
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::SemanticCache;
 use axagent_core::cloud_storage::SyncEngine;
+use axagent_core::file_authorizer::FileAuthorizer;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
+use axagent_runtime_core::prompt_cache::PromptCache;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
@@ -152,6 +154,7 @@ pub struct AppState {
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
     pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     pub workflow_engine: Arc<axagent_runtime::workflow_engine::WorkflowEngine>,
+    pub reflector: Arc<axagent_agent::Reflector>,
     // 以下字段从 std::sync::RwLock 改为 tokio::sync::RwLock
     // 原因：std::sync::RwLock 的 guard 是 !Send，在异步上下文中跨 await 持有会导致未定义行为
     // 且 std::sync::RwLock 在 panic 时会毒化，后续所有 .unwrap() 都会崩溃
@@ -183,6 +186,7 @@ pub struct AppState {
     pub dashboard_registry: Option<Arc<DashboardRegistry>>,
     pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
     pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>>,
+    pub prompt_cache: Arc<PromptCache>,
     // Tree of Thoughts state
     pub tot_sessions: Arc<tokio::sync::Mutex<HashMap<String, TotSession>>>,
     // Replanning state
@@ -208,6 +212,7 @@ pub struct AppState {
     pub sandbox_executor: Arc<()>,
     pub sync_engine: Option<Arc<SyncEngine>>,
     pub plugin_manager: std::sync::Mutex<PluginManager>,
+    pub file_authorizer: Arc<FileAuthorizer>,
 }
 
 impl Drop for AppState {

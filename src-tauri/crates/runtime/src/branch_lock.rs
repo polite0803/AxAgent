@@ -78,7 +78,7 @@ fn shared_scope(left: &str, right: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{detect_branch_lock_collisions, BranchLockIntent};
+    use super::{BranchLockIntent, detect_branch_lock_collisions};
 
     #[test]
     fn detects_same_branch_same_module_collisions() {

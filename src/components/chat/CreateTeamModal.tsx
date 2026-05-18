@@ -147,5 +147,3 @@ export function CreateTeamModal({
     </Modal>
   );
 }
-
-export default CreateTeamModal;

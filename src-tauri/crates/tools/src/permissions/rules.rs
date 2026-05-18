@@ -24,23 +24,24 @@ fn match_pattern(pattern: &RulePattern, tool_name: &str, input: &str) -> bool {
     let p = &pattern.pattern;
 
     // 内容匹配: "ToolName(content_pattern)"
-    if p.contains('(') && p.ends_with(')') {
-        if let Some(paren_idx) = p.find('(') {
-            let required_tool = &p[..paren_idx];
-            let content_pattern = &p[paren_idx + 1..p.len() - 1];
+    if p.contains('(')
+        && p.ends_with(')')
+        && let Some(paren_idx) = p.find('(')
+    {
+        let required_tool = &p[..paren_idx];
+        let content_pattern = &p[paren_idx + 1..p.len() - 1];
 
-            if !match_simple_pattern(required_tool, tool_name) {
-                return false;
-            }
-
-            // 如果内容模式为空，匹配所有
-            if content_pattern.is_empty() {
-                return true;
-            }
-
-            // 检查输入内容
-            return match_content(content_pattern, input);
+        if !match_simple_pattern(required_tool, tool_name) {
+            return false;
         }
+
+        // 如果内容模式为空，匹配所有
+        if content_pattern.is_empty() {
+            return true;
+        }
+
+        // 检查输入内容
+        return match_content(content_pattern, input);
     }
 
     // 简单匹配

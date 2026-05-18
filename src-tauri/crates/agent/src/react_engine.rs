@@ -820,28 +820,28 @@ impl ReActEngine {
             },
 
             ReasoningState::Acting => {
-                if let Some(latest) = chain.latest_step_mut() {
-                    if let Some(ref action) = latest.action {
-                        if action.requires_confirmation {
-                            return Ok((ReasoningState::Observing, false));
-                        }
+                if let Some(latest) = chain.latest_step_mut()
+                    && let Some(ref action) = latest.action
+                {
+                    if action.requires_confirmation {
+                        return Ok((ReasoningState::Observing, false));
+                    }
 
-                        let result = self.executor.execute(action.clone(), "").await;
+                    let result = self.executor.execute(action.clone(), "").await;
 
-                        match result {
-                            Ok(action_result) => {
-                                latest.result = Some(action_result.to_observation());
-                                latest.observation = Some(action_result.to_observation());
-                                self.emit(ThoughtEvent::StepCompleted(latest.clone()));
-                                return Ok((ReasoningState::Observing, action_result.is_success()));
-                            },
-                            Err(e) => {
-                                latest.result = Some(format!("Error: {}", e));
-                                latest.observation = Some(format!("Error: {}", e));
-                                self.emit(ThoughtEvent::StepCompleted(latest.clone()));
-                                return Err(ReActError::ActionError(e.to_string()));
-                            },
-                        }
+                    match result {
+                        Ok(action_result) => {
+                            latest.result = Some(action_result.to_observation());
+                            latest.observation = Some(action_result.to_observation());
+                            self.emit(ThoughtEvent::StepCompleted(latest.clone()));
+                            return Ok((ReasoningState::Observing, action_result.is_success()));
+                        },
+                        Err(e) => {
+                            latest.result = Some(format!("Error: {}", e));
+                            latest.observation = Some(format!("Error: {}", e));
+                            self.emit(ThoughtEvent::StepCompleted(latest.clone()));
+                            return Err(ReActError::ActionError(e.to_string()));
+                        },
                     }
                 }
                 Ok((ReasoningState::Thinking, false))

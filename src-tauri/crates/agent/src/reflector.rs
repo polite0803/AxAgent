@@ -120,7 +120,6 @@ impl Reflection {
     pub fn with_quality(mut self, score: u8, analysis: String) -> Self {
         self.quality_score = score.clamp(1, 10);
         self.quality_analysis = analysis;
-        self.quality_metrics = None;
         self
     }
 
@@ -635,7 +634,11 @@ impl Reflector {
         format!(
             "Task '{}' {} in {}ms with quality score {}/10.{}{} iterations, {} tools used. {} error patterns identified. {} reusable patterns found.",
             record.task_description,
-            if record.success { "succeeded" } else { "failed" },
+            if record.success {
+                "succeeded"
+            } else {
+                "failed"
+            },
             record.duration_ms,
             reflection.quality_score,
             metrics_detail,
@@ -745,9 +748,11 @@ mod tests {
             "search".to_string(),
             "read".to_string(),
         ]);
-        assert!(patterns
-            .iter()
-            .any(|p| p.contains("Retry with same approach") && p.contains("search")));
+        assert!(
+            patterns
+                .iter()
+                .any(|p| p.contains("Retry with same approach") && p.contains("search"))
+        );
 
         let patterns = Reflector::detect_retry_patterns(&[
             "search".to_string(),

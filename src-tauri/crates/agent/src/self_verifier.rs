@@ -439,25 +439,26 @@ impl RuleBasedValidator {
         }
 
         let input_json = serde_json::from_str::<serde_json::Value>(input);
-        if let Ok(ref parsed) = input_json {
-            if let Some(obj) = parsed.as_object() {
-                if (obj.contains_key("path")
-                    || obj.contains_key("file_path")
-                    || obj.contains_key("filepath"))
-                    && (output.contains("No such file") || output.contains("not found"))
-                {
-                    return VerificationResult::invalid("Referenced file path does not exist")
-                        .with_correction("Verify the file path in the input");
-                }
+        if let Ok(ref parsed) = input_json
+            && let Some(obj) = parsed.as_object()
+        {
+            if (obj.contains_key("path")
+                || obj.contains_key("file_path")
+                || obj.contains_key("filepath"))
+                && (output.contains("No such file") || output.contains("not found"))
+            {
+                return VerificationResult::invalid("Referenced file path does not exist")
+                    .with_correction("Verify the file path in the input");
+            }
 
-                if let Some(query) = obj.get("query").and_then(|v| v.as_str()) {
-                    if !query.is_empty() && output.len() < query.len() / 2 {
-                        return VerificationResult::uncertain(
-                            0.5,
-                            "Output seems too short relative to the query complexity",
-                        );
-                    }
-                }
+            if let Some(query) = obj.get("query").and_then(|v| v.as_str())
+                && !query.is_empty()
+                && output.len() < query.len() / 2
+            {
+                return VerificationResult::uncertain(
+                    0.5,
+                    "Output seems too short relative to the query complexity",
+                );
             }
         }
 
@@ -508,17 +509,18 @@ impl SemanticValidator for RuleBasedValidator {
             }
         }
 
-        if let Some(success_ratio) = self.check_success_patterns(tool_name, output) {
-            if success_ratio < 0.5 && !output.is_empty() {
-                results.push(VerificationResult::uncertain(
-                    0.5 + success_ratio * 0.5,
-                    format!(
-                        "Low success pattern match ({:.0}%) for tool '{}'",
-                        success_ratio * 100.0,
-                        tool_name
-                    ),
-                ));
-            }
+        if let Some(success_ratio) = self.check_success_patterns(tool_name, output)
+            && success_ratio < 0.5
+            && !output.is_empty()
+        {
+            results.push(VerificationResult::uncertain(
+                0.5 + success_ratio * 0.5,
+                format!(
+                    "Low success pattern match ({:.0}%) for tool '{}'",
+                    success_ratio * 100.0,
+                    tool_name
+                ),
+            ));
         }
 
         if let Some(format_result) = self.check_format_consistency(tool_name, output) {
@@ -1321,9 +1323,10 @@ mod tests {
     #[test]
     fn test_rule_based_validator_success_patterns_unknown_tool() {
         let v = RuleBasedValidator::new();
-        assert!(v
-            .check_success_patterns("unknown_tool", "anything")
-            .is_none());
+        assert!(
+            v.check_success_patterns("unknown_tool", "anything")
+                .is_none()
+        );
     }
 
     #[test]
@@ -1372,9 +1375,10 @@ mod tests {
     #[test]
     fn test_rule_based_validator_format_consistency_unknown_tool() {
         let v = RuleBasedValidator::new();
-        assert!(v
-            .check_format_consistency("unknown_tool", "anything")
-            .is_none());
+        assert!(
+            v.check_format_consistency("unknown_tool", "anything")
+                .is_none()
+        );
     }
 
     #[test]

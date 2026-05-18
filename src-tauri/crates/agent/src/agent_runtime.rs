@@ -90,13 +90,12 @@ where
             if let Some(child_sp) = fork_data.child_system_prompt {
                 sp.push(child_sp);
             }
-            if !fork_data.parent_messages_json.is_empty() {
-                if let Ok(parent_msgs) = serde_json::from_str::<
+            if !fork_data.parent_messages_json.is_empty()
+                && let Ok(parent_msgs) = serde_json::from_str::<
                     Vec<axagent_runtime_core::ConversationMessage>,
                 >(&fork_data.parent_messages_json)
-                {
-                    forked_session.messages = parent_msgs;
-                }
+            {
+                forked_session.messages = parent_msgs;
             }
             sp
         } else if config.system_prompt.is_empty() {
