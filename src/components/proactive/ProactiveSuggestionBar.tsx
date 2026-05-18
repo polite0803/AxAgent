@@ -31,7 +31,7 @@ export function ProactiveSuggestionBar() {
     if (proactiveMode) {
       fetchSuggestions().then(() => {
         const current = useProactiveStore.getState().suggestions;
-        if (current.length === 0) {
+        if (!current || current.length === 0) {
           const ctx = buildDefaultContext();
           refreshSuggestions(ctx);
         }
@@ -39,7 +39,7 @@ export function ProactiveSuggestionBar() {
     }
   }, [proactiveMode]);
 
-  if (!proactiveMode || suggestions.length === 0) {
+  if (!proactiveMode || !suggestions || suggestions.length === 0) {
     return null;
   }
 
