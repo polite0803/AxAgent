@@ -12,12 +12,14 @@ const BUILTIN_IMPORTED_KEY = "axagent_builtin_experts_imported";
 function resolvePreset(
   preset: (typeof BUILTIN_EXPERT_PRESETS)[number],
 ): AgentProfile {
+  // i18n 模块可能因打包顺序尚未初始化，安全访问 .t()
+  const _i18n = i18n as { t?: (key: string) => string } | undefined;
+  const name = preset.nameKey && _i18n?.t ? _i18n.t(preset.nameKey) : preset.name;
+  const desc = preset.descKey && _i18n?.t ? _i18n.t(preset.descKey) : undefined;
   return {
     ...preset,
-    name: preset.nameKey ? i18n.t(preset.nameKey) : preset.name,
-    description: preset.descKey
-      ? i18n.t(preset.descKey) || preset.description
-      : (preset.description ?? null),
+    name,
+    description: desc || preset.description || null,
     nameKey: preset.nameKey,
     descKey: preset.descKey,
   } as AgentProfile;
@@ -136,6 +138,7 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
 
 interface ExpertState {
   builtinRoles: AgentProfile[];
+  _builtinLoaded: boolean;
   customRoles: AgentProfile[];
   agencyRoles: AgentProfile[];
   agencyLoaded: boolean;
@@ -195,7 +198,8 @@ interface ExpertState {
 }
 
 export const useExpertStore = create<ExpertState>((set, get) => ({
-  builtinRoles: loadBuiltinRoles(),
+  builtinRoles: [] as AgentProfile[], // 延迟到 i18n 就绪后加载
+  _builtinLoaded: false,
   customRoles: loadCustomRoles(),
   agencyRoles: [],
   agencyLoaded: false,
@@ -203,6 +207,10 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
   recentSwitch: null,
 
   getAllRoles: () => {
+    // 延迟加载：首次访问时加载内置角色（i18n 此时已就绪）
+    if (!get()._builtinLoaded) {
+      set({ builtinRoles: loadBuiltinRoles(), _builtinLoaded: true });
+    }
     const general = get().builtinRoles.find(
       (r) => r.id === "general-assistant",
     );
