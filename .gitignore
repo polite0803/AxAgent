@@ -82,3 +82,5 @@ Docs/
 *.jks
 credentials.json
 service-account*.json
+cargo-check-output.txt
+eslint.config.js
