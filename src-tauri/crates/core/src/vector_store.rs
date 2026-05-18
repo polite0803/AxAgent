@@ -54,7 +54,7 @@ pub fn register_sqlite_vec_extension() {
             *const (),
             unsafe extern "C" fn(
                 *mut libsqlite3_sys::sqlite3,
-                *mut *mut i8,
+                *mut *mut ::std::os::raw::c_char,
                 *const libsqlite3_sys::sqlite3_api_routines,
             ) -> i32,
         >(
