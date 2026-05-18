@@ -126,6 +126,7 @@ mod tests {
         GatewayAppState {
             db,
             master_key: [7u8; 32],
+            started_at: 0,
         }
     }
 

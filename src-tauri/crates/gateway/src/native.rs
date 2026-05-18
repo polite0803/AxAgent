@@ -1195,6 +1195,7 @@ mod tests {
         let state = GatewayAppState {
             db: handle.conn.clone(),
             master_key,
+            started_at: 0,
         };
         (create_router(state.clone()), handle, gateway_key.plain_key, state)
     }
@@ -1604,6 +1605,7 @@ mod tests {
         let app = create_router(GatewayAppState {
             db: handle.conn.clone(),
             master_key,
+            started_at: 0,
         });
         let response = app
             .oneshot(
