@@ -227,7 +227,7 @@ $results | ConvertTo-Json -Compress
         for raw in raw_elements {
             let name = raw["name"].as_str().unwrap_or("").to_string();
             if let Some(name_filter) = query.name_contains
-                && !name.contains(name_filter)
+                && !name.contains(&name_filter)
             {
                 continue;
             }
@@ -309,8 +309,8 @@ return output
             let h: f64 = parts[5].trim().parse().unwrap_or(0.0);
 
             if let Some(name_filter) = query.name_contains
-                && !title.contains(name_filter)
-                && !app.contains(name_filter)
+                && !title.contains(&name_filter)
+                && !app.contains(&name_filter)
             {
                 continue;
             }
@@ -365,7 +365,7 @@ return output
                         let title = parts[7..].join(" ");
 
                         if let Some(name_filter) = query.name_contains
-                            && !title.contains(name_filter)
+                            && !title.contains(&name_filter)
                         {
                             continue;
                         }
