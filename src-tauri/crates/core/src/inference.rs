@@ -421,7 +421,8 @@ mod tests {
     #[test]
     fn test_heuristic_rerank_order() {
         let s = heuristic_rerank("a b c", &["a b c".into(), "x y z".into()]);
-        assert!(s[0] > 0.9);
+        // sigmoid(1.0) = 1/(1+e^(-3*0.7)) ≈ 0.891
+        assert!(s[0] > 0.85);
         assert!(s[1] < 0.1);
     }
 
