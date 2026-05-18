@@ -499,7 +499,8 @@ mod tests {
 
         let result = registry
             .dispatch("diagnostics", Some("src/lib.rs"), None, None, None)
-            .await.unwrap();
+            .await
+            .unwrap();
         assert_eq!(result["count"], 1);
     }
 
@@ -510,7 +511,8 @@ mod tests {
 
         let result = registry
             .dispatch("hover", Some("src/main.rs"), Some(10), Some(5), None)
-            .await.unwrap();
+            .await
+            .unwrap();
         assert_eq!(result["action"], "hover");
         assert_eq!(result["language"], "rust");
     }
@@ -523,7 +525,8 @@ mod tests {
         assert!(
             registry
                 .dispatch("hover", Some("src/main.rs"), Some(1), Some(0), None)
-                .await.is_err()
+                .await
+                .is_err()
         );
     }
 
@@ -533,7 +536,8 @@ mod tests {
         assert!(
             registry
                 .dispatch("unknown_action", Some("file.rs"), None, None, None)
-                .await.is_err()
+                .await
+                .is_err()
         );
     }
 
@@ -643,7 +647,8 @@ mod tests {
         // when
         let result = registry
             .dispatch("diagnostics", None, None, None, None)
-            .await.expect("aggregate diagnostics should work");
+            .await
+            .expect("aggregate diagnostics should work");
 
         // then
         assert_eq!(result["action"], "diagnostics");
