@@ -226,8 +226,8 @@ $results | ConvertTo-Json -Compress
         let mut elements = Vec::new();
         for raw in raw_elements {
             let name = raw["name"].as_str().unwrap_or("").to_string();
-            if let Some(name_filter) = query.name_contains
-                && !name.contains(&name_filter)
+            if let Some(name_filter) = &query.name_contains
+                && !name.contains(name_filter)
             {
                 continue;
             }
@@ -308,9 +308,9 @@ return output
             let w: f64 = parts[4].trim().parse().unwrap_or(0.0);
             let h: f64 = parts[5].trim().parse().unwrap_or(0.0);
 
-            if let Some(name_filter) = query.name_contains
-                && !title.contains(&name_filter)
-                && !app.contains(&name_filter)
+            if let Some(name_filter) = &query.name_contains
+                && !title.contains(name_filter)
+                && !app.contains(name_filter)
             {
                 continue;
             }
@@ -364,8 +364,8 @@ return output
                         let h: f64 = parts[5].parse().unwrap_or(0.0);
                         let title = parts[7..].join(" ");
 
-                        if let Some(name_filter) = query.name_contains
-                            && !title.contains(&name_filter)
+                        if let Some(name_filter) = &query.name_contains
+                            && !title.contains(name_filter)
                         {
                             continue;
                         }
