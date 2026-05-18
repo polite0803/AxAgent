@@ -158,8 +158,8 @@ function computeRelevanceScore(result: SearchResultItem, queryTerms: string[]): 
   let score = 0;
 
   for (const term of queryTerms) {
-    if (titleLower.indexOf(term) !== -1) { score += 3; }
-    if (contentLower.indexOf(term) !== -1) { score += 1; }
+    if (titleLower.includes(term)) { score += 3; }
+    if (contentLower.includes(term)) { score += 1; }
   }
 
   if (assessCredibility(result.url) === "high") { score += 2; }

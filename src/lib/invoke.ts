@@ -71,6 +71,8 @@ export async function invokeWithRetry<T>(
 
   let lastError: unknown;
 
+  // 指数退避重试循环：每次重试依赖前一次失败后才执行，且每次间隔
+  // 基于前一次尝试次数计算退避延迟，必须顺序执行，不能并行。
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await invoke<T>(cmd, args, timeoutMs);

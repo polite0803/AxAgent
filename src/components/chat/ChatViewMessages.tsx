@@ -622,14 +622,14 @@ export function useChatViewMessages({
         ? buildAssistantDisplayContent(msg, deferredActiveMessages)
         : msg.content;
       if (shouldHideAssistantBubble(msg, aiContent)) { continue; }
-      if (msg.role === "assistant" && deferredThinkingIds.has(msg.id) && aiContent.indexOf("<think") !== -1) {
+      if (msg.role === "assistant" && deferredThinkingIds.has(msg.id) && aiContent.includes("<think")) {
         const lastOpen = aiContent.lastIndexOf("<think");
         const lastClose = aiContent.lastIndexOf("```");
         if (lastClose < lastOpen) {
           aiContent += THINKING_LOADING_MARKER + "\n```\n\n";
         }
       }
-      if (msg.role === "assistant" && aiContent.indexOf('data-axagent="1"') === -1) {
+      if (msg.role === "assistant" && !aiContent.includes('data-axagent="1"')) {
         const parentSearch = msg.parent_message_id
           ? deferredSearchContent.get(msg.parent_message_id)
           : undefined;

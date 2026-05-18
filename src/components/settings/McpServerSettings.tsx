@@ -428,11 +428,11 @@ function McpServerDetail({
               value={localHeaders}
               onChange={(e) => setLocalHeaders(e.target.value)}
               onBlur={() => {
-                const lines = localHeaders.split("\n").filter((l) => l.indexOf("=") !== -1);
+                const lines = localHeaders.split("\n").filter((l) => l.includes("="));
                 const obj: Record<string, string> = {};
                 for (const line of lines) {
-                  const idx = line.indexOf("=");
-                  if (idx > 0) { obj[line.slice(0, idx).trim()] = line.slice(idx + 1).trim(); }
+                  const eqIdx = line.indexOf("=");
+                  if (eqIdx > 0) { obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim(); }
                 }
                 handleFieldChange("headersJson", lines.length > 0 ? JSON.stringify(obj) : null);
               }}
@@ -454,11 +454,11 @@ function McpServerDetail({
               value={localEnv}
               onChange={(e) => setLocalEnv(e.target.value)}
               onBlur={() => {
-                const lines = localEnv.split("\n").filter((l) => l.indexOf("=") !== -1);
+                const lines = localEnv.split("\n").filter((l) => l.includes("="));
                 const obj: Record<string, string> = {};
                 for (const line of lines) {
-                  const idx = line.indexOf("=");
-                  if (idx > 0) { obj[line.slice(0, idx).trim()] = line.slice(idx + 1).trim(); }
+                  const eqIdx = line.indexOf("=");
+                  if (eqIdx > 0) { obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim(); }
                 }
                 handleFieldChange("env", Object.keys(obj).length > 0 ? obj : null);
               }}

@@ -358,7 +358,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           if (!m.enabled) { continue; }
           const modelLower = m.model_id.toLowerCase();
           const exact = modelLower === keyword;
-          const contains = modelLower.indexOf(keyword) !== -1;
+          const contains = modelLower.includes(keyword);
           if (!exact && !contains) { continue; }
           const sameProvider = p.id === conversation.provider_id;
           const score = exact ? (sameProvider ? 3 : 2) : (sameProvider ? 1 : 0);

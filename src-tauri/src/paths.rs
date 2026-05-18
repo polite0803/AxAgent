@@ -21,43 +21,28 @@ pub fn axagent_home() -> PathBuf {
             // 通用回退:      /data/data/<pkg>/files/ (via dirs::data_dir)
             let candidates: Vec<(&str, fn() -> PathBuf)> = vec![
                 // 1. 外部 files dir（Android/data/<pkg>/files/）——无需额外权限
-                (
-                    "external_files",
-                    || {
-                        PathBuf::from("/storage/emulated/0/Android/data/top.axagent.desktop/files/.axagent")
-                    },
-                ),
-                (
-                    "sdcard_files",
-                    || {
-                        PathBuf::from("/sdcard/Android/data/top.axagent.desktop/files/.axagent")
-                    },
-                ),
+                ("external_files", || {
+                    PathBuf::from(
+                        "/storage/emulated/0/Android/data/top.axagent.desktop/files/.axagent",
+                    )
+                }),
+                ("sdcard_files", || {
+                    PathBuf::from("/sdcard/Android/data/top.axagent.desktop/files/.axagent")
+                }),
                 // 2. 内部 data dir（通过 dirs crate）
-                (
-                    "data_dir",
-                    || {
-                        dirs::data_dir()
-                            .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop"))
-                            .join(".axagent")
-                    },
-                ),
+                ("data_dir", || {
+                    dirs::data_dir()
+                        .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop"))
+                        .join(".axagent")
+                }),
                 // 3. 内部 cache dir
-                (
-                    "cache_dir",
-                    || {
-                        dirs::cache_dir()
-                            .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop/cache"))
-                            .join(".axagent")
-                    },
-                ),
+                ("cache_dir", || {
+                    dirs::cache_dir()
+                        .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop/cache"))
+                        .join(".axagent")
+                }),
                 // 4. Download 目录（最低优先级，用户可见）
-                (
-                    "download",
-                    || {
-                        PathBuf::from("/storage/emulated/0/Download/.axagent")
-                    },
-                ),
+                ("download", || PathBuf::from("/storage/emulated/0/Download/.axagent")),
             ];
 
             for (_label, path_fn) in &candidates {
@@ -66,14 +51,10 @@ pub fn axagent_home() -> PathBuf {
                     Ok(()) => {
                         tracing::info!("axagent_home: using {}", path.display());
                         return path;
-                    }
+                    },
                     Err(e) => {
-                        tracing::warn!(
-                            "axagent_home: {} not writable: {}",
-                            path.display(),
-                            e
-                        );
-                    }
+                        tracing::warn!("axagent_home: {} not writable: {}", path.display(), e);
+                    },
                 }
             }
 
@@ -88,11 +69,7 @@ pub fn axagent_home() -> PathBuf {
         {
             let base = dirs::data_dir()
                 .or_else(dirs::home_dir)
-                .or_else(|| {
-                    std::env::var("HOME")
-                        .ok()
-                        .map(PathBuf::from)
-                })
+                .or_else(|| std::env::var("HOME").ok().map(PathBuf::from))
                 .unwrap_or_else(|| {
                     tracing::warn!("Could not determine home directory, using current dir");
                     PathBuf::from(".")

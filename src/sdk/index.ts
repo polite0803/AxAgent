@@ -200,6 +200,8 @@ export class AxAgentClient {
     };
 
     try {
+      // 异步生成器流式循环：每次迭代通过 resolveNext 闭包等待下一条 WebSocket 消息，
+      // 消费者按顺序逐个拉取消息，循环的每一步都依赖上一步 resolveNext 被设置，不能并行。
       while (!done) {
         if (messageQueue.length > 0) {
           yield messageQueue.shift()!;

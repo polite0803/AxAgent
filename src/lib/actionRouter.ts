@@ -131,6 +131,8 @@ export class ActionRouter {
     if (depth > MAX_CHAIN_DEPTH) {
       return { success: false, error: i18n.t("actionRouter.chainDepthExceeded", { depth: MAX_CHAIN_DEPTH }) };
     }
+    // 操作链顺序执行：每一步将上一步的 lastResult.data 合并到 pageParams
+    // 传给下一步，且链在任一失败时中断 (break)，必须顺序执行，不能并行。
     let lastResult: ActionResult = { success: true };
     for (const action of actions) {
       lastResult = await this.execute(action, {

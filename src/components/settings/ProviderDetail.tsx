@@ -1698,9 +1698,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   const lines = customHeadersLocal.split("\n").filter((l) => l.trim());
                   const obj: Record<string, string> = {};
                   for (const line of lines) {
-                    const idx = line.indexOf("=");
-                    if (idx > 0) {
-                      obj[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+                    const eqIdx = line.indexOf("=");
+                    if (eqIdx > 0) {
+                      obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim();
                     }
                   }
                   const json = Object.keys(obj).length > 0 ? JSON.stringify(obj) : null;

@@ -18,7 +18,7 @@ const TYPE_TO_PROVIDER: Record<string, string> = {
 function findProviderKey(name: string): string | null {
   const lower = name.toLowerCase().replace(/\s+/g, "");
   for (const mapping of providerMappings) {
-    if (mapping.keywords.some((kw: string) => lower.indexOf(kw.toLowerCase()) !== -1)) {
+    if (mapping.keywords.some((kw: string) => lower.includes(kw.toLowerCase()))) {
       return mapping.keywords[0];
     }
   }
@@ -36,7 +36,7 @@ function findModelKey(name: string): string | null {
         try {
           return new RegExp(kw, "i").test(lower);
         } catch {
-          return lower.indexOf(kw.toLowerCase()) !== -1;
+          return lower.includes(kw.toLowerCase());
         }
       })
     ) {

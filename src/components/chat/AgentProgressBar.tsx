@@ -29,7 +29,7 @@ function getToolDisplayName(toolName: string, t: (key: string) => string): strin
     mcp: t("progressBar.tool.mcp"),
   };
   for (const [key, display] of Object.entries(map)) {
-    if (lower.indexOf(key) !== -1) {
+    if (lower.includes(key)) {
       return display;
     }
   }

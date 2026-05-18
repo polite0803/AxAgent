@@ -441,7 +441,7 @@ export function extractFileChanges(
 
   for (const tc of toolCalls) {
     const lower = tc.toolName.toLowerCase();
-    if (lower.indexOf("write") === -1 && lower.indexOf("edit") === -1 && lower.indexOf("delete") === -1) {
+    if (!/\b(write|edit|delete)\b/.test(lower)) {
       continue;
     }
 

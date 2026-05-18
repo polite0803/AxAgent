@@ -310,6 +310,8 @@ export function createSendMethods(
             // 保存原始 provider/model，全部 fallback 失败后恢复
             const originalProviderId = currentProviderId;
             const originalModelId = currentModelId;
+            // 降级链路顺序尝试：每个备选 provider/model 仅在前一个失败后才尝试，
+            // 成功即 break 退出，失败则继续下一个，必须顺序执行，不能并行。
             for (let i = 0; i < fallbackChain.length; i++) {
               const fb = fallbackChain[i];
               try {

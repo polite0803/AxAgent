@@ -152,7 +152,7 @@ const PHASE_PATTERNS: { phase: ThinkingPhase; keywords: string[] }[] = [
 function detectPhase(line: string): ThinkingPhase | null {
   const lower = line.toLowerCase().trim();
   for (const { phase, keywords } of PHASE_PATTERNS) {
-    if (keywords.some((kw) => lower.indexOf(kw) !== -1)) {
+    if (keywords.some((kw) => lower.includes(kw))) {
       return phase;
     }
   }
