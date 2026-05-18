@@ -15,6 +15,15 @@ pub async fn init_database() -> Result<DatabaseInitResult, String> {
     std::fs::create_dir_all(&app_dir)
         .map_err(|e| format!("failed to create AxAgent home dir: {}", e))?;
 
+    init_database_with_dir(app_dir).await
+}
+
+/// 使用预先解析的 app_dir 初始化数据库。
+///
+/// Android：主线程已调用 `axagent_home()` + `create_dir_all()`，
+/// 子线程中 `dirs::data_dir()` 因缺少 JNI 上下文不可用。
+/// 此函数跳过路径解析，直接使用传入的目录。
+pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResult, String> {
     axagent_core::storage_paths::ensure_documents_dirs().unwrap_or_else(|e| {
         tracing::warn!(
             "Failed to create documents storage dirs (non-critical, will retry later): {}",

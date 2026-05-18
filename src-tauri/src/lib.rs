@@ -939,9 +939,26 @@ pub fn run() {
                 }
             }
 
+            // ── 在主线程解析并创建 axagent_home ──
+            // Android 子线程中 dirs::data_dir() 因缺少 JNI 上下文返回 None，
+            // 回退到 / 导致 Permission denied。必须在主线程完成目录创建。
+            let app_dir = {
+                let dir = crate::paths::axagent_home();
+                if let Err(e) = std::fs::create_dir_all(&dir) {
+                    tracing::error!("Failed to create AxAgent home dir: {}", e);
+                    android_utils::report_fatal_error(&format!(
+                        "Failed to create AxAgent home dir: {}",
+                        e
+                    ));
+                    std::process::exit(1);
+                }
+                tracing::info!("axagent_home ready: {}", dir.display());
+                dir
+            };
+
             android_utils::mark_startup_phase("db_init_start");
 
-            let db_result = match std::thread::spawn(|| {
+            let db_result = match std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new()
                     .or_else(|e| {
                         tracing::warn!("Failed to create multi-threaded runtime for DB init: {} — falling back to current-thread", e);
@@ -951,7 +968,7 @@ pub fn run() {
                         android_utils::report_fatal_error(&format!("Failed to create db init runtime: {}", e));
                         std::process::exit(1);
                     });
-                rt.block_on(init::init_database())
+                rt.block_on(init::init_database_with_dir(app_dir))
             }).join() {
                 Ok(Ok(result)) => result,
                 Ok(Err(e)) => {
