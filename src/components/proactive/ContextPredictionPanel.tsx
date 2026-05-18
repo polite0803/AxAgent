@@ -176,7 +176,7 @@ export function ContextPredictionPanel({
 }: ContextPredictionPanelProps) {
   const { t } = useTranslation();
 
-  const predictions = useProactiveStore((s) => s.predictions);
+  const predictions = useProactiveStore((s) => s.predictions) ?? [];
   const fetchPredictions = useProactiveStore((s) => s.fetchPredictions);
   const isLoading = useProactiveStore((s) => s.isLoading);
   const error = useProactiveStore((s) => s.error);
@@ -293,7 +293,7 @@ export function ContextPredictionPanel({
               <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           )
-          : predictions.length === 0
+          : !predictions || predictions.length === 0
           ? (
             <div className="text-sm text-muted-foreground text-center py-4">
               {t("proactive.noPredictions")}

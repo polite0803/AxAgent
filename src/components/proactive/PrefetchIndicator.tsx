@@ -108,13 +108,13 @@ const PULSE_KEYFRAMES = `
 
 export function PrefetchIndicator() {
   const { t } = useTranslation();
-  const results = useProactiveStore((s) => s.prefetchResults);
+  const results = useProactiveStore((s) => s.prefetchResults) ?? [];
   const isActive = useProactiveStore((s) => s.isPrefetchActive);
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const resultsHash = useMemo(
-    () => results.map((r) => `${r.resource_id}:${r.ready}`).join(","),
+    () => (results ?? []).map((r) => `${r.resource_id}:${r.ready}`).join(","),
     [results],
   );
 
