@@ -10,14 +10,6 @@ pub struct DatabaseInitResult {
     pub app_dir: PathBuf,
 }
 
-pub async fn init_database() -> Result<DatabaseInitResult, String> {
-    let app_dir = crate::paths::axagent_home();
-    std::fs::create_dir_all(&app_dir)
-        .map_err(|e| format!("failed to create AxAgent home dir: {}", e))?;
-
-    init_database_with_dir(app_dir).await
-}
-
 /// 使用预先解析的 app_dir 初始化数据库。
 ///
 /// Android：主线程已调用 `axagent_home()` + `create_dir_all()`，
