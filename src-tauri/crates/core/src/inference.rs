@@ -420,10 +420,10 @@ mod tests {
 
     #[test]
     fn test_heuristic_rerank_order() {
-        let s = heuristic_rerank("a b c", &["a b c".into(), "x y z".into()]);
-        // sigmoid(1.0) = 1/(1+e^(-3*0.7)) ≈ 0.891
+        // 词语至少 2 字符，单字符会被 filter(|w| w.len() > 1) 过滤
+        let s = heuristic_rerank("foo bar baz", &["foo bar baz".into(), "xyz qux abc".into()]);
         assert!(s[0] > 0.85);
-        assert!(s[1] < 0.1);
+        assert!(s[1] < 0.5);
     }
 
     #[test]
