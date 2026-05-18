@@ -430,6 +430,7 @@ function McpServerDetail({
               onBlur={() => {
                 const lines = localHeaders.split("\n").filter((l) => l.includes("="));
                 const obj: Record<string, string> = {};
+                // js-set-map-lookups: indexOf 用于获取 = 位置，Set 无法替代
                 for (const line of lines) {
                   const eqIdx = line.indexOf("=");
                   if (eqIdx > 0) { obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim(); }
@@ -456,6 +457,7 @@ function McpServerDetail({
               onBlur={() => {
                 const lines = localEnv.split("\n").filter((l) => l.includes("="));
                 const obj: Record<string, string> = {};
+                // js-set-map-lookups: indexOf 用于获取 = 位置，Set 无法替代
                 for (const line of lines) {
                   const eqIdx = line.indexOf("=");
                   if (eqIdx > 0) { obj[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim(); }

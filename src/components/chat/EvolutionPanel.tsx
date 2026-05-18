@@ -107,6 +107,7 @@ export function EvolutionPanel() {
               const min = Math.min(...fitnessHistory.slice(-20));
               const range = max - min || 1;
               const height = ((f - min) / range) * 100;
+              {/* static fitness chart bars, safe to use index as key */}
               return (
                 <div
                   key={i}

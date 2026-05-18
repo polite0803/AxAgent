@@ -119,7 +119,7 @@ export function UISnapshotViewer({
           )}
           {elements.map((el, i) => (
             <div
-              key={i}
+              key={`${el.element_type}-${el.label || ""}-${el.bounding_box?.x || 0}-${el.bounding_box?.y || 0}`}
               role="button"
               tabIndex={0}
               className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer transition-colors ${

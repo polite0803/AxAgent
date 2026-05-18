@@ -1292,9 +1292,9 @@ function MemoryItemsPanel({
         mask={{ enabled: true, blur: true }}
       >
         <div className="flex flex-col gap-3">
-          {explainedResults.map((result, idx) => (
+          {explainedResults.map((result, _idx) => (
             <div
-              key={idx}
+              key={result.entry.id}
               className="p-3"
               style={{
                 border: "1px solid var(--border-color)",
@@ -1382,7 +1382,7 @@ function MemoryItemsPanel({
             <div className="flex flex-col gap-3">
               {clusters.map((cluster, idx) => (
                 <div
-                  key={idx}
+                  key={cluster.ids.join(",")}
                   className="flex flex-col gap-2 p-3"
                   style={{
                     backgroundColor: token.colorFillQuaternary,

@@ -120,8 +120,11 @@ function BatchImportN8n({ onImportComplete }: { onImportComplete?: () => void })
               </div>
               {result.errors.length > 0 && (
                 <div style={{ marginTop: 6 }}>
+                  {/* error strings appended sequentially, safe to use index as key */}
                   {(showAllErrors ? result.errors : result.errors.slice(0, 5)).map((e, i) => (
-                    <div key={i} style={{ color: "#595959", fontSize: 12, marginBottom: 2 }}>{e}</div>
+                    <div key={`${e.slice(0, 20)}-${i}`} style={{ color: "#595959", fontSize: 12, marginBottom: 2 }}>
+                      {e}
+                    </div>
                   ))}
                   {result.errors.length > 5 && !showAllErrors && (
                     <Button
@@ -208,8 +211,11 @@ function BatchImportFolder({ onImportComplete }: { onImportComplete?: () => void
               </div>
               {result.errors.length > 0 && (
                 <div style={{ marginTop: 6 }}>
+                  {/* error strings appended sequentially, safe to use index as key */}
                   {result.errors.slice(0, 10).map((e, i) => (
-                    <div key={i} style={{ color: "#595959", fontSize: 12, marginBottom: 2 }}>{e}</div>
+                    <div key={`${e.slice(0, 20)}-${i}`} style={{ color: "#595959", fontSize: 12, marginBottom: 2 }}>
+                      {e}
+                    </div>
                   ))}
                   {result.errors.length > 10 && (
                     <div style={{ color: "#999", fontSize: 12 }}>
@@ -511,7 +517,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               onClose={() => setImportWarnings([])}
               message={
                 <div style={{ fontSize: 12 }}>
-                  {importWarnings.map((w, i) => <div key={i}>{w}</div>)}
+                  {/* warning strings appended sequentially, safe to use index as key */}
+                  {importWarnings.map((w, i) => <div key={`${w.slice(0, 20)}-${i}`}>{w}</div>)}
                 </div>
               }
             />

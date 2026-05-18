@@ -23,6 +23,7 @@ export function CredibilityBadge({
   if (showStars) {
     const starCount = Math.round(normalizedScore * 5);
     const stars = [];
+    {/* static 5-star rating display, safe to use index as key */}
     for (let i = 0; i < 5; i++) {
       stars.push(
         i < starCount

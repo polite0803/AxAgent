@@ -97,7 +97,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
         <div style={{ marginBottom: 8 }}>
           <strong>{t("workflow.matchReasons")}:</strong>
           <div style={{ marginTop: 4 }}>
-            {match.match_reasons.map((reason, i) => <Tag key={i} color="cyan">{reason}</Tag>)}
+            {match.match_reasons.map((reason, _i) => <Tag key={reason} color="cyan">{reason}</Tag>)}
           </div>
         </div>
         <div style={{ marginTop: 12 }}>

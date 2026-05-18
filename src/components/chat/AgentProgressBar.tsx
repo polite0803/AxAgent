@@ -28,6 +28,7 @@ function getToolDisplayName(toolName: string, t: (key: string) => string): strin
     task: t("progressBar.tool.task"),
     mcp: t("progressBar.tool.mcp"),
   };
+  // js-set-map-lookups: 子串匹配无法用 Set.has 替代（需部分匹配 toolName）
   for (const [key, display] of Object.entries(map)) {
     if (lower.includes(key)) {
       return display;

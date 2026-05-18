@@ -172,8 +172,8 @@ export function UserProfilePanel() {
             {t("chat.patterns")}
           </div>
           <div className="space-y-0.5 mt-0.5">
-            {patterns.filter(p => p.confidence >= 0.5).slice(0, 3).map((p, i) => (
-              <div key={i} className="text-[11px] text-foreground/60">
+            {patterns.filter(p => p.confidence >= 0.5).slice(0, 3).map((p, _i) => (
+              <div key={p.pattern} className="text-[11px] text-foreground/60">
                 {p.pattern}{" "}
                 <span className="text-muted-foreground/50">x{p.frequency} {Math.round(p.confidence * 100)}%</span>
               </div>

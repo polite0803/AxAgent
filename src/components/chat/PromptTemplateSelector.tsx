@@ -66,6 +66,7 @@ export function PromptTemplateSelector({ onSelect }: PromptTemplateSelectorProps
     }
 
     // 如果用户填了变量值就用，否则保留占位符
+    // js-hoist-regexp: 模式依赖迭代变量 varName，无法提升
     for (const varName of varNames) {
       const value = variableValues[varName];
       if (value !== undefined && value !== "") {

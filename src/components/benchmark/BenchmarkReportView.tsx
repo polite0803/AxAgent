@@ -123,7 +123,7 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
         <Tabs.TabPane tab={t("benchmark.recommendations")} key="recommendations">
           <Card>
             <ul className="list-disc pl-5">
-              {report.recommendations.map((rec, idx) => <li key={idx} className="mb-2">{rec}</li>)}
+              {report.recommendations.map((rec, _idx) => <li key={rec} className="mb-2">{rec}</li>)}
             </ul>
           </Card>
         </Tabs.TabPane>

@@ -151,6 +151,7 @@ const PHASE_PATTERNS: { phase: ThinkingPhase; keywords: string[] }[] = [
 
 function detectPhase(line: string): ThinkingPhase | null {
   const lower = line.toLowerCase().trim();
+  // js-set-map-lookups: 子串匹配无法用 Set.has 替代
   for (const { phase, keywords } of PHASE_PATTERNS) {
     if (keywords.some((kw) => lower.includes(kw))) {
       return phase;
@@ -358,7 +359,7 @@ export const StructuredThinking = React.memo(function StructuredThinking({
             const isBlockExpanded = expandedBlocks.has(idx) || blocks.length === 1;
             return (
               <div
-                key={idx}
+                key={`${block.phase}-${block.title}`}
                 style={{
                   marginBottom: idx < blocks.length - 1 ? 8 : 0,
                   border: `1px solid ${colors.border}20`,

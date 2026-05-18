@@ -104,6 +104,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({ askId, question, options }) =
               {t("agent.questionFromAgent")}
             </Text>
             <Text style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>
+              {/* static list from text split, safe to use index as key */}
               {questionLines.map((line, i) => (
                 <React.Fragment key={i}>
                   {i > 0 && <br />}

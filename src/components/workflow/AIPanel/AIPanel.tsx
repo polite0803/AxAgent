@@ -297,9 +297,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                 {t("workflow.aiPanel.recommendedNodeTypes")}
               </label>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {recommendedNodes.map((node, index) => (
+                {recommendedNodes.map((node, _index) => (
                   <Card
-                    key={`${node.node_type}-${index}`}
+                    key={`${node.node_type}-${node.label}`}
                     size="small"
                     style={{
                       background: token.colorBgContainer,

@@ -412,9 +412,9 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
                 if (enabledSkillIds.length > 1) {
                   pills.push({ label: `+${enabledSkillIds.length - 1}`, color: nodeTypeStyles.skill.border });
                 }
-                return pills.map((p, i) => (
+                return pills.map((p, _i) => (
                   <span
-                    key={i}
+                    key={p.label}
                     style={{
                       fontSize: 10,
                       padding: "0 5px",

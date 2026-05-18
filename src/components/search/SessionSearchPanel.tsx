@@ -95,13 +95,14 @@ export function SessionSearchPanel({
     const parts: React.ReactNode[] = [];
     let lastEnd = 0;
 
-    ranges.forEach(([start, end], index) => {
+    ranges.forEach(([start, end], _index) => {
       if (start > lastEnd) {
         parts.push(text.slice(lastEnd, start));
       }
+      {/* computed highlight ranges, safe to use index as key */}
       parts.push(
         <mark
-          key={index}
+          key={`hl-${start}-${end}`}
           style={{
             backgroundColor: "var(--accent-primary, #89b4fa)",
             color: "var(--background, #1e1e2e)",
@@ -272,9 +273,9 @@ export function SessionSearchPanel({
                 </Popconfirm>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {recentSearches.map((q, i) => (
+                {recentSearches.map((q, _i) => (
                   <Tag
-                    key={i}
+                    key={q}
                     style={{ cursor: "pointer", padding: "4px 12px" }}
                     onClick={() => {
                       setQuery(q);

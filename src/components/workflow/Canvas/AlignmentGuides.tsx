@@ -196,6 +196,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ nodes, childre
           </pattern>
         </defs>
 
+        {/* static SVG alignment guides computed on the fly, safe to use index as key */}
         {lines.map((line, index) =>
           line.orientation === "vertical"
             ? (

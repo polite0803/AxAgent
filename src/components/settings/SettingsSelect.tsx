@@ -112,6 +112,7 @@ export function SettingsSelect({ value, onChange, options, style, disabled, sear
                 <div
                   key={opt.value}
                   role="option"
+                  aria-selected={opt.value === value}
                   tabIndex={0}
                   onClick={() => handleSelect(opt.value)}
                   onKeyDown={(e) => {

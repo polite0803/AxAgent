@@ -1820,7 +1820,7 @@ export function InputArea() {
 
             return (
               <div
-                key={`${file.name}-${idx}`}
+                key={`${file.name}-${file.size}-${file.lastModified}`}
                 className="relative group"
                 style={{
                   backgroundColor: token.colorFillTertiary,

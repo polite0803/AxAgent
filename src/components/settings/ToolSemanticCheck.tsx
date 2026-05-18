@@ -253,9 +253,9 @@ export function ToolSemanticCheck() {
                           description={t("settings.toolSemanticCheck.checkingTool", { tool: item.tool_name })}
                         />
                         <div className="mt-2">
-                          {item.matches.map((match, index) => (
+                          {item.matches.map((match, _index) => (
                             <Card
-                              key={index}
+                              key={match.tool_name}
                               size="small"
                               className="mb-2"
                               extra={

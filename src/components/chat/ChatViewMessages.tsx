@@ -622,6 +622,7 @@ export function useChatViewMessages({
         ? buildAssistantDisplayContent(msg, deferredActiveMessages)
         : msg.content;
       if (shouldHideAssistantBubble(msg, aiContent)) { continue; }
+      // js-set-map-lookups: 单次子串检查，Set 无优化收益
       if (msg.role === "assistant" && deferredThinkingIds.has(msg.id) && aiContent.includes("<think")) {
         const lastOpen = aiContent.lastIndexOf("<think");
         const lastClose = aiContent.lastIndexOf("```");
@@ -629,6 +630,7 @@ export function useChatViewMessages({
           aiContent += THINKING_LOADING_MARKER + "\n```\n\n";
         }
       }
+      // js-set-map-lookups: 单次子串检查，Set 无优化收益
       if (msg.role === "assistant" && !aiContent.includes('data-axagent="1"')) {
         const parentSearch = msg.parent_message_id
           ? deferredSearchContent.get(msg.parent_message_id)

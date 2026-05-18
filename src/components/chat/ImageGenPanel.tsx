@@ -147,7 +147,7 @@ export function ImageGenPanel({
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
             {result.images.map((img, i) => (
               <Image
-                key={i}
+                key={img.url || (img.base64 ? img.base64.slice(0, 20) : `img-${i}`)}
                 src={img.base64 ? `data:image/png;base64,${img.base64}` : img.url}
                 width={256}
                 style={{ borderRadius: 8 }}

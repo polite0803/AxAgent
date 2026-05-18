@@ -459,6 +459,7 @@ function highlightWikilink(snippet: string, linkText: string) {
   return (
     <span>
       {parts.map((part, i) => (
+        // 静态文本分割列表，基于索引的 key 安全
         <span key={i}>
           {part}
           {i < parts.length - 1 && (

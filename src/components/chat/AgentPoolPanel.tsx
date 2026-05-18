@@ -135,9 +135,10 @@ function WorkerMessageLog({ messages }: { messages?: WorkerMessage[] }) {
       </button>
       {expanded && (
         <div className="worker-msg-log__list">
+          {/* message log appended sequentially, safe to use index as key */}
           {messages.map((msg, i) => (
             <div
-              key={i}
+              key={`${msg.workerId}-${msg.timestamp || i}`}
               className={`worker-msg-log__entry worker-msg-log__entry--${msg.messageType}`}
             >
               <span className="worker-msg-log__type">{msg.messageType}</span>

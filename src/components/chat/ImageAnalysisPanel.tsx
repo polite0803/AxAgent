@@ -197,9 +197,9 @@ export function ImageAnalysisPanel() {
                   {t("chat.vision.elements")} ({result.elements.length})
                 </Text>
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {result.elements.map((el, i) => (
+                  {result.elements.map((el, _i) => (
                     <div
-                      key={`${el.element_type}-${i}`}
+                      key={`${el.element_type}-${el.label || ""}-${el.bounding_box?.x || 0}-${el.bounding_box?.y || 0}`}
                       style={{
                         display: "flex",
                         alignItems: "center",

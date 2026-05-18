@@ -17,6 +17,7 @@ const TYPE_TO_PROVIDER: Record<string, string> = {
  */
 function findProviderKey(name: string): string | null {
   const lower = name.toLowerCase().replace(/\s+/g, "");
+  // js-set-map-lookups: 子串匹配无法用 Set.has 替代（keywords 来自外部库）
   for (const mapping of providerMappings) {
     if (mapping.keywords.some((kw: string) => lower.includes(kw.toLowerCase()))) {
       return mapping.keywords[0];
@@ -28,6 +29,8 @@ function findProviderKey(name: string): string | null {
 /**
  * Check if a name matches any modelMappings keyword using regex (same as ModelIcon internals).
  */
+// js-hoist-regexp: RegExp 模式 kw 来自外部库 modelMappings，每次迭代不同，无法提升
+// js-set-map-lookups: 子串匹配 + 正则测试，Set.has 不适用
 function findModelKey(name: string): string | null {
   const lower = name.toLowerCase().replace(/\s+/g, "");
   for (const mapping of modelMappings) {

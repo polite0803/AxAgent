@@ -143,9 +143,9 @@ export function ReminderList({ showAddForm = false }: ReminderListProps) {
     return new Date(dateString).getTime() < Date.now();
   }, []);
 
-  const pendingReminders = [...reminders
-    .filter((r) => !r.completed)]
-    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  const pendingReminders = reminders
+    .filter((r) => !r.completed)
+    .toSorted((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
   const completedReminders = reminders.filter((r) => r.completed);
 

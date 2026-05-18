@@ -1697,6 +1697,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 onBlur={() => {
                   const lines = customHeadersLocal.split("\n").filter((l) => l.trim());
                   const obj: Record<string, string> = {};
+                  // js-set-map-lookups: indexOf 用于获取 = 位置，Set 无法替代
                   for (const line of lines) {
                     const eqIdx = line.indexOf("=");
                     if (eqIdx > 0) {

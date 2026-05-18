@@ -254,8 +254,8 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
                 {t("common.affectedPaths")}:
               </Text>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
-                {affectedPaths.map((p, i) => (
-                  <Tag key={i} style={{ fontSize: 12, fontFamily: "monospace" }}>
+                {affectedPaths.map((p, _i) => (
+                  <Tag key={p} style={{ fontSize: 12, fontFamily: "monospace" }}>
                     {p.length > 40 ? p.slice(0, 40) + "..." : p}
                   </Tag>
                 ))}
@@ -391,8 +391,8 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
             <li>
               <Text code>{toolName}</Text>
             </li>
-            {affectedPaths.slice(0, 3).map((p, i) => (
-              <li key={i}>
+            {affectedPaths.slice(0, 3).map((p, _i) => (
+              <li key={p}>
                 <Text code style={{ fontSize: 12 }}>{p}</Text>
               </li>
             ))}

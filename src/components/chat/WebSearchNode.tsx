@@ -159,9 +159,9 @@ export function WebSearchNode(props: NodeComponentProps<WebSearchNodeData>) {
           borderTop: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
-        {results.map((r, i) => (
+        {results.map((r, _i) => (
           <a
-            key={i}
+            key={r.url}
             href={r.url}
             target="_blank"
             rel="noopener noreferrer"

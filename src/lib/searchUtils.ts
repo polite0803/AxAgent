@@ -157,6 +157,7 @@ function computeRelevanceScore(result: SearchResultItem, queryTerms: string[]): 
 
   let score = 0;
 
+  // js-set-map-lookups: 子串匹配无法用 Set.has 替代，必须逐 term 扫描
   for (const term of queryTerms) {
     if (titleLower.includes(term)) { score += 3; }
     if (contentLower.includes(term)) { score += 1; }

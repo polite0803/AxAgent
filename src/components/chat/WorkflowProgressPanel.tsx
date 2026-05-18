@@ -168,7 +168,7 @@ function computeDagLayout(steps: WorkflowStep[]): { nodes: Node<WorkflowDagNodeD
     layerGroups.get(layer)!.push(step);
   }
 
-  const sortedLayers = [...layerGroups.keys()].sort((a, b) => a - b);
+  const sortedLayers = [...layerGroups.keys()].toSorted((a, b) => a - b);
   const nodes: Node<WorkflowDagNodeData>[] = [];
 
   for (const layer of sortedLayers) {

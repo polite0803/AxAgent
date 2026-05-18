@@ -132,9 +132,9 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({ data, 
           {conditions.length > 0
             ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {conditions.slice(0, 3).map((condition, index) => (
+                {conditions.slice(0, 3).map((condition, _index) => (
                   <div
-                    key={index}
+                    key={`${condition.var_path}-${condition.operator}-${String(condition.value)}`}
                     style={{
                       fontSize: 10,
                       color: "#aaa",

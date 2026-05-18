@@ -129,8 +129,8 @@ export function ChartInterpreter({
             <div>
               <Text strong className="text-sm block mb-1">{t("chat.chart.insights")}</Text>
               <ul className="space-y-1">
-                {chartData.insights.map((insight, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
+                {chartData.insights.map((insight, _i) => (
+                  <li key={insight} className="flex items-start gap-2 text-sm">
                     <CheckCircle size={12} className="text-green-500 mt-0.5 shrink-0" />
                     <span>{insight}</span>
                   </li>
@@ -156,8 +156,8 @@ export function ChartInterpreter({
                         </tr>
                       </thead>
                       <tbody>
-                        {chartData.data_points.map((dp, i) => (
-                          <tr key={i} className="border-b border-zinc-100 dark:border-zinc-800">
+                        {chartData.data_points.map((dp, _i) => (
+                          <tr key={dp.label} className="border-b border-zinc-100 dark:border-zinc-800">
                             <td className="py-1 pr-2 text-zinc-600 dark:text-zinc-400">{dp.label}</td>
                             <td className="py-1 pr-2 text-right font-mono">{dp.value}</td>
                             {chartData.series.length > 0 && <td className="py-1 text-zinc-500">{dp.series || "-"}</td>}

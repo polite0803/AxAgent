@@ -216,8 +216,8 @@ export function PluginMarketplace() {
 
               {plugin.tools.length > 0 && (
                 <div className="flex gap-2 mt-2 flex-wrap">
-                  {plugin.tools.slice(0, 5).map((tool, i) => (
-                    <Tag key={i} color="cyan" className="text-xs">
+                  {plugin.tools.slice(0, 5).map((tool, _i) => (
+                    <Tag key={tool} color="cyan" className="text-xs">
                       {tool}
                     </Tag>
                   ))}

@@ -42,6 +42,7 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
         return (
           <div className="flex flex-col items-center gap-4">
             <div className="voice-waveform">
+              {/* static 5-bar waveform visualization, safe to use index as key */}
               {[...Array(5)].map((_, i) => (
                 <div
                   key={i}

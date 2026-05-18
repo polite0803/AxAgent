@@ -57,8 +57,9 @@ export const ValidationPropertyPanel: React.FC<ValidationPropertyPanelProps> = (
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* assertions use index-based callbacks, safe to use index as key */}
           {(config.assertions || []).map((assertion, index) => (
-            <div key={index} style={{ background: "#252525", borderRadius: 4, padding: 8 }}>
+            <div key={`assertion-${index}`} style={{ background: "#252525", borderRadius: 4, padding: 8 }}>
               <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>
                 <Select
                   value={assertion.type}

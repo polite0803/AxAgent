@@ -59,6 +59,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({ node, onUpda
     let content = selectedTemplate.content;
     try {
       const schema = selectedTemplate.variablesSchema ? JSON.parse(selectedTemplate.variablesSchema) : {};
+      // js-hoist-regexp: 模式依赖迭代变量 varName，无法提升
       for (const [varName, _varType] of Object.entries(schema)) {
         const value = variableValues[varName] || `{${varName}}`;
         content = content.replace(new RegExp(`\\{${varName}\\}`, "g"), value);

@@ -162,7 +162,7 @@ export function TeammatePanel({
                   <div className="mt-1 max-h-40 overflow-y-auto rounded bg-zinc-50 p-1">
                     {tm.messages.map((msg, i) => (
                       <div
-                        key={i}
+                        key={`${msg.workerId}-${msg.timestamp || i}`}
                         className="border-b border-zinc-100 py-0.5"
                         style={{ fontSize: 12, lineHeight: "18px" }}
                       >

@@ -252,8 +252,8 @@ export function CollaborationPanel({ conversationId }: CollaborationPanelProps) 
                       <Text type="secondary" className="text-xs block mb-1">
                         {t("chat.collaboration.sharedResources")}
                       </Text>
-                      {session.shared_resources.map((r, i) => (
-                        <div key={i} className="flex items-center gap-2 py-0.5">
+                      {session.shared_resources.map((r, _i) => (
+                        <div key={r.resource_id} className="flex items-center gap-2 py-0.5">
                           <Link size={10} className="text-zinc-400" />
                           <Text className="text-xs">{r.resource_type}</Text>
                           <Tag color="geekblue" className="text-xs">

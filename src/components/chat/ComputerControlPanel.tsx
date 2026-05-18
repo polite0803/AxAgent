@@ -182,9 +182,9 @@ export function ComputerControlPanel() {
                 }}
               />
             )}
-            {elements.map((el, i) => (
+            {elements.map((el, _i) => (
               <div
-                key={i}
+                key={`${el.role}-${el.name}-${el.bounds.x}-${el.bounds.y}`}
                 role="button"
                 tabIndex={el.is_clickable ? 0 : -1}
                 onKeyDown={(e) => {
@@ -252,9 +252,9 @@ export function ComputerControlPanel() {
       {elements.length > 0 && (
         <Card size="small" title={t("computerControl.foundElements", { count: elements.length })}>
           <div style={{ maxHeight: 200, overflow: "auto" }}>
-            {elements.slice(0, 20).map((el, i) => (
+            {elements.slice(0, 20).map((el, _i) => (
               <div
-                key={i}
+                key={`${el.role}-${el.name}-${el.bounds.x}-${el.bounds.y}`}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {

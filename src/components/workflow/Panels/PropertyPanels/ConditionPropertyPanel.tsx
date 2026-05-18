@@ -115,7 +115,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({ 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {config.conditions.map((condition, index) => (
             <div
-              key={index}
+              key={`${condition.var_path}-${condition.operator}-${String(condition.value)}-${index}`}
               style={{
                 padding: 8,
                 background: "#1e1e1e",

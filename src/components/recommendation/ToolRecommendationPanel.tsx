@@ -118,8 +118,8 @@ export function ToolRecommendationPanel() {
                         title={item.tool_name}
                         description={
                           <div>
-                            {item.reasons.map((reason, idx) => (
-                              <Tag key={idx} style={{ marginBottom: "4px" }}>
+                            {item.reasons.map((reason, _idx) => (
+                              <Tag key={reason} style={{ marginBottom: "4px" }}>
                                 {reason}
                               </Tag>
                             ))}
@@ -146,11 +146,11 @@ export function ToolRecommendationPanel() {
                             description={
                               <div>
                                 <Text type="secondary">Tools:</Text>
-                                {alt.tools.map((tool, idx) => <Tag key={idx}>{tool}</Tag>)}
+                                {alt.tools.map((tool, _idx) => <Tag key={tool}>{tool}</Tag>)}
                                 <br />
                                 <Text type="secondary">Tradeoffs:</Text>
-                                {alt.tradeoffs.map((tradeoff, idx) => (
-                                  <Tag key={idx} color="default">
+                                {alt.tradeoffs.map((tradeoff, _idx) => (
+                                  <Tag key={tradeoff} color="default">
                                     {tradeoff}
                                   </Tag>
                                 ))}

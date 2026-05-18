@@ -92,7 +92,7 @@ function DefaultContainer({
       {Array.isArray(node.children) && ctx && renderNode
         ? node.children.map((child: any, i: number) => (
           <NodeChild
-            key={`${String(indexKey ?? "vmr-container")}-${i}`}
+            key={child.id ?? child.name ?? `${String(indexKey ?? "vmr-container")}-${i}`}
             child={child}
             indexKey={indexKey}
             index={i}

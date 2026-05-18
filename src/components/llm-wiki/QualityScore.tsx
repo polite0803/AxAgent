@@ -225,8 +225,8 @@ export function QualityScore({
             {t("wiki.quality.factors")}
           </Text>
           <div className="mt-1">
-            {details.factors.map((factor, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm">
+            {details.factors.map((factor, _index) => (
+              <div key={factor.name} className="flex items-center gap-2 text-sm">
                 <Tag color={factor.impact < -0.2 ? "error" : factor.impact < -0.05 ? "warning" : "default"}>
                   {factor.name}
                 </Tag>

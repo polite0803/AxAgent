@@ -178,9 +178,10 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({ data, se
       <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
         {branches.length > 0
           ? (
+            /* static visualization handles, safe to use index as key */
             branches.slice(0, 5).map((_, index) => (
               <Handle
-                key={index}
+                key={`branch-${index}`}
                 type="source"
                 position={Position.Bottom}
                 id={`branch-${index}`}

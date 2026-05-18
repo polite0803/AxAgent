@@ -107,7 +107,7 @@ export function CodeStyleSample({
               : (
                 displayedTemplates.map((template, index) => (
                   <div
-                    key={index}
+                    key={template.name}
                     className="border border-border rounded-md overflow-hidden"
                   >
                     <button

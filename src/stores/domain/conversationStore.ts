@@ -358,6 +358,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           if (!m.enabled) { continue; }
           const modelLower = m.model_id.toLowerCase();
           const exact = modelLower === keyword;
+          // js-set-map-lookups: 子串匹配无法用 Set.has 替代
           const contains = modelLower.includes(keyword);
           if (!exact && !contains) { continue; }
           const sameProvider = p.id === conversation.provider_id;

@@ -54,9 +54,10 @@ function DiffView({ oldContent, newContent }: { oldContent: string; newContent: 
         padding: 8,
       }}
     >
+      {/* static diff lines from computed text comparison, safe to use index as key */}
       {diffLines.map((dl, i) => (
         <div
-          key={i}
+          key={`${dl.type}-${i}`}
           style={{
             backgroundColor: dl.type === "added"
               ? token.colorSuccessBg
