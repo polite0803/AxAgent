@@ -1764,20 +1764,15 @@ mod tests {
             .build()
             .expect("runtime");
         runtime.block_on(async {
-            let script_path = write_echo_script();
-            let transport = crate::mcp_client::McpStdioTransport {
-                command: "/bin/sh".to_string(),
-                args: vec![script_path.to_string_lossy().into_owned()],
-                env: BTreeMap::from([("MCP_TEST_TOKEN".to_string(), "direct-secret".to_string())]),
-                tool_call_timeout_ms: None,
-            };
+            let transport = rust_stdio_transport(BTreeMap::from([(
+                "MCP_TEST_TOKEN".to_string(),
+                "direct-secret".to_string(),
+            )]));
             let mut process = McpStdioProcess::spawn(&transport).expect("spawn transport directly");
             let ready = process.read_available().await.expect("read ready");
             assert_eq!(String::from_utf8_lossy(&ready), "READY:direct-secret\n");
             process.terminate().await.expect("terminate child");
             let _ = process.wait().await.expect("wait after kill");
-
-            cleanup_script(&script_path);
         });
     }
 

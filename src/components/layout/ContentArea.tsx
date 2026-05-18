@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/layout/AppHeader";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { useSkillExtensionStore } from "@/stores";
@@ -138,100 +137,95 @@ export function ContentArea() {
   }, [skillPages]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <AppHeader />
-      <div style={{ flex: 1, overflow: "auto" }}>
-        <Routes>
-          <Route path="/" element={<SafeLazyPage Page={LazyChatPage} />} />
-          <Route
-            path="/knowledge"
-            element={<SafeLazyPage Page={LazyKnowledgeHubPage} />}
-          />
-          <Route
-            path="/memory"
-            element={<SafeLazyPage Page={LazyMemoryPage} />}
-          />
-          <Route
-            path="/link"
-            element={<SafeLazyPage Page={LazyGatewayLinkPage} />}
-          />
-          <Route
-            path="/gateway"
-            element={<SafeLazyPage Page={LazyGatewayLinkPage} />}
-          />
-          <Route
-            path="/settings/*"
-            element={<SafeLazyPage Page={LazySettingsPage} />}
-          />
-          <Route
-            path="/workflow"
-            element={<SafeLazyPage Page={LazyWorkflowPage} />}
-          />
-          <Route
-            path="/llm-wiki"
-            element={<SafeLazyPage Page={LazyKnowledgeHubPage} />}
-          />
-          <Route
-            path="/llm-wiki/:wikiId/graph"
-            element={<SafeLazyPage Page={LazyWikiGraphPage} />}
-          />
-          <Route
-            path="/llm-wiki/:wikiId/ingest"
-            element={<SafeLazyPage Page={LazyIngestPage} />}
-          />
-          <Route
-            path="/llm-wiki/:wikiId/edit/:noteId"
-            element={<SafeLazyPage Page={LazyWikiEditPage} />}
-          />
-          <Route path="/wiki" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
-          <Route
-            path="/wiki/:wikiId"
-            element={<SafeLazyPage Page={LazyWikiGraphPage} />}
-          />
-          <Route
-            path="/quickbar"
-            element={<SafeLazyPage Page={LazyQuickBarPage} />}
-          />
-          <Route
-            path="/files"
-            element={<SafeLazyPage Page={LazyFilesPage} />}
-          />
-          <Route
-            path="/terminal"
-            element={<SafeLazyPage Page={LazyTerminalPage} />}
-          />
-          <Route
-            path="/devtools/trace-explorer"
-            element={<SafeLazyPage Page={LazyTraceExplorer} />}
-          />
-          <Route
-            path="/devtools/benchmark"
-            element={<SafeLazyPage Page={LazyBenchmarkRunner} />}
-          />
-          <Route
-            path="/devtools/tool-recommender"
-            element={<SafeLazyPage Page={LazyToolRecommender} />}
-          />
-          <Route
-            path="/devtools/fine-tune"
-            element={<SafeLazyPage Page={LazyFineTune} />}
-          />
+    <Routes>
+      <Route path="/" element={<SafeLazyPage Page={LazyChatPage} />} />
+      <Route
+        path="/knowledge"
+        element={<SafeLazyPage Page={LazyKnowledgeHubPage} />}
+      />
+      <Route
+        path="/memory"
+        element={<SafeLazyPage Page={LazyMemoryPage} />}
+      />
+      <Route
+        path="/link"
+        element={<SafeLazyPage Page={LazyGatewayLinkPage} />}
+      />
+      <Route
+        path="/gateway"
+        element={<SafeLazyPage Page={LazyGatewayLinkPage} />}
+      />
+      <Route
+        path="/settings/*"
+        element={<SafeLazyPage Page={LazySettingsPage} />}
+      />
+      <Route
+        path="/workflow"
+        element={<SafeLazyPage Page={LazyWorkflowPage} />}
+      />
+      <Route
+        path="/llm-wiki"
+        element={<SafeLazyPage Page={LazyKnowledgeHubPage} />}
+      />
+      <Route
+        path="/llm-wiki/:wikiId/graph"
+        element={<SafeLazyPage Page={LazyWikiGraphPage} />}
+      />
+      <Route
+        path="/llm-wiki/:wikiId/ingest"
+        element={<SafeLazyPage Page={LazyIngestPage} />}
+      />
+      <Route
+        path="/llm-wiki/:wikiId/edit/:noteId"
+        element={<SafeLazyPage Page={LazyWikiEditPage} />}
+      />
+      <Route path="/wiki" element={<SafeLazyPage Page={LazyWikiGraphPage} />} />
+      <Route
+        path="/wiki/:wikiId"
+        element={<SafeLazyPage Page={LazyWikiGraphPage} />}
+      />
+      <Route
+        path="/quickbar"
+        element={<SafeLazyPage Page={LazyQuickBarPage} />}
+      />
+      <Route
+        path="/files"
+        element={<SafeLazyPage Page={LazyFilesPage} />}
+      />
+      <Route
+        path="/terminal"
+        element={<SafeLazyPage Page={LazyTerminalPage} />}
+      />
+      <Route
+        path="/devtools/trace-explorer"
+        element={<SafeLazyPage Page={LazyTraceExplorer} />}
+      />
+      <Route
+        path="/devtools/benchmark"
+        element={<SafeLazyPage Page={LazyBenchmarkRunner} />}
+      />
+      <Route
+        path="/devtools/tool-recommender"
+        element={<SafeLazyPage Page={LazyToolRecommender} />}
+      />
+      <Route
+        path="/devtools/fine-tune"
+        element={<SafeLazyPage Page={LazyFineTune} />}
+      />
 
-          {/* 技能声明式动态路由 */}
-          {pluginRoutes}
+      {/* 技能声明式动态路由 */}
+      {pluginRoutes}
 
-          {/* 技能 catch-all 路由 */}
-          <Route
-            path="/skill/:skillName"
-            element={<SafeLazyPage Page={SkillPageByParam} />}
-          />
-          <Route
-            path="/skill/:skillName/:pageId"
-            element={<SafeLazyPage Page={SkillPageByParam} />}
-          />
-          <Route path="*" element={<NotFoundRoute />} />
-        </Routes>
-      </div>
-    </div>
+      {/* 技能 catch-all 路由 */}
+      <Route
+        path="/skill/:skillName"
+        element={<SafeLazyPage Page={SkillPageByParam} />}
+      />
+      <Route
+        path="/skill/:skillName/:pageId"
+        element={<SafeLazyPage Page={SkillPageByParam} />}
+      />
+      <Route path="*" element={<NotFoundRoute />} />
+    </Routes>
   );
 }

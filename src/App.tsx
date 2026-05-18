@@ -11,8 +11,6 @@ import { InteractiveTutorial } from "@/components/onboarding/InteractiveTutorial
 import { WelcomeWizard } from "@/components/onboarding/WelcomeWizard";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPanels } from "@/components/skill/SkillPanels";
-import { SkillStatusBar } from "@/components/skill/SkillStatusBar";
-import { StatusBarWidget } from "@/components/terminal/StatusBarWidget";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
 import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
@@ -232,7 +230,6 @@ function AppInner() {
               <ModuleErrorBoundary moduleName="TitleBar">
                 <TitleBar />
               </ModuleErrorBoundary>
-              <SkillStatusBar alignment="right" />
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
               <Layout
@@ -263,7 +260,6 @@ function AppInner() {
                   </div>
                 </Content>
               </Layout>
-              <StatusBarWidget />
             </>
           )}
       </div>
