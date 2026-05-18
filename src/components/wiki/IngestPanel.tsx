@@ -180,7 +180,6 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
             <Input
               name="url"
               prefix={<LinkOutlined />}
-              placeholder="https://..."
             />
           </Form.Item>
         )}

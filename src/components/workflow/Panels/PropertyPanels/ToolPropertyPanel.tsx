@@ -192,7 +192,6 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
-          placeholder="tool_output"
         />
       </div>
 

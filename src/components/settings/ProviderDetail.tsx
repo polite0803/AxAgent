@@ -2175,7 +2175,6 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           id="provider-detail-input-password-123"
           value={keyValue}
           onChange={(e) => setKeyValue(e.target.value)}
-          placeholder="sk-..."
         />
       </Modal>
 
@@ -2211,7 +2210,6 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   );
                 }
               }}
-              placeholder="gpt-5.4-think"
             />
           </Form.Item>
           <Form.Item label={t("settings.modelName")}>

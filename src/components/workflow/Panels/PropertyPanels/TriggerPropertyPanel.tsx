@@ -142,7 +142,6 @@ function TriggerConfig({
               id="trigger-property-panel-input-115"
               value={(triggerConfig.config.event_type as string) || ""}
               onChange={(e) => handleConfigChange("event_type", e.target.value)}
-              placeholder="message.created"
               size="small"
             />
           </div>

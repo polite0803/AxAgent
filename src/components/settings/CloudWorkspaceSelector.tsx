@@ -767,7 +767,6 @@ export function CloudWorkspaceSelector() {
               >
                 <Input
                   name="s3Endpoint"
-                  placeholder="https://s3.amazonaws.com"
                   onChange={() => setConnectionStatus("unknown")}
                 />
               </Form.Item>
@@ -804,7 +803,6 @@ export function CloudWorkspaceSelector() {
               <Form.Item name="s3Region" label={t("cloudWorkspace.s3Region")}>
                 <Input
                   name="s3Region"
-                  placeholder="auto"
                   onChange={() => setConnectionStatus("unknown")}
                 />
               </Form.Item>
@@ -848,7 +846,6 @@ export function CloudWorkspaceSelector() {
               >
                 <Input
                   name="webdavUrl"
-                  placeholder="https://dav.example.com/remote.php/webdav"
                   onChange={() => setConnectionStatus("unknown")}
                 />
               </Form.Item>

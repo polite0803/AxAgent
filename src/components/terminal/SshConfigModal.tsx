@@ -75,7 +75,6 @@ export function SshConfigModal({
             id="ssh-config-modal-input-67"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="root"
           />
         </div>
         <div>

@@ -139,7 +139,6 @@ export function AcpSettings() {
             id="acp-settings-input-2"
             value={baseUrl}
             onChange={(e) => handleBaseUrlChange(e.target.value)}
-            placeholder="http://localhost:9876"
             style={{ width: 320 }}
             size="small"
           />

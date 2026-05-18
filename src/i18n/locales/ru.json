@@ -4,6 +4,10 @@
     "title": "Умное рабочее пространство",
     "description": "Рабочий ассистент на основе ИИ"
   },
+  "artifact": {
+    "copiedToClipboard": "",
+    "copyFailed": ""
+  },
   "nav": {
     "chat": "Чат",
     "knowledge": "База знаний",
@@ -1815,6 +1819,7 @@
       "desc": "Manage automated scheduled tasks",
       "executed": "Executed",
       "quickCreated": "Quick created",
+      "unknownTemplateType": "",
       "refreshed": "Refreshed"
     },
     "titleSummaryPromptDefault": "На основе следующего содержания разговора создайте короткий и лаконичный заголовок (не более 20 символов). Верните только текст заголовка, без кавычек и дополнительных пояснений.",
@@ -2163,6 +2168,9 @@
     "workflow": {
       "title": "Workflow Settings",
       "description": "Manage workflow templates and editor settings",
+      "createdSuccess": "",
+      "deletedSuccess": "",
+      "sampleAdded": "",
       "createNew": "Create New Template",
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
@@ -2436,6 +2444,8 @@
     },
     "default": "По умолчанию",
     "operationFailed": "Operation failed",
+    "key": "",
+    "value": "",
     "hide": "Hide",
     "searchPlaceholder": "Search..."
   },
@@ -2469,6 +2479,8 @@
   },
   "tray": {
     "show": "Показать",
+    "key": "",
+    "value": "",
     "hide": "Скрыть",
     "quit": "Выход"
   },
@@ -5961,6 +5973,9 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
+    "createdSuccess": "",
+    "deletedSuccess": "",
+    "sampleAdded": "",
     "createNew": "Create New Dataset"
   },
   "loraConfig": {

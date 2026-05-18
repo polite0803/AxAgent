@@ -459,7 +459,6 @@ function McpServerDetail({
               value={localCommand}
               onChange={(e) => setLocalCommand(e.target.value)}
               onBlur={() => handleFieldChange("command", localCommand || null)}
-              placeholder="npx"
               style={{ width: 280 }}
             />
           </div>
@@ -476,8 +475,6 @@ function McpServerDetail({
                   : [];
                 handleFieldChange("args", arr.length > 0 ? arr : null);
               }}
-              placeholder="-y @modelcontextprotocol/server-name"
-              style={{ width: 280 }}
             />
           </div>
           <Divider style={{ margin: "4px 0" }} />
@@ -494,7 +491,6 @@ function McpServerDetail({
               value={localEndpoint}
               onChange={(e) => setLocalEndpoint(e.target.value)}
               onBlur={() => handleFieldChange("endpoint", localEndpoint || null)}
-              placeholder="http://localhost:3000"
               style={{ width: 280 }}
             />
           </div>
@@ -966,16 +962,13 @@ export function McpServerSettings() {
                         name="command"
                         label={t("settings.mcpServers.command")}
                       >
-                        <Input name="command" placeholder="npx" />
+                        <Input name="command" />
                       </Form.Item>
                       <Form.Item
                         name="args"
                         label={t("settings.mcpServers.args")}
                       >
-                        <Input
-                          name="args"
-                          placeholder="-y @modelcontextprotocol/server-name"
-                        />
+                        <Input name="args" />
                       </Form.Item>
                     </>
                   )}
@@ -984,10 +977,7 @@ export function McpServerSettings() {
                       name="endpoint"
                       label={t("settings.mcpServers.endpoint")}
                     >
-                      <Input
-                        name="endpoint"
-                        placeholder="http://localhost:3000"
-                      />
+                      <Input name="endpoint" />
                     </Form.Item>
                   )}
                 </Form>

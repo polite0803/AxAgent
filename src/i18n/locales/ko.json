@@ -4,6 +4,10 @@
     "title": "스마트 워크스페이스",
     "description": "AI 기반 워크 어시스턴트"
   },
+  "artifact": {
+    "copiedToClipboard": "",
+    "copyFailed": ""
+  },
   "nav": {
     "chat": "채팅",
     "knowledge": "지식",
@@ -1854,6 +1858,7 @@
       "desc": "Manage automated scheduled tasks",
       "executed": "Executed",
       "quickCreated": "Quick created",
+      "unknownTemplateType": "",
       "refreshed": "Refreshed"
     },
     "localTools": {
@@ -2200,6 +2205,9 @@
     "workflow": {
       "title": "Workflow Settings",
       "description": "Manage workflow templates and editor settings",
+      "createdSuccess": "",
+      "deletedSuccess": "",
+      "sampleAdded": "",
       "createNew": "Create New Template",
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
@@ -2436,6 +2444,8 @@
     "retry": "재시도",
     "default": "기본값",
     "operationFailed": "Operation failed",
+    "key": "",
+    "value": "",
     "hide": "Hide",
     "searchPlaceholder": "Search..."
   },
@@ -2498,6 +2508,8 @@
   },
   "tray": {
     "show": "표시",
+    "key": "",
+    "value": "",
     "hide": "숨기기",
     "quit": "종료"
   },
@@ -5961,6 +5973,9 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
+    "createdSuccess": "",
+    "deletedSuccess": "",
+    "sampleAdded": "",
     "createNew": "Create New Dataset"
   },
   "loraConfig": {

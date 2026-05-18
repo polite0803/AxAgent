@@ -46,7 +46,7 @@ export function CronManager({
 
   const handleAdd = () => {
     if (!name.trim() || !schedule.trim() || !prompt.trim()) {
-      message.error("Name, schedule, and prompt are required");
+      message.error(t("settings.cron.validationRequired"));
       return;
     }
     onAdd({
@@ -60,7 +60,7 @@ export function CronManager({
     setPrompt("");
     setPlatform("");
     setModalOpen(false);
-    message.success("Cron job added");
+    message.success(t("settings.cron.added"));
   };
 
   const columns = [
@@ -176,7 +176,7 @@ export function CronManager({
               id="cron-manager-input-47"
               value={schedule}
               onChange={(e) => setSchedule(e.target.value)}
-              placeholder="0 9 * * *"
+              placeholder={t("settings.cron.schedulePlaceholder")}
             />
             <Text type="secondary" style={{ fontSize: 12 }}>
               Examples: "0 9 * * *" (daily 9am), "*/30 * * * *" (every 30 min)
@@ -198,7 +198,7 @@ export function CronManager({
               id="cron-manager-input-49"
               value={platform}
               onChange={(e) => setPlatform(e.target.value)}
-              placeholder="telegram / discord / web"
+              placeholder={t("settings.cron.platformPlaceholder")}
             />
           </div>
         </div>

@@ -4,6 +4,10 @@
     "title": "Intelligenter Arbeitsbereich",
     "description": "KI-gestützter Arbeitsassistent"
   },
+  "artifact": {
+    "copiedToClipboard": "",
+    "copyFailed": ""
+  },
   "nav": {
     "chat": "Chat",
     "knowledge": "Wissen",
@@ -1774,6 +1778,7 @@
       "desc": "Manage automated scheduled tasks",
       "executed": "Executed",
       "quickCreated": "Quick created",
+      "unknownTemplateType": "",
       "refreshed": "Refreshed"
     },
     "localTools": {
@@ -2163,6 +2168,9 @@
     "workflow": {
       "title": "Workflow Settings",
       "description": "Manage workflow templates and editor settings",
+      "createdSuccess": "",
+      "deletedSuccess": "",
+      "sampleAdded": "",
       "createNew": "Create New Template",
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
@@ -2436,6 +2444,8 @@
     "retry": "Wiederholen",
     "default": "Standard",
     "operationFailed": "Operation failed",
+    "key": "",
+    "value": "",
     "hide": "Hide",
     "searchPlaceholder": "Search..."
   },
@@ -2498,6 +2508,8 @@
   },
   "tray": {
     "show": "Anzeigen",
+    "key": "",
+    "value": "",
     "hide": "Ausblenden",
     "quit": "Beenden"
   },
@@ -5961,6 +5973,9 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
+    "createdSuccess": "",
+    "deletedSuccess": "",
+    "sampleAdded": "",
     "createNew": "Create New Dataset"
   },
   "loraConfig": {

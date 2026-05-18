@@ -4,6 +4,10 @@
     "title": "智聊助手",
     "description": "智能工作助手"
   },
+  "artifact": {
+    "copiedToClipboard": "",
+    "copyFailed": ""
+  },
   "nav": {
     "chat": "對話",
     "knowledge": "知識庫",
@@ -1811,6 +1815,7 @@
       "desc": "管理自動化定時任務",
       "executed": "Executed",
       "quickCreated": "Quick created",
+      "unknownTemplateType": "",
       "refreshed": "Refreshed"
     },
     "localTools": {
@@ -2200,6 +2205,9 @@
     "workflow": {
       "title": "工作流設置",
       "description": "管理工作流模板和編輯器設置",
+      "createdSuccess": "",
+      "deletedSuccess": "",
+      "sampleAdded": "",
       "createNew": "創建新模板",
       "visualEditor": "可視化編輯器",
       "visualEditorDesc": "使用拖拽式 DAG 編輯器創建和編輯工作流",
@@ -2436,6 +2444,8 @@
     "retry": "重試",
     "default": "預設",
     "operationFailed": "Operation failed",
+    "key": "",
+    "value": "",
     "hide": "Hide",
     "searchPlaceholder": "Search..."
   },
@@ -2498,6 +2508,8 @@
   },
   "tray": {
     "show": "顯示",
+    "key": "",
+    "value": "",
     "hide": "隱藏",
     "quit": "結束"
   },
@@ -5961,6 +5973,9 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
+    "createdSuccess": "",
+    "deletedSuccess": "",
+    "sampleAdded": "",
     "createNew": "Create New Dataset"
   },
   "loraConfig": {

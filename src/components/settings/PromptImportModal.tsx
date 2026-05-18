@@ -196,7 +196,6 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
                     <Input
                       name="url"
                       prefix={<GithubOutlined />}
-                      placeholder="https://github.com/yaojingang/yao-open-prompts"
                     />
                   </Form.Item>
                   <Form.Item

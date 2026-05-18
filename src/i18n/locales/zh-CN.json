@@ -4,6 +4,10 @@
     "title": "智聊助手",
     "description": "智能工作助手"
   },
+  "artifact": {
+    "copiedToClipboard": "已复制到剪贴板",
+    "copyFailed": "复制失败"
+  },
   "nav": {
     "chat": "对话",
     "knowledge": "知识源",
@@ -1843,7 +1847,8 @@
       "desc": "管理自动化定时任务",
       "executed": "已执行",
       "quickCreated": "快速创建",
-      "refreshed": "已刷新"
+      "refreshed": "已刷新",
+      "unknownTemplateType": "未知的模板类型"
     },
     "titleSummaryPromptDefault": "请根据以下对话内容，生成一个简短精炼的标题（不超过20个字），直接返回标题文本，不要包含引号或任何额外说明。",
     "compressionPromptDefault": "你是一个对话摘要助手。请将以下对话历史压缩为简洁摘要。\n\n要求：\n1. 保留所有用户明确表达的需求、偏好和决策\n2. 保留关键技术细节（代码片段、配置、错误信息等）\n3. 保留待办事项和未解决的问题\n4. 用简洁的要点形式组织\n5. 保持摘要简洁，不超过 500 字",
@@ -2462,6 +2467,8 @@
     "default": "預設",
     "operationFailed": "操作失败",
     "hide": "隐藏",
+    "key": "键",
+    "value": "值",
     "searchPlaceholder": "搜索..."
   },
   "image": {
@@ -5766,7 +5773,10 @@
     "yes": "是",
     "no": "否",
     "cancel": "取消",
-    "createNew": "创建新数据集"
+    "createNew": "创建新数据集",
+    "createdSuccess": "数据集创建成功",
+    "deletedSuccess": "数据集已删除",
+    "sampleAdded": "样本添加成功"
   },
   "loraConfig": {
     "trainingSetup": "训练设置",

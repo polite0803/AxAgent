@@ -327,7 +327,7 @@ export function ProviderList() {
             />
           </Form.Item>
           <Form.Item name="api_host" label={t("settings.apiHost")}>
-            <Input name="api_host" placeholder="https://api.openai.com" />
+            <Input name="api_host" />
           </Form.Item>
         </Form>
       </Modal>

@@ -45,6 +45,8 @@ function isExcludedLine(line) {
   if (/^\s*\/\//.test(line)) return true;
   // Skip block comment continuation lines: * ...
   if (/^\s*\*/.test(line)) return true;
+  // Skip JSX comments: {/* ... */}
+  if (/\{\/\*.*\*\/\}/.test(line)) return true;
   // Skip console.log/warn/error/debug/info/trace
   if (/console\.(log|warn|error|debug|info|trace)/.test(line)) return true;
   return false;
@@ -103,7 +105,7 @@ const notifRe = /notification\.\w+\(\s*\{[^}]*message\s*:\s*\"[^\"]+/;
 const notifMap = new FileMap('硬编码英文通知', 3);
 
 console.log('--- Scanning t() fallback patterns ---');
-const fallbackRe = /t\(\s*['\"][^'\"]+['\"]\s*,\s*['\"][^'\"]+['\"]/;
+const fallbackRe = /\bt\(\s*['\"][^'\"]+['\"]\s*,\s*['\"][^'\"]+['\"]/;
 const fallbackMap = new FileMap('t() fallback 参数', 2);
 
 let totalFiles = 0;

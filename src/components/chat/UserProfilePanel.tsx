@@ -229,14 +229,14 @@ export function UserProfilePanel() {
         <input
           value={newPrefKey}
           onChange={(e) => setNewPrefKey(e.target.value)}
-          placeholder="key"
+          placeholder={t("common.key")}
           aria-label={t("userProfile.prefKey")}
           className="flex-1 text-[11px] px-1.5 py-0.5 rounded bg-muted/30 border-none outline-none placeholder:text-muted-foreground/40"
         />
         <input
           value={newPrefValue}
           onChange={(e) => setNewPrefValue(e.target.value)}
-          placeholder="value"
+          placeholder={t("common.value")}
           aria-label={t("userProfile.prefValue")}
           className="flex-1 text-[11px] px-1.5 py-0.5 rounded bg-muted/30 border-none outline-none placeholder:text-muted-foreground/40"
           onKeyDown={(e) => e.key === "Enter" && addPreference()}

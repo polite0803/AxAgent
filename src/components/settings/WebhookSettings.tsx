@@ -355,7 +355,6 @@ export function WebhookSettings() {
           >
             <Input
               name="url"
-              placeholder="https://example.com/webhook"
               prefix={<Webhook size={14} />}
             />
           </Form.Item>

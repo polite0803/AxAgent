@@ -74,9 +74,10 @@ echo "--- Rule 1: Hardcoded Chinese (CJK) strings ---"
 for f in $CHANGED_FILES; do
   [ -f "$f" ] || continue
   grep -nP '[\x{4e00}-\x{9fff}\x{3400}-\x{4dbf}]' "$f" 2>/dev/null | while IFS=: read -r lnum content; do
-    # Skip comments
+    # Skip comments (line, block, JSX)
     [[ "$content" =~ ^[[:space:]]*// ]] && continue
     [[ "$content" =~ ^[[:space:]]*\* ]] && continue
+    [[ "$content" =~ \{\/\*.*\*\/\} ]] && continue
     # Skip console.*
     [[ "$content" =~ console\.(log|warn|error|debug|info|trace) ]] && continue
     # Check allowlist
@@ -132,7 +133,7 @@ echo "--- Rule 3: t() fallback patterns (ERROR) ---"
 > "$TEMP_DIR/r3.txt"
 for f in $CHANGED_FILES; do
   [ -f "$f" ] || continue
-  grep -nP "t\(\s*['\"][^'\"]+['\"]\s*,\s*['\"][^'\"]+['\"]" "$f" 2>/dev/null | while IFS=: read -r lnum content; do
+  grep -nP "\bt\(\s*['\"][^'\"]+['\"]\s*,\s*['\"][^'\"]+['\"]" "$f" 2>/dev/null | while IFS=: read -r lnum content; do
     if ! is_allowed "$f" "$lnum"; then
       echo "  ERROR: $f:$lnum: $content" >> "$TEMP_DIR/r3.txt"
     fi

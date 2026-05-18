@@ -571,7 +571,7 @@ export function SchedulerSettings() {
       };
       const cmd = cmdMap[templateType];
       if (!cmd) {
-        message.error("Unknown template type");
+        message.error(t("settings.scheduler.unknownTemplateType"));
         return;
       }
       await invoke(cmd);

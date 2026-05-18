@@ -35,7 +35,7 @@ export function DatasetManager() {
   }) => {
     const dataset = await createDataset(values.name, values.description);
     if (dataset) {
-      message.success("Dataset created successfully");
+      message.success(t("datasetManager.createdSuccess"));
       setCreateModalVisible(false);
       form.resetFields();
     }
@@ -43,7 +43,7 @@ export function DatasetManager() {
 
   const handleDeleteDataset = async (id: string) => {
     await deleteDataset(id);
-    message.success("Dataset deleted");
+    message.success(t("datasetManager.deletedSuccess"));
   };
 
   const handleAddSample = async (values: {
@@ -58,7 +58,7 @@ export function DatasetManager() {
         values.output,
         values.systemPrompt,
       );
-      message.success("Sample added successfully");
+      message.success(t("datasetManager.sampleAdded"));
       setAddSampleModalVisible(false);
       sampleForm.resetFields();
     }

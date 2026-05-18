@@ -38,7 +38,6 @@ export function DockerConfigModal({
             id="docker-config-modal-input-64"
             value={socketPath}
             onChange={(e) => setSocketPath(e.target.value)}
-            placeholder="unix:///var/run/docker.sock"
           />
           <Text type="secondary" style={{ fontSize: 12 }}>
             Leave empty for default Docker socket

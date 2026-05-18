@@ -59,10 +59,10 @@ export function ArtifactPanel({
     try {
       await navigator.clipboard.writeText(artifact.content);
       setCopied(true);
-      message.success("Copied to clipboard");
+      message.success(t("artifact.copiedToClipboard"));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      message.error("Failed to copy");
+      message.error(t("artifact.copyFailed"));
     }
   };
 

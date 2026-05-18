@@ -200,7 +200,6 @@ export const SubWorkflowPropertyPanel: React.FC<
           value={config.output_var || ""}
           onChange={(e) => handleConfigChange("output_var", e.target.value)}
           size="small"
-          placeholder="subworkflow_output"
         />
       </div>
 

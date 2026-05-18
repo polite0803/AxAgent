@@ -418,7 +418,7 @@ export function WebDavSync() {
               },
             ]}
           >
-            <Input name="host" placeholder="https://dav.example.com/dav/" />
+            <Input name="host" />
           </Form.Item>
           <div className="flex gap-4">
             <Form.Item

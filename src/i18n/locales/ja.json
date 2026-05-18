@@ -4,6 +4,10 @@
     "title": "スマートワークスペース",
     "description": "AI駆動のワークアシスタント"
   },
+  "artifact": {
+    "copiedToClipboard": "",
+    "copyFailed": ""
+  },
   "nav": {
     "chat": "チャット",
     "knowledge": "ナレッジ",
@@ -1847,6 +1851,7 @@
       "desc": "管理自动化定时任务",
       "executed": "Executed",
       "quickCreated": "Quick created",
+      "unknownTemplateType": "",
       "refreshed": "Refreshed"
     },
     "localTools": {
@@ -2200,6 +2205,9 @@
     "workflow": {
       "title": "工作流设置",
       "description": "管理工作流模板和编辑器设置",
+      "createdSuccess": "",
+      "deletedSuccess": "",
+      "sampleAdded": "",
       "createNew": "创建新模板",
       "visualEditor": "可视化编辑器",
       "visualEditorDesc": "使用拖拽式 DAG 编辑器创建和编辑工作流",
@@ -2436,6 +2444,8 @@
     "retry": "重试",
     "default": "デフォルト",
     "operationFailed": "Operation failed",
+    "key": "",
+    "value": "",
     "hide": "Hide",
     "searchPlaceholder": "Search..."
   },
@@ -2498,6 +2508,8 @@
   },
   "tray": {
     "show": "表示",
+    "key": "",
+    "value": "",
     "hide": "非表示",
     "quit": "終了"
   },
@@ -5961,6 +5973,9 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
+    "createdSuccess": "",
+    "deletedSuccess": "",
+    "sampleAdded": "",
     "createNew": "Create New Dataset"
   },
   "loraConfig": {

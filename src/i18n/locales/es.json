@@ -4,6 +4,10 @@
     "title": "Espacio de Trabajo Inteligente",
     "description": "Asistente de Trabajo Impulsado por IA"
   },
+  "artifact": {
+    "copiedToClipboard": "",
+    "copyFailed": ""
+  },
   "nav": {
     "chat": "Chat",
     "knowledge": "Base de conocimientos",
@@ -1774,6 +1778,7 @@
       "desc": "Manage automated scheduled tasks",
       "executed": "Executed",
       "quickCreated": "Quick created",
+      "unknownTemplateType": "",
       "refreshed": "Refreshed"
     },
     "localTools": {
@@ -2165,6 +2170,9 @@
     "workflow": {
       "title": "Workflow Settings",
       "description": "Manage workflow templates and editor settings",
+      "createdSuccess": "",
+      "deletedSuccess": "",
+      "sampleAdded": "",
       "createNew": "Create New Template",
       "visualEditor": "Visual Editor",
       "visualEditorDesc": "Create and edit workflows with drag-and-drop DAG editor",
@@ -2436,6 +2444,8 @@
     "retry": "Reintentar",
     "default": "Predeterminado",
     "operationFailed": "Operation failed",
+    "key": "",
+    "value": "",
     "hide": "Hide",
     "searchPlaceholder": "Search..."
   },
@@ -2498,6 +2508,8 @@
   },
   "tray": {
     "show": "Mostrar",
+    "key": "",
+    "value": "",
     "hide": "Ocultar",
     "quit": "Salir"
   },
@@ -5961,6 +5973,9 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
+    "createdSuccess": "",
+    "deletedSuccess": "",
+    "sampleAdded": "",
     "createNew": "Create New Dataset"
   },
   "loraConfig": {

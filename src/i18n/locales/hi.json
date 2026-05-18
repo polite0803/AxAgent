@@ -4,6 +4,10 @@
     "title": "स्मार्ट वर्कस्पेस",
     "description": "AI-संचालित वर्क असिस्टेंट"
   },
+  "artifact": {
+    "copiedToClipboard": "",
+    "copyFailed": ""
+  },
   "nav": {
     "chat": "चैट",
     "knowledge": "ज्ञान आधार",
@@ -1772,6 +1776,7 @@
       "desc": "Manage automated scheduled tasks",
       "executed": "Executed",
       "quickCreated": "Quick created",
+      "unknownTemplateType": "",
       "refreshed": "Refreshed"
     },
     "titleSummaryPromptDefault": "Based on the following conversation content, generate a short and concise title (no more than 20 characters). Return only the title text, do not include quotes or any additional explanations.",
@@ -1978,6 +1983,9 @@
     "workflow": {
       "title": "वर्कफ़्लो सेटिंग्स",
       "description": "वर्कफ़्लो टेम्पलेट और संपादक सेटिंग्स प्रबंधित करें",
+      "createdSuccess": "",
+      "deletedSuccess": "",
+      "sampleAdded": "",
       "createNew": "नया टेम्पलेट बनाएं",
       "visualEditor": "विज़ुअल संपादक",
       "visualEditorDesc": "ड्रैग-एंड-ड्रॉप DAG संपादक से वर्कफ़्लो बनाएं",
@@ -2436,6 +2444,8 @@
     },
     "default": "डिफ़ॉल्ट",
     "operationFailed": "Operation failed",
+    "key": "",
+    "value": "",
     "hide": "Hide",
     "searchPlaceholder": "Search..."
   },
@@ -2469,6 +2479,8 @@
   },
   "tray": {
     "show": "दिखाएँ",
+    "key": "",
+    "value": "",
     "hide": "छुपाएँ",
     "quit": "बाहर निकलें"
   },
@@ -5961,6 +5973,9 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
+    "createdSuccess": "",
+    "deletedSuccess": "",
+    "sampleAdded": "",
     "createNew": "Create New Dataset"
   },
   "loraConfig": {

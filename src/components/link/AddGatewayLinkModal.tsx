@@ -109,7 +109,7 @@ export function AddGatewayLinkModal({
           label={t("link.endpoint")}
           rules={[{ required: true, message: t("link.endpointRequired") }]}
         >
-          <Input name="endpoint" placeholder="https://192.168.0.108:18789" />
+          <Input name="endpoint" />
         </Form.Item>
 
         <Form.Item name="api_key" label={t("link.apiKey")}>

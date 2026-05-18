@@ -4,6 +4,10 @@
     "title": "Smart Workspace",
     "description": "AI-Powered Work Assistant"
   },
+  "artifact": {
+    "copiedToClipboard": "Copied to clipboard",
+    "copyFailed": "Failed to copy"
+  },
   "nav": {
     "chat": "Chat",
     "knowledge": "Knowledge Sources",
@@ -2015,7 +2019,8 @@
       "workflow_knowledge_to_codeDesc": "Generate code from knowledge base",
       "executed": "Executed",
       "quickCreated": "Quick created",
-      "refreshed": "Refreshed"
+      "refreshed": "Refreshed",
+      "unknownTemplateType": "Unknown template type"
     },
     "userProfile": {
       "title": "User Profile",
@@ -2597,6 +2602,8 @@
     "default": "Default",
     "operationFailed": "Operation failed",
     "hide": "Hide",
+    "key": "Key",
+    "value": "Value",
     "searchPlaceholder": "Search..."
   },
   "plan": {
@@ -5766,7 +5773,10 @@
     "yes": "Yes",
     "no": "No",
     "cancel": "Cancel",
-    "createNew": "Create New Dataset"
+    "createNew": "Create New Dataset",
+    "createdSuccess": "Dataset created successfully",
+    "deletedSuccess": "Dataset deleted",
+    "sampleAdded": "Sample added successfully"
   },
   "loraConfig": {
     "trainingSetup": "Training Setup",
