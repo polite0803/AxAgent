@@ -2223,6 +2223,12 @@
     "modelGroupPlaceholder": "Select model group",
     "cloudWorkspace": {
       "title": "Cloud Workspace"
+    },
+    "knowledgeSettings": {
+      "title": "지식"
+    },
+    "notificationCenter": {
+      "title": "알림"
     }
   },
   "backup": {
@@ -3482,33 +3488,6 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
-    "knowledgeSettings": {
-      "title": "지식"
-    },
-    "notificationCenter": {
-      "title": "알림"
-    },
-    "chatRightPanel": {
-      "agent": "에이전트",
-      "hierarchy": "계층",
-      "research": "리서치",
-      "git": "Git",
-      "task": "태스크",
-      "code": "코드",
-      "artifact": "결과물",
-      "imageGen": "이미지",
-      "report": "리포트",
-      "citation": "인용",
-      "inspector": "검사",
-      "errorRecovery": "복구",
-      "teammate": "팀",
-      "browser": "브라우저",
-      "computer": "데스크톱",
-      "benchmark": "벤치",
-      "chart": "차트",
-      "snapshot": "스냅샷",
-      "profile": "프로필"
-    },
     "knowledgeSettings": {
       "title": "지식"
     },
@@ -5882,10 +5861,16 @@
     "deletedContent": "Deleted Content"
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "미리보기",
+    "references": "참고문헌",
+    "summary": "요약",
+    "generatedAt": "생성 시간:",
+    "export": "내보내기",
+    "copyReport": "보고서 복사",
+    "startNewResearch": "새 연구",
+    "lowCredibilityWarning": "주의: 보고서에 {{count}}개의 낮은 신뢰도 출처가 포함되어 있습니다",
+    "noReferences": "참고문헌 없음",
+    "noSummary": "요약 없음"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -6088,6 +6073,61 @@
     "startNewResearch": "새 연구 시작",
     "preview": "미리보기",
     "summary": "요약",
-    "lowCredibilityNotice": "참고: 보고서에 {{count}}개의 낮은 신뢰도 출처가 포함되어 있습니다. 주의해서 사용하세요"
+    "lowCredibilityNotice": "참고: 보고서에 {{count}}개의 낮은 신뢰도 출처가 포함되어 있습니다. 주의해서 사용하세요",
+    "sourceType": {
+      "web": "웹",
+      "academic": "학술",
+      "wikipedia": "위키백과",
+      "documentation": "문서",
+      "news": "뉴스",
+      "blog": "블로그",
+      "forum": "포럼",
+      "unknown": "알수없음"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "에이전트",
+    "hierarchy": "계층",
+    "research": "리서치",
+    "git": "Git",
+    "task": "태스크",
+    "code": "코드",
+    "artifact": "결과물",
+    "imageGen": "이미지",
+    "visionAnalysis": "비전",
+    "report": "리포트",
+    "citation": "인용",
+    "inspector": "검사",
+    "browser": "브라우저",
+    "computer": "데스크톱",
+    "benchmark": "벤치",
+    "chart": "차트",
+    "snapshot": "스냅샷",
+    "profile": "프로필",
+    "errorRecovery": "복구",
+    "collaboration": "협업",
+    "evolution": "진화",
+    "steer": "조향",
+    "cache": "캐시",
+    "branchCompare": "분기",
+    "gateway": "GW",
+    "contextClass": "컨텍스트",
+    "cronResult": "크론",
+    "reflection": "성찰",
+    "researchSources": "소스",
+    "categoryEdit": "카테고리",
+    "filePermission": "권한",
+    "sessionShare": "공유",
+    "prefetch": "프리페치",
+    "reminders": "알림",
+    "contextPrediction": "예측",
+    "teammate": "팀",
+    "steerInput": "조종"
+  },
+  "knowledgeSettings": {
+    "title": "지식"
+  },
+  "notificationCenter": {
+    "title": "알림"
   }
 }

@@ -2223,6 +2223,12 @@
     "modelGroupPlaceholder": "Select model group",
     "cloudWorkspace": {
       "title": "Cloud Workspace"
+    },
+    "knowledgeSettings": {
+      "title": "Wissen"
+    },
+    "notificationCenter": {
+      "title": "Benachrichtigungen"
     }
   },
   "backup": {
@@ -3876,33 +3882,6 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
-    "knowledgeSettings": {
-      "title": "Wissen"
-    },
-    "notificationCenter": {
-      "title": "Benachrichtigungen"
-    },
-    "chatRightPanel": {
-      "agent": "Agent",
-      "hierarchy": "Hierarchie",
-      "research": "Recherche",
-      "git": "Git",
-      "task": "Aufgaben",
-      "code": "Code",
-      "artifact": "Artefakte",
-      "imageGen": "Bild",
-      "report": "Bericht",
-      "citation": "Zitate",
-      "inspector": "Inspektor",
-      "errorRecovery": "Wiederherst.",
-      "teammate": "Team",
-      "browser": "Browser",
-      "computer": "Desktop",
-      "benchmark": "Bench",
-      "chart": "Diagramm",
-      "snapshot": "Snapshot",
-      "profile": "Profil"
-    },
     "knowledgeSettings": {
       "title": "Wissen"
     },
@@ -5882,10 +5861,16 @@
     "deletedContent": "Deleted Content"
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "Vorschau",
+    "references": "Referenzen",
+    "summary": "Zusammenfassung",
+    "generatedAt": "Erstellt am:",
+    "export": "Exportieren",
+    "copyReport": "Bericht kopieren",
+    "startNewResearch": "Neue Recherche",
+    "lowCredibilityWarning": "Hinweis: Bericht enthält {{count}} Quellen mit geringer Glaubwürdigkeit",
+    "noReferences": "Keine Referenzen",
+    "noSummary": "Keine Zusammenfassung"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -6088,6 +6073,61 @@
     "startNewResearch": "Neue Forschung starten",
     "preview": "Vorschau",
     "summary": "Zusammenfassung",
-    "lowCredibilityNotice": "Hinweis: Der Bericht enthält {{count}} Quellen mit geringer Glaubwürdigkeit, mit Vorsicht verwenden"
+    "lowCredibilityNotice": "Hinweis: Der Bericht enthält {{count}} Quellen mit geringer Glaubwürdigkeit, mit Vorsicht verwenden",
+    "sourceType": {
+      "web": "Web",
+      "academic": "Akademisch",
+      "wikipedia": "Wikipedia",
+      "documentation": "Dokument",
+      "news": "Nachrichten",
+      "blog": "Blog",
+      "forum": "Forum",
+      "unknown": "Unbekannt"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "Agent",
+    "hierarchy": "Hierarchie",
+    "research": "Recherche",
+    "git": "Git",
+    "task": "Aufgaben",
+    "code": "Code",
+    "artifact": "Artefakte",
+    "imageGen": "Bild",
+    "visionAnalysis": "Vision",
+    "report": "Bericht",
+    "citation": "Zitate",
+    "inspector": "Inspektor",
+    "browser": "Browser",
+    "computer": "Desktop",
+    "benchmark": "Bench",
+    "chart": "Diagramm",
+    "snapshot": "Snapshot",
+    "profile": "Profil",
+    "errorRecovery": "Wiederherst.",
+    "collaboration": "Kollab",
+    "evolution": "Evolution",
+    "steer": "Lenken",
+    "cache": "Cache",
+    "branchCompare": "Branch",
+    "gateway": "GW",
+    "contextClass": "Kontext",
+    "cronResult": "Cron",
+    "reflection": "Reflexion",
+    "researchSources": "Quellen",
+    "categoryEdit": "Kategorie",
+    "filePermission": "Datei",
+    "sessionShare": "Teilen",
+    "prefetch": "Prefetch",
+    "reminders": "Erinner.",
+    "contextPrediction": "Vorhersage",
+    "teammate": "Team",
+    "steerInput": "Steuern"
+  },
+  "knowledgeSettings": {
+    "title": "Wissen"
+  },
+  "notificationCenter": {
+    "title": "Benachrichtigungen"
   }
 }

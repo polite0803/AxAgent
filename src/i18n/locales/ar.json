@@ -2223,6 +2223,12 @@
     "modelGroupPlaceholder": "Select model group",
     "cloudWorkspace": {
       "title": "Cloud Workspace"
+    },
+    "knowledgeSettings": {
+      "title": "المعرفة"
+    },
+    "notificationCenter": {
+      "title": "الإشعارات"
     }
   },
   "backup": {
@@ -3876,33 +3882,6 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
-    "knowledgeSettings": {
-      "title": "المعرفة"
-    },
-    "notificationCenter": {
-      "title": "الإشعارات"
-    },
-    "chatRightPanel": {
-      "agent": "الوكيل",
-      "hierarchy": "التسلسل",
-      "research": "بحث",
-      "git": "Git",
-      "task": "مهام",
-      "code": "كود",
-      "artifact": "مخرجات",
-      "imageGen": "صورة",
-      "report": "تقرير",
-      "citation": "اقتباسات",
-      "inspector": "مفتش",
-      "errorRecovery": "استعادة",
-      "teammate": "فريق",
-      "browser": "متصفح",
-      "computer": "سطح مكتب",
-      "benchmark": "مقارنة",
-      "chart": "رسم",
-      "snapshot": "لقطة",
-      "profile": "ملف تعريف"
-    },
     "knowledgeSettings": {
       "title": "المعرفة"
     },
@@ -5882,10 +5861,16 @@
     "deletedContent": "Deleted Content"
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "معاينة",
+    "references": "مراجع",
+    "summary": "ملخص",
+    "generatedAt": "تم الإنشاء:",
+    "export": "تصدير",
+    "copyReport": "نسخ التقرير",
+    "startNewResearch": "بحث جديد",
+    "lowCredibilityWarning": "ملاحظة: التقرير يحتوي على {{count}} مصدر منخفض المصداقية",
+    "noReferences": "لا توجد مراجع",
+    "noSummary": "لا يوجد ملخص"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -6088,6 +6073,61 @@
     "startNewResearch": "بدء بحث جديد",
     "preview": "معاينة",
     "summary": "ملخص",
-    "lowCredibilityNotice": "ملاحظة: يحتوي التقرير على {{count}} مصادر منخفضة المصداقية، استخدم بحذر"
+    "lowCredibilityNotice": "ملاحظة: يحتوي التقرير على {{count}} مصادر منخفضة المصداقية، استخدم بحذر",
+    "sourceType": {
+      "web": "ويب",
+      "academic": "أكاديمي",
+      "wikipedia": "ويكيبيديا",
+      "documentation": "وثيقة",
+      "news": "أخبار",
+      "blog": "مدونة",
+      "forum": "منتدى",
+      "unknown": "غيرمعروف"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "الوكيل",
+    "hierarchy": "التسلسل",
+    "research": "بحث",
+    "git": "Git",
+    "task": "مهام",
+    "code": "كود",
+    "artifact": "مخرجات",
+    "imageGen": "صورة",
+    "visionAnalysis": "رؤية",
+    "report": "تقرير",
+    "citation": "اقتباسات",
+    "inspector": "مفتش",
+    "browser": "متصفح",
+    "computer": "سطح مكتب",
+    "benchmark": "مقارنة",
+    "chart": "رسم",
+    "snapshot": "لقطة",
+    "profile": "ملف تعريف",
+    "errorRecovery": "استعادة",
+    "collaboration": "تعاون",
+    "evolution": "تطور",
+    "steer": "توجيه",
+    "cache": "ذاكرة",
+    "branchCompare": "فرع",
+    "gateway": "بوابة",
+    "contextClass": "سياق",
+    "cronResult": "كرون",
+    "reflection": "تأمل",
+    "researchSources": "مصادر",
+    "categoryEdit": "فئة",
+    "filePermission": "ملف",
+    "sessionShare": "مشاركة",
+    "prefetch": "تحميل",
+    "reminders": "تذكير",
+    "contextPrediction": "تنبؤ",
+    "teammate": "فريق",
+    "steerInput": "قيادة"
+  },
+  "knowledgeSettings": {
+    "title": "المعرفة"
+  },
+  "notificationCenter": {
+    "title": "الإشعارات"
   }
 }

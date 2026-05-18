@@ -2248,7 +2248,13 @@
     "zhipu": "智谱",
     "modelNamePlaceholder": "GPT 5.4 Think",
     "expertPromptNote": "专家提示词备注",
-    "modelGroupPlaceholder": "选择模型组"
+    "modelGroupPlaceholder": "选择模型组",
+    "knowledgeSettings": {
+      "title": "知识库"
+    },
+    "notificationCenter": {
+      "title": "通知"
+    }
   },
   "backup": {
     "title": "备份中心",
@@ -3917,35 +3923,6 @@
       "code": "代码",
       "artifact": "产出",
       "imageGen": "生图",
-      "report": "报告",
-      "citation": "引用",
-      "inspector": "检查",
-      "errorRecovery": "恢复",
-      "teammate": "协作",
-      "browser": "浏览器",
-      "computer": "桌面",
-      "benchmark": "评测",
-      "chart": "图表",
-      "snapshot": "快照",
-      "profile": "用户",
-      "collaboration": "协作会话",
-      "visionAnalysis": "视觉分析"
-    },
-    "knowledgeSettings": {
-      "title": "知识库"
-    },
-    "notificationCenter": {
-      "title": "通知"
-    },
-    "chatRightPanel": {
-      "agent": "智能体",
-      "hierarchy": "层级",
-      "research": "调研",
-      "git": "Git",
-      "task": "任务",
-      "code": "代码",
-      "artifact": "产出",
-      "imageGen": "生图",
       "visionAnalysis": "视觉分析",
       "report": "报告",
       "citation": "引用",
@@ -5581,9 +5558,15 @@
     }
   },
   "reportViewer": {
-    "noReport": "暂无生成报告",
+    "preview": "预览",
+    "references": "参考文献",
+    "summary": "摘要",
+    "generatedAt": "生成时间:",
+    "export": "导出",
+    "copyReport": "复制报告",
+    "startNewResearch": "开始新研究",
+    "lowCredibilityWarning": "注意: 报告中包含 {{count}} 个低可信度来源，请谨慎使用",
     "noReferences": "暂无参考文献",
-    "noOutline": "暂无大纲",
     "noSummary": "暂无摘要"
   },
   "citationManager": {
@@ -6148,6 +6131,61 @@
     "startNewResearch": "开始新研究",
     "preview": "预览",
     "summary": "摘要",
-    "lowCredibilityNotice": "注意: 报告中包含 {{count}} 个低可信度来源，请谨慎使用"
+    "lowCredibilityNotice": "注意: 报告中包含 {{count}} 个低可信度来源，请谨慎使用",
+    "sourceType": {
+      "web": "网页",
+      "academic": "学术",
+      "wikipedia": "维基百科",
+      "documentation": "文档",
+      "news": "新闻",
+      "blog": "博客",
+      "forum": "论坛",
+      "unknown": "未知"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "智能体",
+    "hierarchy": "层级",
+    "research": "调研",
+    "git": "Git",
+    "task": "任务",
+    "code": "代码",
+    "artifact": "产出",
+    "imageGen": "生图",
+    "visionAnalysis": "视觉分析",
+    "report": "报告",
+    "citation": "引用",
+    "inspector": "检查",
+    "browser": "浏览器",
+    "computer": "桌面",
+    "benchmark": "评测",
+    "chart": "图表",
+    "snapshot": "快照",
+    "profile": "用户",
+    "errorRecovery": "恢复",
+    "collaboration": "协作",
+    "evolution": "进化",
+    "steer": "引导",
+    "cache": "缓存",
+    "branchCompare": "分支对比",
+    "gateway": "网关",
+    "contextClass": "上下文",
+    "cronResult": "定时结果",
+    "reflection": "反思",
+    "researchSources": "研究来源",
+    "categoryEdit": "分类编辑",
+    "filePermission": "文件权限",
+    "sessionShare": "会话分享",
+    "prefetch": "预取",
+    "reminders": "提醒",
+    "contextPrediction": "上下文预测",
+    "teammate": "协作",
+    "steerInput": "引导"
+  },
+  "knowledgeSettings": {
+    "title": "知识库"
+  },
+  "notificationCenter": {
+    "title": "通知"
   }
 }

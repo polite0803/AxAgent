@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-18",
-  "total_entries": 154,
+  "total_entries": 185,
   "total_files": 127,
   "entries": [
     {
@@ -904,6 +904,161 @@
       "file": "src/components/chat/ReportViewer.tsx",
       "lines": "35",
       "reason": "documentation: \"文档\","
+    },
+    {
+      "file": "src/components/chat/TeammatePanel.tsx",
+      "lines": "145",
+      "reason": "JSX comment: 头部：状态 + 名称"
+    },
+    {
+      "file": "src/components/chat/TeammatePanel.tsx",
+      "lines": "153",
+      "reason": "JSX comment: 当前任务"
+    },
+    {
+      "file": "src/components/chat/TeammatePanel.tsx",
+      "lines": "160",
+      "reason": "JSX comment: 消息列表"
+    },
+    {
+      "file": "src/components/chat/TeammatePanel.tsx",
+      "lines": "175",
+      "reason": "JSX comment: 持续时长"
+    },
+    {
+      "file": "src/components/gateway/GatewayMonitor.tsx",
+      "lines": "128",
+      "reason": "JSX comment: 指标卡片"
+    },
+    {
+      "file": "src/components/gateway/GatewayMonitor.tsx",
+      "lines": "196",
+      "reason": "JSX comment: 请求日志"
+    },
+    {
+      "file": "src/components/layout/ContentArea.tsx",
+      "lines": "127",
+      "reason": "JSX comment: 技能声明式动态路由"
+    },
+    {
+      "file": "src/components/layout/ContentArea.tsx",
+      "lines": "130",
+      "reason": "JSX comment: 技能 catch-all 路由"
+    },
+    {
+      "file": "src/hooks/useVoiceChat.ts",
+      "lines": "244",
+      "reason": "Debug log: WebSocket reconnect message"
+    },
+    {
+      "file": "src/stores/feature/executionStore.ts",
+      "lines": "185",
+      "reason": "Debug warn: 非法阶段转换"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "19",
+      "reason": "JSDoc: 默认重试配置"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "21",
+      "reason": "JSDoc: 最大重试次数"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "23",
+      "reason": "JSDoc: 初始退避延迟"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "25",
+      "reason": "JSDoc: 最大退避延迟"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "27",
+      "reason": "JSDoc: 退避倍数"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "29",
+      "reason": "JSDoc: 超时时间"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "33",
+      "reason": "JSDoc: 可重试的瞬时错误模式"
+    },
+    {
+      "file": "src/lib/invoke.ts",
+      "lines": "92",
+      "reason": "Debug log: IPC 重试"
+    },
+    {
+      "file": "src/pages/SettingsPage.tsx",
+      "lines": "79",
+      "reason": "JSDoc: ErrorBoundary description"
+    },
+    {
+      "file": "src/stores/domain/streamStore.ts",
+      "lines": "19",
+      "reason": "JSDoc: 看门狗检查间隔"
+    },
+    {
+      "file": "src/types/index.ts",
+      "lines": "826",
+      "reason": "JSDoc: Skill 清单定义"
+    },
+    {
+      "file": "src/types/index.ts",
+      "lines": "838",
+      "reason": "JSDoc: 生命周期钩子"
+    },
+    {
+      "file": "src/types/index.ts",
+      "lines": "842",
+      "reason": "JSDoc: 权限白名单"
+    },
+    {
+      "file": "src/types/index.ts",
+      "lines": "863",
+      "reason": "JSDoc: 生命周期钩子"
+    },
+    {
+      "file": "src/stores/feature/proactiveStore.ts",
+      "lines": "51",
+      "reason": "Content heuristic: 写/创建/生成"
+    },
+    {
+      "file": "src/stores/feature/proactiveStore.ts",
+      "lines": "60",
+      "reason": "Content heuristic: 搜索/查找"
+    },
+    {
+      "file": "src/stores/feature/proactiveStore.ts",
+      "lines": "61",
+      "reason": "Content heuristic: 什么是/怎么"
+    },
+    {
+      "file": "src/stores/feature/proactiveStore.ts",
+      "lines": "69",
+      "reason": "Content heuristic: 重构/优化/改进"
+    },
+    {
+      "file": "src/stores/feature/proactiveStore.ts",
+      "lines": "76",
+      "reason": "Content heuristic: 翻译/译为"
+    },
+    {
+      "file": "src/stores/feature/proactiveStore.ts",
+      "lines": "85",
+      "reason": "Content heuristic: 修复/错误/bug"
+    },
+    {
+      "file": "src/components/chat/UserProfilePanel.tsx",
+      "lines": "197",
+      "reason": "Placeholder: value"
     }
   ]
 }

@@ -2223,6 +2223,12 @@
     "modelGroupPlaceholder": "Select model group",
     "cloudWorkspace": {
       "title": "Cloud Workspace"
+    },
+    "knowledgeSettings": {
+      "title": "Знания"
+    },
+    "notificationCenter": {
+      "title": "Уведомления"
     }
   },
   "backup": {
@@ -3482,33 +3488,6 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
-    "knowledgeSettings": {
-      "title": "Знания"
-    },
-    "notificationCenter": {
-      "title": "Уведомления"
-    },
-    "chatRightPanel": {
-      "agent": "Агент",
-      "hierarchy": "Иерархия",
-      "research": "Исслед.",
-      "git": "Git",
-      "task": "Задачи",
-      "code": "Код",
-      "artifact": "Артефакты",
-      "imageGen": "Изобр.",
-      "report": "Отчёт",
-      "citation": "Цитаты",
-      "inspector": "Инспектор",
-      "errorRecovery": "Восстан.",
-      "teammate": "Команда",
-      "browser": "Браузер",
-      "computer": "Раб.стол",
-      "benchmark": "Бенч",
-      "chart": "График",
-      "snapshot": "Снимок",
-      "profile": "Профиль"
-    },
     "knowledgeSettings": {
       "title": "Знания"
     },
@@ -5882,10 +5861,16 @@
     "deletedContent": "Deleted Content"
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "Просмотр",
+    "references": "Источники",
+    "summary": "Резюме",
+    "generatedAt": "Создано:",
+    "export": "Экспорт",
+    "copyReport": "Копировать",
+    "startNewResearch": "Новое исслед.",
+    "lowCredibilityWarning": "Внимание: отчёт содержит {{count}} источник(ов) с низкой достоверностью",
+    "noReferences": "Нет источников",
+    "noSummary": "Нет резюме"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -6088,6 +6073,61 @@
     "startNewResearch": "Начать новое исследование",
     "preview": "Предпросмотр",
     "summary": "Сводка",
-    "lowCredibilityNotice": "Внимание: отчет содержит {{count}} источников с низкой достоверностью, используйте с осторожностью"
+    "lowCredibilityNotice": "Внимание: отчет содержит {{count}} источников с низкой достоверностью, используйте с осторожностью",
+    "sourceType": {
+      "web": "Веб",
+      "academic": "Академ.",
+      "wikipedia": "Википедия",
+      "documentation": "Документ",
+      "news": "Новости",
+      "blog": "Блог",
+      "forum": "Форум",
+      "unknown": "Неизв."
+    }
+  },
+  "chatRightPanel": {
+    "agent": "Агент",
+    "hierarchy": "Иерархия",
+    "research": "Исслед.",
+    "git": "Git",
+    "task": "Задачи",
+    "code": "Код",
+    "artifact": "Артефакты",
+    "imageGen": "Изобр.",
+    "visionAnalysis": "Зрение",
+    "report": "Отчёт",
+    "citation": "Цитаты",
+    "inspector": "Инспектор",
+    "browser": "Браузер",
+    "computer": "Раб.стол",
+    "benchmark": "Бенч",
+    "chart": "График",
+    "snapshot": "Снимок",
+    "profile": "Профиль",
+    "errorRecovery": "Восстан.",
+    "collaboration": "Совм.",
+    "evolution": "Эволюция",
+    "steer": "Курс",
+    "cache": "Кэш",
+    "branchCompare": "Ветка",
+    "gateway": "GW",
+    "contextClass": "Контекст",
+    "cronResult": "Крон",
+    "reflection": "Анализ",
+    "researchSources": "Источники",
+    "categoryEdit": "Катег.",
+    "filePermission": "Файл",
+    "sessionShare": "Доступ",
+    "prefetch": "Предзагр.",
+    "reminders": "Напомин.",
+    "contextPrediction": "Прогноз",
+    "teammate": "Команда",
+    "steerInput": "Руль"
+  },
+  "knowledgeSettings": {
+    "title": "Знания"
+  },
+  "notificationCenter": {
+    "title": "Уведомления"
   }
 }

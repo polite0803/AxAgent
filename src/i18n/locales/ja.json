@@ -2223,6 +2223,12 @@
     "modelGroupPlaceholder": "Select model group",
     "cloudWorkspace": {
       "title": "Cloud Workspace"
+    },
+    "knowledgeSettings": {
+      "title": "ナレッジ"
+    },
+    "notificationCenter": {
+      "title": "通知"
     }
   },
   "backup": {
@@ -3482,33 +3488,6 @@
     "noUndoAvailable": "无可撤销操作",
     "noRedoAvailable": "无可重做操作",
     "nodeDropFailed": "节点放置失败",
-    "knowledgeSettings": {
-      "title": "ナレッジ"
-    },
-    "notificationCenter": {
-      "title": "通知"
-    },
-    "chatRightPanel": {
-      "agent": "エージェント",
-      "hierarchy": "階層",
-      "research": "リサーチ",
-      "git": "Git",
-      "task": "タスク",
-      "code": "コード",
-      "artifact": "成果物",
-      "imageGen": "画像",
-      "report": "レポート",
-      "citation": "引用",
-      "inspector": "検査",
-      "errorRecovery": "復旧",
-      "teammate": "チーム",
-      "browser": "ブラウザ",
-      "computer": "デスクトップ",
-      "benchmark": "ベンチ",
-      "chart": "チャート",
-      "snapshot": "スナップ",
-      "profile": "プロフィール"
-    },
     "knowledgeSettings": {
       "title": "ナレッジ"
     },
@@ -5882,10 +5861,16 @@
     "deletedContent": "Deleted Content"
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "プレビュー",
+    "references": "参考文献",
+    "summary": "概要",
+    "generatedAt": "生成日時:",
+    "export": "エクスポート",
+    "copyReport": "レポートをコピー",
+    "startNewResearch": "新規研究",
+    "lowCredibilityWarning": "注意: レポートに {{count}} 件の低信頼性ソースが含まれています",
+    "noReferences": "参考文献なし",
+    "noSummary": "概要なし"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -6088,6 +6073,61 @@
     "startNewResearch": "新しい研究を開始",
     "preview": "プレビュー",
     "summary": "概要",
-    "lowCredibilityNotice": "注意: レポートに {{count}} 件の低信頼度ソースが含まれています。注意して使用してください"
+    "lowCredibilityNotice": "注意: レポートに {{count}} 件の低信頼度ソースが含まれています。注意して使用してください",
+    "sourceType": {
+      "web": "ウェブ",
+      "academic": "学術",
+      "wikipedia": "ウィキペディア",
+      "documentation": "文書",
+      "news": "ニュース",
+      "blog": "ブログ",
+      "forum": "フォーラム",
+      "unknown": "不明"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "エージェント",
+    "hierarchy": "階層",
+    "research": "リサーチ",
+    "git": "Git",
+    "task": "タスク",
+    "code": "コード",
+    "artifact": "成果物",
+    "imageGen": "画像",
+    "visionAnalysis": "視覚分析",
+    "report": "レポート",
+    "citation": "引用",
+    "inspector": "検査",
+    "browser": "ブラウザ",
+    "computer": "デスクトップ",
+    "benchmark": "ベンチ",
+    "chart": "チャート",
+    "snapshot": "スナップ",
+    "profile": "プロフィール",
+    "errorRecovery": "復旧",
+    "collaboration": "コラボ",
+    "evolution": "進化",
+    "steer": "ステア",
+    "cache": "キャッシュ",
+    "branchCompare": "分岐",
+    "gateway": "GW",
+    "contextClass": "コンテキスト",
+    "cronResult": "クロン",
+    "reflection": "リフレクション",
+    "researchSources": "ソース",
+    "categoryEdit": "カテゴリ",
+    "filePermission": "権限",
+    "sessionShare": "共有",
+    "prefetch": "プリフェッチ",
+    "reminders": "リマインダ",
+    "contextPrediction": "予測",
+    "teammate": "チーム",
+    "steerInput": "誘導"
+  },
+  "knowledgeSettings": {
+    "title": "ナレッジ"
+  },
+  "notificationCenter": {
+    "title": "通知"
   }
 }

@@ -2223,6 +2223,12 @@
     "modelGroupPlaceholder": "Select model group",
     "cloudWorkspace": {
       "title": "Cloud Workspace"
+    },
+    "knowledgeSettings": {
+      "title": "ज्ञान"
+    },
+    "notificationCenter": {
+      "title": "सूचनाएं"
     }
   },
   "backup": {
@@ -3876,33 +3882,6 @@
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
-    "knowledgeSettings": {
-      "title": "ज्ञान"
-    },
-    "notificationCenter": {
-      "title": "सूचनाएं"
-    },
-    "chatRightPanel": {
-      "agent": "एजेंट",
-      "hierarchy": "पदानुक्रम",
-      "research": "शोध",
-      "git": "Git",
-      "task": "कार्य",
-      "code": "कोड",
-      "artifact": "कलाकृतियाँ",
-      "imageGen": "छवि",
-      "report": "रिपोर्ट",
-      "citation": "उद्धरण",
-      "inspector": "निरीक्षक",
-      "errorRecovery": "पुनर्प्राप्ति",
-      "teammate": "टीम",
-      "browser": "ब्राउज़र",
-      "computer": "डेस्कटॉप",
-      "benchmark": "बेंच",
-      "chart": "चार्ट",
-      "snapshot": "स्नैपशॉट",
-      "profile": "प्रोफ़ाइल"
-    },
     "knowledgeSettings": {
       "title": "ज्ञान"
     },
@@ -5882,10 +5861,16 @@
     "deletedContent": "Deleted Content"
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "पूर्वावलोकन",
+    "references": "संदर्भ",
+    "summary": "सारांश",
+    "generatedAt": "उत्पन्न:",
+    "export": "निर्यात",
+    "copyReport": "रिपोर्ट कॉपी",
+    "startNewResearch": "नया शोध",
+    "lowCredibilityWarning": "नोट: रिपोर्ट में {{count}} कम-विश्वसनीयता स्रोत हैं",
+    "noReferences": "कोई संदर्भ नहीं",
+    "noSummary": "कोई सारांश नहीं"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -6088,6 +6073,61 @@
     "startNewResearch": "नया शोध शुरू करें",
     "preview": "पूर्वावलोकन",
     "summary": "सारांश",
-    "lowCredibilityNotice": "नोट: रिपोर्ट में {{count}} कम विश्वसनीयता वाले स्रोत हैं, सावधानी से उपयोग करें"
+    "lowCredibilityNotice": "नोट: रिपोर्ट में {{count}} कम विश्वसनीयता वाले स्रोत हैं, सावधानी से उपयोग करें",
+    "sourceType": {
+      "web": "वेब",
+      "academic": "अकादमिक",
+      "wikipedia": "विकिपीडिया",
+      "documentation": "दस्तावेज़",
+      "news": "समाचार",
+      "blog": "ब्लॉग",
+      "forum": "फ़ोरम",
+      "unknown": "अज्ञात"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "एजेंट",
+    "hierarchy": "पदानुक्रम",
+    "research": "शोध",
+    "git": "Git",
+    "task": "कार्य",
+    "code": "कोड",
+    "artifact": "कलाकृतियाँ",
+    "imageGen": "छवि",
+    "visionAnalysis": "विज़न",
+    "report": "रिपोर्ट",
+    "citation": "उद्धरण",
+    "inspector": "निरीक्षक",
+    "browser": "ब्राउज़र",
+    "computer": "डेस्कटॉप",
+    "benchmark": "बेंच",
+    "chart": "चार्ट",
+    "snapshot": "स्नैपशॉट",
+    "profile": "प्रोफ़ाइल",
+    "errorRecovery": "पुनर्प्राप्ति",
+    "collaboration": "सहयोग",
+    "evolution": "विकास",
+    "steer": "स्टीयर",
+    "cache": "कैश",
+    "branchCompare": "शाखा",
+    "gateway": "GW",
+    "contextClass": "संदर्भ",
+    "cronResult": "क्रॉन",
+    "reflection": "चिंतन",
+    "researchSources": "स्रोत",
+    "categoryEdit": "श्रेणी",
+    "filePermission": "फ़ाइल",
+    "sessionShare": "शेयर",
+    "prefetch": "प्रीफ़ेच",
+    "reminders": "रिमाइंडर",
+    "contextPrediction": "पूर्वानुमान",
+    "teammate": "टीम",
+    "steerInput": "चलाएं"
+  },
+  "knowledgeSettings": {
+    "title": "ज्ञान"
+  },
+  "notificationCenter": {
+    "title": "सूचनाएं"
   }
 }

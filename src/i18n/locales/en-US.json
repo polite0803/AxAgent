@@ -2383,7 +2383,13 @@
     "bocha": "Bocha",
     "zhipu": "Zhipu",
     "expertPromptNote": "Expert prompt note",
-    "modelGroupPlaceholder": "Select model group"
+    "modelGroupPlaceholder": "Select model group",
+    "knowledgeSettings": {
+      "title": "Knowledge"
+    },
+    "notificationCenter": {
+      "title": "Notifications"
+    }
   },
   "backup": {
     "title": "Backup Center",
@@ -3280,35 +3286,6 @@
       "legacySuffix": "(Legacy)",
       "templatesTab": "Templates",
       "searchTemplates": "Search templates..."
-    },
-    "knowledgeSettings": {
-      "title": "Knowledge"
-    },
-    "notificationCenter": {
-      "title": "Notifications"
-    },
-    "chatRightPanel": {
-      "agent": "Agent",
-      "hierarchy": "Hierarchy",
-      "research": "Research",
-      "git": "Git",
-      "task": "Tasks",
-      "code": "Code",
-      "artifact": "Artifacts",
-      "imageGen": "Image",
-      "report": "Report",
-      "citation": "Citations",
-      "inspector": "Inspector",
-      "errorRecovery": "Recovery",
-      "teammate": "Team",
-      "browser": "Browser",
-      "computer": "Desktop",
-      "benchmark": "Bench",
-      "chart": "Chart",
-      "snapshot": "Snapshot",
-      "profile": "Profile",
-      "collaboration": "Collab",
-      "visionAnalysis": "Vision"
     },
     "knowledgeSettings": {
       "title": "Knowledge"
@@ -5581,10 +5558,16 @@
     }
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "Preview",
+    "references": "References",
+    "summary": "Summary",
+    "generatedAt": "Generated at:",
+    "export": "Export",
+    "copyReport": "Copy Report",
+    "startNewResearch": "New Research",
+    "lowCredibilityWarning": "Note: Report contains {{count}} low-credibility source(s), use with caution",
+    "noReferences": "No references",
+    "noSummary": "No summary"
   },
   "citationManager": {
     "totalCitations": "Total Citations:",
@@ -6152,6 +6135,61 @@
     "startNewResearch": "Start new research",
     "preview": "Preview",
     "summary": "Summary",
-    "lowCredibilityNotice": "Note: Report contains {{count}} low-credibility sources, use with caution"
+    "lowCredibilityNotice": "Note: Report contains {{count}} low-credibility sources, use with caution",
+    "sourceType": {
+      "web": "Web",
+      "academic": "Academic",
+      "wikipedia": "Wikipedia",
+      "documentation": "Doc",
+      "news": "News",
+      "blog": "Blog",
+      "forum": "Forum",
+      "unknown": "Unknown"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "Agent",
+    "hierarchy": "Hierarchy",
+    "research": "Research",
+    "git": "Git",
+    "task": "Tasks",
+    "code": "Code",
+    "artifact": "Artifacts",
+    "imageGen": "Image",
+    "visionAnalysis": "Vision",
+    "report": "Report",
+    "citation": "Citations",
+    "inspector": "Inspector",
+    "browser": "Browser",
+    "computer": "Desktop",
+    "benchmark": "Bench",
+    "chart": "Chart",
+    "snapshot": "Snapshot",
+    "profile": "Profile",
+    "errorRecovery": "Recovery",
+    "collaboration": "Collab",
+    "evolution": "Evolution",
+    "steer": "Steer",
+    "cache": "Cache",
+    "branchCompare": "Branch",
+    "gateway": "Gateway",
+    "contextClass": "Context",
+    "cronResult": "Cron",
+    "reflection": "Reflection",
+    "researchSources": "Sources",
+    "categoryEdit": "Category",
+    "filePermission": "FilePerm",
+    "sessionShare": "Share",
+    "prefetch": "Prefetch",
+    "reminders": "Reminders",
+    "contextPrediction": "Prediction",
+    "teammate": "Team",
+    "steerInput": "SteerInput"
+  },
+  "knowledgeSettings": {
+    "title": "Knowledge"
+  },
+  "notificationCenter": {
+    "title": "Notifications"
   }
 }

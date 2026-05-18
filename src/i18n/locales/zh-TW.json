@@ -2223,6 +2223,12 @@
     "modelGroupPlaceholder": "Select model group",
     "cloudWorkspace": {
       "title": "Cloud Workspace"
+    },
+    "knowledgeSettings": {
+      "title": "知識庫"
+    },
+    "notificationCenter": {
+      "title": "通知"
     }
   },
   "backup": {
@@ -3482,33 +3488,6 @@
     "noUndoAvailable": "無可撤銷操作",
     "noRedoAvailable": "無可重做操作",
     "nodeDropFailed": "節點放置失敗",
-    "knowledgeSettings": {
-      "title": "知識庫"
-    },
-    "notificationCenter": {
-      "title": "通知"
-    },
-    "chatRightPanel": {
-      "agent": "智能體",
-      "hierarchy": "層級",
-      "research": "調研",
-      "git": "Git",
-      "task": "任務",
-      "code": "程式碼",
-      "artifact": "產出",
-      "imageGen": "生圖",
-      "report": "報告",
-      "citation": "引用",
-      "inspector": "檢查",
-      "errorRecovery": "恢復",
-      "teammate": "協作",
-      "browser": "瀏覽器",
-      "computer": "桌面",
-      "benchmark": "評測",
-      "chart": "圖表",
-      "snapshot": "快照",
-      "profile": "用戶"
-    },
     "knowledgeSettings": {
       "title": "知識庫"
     },
@@ -5882,10 +5861,16 @@
     "deletedContent": "Deleted Content"
   },
   "reportViewer": {
-    "noReport": "No report generated yet",
-    "noReferences": "No references available",
-    "noOutline": "No outline available",
-    "noSummary": "No summary available"
+    "preview": "預覽",
+    "references": "參考文獻",
+    "summary": "摘要",
+    "generatedAt": "生成時間:",
+    "export": "匯出",
+    "copyReport": "複製報告",
+    "startNewResearch": "開始新研究",
+    "lowCredibilityWarning": "注意: 報告中包含 {{count}} 個低可信度來源，請謹慎使用",
+    "noReferences": "暫無參考文獻",
+    "noSummary": "暫無摘要"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -6088,6 +6073,61 @@
     "startNewResearch": "開始新研究",
     "preview": "預覽",
     "summary": "摘要",
-    "lowCredibilityNotice": "注意: 報告中包含 {{count}} 個低可信度來源，請謹慎使用"
+    "lowCredibilityNotice": "注意: 報告中包含 {{count}} 個低可信度來源，請謹慎使用",
+    "sourceType": {
+      "web": "網頁",
+      "academic": "學術",
+      "wikipedia": "維基百科",
+      "documentation": "文件",
+      "news": "新聞",
+      "blog": "部落格",
+      "forum": "論壇",
+      "unknown": "未知"
+    }
+  },
+  "chatRightPanel": {
+    "agent": "智能體",
+    "hierarchy": "層級",
+    "research": "調研",
+    "git": "Git",
+    "task": "任務",
+    "code": "程式碼",
+    "artifact": "產出",
+    "imageGen": "生圖",
+    "visionAnalysis": "視覺分析",
+    "report": "報告",
+    "citation": "引用",
+    "inspector": "檢查",
+    "browser": "瀏覽器",
+    "computer": "桌面",
+    "benchmark": "評測",
+    "chart": "圖表",
+    "snapshot": "快照",
+    "profile": "用戶",
+    "errorRecovery": "恢復",
+    "collaboration": "協作",
+    "evolution": "進化",
+    "steer": "引導",
+    "cache": "快取",
+    "branchCompare": "分支對比",
+    "gateway": "網關",
+    "contextClass": "上下文",
+    "cronResult": "定時結果",
+    "reflection": "反思",
+    "researchSources": "研究來源",
+    "categoryEdit": "分類編輯",
+    "filePermission": "檔案權限",
+    "sessionShare": "工作階段分享",
+    "prefetch": "預取",
+    "reminders": "提醒",
+    "contextPrediction": "上下文預測",
+    "teammate": "協作",
+    "steerInput": "引導"
+  },
+  "knowledgeSettings": {
+    "title": "知識庫"
+  },
+  "notificationCenter": {
+    "title": "通知"
   }
 }

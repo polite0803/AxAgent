@@ -151,14 +151,14 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
   const tabItems = [
     {
       key: "preview",
-      label: "预览",
+      label: t("reportViewer.preview"),
       children: selectedFormat === "markdown" ? renderMarkdownPreview() : renderHtmlPreview(),
     },
     {
       key: "references",
       label: (
         <span>
-          参考文献 <Tag>{report.citations.length}</Tag>
+          {t("reportViewer.references")} <Tag>{report.citations.length}</Tag>
         </span>
       ),
       children: (
@@ -185,7 +185,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
     },
     {
       key: "summary",
-      label: "摘要",
+      label: t("reportViewer.summary"),
       children: (
         <Card className="bg-gray-50">
           <Text>{report.summary || t("reportViewer.noSummary")}</Text>
@@ -203,7 +203,7 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
           </Title>
           {report.createdAt && (
             <Text type="secondary" className="text-sm">
-              生成时间: {new Date(report.createdAt).toLocaleString()}
+              {t("reportViewer.generatedAt")} {new Date(report.createdAt).toLocaleString()}
             </Text>
           )}
         </div>
@@ -222,16 +222,16 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
               style={{ width: 120 }}
             />
             <Button icon={<DownloadOutlined />} onClick={() => handleExport(selectedFormat)}>
-              导出
+              {t("reportViewer.export")}
             </Button>
           </Space>
           <Space>
             <Button icon={<CopyOutlined />} onClick={handleCopy}>
-              复制报告
+              {t("reportViewer.copyReport")}
             </Button>
             {onReset && (
               <Button onClick={onReset} type="primary">
-                开始新研究
+                {t("reportViewer.startNewResearch")}
               </Button>
             )}
           </Space>
@@ -243,7 +243,9 @@ export function ReportViewer({ report, onCopy, onExport, onReset }: ReportViewer
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
             <Text type="warning" className="text-sm">
               <CheckCircleOutlined className="mr-1" />
-              注意: 报告中包含 {report.citations.filter((c) => c.credibility < 0.5).length} 个低可信度来源，请谨慎使用
+              {t("reportViewer.lowCredibilityWarning", {
+                count: report.citations.filter((c) => c.credibility < 0.5).length,
+              })}
             </Text>
           </div>
         )}
