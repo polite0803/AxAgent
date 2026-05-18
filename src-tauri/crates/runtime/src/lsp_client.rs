@@ -148,7 +148,7 @@ impl LspRegistry {
                 .unwrap_or_default()
         };
 
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         inner.servers.insert(
             language.clone(),
             LspServerState {
@@ -165,7 +165,7 @@ impl LspRegistry {
 
     pub async fn stop_server(&self, language: &str) -> Result<(), String> {
         {
-            let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+            let mut inner = self.inner.lock().await.expect("lsp registry lock poisoned");
             inner.servers.remove(language);
         }
         self.process_manager.stop_server(language).await
@@ -182,7 +182,7 @@ impl LspRegistry {
         root_path: Option<&str>,
         capabilities: Vec<String>,
     ) {
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         inner.servers.insert(
             language.to_owned(),
             LspServerState {
@@ -196,7 +196,7 @@ impl LspRegistry {
     }
 
     pub fn get(&self, language: &str) -> Option<LspServerState> {
-        let inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         inner.servers.get(language).cloned()
     }
 
@@ -226,7 +226,7 @@ impl LspRegistry {
 
     /// List all registered servers.
     pub fn list_servers(&self) -> Vec<LspServerState> {
-        let inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         inner.servers.values().cloned().collect()
     }
 
@@ -236,7 +236,7 @@ impl LspRegistry {
         language: &str,
         diagnostics: Vec<LspDiagnostic>,
     ) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         let server = inner
             .servers
             .get_mut(language)
@@ -247,7 +247,7 @@ impl LspRegistry {
 
     /// Get diagnostics for a specific file path.
     pub fn get_diagnostics(&self, path: &str) -> Vec<LspDiagnostic> {
-        let inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         inner
             .servers
             .values()
@@ -259,7 +259,7 @@ impl LspRegistry {
 
     /// Clear diagnostics for a language server.
     pub fn clear_diagnostics(&self, language: &str) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         let server = inner
             .servers
             .get_mut(language)
@@ -271,13 +271,13 @@ impl LspRegistry {
     /// Disconnect a server.
     pub async fn disconnect(&self, language: &str) -> Option<LspServerState> {
         let _ = self.stop_server(language).await;
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         inner.servers.remove(language)
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
-        let inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let inner = self.inner.lock().await.expect("lsp registry lock poisoned");
         inner.servers.len()
     }
 
@@ -310,7 +310,7 @@ impl LspRegistry {
                 }));
             }
             // All diagnostics across all servers
-            let inner = self.inner.lock().expect("lsp registry lock poisoned");
+            let inner = self.inner.lock().await.expect("lsp registry lock poisoned");
             let all_diags: Vec<_> = inner
                 .servers
                 .values()
@@ -431,7 +431,7 @@ mod tests {
             vec!["hover".into(), "completion".into()],
         );
 
-        let server = registry.get("rust").expect("should exist");
+        let server = registry.get("rust").await.expect("should exist");
         assert_eq!(server.language, "rust");
         assert_eq!(server.status, LspServerStatus::Connected);
         assert_eq!(server.capabilities.len(), 2);
@@ -443,10 +443,10 @@ mod tests {
         registry.register("rust", LspServerStatus::Connected, None, vec![]);
         registry.register("typescript", LspServerStatus::Connected, None, vec![]);
 
-        let rs_server = registry.find_server_for_path("src/main.rs").unwrap();
+        let rs_server = registry.find_server_for_path("src/main.rs").await.unwrap();
         assert_eq!(rs_server.language, "rust");
 
-        let ts_server = registry.find_server_for_path("src/index.ts").unwrap();
+        let ts_server = registry.find_server_for_path("src/index.ts").await.unwrap();
         assert_eq!(ts_server.language, "typescript");
 
         assert!(registry.find_server_for_path("data.csv").is_none());
@@ -469,13 +469,13 @@ mod tests {
                     source: Some("rust-analyzer".into()),
                 }],
             )
-            .unwrap();
+            .await.unwrap();
 
         let diags = registry.get_diagnostics("src/main.rs");
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].message, "mismatched types");
 
-        registry.clear_diagnostics("rust").unwrap();
+        registry.clear_diagnostics("rust").await.unwrap();
         assert!(registry.get_diagnostics("src/main.rs").is_empty());
     }
 
@@ -495,11 +495,11 @@ mod tests {
                     source: None,
                 }],
             )
-            .unwrap();
+            .await.unwrap();
 
         let result = registry
             .dispatch("diagnostics", Some("src/lib.rs"), None, None, None)
-            .unwrap();
+            .await.unwrap();
         assert_eq!(result["count"], 1);
     }
 
@@ -510,7 +510,7 @@ mod tests {
 
         let result = registry
             .dispatch("hover", Some("src/main.rs"), Some(10), Some(5), None)
-            .unwrap();
+            .await.unwrap();
         assert_eq!(result["action"], "hover");
         assert_eq!(result["language"], "rust");
     }
@@ -523,7 +523,7 @@ mod tests {
         assert!(
             registry
                 .dispatch("hover", Some("src/main.rs"), Some(1), Some(0), None)
-                .is_err()
+                .await.is_err()
         );
     }
 
@@ -533,7 +533,7 @@ mod tests {
         assert!(
             registry
                 .dispatch("unknown_action", Some("file.rs"), None, None, None)
-                .is_err()
+                .await.is_err()
         );
     }
 
@@ -544,7 +544,7 @@ mod tests {
         assert_eq!(registry.len(), 1);
 
         let removed = registry.disconnect("rust");
-        assert!(removed.is_some());
+        assert!(removed.await.is_some());
         assert!(registry.is_empty());
     }
 
@@ -625,7 +625,7 @@ mod tests {
                     source: Some("rust-analyzer".into()),
                 }],
             )
-            .expect("rust diagnostics should add");
+            .await.expect("rust diagnostics should add");
         registry
             .add_diagnostics(
                 "python",
@@ -638,12 +638,12 @@ mod tests {
                     source: Some("pyright".into()),
                 }],
             )
-            .expect("python diagnostics should add");
+            .await.expect("python diagnostics should add");
 
         // when
         let result = registry
             .dispatch("diagnostics", None, None, None, None)
-            .expect("aggregate diagnostics should work");
+            .await.expect("aggregate diagnostics should work");
 
         // then
         assert_eq!(result["action"], "diagnostics");
@@ -661,7 +661,7 @@ mod tests {
 
         // then
         assert_eq!(
-            result.expect_err("path should be required"),
+            result.await.expect_err("path should be required"),
             "path is required for this LSP action"
         );
     }
@@ -675,7 +675,7 @@ mod tests {
         let result = registry.dispatch("hover", Some("notes.md"), Some(1), Some(0), None);
 
         // then
-        let error = result.expect_err("missing server should fail");
+        let error = result.await.expect_err("missing server should fail");
         assert!(error.contains("no LSP server available for path: notes.md"));
     }
 
@@ -689,7 +689,7 @@ mod tests {
         let result = registry.dispatch("hover", Some("src/index.ts"), Some(3), Some(2), None);
 
         // then
-        let error = result.expect_err("disconnected server should fail");
+        let error = result.await.expect_err("disconnected server should fail");
         assert!(error.contains("typescript"));
         assert!(error.contains("disconnected"));
     }
@@ -802,7 +802,7 @@ mod tests {
         let result = registry.add_diagnostics("missing", vec![]);
 
         // then
-        let error = result.expect_err("missing language should fail");
+        let error = result.await.expect_err("missing language should fail");
         assert!(error.contains("LSP server not found for language: missing"));
     }
 
@@ -825,7 +825,7 @@ mod tests {
                     source: None,
                 }],
             )
-            .expect("rust diagnostics should add");
+            .await.expect("rust diagnostics should add");
         registry
             .add_diagnostics(
                 "python",
@@ -838,7 +838,7 @@ mod tests {
                     source: None,
                 }],
             )
-            .expect("python diagnostics should add");
+            .await.expect("python diagnostics should add");
 
         // when
         let diagnostics = registry.get_diagnostics(shared_path);
@@ -866,7 +866,7 @@ mod tests {
         let result = registry.clear_diagnostics("missing");
 
         // then
-        let error = result.expect_err("missing language should fail");
+        let error = result.await.expect_err("missing language should fail");
         assert!(error.contains("LSP server not found for language: missing"));
     }
 }
