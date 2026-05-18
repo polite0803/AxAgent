@@ -1,7 +1,7 @@
 {
   "version": "1",
-  "generated": "2026-05-15",
-  "total_entries": 128,
+  "generated": "2026-05-18",
+  "total_entries": 157,
   "total_files": 127,
   "entries": [
     {
@@ -789,6 +789,136 @@
       "lines": "15,17,19,21",
       "reason": "硬编码中文注释",
       "phase": 3
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "197",
+      "reason": "{/* 头部 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "209",
+      "reason": "{/* 描述/摘要 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "216",
+      "reason": "{/* 错误 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "223",
+      "reason": "{/* 进度条 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "233",
+      "reason": "{/* 元信息 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "251",
+      "reason": "{/* Worker 消息日志 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "254",
+      "reason": "{/* 子会话跳转 */}"
+    },
+    {
+      "file": "src/components/chat/AgentPoolPanel.tsx",
+      "lines": "312",
+      "reason": "/** 是否在 agent 模式下显示 */"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "135",
+      "reason": "{/* 左侧指示器 */}"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "138",
+      "reason": "{/* 工具名称 — 显示当前或最后已知的工具名称 */}"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "154",
+      "reason": "{/* 进度条 — 仅当有本对话的工具调用时显示 */}"
+    },
+    {
+      "file": "src/components/chat/AgentProgressBar.tsx",
+      "lines": "168",
+      "reason": "{/* 耗时 — 仅当有本对话的工具调用时显示 */}"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "249",
+      "reason": "content.includes(\"error\") || content.includes(\"Error\") || content.includes(\"bug\") || content.includes(\"修复\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "250",
+      "reason": "|| content.includes(\"报错\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "255",
+      "reason": "content.includes(\"refactor\") || content.includes(\"优化\") || content.includes(\"重构\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "260",
+      "reason": "if (content.includes(\"test\") || content.includes(\"测试\") || content.includes(\"spec\")) {"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "264",
+      "reason": "content.includes(\"document\") || content.includes(\"文档\") || content.includes(\"readme\") || content.includes(\"doc\")"
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "270",
+      "reason": "const detected_errors = content.toLowerCase().includes(\"error\") || content.includes(\"报错\")"
+    },
+    {
+      "file": "src/components/chat/PermissionModal.tsx",
+      "lines": "246",
+      "reason": "{/* 工具名称和风险等级 */}"
+    },
+    {
+      "file": "src/components/chat/PermissionModal.tsx",
+      "lines": "275",
+      "reason": "{/* 请求原因 */}"
+    },
+    {
+      "file": "src/components/chat/PermissionModal.tsx",
+      "lines": "289",
+      "reason": "{/* 输入参数 */}"
+    },
+    {
+      "file": "src/components/chat/ReportViewer.tsx",
+      "lines": "31",
+      "reason": "web: \"网页\","
+    },
+    {
+      "file": "src/components/chat/ReportViewer.tsx",
+      "lines": "32",
+      "reason": "academic: \"学术\","
+    },
+    {
+      "file": "src/components/chat/ReportViewer.tsx",
+      "lines": "33",
+      "reason": "wikipedia: \"维基百科\","
+    },
+    {
+      "file": "src/components/chat/ReportViewer.tsx",
+      "lines": "35",
+      "reason": "documentation: \"文档\","
+    },
+    {
+      "file": "src/components/chat/ReportViewer.tsx",
+      "lines": "36",
+      "reason": "news: \"新闻\","
     }
   ]
 }
