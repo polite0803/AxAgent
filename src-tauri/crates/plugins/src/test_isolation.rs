@@ -28,9 +28,9 @@ impl EnvLock {
         std::fs::create_dir_all(temp_home.join(".config")).ok();
 
         // Redirect HOME and XDG_CONFIG_HOME to temp directory
-        env::set_var("HOME", &temp_home);
-        env::set_var("XDG_CONFIG_HOME", temp_home.join(".config"));
-        env::set_var("XDG_DATA_HOME", temp_home.join(".local/share"));
+        unsafe { env::set_var("HOME", &temp_home) };
+        unsafe { env::set_var("XDG_CONFIG_HOME", temp_home.join(".config")) };
+        unsafe { env::set_var("XDG_DATA_HOME", temp_home.join(".local/share")) };
 
         EnvLock {
             _guard: guard,
