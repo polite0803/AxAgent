@@ -1,7 +1,7 @@
 {
   "name": "axagent",
   "private": true,
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "AxAgent - AI Chat Desktop App",
   "author": "刘小平 <polite0803@outlook.com>",
   "license": "AGPL-3.0-only",
@@ -36,7 +36,6 @@
     "format": "dprint fmt",
     "format:check": "dprint check",
     "lint": "tsc --noEmit",
-    "lint:fix": "dprint fmt",
     "check:types": "node scripts/type-consistency.mjs",
     "docs": "typedoc --out docs src",
     "docs:watch": "typedoc --out docs --watch src",
