@@ -1,7 +1,7 @@
 import type { Conversation, UpdateConversationInput } from "@/types";
 
 // Sequence counter to prevent stale preference saves
-const _conversationPreferenceSaveSeq = new Map<string, number>();
+export const _conversationPreferenceSaveSeq = new Map<string, number>();
 
 // ── Staged preferences (localStorage) for when no conversation is active ──
 const STAGED_PREFS_KEY = "axagent:staged-prefs";
@@ -17,6 +17,13 @@ function loadStagedPrefs(): Record<string, unknown> {
 function saveStagedPrefs(prefs: Record<string, unknown>) {
   try {
     localStorage.setItem(STAGED_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* ignore */
+  }
+}
+export function clearStagedPrefs() {
+  try {
+    localStorage.removeItem(STAGED_PREFS_KEY);
   } catch {
     /* ignore */
   }

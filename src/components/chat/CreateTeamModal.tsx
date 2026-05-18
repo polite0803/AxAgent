@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 export type TeammateBackendType = "InProcess" | "SubProcess";
 
-interface TeammateConfig {
+export interface TeammateConfig {
   name: string;
   backendType: TeammateBackendType;
 }

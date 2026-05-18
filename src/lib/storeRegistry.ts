@@ -150,6 +150,10 @@ export function getStoreRegistry(): Map<string, StoreAccessor> {
   return storeRegistry;
 }
 
-function registerStore(name: string, accessor: StoreAccessor): void {
+export function registerStore(name: string, accessor: StoreAccessor): void {
   storeRegistry.set(name, accessor);
+}
+
+export function unregisterStore(name: string): void {
+  storeRegistry.delete(name);
 }

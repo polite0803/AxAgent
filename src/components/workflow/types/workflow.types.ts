@@ -52,6 +52,25 @@ export interface TriggerConfig {
   config: unknown;
 }
 
+export interface ManualTriggerConfig {}
+
+export interface ScheduleTriggerConfig {
+  cron: string;
+  timezone: string;
+  enabled: boolean;
+}
+
+export interface WebhookTriggerConfig {
+  path: string;
+  method: string;
+  auth_type: string;
+}
+
+export interface EventTriggerConfig {
+  event_type: string;
+  filter?: unknown;
+}
+
 export type OutputMode = "json" | "text" | "artifact";
 
 export interface AgentNodeConfig {
@@ -504,11 +523,47 @@ export interface SemanticCheckResult {
 
 export type SkillReplacementAction = "replace" | "keep" | "upgrade_existing";
 
+export interface SkillUpgradeSuggestion {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown> | null;
+  output_schema: Record<string, unknown> | null;
+  reasoning: string;
+}
+
+export interface SkillUpgradeRequest {
+  existing_skill_id: string;
+  generated_name: string;
+  generated_description: string;
+  generated_input_schema: Record<string, unknown> | null;
+  generated_output_schema: Record<string, unknown> | null;
+}
+
 export interface ToolInfo {
   tool_name: string;
   tool_type: string;
   description: string;
 }
+
+export interface ToolMatchResult {
+  tool_name: string;
+  tool_type: string;
+  description: string;
+  similarity_score: number;
+  match_reasons: string[];
+}
+
+export interface NodeToolMatch {
+  node_id: string | null;
+  tool_name: string;
+  matches: ToolMatchResult[];
+}
+
+export interface ToolSemanticCheckResult {
+  matches: NodeToolMatch[];
+}
+
+export type ToolReplacementAction = "replace" | "keep" | "upgrade_existing";
 
 export interface ToolUpgradeSuggestion {
   name: string;

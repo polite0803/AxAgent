@@ -1,14 +1,14 @@
 import { invoke } from "@/lib/invoke";
 import { create } from "zustand";
 
-interface ToolScore {
+export interface ToolScore {
   tool_id: string;
   tool_name: string;
   score: number;
   reasons: string[];
 }
 
-interface AlternativeSet {
+export interface AlternativeSet {
   description: string;
   tools: string[];
   tradeoffs: string[];

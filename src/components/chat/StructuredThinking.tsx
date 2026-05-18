@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-type ThinkingPhase =
+export type ThinkingPhase =
   | "analysis"
   | "planning"
   | "execution"

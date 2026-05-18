@@ -13,6 +13,14 @@ export interface FileChange {
   language?: string;
 }
 
+export interface FileChangeReview {
+  changes: FileChange[];
+  onAccept: (filePath: string) => void;
+  onReject: (filePath: string) => void;
+  onAcceptAll: () => void;
+  onRejectAll: () => void;
+}
+
 // ── Language detection ───────────────────────────────────────────────────
 
 function detectLanguage(filePath: string): string {

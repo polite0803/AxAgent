@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import type {
   AgentDoneEvent,
   AgentPoolItem,
@@ -979,7 +979,19 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
 
 // ── Bridge helpers for backward compatibility ──
 
-function syncExecutionStoreToDomainStore(): void {
+export function syncAgentStoreToDomainStore(): void {
+  const agentStore = useAgentStore.getState();
+
+  const sessionUpdates: Record<string, AgentSession> = {};
+  for (const [convId, session] of Object.entries(agentStore.sessions)) {
+    sessionUpdates[convId] = session;
+  }
+  if (Object.keys(sessionUpdates).length > 0) {
+    useAgentDomainStore.setState({ agentSession: sessionUpdates });
+  }
+}
+
+export function syncExecutionStoreToDomainStore(): void {
   const execStore = useExecutionStore.getState();
 
   const executionStates: Record<string, ExecutionState> = {};
@@ -1003,7 +1015,7 @@ function syncExecutionStoreToDomainStore(): void {
   }
 }
 
-function syncPlanStoreToDomainStore(): void {
+export function syncPlanStoreToDomainStore(): void {
   const planStore = usePlanStore.getState();
   const planStates: Record<string, PlanState> = {};
 
@@ -1043,4 +1055,166 @@ export function syncAllStoresToDomain(): void {
 
   syncExecutionStoreToDomainStore();
   syncPlanStoreToDomainStore();
+}
+
+// ── Domain store to legacy store bridge (for reading from domain store) ──
+
+export function getDomainStoreAsAgentStoreSnapshot() {
+  const domain = useAgentDomainStore.getState();
+
+  return {
+    sessions: domain.agentSession,
+    pendingPermissions: domain.permissions,
+    pendingAskUser: domain.askUser,
+    toolCalls: domain.toolCalls,
+    pausedConversations: domain.pausedConversations,
+    agentPool: domain.agentPool,
+    subAgentCards: domain.subAgentCards,
+  };
+}
+
+export function getDomainStoreAsExecutionStoreSnapshot() {
+  const domain = useAgentDomainStore.getState();
+
+  const phases: Record<
+    string,
+    | "idle"
+    | "planning"
+    | "executing"
+    | "waiting_permission"
+    | "completed"
+    | "failed"
+    | "cancelled"
+  > = {};
+  const agentStatus: Record<string, string> = {};
+  const currentToolCall = domain.toolCalls
+    ? Object.values(domain.toolCalls).find(
+      (tc) => tc.executionStatus === "running" || tc.executionStatus === "queued",
+    )
+    : null;
+
+  for (const [convId, execSt] of Object.entries(domain.executionState)) {
+    phases[convId] = execSt.phase;
+    if (execSt.statusMessage) {
+      agentStatus[convId] = execSt.statusMessage;
+    }
+  }
+
+  return {
+    phases,
+    agentStatus,
+    toolCalls: domain.toolCalls,
+    sdkIdToExecId: domain.sdkIdToExecId,
+    agentPool: domain.agentPool,
+    currentToolCall: currentToolCall
+      ? {
+        toolName: currentToolCall.toolName,
+        toolUseId: currentToolCall.toolUseId,
+        conversationId: "",
+        startedAt: 0,
+      }
+      : null,
+  };
+}
+
+export function getDomainStoreAsPlanStoreSnapshot() {
+  const domain = useAgentDomainStore.getState();
+
+  const activePlans: Record<string, Plan> = {};
+  const planHistory: Record<string, Plan[]> = {};
+  const loading: Record<string, boolean> = {};
+  const errors: Record<string, string | null> = {};
+
+  for (const [convId, planSt] of Object.entries(domain.planState)) {
+    if (planSt.activePlan) {
+      activePlans[convId] = planSt.activePlan;
+    }
+    loading[convId] = planSt.loading;
+    errors[convId] = planSt.error;
+  }
+
+  return { activePlans, planHistory, loading, errors };
+}
+
+// ── Unified event listener setup ──
+
+let _domainListenersSetup = false;
+
+export function setupAgentDomainEventListeners(): () => void {
+  if (_domainListenersSetup) {
+    return () => {};
+  }
+  _domainListenersSetup = true;
+
+  const unlisteners: Promise<UnlistenFn>[] = [];
+  const store = useAgentDomainStore.getState();
+
+  unlisteners.push(
+    listen<PermissionRequestEvent>("agent-permission-request", (event) => {
+      store.handlePermissionRequest(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<AskUserEvent>("agent-ask-user", (event) => {
+      store.handleAskUser(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<ToolUseEvent>("agent-tool-use", (event) => {
+      store.handleToolUse(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<ToolStartEvent>("agent-tool-start", (event) => {
+      store.handleToolStart(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<ToolResultEvent>("agent-tool-result", (event) => {
+      store.handleToolResult(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<SubAgentCardEvent>("agent-subagent-card", (event) => {
+      store.handleSubAgentCard(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<AgentDoneEvent>("agent-done", (event) => {
+      store.handleDone(event.payload);
+    }),
+  );
+
+  unlisteners.push(
+    listen<{ conversationId: string }>("agent-paused", (event) => {
+      useAgentDomainStore.setState((s) => {
+        const pausedConversations = toPausedSet(s.pausedConversations);
+        pausedConversations.add(event.payload.conversationId);
+        return { pausedConversations };
+      });
+    }),
+  );
+
+  unlisteners.push(
+    listen<{ conversationId: string }>("agent-resumed", (event) => {
+      useAgentDomainStore.setState((s) => {
+        const pausedConversations = toPausedSet(s.pausedConversations);
+        pausedConversations.delete(event.payload.conversationId);
+        return { pausedConversations };
+      });
+    }),
+  );
+
+  return () => {
+    _domainListenersSetup = false;
+    for (const p of unlisteners) {
+      p.then((u) => u());
+    }
+  };
 }

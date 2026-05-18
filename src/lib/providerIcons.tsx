@@ -74,7 +74,7 @@ const NAME_TO_PROVIDER: Record<string, string> = {
  * 3) NAME_TO_PROVIDER explicit mapping → ProviderIcon
  * 4) TYPE_TO_PROVIDER fallback → ProviderIcon
  */
-function resolveProviderIcon(provider: ProviderConfig): IconResult {
+export function resolveProviderIcon(provider: ProviderConfig): IconResult {
   const providerKey = findProviderKey(provider.name);
   if (providerKey) {
     return { type: "provider", key: providerKey };
@@ -97,6 +97,15 @@ function resolveProviderIcon(provider: ProviderConfig): IconResult {
     type: "provider",
     key: TYPE_TO_PROVIDER[provider.provider_type] || "openai",
   };
+}
+
+/**
+ * Legacy helper — returns a ProviderIcon-compatible string key.
+ * Prefer resolveProviderIcon + SmartProviderIcon for correct two-tier rendering.
+ */
+export function getProviderIconKey(provider: ProviderConfig): string {
+  const result = resolveProviderIcon(provider);
+  return result.key;
 }
 
 /**

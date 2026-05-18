@@ -23,7 +23,7 @@ export interface UnifiedSource {
   enabled: boolean;
 }
 
-interface SourceRef {
+export interface SourceRef {
   containerType: string;
   id: string;
 }

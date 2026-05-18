@@ -112,7 +112,7 @@ export interface ModelParamValues {
   frequencyPenalty: number | null;
 }
 
-interface ModelParamDefaults {
+export interface ModelParamDefaults {
   temperature?: number;
   topP?: number;
   maxTokens?: number;

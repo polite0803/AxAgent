@@ -9,6 +9,17 @@ type CustomHandler = (
 ) => Promise<void>;
 const customHandlers = new Map<string, CustomHandler>();
 
+export function registerCustomHandler(
+  handlerId: string,
+  handler: CustomHandler,
+) {
+  customHandlers.set(handlerId, handler);
+}
+
+export function unregisterCustomHandler(handlerId: string) {
+  customHandlers.delete(handlerId);
+}
+
 export function getCustomFunction(name: string): CustomHandler | undefined {
   return customHandlers.get(name);
 }
@@ -16,7 +27,7 @@ export function getCustomFunction(name: string): CustomHandler | undefined {
 // ── 便捷方法（向后兼容）──
 
 /** 执行单个 Skill Command Action（根据 mode 分发） */
-async function executeSkillAction(
+export async function executeSkillAction(
   action: SkillCommandAction,
   navigate: (path: string) => void,
 ): Promise<void> {

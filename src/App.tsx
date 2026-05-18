@@ -305,7 +305,7 @@ function AppRoot() {
   useEffect(() => {
     let cancelled = false;
     const localeCode = localeMap[language] || "en_US";
-    import(`antd/locale/${localeCode}`)
+    import(/* @vite-ignore */ `antd/locale/${localeCode}`)
       .then((mod) => {
         if (!cancelled) {
           setAntdLocale(mod.default);

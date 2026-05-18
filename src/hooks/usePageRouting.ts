@@ -1,5 +1,5 @@
 import type { PageKey } from "@/types";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
@@ -26,3 +26,19 @@ export function useActivePage(): PageKey {
   const location = useLocation();
   return pathToPageKey(location.pathname);
 }
+
+export function usePageNavigation() {
+  const navigate = useNavigate();
+
+  const navigateTo = (page: PageKey) => {
+    navigate(pageKeyToPath[page]);
+  };
+
+  const isActive = (page: PageKey): boolean => {
+    return pageKeyToPath[page] === window.location.pathname;
+  };
+
+  return { navigateTo, isActive };
+}
+
+export { pageKeyToPath, pathToPageKey };

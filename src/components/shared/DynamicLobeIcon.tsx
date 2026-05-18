@@ -28,7 +28,7 @@ export const DynamicLobeIcon = memo(function DynamicLobeIcon({
       return;
     }
 
-    import(`@lobehub/icons/es/icons/${iconId}.js`)
+    import(/* @vite-ignore */ `@lobehub/icons/es/icons/${iconId}.js`)
       .then((module) => {
         if (!cancelled) {
           iconCache.set(iconId, module);

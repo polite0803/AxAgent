@@ -5,7 +5,7 @@ import { create } from "zustand";
 // 类型
 // ---------------------------------------------------------------------------
 
-interface DreamConsolidationResult {
+export interface DreamConsolidationResult {
   executed: boolean;
   memoriesExtracted: number;
   patternsDiscovered: number;
@@ -15,7 +15,7 @@ interface DreamConsolidationResult {
   error: string | null;
 }
 
-type DreamStatus = "idle" | "running" | "completed" | "error";
+export type DreamStatus = "idle" | "running" | "completed" | "error";
 
 // ---------------------------------------------------------------------------
 // Store

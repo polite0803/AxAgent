@@ -1,9 +1,29 @@
 import { invoke } from "@/lib/invoke";
-import type { CompileResult, LintResult, SchemaVersion, Wiki, WikiOperation, WikiPage, WikiSource } from "@/types";
+import type {
+  CompiledPage,
+  CompileResult,
+  LintIssue,
+  LintResult,
+  SchemaVersion,
+  Wiki,
+  WikiOperation,
+  WikiPage,
+  WikiSource,
+} from "@/types";
 import { create } from "zustand";
 
 // 从 @/types 重导出，保持向后兼容
-export type { CompileResult, LintResult, SchemaVersion, Wiki, WikiOperation, WikiSource };
+export type {
+  CompiledPage,
+  CompileResult,
+  LintIssue,
+  LintResult,
+  SchemaVersion,
+  Wiki,
+  WikiOperation,
+  WikiPage,
+  WikiSource,
+};
 
 export interface IngestResult {
   source_id: string;
@@ -16,7 +36,7 @@ export interface QueryResult {
   total: number;
 }
 
-interface PageResult {
+export interface PageResult {
   note_id: string;
   title: string;
   content_snippet: string;
