@@ -1054,6 +1054,7 @@ mod tests {
         path_and_query: String,
         authorization: Option<String>,
         x_api_key: Option<String>,
+        x_goog_api_key: Option<String>,
         anthropic_version: Option<String>,
         body: serde_json::Value,
     }
@@ -1097,6 +1098,11 @@ mod tests {
                 x_api_key: parts
                     .headers
                     .get("x-api-key")
+                    .and_then(|value| value.to_str().ok())
+                    .map(ToOwned::to_owned),
+                x_goog_api_key: parts
+                    .headers
+                    .get("x-goog-api-key")
                     .and_then(|value| value.to_str().ok())
                     .map(ToOwned::to_owned),
                 anthropic_version: parts
@@ -1537,10 +1543,9 @@ mod tests {
 
         let captured = captures.lock().unwrap();
         assert_eq!(captured.len(), 1);
-        assert_eq!(
-            captured[0].path_and_query,
-            "/v1beta/models/gemini-2.5-pro:countTokens?key=upstream-secret"
-        );
+        // Gemini 现在通过 x-goog-api-key header 传递 key，而非 query param
+        assert_eq!(captured[0].path_and_query, "/v1beta/models/gemini-2.5-pro:countTokens");
+        assert_eq!(captured[0].x_goog_api_key.as_deref(), Some("upstream-secret"));
         drop(captured);
 
         let metrics = gateway::get_gateway_metrics(&handle.conn).await.unwrap();
