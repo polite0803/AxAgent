@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use axagent_runtime::green_contract::{GreenContract, GreenContractOutcome, GreenLevel};
+use axagent_runtime::green_contract::{GreenContract, GreenLevel};
 use axagent_runtime::{
     BranchFreshness, DiffScope, LaneBlocker, LaneContext, PolicyAction, PolicyCondition,
     PolicyEngine, PolicyRule, ReconcileReason, ReviewStatus, StaleBranchAction, StaleBranchPolicy,

@@ -523,6 +523,7 @@ mod test_hierarchical_planner_dynamic_replanning {
         TaskBuilder::new(desc, action).with_max_retries(1).build()
     }
 
+    #[allow(dead_code)]
     fn make_phase(
         name: &str,
         desc: &str,

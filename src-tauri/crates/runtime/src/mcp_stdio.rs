@@ -1415,8 +1415,8 @@ mod tests {
     use std::fs;
     use std::io::ErrorKind;
     use std::path::{Path, PathBuf};
-    use std::sync::atomic::{AtomicU64, Ordering};
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::sync::atomic::Ordering;
+    use std::time::UNIX_EPOCH;
 
     use serde_json::json;
     use tokio::runtime::Builder;
