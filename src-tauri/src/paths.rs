@@ -11,6 +11,19 @@ use std::path::PathBuf;
 pub fn axagent_home() -> PathBuf {
     #[cfg(mobile)]
     {
+        // Android: 优先使用 external cache dir（不需要权限），
+        // 回退到当前目录。data_dir() 在 Android 10+ 可能因 scoped storage 拒绝访问。
+        #[cfg(target_os = "android")]
+        {
+            let external = std::env::var("EXTERNAL_STORAGE")
+                .ok()
+                .map(PathBuf::from)
+                .map(|p| p.join("Android/data/top.axagent.desktop/files/.axagent"))
+                .filter(|p| std::fs::create_dir_all(p).is_ok());
+            if let Some(p) = external {
+                return p;
+            }
+        }
         let base = dirs::data_dir()
             .or_else(dirs::home_dir)
             .or_else(|| {
