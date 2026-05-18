@@ -3063,7 +3063,7 @@ mod tests {
         #[cfg(not(windows))]
         let (script_name, script_content) = (
             "echo-json.sh",
-            "#!/bin/sh\nINPUT=$(cat)\nprintf '{\\\"plugin\\\":\\\"%s\\\",\\\"tool\\\":\\\"%s\\\",\\\"input\\\":%s}\\n' \"$CLAWD_PLUGIN_ID\" \"$CLAWD_TOOL_NAME\" \"$INPUT\"\n",
+            "#!/bin/sh\nINPUT=$(cat)\nprintf '{\"plugin\":\"%s\",\"tool\":\"%s\",\"input\":%s}\\n' \"$CLAWD_PLUGIN_ID\" \"$CLAWD_TOOL_NAME\" \"$INPUT\"\n",
         );
 
         let script_path = root.join("tools").join(script_name);
