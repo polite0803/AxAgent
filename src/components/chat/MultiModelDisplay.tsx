@@ -48,7 +48,7 @@ export interface MultiModelDisplayProps {
 
 /**
  * Wrapper component for renderContent render prop.
- * Fixes react-doctor/no-render-in-render by extracting the render prop call into a component.
+ * Fixes react-doctor/no-render-in-render by returning renderContent result directly instead of JSX interpolation.
  */
 function ContentWrapper({
   renderContent,
@@ -59,7 +59,7 @@ function ContentWrapper({
   msg: Message;
   isStreaming: boolean;
 }) {
-  return <>{renderContent(msg, isStreaming)}</>;
+  return renderContent(msg, isStreaming);
 }
 
 /**

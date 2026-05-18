@@ -6042,7 +6042,7 @@
     "usageCount": "Usage count"
   },
   "subAgentCard": {
-    "fork": "Fork"
+    "viewConversation": "उप-वार्तालाप देखें"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6129,5 +6129,14 @@
   },
   "notificationCenter": {
     "title": "सूचनाएं"
+  },
+  "thinking": {
+    "phase": {
+      "analysis": "विश्लेषण",
+      "planning": "योजना",
+      "execution": "निष्पादन",
+      "verification": "सत्यापन"
+    },
+    "phaseCount": "{{count}} चरण"
   }
 }

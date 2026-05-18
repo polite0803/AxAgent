@@ -1,7 +1,7 @@
 {
   "version": "1",
   "generated": "2026-05-18",
-  "total_entries": 273,
+  "total_entries": 269,
   "total_files": 127,
   "entries": [
     {
@@ -1164,26 +1164,6 @@
       "file": "src/components/chat/McpContainerNode.tsx",
       "lines": "133",
       "reason": "|| trimmed.startsWith(\"错误\")"
-    },
-    {
-      "file": "src/components/chat/StructuredThinking.tsx",
-      "lines": "230",
-      "reason": "analysis: \"分析现状\","
-    },
-    {
-      "file": "src/components/chat/StructuredThinking.tsx",
-      "lines": "231",
-      "reason": "planning: \"制定计划\","
-    },
-    {
-      "file": "src/components/chat/StructuredThinking.tsx",
-      "lines": "344",
-      "reason": "{blocks.length} 个阶段"
-    },
-    {
-      "file": "src/components/chat/SubAgentCard.tsx",
-      "lines": "107",
-      "reason": "查看子会话 <RightOutlined />"
     },
     {
       "file": "src/components/help/HelpPanel.tsx",

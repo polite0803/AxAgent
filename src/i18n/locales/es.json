@@ -6042,7 +6042,7 @@
     "usageCount": "Usage count"
   },
   "subAgentCard": {
-    "fork": "Fork"
+    "viewConversation": "Ver sub-conversación"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6129,5 +6129,14 @@
   },
   "notificationCenter": {
     "title": "Notificaciones"
+  },
+  "thinking": {
+    "phase": {
+      "analysis": "Analizar",
+      "planning": "Planificar",
+      "execution": "Ejecutar",
+      "verification": "Verificar"
+    },
+    "phaseCount": "{{count}} fases"
   }
 }

@@ -6042,7 +6042,7 @@
     "usageCount": "Usage count"
   },
   "subAgentCard": {
-    "fork": "Fork"
+    "viewConversation": "См. под-диалог"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6129,5 +6129,14 @@
   },
   "notificationCenter": {
     "title": "Уведомления"
+  },
+  "thinking": {
+    "phase": {
+      "analysis": "Анализ",
+      "planning": "План",
+      "execution": "Выполнение",
+      "verification": "Проверка"
+    },
+    "phaseCount": "{{count}} фаз"
   }
 }

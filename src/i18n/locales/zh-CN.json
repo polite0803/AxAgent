@@ -5869,7 +5869,7 @@
     "retry": "重试"
   },
   "subAgentCard": {
-    "fork": "Fork"
+    "viewConversation": "查看子会话"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6187,5 +6187,14 @@
   },
   "notificationCenter": {
     "title": "通知"
+  },
+  "thinking": {
+    "phase": {
+      "analysis": "分析现状",
+      "planning": "制定计划",
+      "execution": "执行操作",
+      "verification": "验证结果"
+    },
+    "phaseCount": "{{count}} 个阶段"
   }
 }

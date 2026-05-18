@@ -5869,7 +5869,7 @@
     "retry": "Retry"
   },
   "subAgentCard": {
-    "fork": "Fork"
+    "viewConversation": "View Sub-Conversation"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6191,5 +6191,14 @@
   },
   "notificationCenter": {
     "title": "Notifications"
+  },
+  "thinking": {
+    "phase": {
+      "analysis": "Analyze",
+      "planning": "Plan",
+      "execution": "Execute",
+      "verification": "Verify"
+    },
+    "phaseCount": "{{count}} phases"
   }
 }

@@ -6042,7 +6042,7 @@
     "usageCount": "Usage count"
   },
   "subAgentCard": {
-    "fork": "Fork"
+    "viewConversation": "하위 대화 보기"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6129,5 +6129,14 @@
   },
   "notificationCenter": {
     "title": "알림"
+  },
+  "thinking": {
+    "phase": {
+      "analysis": "현황 분석",
+      "planning": "계획 수립",
+      "execution": "실행",
+      "verification": "검증"
+    },
+    "phaseCount": "{{count}} 단계"
   }
 }

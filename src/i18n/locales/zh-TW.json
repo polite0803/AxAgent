@@ -6042,7 +6042,7 @@
     "usageCount": "Usage count"
   },
   "subAgentCard": {
-    "fork": "Fork"
+    "viewConversation": "查看子會話"
   },
   "modelParam": {
     "topP": "Top P"
@@ -6129,5 +6129,14 @@
   },
   "notificationCenter": {
     "title": "通知"
+  },
+  "thinking": {
+    "phase": {
+      "analysis": "分析現狀",
+      "planning": "制定計畫",
+      "execution": "執行操作",
+      "verification": "驗證結果"
+    },
+    "phaseCount": "{{count}} 個階段"
   }
 }

@@ -53,8 +53,28 @@ function extractText(children: any[] | undefined): string {
 }
 
 /**
- * Extracted component for rendering non-MCP container nodes.
- * Fixes react-doctor/no-render-in-render by moving the renderNode call out of McpContainerNode.
+ * 单个子节点渲染组件 - 将 renderNode 函数调用包装为组件
+ * 修复 react-doctor/no-render-in-render：直接返回 renderNode 结果，而非 JSX 内插值调用
+ */
+function NodeChild({
+  child,
+  indexKey,
+  index,
+  ctx,
+  renderNode,
+}: {
+  child: any;
+  indexKey: string | undefined;
+  index: number;
+  ctx: any;
+  renderNode: (child: any, key: string, ctx: any) => React.ReactNode;
+}) {
+  return renderNode(child, `${String(indexKey ?? "vmr-container")}-${index}`, ctx);
+}
+
+/**
+ * 渲染非 MCP 容器节点的提取组件
+ * 修复 react-doctor/no-render-in-render：将 renderNode 调用移出 McpContainerNode
  */
 function DefaultContainer({
   node,
@@ -71,9 +91,14 @@ function DefaultContainer({
     <div className={`vmr-container vmr-container-${node.name ?? "unknown"}`}>
       {Array.isArray(node.children) && ctx && renderNode
         ? node.children.map((child: any, i: number) => (
-          <React.Fragment key={`${String(indexKey ?? "vmr-container")}-${i}`}>
-            {renderNode(child, `${String(indexKey ?? "vmr-container")}-${i}`, ctx)}
-          </React.Fragment>
+          <NodeChild
+            key={`${String(indexKey ?? "vmr-container")}-${i}`}
+            child={child}
+            indexKey={indexKey}
+            index={i}
+            ctx={ctx}
+            renderNode={renderNode}
+          />
         ))
         : null}
     </div>

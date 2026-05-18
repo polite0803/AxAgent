@@ -1,6 +1,7 @@
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { useProviderStore, useSettingsStore } from "@/stores";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import type { Model } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { Input, theme, Tooltip, Typography } from "antd";
 import {
@@ -618,6 +619,186 @@ function CommandMode({
   );
 }
 
+/**
+ * 提取的结果区组件 - 替代内联 renderResult() 函数
+ * 修复 react-doctor/no-render-in-render
+ */
+interface QuickBarResultProps {
+  hasResult: boolean;
+  showModelList: boolean;
+  result: string;
+  copied: boolean;
+  currentModels: Model[];
+  activeModelId: string | null;
+  selectedWikiId: string | null;
+  runModelSwitch: (modelId: string) => void;
+  handleCopy: () => void;
+  handleContinue: () => void;
+  setLoading: (v: boolean) => void;
+  setResult: React.Dispatch<React.SetStateAction<string>>;
+}
+
+function QuickBarResult({
+  hasResult,
+  showModelList,
+  result,
+  copied,
+  currentModels,
+  activeModelId,
+  selectedWikiId,
+  runModelSwitch,
+  handleCopy,
+  handleContinue,
+  setLoading,
+  setResult,
+}: QuickBarResultProps) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const borderColor = token.colorBorderSecondary;
+
+  const actionBtnStyle = (color: string): React.CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: "3px 8px",
+    borderRadius: 4,
+    fontSize: 12,
+    color,
+    transition: "background-color 0.15s",
+  });
+
+  const actionHover = (bg: string) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.backgroundColor = bg;
+  };
+
+  if (!hasResult && !showModelList) { return null; }
+
+  if (showModelList) {
+    return (
+      <>
+        <div style={{ height: 1, backgroundColor: borderColor, flexShrink: 0 }} />
+        <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
+          {currentModels.map((m) => (
+            <div
+              key={m.model_id}
+              role="button"
+              tabIndex={0}
+              onClick={() => runModelSwitch(m.model_id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") { runModelSwitch(m.model_id); }
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 14px",
+                cursor: "pointer",
+                fontSize: 13,
+                backgroundColor: m.model_id === activeModelId ? token.colorFillSecondary : "transparent",
+                color: token.colorText,
+                transition: "background-color 0.1s",
+              }}
+            >
+              <ModelIcon model={m.model_id} size={20} type="avatar" />
+              <span style={{ flex: 1 }}>{m.model_id}</span>
+              {m.model_id === activeModelId && (
+                <span style={{ fontSize: 10, color: token.colorPrimary }}>{t("quickbar.result.current")}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ height: 1, backgroundColor: borderColor, flexShrink: 0 }} />
+      <div
+        style={{
+          flex: 1,
+          padding: "10px 14px",
+          overflowY: "auto",
+          fontSize: 13,
+          lineHeight: 1.7,
+          color: token.colorText,
+          maxHeight: "55vh",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        <Typography.Text style={{ fontSize: 13 }}>{result}</Typography.Text>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "5px 12px",
+          borderTop: `1px solid ${borderColor}`,
+          flexShrink: 0,
+        }}
+      >
+        <Tooltip title={copied ? t("quickbar.result.copied") : t("quickbar.result.copy")}>
+          <button
+            onClick={handleCopy}
+            style={actionBtnStyle(copied ? token.colorSuccess : token.colorTextSecondary)}
+            onMouseEnter={actionHover(token.colorFillSecondary)}
+            onMouseLeave={actionHover("transparent")}
+          >
+            <Copy size={12} /> {copied ? t("quickbar.result.copied") : t("quickbar.result.copy")}
+          </button>
+        </Tooltip>
+        <Tooltip title={t("quickbar.result.saveWiki")}>
+          <button
+            onClick={async () => {
+              if (!result.trim()) { return; }
+              setLoading(true);
+              try {
+                if (!selectedWikiId) {
+                  setResult((p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"));
+                  setLoading(false);
+                  return;
+                }
+                const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
+                await invoke("llm_wiki_ingest", {
+                  wikiId: selectedWikiId,
+                  sourceType: "markdown",
+                  path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
+                  title: safeTitle,
+                });
+                setResult((p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`);
+              } catch (e) {
+                setResult((p) => p + `\n\n❌ ${String(e)}`);
+              }
+              setLoading(false);
+            }}
+            style={actionBtnStyle(token.colorTextSecondary)}
+            onMouseEnter={actionHover(token.colorFillSecondary)}
+            onMouseLeave={actionHover("transparent")}
+          >
+            <BookOpen size={12} /> {t("quickbar.result.saveWiki")}
+          </button>
+        </Tooltip>
+        <Tooltip title={t("quickbar.result.continueAsk")}>
+          <button
+            onClick={handleContinue}
+            style={actionBtnStyle(token.colorTextSecondary)}
+            onMouseEnter={actionHover(token.colorFillSecondary)}
+            onMouseLeave={actionHover("transparent")}
+          >
+            <ArrowRight size={12} /> {t("quickbar.result.continueAsk")}
+          </button>
+        </Tooltip>
+        <div style={{ flex: 1 }} />
+      </div>
+    </>
+  );
+}
+
 export function QuickBarPage() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -1113,150 +1294,7 @@ export function QuickBarPage() {
   const activeCmdDef = activeCommand ? getCommand(activeCommand) : null;
 
   /* ── Reusable styles ──────────────────────────────────────────────── */
-
-  const actionBtnStyle = (color: string): React.CSSProperties => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: "3px 8px",
-    borderRadius: 4,
-    fontSize: 12,
-    color,
-    transition: "background-color 0.15s",
-  });
-
-  const actionHover = (bg: string) => (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.backgroundColor = bg;
-  };
-
-  /* ── Render: Result area ─────────────────────────────────────────── */
-
-  const renderResult = () => {
-    if (!hasResult && !showModelList) { return null; }
-    if (showModelList) {
-      return (
-        <>
-          <div style={{ height: 1, backgroundColor: borderColor, flexShrink: 0 }} />
-          <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
-            {currentModels.map((m) => (
-              <div
-                key={m.model_id}
-                role="button"
-                tabIndex={0}
-                onClick={() => runModelSwitch(m.model_id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { runModelSwitch(m.model_id); }
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 14px",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  backgroundColor: m.model_id === activeModelId ? token.colorFillSecondary : "transparent",
-                  color: token.colorText,
-                  transition: "background-color 0.1s",
-                }}
-              >
-                <ModelIcon model={m.model_id} size={20} type="avatar" />
-                <span style={{ flex: 1 }}>{m.model_id}</span>
-                {m.model_id === activeModelId && (
-                  <span style={{ fontSize: 10, color: token.colorPrimary }}>{t("quickbar.result.current")}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      );
-    }
-    return (
-      <>
-        <div style={{ height: 1, backgroundColor: borderColor, flexShrink: 0 }} />
-        <div
-          style={{
-            flex: 1,
-            padding: "10px 14px",
-            overflowY: "auto",
-            fontSize: 13,
-            lineHeight: 1.7,
-            color: token.colorText,
-            maxHeight: "55vh",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
-          <Typography.Text style={{ fontSize: 13 }}>{result}</Typography.Text>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "5px 12px",
-            borderTop: `1px solid ${borderColor}`,
-            flexShrink: 0,
-          }}
-        >
-          <Tooltip title={copied ? t("quickbar.result.copied") : t("quickbar.result.copy")}>
-            <button
-              onClick={handleCopy}
-              style={actionBtnStyle(copied ? token.colorSuccess : token.colorTextSecondary)}
-              onMouseEnter={actionHover(token.colorFillSecondary)}
-              onMouseLeave={actionHover("transparent")}
-            >
-              <Copy size={12} /> {copied ? t("quickbar.result.copied") : t("quickbar.result.copy")}
-            </button>
-          </Tooltip>
-          <Tooltip title={t("quickbar.result.saveWiki")}>
-            <button
-              onClick={async () => {
-                if (!result.trim()) { return; }
-                setLoading(true);
-                try {
-                  if (!selectedWikiId) {
-                    setResult((p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"));
-                    setLoading(false);
-                    return;
-                  }
-                  const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
-                  await invoke("llm_wiki_ingest", {
-                    wikiId: selectedWikiId,
-                    sourceType: "markdown",
-                    path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
-                    title: safeTitle,
-                  });
-                  setResult((p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`);
-                } catch (e) {
-                  setResult((p) => p + `\n\n❌ ${String(e)}`);
-                }
-                setLoading(false);
-              }}
-              style={actionBtnStyle(token.colorTextSecondary)}
-              onMouseEnter={actionHover(token.colorFillSecondary)}
-              onMouseLeave={actionHover("transparent")}
-            >
-              <BookOpen size={12} /> {t("quickbar.result.saveWiki")}
-            </button>
-          </Tooltip>
-          <Tooltip title={t("quickbar.result.continueAsk")}>
-            <button
-              onClick={handleContinue}
-              style={actionBtnStyle(token.colorTextSecondary)}
-              onMouseEnter={actionHover(token.colorFillSecondary)}
-              onMouseLeave={actionHover("transparent")}
-            >
-              <ArrowRight size={12} /> {t("quickbar.result.continueAsk")}
-            </button>
-          </Tooltip>
-          <div style={{ flex: 1 }} />
-        </div>
-      </>
-    );
-  };
+  /* 已提取到 QuickBarResult 组件中 */
 
   /* ── Main render ─────────────────────────────────────────────────── */
 
@@ -1462,7 +1500,20 @@ export function QuickBarPage() {
         </div>
       )}
 
-      {renderResult()}
+      <QuickBarResult
+        hasResult={hasResult}
+        showModelList={showModelList}
+        result={result}
+        copied={copied}
+        currentModels={currentModels}
+        activeModelId={activeModelId}
+        selectedWikiId={selectedWikiId}
+        runModelSwitch={runModelSwitch}
+        handleCopy={handleCopy}
+        handleContinue={handleContinue}
+        setLoading={setLoading}
+        setResult={setResult}
+      />
     </div>
   );
 }
