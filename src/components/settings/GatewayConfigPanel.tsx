@@ -1,6 +1,7 @@
+import { PasteButton } from "@/components/common/PasteButton";
 import { usePlatformStore } from "@/stores";
 import { ALL_PLATFORMS, type PlatformConfig } from "@/types";
-import { App, Card, Input, Select, Switch, Typography } from "antd";
+import { App, Card, Input, Select, Space, Switch, Typography } from "antd";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -263,12 +264,15 @@ export function GatewayConfigPanel() {
                     )
                     : field.type === "password"
                     ? (
-                      <Input.Password
-                        id="gateway-config-panel-input-password-54"
-                        value={(config[field.key] as string) ?? ""}
-                        onChange={(e) => handleChange(field.key, e.target.value)}
-                        placeholder={field.placeholder ? t(field.placeholder) : undefined}
-                      />
+                      <Space.Compact style={{ width: "100%" }}>
+                        <Input.Password
+                          id="gateway-config-panel-input-password-54"
+                          value={(config[field.key] as string) ?? ""}
+                          onChange={(e) => handleChange(field.key, e.target.value)}
+                          placeholder={field.placeholder ? t(field.placeholder) : undefined}
+                        />
+                        <PasteButton onPaste={(text) => handleChange(field.key, text)} />
+                      </Space.Compact>
                     )
                     : (
                       <Input

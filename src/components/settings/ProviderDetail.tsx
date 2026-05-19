@@ -1,5 +1,6 @@
 import { CopyButton } from "@/components/common/CopyButton";
 import { ModelParamSliders } from "@/components/common/ModelParamSliders";
+import { PasteButton } from "@/components/common/PasteButton";
 import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { invoke } from "@/lib/invoke";
@@ -2171,11 +2172,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         okText={t("common.confirm")}
         cancelText={t("common.cancel")}
       >
-        <Input.Password
-          id="provider-detail-input-password-123"
-          value={keyValue}
-          onChange={(e) => setKeyValue(e.target.value)}
-        />
+        <Space.Compact style={{ width: "100%" }}>
+          <Input.Password
+            id="provider-detail-input-password-123"
+            value={keyValue}
+            onChange={(e) => setKeyValue(e.target.value)}
+          />
+          <PasteButton onPaste={(text) => setKeyValue(text)} />
+        </Space.Compact>
       </Modal>
 
       <Modal

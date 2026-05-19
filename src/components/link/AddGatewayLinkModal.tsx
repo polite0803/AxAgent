@@ -1,6 +1,7 @@
+import { PasteButton } from "@/components/common/PasteButton";
 import { useGatewayLinkStore } from "@/stores";
 import type { CreateGatewayLinkInput, GatewayLinkType } from "@/types";
-import { App, Form, Input, Modal, Select, Switch } from "antd";
+import { App, Form, Input, Modal, Select, Space, Switch } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -113,10 +114,13 @@ export function AddGatewayLinkModal({
         </Form.Item>
 
         <Form.Item name="api_key" label={t("link.apiKey")}>
-          <Input.Password
-            name="api_key"
-            placeholder={t("link.apiKeyPlaceholder")}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input.Password
+              name="api_key"
+              placeholder={t("link.apiKeyPlaceholder")}
+            />
+            <PasteButton onPaste={(text) => form.setFieldValue("api_key", text)} />
+          </Space.Compact>
         </Form.Item>
 
         <Form.Item

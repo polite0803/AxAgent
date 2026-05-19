@@ -1,3 +1,4 @@
+import { PasteButton } from "@/components/common/PasteButton";
 import { invoke } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
 import type { WebDavConfig, WebDavFileInfo } from "@/types";
@@ -435,7 +436,10 @@ export function WebDavSync() {
               className="flex-1"
               rules={[{ required: true }]}
             >
-              <Input.Password name="password" />
+              <Space.Compact style={{ width: "100%" }}>
+                <Input.Password name="password" />
+                <PasteButton onPaste={(text) => configForm.setFieldValue("password", text)} />
+              </Space.Compact>
             </Form.Item>
           </div>
           <Form.Item name="path" label={t("backup.webdav.path")}>

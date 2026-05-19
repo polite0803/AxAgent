@@ -1,5 +1,6 @@
+import { PasteButton } from "@/components/common/PasteButton";
 import { invoke } from "@/lib/invoke";
-import { Button, Card, Form, Input, Select, Switch, Typography } from "antd";
+import { Button, Card, Form, Input, Select, Space, Switch, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -87,20 +88,26 @@ export function ImageGenSettings() {
           name="flux_api_token"
           label={t("imageGen.replicateApiToken")}
         >
-          <Input.Password
-            name="flux_api_token"
-            placeholder={t("imageGen.replicateApiTokenPlaceholder")}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input.Password
+              name="flux_api_token"
+              placeholder={t("imageGen.replicateApiTokenPlaceholder")}
+            />
+            <PasteButton onPaste={(text) => form.setFieldValue("flux_api_token", text)} />
+          </Space.Compact>
         </Form.Item>
 
         <Form.Item
           name="openai_api_key"
           label={t("imageGen.openaiApiKeyDalle")}
         >
-          <Input.Password
-            name="openai_api_key"
-            placeholder={t("imageGen.openaiApiKeyPlaceholder")}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input.Password
+              name="openai_api_key"
+              placeholder={t("imageGen.openaiApiKeyPlaceholder")}
+            />
+            <PasteButton onPaste={(text) => form.setFieldValue("openai_api_key", text)} />
+          </Space.Compact>
         </Form.Item>
 
         <Form.Item name="openai_base_url" label={t("imageGen.openaiBaseUrl")}>

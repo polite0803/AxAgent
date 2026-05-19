@@ -1,3 +1,4 @@
+import { PasteButton } from "@/components/common/PasteButton";
 import { invoke } from "@/lib/invoke";
 import {
   Button,
@@ -9,6 +10,7 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Space,
   Spin,
   Switch,
   Table,
@@ -374,10 +376,13 @@ export function WebhookSettings() {
           </Form.Item>
 
           <Form.Item name="secret" label={t("settings.webhook.secret")}>
-            <Input.Password
-              name="secret"
-              placeholder={t("settings.webhook.secretPlaceholder")}
-            />
+            <Space.Compact style={{ width: "100%" }}>
+              <Input.Password
+                name="secret"
+                placeholder={t("settings.webhook.secretPlaceholder")}
+              />
+              <PasteButton onPaste={(text) => form.setFieldValue("secret", text)} />
+            </Space.Compact>
           </Form.Item>
 
           <Form.Item className="mb-0">

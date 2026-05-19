@@ -1,3 +1,4 @@
+import { PasteButton } from "@/components/common/PasteButton";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { invoke } from "@/lib/invoke";
 import { useSearchStore } from "@/stores";
@@ -15,6 +16,7 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Space,
   Switch,
   Tag,
   theme,
@@ -345,16 +347,19 @@ function SearchProviderDetail({
       <Divider style={{ margin: "4px 0" }} />
       <div style={rowStyle} className="flex items-center justify-between">
         <span>API Key</span>
-        <Input.Password
-          id="search-provider-settings-input-password-162"
-          value={apiKeyInput}
-          onChange={(e) => setApiKeyInput(e.target.value)}
-          onBlur={handleApiKeyBlur}
-          placeholder={provider.hasApiKey
-            ? t("settings.searchProviders.apiKeySet")
-            : t("settings.searchProviders.apiKeyPlaceholder")}
-          style={{ width: 280 }}
-        />
+        <Space.Compact style={{ width: 280 }}>
+          <Input.Password
+            id="search-provider-settings-input-password-162"
+            value={apiKeyInput}
+            onChange={(e) => setApiKeyInput(e.target.value)}
+            onBlur={handleApiKeyBlur}
+            placeholder={provider.hasApiKey
+              ? t("settings.searchProviders.apiKeySet")
+              : t("settings.searchProviders.apiKeyPlaceholder")}
+            style={{ flex: 1 }}
+          />
+          <PasteButton onPaste={(text) => setApiKeyInput(text)} />
+        </Space.Compact>
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div style={rowStyle} className="flex items-center justify-between">
@@ -510,10 +515,13 @@ export function SearchProviderSettings() {
               },
             ]}
           >
-            <Input.Password
-              name="api_key"
-              placeholder={t("settings.searchProviders.apiKeyPlaceholder")}
-            />
+            <Space.Compact style={{ width: "100%" }}>
+              <Input.Password
+                name="api_key"
+                placeholder={t("settings.searchProviders.apiKeyPlaceholder")}
+              />
+              <PasteButton onPaste={(text) => form.setFieldValue("api_key", text)} />
+            </Space.Compact>
           </Form.Item>
           <Form.Item
             name="result_limit"

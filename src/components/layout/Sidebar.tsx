@@ -1,5 +1,6 @@
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { NAV_ICON_COLORS } from "@/lib/iconColors";
+import { invoke, isTauri } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
@@ -7,7 +8,22 @@ import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, use
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar, theme, Tooltip } from "antd";
-import { Database, FolderOpen, HelpCircle, MessageSquare, Router, Terminal, User } from "lucide-react";
+import {
+  Database,
+  FolderOpen,
+  Globe,
+  HelpCircle,
+  MessageSquare,
+  Moon,
+  Pin,
+  PinOff,
+  RotateCcw,
+  Router,
+  Settings,
+  Sun,
+  Terminal,
+  User,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -236,6 +252,84 @@ function UserAvatarButton({
   );
 }
 
+/** Mobile action buttons — mirrors TitleBar actions on Android where they get clipped */
+function MobileActions() {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const navigate = useNavigate();
+  const settings = useSettingsStore((s) => s.settings);
+  const saveSettings = useSettingsStore((s) => s.saveSettings);
+  const [pinned, setPinned] = useState(settings.always_on_top ?? false);
+
+  const isMobile = isTauri() && /Android/.test(navigator.userAgent);
+  if (!isMobile) { return null; }
+
+  const togglePin = async () => {
+    const next = !pinned;
+    setPinned(next);
+    try {
+      await invoke("set_always_on_top", { enabled: next });
+      saveSettings({ always_on_top: next });
+    } catch {
+      setPinned(!next);
+    }
+  };
+
+  const cycleTheme = () => {
+    const next = settings.theme_mode === "dark" ? "system" : settings.theme_mode === "system" ? "light" : "dark";
+    saveSettings({ theme_mode: next });
+  };
+
+  const ThemeIcon = settings.theme_mode === "dark" ? Moon : settings.theme_mode === "light" ? Sun : Globe;
+  const btnBase: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    border: "none",
+    backgroundColor: "transparent",
+    cursor: "pointer",
+    color: token.colorTextSecondary,
+    transition: "color 0.15s",
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 2,
+        justifyContent: "center",
+        padding: "4px 0",
+        borderTop: `1px solid ${token.colorBorderSecondary}`,
+      }}
+    >
+      <Tooltip title={t("desktop.alwaysOnTop")} placement="right">
+        <button style={btnBase} onClick={togglePin}>
+          {pinned ? <Pin size={16} /> : <PinOff size={16} />}
+        </button>
+      </Tooltip>
+      <Tooltip title={t("settings.groupTheme")} placement="right">
+        <button style={btnBase} onClick={cycleTheme}>
+          <ThemeIcon size={16} />
+        </button>
+      </Tooltip>
+      <Tooltip title={t("desktop.reloadPage")} placement="right">
+        <button style={btnBase} onClick={() => window.location.reload()}>
+          <RotateCcw size={16} />
+        </button>
+      </Tooltip>
+      <Tooltip title={t("settings.openSettings")} placement="right">
+        <button style={btnBase} onClick={() => navigate("/settings")}>
+          <Settings size={16} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -386,6 +480,9 @@ export function Sidebar() {
       </nav>
 
       <div className="flex-1" />
+
+      {/* Mobile action buttons (TitleBar actions on Android) */}
+      <MobileActions />
 
       {/* Help button */}
       <Tooltip title={t("help.title")} placement="right">

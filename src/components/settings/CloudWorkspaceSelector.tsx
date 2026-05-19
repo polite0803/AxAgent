@@ -1,3 +1,4 @@
+import { PasteButton } from "@/components/common/PasteButton";
 import { invoke } from "@/lib/invoke";
 import {
   Alert,
@@ -795,10 +796,13 @@ export function CloudWorkspaceSelector() {
                   },
                 ]}
               >
-                <Input.Password
-                  name="s3SecretKey"
-                  onChange={() => setConnectionStatus("unknown")}
-                />
+                <Space.Compact style={{ width: "100%" }}>
+                  <Input.Password
+                    name="s3SecretKey"
+                    onChange={() => setConnectionStatus("unknown")}
+                  />
+                  <PasteButton onPaste={(text) => configForm.setFieldValue("s3SecretKey", text)} />
+                </Space.Compact>
               </Form.Item>
               <Form.Item name="s3Region" label={t("cloudWorkspace.s3Region")}>
                 <Input
@@ -874,10 +878,13 @@ export function CloudWorkspaceSelector() {
                   },
                 ]}
               >
-                <Input.Password
-                  name="webdavPassword"
-                  onChange={() => setConnectionStatus("unknown")}
-                />
+                <Space.Compact style={{ width: "100%" }}>
+                  <Input.Password
+                    name="webdavPassword"
+                    onChange={() => setConnectionStatus("unknown")}
+                  />
+                  <PasteButton onPaste={(text) => configForm.setFieldValue("webdavPassword", text)} />
+                </Space.Compact>
               </Form.Item>
               <Form.Item
                 name="webdavPath"
