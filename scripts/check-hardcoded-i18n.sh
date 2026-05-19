@@ -26,7 +26,6 @@ echo "=== i18n Hardcoded Strings Check (mode: $MODE) ==="
 
 # Determine files to scan
 if [ "$MODE" = "diff-only" ]; then
-  # Detect base reference: try origin/master, then local master, then HEAD~1
   BASE_REF="origin/master"
   git fetch origin master --quiet 2>/dev/null || true
   if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
@@ -67,16 +66,52 @@ is_allowed() {
 
 VIOLATIONS=0
 
+# Pre-compute multi-line console continuation line numbers for each file
+# This handles patterns like:
+#   console.warn(
+#     \`[启动] 中文文本\`,
+#     e,
+#   );
+for f in $CHANGED_FILES; do
+  [ -f "$f" ] || continue
+  node -e "
+const fs = require('fs');
+const lines = fs.readFileSync('$f', 'utf8').split('\n');
+const set = new Set();
+for (let i = 0; i < lines.length; i++) {
+  if (/console\.(log|warn|error|debug|info|trace)/.test(lines[i])) {
+    for (let j = i + 1; j < lines.length; j++) {
+      const t = lines[j].trim();
+      if (t === '') continue;
+      // Continuation: template literal, error arg (e), or closing )
+      if (/^[\x60]/.test(t) || /^[eE]\s*,?\s*$/.test(t) || /^\s*[eE]\s*[;,]\s*$/.test(t) || /^\s*\)\s*[;,]\s*$/.test(t)) {
+        set.add(j + 1);
+        if (t.endsWith(');') || t.endsWith(';')) break;
+        continue;
+      }
+      break;
+    }
+  }
+}
+fs.writeFileSync('$TEMP_DIR/console_lines_${f//\//_}.txt', [...set].join('\n'));
+" 2>/dev/null || true
+done
+
 # Rule 1: Chinese CJK characters
 echo ""
 echo "--- Rule 1: Hardcoded Chinese (CJK) strings ---"
 > "$TEMP_DIR/r1.txt"
 for f in $CHANGED_FILES; do
   [ -f "$f" ] || continue
+  console_file="$TEMP_DIR/console_lines_${f//\//_}.txt"
   grep -nP '[\x{4e00}-\x{9fff}\x{3400}-\x{4dbf}]' "$f" 2>/dev/null | while IFS=: read -r lnum content; do
     # Strip inline // comments before CJK check
     stripped=$(echo "$content" | sed 's|//[^/]*$||')
     if ! echo "$stripped" | grep -qP '[\x{4e00}-\x{9fff}\x{3400}-\x{4dbf}]'; then
+      continue
+    fi
+    # Skip multi-line console.* continuation lines
+    if [ -s "$console_file" ] && grep -qxF "$lnum" "$console_file" 2>/dev/null; then
       continue
     fi
     # Skip JSDoc/block comment opening lines
