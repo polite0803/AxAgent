@@ -5216,14 +5216,14 @@
     },
     "tab": {
       "all": "全部",
-      "knowledge": "知識庫",
+      "knowledge": "RAG 知識庫",
       "memory": "記憶",
-      "wiki": "知識庫"
+      "wiki": "Wiki 知識庫"
     },
     "type": {
-      "knowledge": "知識庫",
+      "knowledge": "RAG 知識庫",
       "memory": "記憶",
-      "wiki": "知識庫"
+      "wiki": "Wiki 知識庫"
     },
     "typeDesc": {
       "knowledge": "RAG 向量知識庫，支持文檔導入與語義檢索",

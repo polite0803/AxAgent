@@ -5251,14 +5251,14 @@
     },
     "tab": {
       "all": "全部",
-      "knowledge": "知识库",
+      "knowledge": "RAG 知识库",
       "memory": "记忆",
-      "wiki": "知识库"
+      "wiki": "Wiki 知识库"
     },
     "type": {
-      "knowledge": "知识库",
+      "knowledge": "RAG 知识库",
       "memory": "记忆",
-      "wiki": "知识库"
+      "wiki": "Wiki 知识库"
     },
     "typeDesc": {
       "knowledge": "RAG 向量知识库，支持文档导入与语义检索",
