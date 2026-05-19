@@ -18,6 +18,7 @@ import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
 import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
+import { useResponsive } from "@/hooks/useResponsive";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { checkIpcHealth, invoke, isTauri, listen } from "@/lib/invoke";
 import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
@@ -27,6 +28,7 @@ import {
   useSettingsStore,
   useSkillExtensionStore,
   useStreamStore,
+  useUIStore,
 } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
@@ -73,6 +75,7 @@ function AppInner() {
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
 
   // 同步检测 QuickBar 窗口（在首次渲染前），避免 ChatPage 先渲染导致崩溃
   const [isQuickBarWindow] = useState(() => {
@@ -107,6 +110,8 @@ function AppInner() {
   useKeyboardShortcuts();
   useGlobalShortcutManager();
   useGlobalOverlayScrollbars();
+  // 自动检测桌面分辨率，设置 deviceLayout
+  useResponsive();
 
   // Handle app close confirmation from backend
   const handleCloseRequested = useCallback(() => {
@@ -241,9 +246,11 @@ function AppInner() {
           : (
             <>
               <SkillPanels />
-              <ModuleErrorBoundary moduleName="TitleBar">
-                <TitleBar />
-              </ModuleErrorBoundary>
+              {deviceLayout !== "mobile" && (
+                <ModuleErrorBoundary moduleName="TitleBar">
+                  <TitleBar />
+                </ModuleErrorBoundary>
+              )}
               <ModuleErrorBoundary moduleName="SkillStatusBar">
                 <SkillStatusBar alignment="right" />
               </ModuleErrorBoundary>

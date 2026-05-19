@@ -1,7 +1,7 @@
 import { Icon } from "@/components/common/Icon";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { NAV_ICON_COLORS } from "@/lib/iconColors";
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import { resolveIconComponent } from "@/lib/skillIcons";
@@ -247,8 +247,8 @@ function MobileActions() {
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [pinned, setPinned] = useState(settings.always_on_top ?? false);
 
-  const isMobile = isTauri() && /Android/.test(navigator.userAgent);
-  if (!isMobile) { return null; }
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+  if (deviceLayout !== "mobile") { return null; }
 
   const togglePin = async () => {
     const next = !pinned;
