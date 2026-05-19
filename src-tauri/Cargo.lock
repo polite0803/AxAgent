@@ -1119,9 +1119,11 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-tungstenite 0.29.0",
+ "tokio-util",
  "tower 0.5.3",
  "tower-http",
  "tracing",
+ "urlencoding",
  "uuid",
  "walkdir",
 ]

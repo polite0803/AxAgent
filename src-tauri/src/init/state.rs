@@ -163,6 +163,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         webdav_sync_handle: Arc::new(Mutex::new(None)),
         api_server_handle: Arc::new(Mutex::new(None)),
         trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
+        task_manager: Arc::new(axagent_runtime::task_manager::TaskManager::new()),
         shutdown_token: CancellationToken::new(),
         vector_store: vector_store_arc,
         indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),

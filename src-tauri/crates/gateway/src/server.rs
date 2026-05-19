@@ -233,11 +233,12 @@ impl GatewayServer {
         // ── Spawn HTTPS task (when SSL is configured) ───────────────────
         let https_task = match (https_binding, https_router) {
             (Some(binding), Some(router)) => {
-                // Reuse the pre-created handle so the HTTP task already
-                // holds a clone for mutual-shutdown.
+                // SAFETY: https_handle is always Some here because it was set
+                // immediately above when the HTTPS binding was created.
+                // If this panics, it indicates a logic error in startup ordering.
                 let server_handle = https_handle
                     .as_ref()
-                    .expect("handle pre-created above")
+                    .expect("https_handle must be Some when https_binding is Some")
                     .clone();
                 let addr = binding.addr;
                 let running_flag = running.clone();

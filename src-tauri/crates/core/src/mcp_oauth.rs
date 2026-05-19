@@ -11,6 +11,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tracing::info;
+use urlencoding;
 
 /// 持久化的 MCP OAuth 凭据
 #[derive(Debug, Clone, Serialize, Deserialize)]

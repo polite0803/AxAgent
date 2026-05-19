@@ -62,6 +62,7 @@ mod sse;
 pub mod stale_base;
 pub mod stale_branch;
 pub mod summary_compression;
+pub mod task_manager;
 pub mod task_packet;
 pub mod task_registry;
 pub mod task_router;

@@ -11,7 +11,12 @@ fn quickbar_url(app: &AppHandle) -> WebviewUrl {
             WebviewUrl::External(
                 format!("{}/index.html?__route=quickbar", base)
                     .parse()
-                    .expect("valid quickbar dev URL"),
+                    .unwrap_or_else(|_| {
+                        tracing::warn!("quickbar dev_url 格式无效，使用默认 URL");
+                        "http://localhost:1420/index.html?__route=quickbar"
+                            .parse()
+                            .unwrap()
+                    }),
             )
         },
         None => WebviewUrl::App("index.html?__route=quickbar".into()),

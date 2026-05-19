@@ -4324,6 +4324,8 @@ mod tests_conversation {
             webdav_sync_handle: Arc::new(Mutex::new(None)),
             api_server_handle: Arc::new(Mutex::new(None)),
             trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
+            task_manager: Arc::new(axagent_runtime::task_manager::TaskManager::new()),
+            shutdown_token: tokio_util::sync::CancellationToken::new(),
             vector_store,
             indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
             stream_cancel_flags: Arc::new(Mutex::new(std::collections::HashMap::new())),

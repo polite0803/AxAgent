@@ -26,6 +26,8 @@ futures = "0.3"
 quick_cache = "0.4"
 chrono = { workspace = true }
 dirs = "5"
+urlencoding = "2"
+tokio-util = { version = "0.7", features = ["rt"] }
 sea-orm = { workspace = true }
 axagent-core = { path = "../core" }
 axagent-runtime-core = { path = "../runtime-core" }

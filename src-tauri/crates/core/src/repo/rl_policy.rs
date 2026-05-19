@@ -128,7 +128,7 @@ pub async fn create_rl_policy(
 
     get_rl_policy(db, &id)
         .await
-        .map(|opt| opt.expect("just inserted"))
+        .and_then(|opt| opt.ok_or_else(|| AxAgentError::Internal("RL policy insert returned None".to_string())))
 }
 
 pub async fn delete_rl_policy(db: &DatabaseConnection, id: &str) -> Result<()> {

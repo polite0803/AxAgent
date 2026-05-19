@@ -41,7 +41,10 @@ fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
 }
 
 fn stringify_json_arr(values: &[String]) -> String {
-    serde_json::to_string(values).expect("failed to serialize JSON array")
+    serde_json::to_string(values).unwrap_or_else(|e| {
+        tracing::warn!("JSON 数组序列化失败: {e}");
+        "[]".to_string()
+    })
 }
 
 pub async fn list_agent_profiles(

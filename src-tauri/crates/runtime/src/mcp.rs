@@ -1,5 +1,4 @@
 use crate::config::{McpServerConfig, ScopedMcpServerConfig};
-use urlencoding;
 
 const CLAUDEAI_SERVER_PREFIX: &str = "claude.ai ";
 const CCR_PROXY_PATH_MARKERS: [&str; 2] = ["/v2/session_ingress/shttp/mcp/", "/v2/ccr-sessions/"];
@@ -51,7 +50,9 @@ pub fn unwrap_ccr_proxy_url(url: &str) -> String {
         if matches!(parts.next(), Some("mcp_url"))
             && let Some(value) = parts.next()
         {
-            return urlencoding::decode(value).into_owned();
+            return urlencoding::decode(value)
+                .unwrap_or(std::borrow::Cow::Borrowed(value))
+                .into_owned();
         }
     }
 

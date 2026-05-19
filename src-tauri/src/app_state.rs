@@ -136,6 +136,8 @@ pub struct AppState {
     pub webdav_sync_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub api_server_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub trajectory_cleanup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    /// 集中式任务管理器（Phase C-1），逐步替代上方的独立 JoinHandle 字段
+    pub task_manager: Arc<axagent_runtime::task_manager::TaskManager>,
     /// 优雅关闭信号，通知所有后台任务停止
     pub shutdown_token: CancellationToken,
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,

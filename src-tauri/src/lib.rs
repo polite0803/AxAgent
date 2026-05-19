@@ -1342,6 +1342,12 @@ pub fn run() {
             await_handle(&state.webdav_sync_handle, "webdav_sync");
             await_handle(&state.api_server_handle, "api_server");
             await_handle(&state.trajectory_cleanup_handle, "trajectory_cleanup");
+            // 集中式 TaskManager 兜底清理
+            rt_handle.block_on(
+                state
+                    .task_manager
+                    .shutdown(std::time::Duration::from_secs(5)),
+            );
             tracing::info!("[shutdown] 退出完成");
         }
     });
