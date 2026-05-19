@@ -36,6 +36,18 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from "react-i18next";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./i18n";
+// antd 语言包 — 静态导入确保 Rolldown 正确打包
+import antdArEG from "antd/locale/ar_EG";
+import antdDeDE from "antd/locale/de_DE";
+import antdEnUS from "antd/locale/en_US";
+import antdEsES from "antd/locale/es_ES";
+import antdFrFR from "antd/locale/fr_FR";
+import antdHiIN from "antd/locale/hi_IN";
+import antdJaJP from "antd/locale/ja_JP";
+import antdKoKR from "antd/locale/ko_KR";
+import antdRuRU from "antd/locale/ru_RU";
+import antdZhCN from "antd/locale/zh_CN";
+import antdZhTW from "antd/locale/zh_TW";
 
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
 
@@ -311,39 +323,32 @@ function AppRoot() {
     [],
   );
 
-  const resolvedLocale = useMemo(() => {
+  const staticLocaleMap = useMemo<Record<string, any>>(
+    () => ({
+      zh_CN: antdZhCN,
+      zh_TW: antdZhTW,
+      en_US: antdEnUS,
+      ja_JP: antdJaJP,
+      ko_KR: antdKoKR,
+      de_DE: antdDeDE,
+      fr_FR: antdFrFR,
+      es_ES: antdEsES,
+      ru_RU: antdRuRU,
+      hi_IN: antdHiIN,
+      ar_EG: antdArEG,
+    }),
+    [],
+  );
+
+  const antdLocale = useMemo(() => {
     if (localeMap[language]) {
-      return localeMap[language];
+      return staticLocaleMap[localeMap[language]] ?? antdZhCN;
     }
-    // 中文语言回退到 zh_CN
     if (language?.startsWith("zh")) {
-      return "zh_CN";
+      return antdZhCN;
     }
-    return "en_US";
-  }, [language, localeMap]);
-
-  const [antdLocale, setAntdLocale] = useState<any>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const localeCode = resolvedLocale;
-    import(/* @vite-ignore */ `antd/locale/${localeCode}`)
-      .then((mod) => {
-        if (!cancelled) {
-          setAntdLocale(mod.default);
-        }
-      })
-      .catch(() => {
-        import("antd/locale/en_US").then((m) => {
-          if (!cancelled) {
-            setAntdLocale(m.default);
-          }
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [language, localeMap]);
+    return staticLocaleMap["en_US"];
+  }, [language, localeMap, staticLocaleMap]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = isDark ? "dark" : "light";
