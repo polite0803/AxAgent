@@ -20,7 +20,7 @@ export function useResponsive() {
 
     let timer: ReturnType<typeof setTimeout> | null = null;
     const handleResize = () => {
-      if (timer) clearTimeout(timer);
+      if (timer) { clearTimeout(timer); }
       timer = setTimeout(() => {
         setDeviceLayout(resolveDeviceLayout(window.innerWidth));
       }, 150);
@@ -29,7 +29,7 @@ export function useResponsive() {
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
-      if (timer) clearTimeout(timer);
+      if (timer) { clearTimeout(timer); }
     };
   }, [setDeviceLayout]);
 }

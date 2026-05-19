@@ -27,8 +27,8 @@ interface UIState {
 
 /** 根据窗口宽度解析布局模式 */
 export function resolveDeviceLayout(width: number): DeviceLayout {
-  if (width < 768) return "mobile";
-  if (width < 1280) return "tablet";
+  if (width < 768) { return "mobile"; }
+  if (width < 1280) { return "tablet"; }
   return "desktop";
 }
 
