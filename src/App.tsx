@@ -28,7 +28,6 @@ import {
   useSettingsStore,
   useSkillExtensionStore,
   useStreamStore,
-  useUIStore,
 } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
@@ -75,7 +74,6 @@ function AppInner() {
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
-  const deviceLayout = useUIStore((s) => s.deviceLayout);
 
   // 同步检测 QuickBar 窗口（在首次渲染前），避免 ChatPage 先渲染导致崩溃
   const [isQuickBarWindow] = useState(() => {
@@ -246,11 +244,9 @@ function AppInner() {
           : (
             <>
               <SkillPanels />
-              {deviceLayout !== "mobile" && (
-                <ModuleErrorBoundary moduleName="TitleBar">
-                  <TitleBar />
-                </ModuleErrorBoundary>
-              )}
+              <ModuleErrorBoundary moduleName="TitleBar">
+                <TitleBar />
+              </ModuleErrorBoundary>
               <ModuleErrorBoundary moduleName="SkillStatusBar">
                 <SkillStatusBar alignment="right" />
               </ModuleErrorBoundary>
