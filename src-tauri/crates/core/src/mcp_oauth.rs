@@ -159,17 +159,18 @@ impl McpOAuthStore {
         refresh_token: &str,
     ) -> Result<McpOAuthCredentials, String> {
         let client = reqwest::Client::new();
-        let mut params = HashMap::from([
-            ("grant_type".to_string(), "refresh_token".to_string()),
-            ("refresh_token".to_string(), refresh_token.to_string()),
-        ]);
+        let mut body = format!(
+            "grant_type=refresh_token&refresh_token={}",
+            urlencoding::encode(refresh_token)
+        );
         if let Some(cid) = client_id {
-            params.insert("client_id".to_string(), cid.clone());
+            body.push_str(&format!("&client_id={}", urlencoding::encode(cid)));
         }
 
         let response = client
             .post(token_endpoint)
-            .json(&params)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
             .send()
             .await
             .map_err(|e| format!("Token 刷新请求失败: {e}"))?;
@@ -221,9 +222,16 @@ pub async fn exchange_code_for_token(
         ("code_verifier", code_verifier),
     ];
 
+    let body_params: String = params
+        .iter()
+        .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
+        .collect::<Vec<_>>()
+        .join("&");
+
     let response = client
         .post(token_endpoint)
-        .json(&params)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body_params)
         .send()
         .await
         .map_err(|e| format!("Token 交换请求失败: {e}"))?;

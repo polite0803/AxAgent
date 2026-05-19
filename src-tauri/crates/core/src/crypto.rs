@@ -2,6 +2,7 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
     aead::{Aead, KeyInit, OsRng, rand_core::RngCore},
 };
+use argon2::{Algorithm, Argon2, Params, Version};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use sha2::{Digest, Sha256};
 
@@ -67,14 +68,31 @@ pub fn key_prefix(_key: &str) -> String {
     "****".to_string()
 }
 
-const BACKUP_KEY_DERIVATION_SALT: &[u8] = b"axagent-backup-key-derivation-v1";
+const BACKUP_VERSION_BYTE: u8 = 0x02;
+const BACKUP_SALT_SIZE: usize = 16;
+const ARGON2_MEMORY_COST: u32 = 65536; // 64 MB
+const ARGON2_TIME_COST: u32 = 3;
+const ARGON2_PARALLELISM: u32 = 4;
+
+/// 使用 Argon2id 从内置常量派生备份加密密钥。
+/// 虽然密码学上仍属于"无用户密码"，但 Argon2id 的内存/时间成本使暴力破解显著困难。
+fn derive_backup_key_v2(salt: &[u8]) -> Result<[u8; 32]> {
+    let mut key = [0u8; 32];
+    let params = Params::new(ARGON2_MEMORY_COST, ARGON2_TIME_COST, ARGON2_PARALLELISM, Some(32))
+        .map_err(|e| AxAgentError::Crypto(format!("Argon2 参数无效: {e}")))?;
+    let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+    // 组合密码短语与域分离标签
+    let password = b"axagent-backup-key-v2:axagent-backup-encryption-v2";
+    argon2
+        .hash_password_into(password, salt, &mut key)
+        .map_err(|e| AxAgentError::Crypto(format!("Argon2 密钥派生失败: {e}")))?;
+    Ok(key)
+}
 
 pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
-    let mut derived_key = [0u8; 32];
-    let mut hasher = Sha256::new();
-    hasher.update(BACKUP_KEY_DERIVATION_SALT);
-    hasher.update(b"axagent-backup-encryption");
-    derived_key.copy_from_slice(&hasher.finalize());
+    let mut salt = [0u8; BACKUP_SALT_SIZE];
+    OsRng.fill_bytes(&mut salt);
+    let derived_key = derive_backup_key_v2(&salt)?;
 
     let cipher = Aes256Gcm::new_from_slice(&derived_key)
         .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
@@ -87,26 +105,53 @@ pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
         .encrypt(nonce, key_data)
         .map_err(|e| AxAgentError::Crypto(format!("Backup key encryption failed: {}", e)))?;
 
-    let mut combined = Vec::with_capacity(NONCE_SIZE + ciphertext.len());
+    // Format: version_byte(1) + salt(16) + nonce(12) + ciphertext
+    let mut combined = Vec::with_capacity(1 + BACKUP_SALT_SIZE + NONCE_SIZE + ciphertext.len());
+    combined.push(BACKUP_VERSION_BYTE);
+    combined.extend_from_slice(&salt);
     combined.extend_from_slice(&nonce_bytes);
     combined.extend_from_slice(&ciphertext);
     Ok(combined)
 }
 
 pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
-    if enc_data.len() < NONCE_SIZE + 16 {
+    if enc_data.len() < 1 + NONCE_SIZE + 16 {
         return Err(AxAgentError::Crypto("Invalid encrypted backup key data".to_string()));
     }
 
+    // v2 format: version_byte(0x02) + salt(16) + nonce(12) + ciphertext
+    if enc_data[0] == BACKUP_VERSION_BYTE {
+        let min_len = 1 + BACKUP_SALT_SIZE + NONCE_SIZE + 16;
+        if enc_data.len() < min_len {
+            return Err(AxAgentError::Crypto("Truncated v2 backup key data".to_string()));
+        }
+        let salt = &enc_data[1..1 + BACKUP_SALT_SIZE];
+        let nonce_bytes = &enc_data[1 + BACKUP_SALT_SIZE..1 + BACKUP_SALT_SIZE + NONCE_SIZE];
+        let ciphertext = &enc_data[1 + BACKUP_SALT_SIZE + NONCE_SIZE..];
+
+        let derived_key = derive_backup_key_v2(salt)?;
+        let cipher = Aes256Gcm::new_from_slice(&derived_key)
+            .map_err(|e| AxAgentError::Crypto(format!("Failed to create backup cipher: {}", e)))?;
+        let nonce = Nonce::from_slice(nonce_bytes);
+
+        return cipher
+            .decrypt(nonce, ciphertext)
+            .map_err(|e| AxAgentError::Crypto(format!("Backup key decryption failed: {}", e)));
+    }
+
+    // Legacy v1 format: nonce(12) + ciphertext (SHA256-based KDF)
+    decrypt_backup_key_v1(enc_data)
+}
+
+/// Legacy decrypt for v1 backups (SHA256 KDF, fixed salt).
+/// 仅用于兼容旧备份文件，新备份使用 v2 (Argon2id)。
+fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
     let (nonce_bytes, ciphertext) = enc_data.split_at(NONCE_SIZE);
     let nonce = Nonce::from_slice(nonce_bytes);
 
-    // Try decryption with derived key approach
-    // Since we derive the key from the original key data, we need a different approach
-    // Use a fixed derivation from a known constant for backup key protection
     let mut derived_key = [0u8; 32];
     let mut hasher = Sha256::new();
-    hasher.update(BACKUP_KEY_DERIVATION_SALT);
+    hasher.update(b"axagent-backup-key-derivation-v1");
     hasher.update(b"axagent-backup-encryption");
     derived_key.copy_from_slice(&hasher.finalize());
 

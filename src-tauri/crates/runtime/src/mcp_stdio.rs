@@ -2,6 +2,14 @@
 //!
 //! **DEPRECATED**: 请使用 `axagent_core::mcp_client` 替代。
 //! 此模块将在后续版本中删除。
+//!
+//! 迁移计划:
+//!   1. 类型定义 (JsonRpc*, Mcp*) → 提取到 `mcp_types.rs`
+//!   2. 传输实现 (McpStdioProcess, spawn_mcp_stdio_process) → 用 rmcp 替代后删除
+//!   3. McpServerManager → 迁移到 core::mcp_client::McpConnectionPool
+//!
+//! 当前状态: mcp_tool_bridge, mcp_server 仍依赖此模块的类型。
+//! 在类型提取完成前，此文件保留。
 
 use std::collections::BTreeMap;
 use std::future::Future;
@@ -1372,6 +1380,7 @@ impl McpStdioProcess {
     }
 }
 
+// DEPRECATED: 使用 axagent_core::mcp_client 替代
 pub fn spawn_mcp_stdio_process(bootstrap: &McpClientBootstrap) -> io::Result<McpStdioProcess> {
     match &bootstrap.transport {
         McpClientTransport::Stdio(transport) => McpStdioProcess::spawn(transport),

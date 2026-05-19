@@ -1,4 +1,4 @@
-use axagent_agent::error_classifier::ErrorType;
+use axagent_agent::recovery_strategies::ErrorType;
 use axagent_agent::recovery_strategies::RecoveryStrategy;
 use std::time::Duration;
 

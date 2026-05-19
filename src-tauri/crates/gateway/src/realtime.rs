@@ -207,7 +207,7 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
 }
 
 async fn send_msg(socket: &mut WebSocket, msg: &RealtimeServerMessage) -> Result<(), axum::Error> {
-    let json = serde_json::to_string(msg)
-        .map_err(|e| axum::Error::new(std::io::Error::other(e)))?;
+    let json =
+        serde_json::to_string(msg).map_err(|e| axum::Error::new(std::io::Error::other(e)))?;
     socket.send(Message::Text(json.into())).await
 }

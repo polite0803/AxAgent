@@ -57,7 +57,6 @@ pub mod memory_forgetting;
 #[allow(clippy::unwrap_used)]
 pub mod model_downloader;
 pub mod model_knowledge;
-pub mod oauth_pkce;
 #[allow(clippy::unwrap_used)]
 pub mod operation_audit;
 pub mod output_processor;
@@ -122,7 +121,6 @@ pub mod workflow_version;
 pub mod workspace_uri;
 
 pub use memory_forgetting::{ForgettingConfig, MemoryEntry, MemoryForgettingEngine};
-pub use oauth_pkce::{PkceParams, generate_pkce};
 pub use resource_limits::ResourceLimits;
 pub use schema_validator::{validate_against_schema, validate_recursive};
 pub use service_container::ServiceContainer;

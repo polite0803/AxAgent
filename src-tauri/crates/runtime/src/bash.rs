@@ -66,8 +66,49 @@ pub struct BashCommandOutput {
     pub sandbox_status: Option<SandboxStatus>,
 }
 
+/// 独立硬门禁：在执行前对命令做最小化安全检查，不依赖外部分类器。
+/// 如果返回 `Err`，命令被拒绝执行。
+fn hard_gate_check(command: &str) -> io::Result<()> {
+    let trimmed = command.trim();
+    if trimmed.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "命令为空"));
+    }
+
+    // 禁止模式列表：编译期常量，独立于 HeuristicClassifier 和 bash_validation
+    #[rustfmt::skip]
+    const FORBIDDEN: &[&str] = &[
+        "rm -rf /", "rm -rf /*", "rm -rf ~", "rm -rf .",
+        "mkfs.", "mke2fs", "mkfs.", "mkfs.ext", "mkfs.xfs", "mkfs.btrfs", "mkfs.ntfs",
+        "dd if=", "dd  if=",
+        ":(){ :|:& };:",  // fork bomb
+        "> /dev/sd", "> /dev/hd", "> /dev/nvme", "> /dev/xvd",
+        "chmod 777 /", "chmod -R 777 /",
+        "chown -R", "chown root:root /",
+        "wget -O- http:// | sh", "curl  | sh", "curl  | bash",
+    ];
+
+    let lower = trimmed.to_lowercase();
+    for pattern in FORBIDDEN {
+        if lower.contains(pattern) {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                format!("命令包含禁止模式: {pattern}"),
+            ));
+        }
+    }
+
+    // 命令过长拒绝（防止注入绕过简单的子串匹配）
+    if trimmed.len() > 100_000 {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "命令超过最大长度限制"));
+    }
+
+    Ok(())
+}
+
 /// Executes a shell command with the requested sandbox settings.
 pub fn execute_bash(input: BashCommandInput) -> io::Result<BashCommandOutput> {
+    hard_gate_check(&input.command)?;
+
     let cwd = env::current_dir()?;
     let sandbox_status = sandbox_status_for_input(&input, &cwd);
 
@@ -267,6 +308,33 @@ mod tests {
         assert_eq!(output.stdout, "hello");
         assert!(!output.interrupted);
         assert!(output.sandbox_status.is_some());
+    }
+
+    #[test]
+    fn hard_gate_rejects_rm_rf_root() {
+        assert!(super::hard_gate_check("rm -rf / --no-preserve-root").is_err());
+    }
+
+    #[test]
+    fn hard_gate_rejects_mkfs() {
+        assert!(super::hard_gate_check("mkfs.ext4 /dev/sda1").is_err());
+    }
+
+    #[test]
+    fn hard_gate_rejects_fork_bomb() {
+        assert!(super::hard_gate_check(":(){ :|:& };:").is_err());
+    }
+
+    #[test]
+    fn hard_gate_rejects_empty_command() {
+        assert!(super::hard_gate_check("   ").is_err());
+    }
+
+    #[test]
+    fn hard_gate_allows_safe_command() {
+        assert!(super::hard_gate_check("echo hello").is_ok());
+        assert!(super::hard_gate_check("ls -la").is_ok());
+        assert!(super::hard_gate_check("git status").is_ok());
     }
 
     #[test]

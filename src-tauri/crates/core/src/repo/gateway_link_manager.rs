@@ -386,7 +386,10 @@ where
                         attempt + 1,
                         max_attempts,
                         delay,
-                        last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "unknown error".to_string())
+                        last_error
+                            .as_ref()
+                            .map(|e| e.to_string())
+                            .unwrap_or_else(|| "unknown error".to_string())
                     );
                     tokio::time::sleep(delay).await;
                 }

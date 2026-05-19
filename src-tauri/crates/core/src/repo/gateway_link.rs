@@ -821,7 +821,10 @@ pub async fn connect_gateway_link_with_retry(
                         attempt + 1,
                         max_retries,
                         delay,
-                        last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "unknown error".to_string())
+                        last_error
+                            .as_ref()
+                            .map(|e| e.to_string())
+                            .unwrap_or_else(|| "unknown error".to_string())
                     );
                     tokio::time::sleep(delay).await;
                 }

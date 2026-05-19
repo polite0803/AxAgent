@@ -1,4 +1,4 @@
-use crate::error_classifier::{ClassifiedError, ErrorClassifier, ErrorType};
+use crate::recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
 use crate::recovery_strategies::{RecoveryAdjustment, RecoveryResult, RecoveryStrategy};
 use crate::retry_policy::RetryPolicy;
 use serde::{Deserialize, Serialize};

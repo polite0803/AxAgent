@@ -5,13 +5,13 @@ use axagent_agent::coordinator::{
     AgentConfig, AgentCoordinator, AgentError, AgentImpl, AgentInput, AgentStatus,
     CoordinatorOutput,
 };
-use axagent_agent::error_classifier::{ClassifiedError, ErrorClassifier, ErrorType};
 use axagent_agent::error_recovery_engine::{ErrorRecoveryEngine, RecoveryConfig, RecoveryContext};
 use axagent_agent::hierarchical_planner::{
     HierarchicalPlanner, PlanBuilder, ReplanAction, ReplanReason, TaskBuilder, TaskStatus,
 };
 use axagent_agent::react_engine::{LlmReasoningProvider, ReActEngine, ReActError, ReActResult};
 use axagent_agent::reasoning_state::{ActionType, ReActConfig, ReasoningContext};
+use axagent_agent::recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
 use axagent_agent::recovery_strategies::{RecoveryAttempt, RecoveryResult, RecoveryStrategy};
 use axagent_agent::thought_chain::Action;
 use axagent_agent::thought_chain::ThoughtChain;

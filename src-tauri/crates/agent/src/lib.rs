@@ -15,7 +15,7 @@ pub mod coordinator;
 pub mod credibility_evaluator;
 pub mod deep_research;
 pub mod environment_probe;
-pub mod error_classifier;
+// error_classifier merged into recovery_strategies
 pub mod error_recovery_engine;
 pub mod evaluator;
 pub mod event_bus;
@@ -103,7 +103,6 @@ pub use credibility_evaluator::{
     CredibilityScore, FactorDimension,
 };
 pub use environment_probe::{EnvironmentProbe, EnvironmentSnapshot, FileInfo, ProbeConfig};
-pub use error_classifier::{ClassifiedError, ErrorClassifier, ErrorType};
 pub use error_recovery_engine::{
     ErrorRecoveryEngine, RecoveryConfig, RecoveryContext, RecoveryEvent,
 };
@@ -134,6 +133,7 @@ pub use hierarchical_planner::{
     PlanVersion, PlannedTask, ReplanAction, ReplanReason, ReplanRecord, TaskBuilder, TaskStatus,
 };
 pub use insight_generator::{Insight, InsightCategory, InsightGenerator, InsightStats};
+pub use recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
 // 所有工具相关类型已统一在 axagent-tools，此处重导出保持兼容
 pub use axagent_tools::registry::UnifiedToolRegistry as ToolRegistry;
 pub use axagent_tools::registry::{McpServerConfig, McpToolConfig};

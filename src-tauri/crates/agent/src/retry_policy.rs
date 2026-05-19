@@ -1,4 +1,4 @@
-use crate::error_classifier::{ErrorClassifier, ErrorType};
+use crate::recovery_strategies::{ErrorClassifier, ErrorType};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
