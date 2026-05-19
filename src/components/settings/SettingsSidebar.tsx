@@ -1,3 +1,4 @@
+import { Icon } from "@/components/common/Icon";
 import { SETTINGS_ICON_COLORS } from "@/lib/iconColors";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
@@ -8,8 +9,6 @@ import {
   Bell,
   BookOpen,
   Bot,
-  Boxes,
-  Cable,
   Clock,
   Cloud,
   CloudUpload,
@@ -23,7 +22,6 @@ import {
   Info,
   LayoutDashboard,
   MessageSquare,
-  Monitor,
   Network,
   PaintBucket,
   Palette,
@@ -110,14 +108,14 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
   system: ["advanced", "evolution", "about"],
 };
 
-// Tab 图标映射
+// Tab 图标映射（Fluent/Phosphor 高质量图标）
 const TAB_ICONS: Record<string, React.ReactNode> = {
-  model: <Boxes size={18} />,
-  appearance: <Monitor size={18} />,
-  extensions: <Puzzle size={18} />,
-  network: <Cable size={18} />,
-  data: <Database size={18} />,
-  system: <SlidersHorizontal size={18} />,
+  model: <Icon icon="fluent:brain-circuit-20-filled" size={20} color="#1677ff" />,
+  appearance: <Icon icon="fluent:eye-20-filled" size={20} color="#52c41a" />,
+  extensions: <Icon icon="fluent:puzzle-piece-20-filled" size={20} color="#fa8c16" />,
+  network: <Icon icon="fluent:globe-20-filled" size={20} color="#13c2c2" />,
+  data: <Icon icon="fluent:server-20-filled" size={20} color="#722ed1" />,
+  system: <Icon icon="fluent:settings-20-filled" size={20} color="#8c8c8c" />,
 };
 
 function useDraggableWidth(initial: number, min: number, max: number) {

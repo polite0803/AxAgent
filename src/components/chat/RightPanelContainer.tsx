@@ -1,15 +1,14 @@
+import { Icon } from "@/components/common/Icon";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useConversationStore, useSettingsStore } from "@/stores";
 import { useCacheStore } from "@/stores/feature/cacheStore";
 import { Tabs, theme, Tooltip } from "antd";
 import {
-  Activity,
   BarChart3,
   Bell,
   Bug,
   Camera,
   Clock,
-  Code2,
   Eye,
   FileSearch,
   FileText,
@@ -23,7 +22,6 @@ import {
   ListFilter,
   Microscope,
   Monitor,
-  Palette,
   Search,
   Share2,
   Shield,
@@ -113,7 +111,7 @@ export function RightPanelContainer({
     const entries: PanelEntry[] = [
       {
         key: "agent",
-        icon: <Activity size={ICON} />,
+        icon: <Icon icon="fluent:bot-20-filled" size={ICON} />,
         labelKey: "chatRightPanel.agent",
         render: () => (
           <AgentExecutionPanel
@@ -163,13 +161,13 @@ export function RightPanelContainer({
     entries.push(
       {
         key: "code",
-        icon: <Code2 size={ICON} />,
+        icon: <Icon icon="fluent:code-20-filled" size={ICON} />,
         labelKey: "chatRightPanel.code",
         render: () => <CodeExecutorPanel />,
       },
       {
         key: "artifact",
-        icon: <Palette size={ICON} />,
+        icon: <Icon icon="fluent:color-20-filled" size={ICON} />,
         labelKey: "chatRightPanel.artifact",
         render: () => <ArtifactPanel />,
       },

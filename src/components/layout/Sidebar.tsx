@@ -1,3 +1,4 @@
+import { Icon } from "@/components/common/Icon";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { NAV_ICON_COLORS } from "@/lib/iconColors";
 import { invoke, isTauri } from "@/lib/invoke";
@@ -8,22 +9,7 @@ import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, use
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar, theme, Tooltip } from "antd";
-import {
-  Database,
-  FolderOpen,
-  Globe,
-  HelpCircle,
-  MessageSquare,
-  Moon,
-  Pin,
-  PinOff,
-  RotateCcw,
-  Router,
-  Settings,
-  Sun,
-  Terminal,
-  User,
-} from "lucide-react";
+import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -66,35 +52,35 @@ interface NavItem {
 const builtinNavItems: NavItem[] = [
   {
     key: "chat",
-    icon: <MessageSquare size={18} color={NAV_ICON_COLORS.MessageSquare} />,
+    icon: <Icon icon="fluent:chat-20-filled" size={20} color={NAV_ICON_COLORS.MessageSquare} />,
     labelKey: "nav.chat",
     path: "/",
     isPlugin: false,
   },
   {
     key: "knowledge",
-    icon: <Database size={18} color={NAV_ICON_COLORS.Database} />,
+    icon: <Icon icon="fluent:book-database-20-filled" size={20} color={NAV_ICON_COLORS.Database} />,
     labelKey: "nav.knowledge",
     path: "/knowledge",
     isPlugin: false,
   },
   {
     key: "gateway",
-    icon: <Router size={18} color={NAV_ICON_COLORS.Router} />,
+    icon: <Icon icon="fluent:globe-20-filled" size={20} color={NAV_ICON_COLORS.Router} />,
     labelKey: "nav.gateway",
     path: "/gateway",
     isPlugin: false,
   },
   {
     key: "terminal",
-    icon: <Terminal size={18} color={NAV_ICON_COLORS.Database} />,
+    icon: <Icon icon="fluent:terminal-20-filled" size={20} color={NAV_ICON_COLORS.Database} />,
     labelKey: "nav.terminal",
     path: "/terminal",
     isPlugin: false,
   },
   {
     key: "files",
-    icon: <FolderOpen size={18} color={NAV_ICON_COLORS.Router} />,
+    icon: <Icon icon="fluent:folder-20-filled" size={20} color={NAV_ICON_COLORS.Router} />,
     labelKey: "nav.files",
     path: "/files",
     isPlugin: false,
@@ -493,7 +479,7 @@ export function Sidebar() {
           aria-label={t("help.title")}
           style={{ justifyContent: "center" }}
         >
-          <HelpCircle size={20} style={{ color: token.colorTextQuaternary }} />
+          <Icon icon="fluent:question-circle-20-filled" size={20} color={token.colorTextQuaternary} />
         </button>
       </Tooltip>
 
