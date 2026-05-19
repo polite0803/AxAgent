@@ -2597,7 +2597,8 @@
     "selectImage": "画像を選択",
     "imageUrl": "画像URL",
     "emoji": "絵文字",
-    "urlPlaceholder": "画像URLを入力"
+    "urlPlaceholder": "画像URLを入力",
+    "profileTab": "プロフィール"
   },
   "files": {
     "images": "画像",

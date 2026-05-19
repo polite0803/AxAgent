@@ -25,7 +25,6 @@ import {
   ShortcutSettings,
   StorageSpaceManager,
   ToolManager,
-  UserProfileSettings,
   WebhookSettings,
   WorkflowSettings,
 } from "@/components/settings";
@@ -66,7 +65,6 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   backup: BackupCenter,
   workflow: WorkflowSettings,
   appConfig: SettingsPanel,
-  userProfile: UserProfileSettings,
   skillsHub: SkillsPage,
   plugins: PluginMarketplace,
   knowledgeSettings: KnowledgeSettings,

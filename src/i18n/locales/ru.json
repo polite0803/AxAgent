@@ -2568,7 +2568,8 @@
     "selectImage": "Выбрать изображение",
     "imageUrl": "URL изображения",
     "emoji": "Эмодзи",
-    "urlPlaceholder": "Введите URL изображения"
+    "urlPlaceholder": "Введите URL изображения",
+    "profileTab": "Профиль"
   },
   "files": {
     "images": "Изображения",

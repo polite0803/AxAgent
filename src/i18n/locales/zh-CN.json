@@ -2589,7 +2589,8 @@
     "selectImage": "选择图片",
     "imageUrl": "图片链接",
     "emoji": "表情符号",
-    "urlPlaceholder": "输入图片 URL"
+    "urlPlaceholder": "输入图片 URL",
+    "profileTab": "个人信息"
   },
   "files": {
     "images": "图片",

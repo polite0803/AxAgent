@@ -2597,7 +2597,8 @@
     "selectImage": "Seleccionar imagen",
     "imageUrl": "URL de imagen",
     "emoji": "Emoji",
-    "urlPlaceholder": "Introduzca la URL de la imagen"
+    "urlPlaceholder": "Introduzca la URL de la imagen",
+    "profileTab": "Perfil"
   },
   "files": {
     "images": "Imágenes",

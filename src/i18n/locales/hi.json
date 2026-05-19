@@ -2568,7 +2568,8 @@
     "selectImage": "छवि चुनें",
     "imageUrl": "छवि URL",
     "emoji": "इमोजी",
-    "urlPlaceholder": "छवि URL दर्ज करें"
+    "urlPlaceholder": "छवि URL दर्ज करें",
+    "profileTab": "प्रोफ़ाइल"
   },
   "files": {
     "images": "छवियाँ",

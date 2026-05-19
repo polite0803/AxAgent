@@ -95,7 +95,6 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "dashboardPlugins",
     "workflow",
     "appConfig",
-    "userProfile",
     "imageGen",
   ],
   network: ["proxy", "messageChannels", "webhooks", "acp"],

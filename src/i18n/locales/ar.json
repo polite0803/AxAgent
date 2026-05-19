@@ -2568,7 +2568,8 @@
     "selectImage": "اختيار صورة",
     "imageUrl": "رابط الصورة",
     "emoji": "رمز تعبيري",
-    "urlPlaceholder": "أدخل رابط الصورة"
+    "urlPlaceholder": "أدخل رابط الصورة",
+    "profileTab": "الملف الشخصي"
   },
   "files": {
     "images": "صور",
