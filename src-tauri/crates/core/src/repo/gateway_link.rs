@@ -821,7 +821,7 @@ pub async fn connect_gateway_link_with_retry(
                         attempt + 1,
                         max_retries,
                         delay,
-                        last_error.as_ref().expect("last_error was just set")
+                        last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "unknown error".to_string())
                     );
                     tokio::time::sleep(delay).await;
                 }
@@ -829,7 +829,7 @@ pub async fn connect_gateway_link_with_retry(
         }
     }
 
-    Err(last_error.expect("last_error must be set if loop completed without returning"))
+    Err(last_error.unwrap_or_else(|| AxAgentError::Internal("unknown error".to_string())))
 }
 
 #[derive(Debug, Clone)]

@@ -871,7 +871,10 @@ pub fn shared_http_client() -> Arc<reqwest::Client> {
                     }))
                     .cookie_store(true)
                     .build()
-                    .expect("Failed to build shared HTTP client"),
+                    .unwrap_or_else(|e| {
+                        tracing::warn!("无法构建自定义搜索 HTTP 客户端: {e}，降级为默认客户端");
+                        reqwest::Client::new()
+                    }),
             )
         })
         .clone()

@@ -31,7 +31,15 @@ export const PasteButton: React.FC<PasteButtonProps> = ({
   const handleClick = useCallback(async () => {
     setLoading(true);
     try {
-      const text = await navigator.clipboard.readText();
+      let text: string;
+      // Tauri 环境优先使用原生 clipboard 插件（可靠，无需 HTTPS 权限）
+      try {
+        const { readText } = await import("@tauri-apps/plugin-clipboard-manager");
+        text = await readText();
+      } catch {
+        // 浏览器降级：需要 secure context + clipboard-read 权限
+        text = await navigator.clipboard.readText();
+      }
       if (text) {
         onPaste(text);
       } else {

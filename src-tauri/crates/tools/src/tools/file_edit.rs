@@ -120,9 +120,15 @@ impl Tool for FileEditTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input["file_path"].as_str().unwrap();
-        let old_string = input["old_string"].as_str().unwrap();
-        let new_string = input["new_string"].as_str().unwrap();
+        let file_path = input["file_path"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("FileEdit", "缺少 file_path 参数"))?;
+        let old_string = input["old_string"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("FileEdit", "缺少 old_string 参数"))?;
+        let new_string = input["new_string"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("FileEdit", "缺少 new_string 参数"))?;
         let replace_all = input
             .get("replace_all")
             .and_then(|v| v.as_bool())

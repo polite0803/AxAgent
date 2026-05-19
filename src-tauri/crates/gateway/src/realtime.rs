@@ -59,7 +59,11 @@ pub async fn realtime_handler(
                 .body(axum::body::Body::from(
                     r#"{"error":{"message":"Missing api_key query parameter","type":"invalid_request_error","code":"invalid_api_key"}}"#,
                 ))
-                .unwrap();
+                .unwrap_or_else(|_| {
+                    axum::response::Response::new(axum::body::Body::from(
+                        r#"{"error":{"message":"Missing api_key"}}"#,
+                    ))
+                });
         },
     };
 
@@ -80,7 +84,11 @@ pub async fn realtime_handler(
             .body(axum::body::Body::from(
                 r#"{"error":{"message":"Invalid or disabled API key","type":"invalid_request_error","code":"invalid_api_key"}}"#,
             ))
-            .unwrap(),
+            .unwrap_or_else(|_| {
+                axum::response::Response::new(axum::body::Body::from(
+                    r#"{"error":{"message":"Invalid or disabled API key"}}"#,
+                ))
+            }),
     }
 }
 
@@ -199,6 +207,7 @@ async fn handle_realtime_session(mut socket: WebSocket, _db: DatabaseConnection)
 }
 
 async fn send_msg(socket: &mut WebSocket, msg: &RealtimeServerMessage) -> Result<(), axum::Error> {
-    let json = serde_json::to_string(msg).unwrap();
+    let json = serde_json::to_string(msg)
+        .map_err(|e| axum::Error::new(std::io::Error::other(e)))?;
     socket.send(Message::Text(json.into())).await
 }

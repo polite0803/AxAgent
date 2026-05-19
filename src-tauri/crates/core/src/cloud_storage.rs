@@ -171,12 +171,12 @@ pub struct S3Backend {
 }
 
 impl S3Backend {
-    pub fn new(config: S3Config) -> Self {
+    pub fn new(config: S3Config) -> Result<Self> {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(300))
             .build()
-            .expect("Failed to build HTTP client");
-        Self { client, config }
+            .map_err(|e| AxAgentError::Internal(format!("无法构建 HTTP 客户端: {e}")))?;
+        Ok(Self { client, config })
     }
 
     fn host(&self) -> String {
@@ -218,7 +218,7 @@ impl S3Backend {
         path: &str,
         query: &BTreeMap<String, String>,
         payload_hash_str: &str,
-    ) -> (reqwest::header::HeaderMap, String) {
+    ) -> Result<(reqwest::header::HeaderMap, String)> {
         self.sign_request_with_body(method, path, query, &[], payload_hash_str)
     }
 
@@ -229,7 +229,7 @@ impl S3Backend {
         query: &BTreeMap<String, String>,
         body: &[u8],
         content_type: &str,
-    ) -> (reqwest::header::HeaderMap, String) {
+    ) -> Result<(reqwest::header::HeaderMap, String)> {
         let now = chrono::Utc::now();
         let amz_date = now.format("%Y%m%dT%H%M%SZ").to_string();
         let date_stamp = now.format("%Y%m%d").to_string();
@@ -311,24 +311,37 @@ impl S3Backend {
         };
 
         let mut header_map = reqwest::header::HeaderMap::new();
-        header_map.insert("Host", reqwest::header::HeaderValue::from_str(&host).unwrap());
-        header_map.insert("X-Amz-Date", reqwest::header::HeaderValue::from_str(&amz_date).unwrap());
+        header_map.insert(
+            "Host",
+            reqwest::header::HeaderValue::from_str(&host)
+                .map_err(|e| AxAgentError::Internal(format!("无效的 Host 头值 '{host}': {e}")))?,
+        );
+        header_map.insert(
+            "X-Amz-Date",
+            reqwest::header::HeaderValue::from_str(&amz_date)
+                .map_err(|e| AxAgentError::Internal(format!("无效的 X-Amz-Date 头值: {e}")))?,
+        );
         header_map.insert(
             "X-Amz-Content-Sha256",
-            reqwest::header::HeaderValue::from_str(&payload_hash).unwrap(),
+            reqwest::header::HeaderValue::from_str(&payload_hash).map_err(|e| {
+                AxAgentError::Internal(format!("无效的 X-Amz-Content-Sha256 头值: {e}"))
+            })?,
         );
         header_map.insert(
             "Authorization",
-            reqwest::header::HeaderValue::from_str(&authorization).unwrap(),
+            reqwest::header::HeaderValue::from_str(&authorization)
+                .map_err(|e| AxAgentError::Internal(format!("无效的 Authorization 头值: {e}")))?,
         );
         if !content_type.is_empty() {
             header_map.insert(
                 "Content-Type",
-                reqwest::header::HeaderValue::from_str(content_type).unwrap(),
+                reqwest::header::HeaderValue::from_str(content_type).map_err(|e| {
+                    AxAgentError::Internal(format!("无效的 Content-Type 头值: {e}"))
+                })?,
             );
         }
 
-        (header_map, url)
+        Ok((header_map, url))
     }
 }
 
@@ -338,7 +351,7 @@ impl StorageBackend for S3Backend {
         let full_key = self.object_key(key);
         let path = format!("/{}", full_key);
 
-        let (headers, url) = self.sign_request(Method::GET, &path, &BTreeMap::new(), "");
+        let (headers, url) = self.sign_request(Method::GET, &path, &BTreeMap::new(), "")?;
         let resp = self
             .client
             .get(&url)
@@ -381,7 +394,7 @@ impl StorageBackend for S3Backend {
         let path = format!("/{}", full_key);
 
         let (headers, url) =
-            self.sign_request_with_body(Method::PUT, &path, &BTreeMap::new(), data, content_type);
+            self.sign_request_with_body(Method::PUT, &path, &BTreeMap::new(), data, content_type)?;
 
         let resp = self
             .client
@@ -415,7 +428,7 @@ impl StorageBackend for S3Backend {
         let full_key = self.object_key(key);
         let path = format!("/{}", full_key);
 
-        let (headers, url) = self.sign_request(Method::DELETE, &path, &BTreeMap::new(), "");
+        let (headers, url) = self.sign_request(Method::DELETE, &path, &BTreeMap::new(), "")?;
         let resp = self
             .client
             .delete(&url)
@@ -453,7 +466,7 @@ impl StorageBackend for S3Backend {
             query_params.insert("continuation-token".to_string(), token.to_string());
         }
 
-        let (headers, url) = self.sign_request(Method::GET, "/", &query_params, "");
+        let (headers, url) = self.sign_request(Method::GET, "/", &query_params, "")?;
         let resp = self
             .client
             .get(&url)
@@ -484,7 +497,7 @@ impl StorageBackend for S3Backend {
         let full_key = self.object_key(key);
         let path = format!("/{}", full_key);
 
-        let (headers, url) = self.sign_request(Method::HEAD, &path, &BTreeMap::new(), "");
+        let (headers, url) = self.sign_request(Method::HEAD, &path, &BTreeMap::new(), "")?;
         let resp = self
             .client
             .head(&url)
@@ -664,7 +677,7 @@ impl CloudStorageConfig {
                 let s3 = self.s3.as_ref().ok_or_else(|| {
                     AxAgentError::Gateway("S3 configuration is missing".to_string())
                 })?;
-                Ok(Arc::new(S3Backend::new(s3.clone())))
+                Ok(Arc::new(S3Backend::new(s3.clone())?))
             },
             BackendType::WebDav => {
                 let wd = self.webdav.as_ref().ok_or_else(|| {

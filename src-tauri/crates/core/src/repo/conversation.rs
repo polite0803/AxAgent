@@ -52,12 +52,17 @@ pub fn conversation_from_entity(m: conversations::Model) -> Conversation {
 }
 
 fn parse_string_list(raw: &str) -> Vec<String> {
-    serde_json::from_str(raw)
-        .expect("conversation preference JSON is invalid; database contents are corrupted")
+    serde_json::from_str(raw).unwrap_or_else(|e| {
+        tracing::warn!("会话偏好 JSON 损坏: {e}");
+        Vec::new()
+    })
 }
 
 fn stringify_string_list(values: &[String]) -> String {
-    serde_json::to_string(values).expect("failed to serialize conversation preference JSON")
+    serde_json::to_string(values).unwrap_or_else(|e| {
+        tracing::warn!("会话偏好序列化失败: {e}");
+        "[]".to_string()
+    })
 }
 
 async fn attach_workspace_dirs(

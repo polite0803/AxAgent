@@ -17,14 +17,14 @@ use std::sync::RwLock;
 static GLOBAL_DB_PATH: LazyLock<RwLock<Option<String>>> = LazyLock::new(|| RwLock::new(None));
 
 pub fn set_db_path(path: &str) {
-    let mut db_path = GLOBAL_DB_PATH.write().expect("GLOBAL_DB_PATH poisoned");
+    let mut db_path = GLOBAL_DB_PATH.write().unwrap_or_else(|e| e.into_inner());
     *db_path = Some(path.to_string());
 }
 
 pub fn get_db_path() -> Option<String> {
     GLOBAL_DB_PATH
         .read()
-        .expect("GLOBAL_DB_PATH poisoned")
+        .unwrap_or_else(|e| e.into_inner())
         .clone()
 }
 
@@ -34,13 +34,13 @@ static GLOBAL_SEA_DB: LazyLock<RwLock<Option<Arc<DatabaseConnection>>>> =
     LazyLock::new(|| RwLock::new(None));
 
 pub fn set_sea_db(db: Arc<DatabaseConnection>) {
-    let mut sea_db = GLOBAL_SEA_DB.write().expect("GLOBAL_SEA_DB poisoned");
+    let mut sea_db = GLOBAL_SEA_DB.write().unwrap_or_else(|e| e.into_inner());
     *sea_db = Some(db);
 }
 
 pub fn get_sea_db() -> Option<Arc<DatabaseConnection>> {
     GLOBAL_SEA_DB
         .read()
-        .expect("GLOBAL_SEA_DB poisoned")
+        .unwrap_or_else(|e| e.into_inner())
         .clone()
 }

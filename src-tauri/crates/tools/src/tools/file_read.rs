@@ -86,7 +86,9 @@ impl Tool for FileReadTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let file_path = input["file_path"].as_str().unwrap();
+        let file_path = input["file_path"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("FileRead", "缺少 file_path 参数"))?;
         let offset: usize = input.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
         let limit: usize = input.get("limit").and_then(|v| v.as_u64()).unwrap_or(2000) as usize;
 

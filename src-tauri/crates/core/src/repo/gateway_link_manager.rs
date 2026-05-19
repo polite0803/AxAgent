@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, mpsc};
 use tokio::time::interval;
 
-use crate::error::Result;
+use crate::error::{AxAgentError, Result};
 use crate::repo::gateway_link as link_repo;
 use crate::repo::gateway_link::ExponentialBackoff;
 
@@ -386,7 +386,7 @@ where
                         attempt + 1,
                         max_attempts,
                         delay,
-                        last_error.as_ref().expect("last_error was just set")
+                        last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "unknown error".to_string())
                     );
                     tokio::time::sleep(delay).await;
                 }
@@ -394,5 +394,5 @@ where
         }
     }
 
-    Err(last_error.expect("last_error must be set if loop completed without returning"))
+    Err(last_error.unwrap_or_else(|| AxAgentError::Internal("unknown error".to_string())))
 }

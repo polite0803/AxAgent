@@ -652,8 +652,9 @@ fn save_skill_manifest(
         manifest["versions"] = serde_json::json!([version_entry]);
     }
 
-    std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
-        .map_err(|e| e.to_string())
+    let manifest_str =
+        serde_json::to_string_pretty(&manifest).map_err(|e| format!("JSON 序列化失败: {e}"))?;
+    std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -788,8 +789,9 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
         "installed_via": "local"
     });
     let manifest_path = skill_target.join("skill-manifest.json");
-    std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
-        .map_err(|e| e.to_string())?;
+    let manifest_str =
+        serde_json::to_string_pretty(&manifest).map_err(|e| format!("JSON 序列化失败: {e}"))?;
+    std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())?;
 
     Ok((name, "local".to_string()))
 }
@@ -1637,8 +1639,9 @@ pub async fn skill_set_manifest(
     }
 
     let manifest_path = skill_dir.join("skill-manifest.json");
-    std::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
-        .map_err(|e| e.to_string())?;
+    let manifest_str =
+        serde_json::to_string_pretty(&manifest).map_err(|e| format!("JSON 序列化失败: {e}"))?;
+    std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())?;
 
     Ok(format!("清单已保存: '{}'", name))
 }

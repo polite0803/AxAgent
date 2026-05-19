@@ -243,8 +243,12 @@ impl Tool for NotebookEditTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let path = input["notebook_path"].as_str().unwrap();
-        let new_source = input["new_source"].as_str().unwrap();
+        let path = input["notebook_path"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("TodoWrite", "缺少 notebook_path 参数"))?;
+        let new_source = input["new_source"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("TodoWrite", "缺少 new_source 参数"))?;
         let edit_mode = input["edit_mode"].as_str().unwrap_or("replace");
         let cell_type = input["cell_type"].as_str().unwrap_or("code");
 
