@@ -1,5 +1,6 @@
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useConversationStore, useSettingsStore } from "@/stores";
+import { useCacheStore } from "@/stores/feature/cacheStore";
 import { Tabs, theme, Tooltip } from "antd";
 import {
   Activity,
@@ -100,6 +101,7 @@ export function RightPanelContainer({
   );
   const isAgent = convMode === "agent";
   const settings = useSettingsStore((s) => s.settings);
+  const cacheState = useCacheStore();
   const isDarkMode = useResolvedDarkMode(settings.theme_mode);
 
   const codeThemes = useMemo(
@@ -280,10 +282,10 @@ export function RightPanelContainer({
         labelKey: "chatRightPanel.cache",
         render: () => (
           <CacheIndicator
-            cacheValid={false}
-            hasPendingChanges={false}
-            tokensSaved={0}
-            cacheHits={0}
+            cacheValid={cacheState.cacheValid}
+            hasPendingChanges={cacheState.hasPendingChanges}
+            tokensSaved={cacheState.tokensSaved}
+            cacheHits={cacheState.cacheHits}
           />
         ),
       },
@@ -345,7 +347,7 @@ export function RightPanelContainer({
         labelKey: "chatRightPanel.categoryEdit",
         render: () => (
           <CategoryEditModal
-            open={true}
+            open={false}
             onClose={() => {}}
             onOk={(_data) => {}}
           />
@@ -355,7 +357,7 @@ export function RightPanelContainer({
         key: "filePermission",
         icon: <Shield size={ICON} />,
         labelKey: "chatRightPanel.filePermission",
-        render: () => <FilePermissionDialog open={true} onClose={() => {}} path="" />,
+        render: () => <FilePermissionDialog open={false} onClose={() => {}} path="" />,
       },
       {
         key: "sessionShare",
@@ -363,7 +365,7 @@ export function RightPanelContainer({
         labelKey: "chatRightPanel.sessionShare",
         render: () => (
           <SessionShareDialog
-            open={true}
+            open={false}
             sessionId={conversationId}
             onClose={() => {}}
             permissions={{
@@ -406,6 +408,10 @@ export function RightPanelContainer({
     inspectorTab,
     isDarkMode,
     codeThemes,
+    cacheState.cacheValid,
+    cacheState.hasPendingChanges,
+    cacheState.tokensSaved,
+    cacheState.cacheHits,
   ]);
 
   const tabItems = panels.map((p) => ({
