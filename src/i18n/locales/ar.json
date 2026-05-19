@@ -6116,5 +6116,10 @@
       "verification": "تحقق"
     },
     "phaseCount": "{{count}} مراحل"
+  },
+  "pasteButton": {
+    "emptyClipboard": "الحافظة فارغة",
+    "clipboardUnavailable": "اضغط مطولاً للصق يدوياً",
+    "pasteFromClipboard": "لصق من الحافظة"
   }
 }

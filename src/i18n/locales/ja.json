@@ -6116,5 +6116,10 @@
       "verification": "検証"
     },
     "phaseCount": "{{count}} フェーズ"
+  },
+  "pasteButton": {
+    "emptyClipboard": "クリップボードが空です",
+    "clipboardUnavailable": "長押しで手動貼り付け",
+    "pasteFromClipboard": "クリップボードから貼り付け"
   }
 }

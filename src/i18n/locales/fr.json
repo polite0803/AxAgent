@@ -6116,5 +6116,10 @@
       "verification": "Vérifier"
     },
     "phaseCount": "{{count}} phases"
+  },
+  "pasteButton": {
+    "emptyClipboard": "Presse-papiers vide",
+    "clipboardUnavailable": "Appui long pour coller manuellement",
+    "pasteFromClipboard": "Coller depuis le presse-papiers"
   }
 }

@@ -6169,5 +6169,10 @@
       "verification": "验证结果"
     },
     "phaseCount": "{{count}} 个阶段"
+  },
+  "pasteButton": {
+    "emptyClipboard": "剪贴板为空",
+    "clipboardUnavailable": "请长按输入框手动粘贴",
+    "pasteFromClipboard": "从剪贴板粘贴"
   }
 }

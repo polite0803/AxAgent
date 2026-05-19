@@ -6116,5 +6116,10 @@
       "verification": "Verificar"
     },
     "phaseCount": "{{count}} fases"
+  },
+  "pasteButton": {
+    "emptyClipboard": "Portapapeles vacío",
+    "clipboardUnavailable": "Mantenga pulsado para pegar manualmente",
+    "pasteFromClipboard": "Pegar desde portapapeles"
   }
 }

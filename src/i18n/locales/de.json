@@ -6116,5 +6116,10 @@
       "verification": "Prüfen"
     },
     "phaseCount": "{{count}} Phasen"
+  },
+  "pasteButton": {
+    "emptyClipboard": "Zwischenablage ist leer",
+    "clipboardUnavailable": "Zum manuellen Einfügen lange drücken",
+    "pasteFromClipboard": "Aus Zwischenablage einfügen"
   }
 }

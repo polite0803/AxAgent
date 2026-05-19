@@ -6116,5 +6116,10 @@
       "verification": "驗證結果"
     },
     "phaseCount": "{{count}} 個階段"
+  },
+  "pasteButton": {
+    "emptyClipboard": "剪貼板為空",
+    "clipboardUnavailable": "請長按輸入框手動貼上",
+    "pasteFromClipboard": "從剪貼板貼上"
   }
 }

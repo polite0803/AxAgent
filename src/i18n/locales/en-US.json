@@ -6173,5 +6173,10 @@
       "verification": "Verify"
     },
     "phaseCount": "{{count}} phases"
+  },
+  "pasteButton": {
+    "emptyClipboard": "Clipboard is empty",
+    "clipboardUnavailable": "Long-press to paste manually",
+    "pasteFromClipboard": "Paste from clipboard"
   }
 }

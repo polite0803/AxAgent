@@ -297,22 +297,36 @@ function AppRoot() {
   const localeMap = useMemo<Record<string, string>>(
     () => ({
       "zh-CN": "zh_CN",
+      "zh-TW": "zh_TW",
       ja: "ja_JP",
       ko: "ko_KR",
       de: "de_DE",
       fr: "fr_FR",
       es: "es_ES",
       ru: "ru_RU",
+      hi: "hi_IN",
+      ar: "ar_EG",
       "pt-BR": "pt_BR",
     }),
     [],
   );
 
+  const resolvedLocale = useMemo(() => {
+    if (localeMap[language]) {
+      return localeMap[language];
+    }
+    // 中文语言回退到 zh_CN
+    if (language?.startsWith("zh")) {
+      return "zh_CN";
+    }
+    return "en_US";
+  }, [language, localeMap]);
+
   const [antdLocale, setAntdLocale] = useState<any>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const localeCode = localeMap[language] || "en_US";
+    const localeCode = resolvedLocale;
     import(/* @vite-ignore */ `antd/locale/${localeCode}`)
       .then((mod) => {
         if (!cancelled) {

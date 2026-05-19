@@ -6116,5 +6116,10 @@
       "verification": "सत्यापन"
     },
     "phaseCount": "{{count}} चरण"
+  },
+  "pasteButton": {
+    "emptyClipboard": "क्लिपबोर्ड खाली है",
+    "clipboardUnavailable": "मैन्युअल पेस्ट के लिए लॉन्ग-प्रेस करें",
+    "pasteFromClipboard": "क्लिपबोर्ड से पेस्ट करें"
   }
 }

@@ -1,6 +1,7 @@
 import { Button, message, theme } from "antd";
 import { ClipboardPaste } from "lucide-react";
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface PasteButtonProps {
   /** 粘贴成功后的回调，传入剪贴板文本 */
@@ -9,7 +10,7 @@ export interface PasteButtonProps {
   size?: number;
   /** Additional inline style */
   style?: React.CSSProperties;
-  /** 按钮提示文本 */
+  /** 按钮提示文本（i18n key） */
   tooltip?: string;
 }
 
@@ -23,6 +24,7 @@ export const PasteButton: React.FC<PasteButtonProps> = ({
   style,
   tooltip,
 }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [loading, setLoading] = React.useState(false);
 
@@ -33,16 +35,14 @@ export const PasteButton: React.FC<PasteButtonProps> = ({
       if (text) {
         onPaste(text);
       } else {
-        message.info("剪贴板为空");
+        message.info(t("pasteButton.emptyClipboard"));
       }
     } catch {
-      // 如果浏览器不支持 clipboard API（非 HTTPS / WebView 限制），
-      // 降级提示用户手动粘贴
-      message.info("请长按输入框手动粘贴");
+      message.info(t("pasteButton.clipboardUnavailable"));
     } finally {
       setLoading(false);
     }
-  }, [onPaste]);
+  }, [onPaste, t]);
 
   return (
     <Button
@@ -51,7 +51,7 @@ export const PasteButton: React.FC<PasteButtonProps> = ({
       loading={loading}
       icon={<ClipboardPaste size={size} style={{ color: token.colorTextSecondary }} />}
       onClick={handleClick}
-      title={tooltip ?? "从剪贴板粘贴"}
+      title={tooltip ?? t("pasteButton.pasteFromClipboard")}
       style={style}
     />
   );

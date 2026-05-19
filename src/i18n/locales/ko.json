@@ -6116,5 +6116,10 @@
       "verification": "검증"
     },
     "phaseCount": "{{count}} 단계"
+  },
+  "pasteButton": {
+    "emptyClipboard": "클립보드가 비어 있습니다",
+    "clipboardUnavailable": "길게 눌러 수동으로 붙여넣기",
+    "pasteFromClipboard": "클립보드에서 붙여넣기"
   }
 }
