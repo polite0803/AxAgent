@@ -858,7 +858,8 @@
     "sidebar": {
       "fallbackTitle": "对话",
       "searchPastSessions": "搜索历史会话"
-    }
+    },
+    "proactiveInsights": "主动洞察与提醒"
   },
   "gateway": {
     "title": "网关",

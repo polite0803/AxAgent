@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "Discussion",
       "searchPastSessions": "Rechercher des sessions passées"
-    }
+    },
+    "proactiveInsights": "Aperçus proactifs & rappels"
   },
   "gateway": {
     "title": "Passerelle",

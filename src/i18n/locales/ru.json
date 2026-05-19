@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "Чат",
       "searchPastSessions": "Поиск прошлых сессий"
-    }
+    },
+    "proactiveInsights": "Проактивные идеи и напоминания"
   },
   "gateway": {
     "title": "Шлюз",

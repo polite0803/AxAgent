@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "Chat",
       "searchPastSessions": "Frühere Sitzungen durchsuchen"
-    }
+    },
+    "proactiveInsights": "Proaktive Einblicke & Erinnerungen"
   },
   "gateway": {
     "title": "Gateway",

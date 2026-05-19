@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "對話",
       "searchPastSessions": "搜尋歷史工作階段"
-    }
+    },
+    "proactiveInsights": "主動洞察與提醒"
   },
   "gateway": {
     "title": "閘道",

@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "محادثة",
       "searchPastSessions": "البحث في الجلسات السابقة"
-    }
+    },
+    "proactiveInsights": "رؤى استباقية وتذكيرات"
   },
   "gateway": {
     "title": "البوابة",

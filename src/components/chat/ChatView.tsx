@@ -991,6 +991,7 @@ function ProactivePanelsSection({
 }: {
   context: Record<string, unknown>;
 }) {
+  const { t } = useTranslation();
   const proactiveMode = useAppConfigStore((s) => s.features.proactiveMode);
 
   if (!proactiveMode) {
@@ -1001,7 +1002,7 @@ function ProactivePanelsSection({
     <div className="border-b border-border px-4 py-2">
       <details className="group">
         <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none">
-          Proactive Insights &amp; Reminders
+          {t("chat.proactiveInsights")}
         </summary>
         <div className="mt-2 space-y-2">
           <ContextPredictionPanel context={context} />

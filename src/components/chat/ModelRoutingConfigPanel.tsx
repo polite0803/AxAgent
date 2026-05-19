@@ -1,6 +1,7 @@
+import { ImageGenSettings } from "@/components/settings/ImageGenSettings";
 import { useProviderStore } from "@/stores";
-import { Button, Input, Modal, Select, Tag } from "antd";
-import { Brain, Code, FileText, Languages, Plus, Route, Trash2 } from "lucide-react";
+import { Button, Input, Modal, Select, Tabs, Tag } from "antd";
+import { Brain, Code, FileText, Image, Languages, Plus, Route, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -105,179 +106,206 @@ export const ModelRoutingConfigPanel: React.FC<ModelRoutingConfigProps> = ({
       open={open}
       onOk={saveConfig}
       onCancel={onClose}
-      width={600}
+      width={640}
       okText={t("chat.modelRoutingConfig.save")}
     >
-      <div className="space-y-4">
-        {/* Primary Model */}
-        <div>
-          <label className="flex items-center gap-1 text-sm font-medium mb-1">
-            <Brain size={14} /> {t("chat.modelRoutingConfig.primaryModel")}
-          </label>
-          <Select
-            value={config.primaryModelId || undefined}
-            onChange={(v) => setConfig((prev) => ({ ...prev, primaryModelId: v }))}
-            options={allModels.map((m) => ({
-              value: m.value,
-              label: `${m.label} (${m.providerName})`,
-            }))}
-            showSearch
-            placeholder={t("chat.modelRoutingConfig.selectPrimaryModel")}
-            style={{ width: "100%" }}
-          />
-        </div>
+      <Tabs
+        items={[
+          {
+            key: "routing",
+            label: (
+              <span className="flex items-center gap-1">
+                <Route size={14} /> {t("chat.modelRouting")}
+              </span>
+            ),
+            children: (
+              <div className="space-y-4" style={{ maxHeight: "60vh", overflow: "auto", paddingTop: 8 }}>
+                {/* Primary Model */}
+                <div>
+                  <label className="flex items-center gap-1 text-sm font-medium mb-1">
+                    <Brain size={14} /> {t("chat.modelRoutingConfig.primaryModel")}
+                  </label>
+                  <Select
+                    value={config.primaryModelId || undefined}
+                    onChange={(v) => setConfig((prev) => ({ ...prev, primaryModelId: v }))}
+                    options={allModels.map((m) => ({
+                      value: m.value,
+                      label: `${m.label} (${m.providerName})`,
+                    }))}
+                    showSearch
+                    placeholder={t("chat.modelRoutingConfig.selectPrimaryModel")}
+                    style={{ width: "100%" }}
+                  />
+                </div>
 
-        {/* Code Review Model */}
-        <div>
-          <label className="flex items-center gap-1 text-sm font-medium mb-1">
-            <Code size={14} /> {t("chat.modelRoutingConfig.codeReviewModel")}
-          </label>
-          <Select
-            value={config.codeReviewModelId || undefined}
-            onChange={(v) =>
-              setConfig((prev) => ({
-                ...prev,
-                codeReviewModelId: v || undefined,
-              }))}
-            options={[
-              {
-                value: "",
-                label: t("chat.modelRoutingConfig.usePrimaryModel"),
-              },
-              ...allModels.map((m) => ({
-                value: m.value,
-                label: `${m.label} (${m.providerName})`,
-              })),
-            ]}
-            allowClear
-            showSearch
-            placeholder={t("chat.modelRoutingConfig.codeReviewPlaceholder")}
-            style={{ width: "100%" }}
-          />
-        </div>
+                {/* Code Review Model */}
+                <div>
+                  <label className="flex items-center gap-1 text-sm font-medium mb-1">
+                    <Code size={14} /> {t("chat.modelRoutingConfig.codeReviewModel")}
+                  </label>
+                  <Select
+                    value={config.codeReviewModelId || undefined}
+                    onChange={(v) =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        codeReviewModelId: v || undefined,
+                      }))}
+                    options={[
+                      {
+                        value: "",
+                        label: t("chat.modelRoutingConfig.usePrimaryModel"),
+                      },
+                      ...allModels.map((m) => ({
+                        value: m.value,
+                        label: `${m.label} (${m.providerName})`,
+                      })),
+                    ]}
+                    allowClear
+                    showSearch
+                    placeholder={t("chat.modelRoutingConfig.codeReviewPlaceholder")}
+                    style={{ width: "100%" }}
+                  />
+                </div>
 
-        {/* Summarization Model */}
-        <div>
-          <label className="flex items-center gap-1 text-sm font-medium mb-1">
-            <FileText size={14} /> {t("chat.modelRoutingConfig.summarizationModel")}
-          </label>
-          <Select
-            value={config.summarizationModelId || undefined}
-            onChange={(v) =>
-              setConfig((prev) => ({
-                ...prev,
-                summarizationModelId: v || undefined,
-              }))}
-            options={[
-              {
-                value: "",
-                label: t("chat.modelRoutingConfig.usePrimaryModel"),
-              },
-              ...allModels.map((m) => ({
-                value: m.value,
-                label: `${m.label} (${m.providerName})`,
-              })),
-            ]}
-            allowClear
-            showSearch
-            placeholder={t("chat.modelRoutingConfig.summarizationPlaceholder")}
-            style={{ width: "100%" }}
-          />
-        </div>
+                {/* Summarization Model */}
+                <div>
+                  <label className="flex items-center gap-1 text-sm font-medium mb-1">
+                    <FileText size={14} /> {t("chat.modelRoutingConfig.summarizationModel")}
+                  </label>
+                  <Select
+                    value={config.summarizationModelId || undefined}
+                    onChange={(v) =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        summarizationModelId: v || undefined,
+                      }))}
+                    options={[
+                      {
+                        value: "",
+                        label: t("chat.modelRoutingConfig.usePrimaryModel"),
+                      },
+                      ...allModels.map((m) => ({
+                        value: m.value,
+                        label: `${m.label} (${m.providerName})`,
+                      })),
+                    ]}
+                    allowClear
+                    showSearch
+                    placeholder={t("chat.modelRoutingConfig.summarizationPlaceholder")}
+                    style={{ width: "100%" }}
+                  />
+                </div>
 
-        {/* Translation Model */}
-        <div>
-          <label className="flex items-center gap-1 text-sm font-medium mb-1">
-            <Languages size={14} /> {t("chat.modelRoutingConfig.translationModel")}
-          </label>
-          <Select
-            value={config.translationModelId || undefined}
-            onChange={(v) =>
-              setConfig((prev) => ({
-                ...prev,
-                translationModelId: v || undefined,
-              }))}
-            options={[
-              {
-                value: "",
-                label: t("chat.modelRoutingConfig.usePrimaryModel"),
-              },
-              ...allModels.map((m) => ({
-                value: m.value,
-                label: `${m.label} (${m.providerName})`,
-              })),
-            ]}
-            allowClear
-            showSearch
-            placeholder={t("chat.modelRoutingConfig.translationPlaceholder")}
-            style={{ width: "100%" }}
-          />
-        </div>
+                {/* Translation Model */}
+                <div>
+                  <label className="flex items-center gap-1 text-sm font-medium mb-1">
+                    <Languages size={14} /> {t("chat.modelRoutingConfig.translationModel")}
+                  </label>
+                  <Select
+                    value={config.translationModelId || undefined}
+                    onChange={(v) =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        translationModelId: v || undefined,
+                      }))}
+                    options={[
+                      {
+                        value: "",
+                        label: t("chat.modelRoutingConfig.usePrimaryModel"),
+                      },
+                      ...allModels.map((m) => ({
+                        value: m.value,
+                        label: `${m.label} (${m.providerName})`,
+                      })),
+                    ]}
+                    allowClear
+                    showSearch
+                    placeholder={t("chat.modelRoutingConfig.translationPlaceholder")}
+                    style={{ width: "100%" }}
+                  />
+                </div>
 
-        {/* Custom Routing Rules */}
-        <div>
-          <label className="flex items-center gap-1 text-sm font-medium mb-2">
-            <Route size={14} /> {t("chat.modelRoutingConfig.customRoutingRules")}
-          </label>
-          <div className="text-xs text-zinc-500 mb-2">
-            {t("chat.modelRoutingConfig.customRoutingRulesDesc")}
-          </div>
+                {/* Custom Routing Rules */}
+                <div>
+                  <label className="flex items-center gap-1 text-sm font-medium mb-2">
+                    <Route size={14} /> {t("chat.modelRoutingConfig.customRoutingRules")}
+                  </label>
+                  <div className="text-xs text-zinc-500 mb-2">
+                    {t("chat.modelRoutingConfig.customRoutingRulesDesc")}
+                  </div>
 
-          {/* Existing rules */}
-          {Object.entries(config.routingRules || {}).map(
-            ([pattern, model_id]) => (
-              <div key={pattern} className="flex items-center gap-2 mb-1">
-                <Tag color="blue">{pattern}</Tag>
-                <span className="text-xs text-zinc-500">→</span>
-                <Tag color="green">
-                  {allModels.find((m) => m.value === model_id)?.label
-                    || model_id}
-                </Tag>
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<Trash2 size={12} />}
-                  onClick={() => removeRoutingRule(pattern)}
-                />
+                  {/* Existing rules */}
+                  {Object.entries(config.routingRules || {}).map(
+                    ([pattern, model_id]) => (
+                      <div key={pattern} className="flex items-center gap-2 mb-1">
+                        <Tag color="blue">{pattern}</Tag>
+                        <span className="text-xs text-zinc-500">→</span>
+                        <Tag color="green">
+                          {allModels.find((m) => m.value === model_id)?.label
+                            || model_id}
+                        </Tag>
+                        <Button
+                          type="text"
+                          size="small"
+                          danger
+                          icon={<Trash2 size={12} />}
+                          onClick={() => removeRoutingRule(pattern)}
+                        />
+                      </div>
+                    ),
+                  )}
+
+                  {/* Add new rule */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <Input
+                      id="model-routing-config-panel-input-25"
+                      size="small"
+                      placeholder={t("chat.modelRoutingConfig.patternPlaceholder")}
+                      value={newRulePattern}
+                      onChange={(e) => setNewRulePattern(e.target.value)}
+                      style={{ width: 180 }}
+                    />
+                    <Select
+                      size="small"
+                      value={newRuleModel || undefined}
+                      onChange={setNewRuleModel}
+                      options={allModels.map((m) => ({
+                        value: m.value,
+                        label: m.label,
+                      }))}
+                      showSearch
+                      placeholder={t("chat.modelRoutingConfig.modelPlaceholder")}
+                      style={{ width: 180 }}
+                    />
+                    <Button
+                      size="small"
+                      type="dashed"
+                      icon={<Plus size={12} />}
+                      onClick={addRoutingRule}
+                      disabled={!newRulePattern || !newRuleModel}
+                    >
+                      {t("chat.modelRoutingConfig.add")}
+                    </Button>
+                  </div>
+                </div>
               </div>
             ),
-          )}
-
-          {/* Add new rule */}
-          <div className="flex items-center gap-2 mt-2">
-            <Input
-              id="model-routing-config-panel-input-25"
-              size="small"
-              placeholder={t("chat.modelRoutingConfig.patternPlaceholder")}
-              value={newRulePattern}
-              onChange={(e) => setNewRulePattern(e.target.value)}
-              style={{ width: 180 }}
-            />
-            <Select
-              size="small"
-              value={newRuleModel || undefined}
-              onChange={setNewRuleModel}
-              options={allModels.map((m) => ({
-                value: m.value,
-                label: m.label,
-              }))}
-              showSearch
-              placeholder={t("chat.modelRoutingConfig.modelPlaceholder")}
-              style={{ width: 180 }}
-            />
-            <Button
-              size="small"
-              type="dashed"
-              icon={<Plus size={12} />}
-              onClick={addRoutingRule}
-              disabled={!newRulePattern || !newRuleModel}
-            >
-              {t("chat.modelRoutingConfig.add")}
-            </Button>
-          </div>
-        </div>
-      </div>
+          },
+          {
+            key: "imageGen",
+            label: (
+              <span className="flex items-center gap-1">
+                <Image size={14} /> {t("imageGen.title")}
+              </span>
+            ),
+            children: (
+              <div style={{ maxHeight: "60vh", overflow: "auto", paddingTop: 8 }}>
+                <ImageGenSettings />
+              </div>
+            ),
+          },
+        ]}
+      />
     </Modal>
   );
 };

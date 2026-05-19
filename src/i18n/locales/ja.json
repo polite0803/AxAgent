@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "チャット",
       "searchPastSessions": "過去のセッションを検索"
-    }
+    },
+    "proactiveInsights": "プロアクティブインサイトとリマインダー"
   },
   "gateway": {
     "title": "ゲートウェイ",

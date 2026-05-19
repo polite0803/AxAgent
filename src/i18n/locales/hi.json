@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "चैट",
       "searchPastSessions": "पिछले सत्र खोजें"
-    }
+    },
+    "proactiveInsights": "सक्रिय अंतर्दृष्टि और अनुस्मारक"
   },
   "gateway": {
     "title": "गेटवे",

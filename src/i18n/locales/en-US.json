@@ -884,7 +884,8 @@
     "sidebar": {
       "fallbackTitle": "Chat",
       "searchPastSessions": "Search past sessions"
-    }
+    },
+    "proactiveInsights": "Proactive Insights & Reminders"
   },
   "gateway": {
     "title": "Gateway",

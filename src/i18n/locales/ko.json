@@ -833,7 +833,8 @@
     "sidebar": {
       "fallbackTitle": "채팅",
       "searchPastSessions": "이전 세션 검색"
-    }
+    },
+    "proactiveInsights": "사전 예측 인사이트 및 알림"
   },
   "gateway": {
     "title": "게이트웨이",
