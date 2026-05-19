@@ -18,7 +18,7 @@ static PENDING_SUB_AGENT_CARDS: LazyLock<
 fn store_pending_card(parent_id: &str, child_id: &str, agent_type: &str, description: &str) {
     let mut m = PENDING_SUB_AGENT_CARDS
         .lock()
-        .expect("PENDING_SUB_AGENT_CARDS poisoned");
+        .unwrap_or_else(|e| e.into_inner());
     m.insert(
         parent_id.to_string(),
         (child_id.to_string(), agent_type.to_string(), description.to_string()),
@@ -166,7 +166,10 @@ pub fn refresh_agent_registry(cwd: &std::path::Path) {
 
 /// 列出所有已注册 Agent
 pub fn list_agents() -> Vec<AgentDefinition> {
-    AGENT_REGISTRY.read().unwrap().clone()
+    AGENT_REGISTRY
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
 }
 
 /// 查找指定类型的 Agent
@@ -181,7 +184,10 @@ pub fn find_agent(agent_type: &str) -> Option<AgentDefinition> {
 
 /// 注册自定义 Agent（运行时动态添加）
 pub fn register_agent(def: AgentDefinition) {
-    AGENT_REGISTRY.write().unwrap().push(def);
+    AGENT_REGISTRY
+        .write()
+        .unwrap_or_else(|e| e.into_inner())
+        .push(def);
 }
 
 pub struct AgentTool;
