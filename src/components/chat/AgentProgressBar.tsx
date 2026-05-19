@@ -1,4 +1,4 @@
-import { useExecutionStore } from "@/stores/feature/executionStore";
+import { useAgentStore } from "@/stores/feature/agentStore";
 import { Progress, Spin, Tag, theme, Typography } from "antd";
 import { Wrench } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -52,8 +52,8 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const currentToolCall = useExecutionStore((s) => s.currentToolCall);
-  const isExecuting = useExecutionStore((s) => s.isActive(conversationId));
+  const currentToolCall = useAgentStore((s) => s.currentToolCall);
+  const isExecuting = !!useAgentStore((s) => s.isExecuting[conversationId]);
 
   // 持久化最后一次看到的工具名称，解决 currentToolCall 被 handleToolResult 置 null
   // 但 phase 仍为 executing 时（工具间隙），UI 显示空转无名称的问题。
