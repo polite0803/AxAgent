@@ -3,7 +3,7 @@ import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { TITLEBAR_ICON_COLORS } from "@/lib/iconColors";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
-import { useBackupStore, useSettingsStore } from "@/stores";
+import { useBackupStore, useSettingsStore, useUIStore } from "@/stores";
 import type { PageKey } from "@/types";
 import { App, Divider, Dropdown, Popover, Space, Spin, theme, Tooltip, Typography } from "antd";
 import type { MenuProps } from "antd";
@@ -14,6 +14,7 @@ import {
   Dna,
   Ellipsis,
   Globe,
+  Menu,
   MessageSquarePlus,
   Minus,
   Monitor,
@@ -117,6 +118,8 @@ export function TitleBar() {
   const alwaysOnTop = useSettingsStore((s) => s.settings.always_on_top);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const settings = useSettingsStore((s) => s.settings);
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+  const toggleMobileNav = useUIStore((s) => s.toggleMobileNav);
 
   const isInSettings = activePage === "settings";
   const [pinned, setPinned] = useState(alwaysOnTop ?? false);
@@ -516,6 +519,17 @@ export function TitleBar() {
         position: "relative",
       }}
     >
+      {/* 移动端汉堡按钮 */}
+      {deviceLayout === "mobile" && (
+        <button
+          className="title-bar-nodrag ax-titlebar-btn"
+          onClick={toggleMobileNav}
+          style={{ marginRight: 8, color: token.colorTextSecondary }}
+          aria-label={t("sidebar.toggle")}
+        >
+          <Menu size={14} />
+        </button>
+      )}
       {/* Left: App icon + name (Windows only) */}
       {IS_WINDOWS
         ? (

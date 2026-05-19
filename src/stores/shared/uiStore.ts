@@ -13,6 +13,8 @@ interface UIState {
   workflowEditorOpen: boolean;
   /** 根据窗口宽度自动检测的布局模式 */
   deviceLayout: DeviceLayout;
+  /** 移动端导航抽屉是否打开 */
+  mobileNavOpen: boolean;
   setActivePage: (page: PageKey) => void;
   enterSettings: () => void;
   exitSettings: () => void;
@@ -23,6 +25,9 @@ interface UIState {
   closeWorkflowEditor: () => void;
   /** 设置布局模式（启动时由 useResponsive hook 自动调用） */
   setDeviceLayout: (layout: DeviceLayout) => void;
+  /** 移动端导航抽屉开关 */
+  setMobileNavOpen: (open: boolean) => void;
+  toggleMobileNav: () => void;
 }
 
 /** 根据窗口宽度解析布局模式 */
@@ -40,6 +45,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   selectedProviderId: null,
   workflowEditorOpen: false,
   deviceLayout: resolveDeviceLayout(window.innerWidth),
+  mobileNavOpen: false,
   setActivePage: (page) => set({ activePage: page }),
   enterSettings: () => {
     const current = get().activePage;
@@ -65,14 +71,19 @@ export const useUIStore = create<UIState>((set, get) => ({
   setDeviceLayout: (layout) => {
     set((s) => {
       const updates: Partial<UIState> = { deviceLayout: layout };
-      // 移动端 → 侧栏强制折叠；桌面端切回时恢复展开
+      // 移动端/平板 → 侧栏强制折叠；桌面端切回时恢复展开
       if (layout === "mobile" || layout === "tablet") {
         updates.sidebarCollapsed = true;
       } else if (s.sidebarCollapsed && s.deviceLayout !== "desktop") {
-        // 从 tablet 回到 desktop 时恢复展开
         updates.sidebarCollapsed = false;
+      }
+      // 离开移动端时关闭导航抽屉
+      if (layout !== "mobile") {
+        updates.mobileNavOpen = false;
       }
       return updates;
     });
   },
+  setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
+  toggleMobileNav: () => set((s) => ({ mobileNavOpen: !s.mobileNavOpen })),
 }));
