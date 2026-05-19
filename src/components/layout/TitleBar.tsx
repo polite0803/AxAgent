@@ -588,30 +588,32 @@ export function TitleBar() {
             className="title-bar-nodrag"
             style={{ display: "flex", alignItems: "center", gap: 4 }}
           >
-            {/* Pin Toggle */}
-            <Tooltip title={t("desktop.alwaysOnTop")}>
-              <button
-                className="ax-titlebar-btn"
-                onClick={handlePinToggle}
-                style={{
-                  color: pinned ? token.colorPrimary : token.colorTextSecondary,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = pinned
-                    ? token.colorPrimary
-                    : token.colorTextBase;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = pinned
-                    ? token.colorPrimary
-                    : token.colorTextSecondary;
-                }}
-              >
-                {pinned
-                  ? <Pin size={12} color={TITLEBAR_ICON_COLORS.Pin} />
-                  : <PinOff size={12} color={TITLEBAR_ICON_COLORS.PinOff} />}
-              </button>
-            </Tooltip>
+            {/* Pin Toggle — 移动端隐藏，从设置中访问 */}
+            {deviceLayout !== "mobile" && (
+              <Tooltip title={t("desktop.alwaysOnTop")}>
+                <button
+                  className="ax-titlebar-btn"
+                  onClick={handlePinToggle}
+                  style={{
+                    color: pinned ? token.colorPrimary : token.colorTextSecondary,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = pinned
+                      ? token.colorPrimary
+                      : token.colorTextBase;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = pinned
+                      ? token.colorPrimary
+                      : token.colorTextSecondary;
+                  }}
+                >
+                  {pinned
+                    ? <Pin size={12} color={TITLEBAR_ICON_COLORS.Pin} />
+                    : <PinOff size={12} color={TITLEBAR_ICON_COLORS.PinOff} />}
+                </button>
+              </Tooltip>
+            )}
 
             {/* Appearance: theme + language combined */}
             <Dropdown
@@ -647,203 +649,207 @@ export function TitleBar() {
               </button>
             </Dropdown>
 
-            {/* Quick Backup */}
-            <Popover
-              open={backupPopoverOpen}
-              onOpenChange={setBackupPopoverOpen}
-              trigger="click"
-              placement="bottomRight"
-              destroyOnHidden
-              content={
-                <div style={{ width: 240 }}>
-                  <Typography.Text strong style={{ fontSize: 13 }}>
-                    {t("titlebar.lastBackup")}
-                  </Typography.Text>
-                  <Space
-                    orientation="vertical"
-                    size={2}
-                    style={{ width: "100%", marginTop: 4 }}
-                  >
-                    {lastLocalBackup && (
-                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        {t("titlebar.lastLocal")}: {lastLocalBackup}
-                      </Typography.Text>
-                    )}
-                    {lastWebDavSync && (
-                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        WebDAV: {lastWebDavSync}
-                      </Typography.Text>
-                    )}
-                    {!lastLocalBackup && !lastWebDavSync && (
-                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        {t("titlebar.noBackupYet")}
-                      </Typography.Text>
-                    )}
-                  </Space>
+            {/* Quick Backup — 移动端隐藏，从设置中访问 */}
+            {deviceLayout !== "mobile" && (
+              <Popover
+                open={backupPopoverOpen}
+                onOpenChange={setBackupPopoverOpen}
+                trigger="click"
+                placement="bottomRight"
+                destroyOnHidden
+                content={
+                  <div style={{ width: 240 }}>
+                    <Typography.Text strong style={{ fontSize: 13 }}>
+                      {t("titlebar.lastBackup")}
+                    </Typography.Text>
+                    <Space
+                      orientation="vertical"
+                      size={2}
+                      style={{ width: "100%", marginTop: 4 }}
+                    >
+                      {lastLocalBackup && (
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          {t("titlebar.lastLocal")}: {lastLocalBackup}
+                        </Typography.Text>
+                      )}
+                      {lastWebDavSync && (
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          WebDAV: {lastWebDavSync}
+                        </Typography.Text>
+                      )}
+                      {!lastLocalBackup && !lastWebDavSync && (
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          {t("titlebar.noBackupYet")}
+                        </Typography.Text>
+                      )}
+                    </Space>
 
-                  {(popoverLocalCountdown || popoverWebDavCountdown) && (
-                    <>
-                      <Divider style={{ margin: "6px 0" }} />
-                      <Typography.Text strong style={{ fontSize: 13 }}>
-                        {t("titlebar.nextBackup")}
-                      </Typography.Text>
-                      <Space
-                        orientation="vertical"
-                        size={2}
-                        style={{ width: "100%", marginTop: 4 }}
+                    {(popoverLocalCountdown || popoverWebDavCountdown) && (
+                      <>
+                        <Divider style={{ margin: "6px 0" }} />
+                        <Typography.Text strong style={{ fontSize: 13 }}>
+                          {t("titlebar.nextBackup")}
+                        </Typography.Text>
+                        <Space
+                          orientation="vertical"
+                          size={2}
+                          style={{ width: "100%", marginTop: 4 }}
+                        >
+                          {popoverLocalCountdown && (
+                            <Typography.Text
+                              type="secondary"
+                              style={{ fontSize: 12 }}
+                            >
+                              {t("titlebar.lastLocal")}: {popoverLocalCountdown}
+                            </Typography.Text>
+                          )}
+                          {popoverWebDavCountdown && (
+                            <Typography.Text
+                              type="secondary"
+                              style={{ fontSize: 12 }}
+                            >
+                              WebDAV: {popoverWebDavCountdown}
+                            </Typography.Text>
+                          )}
+                        </Space>
+                      </>
+                    )}
+
+                    <Divider style={{ margin: "6px 0" }} />
+                    <Space
+                      orientation="vertical"
+                      size={8}
+                      style={{ width: "100%" }}
+                    >
+                      <button
+                        onClick={() => handleQuickBackup("local")}
+                        disabled={backingUp !== null}
+                        style={{
+                          width: "100%",
+                          padding: "4px 8px",
+                          borderRadius: token.borderRadius,
+                          border: `1px solid ${token.colorBorder}`,
+                          backgroundColor: "transparent",
+                          cursor: backingUp ? "not-allowed" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          color: token.colorText,
+                        }}
                       >
-                        {popoverLocalCountdown && (
-                          <Typography.Text
-                            type="secondary"
-                            style={{ fontSize: 12 }}
-                          >
-                            {t("titlebar.lastLocal")}: {popoverLocalCountdown}
-                          </Typography.Text>
+                        {backingUp === "local" ? <Spin size="small" /> : (
+                          <CloudUpload
+                            size={14}
+                            color={TITLEBAR_ICON_COLORS.CloudUpload}
+                          />
                         )}
-                        {popoverWebDavCountdown && (
-                          <Typography.Text
-                            type="secondary"
-                            style={{ fontSize: 12 }}
-                          >
-                            WebDAV: {popoverWebDavCountdown}
-                          </Typography.Text>
+                        {t("titlebar.localBackup")}
+                      </button>
+                      <button
+                        onClick={() => handleQuickBackup("webdav")}
+                        disabled={backingUp !== null}
+                        style={{
+                          width: "100%",
+                          padding: "4px 8px",
+                          borderRadius: token.borderRadius,
+                          border: `1px solid ${token.colorBorder}`,
+                          backgroundColor: "transparent",
+                          cursor: backingUp ? "not-allowed" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          color: token.colorText,
+                        }}
+                      >
+                        {backingUp === "webdav" ? <Spin size="small" /> : (
+                          <CloudUpload
+                            size={14}
+                            color={TITLEBAR_ICON_COLORS.CloudUpload}
+                          />
                         )}
-                      </Space>
-                    </>
-                  )}
-
-                  <Divider style={{ margin: "6px 0" }} />
-                  <Space
-                    orientation="vertical"
-                    size={8}
-                    style={{ width: "100%" }}
+                        {t("titlebar.webdavBackup")}
+                      </button>
+                    </Space>
+                  </div>
+                }
+              >
+                <Tooltip title={t("titlebar.quickBackup")}>
+                  <button
+                    className="ax-titlebar-btn"
+                    style={{
+                      color: countdownText
+                        ? token.colorPrimary
+                        : token.colorTextSecondary,
+                      width: countdownText ? "auto" : 28,
+                      paddingInline: countdownText ? 4 : 0,
+                      gap: 2,
+                      fontSize: 12,
+                    }}
                   >
-                    <button
-                      onClick={() => handleQuickBackup("local")}
-                      disabled={backingUp !== null}
-                      style={{
-                        width: "100%",
-                        padding: "4px 8px",
-                        borderRadius: token.borderRadius,
-                        border: `1px solid ${token.colorBorder}`,
-                        backgroundColor: "transparent",
-                        cursor: backingUp ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        color: token.colorText,
-                      }}
-                    >
-                      {backingUp === "local" ? <Spin size="small" /> : (
-                        <CloudUpload
-                          size={14}
-                          color={TITLEBAR_ICON_COLORS.CloudUpload}
+                    <CloudUpload
+                      size={12}
+                      color={TITLEBAR_ICON_COLORS.CloudUpload}
+                    />
+                    {countdownText && <span>({countdownText})</span>}
+                  </button>
+                </Tooltip>
+              </Popover>
+            )}
+
+            {/* More: GitHub, check update, reload — 移动端隐藏 */}
+            {deviceLayout !== "mobile" && (
+              <Dropdown
+                menu={{
+                  items: [
+                    ...githubMenuItems,
+                    { type: "divider" },
+                    ...(isTauri()
+                      ? [
+                        {
+                          key: "checkUpdate",
+                          icon: (
+                            <ArrowDownCircle
+                              size={12}
+                              color={TITLEBAR_ICON_COLORS.ArrowDownCircle}
+                            />
+                          ),
+                          label: t("settings.checkUpdate"),
+                        },
+                      ]
+                      : []),
+                    {
+                      key: "reload",
+                      icon: (
+                        <RotateCcw
+                          size={12}
+                          color={TITLEBAR_ICON_COLORS.RotateCcw}
                         />
-                      )}
-                      {t("titlebar.localBackup")}
-                    </button>
-                    <button
-                      onClick={() => handleQuickBackup("webdav")}
-                      disabled={backingUp !== null}
-                      style={{
-                        width: "100%",
-                        padding: "4px 8px",
-                        borderRadius: token.borderRadius,
-                        border: `1px solid ${token.colorBorder}`,
-                        backgroundColor: "transparent",
-                        cursor: backingUp ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        color: token.colorText,
-                      }}
-                    >
-                      {backingUp === "webdav" ? <Spin size="small" /> : (
-                        <CloudUpload
-                          size={14}
-                          color={TITLEBAR_ICON_COLORS.CloudUpload}
-                        />
-                      )}
-                      {t("titlebar.webdavBackup")}
-                    </button>
-                  </Space>
-                </div>
-              }
-            >
-              <Tooltip title={t("titlebar.quickBackup")}>
+                      ),
+                      label: t("desktop.reloadPage"),
+                    },
+                  ] as MenuProps["items"],
+                  onClick: ({ key }) => {
+                    if (key === "reload") {
+                      handleReload();
+                    } else if (key === "checkUpdate") {
+                      handleCheckUpdate();
+                    } else {
+                      handleGithubClick({ key });
+                    }
+                  },
+                }}
+                trigger={["click"]}
+                placement="bottomRight"
+                destroyOnHidden
+              >
                 <button
                   className="ax-titlebar-btn"
-                  style={{
-                    color: countdownText
-                      ? token.colorPrimary
-                      : token.colorTextSecondary,
-                    width: countdownText ? "auto" : 28,
-                    paddingInline: countdownText ? 4 : 0,
-                    gap: 2,
-                    fontSize: 12,
-                  }}
+                  style={{ color: token.colorTextSecondary }}
                 >
-                  <CloudUpload
-                    size={12}
-                    color={TITLEBAR_ICON_COLORS.CloudUpload}
-                  />
-                  {countdownText && <span>({countdownText})</span>}
+                  <Ellipsis size={12} color={TITLEBAR_ICON_COLORS.GitFork} />
                 </button>
-              </Tooltip>
-            </Popover>
-
-            {/* More: GitHub, check update, reload */}
-            <Dropdown
-              menu={{
-                items: [
-                  ...githubMenuItems,
-                  { type: "divider" },
-                  ...(isTauri()
-                    ? [
-                      {
-                        key: "checkUpdate",
-                        icon: (
-                          <ArrowDownCircle
-                            size={12}
-                            color={TITLEBAR_ICON_COLORS.ArrowDownCircle}
-                          />
-                        ),
-                        label: t("settings.checkUpdate"),
-                      },
-                    ]
-                    : []),
-                  {
-                    key: "reload",
-                    icon: (
-                      <RotateCcw
-                        size={12}
-                        color={TITLEBAR_ICON_COLORS.RotateCcw}
-                      />
-                    ),
-                    label: t("desktop.reloadPage"),
-                  },
-                ] as MenuProps["items"],
-                onClick: ({ key }) => {
-                  if (key === "reload") {
-                    handleReload();
-                  } else if (key === "checkUpdate") {
-                    handleCheckUpdate();
-                  } else {
-                    handleGithubClick({ key });
-                  }
-                },
-              }}
-              trigger={["click"]}
-              placement="bottomRight"
-              destroyOnHidden
-            >
-              <button
-                className="ax-titlebar-btn"
-                style={{ color: token.colorTextSecondary }}
-              >
-                <Ellipsis size={12} color={TITLEBAR_ICON_COLORS.GitFork} />
-              </button>
-            </Dropdown>
+              </Dropdown>
+            )}
 
             {/* Notification Bell */}
             <NotificationBell />

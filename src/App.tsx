@@ -4,6 +4,7 @@ import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
 import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
 import { GlobalErrorBoundary } from "@/components/layout/GlobalErrorBoundary";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
@@ -256,14 +257,14 @@ function AppInner() {
               </ModuleErrorBoundary>
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
-              {/* 移动端：滑出式导航抽屉 + 全宽内容区 */}
+              {/* 移动端：滑出式导航抽屉 + 全宽内容区 + 底部导航栏 */}
               {deviceLayout === "mobile" && (
                 <>
                   <Drawer
                     open={mobileNavOpen}
                     onClose={() => setMobileNavOpen(false)}
                     placement="left"
-                    width={240}
+                    width={280}
                     styles={{ body: { padding: 0 } }}
                     closeIcon={null}
                   >
@@ -271,14 +272,15 @@ function AppInner() {
                       <Sidebar />
                     </ModuleErrorBoundary>
                   </Drawer>
-                  <div className="flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden" style={{ display: "flex", flexDirection: "column" }}>
                     <div
                       className="ax-page-transition"
-                      style={{ height: "100%" }}
+                      style={{ flex: 1, minHeight: 0 }}
                       key={location.key}
                     >
                       <ContentArea />
                     </div>
+                    <MobileBottomNav />
                   </div>
                 </>
               )}
