@@ -23,8 +23,10 @@ impl Default for GeminiAdapter {
 impl GeminiAdapter {
     pub fn new() -> Self {
         Self {
-            client: crate::build_default_http_client()
-                .expect("Failed to build default HTTP client"),
+            client: crate::build_default_http_client().unwrap_or_else(|e| {
+                tracing::warn!("无法构建 Gemini HTTP 客户端: {e}，降级为默认客户端");
+                reqwest::Client::new()
+            }),
         }
     }
 

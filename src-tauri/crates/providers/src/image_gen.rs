@@ -69,11 +69,10 @@ impl FluxProvider {
     pub fn new(api_token: String) -> Self {
         Self {
             api_token,
-            client: crate::build_default_http_client()
-                .map_err(|e| {
-                    ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e))
-                })
-                .expect("Failed to build default HTTP client"),
+            client: crate::build_default_http_client().unwrap_or_else(|e| {
+                tracing::warn!("无法构建 ImageGen HTTP 客户端: {e}，降级为默认客户端");
+                reqwest::Client::new()
+            }),
         }
     }
 }
@@ -180,11 +179,10 @@ impl DallEProvider {
         Self {
             api_key,
             base_url: base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string()),
-            client: crate::build_default_http_client()
-                .map_err(|e| {
-                    ImageGenError::ProviderError(format!("Failed to build HTTP client: {}", e))
-                })
-                .expect("Failed to build default HTTP client"),
+            client: crate::build_default_http_client().unwrap_or_else(|e| {
+                tracing::warn!("无法构建 ImageGen HTTP 客户端: {e}，降级为默认客户端");
+                reqwest::Client::new()
+            }),
         }
     }
 }
