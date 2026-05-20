@@ -378,3 +378,37 @@ fn worker_provider_failure_flows_through_recovery_to_policy() {
         "post-recovery green+approved lane should be merge-ready"
     );
 }
+
+// ── 安全链集成测试: SSRF 防护 (bash 硬门禁已有 5 个单元测试) ──
+
+#[test]
+fn ssrf_protection_blocks_private_ips() {
+    use axagent_core::search::is_safe_url;
+
+    assert!(!is_safe_url("http://127.0.0.1:8080/admin"));
+    assert!(!is_safe_url("http://localhost:3000/api"));
+    assert!(!is_safe_url("http://10.0.0.1:8080/secret"));
+    assert!(!is_safe_url("http://192.168.1.1:80/"));
+    assert!(!is_safe_url("http://[::1]:9090/"));
+    assert!(!is_safe_url("http://0.0.0.0:8000/"));
+    assert!(!is_safe_url("http://172.16.0.1:443/"));
+    assert!(!is_safe_url("http://172.31.255.255:443/"));
+}
+
+#[test]
+fn ssrf_protection_allows_public_urls() {
+    use axagent_core::search::is_safe_url;
+
+    assert!(is_safe_url("https://example.com"));
+    assert!(is_safe_url("https://api.openai.com/v1/chat"));
+    assert!(is_safe_url("https://github.com/polite0803/AxAgent"));
+}
+
+#[test]
+fn ssrf_protection_rejects_non_http_schemes() {
+    use axagent_core::search::is_safe_url;
+
+    assert!(!is_safe_url("file:///etc/passwd"));
+    assert!(!is_safe_url("ftp://example.com/file"));
+    assert!(!is_safe_url("gopher://localhost:70/1"));
+}

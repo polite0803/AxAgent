@@ -601,7 +601,7 @@ pub fn attempt_recovery(scenario: &FailureScenario, ctx: &mut RecoveryContext) -
 }
 
 #[cfg(test)]
-mod tests {
+mod recovery_tests {
     use super::*;
 
     #[test]
