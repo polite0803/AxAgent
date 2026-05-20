@@ -683,10 +683,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         );
       } catch (preferenceError) {
         // 非致命：对话已创建，偏好设置未应用，使用默认值
-        console.warn(
-          "[createConversation] 偏好设置更新失败，使用默认值:",
-          preferenceError,
-        );
+        console.warn(`[createConversation] 偏好设置更新失败，使用默认值:`, preferenceError);
       }
       // Clean up the previous active conversation's stores before switching.
       // createConversation bypassed setActiveConversation, which would normally
