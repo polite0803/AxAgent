@@ -1,3 +1,4 @@
+import { useUIStore } from "@/stores";
 import { type BuddyAttributes, useBuddyStore } from "@/stores/feature/buddyStore";
 import { CloseOutlined, EyeInvisibleOutlined, EyeOutlined, RobotOutlined } from "@ant-design/icons";
 import { Button, Card, Progress, Tag, Typography } from "antd";
@@ -35,6 +36,12 @@ export function BuddyWidget() {
   const togglePanel = useBuddyStore((s) => s.togglePanel);
   const setVisible = useBuddyStore((s) => s.setVisible);
   const setPosition = useBuddyStore((s) => s.setPosition);
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+
+  // 移动端下隐藏 BuddyWidget（避免遮挡发送按钮）
+  if (deviceLayout === "mobile") {
+    return null;
+  }
 
   const rarityLabels = useMemo(
     () => ({

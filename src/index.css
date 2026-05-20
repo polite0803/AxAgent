@@ -80,7 +80,8 @@ button,
   }
 }
 .ax-page-transition {
-  animation: ax-page-enter 0.2s ease-out;
+  /* 移除页面切换动画以避免交互卡滞感 */
+  animation: none;
 }
 
 /* Message slide-up (applied by ChatView) */
