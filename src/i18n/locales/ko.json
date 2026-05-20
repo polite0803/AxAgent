@@ -1079,7 +1079,7 @@
     "language": "언어",
     "theme": {
       "label": "테마",
-      "title": "테마 관리자",
+      "title": "테마",
       "description": "애플리케이션 테마 및 색상 구성표 관리",
       "builtInThemes": "내장 테마",
       "customThemes": "사용자 정의 테마",
@@ -2022,10 +2022,11 @@
     "imageGen": {
       "defaultProvider": "Default Provider",
       "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)"
+      "providerDalle": "DALL-E 3 (OpenAI)",
+      "title": "이미지 생성"
     },
     "cron": {
-      "title": "Cron Jobs",
+      "title": "크론 작업",
       "addJob": "Add Cron Job",
       "empty": "No cron jobs configured",
       "namePlaceholder": "Daily summary",

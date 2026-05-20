@@ -999,7 +999,7 @@
     "language": "भाषा",
     "theme": {
       "label": "थीम",
-      "title": "थीम प्रबंधक",
+      "title": "थीम",
       "description": "एप्लिकेशन थीम और रंग योजनाएं प्रबंधित करें",
       "builtInThemes": "अंतर्निहित थीम",
       "customThemes": "कस्टम थीम",
@@ -1998,10 +1998,11 @@
     "imageGen": {
       "defaultProvider": "Default Provider",
       "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)"
+      "providerDalle": "DALL-E 3 (OpenAI)",
+      "title": "छवि निर्माण"
     },
     "cron": {
-      "title": "Cron Jobs",
+      "title": "क्रॉन कार्य",
       "addJob": "Add Cron Job",
       "empty": "No cron jobs configured",
       "namePlaceholder": "Daily summary",

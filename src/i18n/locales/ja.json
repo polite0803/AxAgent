@@ -1079,7 +1079,7 @@
     "language": "言語",
     "theme": {
       "label": "テーマ",
-      "title": "テーママネージャー",
+      "title": "テーマ",
       "description": "アプリケーションのテーマとカラースキームを管理",
       "builtInThemes": "組み込みテーマ",
       "customThemes": "カスタムテーマ",
@@ -2022,10 +2022,11 @@
     "imageGen": {
       "defaultProvider": "默认服务商",
       "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)"
+      "providerDalle": "DALL-E 3 (OpenAI)",
+      "title": "画像生成"
     },
     "cron": {
-      "title": "定时任务",
+      "title": "定期タスク",
       "addJob": "添加定时任务",
       "empty": "暂无定时任务",
       "namePlaceholder": "每日摘要",

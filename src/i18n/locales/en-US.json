@@ -2091,7 +2091,8 @@
     "imageGen": {
       "defaultProvider": "Default Provider",
       "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)"
+      "providerDalle": "DALL-E 3 (OpenAI)",
+      "title": "Image Generation"
     },
     "cron": {
       "title": "Cron Jobs",
@@ -2363,7 +2364,7 @@
     },
     "theme": {
       "label": "Theme",
-      "title": "Theme Manager",
+      "title": "Theme",
       "description": "Manage application themes and color schemes",
       "builtInThemes": "Built-in Themes",
       "customThemes": "Custom Themes",

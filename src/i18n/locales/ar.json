@@ -1042,7 +1042,7 @@
     "language": "اللغة",
     "theme": {
       "label": "السمة",
-      "title": "مدير السمات",
+      "title": "السمة",
       "description": "إدارة سمات التطبيق ومخططات الألوان",
       "builtInThemes": "السمات المضمنة",
       "customThemes": "السمات المخصصة",
@@ -1985,10 +1985,11 @@
     "imageGen": {
       "defaultProvider": "Default Provider",
       "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)"
+      "providerDalle": "DALL-E 3 (OpenAI)",
+      "title": "توليد الصور"
     },
     "cron": {
-      "title": "Cron Jobs",
+      "title": "مهام كرون",
       "addJob": "Add Cron Job",
       "empty": "No cron jobs configured",
       "namePlaceholder": "Daily summary",

@@ -1036,7 +1036,7 @@
     "language": "語言",
     "theme": {
       "label": "主題",
-      "title": "主題管理",
+      "title": "主題",
       "description": "管理應用主題和色彩方案",
       "builtInThemes": "內建主題",
       "customThemes": "自訂主題",
@@ -2022,7 +2022,8 @@
     "imageGen": {
       "defaultProvider": "默認服務商",
       "providerFlux": "Flux (Replicate)",
-      "providerDalle": "DALL-E 3 (OpenAI)"
+      "providerDalle": "DALL-E 3 (OpenAI)",
+      "title": "圖片生成"
     },
     "cron": {
       "title": "定時任務",
