@@ -231,7 +231,11 @@ function AppInner() {
     <>
       <div
         className="flex flex-col h-screen"
-        style={{ backgroundColor: token.colorBgContainer }}
+        style={{
+          backgroundColor: token.colorBgContainer,
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
       >
         {isQuickBar
           ? (

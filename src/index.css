@@ -39,6 +39,21 @@ body {
   font-weight: var(--font-weight, 400);
   user-select: auto;
   -webkit-user-select: auto;
+  /* 安卓沉浸式：安全区变量 */
+  --ax-safe-top: env(safe-area-inset-top, 0px);
+  --ax-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ax-safe-left: env(safe-area-inset-left, 0px);
+  --ax-safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* 安卓环境：为头部区域预留状态栏空间 */
+.ax-safe-top {
+  padding-top: var(--ax-safe-top, 0px);
+}
+
+/* 安卓环境：为底部区域预留导航栏空间 */
+.ax-safe-bottom {
+  padding-bottom: var(--ax-safe-bottom, 0px);
 }
 
 /* ── Selection: allow globally, disable only on draggable / interactive ── */
