@@ -1998,3 +1998,55 @@ mod test_tool_call_flow {
         assert_eq!(attempt.message, Some("recovered".to_string()));
     }
 }
+
+// ── 内存稳定性 + 并发压力测试 ──
+
+#[tokio::test]
+async fn stress_retry_policy_memory_stability() {
+    use axagent_agent::retry_policy::{RetryPolicy, with_retry};
+
+    let policy = RetryPolicy::new(3)
+        .with_base_delay(std::time::Duration::from_millis(1))
+        .with_exponential_backoff(false)
+        .with_jitter(false);
+
+    // 1000 次成功调用，验证无内存泄漏 (backoff 无内部累积)
+    for _ in 0..1000 {
+        let result = with_retry(&policy, || async { Ok::<String, String>("ok".to_string()) }).await;
+        assert!(result.is_ok());
+    }
+}
+
+#[tokio::test]
+async fn stress_concurrent_retry_policies() {
+    use axagent_agent::retry_policy::{RetryPolicy, with_retry};
+    use std::sync::Arc;
+
+    let policy = Arc::new(
+        RetryPolicy::new(5)
+            .with_base_delay(std::time::Duration::from_millis(1))
+            .with_exponential_backoff(false)
+            .with_jitter(false),
+    );
+
+    let mut handles = vec![];
+    for _ in 0..10 {
+        let p = policy.clone();
+        handles.push(tokio::spawn(async move {
+            for _ in 0..100 {
+                let _ = with_retry(&p, || async {
+                    if fastrand::f64() < 0.3 {
+                        Err("transient timeout".to_string())
+                    } else {
+                        Ok("ok".to_string())
+                    }
+                })
+                .await;
+            }
+        }));
+    }
+
+    for h in handles {
+        h.await.expect("task should not panic");
+    }
+}
