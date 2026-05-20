@@ -1,4 +1,6 @@
 use crate::recovery_strategies::{ErrorClassifier, ErrorType};
+use backoff::ExponentialBackoff;
+use backoff::backoff::Backoff;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -44,31 +46,36 @@ impl RetryPolicy {
         self
     }
 
+    /// 构建 `backoff::ExponentialBackoff`，将自研退避逻辑委托给社区 crate
+    fn to_backoff(&self) -> ExponentialBackoff {
+        let mut eb = ExponentialBackoff {
+            current_interval: self.base_delay,
+            initial_interval: self.base_delay,
+            max_interval: self.max_delay,
+            max_elapsed_time: None, // 由 should_retry 控制终止
+            randomization_factor: if self.jitter { 0.1 } else { 0.0 },
+            multiplier: if self.exponential_backoff { 2.0 } else { 1.0 },
+            ..ExponentialBackoff::default()
+        };
+        // reset 到初始状态
+        eb.reset();
+        eb
+    }
+
     pub fn should_retry(&self, attempt: usize, error_type: ErrorType) -> bool {
         if attempt >= self.max_attempts {
             return false;
         }
-
         self.retry_on.contains(&error_type)
     }
 
+    /// 委托给 `backoff::ExponentialBackoff` 计算下次延迟
     pub fn next_delay(&self, attempt: usize) -> Duration {
-        let base = if self.exponential_backoff {
-            self.base_delay * 2u32.pow(attempt as u32)
-        } else {
-            self.base_delay
-        };
-
-        let delay = base.min(self.max_delay);
-
-        if self.jitter {
-            let jitter_range = delay.as_millis() as f64 * 0.1;
-            let jitter = (fastrand::f64() - 0.5) * 2.0 * jitter_range;
-            let millis = delay.as_millis() as i64 + jitter as i64;
-            Duration::from_millis(millis.max(0) as u64)
-        } else {
-            delay
+        let mut eb = self.to_backoff();
+        for _ in 0..attempt {
+            let _ = eb.next_backoff();
         }
+        eb.next_backoff().unwrap_or(self.max_delay)
     }
 
     pub fn total_timeout(&self) -> Duration {
@@ -133,6 +140,7 @@ where
     let classifier = ErrorClassifier::new();
     let mut state = RetryState::new();
     let start = std::time::Instant::now();
+    let mut backoff = policy.to_backoff();
 
     loop {
         match f().await {
@@ -145,19 +153,19 @@ where
 
                 if !policy.should_retry(state.current_attempt, error_type) {
                     return Err(RetryError::Exhausted {
-                        errors: state.errors,
+                        errors: std::mem::take(&mut state.errors),
                         attempts: state.current_attempt,
                         last_error: error_str,
                         elapsed: start.elapsed(),
                     });
                 }
 
-                let delay = policy.next_delay(state.current_attempt);
+                let delay = backoff.next_backoff().unwrap_or(policy.max_delay);
                 state.increment(error_str.clone(), delay.as_millis() as u64);
 
                 if state.current_attempt >= policy.max_attempts {
                     return Err(RetryError::Exhausted {
-                        errors: state.errors,
+                        errors: std::mem::take(&mut state.errors),
                         attempts: state.current_attempt,
                         last_error: error_str,
                         elapsed: start.elapsed(),
