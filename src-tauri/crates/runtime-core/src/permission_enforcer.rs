@@ -25,6 +25,16 @@ pub enum EnforcementResult {
     },
 }
 
+/// 权限检查抽象接口。
+/// 高层模块（如 Agent）应依赖此 trait 而非具体 `PermissionEnforcer` 实现，
+/// 以支持测试替换和未来策略变更。
+pub trait PermissionChecker: Send + Sync {
+    fn check(&self, tool_name: &str, input: &str) -> EnforcementResult;
+    fn is_allowed(&self, tool_name: &str, input: &str) -> bool;
+    fn check_file_write(&self, path: &str, workspace_root: &str) -> EnforcementResult;
+    fn check_bash(&self, command: &str) -> EnforcementResult;
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PermissionEnforcer {
     policy: PermissionPolicy,
@@ -192,6 +202,24 @@ impl PermissionEnforcer {
             // WorkspaceWrite, Allow, DangerFullAccess: permit bash
             _ => EnforcementResult::Allowed,
         }
+    }
+}
+
+impl PermissionChecker for PermissionEnforcer {
+    fn check(&self, tool_name: &str, input: &str) -> EnforcementResult {
+        self.check(tool_name, input)
+    }
+
+    fn is_allowed(&self, tool_name: &str, input: &str) -> bool {
+        self.is_allowed(tool_name, input)
+    }
+
+    fn check_file_write(&self, path: &str, workspace_root: &str) -> EnforcementResult {
+        self.check_file_write(path, workspace_root)
+    }
+
+    fn check_bash(&self, command: &str) -> EnforcementResult {
+        self.check_bash(command)
     }
 }
 

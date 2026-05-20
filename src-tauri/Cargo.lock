@@ -1085,6 +1085,7 @@ version = "2.0.1"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axagent-agent",
  "axagent-core",
  "axagent-plugins",
  "axagent-prompt-guard",

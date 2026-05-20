@@ -60,6 +60,19 @@ impl ErrorKind {
     }
 }
 
+/// 将 runtime 层 HTTP 错误分类桥接到 agent 层的抽象错误类型。
+impl From<ErrorKind> for axagent_agent::ErrorType {
+    fn from(kind: ErrorKind) -> Self {
+        match kind {
+            ErrorKind::RateLimit => axagent_agent::ErrorType::Transient,
+            ErrorKind::ServerError => axagent_agent::ErrorType::Transient,
+            ErrorKind::NetworkError => axagent_agent::ErrorType::Transient,
+            ErrorKind::ClientError => axagent_agent::ErrorType::Recoverable,
+            ErrorKind::Unknown => axagent_agent::ErrorType::Unknown,
+        }
+    }
+}
+
 /// 重试策略配置
 #[derive(Debug, Clone)]
 pub struct RetryPolicy {

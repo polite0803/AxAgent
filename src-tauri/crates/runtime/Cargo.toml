@@ -29,6 +29,7 @@ dirs = "5"
 urlencoding = "2"
 tokio-util = { version = "0.7", features = ["rt"] }
 sea-orm = { workspace = true }
+axagent-agent = { path = "../agent" }
 axagent-core = { path = "../core" }
 axagent-runtime-core = { path = "../runtime-core" }
 axagent-prompt-guard = { path = "../prompt-guard" }
