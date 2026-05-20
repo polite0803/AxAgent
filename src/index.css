@@ -66,29 +66,26 @@ button,
 
 /* ── Animation system ─────────────────────────────────────────────── */
 
-/* Page enter: fade + slight slide + blur */
+/* Page enter: fade + slide — 0.25s 足够感知但不造成卡滞 */
 @keyframes ax-page-enter {
   from {
     opacity: 0;
-    transform: translateY(4px);
-    filter: blur(2px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 .ax-page-transition {
-  /* 移除页面切换动画以避免交互卡滞感 */
-  animation: none;
+  animation: ax-page-enter 0.25s ease-out;
 }
 
 /* 移动端浮动导航面板弹入动画 */
 @keyframes axFloatIn {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.95);
+    transform: translateY(16px) scale(0.92);
   }
   to {
     opacity: 1;
@@ -1240,7 +1237,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── Performance: reduce animations on mobile ──────────────────
    ═══════════════════════════════════════════════════════════════ */
-@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+@media (prefers-reduced-motion: reduce) {
   .ax-page-transition,
   .ax-cyber-fade-in {
     animation: none !important;
@@ -1265,5 +1262,20 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
   .ax-skeleton {
     animation-duration: 3s !important;
+  }
+}
+
+/* 移动端：动画保留但更轻更快 */
+@media (max-width: 768px) {
+  .ax-page-transition {
+    animation: ax-page-enter 0.12s ease-out;
+  }
+
+  .ax-cyber-border::before {
+    animation: none !important;
+  }
+
+  .ax-cyber-fade-in {
+    animation: axFloatIn 0.15s ease-out;
   }
 }

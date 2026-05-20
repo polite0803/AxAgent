@@ -310,7 +310,11 @@ function AppInner() {
                     </div>
                   )}
                   <Content className="overflow-hidden">
-                    <div className="ax-page-transition" style={{ height: "100%" }}>
+                    <div
+                      className="ax-page-transition"
+                      style={{ height: "100%" }}
+                      key={location.pathname}
+                    >
                       <ContentArea />
                     </div>
                   </Content>
