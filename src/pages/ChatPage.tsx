@@ -5,7 +5,7 @@ import { RightPanelContainer } from "@/components/chat/RightPanelContainer";
 import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
 import { TabBar } from "@/components/chat/TabBar";
 import { useSkillChatCommands } from "@/components/skill/SkillChatCommands";
-import { useConversationStore, useProviderStore, useSettingsStore, useTabStore } from "@/stores";
+import { useConversationStore, useProviderStore, useSettingsStore, useTabStore, useUIStore } from "@/stores";
 import { theme } from "antd";
 import { ChevronRight, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,6 +30,8 @@ export function ChatPage() {
   const conversationCount = useConversationStore((s) => s.conversations.length);
   const fetchProviders = useProviderStore((s) => s.fetchProviders);
   const providerCount = useProviderStore((s) => s.providers.length);
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+  const isMobile = deviceLayout === "mobile";
 
   // 右侧面板状态
   const settings = useSettingsStore((s) => s.settings);
@@ -224,25 +226,55 @@ export function ChatPage() {
   return (
     <div
       className="flex h-full"
-      style={{ overflow: "hidden" }}
+      style={{ overflow: "hidden", position: isMobile ? "relative" : "static" }}
       data-testid="chat-view"
     >
       {/* 左侧会话列表 */}
       <div
         ref={sidebarRef}
-        className="h-full transition-all duration-200"
+        className="h-full"
         style={{
-          width: sidebarCollapsed ? 48 : sidebarWidth,
-          borderRight: "1px solid var(--border-color)",
+          width: sidebarCollapsed ? (isMobile ? 0 : 48) : (isMobile ? 280 : sidebarWidth),
+          borderRight: sidebarCollapsed ? "none" : "1px solid var(--border-color)",
           backgroundColor: token.colorBgContainer,
           flexShrink: 0,
           transition: dragging ? "none" : "width 0.2s",
+          position: isMobile ? "absolute" : "relative",
+          zIndex: isMobile ? 50 : "auto",
+          height: isMobile ? "100%" : "auto",
         }}
       >
-        <ChatSidebar onCollapseChange={setSidebarCollapsed} />
+        {(!sidebarCollapsed || !isMobile) && <ChatSidebar onCollapseChange={setSidebarCollapsed} />}
       </div>
-      {/* 左侧拖拽手柄 */}
-      {!sidebarCollapsed && (
+      {/* 移动端：折叠时显示浮动切换按钮 */}
+      {isMobile && sidebarCollapsed && (
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed(false)}
+          style={{
+            position: "absolute",
+            left: 8,
+            top: 52,
+            zIndex: 51,
+            width: 32,
+            height: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: 8,
+            backgroundColor: token.colorBgElevated,
+            color: token.colorTextSecondary,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+          aria-label={t("sidebar.expand")}
+        >
+          <PanelRight size={16} />
+        </button>
+      )}
+      {/* 左侧拖拽手柄 — 移动端无拖拽 */}
+      {!sidebarCollapsed && !isMobile && (
         <div
           onMouseDown={handleLeftMouseDown}
           role="separator"
