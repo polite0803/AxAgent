@@ -110,3 +110,51 @@ fn test_recovery_adjustments() {
     ];
     assert_eq!(adjustments.len(), 5);
 }
+
+// ── retry_policy + backoff crate 集成测试 ──
+
+#[tokio::test]
+async fn with_retry_succeeds_on_first_attempt() {
+    use axagent_agent::retry_policy::{RetryPolicy, with_retry};
+
+    let policy = RetryPolicy::new(3);
+    let result = with_retry(&policy, || async { Ok::<_, &str>("success") }).await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), "success");
+}
+
+#[tokio::test]
+async fn with_retry_exhausts_after_max_attempts() {
+    use axagent_agent::retry_policy::{RetryError, RetryPolicy, with_retry};
+
+    let policy = RetryPolicy::new(2)
+        .with_base_delay(std::time::Duration::from_millis(1))
+        .with_exponential_backoff(false)
+        .with_jitter(false);
+
+    let result = with_retry(&policy, || async { Err::<(), _>("timeout") }).await;
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        RetryError::Exhausted { attempts, .. } => assert_eq!(attempts, 2),
+        other => panic!("expected Exhausted, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn with_retry_stops_on_unrecoverable() {
+    use axagent_agent::retry_policy::{RetryError, RetryPolicy, with_retry};
+
+    let policy = RetryPolicy::new(5)
+        .with_base_delay(std::time::Duration::from_millis(1))
+        .with_exponential_backoff(false)
+        .with_jitter(false);
+
+    let err_msg = "500 parse error: invalid syntax";
+    let result = with_retry(&policy, || async { Err::<(), _>(err_msg) }).await;
+    assert!(result.is_err());
+    // 不可恢复错误应在第 1 次失败后立即停止
+    match result.unwrap_err() {
+        RetryError::Exhausted { attempts, .. } => assert_eq!(attempts, 1),
+        other => panic!("expected Exhausted with 1 attempt, got {other:?}"),
+    }
+}
