@@ -5795,7 +5795,10 @@
   "cacheIndicator": {
     "notEstablished": "Prompt 缓存未建立。会话首轮。",
     "pendingChanges": "检测到待生效变更。变更将在下次会话生效。使用 --now 强制生效。",
-    "active": "缓存已激活。{{hits}} 次命中，~{{tokens}} tokens 已节省。"
+    "active": "缓存已激活。{{hits}} 次命中，~{{tokens}} tokens 已节省。",
+    "fresh": "新会话",
+    "pending": "待生效",
+    "cached": "已缓存"
   },
   "artifactPanel": {
     "fullscreen": "全屏"

@@ -5994,7 +5994,10 @@
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",
-    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force."
+    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force.",
+    "fresh": "Nuevo",
+    "pending": "Pendiente",
+    "cached": "En caché"
   },
   "artifactPanel": {
     "fullscreen": "Fullscreen"

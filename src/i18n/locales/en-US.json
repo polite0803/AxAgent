@@ -5795,7 +5795,10 @@
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",
     "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force.",
-    "active": "Cache active. {{hits}} hits, ~{{tokens}} tokens saved."
+    "active": "Cache active. {{hits}} hits, ~{{tokens}} tokens saved.",
+    "fresh": "Fresh",
+    "pending": "Pending",
+    "cached": "Cached"
   },
   "artifactPanel": {
     "fullscreen": "Fullscreen"

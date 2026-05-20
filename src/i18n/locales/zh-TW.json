@@ -5994,7 +5994,10 @@
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",
-    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force."
+    "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force.",
+    "fresh": "新會話",
+    "pending": "待生效",
+    "cached": "已快取"
   },
   "artifactPanel": {
     "fullscreen": "Fullscreen"

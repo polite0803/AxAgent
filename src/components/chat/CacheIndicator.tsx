@@ -25,7 +25,7 @@ export function CacheIndicator({
           style={{ margin: 0 }}
           data-testid="cache-indicator"
         >
-          Fresh
+          {t("cacheIndicator.fresh")}
         </Tag>
       </Tooltip>
     );
@@ -40,7 +40,7 @@ export function CacheIndicator({
           style={{ margin: 0 }}
           data-testid="cache-indicator"
         >
-          Pending
+          {t("cacheIndicator.pending")}
         </Tag>
       </Tooltip>
     );
@@ -59,7 +59,7 @@ export function CacheIndicator({
         style={{ margin: 0 }}
         data-testid="cache-indicator"
       >
-        Cached
+        {t("cacheIndicator.cached")}
       </Tag>
     </Tooltip>
   );
