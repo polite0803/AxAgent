@@ -46,14 +46,24 @@ body {
   --ax-safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* 安卓环境：为头部区域预留状态栏空间 */
+/*
+ * 安卓沉浸式安全区
+ * env(safe-area-inset-*) 动态响应：
+ *   - 底部导航栏可见（3 按钮模式）→ inset-bottom ≈ 48px
+ *   - 底部导航栏隐藏（手势导航）   → inset-bottom = 0
+ *   - 浏览器实时更新，无需 JS 监听
+ */
 .ax-safe-top {
-  padding-top: var(--ax-safe-top, 0px);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* 安卓环境：为底部区域预留导航栏空间 */
 .ax-safe-bottom {
-  padding-bottom: var(--ax-safe-bottom, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 浮动元素需要 bottom 值也跟随安全区 */
+.ax-safe-fixed-bottom {
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── Selection: allow globally, disable only on draggable / interactive ── */

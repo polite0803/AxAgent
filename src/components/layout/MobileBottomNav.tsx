@@ -74,9 +74,9 @@ export function MobileBottomNav() {
   return (
     <div
       ref={panelRef}
+      className="ax-safe-fixed-bottom"
       style={{
         position: "fixed",
-        bottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 900,
