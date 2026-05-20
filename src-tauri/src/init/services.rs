@@ -106,28 +106,36 @@ fn start_auto_backup(_app: &tauri::AppHandle, state: &AppState, app_dir: std::pa
 
 fn start_memory_maintenance_tick(state: &AppState) {
     let memory_service = state.memory_service.clone();
-    tauri::async_runtime::spawn(async move {
+    let token = state.shutdown_token.clone();
+    state.task_manager.spawn("memory_maintenance", async move {
         let interval = std::time::Duration::from_secs(7200);
         loop {
-            tokio::time::sleep(interval).await;
-            let ms = memory_service.read().await;
-            let disambiguation = ms.disambiguate_entities();
-            drop(ms);
-            if disambiguation.merged > 0 {
-                tracing::info!(
-                    "[memory_maintenance] Disambiguated entities: merged {} of {}",
-                    disambiguation.merged,
-                    disambiguation.total
-                );
-            }
-            let ms = memory_service.read().await;
-            let clusters = ms.find_similar_clusters(0.75);
-            drop(ms);
-            if !clusters.is_empty() {
-                tracing::info!(
-                    "[memory_maintenance] Found {} similar memory clusters (potential duplicates)",
-                    clusters.len()
-                );
+            tokio::select! {
+                _ = token.cancelled() => {
+                    tracing::info!("[memory_maintenance] 收到关闭信号");
+                    break;
+                }
+                _ = tokio::time::sleep(interval) => {
+                    let ms = memory_service.read().await;
+                    let disambiguation = ms.disambiguate_entities();
+                    drop(ms);
+                    if disambiguation.merged > 0 {
+                        tracing::info!(
+                            "[memory_maintenance] Disambiguated entities: merged {} of {}",
+                            disambiguation.merged,
+                            disambiguation.total
+                        );
+                    }
+                    let ms = memory_service.read().await;
+                    let clusters = ms.find_similar_clusters(0.75);
+                    drop(ms);
+                    if !clusters.is_empty() {
+                        tracing::info!(
+                            "[memory_maintenance] Found {} similar memory clusters (potential duplicates)",
+                            clusters.len()
+                        );
+                    }
+                }
             }
         }
     });
@@ -539,10 +547,16 @@ fn start_batch_processing(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let batch_processor = state.batch_processor.clone();
     let insight_system = state.insight_system.clone();
-    tauri::async_runtime::spawn(async move {
+    let token = state.shutdown_token.clone();
+    state.task_manager.spawn("batch_processing", async move {
         let interval = std::time::Duration::from_secs(60 * 60);
         loop {
-            tokio::time::sleep(interval).await;
+            tokio::select! {
+                _ = token.cancelled() => {
+                    tracing::info!("[batch_processing] 收到关闭信号");
+                    break;
+                }
+                _ = tokio::time::sleep(interval) => {
             let bp = &*batch_processor;
             let trajectories: Vec<axagent_trajectory::Trajectory> =
                 match trajectory_storage.get_trajectories(Some(50)) {
@@ -573,6 +587,8 @@ fn start_batch_processing(state: &AppState) {
                 } else { None },
                 created_at: chrono::Utc::now().timestamp_millis(),
             });
+                }
+            }
         }
     });
 }
