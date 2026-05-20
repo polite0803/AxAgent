@@ -13,7 +13,6 @@ import { WelcomeWizard } from "@/components/onboarding/WelcomeWizard";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPanels } from "@/components/skill/SkillPanels";
 import { SkillStatusBar } from "@/components/skill/SkillStatusBar";
-import { StatusBarWidget } from "@/components/terminal/StatusBarWidget";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
 import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
@@ -65,6 +64,17 @@ async function showWindow() {
   } catch (e) {
     console.warn("Failed to show window:", e);
   }
+}
+
+/** 仅当技能扩展注册了状态栏项时才渲染 */
+function ConditionalSkillStatusBar() {
+  const count = useSkillExtensionStore((s) => s.statusBarItems.length);
+  if (count === 0) { return null; }
+  return (
+    <ModuleErrorBoundary moduleName="SkillStatusBar">
+      <SkillStatusBar alignment="right" />
+    </ModuleErrorBoundary>
+  );
 }
 
 function AppInner() {
@@ -252,9 +262,7 @@ function AppInner() {
               <ModuleErrorBoundary moduleName="TitleBar">
                 <TitleBar />
               </ModuleErrorBoundary>
-              <ModuleErrorBoundary moduleName="SkillStatusBar">
-                <SkillStatusBar alignment="right" />
-              </ModuleErrorBoundary>
+              <ConditionalSkillStatusBar />
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
               {/* 移动端：滑出式导航抽屉 + 全宽内容区 + 底部导航栏 */}
@@ -315,9 +323,6 @@ function AppInner() {
                   </Content>
                 </Layout>
               )}
-              <ModuleErrorBoundary moduleName="StatusBarWidget">
-                <StatusBarWidget />
-              </ModuleErrorBoundary>
             </>
           )}
       </div>

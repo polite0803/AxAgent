@@ -1,6 +1,7 @@
 import { DockerConfigModal } from "@/components/terminal/DockerConfigModal";
 import { IntegratedTerminal } from "@/components/terminal/IntegratedTerminal";
 import { SshConfigModal } from "@/components/terminal/SshConfigModal";
+import { StatusBarWidget } from "@/components/terminal/StatusBarWidget";
 import { TerminalBackendSelector } from "@/components/terminal/TerminalBackendSelector";
 import { useTerminalStore } from "@/stores/feature/terminalStore";
 import { message } from "antd";
@@ -9,7 +10,8 @@ import { useTranslation } from "react-i18next";
 
 export function TerminalPage() {
   const { t } = useTranslation();
-  const { sessions } = useTerminalStore();
+  const { sessions, activeSessionId } = useTerminalStore();
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
 
   const [dockerModalOpen, setDockerModalOpen] = useState(false);
   const [sshModalOpen, setSshModalOpen] = useState(false);
@@ -99,6 +101,8 @@ export function TerminalPage() {
         onClose={() => setSshModalOpen(false)}
         onConnect={handleSshConnect}
       />
+
+      <StatusBarWidget sessionId={activeSession?.id} />
     </div>
   );
 }
