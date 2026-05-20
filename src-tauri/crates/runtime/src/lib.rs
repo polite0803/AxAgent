@@ -18,10 +18,8 @@ pub mod collaboration;
 pub mod cron;
 pub mod dashboard_plugin;
 pub mod dashboard_registry;
-pub mod engine_bridge;
 pub mod error_recovery;
 mod file_ops;
-pub mod general_engine;
 mod git_context;
 pub mod git_tools;
 pub mod green_contract;
@@ -51,14 +49,13 @@ mod prompt;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod pty;
 pub mod reactive_compact;
-pub mod recovery_recipes;
+// recovery_recipes merged into error_recovery
 mod remote;
 pub mod resource_governor;
 pub mod session_search;
 pub mod shared_memory;
 pub mod shell_completer;
 pub mod shell_hooks;
-mod sse;
 pub mod stale_base;
 pub mod stale_branch;
 pub mod summary_compression;
@@ -76,8 +73,6 @@ pub mod tool_generator;
 pub mod transform_pipeline;
 pub mod transport_handlers;
 pub mod validation_executor;
-pub mod webhook_dispatcher;
-pub mod webhook_server;
 pub mod webhook_subscription;
 pub mod work_engine;
 pub mod workflow_engine;
@@ -158,13 +153,13 @@ pub use prompt::{
     prepend_bullets,
 };
 
+pub use error_recovery::{
+    EscalationPolicy, FailureScenario, RecoveryContext, RecoveryEvent, RecoveryRecipe,
+    RecoveryResult, RecoveryStep, attempt_recovery, recipe_for,
+};
 pub use reactive_compact::{
     ReactiveCompactResult, ReactiveTrigger, classify_trigger, is_context_overflow_error,
     is_media_size_error, try_reactive_compact,
-};
-pub use recovery_recipes::{
-    EscalationPolicy, FailureScenario, RecoveryContext, RecoveryEvent, RecoveryRecipe,
-    RecoveryResult, RecoveryStep, attempt_recovery, recipe_for,
 };
 pub use remote::{
     DEFAULT_REMOTE_BASE_URL, DEFAULT_SESSION_TOKEN_PATH, DEFAULT_SYSTEM_CA_BUNDLE, NO_PROXY_HOSTS,
@@ -175,7 +170,6 @@ pub use remote::{
 pub use session_search::{
     IndexedMessage, SearchQuery as RuntimeSearchQuery, SearchResult, SessionSearchEngine,
 };
-pub use sse::{IncrementalSseParser, SseEvent};
 pub use stale_base::{
     BaseCommitSource, BaseCommitState, check_base_commit, format_stale_base_warning,
     read_claw_base_file, resolve_expected_base,

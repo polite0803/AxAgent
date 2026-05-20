@@ -834,7 +834,22 @@ pub async fn is_safe_url_deep(url_str: &str) -> bool {
                 {
                     return false;
                 },
-                std::net::IpAddr::V6(v6) if v6.is_loopback() || v6.is_unspecified() => {
+                std::net::IpAddr::V6(v6)
+                    if v6.is_loopback()
+                        || v6.is_unspecified()
+                        // fc00::/7 (唯一本地地址)
+                        || (v6.segments()[0] & 0xfe00 == 0xfc00)
+                        // fe80::/10 (链路本地地址)
+                        || (v6.segments()[0] & 0xffc0 == 0xfe80) =>
+                {
+                    return false;
+                },
+                // IPv4-mapped IPv6 绕过修复: ::ffff:10.x.x.x 等需检查对应的 IPv4
+                std::net::IpAddr::V6(v6)
+                    if v6.to_ipv4_mapped().is_some_and(|v4| {
+                        v4.is_private() || v4.is_loopback() || v4.is_unspecified()
+                    }) =>
+                {
                     return false;
                 },
                 _ => {},

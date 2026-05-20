@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Instant;
+use std::num::NonZero;
 
 use axum::{
     body::Body,
@@ -10,98 +8,25 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use tokio::sync::Mutex;
+use governor::{
+    Quota, RateLimiter as GovernorRateLimiter, clock::DefaultClock, middleware::NoOpMiddleware,
+    state::keyed::DefaultKeyedStateStore,
+};
 
-const RATE_LIMIT_CAPACITY: u64 = 60;
-const RATE_LIMIT_REFILL_PER_SEC: u64 = 1;
-const MAX_ENTRIES: usize = 10_000;
-
-struct TokenBucket {
-    tokens: u64,
-    max_tokens: u64,
-    refill_rate: u64,
-    last_refill: Instant,
-    last_access: Instant,
-}
-
-impl TokenBucket {
-    fn new(max_tokens: u64, refill_rate: u64) -> Self {
-        Self {
-            tokens: max_tokens,
-            max_tokens,
-            refill_rate,
-            last_refill: Instant::now(),
-            last_access: Instant::now(),
-        }
-    }
-
-    fn try_consume(&mut self) -> bool {
-        self.refill();
-        self.last_access = Instant::now();
-        if self.tokens > 0 {
-            self.tokens -= 1;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn refill(&mut self) {
-        let elapsed = self.last_refill.elapsed().as_secs();
-        if elapsed > 0 {
-            let added = elapsed * self.refill_rate;
-            self.tokens = (self.tokens + added).min(self.max_tokens);
-            self.last_refill = Instant::now();
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct RateLimiter {
-    buckets: Arc<Mutex<HashMap<String, TokenBucket>>>,
-}
-
-impl Default for RateLimiter {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl RateLimiter {
-    pub fn new() -> Self {
-        Self {
-            buckets: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    pub async fn allow(&self, key: &str) -> bool {
-        let mut buckets = self.buckets.lock().await;
-
-        if let Some(bucket) = buckets.get_mut(key) {
-            return bucket.try_consume();
-        }
-
-        if buckets.len() >= MAX_ENTRIES
-            && let Some(oldest_key) = buckets
-                .iter()
-                .min_by_key(|(_, b)| b.last_access)
-                .map(|(k, _)| k.clone())
-        {
-            buckets.remove(&oldest_key);
-        }
-
-        let bucket = buckets
-            .entry(key.to_string())
-            .or_insert_with(|| TokenBucket::new(RATE_LIMIT_CAPACITY, RATE_LIMIT_REFILL_PER_SEC));
-        bucket.try_consume()
-    }
-}
-
-static RATE_LIMITER: std::sync::OnceLock<RateLimiter> = std::sync::OnceLock::new();
-
-fn global_limiter() -> &'static RateLimiter {
-    RATE_LIMITER.get_or_init(RateLimiter::new)
-}
+/// 每秒 1 请求，允许短时突发至 60（GCRA 算法，比 Token Bucket 更精确）
+#[allow(clippy::type_complexity)]
+static RATE_LIMITER: std::sync::LazyLock<
+    GovernorRateLimiter<
+        String,
+        DefaultKeyedStateStore<String>,
+        DefaultClock,
+        NoOpMiddleware<<DefaultClock as governor::clock::Clock>::Instant>,
+    >,
+> = std::sync::LazyLock::new(|| {
+    let quota = Quota::per_second(NonZero::new(1u32).expect("1 > 0"))
+        .allow_burst(NonZero::new(60u32).expect("60 > 0"));
+    GovernorRateLimiter::keyed(quota)
+});
 
 pub async fn rate_limit_middleware(request: Request<Body>, next: Next) -> Response {
     let key = if let Some(ci) = request.extensions().get::<ConnectInfo<SocketAddr>>() {
@@ -118,9 +43,7 @@ pub async fn rate_limit_middleware(request: Request<Body>, next: Next) -> Respon
             .to_string()
     };
 
-    let limiter = global_limiter();
-
-    if !limiter.allow(&key).await {
+    if RATE_LIMITER.check_key(&key).is_err() {
         return (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded. Please try again later.")
             .into_response();
     }

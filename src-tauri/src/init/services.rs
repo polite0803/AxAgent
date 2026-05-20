@@ -1,6 +1,8 @@
 use crate::AppState;
 use chrono;
 use notify::{Event, RecursiveMode, Watcher};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::Emitter;
 
 pub fn start_background_services(
@@ -25,7 +27,7 @@ pub fn start_background_services(
     start_text_grad_analysis(state);
     start_cron_scheduler(state);
     start_platform_adapters(state);
-    start_skill_watcher(app);
+    start_skill_watcher(app, state);
     start_memory_decay_tick(state);
     start_memory_maintenance_tick(state);
     start_trajectory_cleanup(state);
@@ -750,7 +752,7 @@ fn start_skill_evolution(state: &AppState) {
     });
 }
 
-fn start_skill_watcher(app: &tauri::AppHandle) {
+fn start_skill_watcher(app: &tauri::AppHandle, state: &AppState) {
     let home = {
         #[cfg(mobile)]
         {
@@ -771,6 +773,8 @@ fn start_skill_watcher(app: &tauri::AppHandle) {
     ];
 
     let app_handle = app.clone();
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let _ = state.skill_watcher_shutdown.set(shutdown.clone());
     std::thread::spawn(move || {
         let (tx, rx) = std::sync::mpsc::channel();
 
@@ -802,7 +806,11 @@ fn start_skill_watcher(app: &tauri::AppHandle) {
         let debounce = std::time::Duration::from_secs(2);
 
         loop {
-            match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+            if shutdown.load(Ordering::Relaxed) {
+                tracing::info!("Skill file watcher 收到关闭信号");
+                return;
+            }
+            match rx.recv_timeout(std::time::Duration::from_secs(1)) {
                 Ok(event) => {
                     if !event.kind.is_modify() {
                         continue;

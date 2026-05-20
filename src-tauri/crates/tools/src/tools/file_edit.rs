@@ -66,6 +66,14 @@ impl Tool for FileEditTool {
             return Err(ToolError::invalid_input_for("FileEdit", "file_path 必须是绝对路径"));
         }
 
+        // 硬门禁：路径遍历检测（独立于 check_permissions 的软弹窗）
+        if path.contains("..") || path.starts_with('~') {
+            return Err(ToolError::permission_denied(
+                "FileEdit",
+                "file_path 包含禁止的路径遍历模式 (.. 或 ~)",
+            ));
+        }
+
         let old = input["old_string"]
             .as_str()
             .ok_or_else(|| ToolError::invalid_input_for("FileEdit", "缺少 old_string"))?;

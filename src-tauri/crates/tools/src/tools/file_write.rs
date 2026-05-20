@@ -56,6 +56,14 @@ impl Tool for FileWriteTool {
             return Err(ToolError::invalid_input_for("FileWrite", "file_path 必须是绝对路径"));
         }
 
+        // 硬门禁：路径遍历检测（从 call() 前移到 validate()，确保验证层硬拒绝）
+        if path.contains("..") || path.starts_with('~') {
+            return Err(ToolError::invalid_input_for(
+                "FileWrite",
+                "file_path 包含禁止的路径遍历模式 (.. 或 ~)",
+            ));
+        }
+
         let content = input["content"]
             .as_str()
             .ok_or_else(|| ToolError::invalid_input_for("FileWrite", "缺少 content 参数"))?;
@@ -102,12 +110,7 @@ impl Tool for FileWriteTool {
         if file_path.is_empty() {
             return Err(ToolError::invalid_input_for("FileWrite", "缺少 file_path 参数"));
         }
-        if file_path.contains("..") {
-            return Err(ToolError::invalid_input_for(
-                "FileWrite",
-                "file_path 包含路径遍历字符 '..'",
-            ));
-        }
+        // 路径遍历已在 validate() 中硬拒绝
         let content = input["content"].as_str().unwrap_or("");
         if content.is_empty() && !input["content"].is_string() {
             return Err(ToolError::invalid_input_for("FileWrite", "缺少 content 参数"));

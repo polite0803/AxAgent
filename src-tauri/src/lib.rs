@@ -1310,6 +1310,9 @@ pub fn run() {
         if let tauri::RunEvent::Exit = _event {
             let state = _app.state::<AppState>();
             state.shutdown_token.cancel();
+            if let Some(flag) = state.skill_watcher_shutdown.get() {
+                flag.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
             tracing::info!("[shutdown] 正在停止后台任务...");
 
             let rt_handle = tokio::runtime::Handle::try_current().unwrap_or_else(|_| {

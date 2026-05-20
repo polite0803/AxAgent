@@ -138,6 +138,8 @@ pub struct AppState {
     pub trajectory_cleanup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
     /// 集中式任务管理器（Phase C-1），逐步替代上方的独立 JoinHandle 字段
     pub task_manager: Arc<axagent_runtime::task_manager::TaskManager>,
+    /// 技能文件监听器关闭信号 (OS 线程), OnceLock 允许在 &self 上初始化
+    pub skill_watcher_shutdown: std::sync::OnceLock<Arc<AtomicBool>>,
     /// 优雅关闭信号，通知所有后台任务停止
     pub shutdown_token: CancellationToken,
     pub vector_store: Arc<axagent_core::vector_store::VectorStore>,

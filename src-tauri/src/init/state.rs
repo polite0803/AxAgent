@@ -164,6 +164,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         api_server_handle: Arc::new(Mutex::new(None)),
         trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
         task_manager: Arc::new(axagent_runtime::task_manager::TaskManager::new()),
+        skill_watcher_shutdown: std::sync::OnceLock::new(),
         shutdown_token: CancellationToken::new(),
         vector_store: vector_store_arc,
         indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),

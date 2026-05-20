@@ -286,7 +286,7 @@ fn fresh_approved_lane_gets_merge_action() {
 /// the resulting recovery state feed into policy decisions?
 #[test]
 fn worker_provider_failure_flows_through_recovery_to_policy() {
-    use axagent_runtime::recovery_recipes::RecoveryEvent;
+    use axagent_runtime::error_recovery::RecoveryEvent;
     use axagent_runtime::{
         FailureScenario, RecoveryContext, RecoveryResult, WorkerFailureKind, WorkerRegistry,
         WorkerStatus, attempt_recovery,

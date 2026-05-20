@@ -4325,6 +4325,7 @@ mod tests_conversation {
             api_server_handle: Arc::new(Mutex::new(None)),
             trajectory_cleanup_handle: Arc::new(Mutex::new(None)),
             task_manager: Arc::new(axagent_runtime::task_manager::TaskManager::new()),
+            skill_watcher_shutdown: std::sync::OnceLock::new(),
             vector_store,
             indexing_semaphore: Arc::new(tokio::sync::Semaphore::new(2)),
             stream_cancel_flags: Arc::new(Mutex::new(std::collections::HashMap::new())),

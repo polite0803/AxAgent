@@ -207,6 +207,10 @@ impl Tool for WebSearchTool {
                     timestamp_ms: start.elapsed().as_millis() as u64,
                 });
 
+                // SSRF 防护：对搜索结果 URL 做 DNS 解析后验证
+                if !axagent_core::search::is_safe_url_deep(url).await {
+                    continue;
+                }
                 match client.get(*url).send().await {
                     Ok(resp) if resp.status().is_success() => {
                         let ct = resp
