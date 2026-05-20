@@ -479,14 +479,15 @@ async fn install_from_github(
         std::fs::remove_dir_all(&skill_target).map_err(|e| e.to_string())?;
     }
 
-    let git_available = std::process::Command::new("git")
+    let mut git_cmd = axagent_core::utils::cmd("git");
+    let git_available = git_cmd
         .arg("--version")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false);
 
     if git_available {
-        let output = std::process::Command::new("git")
+        let output = axagent_core::utils::cmd("git")
             .args([
                 "clone",
                 "--depth",
@@ -600,7 +601,7 @@ async fn install_from_github_zipball(
 }
 
 fn get_git_commit(repo_path: &Path) -> Option<String> {
-    let output = std::process::Command::new("git")
+    let output = axagent_core::utils::cmd("git")
         .args(["rev-parse", "HEAD"])
         .current_dir(repo_path)
         .output()
@@ -727,7 +728,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
     std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&skill_dir).map_err(|e| e.to_string())?;
 
-    let output = std::process::Command::new("git")
+    let output = axagent_core::utils::cmd("git")
         .args([
             "clone",
             "--depth",
@@ -742,7 +743,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
         return Err(format!("Git clone failed: {}", String::from_utf8_lossy(&output.stderr)));
     }
 
-    let checkout_output = std::process::Command::new("git")
+    let checkout_output = axagent_core::utils::cmd("git")
         .args(["checkout", &target_version])
         .current_dir(&skill_dir)
         .output()

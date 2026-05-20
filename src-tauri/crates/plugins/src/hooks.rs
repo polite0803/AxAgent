@@ -1,4 +1,6 @@
 use std::ffi::OsStr;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 #[cfg(not(windows))]
 use std::path::Path;
 use std::process::Command;
@@ -363,7 +365,10 @@ fn shell_command(command: &str) -> CommandWithStdin {
     #[cfg(windows)]
     let command_builder = {
         let mut command_builder = Command::new("cmd");
-        command_builder.arg("/C").arg(command);
+        command_builder
+            .creation_flags(0x08000000)
+            .arg("/C")
+            .arg(command);
         CommandWithStdin::new(command_builder)
     };
 

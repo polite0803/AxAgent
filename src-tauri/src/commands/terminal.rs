@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitStatusInfo {
@@ -21,7 +20,7 @@ pub struct SystemInfo {
 
 #[tauri::command]
 pub async fn git_get_branch() -> Result<String, String> {
-    let output = Command::new("git")
+    let output = axagent_core::utils::cmd("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .output()
         .map_err(|e| format!("Failed to execute git: {}", e))?;
@@ -40,7 +39,7 @@ pub async fn git_status() -> Result<GitStatusInfo, String> {
         .await
         .unwrap_or_else(|_| "unknown".to_string());
 
-    let output = Command::new("git")
+    let output = axagent_core::utils::cmd("git")
         .args(["status", "--porcelain"])
         .output()
         .map_err(|e| format!("Failed to execute git: {}", e))?;

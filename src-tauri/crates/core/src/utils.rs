@@ -1,3 +1,19 @@
+use std::process::Command as StdCommand;
+
+/// 创建不弹出控制台窗口的进程命令（Windows 专用）
+#[cfg(windows)]
+pub fn cmd(program: &str) -> StdCommand {
+    use std::os::windows::process::CommandExt;
+    let mut c = StdCommand::new(program);
+    c.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    c
+}
+
+#[cfg(not(windows))]
+pub fn cmd(program: &str) -> StdCommand {
+    StdCommand::new(program)
+}
+
 pub fn gen_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
@@ -30,8 +46,6 @@ pub fn language_code_to_name(code: &str) -> &str {
 
 pub fn build_output_language_directive(language_code: &str) -> String {
     let lang_name = language_code_to_name(language_code);
-    // For Chinese specifically, add extra emphasis on thinking in Chinese
-    // because many models default to English for reasoning
     let thinking_emphasis = if lang_name == "Chinese" {
         "\nCRITICAL: Your internal reasoning process (thinking) must ALSO be in Chinese. When you use <think> tags or any thinking/reasoning mode, write ALL your thoughts, analysis, and problem-solving steps in Chinese. Never switch to English for thinking — use Chinese throughout your entire cognitive process."
     } else {

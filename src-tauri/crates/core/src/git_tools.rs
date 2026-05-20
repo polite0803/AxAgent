@@ -380,7 +380,7 @@ fn run_git(cwd: &str, args: &[&str]) -> Result<String, String> {
         return Err(format!("Directory does not exist: {}", cwd));
     }
 
-    let output = std::process::Command::new("git")
+    let output = crate::utils::cmd("git")
         .args(args)
         .current_dir(cwd)
         .output()
