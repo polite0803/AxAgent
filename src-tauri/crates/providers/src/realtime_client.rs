@@ -5,7 +5,8 @@ use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
-use tokio::sync::{RwLock, mpsc};
+use tokio::sync::{Mutex, RwLock, mpsc};
+use tokio::task::JoinHandle;
 use tokio::time::timeout;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 
@@ -106,6 +107,8 @@ pub struct RealtimeClient {
     session_id: Arc<RwLock<Option<String>>>,
     sender: Arc<RwLock<Option<mpsc::Sender<RealtimeClientMessage>>>>,
     reconnect_attempts: Arc<RwLock<u32>>,
+    /// 消息处理循环的 JoinHandle，在 close 时 abort
+    task: Arc<Mutex<Option<JoinHandle<()>>>>,
 }
 
 impl RealtimeClient {
@@ -116,6 +119,7 @@ impl RealtimeClient {
             session_id: Arc::new(RwLock::new(None)),
             sender: Arc::new(RwLock::new(None)),
             reconnect_attempts: Arc::new(RwLock::new(0)),
+            task: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -191,8 +195,9 @@ impl RealtimeClient {
         }
 
         let state = self.state.clone();
+        let task_handle = self.task.clone();
 
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             loop {
                 tokio::select! {
                     Some(msg) = rx.recv() => {
@@ -226,6 +231,10 @@ impl RealtimeClient {
                 }
             }
         });
+
+        // 存储 JoinHandle 以便 close 时 abort
+        let mut guard = task_handle.lock().await;
+        *guard = Some(handle);
 
         Ok(())
     }
@@ -288,6 +297,12 @@ impl RealtimeClient {
     }
 
     pub async fn close(&self) -> Result<(), RealtimeClientError> {
+        // 中止消息处理循环
+        let mut guard = self.task.lock().await;
+        if let Some(handle) = guard.take() {
+            handle.abort();
+        }
+        drop(guard);
         self.send_message(RealtimeClientMessage::SessionClose).await
     }
 
@@ -325,6 +340,7 @@ impl Clone for RealtimeClient {
             session_id: self.session_id.clone(),
             sender: self.sender.clone(),
             reconnect_attempts: self.reconnect_attempts.clone(),
+            task: self.task.clone(),
         }
     }
 }

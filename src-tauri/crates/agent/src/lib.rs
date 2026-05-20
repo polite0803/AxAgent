@@ -32,7 +32,6 @@ pub mod insight_generator;
 pub mod interrupt;
 pub mod lint_checker;
 pub mod llm_bridge;
-pub mod loop_detector;
 pub mod metrics;
 pub mod outline_builder;
 pub mod proactive_mode;
@@ -143,9 +142,6 @@ pub use axagent_tools::{ToolContext, ToolError, ToolExecutionRecorder, ToolResul
 // McpRegistry 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
 
 pub use llm_bridge::{ProviderLlmBridge, build_llm_bridge_from_db};
-pub use loop_detector::{
-    LoopDetector, LoopDetectorConfig, LoopWarning, LoopWarningLevel, ToolCallStats,
-};
 pub use metrics::{
     MetricType, MetricValue, MetricsCollector, StructuredLogEntry, TimedGuard, TimingStats,
     log_with_fields, record_timing_async,
