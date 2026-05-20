@@ -280,16 +280,17 @@ function AppInner() {
                       <Sidebar />
                     </ModuleErrorBoundary>
                   </Drawer>
-                  <div className="flex-1 overflow-hidden" style={{ display: "flex", flexDirection: "column" }}>
+                  <div className="flex-1 overflow-hidden">
                     <div
                       className="ax-page-transition"
-                      style={{ flex: 1, minHeight: 0 }}
+                      style={{ height: "100%" }}
                       key={location.key}
                     >
                       <ContentArea />
                     </div>
-                    <MobileBottomNav />
                   </div>
+                  {/* 浮动导航 — position:fixed，不占布局空间 */}
+                  <MobileBottomNav />
                 </>
               )}
               {/* 平板/桌面：固定侧边栏 + 内容区 */}

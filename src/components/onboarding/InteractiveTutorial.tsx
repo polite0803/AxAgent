@@ -22,6 +22,9 @@ export function InteractiveTutorial() {
   const navigate = useNavigate();
   const deviceLayout = useUIStore((s) => s.deviceLayout);
 
+  // 移动端完全跳过教程（避免 performance 开销）
+  if (deviceLayout === "mobile") { return null; }
+
   const steps: TutorialStep[] = useMemo(
     () => [
       {
@@ -200,10 +203,8 @@ export function InteractiveTutorial() {
     return null;
   }
 
-  // 开始按钮 — 仅桌面端显示，移动端通过菜单访问
+  // 开始按钮 — 仅桌面端显示
   if (!tutorialActive) {
-    if (deviceLayout === "mobile") { return null; }
-
     return (
       <div className="tutorial-start-bar">
         <Button type="link" size="small" onClick={handleStartTutorial}>

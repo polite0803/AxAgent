@@ -84,6 +84,18 @@ button,
   animation: none;
 }
 
+/* 移动端浮动导航面板弹入动画 */
+@keyframes axFloatIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Message slide-up (applied by ChatView) */
 @keyframes ax-message-up {
   from {
