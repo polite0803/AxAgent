@@ -37,7 +37,261 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [v1.4.0] - 2026-05-07
+## [v2.0.1] - 2026-05-18
+
+### 🚀 新功能
+
+- **安全加固第三轮**: SSRF 防护增强、25 项安全审计问题修复、CREATE_NO_WINDOW 防弹窗
+- **移动端深度优化**: 底部导航栏 + Drawer 滑出导航 + 闪现式浮动按钮
+- **图标系统升级**: 全面引入 Iconify Fluent 图标，替换侧边栏/设置/右面板图标
+- **用户画像合并**: 个人信息弹窗并入侧边栏
+- **桌面分辨率自适应**: 启动时自动检测三档布局适配
+- **密码粘贴按钮**: 所有密码/密钥输入框添加粘贴按钮
+- **侧边栏新增**: Terminal + Files 导航入口
+- **页面切换动画**: 恢复被全局禁用的动画系统
+- **i18n 硬编码字符串清理**: 全量迁移，CI 强制检查
+
+### 🔨 重构
+
+- **错误类型统一**: 权限检查 trait 抽象
+- **API 边界文档化**: TaskManager 迁移后台服务
+- **retry_policy**: 退避算法改用 backoff crate
+
+### 🐛 修复
+
+- 消除 7 处 provider/task_system expect panic
+- 修复 CI 失败 — i18n 硬编码字符串 + 测试断言错误
+- 修复 Android 安全区适配、粘贴按钮权限、CSP 白屏
+- 修复 Mobile 导航卡滞 — 消除 ContentArea 完全重建
+- 修复启动白屏 — expertStore i18n.t 过早调用 + mcp_stdio 测试
+- 消除前端 store 碎片，删除 loop_detector 死代码
+- react-doctor 评分修复 61→63
+- CI 使用 cargo-nextest 替代 cargo test（快 2-3x + swap 8GB）
+
+### 🎨 样式
+
+- dprint 单行 if 强制大括号
+- cargo fmt 补充修复
+
+---
+
+## [v2.0.0] - 2026-05-11
+
+### 🚀 新功能
+
+- **Rust 2024 edition 升级**: 全项目迁移，兼容修复
+- **本地 Candle 推理引擎**: inference.rs 集成真实 Candle LLaMA 推理
+- **i18n 全面清理**: 全项目硬编码字符串迁移、CI 严格模式、豁免机制
+
+### 🔨 重构
+
+- **Runtime 重构**: 拆分 runtime 为 runtime-core + 5 个子系统 crate（rt-workflow / rt-messaging / rt-webhook / rt-dashboard / rt-theme）
+- **旧工具体系迁移**: 完整迁移至 Tool trait，删除 builtin_tools/builtin_handlers
+- **全项目功能去重**: 架构清理 (v1.5.1)
+
+### 🐛 修复
+
+- 安全审计全面修复 — XSS/命令注入/数据竞争/错误吞没等 25 项问题
+- 消除 43% react-doctor 问题（2359→1352）
+- conversationStore 拆分、优雅关闭
+- E2E 测试加强
+- 零 TypeScript 错误、Rust 2024 edition 兼容
+- 修复 Release 产物路径偏移导致 macOS/Linux/Windows MSI 缺失
+
+### 🔧 CI/CD
+
+- 修复 PR CI 三大缺陷（split runner、OOM、timeout）
+- mobile-build → release.yml 统一
+- 使用 cargo-nextest 替代 cargo test
+- 新增 i18n 硬编码字符串检查
+
+---
+
+## [v1.6.0] - 2026-05-11
+
+### 🐛 修复
+
+- **多模型接入全面修复**: 全链路连通性与参数传递修正
+
+---
+
+## [v1.5.9] - 2026-05-10
+
+### 🚀 新功能
+
+- **OpenClaw 插件生态兼容**: 完整 npm 包安装/管理/发布流程
+- **插件市场**: 支持 npm 搜索安装栏与确认弹窗
+- **插件自动注册**: Agent 提供者 — 插件 agents 自动注册/注销；SkillInstaller 插件技能自动部署
+- **npm crate**: 新建 axagent-npm crate，定义 types 和依赖，实现 NpmRegistry 解析/获取/API
+- **tarball 流式解压**: npm 包根目录检测
+
+### 🔨 重构
+
+- 统一工作流角色系统，优化提示词组装节约 token
+
+### 🐛 修复
+
+- 插件系统合并后的遗漏和缺陷修复
+- 删除设置-关于中的官网和 GitHub 链接
+- CI rustfmt 格式修复
+
+---
+
+## [v1.5.8] - 2026-05-10
+
+### 🔨 重构
+
+- **i18n 架构迁移**: types/data 标签映射全量迁移至 i18n-native 架构
+- Skills 从导航移至设置页面
+
+### 🐛 修复
+
+- 删除所有 t() fallback 参数（Phase 2 Batch 4）
+- 修复 E2E 测试适配工作流页面重构
+- 同步 61 个缺失 i18n key 到全部 11 种语言
+
+### 🔧 CI/CD
+
+- 新增 i18n 硬编码字符串 CI 检查
+
+---
+
+## [v1.5.7] - 2026-05-09
+
+### 🐛 修复
+
+- 会话删除后 agent_sessions 和 summaries 孤行残留清理
+
+---
+
+## [v1.5.6] - 2026-05-09
+
+### 🐛 修复
+
+- Agent 权限确认弹窗完全不工作 — 两个 Bug 导致链路断裂
+- Agent 模式无消息输出卡死 — 添加状态事件 + 超时保护
+- 全部表单元素缺少 id/name 属性导致浏览器 autofill 不可用
+- 上下文图谱图例点击误触发面板折叠
+- AI 生成标题基于完整对话历史而非仅首条消息
+
+### 🔧 CI/CD
+
+- 修复 Linux CI libc RLIMIT 类型不匹配
+
+---
+
+## [v1.5.5] - 2026-05-09
+
+### 🚀 新功能
+
+- 文档工具补齐
+
+---
+
+## [v1.5.3] - 2026-05-09
+
+### 🚀 新功能
+
+- **P0 高级 RAG 端到端集成**: 查询增强（HyDE / MultiQuery / Decomposition）
+- **模型下载管理器**: GGUF 按需下载 + 前端下载入口
+- **Candle 本地推理引擎**: InferenceEngine 提供 rerank/judge 接口
+- **重排序重构**: Reranker 改为 trait-based 后端
+
+---
+
+## [v1.5.2] - 2026-05-08
+
+### 🚀 新功能
+
+- **高级 RAG 管线**: 查询增强/重排序/自检全流程打通
+- **MCP 系统全面重构**: 修复 12 项缺陷
+
+---
+
+## [v1.5.1] - 2026-05-08
+
+### 🔨 重构
+
+- **全项目功能去重与架构清理**
+- **Runtime 拆分**: runtime-core + 5 个子系统 crate（rt-workflow / rt-messaging / rt-webhook / rt-dashboard / rt-theme）
+- **旧工具体系迁移**: 完整迁移至 Tool trait，删除 builtin_tools/builtin_handlers
+
+### 🐛 修复
+
+- 修复 webhook dispatch 签名 + 补依赖
+- 修复 rt-messaging 编译错误
+- Android 启动崩溃修复、图标一致性增强
+
+---
+
+## [v1.4.9] - 2026-05-08
+
+### 🔧 CI/CD
+
+- CI runner OOM 修复
+- 测试失败修复
+
+---
+
+## [v1.4.8] - 2026-05-08
+
+### 🚀 新功能
+
+- **知识源统一管理**: RAG/Wiki/Memory 融合为 KnowledgeHubPage
+- **SourceManager 重构**: 丰富卡片式布局，统一视图导航
+- **Wiki 知识图谱增强**: 高级交互、图谱洞察
+
+---
+
+## [v1.4.7] - 2026-05-08
+
+### 🧪 测试
+
+- 修复 clippy 警告、测试 AppState 缺失字段
+
+---
+
+## [v1.4.6] - 2026-05-08
+
+### 🐛 修复
+
+- DeepSeek thinking chain 修复、状态同步、会话清理
+- 全面的状态一致性修复（conversationStore 等）
+
+---
+
+## [v1.4.5] - 2026-05-08
+
+### 🐛 修复
+
+- Android 运行时稳定性改进 — panic 处理和 TLS provider fallback
+- APK 签名流程修复
+
+---
+
+## [v1.4.4] - 2026-05-08
+
+### 🚀 新功能
+
+- **移动端构建支持**: Android APK/AAB + iOS IPA 构建流程
+- **移动端平台守卫**: 插件注册/命令注册/服务条件编译
+- **全模块增强**: agent / core / runtime / telemetry / tools / frontend
+
+### 🐛 修复
+
+- 修复 26 个 Rust 编译/clippy 错误
+- 修复 iOS 和 Android OpenSSL 交叉编译问题
+- 修复 GitHub Release 桌面端与移动端构建失败
+- 修复 PR CI 构建错误
+- cargo-deny 许可证检查修复
+- 修复 8 个 runtime 测试 + 9 个 trajectory 测试
+
+### 🔧 CI/CD
+
+- 安全审计: cargo-audit + cargo-deny + cargo-vet
+- 覆盖率阈值调整至 45%
+
+---
 
 ### 🚀 新功能
 
@@ -395,6 +649,26 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+[v2.0.1]: https://github.com/polite0803/AxAgent/compare/v2.0.0...v2.0.1
+[v2.0.0]: https://github.com/polite0803/AxAgent/compare/v1.6.0...v2.0.0
+[v1.6.0]: https://github.com/polite0803/AxAgent/compare/v1.5.9...v1.6.0
+[v1.5.9]: https://github.com/polite0803/AxAgent/compare/v1.5.8...v1.5.9
+[v1.5.8]: https://github.com/polite0803/AxAgent/compare/v1.5.7...v1.5.8
+[v1.5.7]: https://github.com/polite0803/AxAgent/compare/v1.5.6...v1.5.7
+[v1.5.6]: https://github.com/polite0803/AxAgent/compare/v1.5.5...v1.5.6
+[v1.5.5]: https://github.com/polite0803/AxAgent/compare/v1.5.3...v1.5.5
+[v1.5.3]: https://github.com/polite0803/AxAgent/compare/v1.5.2...v1.5.3
+[v1.5.2]: https://github.com/polite0803/AxAgent/compare/v1.5.1...v1.5.2
+[v1.5.1]: https://github.com/polite0803/AxAgent/compare/v1.4.9...v1.5.1
+[v1.4.9]: https://github.com/polite0803/AxAgent/compare/v1.4.8...v1.4.9
+[v1.4.8]: https://github.com/polite0803/AxAgent/compare/v1.4.7...v1.4.8
+[v1.4.7]: https://github.com/polite0803/AxAgent/compare/v1.4.6...v1.4.7
+[v1.4.6]: https://github.com/polite0803/AxAgent/compare/v1.4.5...v1.4.6
+[v1.4.5]: https://github.com/polite0803/AxAgent/compare/v1.4.4...v1.4.5
+[v1.4.4]: https://github.com/polite0803/AxAgent/compare/v1.4.3...v1.4.4
+[v1.4.3]: https://github.com/polite0803/AxAgent/compare/v1.4.2...v1.4.3
+[v1.4.2]: https://github.com/polite0803/AxAgent/compare/v1.4.1...v1.4.2
+[v1.4.1]: https://github.com/polite0803/AxAgent/compare/v1.4.0...v1.4.1
 [v1.4.0]: https://github.com/polite0803/AxAgent/compare/v1.3.9...v1.4.0
 [v1.3.9]: https://github.com/polite0803/AxAgent/compare/v1.3.8...v1.3.9
 [v1.3.8]: https://github.com/polite0803/AxAgent/compare/v1.3.7...v1.3.8
