@@ -34,7 +34,7 @@ import {
   useStreamStore,
 } from "./streamStore";
 
-import { tempId } from "./conversationHelpers";
+import { tempId } from "./conversationStore";
 
 // ─── Fallback model chain ───
 //
