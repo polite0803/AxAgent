@@ -3,7 +3,7 @@ import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
 import { useSkillExtensionStore } from "@/stores";
 import { Button, Result, Spin } from "antd";
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, memo, Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
@@ -124,7 +124,7 @@ function NotFoundRoute() {
   );
 }
 
-export function ContentArea() {
+export const ContentArea = memo(function ContentArea() {
   const skillPages = useSkillExtensionStore((s) => s.pages);
 
   const pluginRoutes = useMemo(() => {
@@ -234,4 +234,4 @@ export function ContentArea() {
       </div>
     </div>
   );
-}
+});

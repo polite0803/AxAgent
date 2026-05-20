@@ -281,11 +281,7 @@ function AppInner() {
                     </ModuleErrorBoundary>
                   </Drawer>
                   <div className="flex-1 overflow-hidden">
-                    <div
-                      className="ax-page-transition"
-                      style={{ height: "100%" }}
-                      key={location.key}
-                    >
+                    <div className="ax-page-transition" style={{ height: "100%" }}>
                       <ContentArea />
                     </div>
                   </div>
@@ -314,11 +310,7 @@ function AppInner() {
                     </div>
                   )}
                   <Content className="overflow-hidden">
-                    <div
-                      className="ax-page-transition"
-                      style={{ height: "100%" }}
-                      key={location.key}
-                    >
+                    <div className="ax-page-transition" style={{ height: "100%" }}>
                       <ContentArea />
                     </div>
                   </Content>

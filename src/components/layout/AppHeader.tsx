@@ -1,3 +1,4 @@
+import { useUIStore } from "@/stores";
 import { useHelpStore } from "@/stores/feature/helpStore";
 import { theme, Tooltip } from "antd";
 import { HelpCircle } from "lucide-react";
@@ -42,6 +43,10 @@ export function AppHeader() {
   const { token } = theme.useToken();
   const location = useLocation();
   const toggleHelp = useHelpStore((s) => s.toggle);
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+
+  // 移动端 TitleBar 已显示上下文，AppHeader 冗余
+  if (deviceLayout === "mobile") { return null; }
 
   const labelKey = resolvePageLabel(location.pathname);
 
