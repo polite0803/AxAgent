@@ -50,14 +50,27 @@ impl TaskManager {
     }
 
     /// Spawn 一个命名任务并自动注册。
+    /// 兼容 setup 阶段 runtime 未就绪的场景（Android 等平台）。
     pub fn spawn<F>(&self, name: &str, future: F)
     where
         F: std::future::Future<Output = ()> + Send + 'static,
     {
-        let handle = tokio::spawn(future);
-        let mut handles = self.handles.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(old) = handles.insert(name.to_string(), handle) {
-            old.abort();
+        match tokio::runtime::Handle::try_current() {
+            Ok(rt) => {
+                let handle = rt.spawn(future);
+                let mut handles = self.handles.lock().unwrap_or_else(|e| e.into_inner());
+                if let Some(old) = handles.insert(name.to_string(), handle) {
+                    old.abort();
+                }
+            },
+            Err(_) => {
+                // setup 阶段 runtime 未就绪时通过独立线程承载
+                tracing::debug!("[TaskManager] runtime 未就绪，'{}' 使用独立线程启动", name);
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Runtime::new().expect("TaskManager fallback runtime");
+                    rt.block_on(future);
+                });
+            },
         }
     }
 
