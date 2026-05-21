@@ -112,7 +112,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   nextTutorialStep: () => set((s) => ({ tutorialStep: s.tutorialStep + 1 })),
 
   skipTutorial: async () => {
-    set({ tutorialActive: false });
+    set({ tutorialActive: false, tutorialCompleted: true });
     await useSettingsStore
       .getState()
       .saveSettings({ onboarding_tutorial_completed: true });
