@@ -232,9 +232,11 @@ function SectionErrorBoundary({
 export function SettingsPage() {
   const { token } = theme.useToken();
   const settingsSection = useUIStore((s) => s.settingsSection);
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
   const workflowEditorOpen = useUIStore((s) => s.workflowEditorOpen);
   const openWorkflowEditor = useUIStore((s) => s.openWorkflowEditor);
   const closeWorkflowEditor = useUIStore((s) => s.closeWorkflowEditor);
+  const isMobile = deviceLayout === "mobile";
   const ContentComponent = SECTION_COMPONENTS[settingsSection as keyof typeof SECTION_COMPONENTS];
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
 
@@ -313,26 +315,30 @@ export function SettingsPage() {
 
   return (
     <div className="flex h-full" data-testid="settings-panel">
-      <div
-        className="shrink-0 h-full"
-        style={{ width: sidebarWidth, backgroundColor: token.colorBgContainer }}
-      >
-        <SettingsSidebar />
-      </div>
-      <div
-        className="shrink-0 cursor-col-resize select-none"
-        role="separator"
-        tabIndex={0}
-        style={{
-          width: 5,
-          borderRight: "1px solid var(--border-color)",
-          backgroundColor: "transparent",
-          transition: "background-color 0.15s",
-        }}
-        onMouseDown={handleResizeStart}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-      />
+      {!isMobile && (
+        <>
+          <div
+            className="shrink-0 h-full"
+            style={{ width: sidebarWidth, backgroundColor: token.colorBgContainer }}
+          >
+            <SettingsSidebar />
+          </div>
+          <div
+            className="shrink-0 cursor-col-resize select-none"
+            role="separator"
+            tabIndex={0}
+            style={{
+              width: 5,
+              borderRight: "1px solid var(--border-color)",
+              backgroundColor: "transparent",
+              transition: "background-color 0.15s",
+            }}
+            onMouseDown={handleResizeStart}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+          />
+        </>
+      )}
       <div
         className="min-w-0 flex-1 flex flex-col"
         style={{
@@ -341,6 +347,11 @@ export function SettingsPage() {
           overflowX: "hidden",
         }}
       >
+        {isMobile && (
+          <div className="w-full shrink-0">
+            <SettingsSidebar />
+          </div>
+        )}
         {settingsSection === "workflow"
           ? (
             renderWorkflowContent()

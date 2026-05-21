@@ -295,7 +295,11 @@ pub async fn fetch_remote_models(
         previous_response_id: None,
         store_response: None,
     };
-    let mut models = adapter.list_models(&ctx).await.map_err(|e| e.to_string())?;
+    let mut models =
+        tokio::time::timeout(std::time::Duration::from_secs(30), adapter.list_models(&ctx))
+            .await
+            .map_err(|_| "获取模型列表超时 (30 秒)，请检查网络连接和 API 地址".to_string())?
+            .map_err(|e| e.to_string())?;
     for model in &mut models {
         if model.max_tokens.is_none() {
             model.max_tokens =

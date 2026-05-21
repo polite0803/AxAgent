@@ -160,12 +160,15 @@ export function SettingsSidebar() {
   const navigate = useNavigate();
   const settingsSection = useUIStore((s) => s.settingsSection);
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
   const { width: tabBarWidth, onMouseDown: onTabBarResize } = useDraggableWidth(
     72,
     48,
     200,
   );
+  const isMobile = deviceLayout === "mobile";
+  const isTablet = deviceLayout === "tablet";
 
   // 预构建 section → tab 反向映射，避免循环中调用 includes
   const sectionToTab = useMemo(() => {
@@ -269,10 +272,10 @@ export function SettingsSidebar() {
           color: token.colorTextSecondary,
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
           flexShrink: 0,
-          paddingLeft: 26,
-          paddingRight: 16,
-          paddingTop: 12,
-          paddingBottom: 12,
+          paddingLeft: isMobile ? 12 : 26,
+          paddingRight: isMobile ? 12 : 16,
+          paddingTop: isMobile ? 8 : 12,
+          paddingBottom: isMobile ? 8 : 12,
         }}
         onClick={() => navigate("/")}
         onKeyDown={(e) => {
@@ -291,19 +294,21 @@ export function SettingsSidebar() {
       >
         <ArrowLeft size={16} />
         <span style={{ fontSize: 14 }}>{t("common.back")}</span>
-        <span
-          style={{
-            fontSize: 12,
-            color: token.colorTextQuaternary,
-            border: `1px solid ${token.colorBorderSecondary}`,
-            borderRadius: 4,
-            padding: "1px 6px",
-            marginLeft: 4,
-            lineHeight: "16px",
-          }}
-        >
-          Esc
-        </span>
+        {!isMobile && (
+          <span
+            style={{
+              fontSize: 12,
+              color: token.colorTextQuaternary,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              borderRadius: 4,
+              padding: "1px 6px",
+              marginLeft: 4,
+              lineHeight: "16px",
+            }}
+          >
+            Esc
+          </span>
+        )}
       </div>
       <div
         className="flex-1 pt-1"
@@ -313,33 +318,37 @@ export function SettingsSidebar() {
           activeKey={activeTab}
           onChange={handleTabChange}
           items={tabItems}
-          tabPlacement="start"
-          tabBarStyle={{
-            width: tabBarWidth,
-            flexShrink: 0,
-            transition: "width 0.05s",
-          }}
+          tabPlacement={isMobile ? "top" : "start"}
+          tabBarStyle={isMobile
+            ? { overflowX: "auto", whiteSpace: "nowrap" }
+            : {
+              width: tabBarWidth,
+              flexShrink: 0,
+              transition: "width 0.05s",
+            }}
           style={{ height: "100%", flex: 1 }}
         />
-        {/* Resize handle */}
-        <div
-          role="separator"
-          tabIndex={0}
-          onMouseDown={onTabBarResize}
-          style={{
-            width: 4,
-            cursor: "col-resize",
-            flexShrink: 0,
-            backgroundColor: "transparent",
-            transition: "background-color 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = token.colorPrimary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-          }}
-        />
+        {/* Resize handle — 仅桌面端显示 */}
+        {!isMobile && !isTablet && (
+          <div
+            role="separator"
+            tabIndex={0}
+            onMouseDown={onTabBarResize}
+            style={{
+              width: 4,
+              cursor: "col-resize",
+              flexShrink: 0,
+              backgroundColor: "transparent",
+              transition: "background-color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = token.colorPrimary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+          />
+        )}
       </div>
     </div>
   );
