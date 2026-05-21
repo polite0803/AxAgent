@@ -91,6 +91,22 @@ pub struct ReActConfig {
     pub token_budget_enabled: bool,
     /// Token 预算上限（None = 使用模型上下文窗口大小）
     pub token_budget_limit: Option<u64>,
+    /// 是否启用循环检测
+    pub cycle_detection_enabled: bool,
+    /// 同工具+同参数最大允许重复调用次数
+    pub max_repeated_calls: usize,
+    /// 最大允许的无进展迭代次数
+    pub max_no_progress_iterations: usize,
+    /// 是否启用断点续执行
+    pub checkpoint_enabled: bool,
+    /// 每 N 次迭代自动保存一次 checkpoint
+    pub checkpoint_interval: usize,
+    /// 当前智能体角色（影响可调用工具范围）
+    pub agent_role: String,
+    /// 是否启用目标达成判定
+    pub goal_evaluation_enabled: bool,
+    /// 是否启用动态自适应反思阈值
+    pub adaptive_reflection: bool,
 }
 
 impl Default for ReActConfig {
@@ -101,11 +117,19 @@ impl Default for ReActConfig {
             verification_enabled: true,
             max_retry_attempts: 3,
             timeout_secs: 300,
-            reflection_threshold: 5,
+            reflection_threshold: 2,
             enable_analyzing: true,
             enable_reflection: true,
             token_budget_enabled: true,
             token_budget_limit: Some(180_000),
+            cycle_detection_enabled: true,
+            max_repeated_calls: 3,
+            max_no_progress_iterations: 5,
+            checkpoint_enabled: false,
+            checkpoint_interval: 10,
+            agent_role: "executor".to_string(),
+            goal_evaluation_enabled: false,
+            adaptive_reflection: true,
         }
     }
 }
@@ -123,6 +147,14 @@ impl ReActConfig {
             enable_reflection: false,
             token_budget_enabled: false,
             token_budget_limit: None,
+            cycle_detection_enabled: true,
+            max_repeated_calls: 3,
+            max_no_progress_iterations: 5,
+            checkpoint_enabled: false,
+            checkpoint_interval: 10,
+            agent_role: "executor".to_string(),
+            goal_evaluation_enabled: false,
+            adaptive_reflection: false,
         }
     }
 
@@ -133,11 +165,19 @@ impl ReActConfig {
             verification_enabled: true,
             max_retry_attempts: 5,
             timeout_secs: 600,
-            reflection_threshold: 10,
+            reflection_threshold: 5,
             enable_analyzing: true,
             enable_reflection: true,
             token_budget_enabled: true,
             token_budget_limit: Some(200_000),
+            cycle_detection_enabled: true,
+            max_repeated_calls: 5,
+            max_no_progress_iterations: 8,
+            checkpoint_enabled: true,
+            checkpoint_interval: 5,
+            agent_role: "executor".to_string(),
+            goal_evaluation_enabled: true,
+            adaptive_reflection: true,
         }
     }
 }
@@ -175,6 +215,109 @@ impl ReasoningContext {
 
     pub fn increment_depth(&mut self) {
         self.depth += 1;
+    }
+}
+
+/// 推理策略：根据智能体角色定制 ReAct 循环行为
+#[derive(Debug, Clone)]
+pub struct ReasoningStrategy {
+    pub entry_state: ReasoningState,
+    pub enable_reflection: bool,
+    pub reflection_threshold: usize,
+    pub temperature: f32,
+    pub allow_tool_calls: bool,
+    pub max_iterations: usize,
+    pub timeout_secs: u64,
+    pub enable_analyzing: bool,
+}
+
+impl ReasoningStrategy {
+    /// 根据角色返回对应的推理策略
+    pub fn for_role(role: &str) -> Self {
+        match role {
+            "executor" => Self {
+                entry_state: ReasoningState::Analyzing,
+                enable_reflection: true,
+                reflection_threshold: 2,
+                temperature: 0.3,
+                allow_tool_calls: true,
+                max_iterations: 50,
+                timeout_secs: 300,
+                enable_analyzing: true,
+            },
+            "planner" => Self {
+                entry_state: ReasoningState::Thinking,
+                enable_reflection: true,
+                reflection_threshold: 2,
+                temperature: 0.4,
+                allow_tool_calls: false,
+                max_iterations: 30,
+                timeout_secs: 120,
+                enable_analyzing: true,
+            },
+            "researcher" => Self {
+                entry_state: ReasoningState::Analyzing,
+                enable_reflection: true,
+                reflection_threshold: 3,
+                temperature: 0.3,
+                allow_tool_calls: true,
+                max_iterations: 40,
+                timeout_secs: 180,
+                enable_analyzing: true,
+            },
+            "code_reviewer" => Self {
+                entry_state: ReasoningState::Thinking,
+                enable_reflection: true,
+                reflection_threshold: 2,
+                temperature: 0.2,
+                allow_tool_calls: true,
+                max_iterations: 30,
+                timeout_secs: 120,
+                enable_analyzing: false,
+            },
+            "safety_guard" => Self {
+                entry_state: ReasoningState::Thinking,
+                enable_reflection: false,
+                reflection_threshold: 1,
+                temperature: 0.1,
+                allow_tool_calls: false,
+                max_iterations: 20,
+                timeout_secs: 60,
+                enable_analyzing: false,
+            },
+            _ => Self::default(),
+        }
+    }
+}
+
+impl Default for ReasoningStrategy {
+    fn default() -> Self {
+        Self::for_role("executor")
+    }
+}
+
+impl From<ReasoningStrategy> for ReActConfig {
+    fn from(strategy: ReasoningStrategy) -> Self {
+        ReActConfig {
+            max_iterations: strategy.max_iterations,
+            max_depth: 10,
+            verification_enabled: true,
+            max_retry_attempts: 3,
+            timeout_secs: strategy.timeout_secs,
+            reflection_threshold: strategy.reflection_threshold,
+            enable_analyzing: strategy.enable_analyzing,
+            enable_reflection: strategy.enable_reflection,
+            token_budget_enabled: strategy.max_iterations > 30,
+            token_budget_limit: Some(180_000),
+            cycle_detection_enabled: true,
+            max_repeated_calls: 3,
+            max_no_progress_iterations: 5,
+            checkpoint_enabled: false,
+            checkpoint_interval: 10,
+            agent_role: "executor".to_string(),
+            goal_evaluation_enabled: false,
+            adaptive_reflection: true,
+        }
     }
 }
 
@@ -286,7 +429,7 @@ mod tests {
         assert!(config.verification_enabled);
         assert_eq!(config.max_retry_attempts, 3);
         assert_eq!(config.timeout_secs, 300);
-        assert_eq!(config.reflection_threshold, 5);
+        assert_eq!(config.reflection_threshold, 2);
         assert!(config.enable_analyzing);
         assert!(config.enable_reflection);
         assert!(config.token_budget_enabled);
@@ -316,7 +459,7 @@ mod tests {
         assert!(config.verification_enabled);
         assert_eq!(config.max_retry_attempts, 5);
         assert_eq!(config.timeout_secs, 600);
-        assert_eq!(config.reflection_threshold, 10);
+        assert_eq!(config.reflection_threshold, 5);
         assert!(config.enable_analyzing);
         assert!(config.enable_reflection);
         assert!(config.token_budget_enabled);

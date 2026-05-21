@@ -1,11 +1,17 @@
+use crate::pre_validator::PreExecutionValidator;
 use crate::reasoning_state::ActionType;
 use crate::thought_chain::{Action, ThoughtStep};
 use chrono::Utc;
 use serde_json::Value;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 pub struct ActionExecutor {
     _private: (),
+    pre_validator: Option<PreExecutionValidator>,
+    /// 外部传入的工具注册表（避免每次新建）
+    external_registry:
+        Option<Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>>,
 }
 
 impl Default for ActionExecutor {
@@ -16,7 +22,24 @@ impl Default for ActionExecutor {
 
 impl ActionExecutor {
     pub fn new() -> Self {
-        Self { _private: () }
+        Self {
+            _private: (),
+            pre_validator: None,
+            external_registry: None,
+        }
+    }
+
+    pub fn with_pre_validation(mut self, validator: PreExecutionValidator) -> Self {
+        self.pre_validator = Some(validator);
+        self
+    }
+
+    pub fn with_registry(
+        mut self,
+        registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
+    ) -> Self {
+        self.external_registry = Some(registry);
+        self
     }
 
     pub async fn execute(
@@ -24,6 +47,13 @@ impl ActionExecutor {
         action: Action,
         _conversation_id: &str,
     ) -> Result<ActionResult, ActionError> {
+        // 执行前校验
+        if let Some(ref validator) = self.pre_validator
+            && let Err(e) = validator.validate_action(&action)
+        {
+            return Err(e.into());
+        }
+
         let start = Instant::now();
         match action.action_type {
             ActionType::ToolCall => {
@@ -79,8 +109,16 @@ impl ActionExecutor {
             serde_json::json!({ "input": input })
         };
 
-        {
-            let input_str = serde_json::to_string(&args).unwrap_or_default();
+        let input_str = serde_json::to_string(&args).unwrap_or_default();
+
+        // 优先使用外部传入的 registry（保留其权限配置），否则新建
+        if let Some(ref ext_reg) = self.external_registry {
+            let mut reg = ext_reg.lock().await;
+            match reg.execute(local_name, &input_str).await {
+                Ok(r) => Ok(ActionResult::ToolSuccess(r.content, tool_name.to_string())),
+                Err(e) => Err(ActionError::ToolExecution(e.to_string())),
+            }
+        } else {
             let mut reg = axagent_tools::registry::UnifiedToolRegistry::new();
             match reg.execute(local_name, &input_str).await {
                 Ok(r) => Ok(ActionResult::ToolSuccess(r.content, tool_name.to_string())),

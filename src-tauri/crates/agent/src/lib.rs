@@ -19,8 +19,10 @@ pub mod checkpoint;
 pub mod citation_tracker;
 pub mod content_synthesizer;
 pub mod context_files;
+pub mod context_window;
 pub mod coordinator;
 pub mod credibility_evaluator;
+pub mod cycle_detector;
 pub mod deep_research;
 pub mod environment_probe;
 // error_classifier merged into recovery_strategies
@@ -31,6 +33,7 @@ pub mod event_emitter;
 pub mod fact_checker;
 pub mod fine_tune;
 pub mod frontend_adapter;
+pub mod goal_evaluator;
 pub mod graph_insights;
 pub mod health_checker;
 pub mod hierarchical_planner;
@@ -42,6 +45,7 @@ pub mod lint_checker;
 pub mod llm_bridge;
 pub mod metrics;
 pub mod outline_builder;
+pub mod pre_validator;
 pub mod proactive_mode;
 pub mod project_memory;
 pub mod provider_adapter;
@@ -100,7 +104,7 @@ pub use agent_runtime::{
 pub use blackboard::{
     Blackboard, BlackboardEntry, BlackboardEvent, BlackboardManager, EntryPriority,
 };
-pub use checkpoint::{Checkpoint, CheckpointBuilder, CheckpointManager};
+pub use checkpoint::{Checkpoint, CheckpointBuilder, CheckpointManager, ReActEngineCheckpoint};
 pub use citation_tracker::{
     CitationContext, CitationQuerier, CitationStats, CitationTracker, CitationUsage,
     CitationUsageCount,
@@ -153,6 +157,7 @@ pub use axagent_tools::{ToolContext, ToolError, ToolExecutionRecorder, ToolResul
 // LocalToolRegistry / LocalToolDef / LocalToolGroup 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
 // McpRegistry 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
 
+pub use axagent_runtime_core::AgentExecutionProgressSnapshot;
 pub use llm_bridge::{ProviderLlmBridge, build_llm_bridge_from_db};
 pub use metrics::{
     MetricType, MetricValue, MetricsCollector, StructuredLogEntry, TimedGuard, TimingStats,
@@ -164,7 +169,7 @@ pub use react_engine::{
     DefaultReasoningProvider, LlmDrivenReasoningProvider, LlmReasoningProvider, ReActEngine,
     ReActError, ReActResult,
 };
-pub use reasoning_state::{ActionType, ReActConfig, ReasoningState};
+pub use reasoning_state::{ActionType, ReActConfig, ReasoningState, ReasoningStrategy};
 pub use recovery_strategies::{
     RecoveryAdjustment, RecoveryAttempt, RecoveryResult, RecoveryStrategy,
 };

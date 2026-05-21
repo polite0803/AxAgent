@@ -1,4 +1,5 @@
 use crate::action_executor::ActionExecutor;
+use crate::cycle_detector::CycleDetector;
 use crate::reasoning_state::{ActionType, ReActConfig, ReasoningContext, ReasoningState};
 use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
@@ -71,6 +72,8 @@ pub enum ReActError {
     VerificationError(String),
     #[error("LLM reasoning failed: {0}")]
     LlmReasoningError(String),
+    #[error("Cycle detected: {0}")]
+    CycleDetected(String),
     #[error("Other: {0}")]
     Other(String),
 }
@@ -311,6 +314,82 @@ impl LlmDrivenReasoningProvider {
     }
 
     fn parse_action_from_response(&self, response: &str) -> Option<Action> {
+        // 尝试 JSON 解析（优先）
+        if let Some(action) = self.try_parse_json_action(response) {
+            return Some(action);
+        }
+
+        // 回退：旧版字符串匹配
+        self.try_parse_legacy_action(response)
+    }
+
+    fn try_parse_json_action(&self, response: &str) -> Option<Action> {
+        let json_str = extract_json_from_response(response);
+
+        #[derive(serde::Deserialize)]
+        struct ActionResponse {
+            action_type: Option<String>,
+            tool_name: Option<String>,
+            tool_input: Option<serde_json::Value>,
+            llm_prompt: Option<String>,
+            requires_confirmation: Option<bool>,
+        }
+
+        let parsed: ActionResponse = serde_json::from_str(&json_str).ok()?;
+
+        let action_type = parsed
+            .action_type
+            .as_deref()
+            .unwrap_or("plan")
+            .to_lowercase();
+
+        match action_type.as_str() {
+            "tool_call" | "toolcall" => {
+                let tool_name = parsed.tool_name?;
+                if tool_name.is_empty() {
+                    return None;
+                }
+                Some(Action {
+                    action_type: ActionType::ToolCall,
+                    tool_name: Some(tool_name),
+                    tool_input: parsed.tool_input,
+                    llm_prompt: None,
+                    requires_confirmation: parsed.requires_confirmation.unwrap_or(false),
+                })
+            },
+            "llm_call" | "llmcall" => {
+                let prompt = parsed.llm_prompt?;
+                if prompt.is_empty() {
+                    return None;
+                }
+                Some(Action::llm_call(prompt))
+            },
+            "user_confirm" | "userconfirm" => {
+                let message = parsed.llm_prompt.unwrap_or_default();
+                Some(Action::user_confirm(message))
+            },
+            _ => {
+                // plan / analyze / reflect / synthesize
+                Some(Action {
+                    action_type: ActionType::Plan,
+                    tool_name: None,
+                    tool_input: None,
+                    llm_prompt: parsed.llm_prompt.or_else(|| {
+                        Some(
+                            parsed
+                                .tool_name
+                                .as_deref()
+                                .unwrap_or("execute plan")
+                                .to_string(),
+                        )
+                    }),
+                    requires_confirmation: false,
+                })
+            },
+        }
+    }
+
+    fn try_parse_legacy_action(&self, response: &str) -> Option<Action> {
         let lower = response.to_lowercase();
 
         if let Some(start) = lower.find("tool_call:") {
@@ -376,13 +455,9 @@ impl LlmReasoningProvider for LlmDrivenReasoningProvider {
         context: &ReasoningContext,
         chain: &ThoughtChain,
     ) -> Result<String, ReActError> {
-        let steps_summary = chain
-            .steps
-            .iter()
-            .take(5)
-            .map(|s| format!("[{}] {}", s.state, truncate_string(&s.reasoning, 80)))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let ctx_config = crate::context_window::ContextWindowConfig::default();
+        let ctx_window = crate::context_window::ContextWindow::from_chain(chain, &ctx_config);
+        let steps_summary = ctx_window.to_prompt_string();
 
         let system_prompt = "You are a reasoning engine in a ReAct loop. Generate the next thinking step. Consider the current goal, progress so far, and what needs to be done next. Be concise and focused.";
         let user_prompt = format!(
@@ -407,15 +482,11 @@ impl LlmReasoningProvider for LlmDrivenReasoningProvider {
         context: &mut ReasoningContext,
         chain: &ThoughtChain,
     ) -> Result<Action, ReActError> {
-        let steps_summary = chain
-            .steps
-            .iter()
-            .take(5)
-            .map(|s| format!("[{}] {}", s.state, truncate_string(&s.reasoning, 80)))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let ctx_config = crate::context_window::ContextWindowConfig::default();
+        let ctx_window = crate::context_window::ContextWindow::from_chain(chain, &ctx_config);
+        let steps_summary = ctx_window.to_prompt_string();
 
-        let system_prompt = "You are a planning engine in a ReAct loop. Create an action plan. If a tool should be called, respond with 'tool_call:<tool_name>' on the first line followed by the tool input as JSON. If an LLM call is needed, respond with 'llm_call:' followed by the prompt. Otherwise, provide a step-by-step plan.";
+        let system_prompt = "You are a planning engine in a ReAct loop. Respond ONLY with a single JSON object (no markdown, no extra text):\n{\n  \"action_type\": \"tool_call\" | \"llm_call\" | \"user_confirm\" | \"plan\",\n  \"tool_name\": \"<name>\",        // required for tool_call\n  \"tool_input\": {<params>},      // required for tool_call, must be valid JSON object\n  \"llm_prompt\": \"<prompt>\",      // required for llm_call or plan\n  \"requires_confirmation\": false  // optional, set true for destructive operations\n}\nChoose the action that best advances the goal.";
         let user_prompt = format!(
             "Goal: {}\nSub-goals: {:?}\nIteration: {}\nDepth: {}\nPrevious steps:\n{}\n\nInput: {}",
             context.current_goal.as_deref().unwrap_or("Unknown"),
@@ -450,20 +521,14 @@ impl LlmReasoningProvider for LlmDrivenReasoningProvider {
         chain: &ThoughtChain,
         context: &ReasoningContext,
     ) -> Result<String, ReActError> {
-        let steps_summary = chain
-            .steps
-            .iter()
-            .take(10)
-            .map(|s| {
-                format!(
-                    "[{}] {} (verified: {})",
-                    s.state,
-                    truncate_string(&s.reasoning, 60),
-                    s.is_verified
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
+        let ctx_config = crate::context_window::ContextWindowConfig {
+            recent_count: 8,
+            max_summary_chars: 300,
+            summarize_older_than: 15,
+            deduplicate_similar: true,
+        };
+        let ctx_window = crate::context_window::ContextWindow::from_chain(chain, &ctx_config);
+        let steps_summary = ctx_window.to_prompt_string();
 
         let system_prompt = "You are a reflection engine in a ReAct loop. Review the progress so far and provide insights on what went well, what went wrong, and how to adjust the strategy. Be concise.";
         let user_prompt = format!(
@@ -485,13 +550,14 @@ impl LlmReasoningProvider for LlmDrivenReasoningProvider {
         chain: &ThoughtChain,
         context: &ReasoningContext,
     ) -> Result<String, ReActError> {
-        let steps_summary = chain
-            .steps
-            .iter()
-            .take(10)
-            .map(|s| format!("[{}] {}", s.state, truncate_string(&s.reasoning, 80)))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let ctx_config = crate::context_window::ContextWindowConfig {
+            recent_count: 10,
+            max_summary_chars: 500,
+            summarize_older_than: 20,
+            deduplicate_similar: true,
+        };
+        let ctx_window = crate::context_window::ContextWindow::from_chain(chain, &ctx_config);
+        let steps_summary = ctx_window.to_prompt_string();
 
         let observations = chain
             .steps
@@ -524,6 +590,11 @@ pub struct ReActEngine {
     token_budget: TokenBudgetTracker,
     reasoning_provider: Arc<dyn LlmReasoningProvider>,
     planner: Option<Arc<tokio::sync::Mutex<crate::hierarchical_planner::HierarchicalPlanner>>>,
+    cycle_detector: Option<CycleDetector>,
+    checkpoint_manager: Option<Arc<crate::checkpoint::CheckpointManager>>,
+    checkpoint_session_id: Option<String>,
+    checkpoint_interval: usize,
+    goal_evaluator: Option<std::sync::Mutex<crate::goal_evaluator::GoalEvaluator>>,
 }
 
 impl ReActEngine {
@@ -540,6 +611,11 @@ impl ReActEngine {
             token_budget: TokenBudgetTracker::new(),
             reasoning_provider: Arc::new(DefaultReasoningProvider::new()),
             planner: None,
+            cycle_detector: None,
+            checkpoint_manager: None,
+            checkpoint_session_id: None,
+            checkpoint_interval: 0,
+            goal_evaluator: None,
         }
     }
 
@@ -558,6 +634,30 @@ impl ReActEngine {
         planner: Arc<tokio::sync::Mutex<crate::hierarchical_planner::HierarchicalPlanner>>,
     ) -> Self {
         self.planner = Some(planner);
+        self
+    }
+
+    pub fn with_cycle_detection(mut self, max_repeat_calls: usize, max_no_progress: usize) -> Self {
+        self.cycle_detector = Some(CycleDetector::new(max_repeat_calls, max_no_progress));
+        self
+    }
+
+    pub fn with_checkpoint(
+        mut self,
+        manager: Arc<crate::checkpoint::CheckpointManager>,
+        session_id: String,
+        interval: usize,
+    ) -> Self {
+        self.checkpoint_manager = Some(manager);
+        self.checkpoint_session_id = Some(session_id);
+        self.checkpoint_interval = interval;
+        self
+    }
+
+    pub fn with_goal_evaluation(mut self, max_not_achieved: usize) -> Self {
+        self.goal_evaluator = Some(std::sync::Mutex::new(
+            crate::goal_evaluator::GoalEvaluator::new(max_not_achieved),
+        ));
         self
     }
 
@@ -582,6 +682,20 @@ impl ReActEngine {
         let mut consecutive_failures = 0;
 
         self.emit(ThoughtEvent::StateChanged(state));
+
+        // 根据配置自动启用循环检测
+        if self.config.cycle_detection_enabled && self.cycle_detector.is_none() {
+            self.cycle_detector = Some(CycleDetector::new(
+                self.config.max_repeated_calls,
+                self.config.max_no_progress_iterations,
+            ));
+        }
+
+        // 根据配置自动启用目标达成判定
+        if self.config.goal_evaluation_enabled && self.goal_evaluator.is_none() {
+            self.goal_evaluator =
+                Some(std::sync::Mutex::new(crate::goal_evaluator::GoalEvaluator::new(3)));
+        }
 
         while !state.is_terminal() {
             context.increment_iteration();
@@ -635,7 +749,7 @@ impl ReActEngine {
                     }
 
                     if self.config.enable_reflection
-                        && consecutive_failures >= self.config.reflection_threshold
+                        && consecutive_failures >= self.effective_reflection_threshold(&context)
                         && matches!(state, ReasoningState::Thinking)
                     {
                         state = ReasoningState::Reflecting;
@@ -688,6 +802,79 @@ impl ReActEngine {
                                 }
                                 break;
                             },
+                        }
+                    }
+
+                    // 循环检测
+                    if let Some(ref mut detector) = self.cycle_detector {
+                        let latest_obs = chain.latest_step().and_then(|s| s.observation.as_deref());
+                        let alerts = detector.record_step(
+                            chain
+                                .latest_step()
+                                .and_then(|s| s.action.as_ref())
+                                .and_then(|a| a.tool_name.as_deref())
+                                .unwrap_or(""),
+                            chain
+                                .latest_step()
+                                .and_then(|s| s.action.as_ref())
+                                .and_then(|a| a.tool_input.as_ref())
+                                .map(|v| v.to_string())
+                                .as_deref()
+                                .unwrap_or(""),
+                            chain.steps.len(),
+                            latest_obs,
+                            context.iteration,
+                        );
+
+                        if let Some(alert) = alerts.into_iter().next() {
+                            let msg = match alert {
+                                crate::cycle_detector::CycleAlert::RepeatCall {
+                                    tool_name,
+                                    count,
+                                    first_seen_at_iteration,
+                                } => format!(
+                                    "检测到循环调用: 工具 '{}' 已重复 {} 次 (首次出现在第 {} 次迭代)",
+                                    tool_name, count, first_seen_at_iteration
+                                ),
+                                crate::cycle_detector::CycleAlert::NoProgress {
+                                    stagnant_iterations,
+                                } => format!(
+                                    "检测到状态停滞: 连续 {} 次迭代无实质性进展",
+                                    stagnant_iterations
+                                ),
+                            };
+                            self.emit(ThoughtEvent::Error(msg.clone()));
+                            return ReActResult::failure(
+                                msg,
+                                chain.to_summary(),
+                                context.iteration,
+                                start.elapsed(),
+                                context,
+                            );
+                        }
+                    }
+
+                    // 断点续执行：每 N 次迭代自动保存
+                    if let Some(ref cm) = self.checkpoint_manager
+                        && self.checkpoint_interval > 0
+                        && context.iteration.is_multiple_of(self.checkpoint_interval)
+                        && let Some(ref sid) = self.checkpoint_session_id
+                    {
+                        let cp = crate::checkpoint::ReActEngineCheckpoint {
+                            session_id: sid.clone(),
+                            iteration: context.iteration,
+                            chain: chain.clone(),
+                            context: context.clone(),
+                            current_state: state,
+                            token_budget_used: estimate_chain_tokens(&chain),
+                            timestamp: chrono::Utc::now().timestamp(),
+                        };
+                        if let Err(e) = cm.save_react_checkpoint(&cp).await {
+                            tracing::warn!(
+                                error = %e,
+                                iteration = context.iteration,
+                                "Failed to save ReAct checkpoint"
+                            );
                         }
                     }
                 },
@@ -766,6 +953,180 @@ impl ReActEngine {
         )
     }
 
+    /// 从最近的 checkpoint 恢复执行
+    ///
+    /// 需要先通过 `with_checkpoint()` 配置 CheckpointManager 和 session_id。
+    /// 如果找不到 checkpoint，回退到普通的 `run()`。
+    pub async fn resume(&mut self, user_input: &str) -> ReActResult {
+        let session_id = match &self.checkpoint_session_id {
+            Some(sid) => sid.clone(),
+            None => return self.run(user_input).await,
+        };
+
+        let cm = match &self.checkpoint_manager {
+            Some(cm) => cm.clone(),
+            None => return self.run(user_input).await,
+        };
+
+        let loaded = match cm.load_react_checkpoint(&session_id).await {
+            Ok(Some(cp)) => cp,
+            _ => return self.run(user_input).await,
+        };
+
+        // 从 checkpoint 恢复状态
+        let start = std::time::Instant::now();
+        let mut chain = loaded.chain;
+        let mut context = loaded.context;
+        let mut state = loaded.current_state;
+        let mut retry_count = 0;
+        let mut consecutive_failures = 0;
+
+        tracing::info!(
+            iteration = loaded.iteration,
+            session_id = %session_id,
+            "Resumed ReAct engine from checkpoint"
+        );
+
+        // 恢复后继续执行主循环（与 run() 相同逻辑）
+        self.emit(ThoughtEvent::StateChanged(state));
+
+        if self.config.cycle_detection_enabled && self.cycle_detector.is_none() {
+            self.cycle_detector = Some(CycleDetector::new(
+                self.config.max_repeated_calls,
+                self.config.max_no_progress_iterations,
+            ));
+        }
+
+        while !state.is_terminal() {
+            context.increment_iteration();
+
+            if context.iteration >= self.config.max_iterations {
+                return ReActResult::failure(
+                    format!("Max iterations ({}) reached", self.config.max_iterations),
+                    chain.to_summary(),
+                    context.iteration,
+                    start.elapsed(),
+                    context,
+                );
+            }
+
+            if context.depth >= self.config.max_depth {
+                return ReActResult::failure(
+                    format!("Max depth ({}) reached", self.config.max_depth),
+                    chain.to_summary(),
+                    context.iteration,
+                    start.elapsed(),
+                    context,
+                );
+            }
+
+            let step_result: Result<(ReasoningState, bool), ReActError> = self
+                .process_state(user_input, state, &mut chain, &mut context)
+                .await;
+
+            match step_result {
+                Ok((new_state, should_continue)) => {
+                    let previous_state = state;
+                    state = new_state;
+                    self.emit(ThoughtEvent::StateChanged(state));
+
+                    if previous_state.requires_observation() && !should_continue {
+                        consecutive_failures += 1;
+                        retry_count += 1;
+
+                        if retry_count >= self.config.max_retry_attempts {
+                            return ReActResult::failure(
+                                format!("Max retries ({}) reached", self.config.max_retry_attempts),
+                                chain.to_summary(),
+                                context.iteration,
+                                start.elapsed(),
+                                context,
+                            );
+                        }
+                    } else {
+                        retry_count = 0;
+                        consecutive_failures = 0;
+                    }
+
+                    if self.config.enable_reflection
+                        && consecutive_failures >= self.effective_reflection_threshold(&context)
+                        && matches!(state, ReasoningState::Thinking)
+                    {
+                        state = ReasoningState::Reflecting;
+                        consecutive_failures = 0;
+                        self.emit(ThoughtEvent::StateChanged(state));
+                    }
+
+                    if state.is_terminal() {
+                        break;
+                    }
+
+                    // 断点续执行：每 N 次迭代自动保存
+                    if let Some(ref cm) = self.checkpoint_manager
+                        && self.checkpoint_interval > 0
+                        && context.iteration.is_multiple_of(self.checkpoint_interval)
+                        && let Some(ref sid) = self.checkpoint_session_id
+                    {
+                        let cp = crate::checkpoint::ReActEngineCheckpoint {
+                            session_id: sid.clone(),
+                            iteration: context.iteration,
+                            chain: chain.clone(),
+                            context: context.clone(),
+                            current_state: state,
+                            token_budget_used: estimate_chain_tokens(&chain),
+                            timestamp: chrono::Utc::now().timestamp(),
+                        };
+                        if let Err(e) = cm.save_react_checkpoint(&cp).await {
+                            tracing::warn!(
+                                error = %e,
+                                iteration = context.iteration,
+                                "Failed to save ReAct checkpoint"
+                            );
+                        }
+                    }
+                },
+                Err(e) => {
+                    self.emit(ThoughtEvent::Error(e.to_string()));
+                    consecutive_failures += 1;
+
+                    if consecutive_failures >= self.config.max_retry_attempts {
+                        return ReActResult::failure(
+                            e.to_string(),
+                            chain.to_summary(),
+                            context.iteration,
+                            start.elapsed(),
+                            context,
+                        );
+                    }
+
+                    state = ReasoningState::Thinking;
+                },
+            }
+        }
+
+        let final_response = chain
+            .latest_step()
+            .and_then(|s| s.result.clone())
+            .unwrap_or_else(|| "Task completed.".to_string());
+
+        self.emit(ThoughtEvent::ChainComplete(chain.to_summary()));
+
+        // 成功完成后删除 checkpoint
+        if let Some(ref cm) = self.checkpoint_manager
+            && let Some(ref sid) = self.checkpoint_session_id
+        {
+            let _ = cm.delete_react_checkpoint(sid).await;
+        }
+
+        ReActResult::success(
+            final_response,
+            chain.to_summary(),
+            context.iteration,
+            start.elapsed(),
+            context,
+        )
+    }
+
     async fn process_state(
         &self,
         user_input: &str,
@@ -827,7 +1188,21 @@ impl ReActEngine {
                         return Ok((ReasoningState::Observing, false));
                     }
 
-                    let result = self.executor.execute(action.clone(), "").await;
+                    let timeout_duration = Duration::from_secs(self.config.timeout_secs);
+                    let result = match tokio::time::timeout(
+                        timeout_duration,
+                        self.executor.execute(action.clone(), ""),
+                    )
+                    .await
+                    {
+                        Ok(exec_result) => exec_result,
+                        Err(_elapsed) => {
+                            return Err(ReActError::ActionError(format!(
+                                "操作超时 ({} 秒)",
+                                self.config.timeout_secs
+                            )));
+                        },
+                    };
 
                     match result {
                         Ok(action_result) => {
@@ -863,6 +1238,22 @@ impl ReActEngine {
                     }
 
                     if verification.is_valid {
+                        // 目标达成判定
+                        if let Some(ref evaluator) = self.goal_evaluator {
+                            let mut guard = evaluator.lock().unwrap();
+                            let evaluation = guard.evaluate(chain, context);
+                            if !evaluation.achieved {
+                                let reasoning = format!(
+                                    "目标未达成 (置信度 {:.0}%): {}。缺失: {}。返回 Thinking 继续处理。",
+                                    evaluation.confidence * 100.0,
+                                    evaluation.reason,
+                                    evaluation.missing.join(", ")
+                                );
+                                let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
+                                chain.add_step(step);
+                                return Ok((ReasoningState::Thinking, false));
+                            }
+                        }
                         Ok((ReasoningState::Synthesizing, true))
                     } else {
                         let reasoning =
@@ -945,6 +1336,16 @@ impl ReActEngine {
         }
     }
 
+    fn effective_reflection_threshold(&self, context: &ReasoningContext) -> usize {
+        if !self.config.adaptive_reflection {
+            return self.config.reflection_threshold;
+        }
+        let base = self.config.reflection_threshold;
+        let depth_penalty = context.depth / 2;
+        let progress_penalty = context.iteration / 10;
+        base.saturating_sub(depth_penalty + progress_penalty).max(1)
+    }
+
     fn adjust_strategy(&self, context: &mut ReasoningContext) {
         context.depth = 0;
     }
@@ -980,6 +1381,42 @@ fn truncate_string(s: &str, max_len: usize) -> String {
     } else {
         format!("{}...", &s[..max_len.saturating_sub(3)])
     }
+}
+
+/// 从 LLM 响应中提取 JSON 内容
+///
+/// 处理 LLM 可能在 JSON 外包裹 markdown 代码块或额外文本的情况。
+fn extract_json_from_response(response: &str) -> String {
+    let trimmed = response.trim();
+
+    // 尝试从 markdown 代码块中提取 JSON
+    if let Some(json_start) = trimmed.find("```json") {
+        let after_open = &trimmed[json_start + "```json".len()..];
+        if let Some(json_end) = after_open.find("```") {
+            return after_open[..json_end].trim().to_string();
+        }
+        return after_open.trim().to_string();
+    }
+
+    if let Some(json_start) = trimmed.find("```") {
+        let after_open = &trimmed[json_start + "```".len()..];
+        if let Some(json_end) = after_open.find("```") {
+            return after_open[..json_end].trim().to_string();
+        }
+        return after_open.trim().to_string();
+    }
+
+    // 尝试找到 { 开始 } 结束的 JSON 对象
+    if let Some(brace_start) = trimmed.find('{')
+        && let Some(brace_end) = trimmed.rfind('}')
+    {
+        let candidate = trimmed[brace_start..=brace_end].to_string();
+        if candidate.len() > trimmed.len() / 2 {
+            return candidate;
+        }
+    }
+
+    trimmed.to_string()
 }
 
 #[cfg(test)]

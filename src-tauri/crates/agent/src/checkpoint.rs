@@ -1,6 +1,22 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use crate::reasoning_state::ReasoningContext;
+use crate::reasoning_state::ReasoningState;
+use crate::thought_chain::ThoughtChain;
+
+/// ReAct 引擎的完整状态快照，支持断点续执行
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReActEngineCheckpoint {
+    pub session_id: String,
+    pub iteration: usize,
+    pub chain: ThoughtChain,
+    pub context: ReasoningContext,
+    pub current_state: ReasoningState,
+    pub token_budget_used: u64,
+    pub timestamp: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Checkpoint {
     pub id: String,
@@ -116,6 +132,61 @@ impl CheckpointManager {
 impl Default for CheckpointManager {
     fn default() -> Self {
         Self::new(".")
+    }
+}
+
+impl CheckpointManager {
+    /// 保存 ReAct 引擎状态快照
+    pub async fn save_react_checkpoint(&self, cp: &ReActEngineCheckpoint) -> Result<(), String> {
+        let id = format!("react-cp-{}", cp.session_id);
+        let path = self.checkpoint_dir.join(format!("{}.json", id));
+
+        tokio::fs::create_dir_all(&self.checkpoint_dir)
+            .await
+            .map_err(|e| format!("Failed to create checkpoint directory: {}", e))?;
+
+        let content = serde_json::to_string_pretty(cp)
+            .map_err(|e| format!("Failed to serialize ReAct checkpoint: {}", e))?;
+
+        tokio::fs::write(&path, content)
+            .await
+            .map_err(|e| format!("Failed to write ReAct checkpoint: {}", e))?;
+
+        Ok(())
+    }
+
+    /// 加载最近的 ReAct 引擎状态快照
+    pub async fn load_react_checkpoint(
+        &self,
+        session_id: &str,
+    ) -> Result<Option<ReActEngineCheckpoint>, String> {
+        let id = format!("react-cp-{}", session_id);
+        let path = self.checkpoint_dir.join(format!("{}.json", id));
+
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        let content = tokio::fs::read_to_string(&path)
+            .await
+            .map_err(|e| format!("Failed to read ReAct checkpoint: {}", e))?;
+
+        let cp: ReActEngineCheckpoint = serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse ReAct checkpoint: {}", e))?;
+
+        Ok(Some(cp))
+    }
+
+    /// 删除指定 session 的 ReAct checkpoint
+    pub async fn delete_react_checkpoint(&self, session_id: &str) -> Result<(), String> {
+        let id = format!("react-cp-{}", session_id);
+        let path = self.checkpoint_dir.join(format!("{}.json", id));
+        if path.exists() {
+            tokio::fs::remove_file(&path)
+                .await
+                .map_err(|e| format!("Failed to delete checkpoint: {}", e))?;
+        }
+        Ok(())
     }
 }
 

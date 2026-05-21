@@ -70,10 +70,10 @@ fn main() {
     let mut initialize_count: u32 = 0;
 
     fn log_call(log_path: &Option<String>, method: &str) {
-        if let Some(path) = log_path {
-            if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(path) {
-                let _ = writeln!(f, "{method}");
-            }
+        if let Some(path) = log_path
+            && let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(path)
+        {
+            let _ = writeln!(f, "{method}");
         }
     }
 

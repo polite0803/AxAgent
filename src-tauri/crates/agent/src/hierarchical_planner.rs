@@ -187,6 +187,9 @@ impl HierarchicalPlanner {
     }
 
     pub fn start_execution(&mut self) -> Result<(), String> {
+        // 先验证计划完整性（依赖引用 + 循环检测），需要只读访问
+        self.validate_plan_integrity()?;
+
         let plan = self.current_plan.as_mut().ok_or("No plan created")?;
 
         if plan.phases.is_empty() {
@@ -520,6 +523,161 @@ impl HierarchicalPlanner {
 
     pub fn get_pending_steps(&self) -> Vec<String> {
         self.collect_pending_steps()
+    }
+
+    /// 验证计划完整性：检查依赖引用是否存在 + 检测循环依赖
+    fn validate_plan_integrity(&self) -> Result<(), String> {
+        let plan = self.current_plan.as_ref().ok_or("No plan created")?;
+
+        let phase_ids: std::collections::HashSet<&String> =
+            plan.phases.iter().map(|p| &p.id).collect();
+
+        // 1. 检查跨 phase 依赖引用完整性
+        for phase in &plan.phases {
+            for dep in &phase.dependencies {
+                if !phase_ids.contains(dep) {
+                    return Err(format!("Phase '{}' 依赖的 Phase '{}' 不存在", phase.id, dep));
+                }
+            }
+        }
+
+        // 2. 检查每个 phase 内的 task 依赖引用 + 循环检测
+        for phase in &plan.phases {
+            let task_ids: std::collections::HashSet<&String> =
+                phase.tasks.iter().map(|t| &t.id).collect();
+
+            for task in &phase.tasks {
+                for dep in &task.dependencies {
+                    if !task_ids.contains(dep) {
+                        return Err(format!(
+                            "Task '{}' (Phase '{}') 依赖的 Task '{}' 不存在",
+                            task.id, phase.id, dep
+                        ));
+                    }
+                }
+            }
+
+            // 检测 task 层的循环依赖 (DFS)
+            self.detect_task_cycles(phase)?;
+        }
+
+        // 3. 检测 phase 层的循环依赖
+        self.detect_phase_cycles()?;
+
+        Ok(())
+    }
+
+    /// 检测单个 phase 内部 task 的循环依赖
+    fn detect_task_cycles(&self, phase: &Phase) -> Result<(), String> {
+        use std::collections::HashMap;
+
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        enum Color {
+            White,
+            Gray,
+            Black,
+        }
+
+        let mut color: HashMap<String, Color> = phase
+            .tasks
+            .iter()
+            .map(|t| (t.id.clone(), Color::White))
+            .collect();
+
+        fn dfs(
+            node: &str,
+            color: &mut HashMap<String, Color>,
+            tasks: &[PlannedTask],
+        ) -> Result<(), String> {
+            color.insert(node.to_string(), Color::Gray);
+            if let Some(task) = tasks.iter().find(|t| t.id == node) {
+                for dep in &task.dependencies {
+                    match color.get(dep.as_str()) {
+                        None => {},
+                        Some(&Color::Gray) => {
+                            return Err(format!(
+                                "检测到循环依赖: Task '{}' -> Task '{}'",
+                                node, dep
+                            ));
+                        },
+                        Some(&Color::White) => {
+                            dfs(dep, color, tasks)?;
+                        },
+                        Some(&Color::Black) => {},
+                    }
+                }
+            }
+            color.insert(node.to_string(), Color::Black);
+            Ok(())
+        }
+
+        for task in &phase.tasks {
+            if color.get(&task.id) == Some(&Color::White) {
+                dfs(&task.id, &mut color, &phase.tasks)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 检测跨 phase 的循环依赖
+    fn detect_phase_cycles(&self) -> Result<(), String> {
+        let plan = self.current_plan.as_ref().ok_or("No plan created")?;
+        use std::collections::HashMap;
+
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        enum Color {
+            White,
+            Gray,
+            Black,
+        }
+
+        let mut color: HashMap<String, Color> = plan
+            .phases
+            .iter()
+            .map(|p| (p.id.clone(), Color::White))
+            .collect();
+
+        let phase_deps: HashMap<String, Vec<String>> = plan
+            .phases
+            .iter()
+            .map(|p| (p.id.clone(), p.dependencies.clone()))
+            .collect();
+
+        fn dfs_phase(
+            node: &str,
+            color: &mut HashMap<String, Color>,
+            deps: &HashMap<String, Vec<String>>,
+        ) -> Result<(), String> {
+            color.insert(node.to_string(), Color::Gray);
+            if let Some(deps_list) = deps.get(node) {
+                for dep in deps_list {
+                    match color.get(dep.as_str()) {
+                        None => {},
+                        Some(&Color::Gray) => {
+                            return Err(format!(
+                                "检测到 Phase 间循环依赖: Phase '{}' -> Phase '{}'",
+                                node, dep
+                            ));
+                        },
+                        Some(&Color::White) => {
+                            dfs_phase(dep, color, deps)?;
+                        },
+                        Some(&Color::Black) => {},
+                    }
+                }
+            }
+            color.insert(node.to_string(), Color::Black);
+            Ok(())
+        }
+
+        for phase in &plan.phases {
+            if color.get(&phase.id) == Some(&Color::White) {
+                dfs_phase(&phase.id, &mut color, &phase_deps)?;
+            }
+        }
+
+        Ok(())
     }
 
     fn collect_completed_steps(&self) -> Vec<String> {

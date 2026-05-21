@@ -2,6 +2,92 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// 智能体角色定义，决定可调用工具范围
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum AgentRole {
+    /// 执行者 — 所有读写工具
+    #[default]
+    Executor,
+    /// 规划者 — 只读 + 搜索工具
+    Planner,
+    /// 研究者 — 只读 + 网络搜索 + 知识库
+    Researcher,
+    /// 代码审查者 — 只读文件 + lint 工具
+    CodeReviewer,
+    /// 安全守卫 — 仅验证工具
+    SafetyGuard,
+    /// 自定义角色
+    Custom {
+        name: String,
+        allowed_categories: Vec<String>,
+    },
+}
+
+impl AgentRole {
+    /// 返回角色的默认工具类别
+    pub fn default_tool_categories(&self) -> Vec<&'static str> {
+        match self {
+            AgentRole::Executor => vec![
+                "FileRead",
+                "FileWrite",
+                "Shell",
+                "Network",
+                "System",
+                "Agent",
+                "Vcs",
+                "Automation",
+                "Communication",
+                "AiMedia",
+                "Integration",
+                "Storage",
+                "Knowledge",
+                "Browser",
+                "Desktop",
+            ],
+            AgentRole::Planner => vec!["FileRead", "Network", "Knowledge"],
+            AgentRole::Researcher => vec!["FileRead", "Network", "Knowledge", "Browser"],
+            AgentRole::CodeReviewer => vec!["FileRead", "Vcs", "Knowledge"],
+            AgentRole::SafetyGuard => vec!["FileRead", "Knowledge"],
+            AgentRole::Custom {
+                allowed_categories: _,
+                ..
+            } => {
+                vec![]
+            },
+        }
+    }
+
+    pub fn allow_all_tools(&self) -> bool {
+        matches!(self, AgentRole::Executor)
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            AgentRole::Executor => "executor",
+            AgentRole::Planner => "planner",
+            AgentRole::Researcher => "researcher",
+            AgentRole::CodeReviewer => "code_reviewer",
+            AgentRole::SafetyGuard => "safety_guard",
+            AgentRole::Custom { name, .. } => name.as_str(),
+        }
+    }
+}
+
+impl std::str::FromStr for AgentRole {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "executor" => Ok(AgentRole::Executor),
+            "planner" => Ok(AgentRole::Planner),
+            "researcher" => Ok(AgentRole::Researcher),
+            "code_reviewer" => Ok(AgentRole::CodeReviewer),
+            "safety_guard" => Ok(AgentRole::SafetyGuard),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum DebugMode {
     #[default]
@@ -48,6 +134,7 @@ pub struct ReActConfig {
     pub max_depth: usize,
     pub verification_enabled: bool,
     pub stream_thoughts: bool,
+    pub timeout_secs: u64,
 }
 
 impl Default for ReActConfig {
@@ -57,6 +144,7 @@ impl Default for ReActConfig {
             max_depth: 10,
             verification_enabled: true,
             stream_thoughts: true,
+            timeout_secs: 300,
         }
     }
 }
@@ -68,6 +156,7 @@ impl ReActConfig {
             max_depth,
             verification_enabled: true,
             stream_thoughts: true,
+            timeout_secs: 300,
         }
     }
 

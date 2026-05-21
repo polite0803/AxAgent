@@ -30,6 +30,7 @@ pub trait DecomposerLlmClient: Send + Sync {
 pub struct TaskDecomposer {
     max_depth: usize,
     llm_client: Option<Arc<dyn DecomposerLlmClient>>,
+    tool_registry: Option<Arc<axagent_tools::registry::ToolRegistry>>,
 }
 
 impl TaskDecomposer {
@@ -37,6 +38,7 @@ impl TaskDecomposer {
         Self {
             max_depth: 10,
             llm_client: None,
+            tool_registry: None,
         }
     }
 
@@ -50,6 +52,14 @@ impl TaskDecomposer {
         self
     }
 
+    pub fn with_tool_registry(
+        mut self,
+        registry: Arc<axagent_tools::registry::ToolRegistry>,
+    ) -> Self {
+        self.tool_registry = Some(registry);
+        self
+    }
+
     pub fn decompose(&self, user_input: &str) -> Result<TaskGraph, DecompositionError> {
         let parsed = self.call_llm_decompose(user_input)?;
         self.build_graph(parsed)
@@ -59,6 +69,17 @@ impl TaskDecomposer {
         &self,
         user_input: &str,
     ) -> Result<DecompositionResult, DecompositionError> {
+        // 构建可用工具列表
+        let tool_list = self
+            .tool_registry
+            .as_ref()
+            .map(|reg| {
+                let tools = reg.list_all();
+                let names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
+                format!("\n\n可用工具（仅这些工具名有效）: {}", names.join(", "))
+            })
+            .unwrap_or_default();
+
         let prompt = format!(
             r#"你是一个任务分解专家。将以下复杂任务分解为可执行的子任务。
 
@@ -67,6 +88,7 @@ impl TaskDecomposer {
 2. 标注任务间的依赖关系
 3. 识别可以并行执行的任务
 4. 包含验证步骤确保任务正确完成
+5. 如果 type 是 tool_call，description 中必须包含有效的工具名称{}
 
 输入: {}
 
@@ -83,7 +105,7 @@ impl TaskDecomposer {
   "parallel_groups": [[1, 2], [3], [4, 5]],
   "reasoning": "分解理由..."
 }}"#,
-            user_input
+            tool_list, user_input
         );
 
         let response = self.execute_llm(&prompt)?;
@@ -250,6 +272,22 @@ impl TaskDecomposer {
             return Err(DecompositionError::InvalidStructure("No tasks provided".to_string()));
         }
 
+        // 工具可行性预检
+        if let Some(ref registry) = self.tool_registry {
+            let errors = self.validate_task_feasibility(&result.tasks, registry);
+            if !errors.is_empty() {
+                let msg = errors
+                    .iter()
+                    .map(|(task_id, reason)| format!("Task {}: {}", task_id, reason))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                return Err(DecompositionError::InvalidStructure(format!(
+                    "任务可行性校验失败: {}",
+                    msg
+                )));
+            }
+        }
+
         let mut graph = TaskGraph::new();
 
         for task in result.tasks {
@@ -262,6 +300,43 @@ impl TaskDecomposer {
         graph.parallel_groups = result.parallel_groups;
 
         Ok(graph)
+    }
+
+    /// 校验任务中引用的工具名称是否在 ToolRegistry 中存在
+    fn validate_task_feasibility(
+        &self,
+        tasks: &[TaskNode],
+        registry: &axagent_tools::registry::ToolRegistry,
+    ) -> Vec<(String, String)> {
+        let mut errors = Vec::new();
+
+        for task in tasks {
+            if task.task_type != TaskType::ToolCall {
+                continue;
+            }
+
+            let desc_lower = task.description.to_lowercase();
+            let tools = registry.list_all();
+            let tool_names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+
+            // 从描述中尝试提取工具名
+            let mut found = false;
+            for tool_name in &tool_names {
+                if desc_lower.contains(&tool_name.to_lowercase()) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if !found && !tool_names.is_empty() {
+                errors.push((
+                    task.id.clone(),
+                    format!("描述中未包含任何已知工具名，可用工具: {}", tool_names.join(", ")),
+                ));
+            }
+        }
+
+        errors
     }
 
     pub fn validate_graph(&self, graph: &TaskGraph) -> Result<(), DecompositionError> {
