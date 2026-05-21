@@ -1,6 +1,6 @@
 import { Button, message, theme } from "antd";
 import { ClipboardPaste } from "lucide-react";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export interface PasteButtonProps {
@@ -27,8 +27,17 @@ export const PasteButton: React.FC<PasteButtonProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [loading, setLoading] = React.useState(false);
+  const mountedRef = React.useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleClick = useCallback(async () => {
+    if (!mountedRef.current) { return; }
     setLoading(true);
     try {
       let text: string;
@@ -40,6 +49,7 @@ export const PasteButton: React.FC<PasteButtonProps> = ({
         // 浏览器降级：需要 secure context + clipboard-read 权限
         text = await navigator.clipboard.readText();
       }
+      if (!mountedRef.current) { return; }
       if (text) {
         onPaste(text);
       } else {
@@ -48,7 +58,7 @@ export const PasteButton: React.FC<PasteButtonProps> = ({
     } catch {
       message.info(t("pasteButton.clipboardUnavailable"));
     } finally {
-      setLoading(false);
+      if (mountedRef.current) { setLoading(false); }
     }
   }, [onPaste, t]);
 

@@ -265,8 +265,8 @@ function AppInner() {
               <ConditionalSkillStatusBar />
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
-              {/* 移动端：滑出式导航抽屉 + 全宽内容区 + 底部导航栏 */}
-              {deviceLayout === "mobile" && (
+              {/* 移动端/平板：滑出式导航抽屉 + 全宽内容区 + 底部导航栏 */}
+              {(deviceLayout === "mobile" || deviceLayout === "tablet") && (
                 <>
                   <Drawer
                     open={mobileNavOpen}
@@ -289,8 +289,8 @@ function AppInner() {
                   <MobileBottomNav />
                 </>
               )}
-              {/* 平板/桌面：固定侧边栏 + 内容区 */}
-              {deviceLayout !== "mobile" && (
+              {/* 桌面：固定侧边栏 + 内容区 */}
+              {deviceLayout === "desktop" && (
                 <Layout
                   hasSider={!isInSettings}
                   className="flex-1 overflow-hidden"

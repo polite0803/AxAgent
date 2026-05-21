@@ -46,7 +46,7 @@ export function MobileBottomNav() {
     setExpanded(false);
   }, [location.pathname]);
 
-  if (deviceLayout !== "mobile") { return null; }
+  if (deviceLayout !== "mobile" && deviceLayout !== "tablet") { return null; }
 
   const items: NavItem[] = useMemo(
     () => [
@@ -77,6 +77,7 @@ export function MobileBottomNav() {
       className="ax-safe-fixed-bottom"
       style={{
         position: "fixed",
+        bottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 900,

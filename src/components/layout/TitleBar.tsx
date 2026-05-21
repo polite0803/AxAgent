@@ -520,7 +520,7 @@ export function TitleBar() {
       }}
     >
       {/* 移动端汉堡按钮 */}
-      {deviceLayout === "mobile" && (
+      {(deviceLayout === "mobile" || deviceLayout === "tablet") && (
         <button
           className="title-bar-nodrag ax-titlebar-btn"
           onClick={toggleMobileNav}
