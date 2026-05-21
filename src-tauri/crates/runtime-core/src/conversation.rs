@@ -969,6 +969,18 @@ where
                 self.record_tool_finished(iterations, &result_message);
                 tool_results.push(result_message);
             }
+
+            // Emit iteration progress heartbeat so the frontend watchdog timer
+            // knows the agent is still running. Without this, long-running tasks
+            // (multi-iteration + tool calls) would silently exceed the 10-min
+            // frontend watchdpg timeout even though the backend is working.
+            if let Some(reporter) = self.hook_progress_reporter.as_mut() {
+                reporter.on_progress(
+                    &format!("第 {}/{} 轮迭代完成", iterations, self.max_iterations),
+                    iterations,
+                    self.max_iterations,
+                );
+            }
         }
         let auto_compaction = self.maybe_auto_compact();
 

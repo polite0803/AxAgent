@@ -1086,6 +1086,20 @@ impl HookProgressReporter for TauriHookProgressReporter {
             _ => {},
         }
     }
+
+    fn on_progress(&mut self, message: &str, _iteration: usize, _total: usize) {
+        // Emit agent-status event to reset frontend watchdog timer.
+        // This is called after each iteration of the conversation loop
+        // to confirm the agent is still running.
+        let _ = self.app_handle.emit(
+            "agent-status",
+            serde_json::json!({
+                "conversationId": self.conversation_id,
+                "phase": "running",
+                "message": message,
+            }),
+        );
+    }
 }
 
 #[cfg(test)]

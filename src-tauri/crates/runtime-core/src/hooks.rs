@@ -134,6 +134,11 @@ pub enum HookProgressEvent {
 
 pub trait HookProgressReporter: Send + Sync {
     fn on_event(&mut self, event: &HookProgressEvent);
+
+    /// Called periodically during agent execution to report overall progress.
+    /// The frontend uses this to reset its watchdog timer.
+    /// Default implementation is a no-op for backward compatibility.
+    fn on_progress(&mut self, _message: &str, _iteration: usize, _total: usize) {}
 }
 
 #[derive(Debug, Clone, Default)]

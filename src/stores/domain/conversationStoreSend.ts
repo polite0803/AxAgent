@@ -656,11 +656,10 @@ export function createSendMethods(
       let unlistenWorkflowComplete: UnlistenFn | null = null;
       let unlistenStatus: UnlistenFn | null = null;
 
-      // Agent 超时保护：10 分钟无响应则报错
       const AGENT_TIMEOUT_MS = 10 * 60 * 1000;
-      // Hoist promise reject so the timeout can reject the promise
       let _agentReject: ((reason: Error) => void) | null = null;
-      let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+
+      const onAgentTimeout = (messageKey: "agentMode.timeout" | "agentMode.timeoutShort") => {
         if (
           !isConvStreaming(
             useStreamStore.getState().activeStreams,
@@ -675,7 +674,7 @@ export function createSendMethods(
             m.id === currentMsgId
               ? {
                 ...m,
-                content: i18n.t("agentMode.timeout"),
+                content: i18n.t(messageKey),
                 status: "error" as const,
               }
               : m
@@ -689,11 +688,22 @@ export function createSendMethods(
             return t;
           })(),
         }));
-        // Reject the event promise so the await doesn't hang forever
         if (_agentReject) {
-          _agentReject(new Error(i18n.t("agentMode.timeout")));
+          _agentReject(new Error(i18n.t(messageKey)));
         }
-      }, AGENT_TIMEOUT_MS);
+      };
+
+      const resetAgentTimeout = () => {
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+        timeoutId = setTimeout(() => onAgentTimeout("agentMode.timeout"), AGENT_TIMEOUT_MS);
+      };
+
+      let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(
+        () => onAgentTimeout("agentMode.timeout"),
+        AGENT_TIMEOUT_MS,
+      );
 
       // ── Agent stream buffering (same pattern as Q&A _pendingUiChunk) ──
       let _agentPendingText = "";
@@ -896,7 +906,7 @@ export function createSendMethods(
               if (event.payload.conversationId !== conversationId) {
                 return;
               }
-              // Flush pending buffers before switching IDs (both text and thinking)
+              resetAgentTimeout();
               flushAgentTextChunks();
               flushAgentThinkingChunks();
               const realId = event.payload.assistantMessageId;
@@ -925,8 +935,8 @@ export function createSendMethods(
               if (event.payload.conversationId !== conversationId) {
                 return;
               }
+              resetAgentTimeout();
 
-              // Check if this is a workflow event
               if ("type" in event.payload) {
                 handleWorkflowEvent(event.payload as WorkflowEvent);
                 return;
@@ -945,8 +955,9 @@ export function createSendMethods(
             if (event.payload.conversationId !== conversationId) {
               return;
             }
+            resetAgentTimeout();
             _agentPendingThinking += event.payload.thinking;
-            scheduleAgentThinkingFlush(); // P2: 200ms cadence
+            scheduleAgentThinkingFlush();
           }).then((fn) => {
             unlistenStreamThinking = fn;
           });
@@ -1096,43 +1107,7 @@ export function createSendMethods(
             if (event.payload.conversationId !== conversationId) {
               return;
             }
-            // Reset timeout on each status event
-            if (timeoutId !== null) {
-              clearTimeout(timeoutId);
-            }
-            timeoutId = setTimeout(() => {
-              if (
-                !isConvStreaming(
-                  useStreamStore.getState().activeStreams,
-                  conversationId,
-                )
-              ) {
-                return;
-              }
-              cleanup();
-              set((s) => ({
-                messages: s.messages.map((m) =>
-                  m.id === currentMsgId
-                    ? {
-                      ...m,
-                      content: i18n.t("agentMode.timeoutShort"),
-                      status: "error" as const,
-                    }
-                    : m
-                ),
-              }));
-              useStreamStore.setState((s) => ({
-                ...stopConversationStream(s.activeStreams, conversationId),
-                streamingStartTimestamps: (() => {
-                  const t = { ...s.streamingStartTimestamps };
-                  delete t[conversationId];
-                  return t;
-                })(),
-              }));
-              if (_agentReject) {
-                _agentReject(new Error(i18n.t("agentMode.timeoutShort")));
-              }
-            }, AGENT_TIMEOUT_MS);
+            resetAgentTimeout();
             set((s) => ({
               messages: s.messages.map((m) =>
                 m.id === currentMsgId
