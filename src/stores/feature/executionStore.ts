@@ -368,6 +368,7 @@ export const useExecutionStore = create<ExecutionStore>()(
       },
 
       handleToolStart: (event) => {
+        const poolId = `tool-${event.toolUseId}`;
         set(
           (s) => {
             const existing = s.toolCalls[event.toolUseId];
@@ -380,9 +381,29 @@ export const useExecutionStore = create<ExecutionStore>()(
                   assistantMessageId: event.assistantMessageId || "",
                 }),
                 executionStatus: "running",
+                startedAt: Date.now(),
               },
             };
-            return { toolCalls: { ...s.toolCalls, ...updates } };
+            // Also add to agentPool so AgentPoolPanel / ExecutionTimeline
+            // show tool executions during the main agent path.
+            const pool = [...(s.agentPool[event.conversationId] || [])];
+            const idx = pool.findIndex((p) => p.id === poolId);
+            const poolItem: AgentPoolItem = {
+              id: poolId,
+              conversationId: event.conversationId,
+              type: "worker",
+              name: event.toolName,
+              status: "running",
+              currentTask: event.toolName,
+              startedAt: Date.now(),
+              messageId: _latestMessageIdByConv[event.conversationId],
+            };
+            if (idx >= 0) { pool[idx] = { ...pool[idx], ...poolItem }; }
+            else { pool.push(poolItem); }
+            return {
+              toolCalls: { ...s.toolCalls, ...updates },
+              agentPool: { ...s.agentPool, [event.conversationId]: pool },
+            };
           },
           false,
           { type: "tool-start", toolUseId: event.toolUseId },
@@ -390,6 +411,7 @@ export const useExecutionStore = create<ExecutionStore>()(
       },
 
       handleToolResult: (event) => {
+        const poolId = `tool-${event.toolUseId}`;
         set(
           (s) => {
             const existing = s.toolCalls[event.toolUseId];
@@ -407,9 +429,24 @@ export const useExecutionStore = create<ExecutionStore>()(
             const currentToolCall = s.currentToolCall?.toolUseId === event.toolUseId
               ? null
               : s.currentToolCall;
+            // Update pool item for AgentPoolPanel / ExecutionTimeline
+            const pool = [...(s.agentPool[event.conversationId] || [])];
+            const idx = pool.findIndex((p) => p.id === poolId);
+            if (idx >= 0) {
+              pool[idx] = {
+                ...pool[idx],
+                status: event.isError ? "failed" : "completed",
+                summary: event.content?.slice(0, 200),
+                error: event.isError ? (event.content ?? "Tool failed") : undefined,
+                duration: pool[idx].startedAt
+                  ? Date.now() - pool[idx].startedAt
+                  : 0,
+              };
+            }
             return {
               toolCalls: { ...s.toolCalls, ...updates },
               currentToolCall,
+              agentPool: { ...s.agentPool, [event.conversationId]: pool },
             };
           },
           false,

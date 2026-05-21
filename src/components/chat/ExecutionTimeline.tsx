@@ -73,7 +73,7 @@ function toolCallToEvent(tc: ToolCallState): TimelineEvent {
   return {
     id: `tool:${tc.toolUseId}`,
     type: "tool_call",
-    timestamp: Date.now() - (tc.executionStatus === "success" ? 2000 : 0),
+    timestamp: tc.startedAt || Date.now() - (tc.executionStatus === "success" ? 2000 : 0),
     title: toolName,
     description: inputSummary + (inputSummary.length >= 80 ? "…" : ""),
     status: statusMap[tc.executionStatus] || "pending",

@@ -1,5 +1,7 @@
 use crate::AppState;
-use axagent_agent::{AxAgentApiClient, McpServerConfig, ToolRegistry};
+use axagent_agent::{
+    AgentExecutionProgressSnapshot, AxAgentApiClient, McpServerConfig, ToolRegistry,
+};
 use axagent_core::cloud_workspace::CloudWorkspace;
 use axagent_core::repo::{conversation, message, provider, search_provider};
 use axagent_core::types::{
@@ -3808,6 +3810,10 @@ pub struct AgentRuntimeStats {
     pub pending_ask_user: usize,
     #[serde(rename = "activeToolCalls")]
     pub active_tool_calls: usize,
+    /// Real-time execution progress for frontend panels
+    /// (AgentStatsPanel, ExecutionTimeline, etc.)
+    #[serde(rename = "executionProgress")]
+    pub execution_progress: Option<AgentExecutionProgressSnapshot>,
 }
 
 /// Get runtime statistics for an agent conversation.
@@ -3845,6 +3851,14 @@ pub async fn agent_runtime_stats(
         if running && !paused { 1 } else { 0 }
     };
 
+    // Read real-time execution progress from the SessionManager.
+    // This is updated synchronously by ConversationRuntime::run_turn()
+    // during execution and can be read asynchronously here.
+    let execution_progress = app_state
+        .agent_session_manager
+        .get_progress(&conversation_id)
+        .map(|p| p.snapshot());
+
     Ok(AgentRuntimeStats {
         conversation_id,
         running,
@@ -3853,6 +3867,7 @@ pub async fn agent_runtime_stats(
         pending_permissions,
         pending_ask_user,
         active_tool_calls,
+        execution_progress,
     })
 }
 

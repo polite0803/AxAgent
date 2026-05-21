@@ -561,6 +561,8 @@
     "lambda": "λ (TD)",
     "agentStats": {
       "askUser": "个询问",
+      "failed": "失败",
+      "iteration": "轮迭代",
       "loading": "加载中...",
       "pause": "暂停",
       "paused": "已暂停",
@@ -2857,10 +2859,14 @@
   "agentStats": {
     "running": "运行中",
     "paused": "已暂停",
+    "loading": "加载中...",
     "tokens": "个令牌",
     "pending": "待处理",
     "tool": "个工具",
+    "failed": "失败",
+    "iteration": "轮迭代",
     "session": "个会话",
+    "askUser": "次提问",
     "resume": "继续",
     "pause": "暂停"
   },

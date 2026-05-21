@@ -35,6 +35,11 @@ export interface ToolStartEvent {
   toolUseId: string;
   toolName: string;
   input: Record<string, unknown>;
+  /** Server-side timestamp (ms since epoch) when tool execution began */
+  startedAt?: number;
+  /** Current iteration / total iterations at time of tool start */
+  iteration?: number;
+  maxIterations?: number;
 }
 
 export interface ToolResultEvent {
@@ -44,6 +49,8 @@ export interface ToolResultEvent {
   toolName: string;
   content: string;
   isError: boolean;
+  /** Server-side timestamp (ms since epoch) when tool execution began */
+  startedAt?: number;
 }
 
 export interface PermissionRequestEvent {
@@ -115,7 +122,22 @@ export interface ModelFallbackEvent {
 
 export interface AgentStatusEvent {
   conversationId: string;
+  phase?: string;
   message: string;
+  /** Current loop iteration (1-based) */
+  iteration?: number;
+  /** Maximum iterations allowed */
+  totalIterations?: number;
+  /** Name of the currently executing tool, if any */
+  currentTool?: string;
+  /** Total tools executed so far */
+  executedToolCount?: number;
+  /** Number of failed tools */
+  failedToolCount?: number;
+  /** Latest error message, if any */
+  lastError?: string;
+  /** Human-readable status description */
+  statusMessage?: string;
 }
 
 export interface AgentRateLimitEvent {
@@ -193,6 +215,7 @@ export interface ToolCallState {
   approvalStatus?: ApprovalStatus;
   output?: string;
   isError?: boolean;
+  startedAt?: number;
 }
 
 // --- Sub-agent card event ---

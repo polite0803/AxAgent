@@ -56,7 +56,7 @@ impl Default for AgentRuntimeConfig {
 pub struct AgentRuntime<C, T>
 where
     C: ApiClient + Send,
-    T: ToolExecutor + Send,
+    T: ToolExecutor + Send + 'static,
 {
     session: Session,
     conversation_runtime: ConversationRuntime<C, T>,
@@ -69,7 +69,7 @@ where
 impl<C, T> AgentRuntime<C, T>
 where
     C: ApiClient + Send,
-    T: ToolExecutor + Send,
+    T: ToolExecutor + Send + 'static,
 {
     pub fn new(
         config: AgentRuntimeConfig,

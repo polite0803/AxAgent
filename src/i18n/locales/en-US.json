@@ -2661,10 +2661,14 @@
   "agentStats": {
     "running": "Running",
     "paused": "Paused",
+    "loading": "Loading...",
     "tokens": "tokens",
     "pending": "pending",
     "tool": "tool(s)",
+    "failed": "failed",
+    "iteration": "iterations",
     "session": "session(s)",
+    "askUser": "question(s)",
     "resume": "Resume",
     "pause": "Pause"
   },

@@ -14,6 +14,7 @@ pub mod config;
 pub mod config_validate;
 pub mod conversation;
 pub mod cron_job;
+pub mod execution_progress;
 pub mod feature_flags;
 pub mod fork_bridge;
 pub mod hook_chain;
@@ -68,6 +69,10 @@ pub use conversation::{
     ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
     PromptCacheEvent, RuntimeError, StaticToolExecutor, ToolError, ToolErrorKind, ToolExecutor,
     TurnSummary, auto_compaction_threshold_from_env,
+};
+
+pub use execution_progress::{
+    AgentExecutionProgress, AgentExecutionProgressSnapshot, ToolExecutionRecord,
 };
 
 pub use feature_flags::{

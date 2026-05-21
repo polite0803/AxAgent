@@ -1,23 +1,49 @@
 import { invoke } from "@/lib/invoke";
 import { useAgentStore, useConversationStore, useStreamStore } from "@/stores";
-import { Activity, Clock, HelpCircle, Pause, Play, Shield, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Clock, HelpCircle, IterationCw, Pause, Play, Shield, Wrench } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DreamStatusIndicator } from "./DreamStatusIndicator";
 
+interface ToolExecRecord {
+  toolName: string;
+  startedAt: number;
+  completedAt: number | null;
+  isError: boolean;
+  outputSummary?: string | null;
+  inputSummary?: string | null;
+}
+
+interface ExecutionProgress {
+  running: boolean;
+  phase: string;
+  currentIteration: number;
+  maxIterations: number;
+  currentTool: string | null;
+  currentToolStartedAt: number | null;
+  executedToolCount: number;
+  failedToolCount: number;
+  recentTools: ToolExecRecord[];
+  lastError: string | null;
+  statusMessage: string;
+}
+
 interface RuntimeStats {
   conversationId: string;
+  running: boolean;
   paused: boolean;
   activeSessions: number;
   pendingPermissions: number;
   pendingAskUser: number;
   activeToolCalls: number;
+  executionProgress: ExecutionProgress | null;
 }
 
 export const AgentStatsPanel: React.FC = () => {
   const { t } = useTranslation();
   const [stats, setStats] = useState<RuntimeStats | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [toolElapsed, setToolElapsed] = useState(0);
   const activeConversationId = useConversationStore(
     (s) => s.activeConversationId,
   );
@@ -32,6 +58,7 @@ export const AgentStatsPanel: React.FC = () => {
   const currentQueryStats = useAgentStore((s) =>
     streamingMessageId ? (s.queryStats[streamingMessageId] ?? null) : null
   );
+  const prog = stats?.executionProgress ?? null;
 
   const startTimeRef = useRef(0);
   const pausedDurationRef = useRef(0);
@@ -86,6 +113,21 @@ export const AgentStatsPanel: React.FC = () => {
       }
     }, 2000);
 
+    // Track per-tool elapsed time
+    const toolInterval = setInterval(() => {
+      setStats((prev) => {
+        const p = prev?.executionProgress;
+        if (p?.currentTool && p.currentToolStartedAt) {
+          setToolElapsed(
+            Math.floor((Date.now() - p.currentToolStartedAt) / 1000),
+          );
+        } else {
+          setToolElapsed(0);
+        }
+        return prev;
+      });
+    }, 1000);
+
     invoke<RuntimeStats>("agent_runtime_stats", {
       conversationId: activeConversationId,
     })
@@ -101,6 +143,7 @@ export const AgentStatsPanel: React.FC = () => {
     return () => {
       cancelled = true;
       clearInterval(interval);
+      clearInterval(toolInterval);
     };
   }, [streaming, activeConversationId]);
 
@@ -195,12 +238,49 @@ export const AgentStatsPanel: React.FC = () => {
               </div>
             )}
 
-            {stats.activeToolCalls > 0 && (
-              <div className="flex items-center gap-1">
-                <Wrench size={12} />
-                <span>
-                  {stats.activeToolCalls} {t("chat.agentStats.tool")}
+            {prog?.currentTool && (
+              <div className="flex items-center gap-1 font-medium">
+                <Wrench size={12} className="animate-spin" />
+                <span title={prog.statusMessage}>
+                  {prog.currentTool}
                 </span>
+                {toolElapsed > 0 && (
+                  <span className="text-blue-500/70">
+                    ({formatElapsed(toolElapsed)})
+                  </span>
+                )}
+              </div>
+            )}
+
+            {prog && prog.currentIteration > 0 && (
+              <div className="flex items-center gap-1">
+                <IterationCw size={12} />
+                <span title={t("chat.agentStats.iteration")}>
+                  {prog.currentIteration}/{prog.maxIterations}
+                </span>
+              </div>
+            )}
+
+            {prog && prog.executedToolCount > 0 && (
+              <div className="flex items-center gap-1">
+                <span
+                  title={prog.recentTools
+                    .slice(-3)
+                    .map((rt) => `${rt.toolName} ${rt.isError ? "✗" : "✓"}`)
+                    .join(" | ")}
+                >
+                  {prog.executedToolCount} {t("chat.agentStats.tool")}
+                  {prog.failedToolCount > 0
+                    ? ` (${prog.failedToolCount} ${t("chat.agentStats.failed")})`
+                    : ""}
+                </span>
+              </div>
+            )}
+
+            {prog?.lastError && (
+              <div className="flex items-center gap-1 text-red-500" title={prog.lastError}>
+                <AlertTriangle size={12} />
+                <span className="truncate max-w-[120px]">{prog.lastError}</span>
               </div>
             )}
 

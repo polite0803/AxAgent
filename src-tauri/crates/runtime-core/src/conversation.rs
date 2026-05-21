@@ -12,6 +12,7 @@ use crate::compact::{
     CompactionConfig, CompactionResult, compact_session, estimate_session_tokens,
 };
 use crate::config::RuntimeFeatureConfig;
+use crate::execution_progress::AgentExecutionProgress;
 use crate::hooks::{HookAbortSignal, HookProgressReporter, HookRunResult, HookRunner};
 use crate::permissions::{
     PermissionContext, PermissionOutcome, PermissionPolicy, PermissionPrompter,
@@ -302,12 +303,13 @@ pub struct ConversationRuntime<C, T> {
     session_tracer: Option<SessionTracer>,
     cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     pause_state: Option<Arc<PauseState>>,
+    progress: Option<Arc<AgentExecutionProgress>>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
 where
     C: ApiClient,
-    T: ToolExecutor + Send,
+    T: ToolExecutor + Send + 'static,
 {
     #[must_use]
     pub fn new(
@@ -352,6 +354,7 @@ where
             session_tracer: None,
             cancel_token: None,
             pause_state: None,
+            progress: None,
         }
     }
 
@@ -396,6 +399,12 @@ where
         hook_progress_reporter: Box<dyn HookProgressReporter>,
     ) -> Self {
         self.hook_progress_reporter = Some(hook_progress_reporter);
+        self
+    }
+
+    #[must_use]
+    pub fn with_progress(mut self, progress: Arc<AgentExecutionProgress>) -> Self {
+        self.progress = Some(progress);
         self
     }
 
@@ -531,6 +540,13 @@ where
             .push_user_text(user_input)
             .map_err(|error| RuntimeError::new(error.to_string()))?;
 
+        // Initialize execution progress tracking
+        if let Some(ref progress) = self.progress {
+            progress.start();
+            progress.set_iteration(0);
+            progress.set_phase("init", "正在初始化...");
+        }
+
         let mut assistant_messages = Vec::new();
         let mut tool_results = Vec::new();
         let mut prompt_cache_events = Vec::new();
@@ -546,6 +562,12 @@ where
 
         loop {
             iterations += 1;
+
+            // Update progress iteration
+            if let Some(ref progress) = self.progress {
+                progress.set_iteration(iterations);
+                progress.set_phase("llm_call", "正在调用模型...");
+            }
 
             // Check cancel token
             if let Some(ref token) = self.cancel_token
@@ -771,35 +793,47 @@ where
                     PermissionOutcome::Allow => {
                         self.record_tool_started(iterations, &tool_name);
 
+                        // Emit progress heartbeat before each tool call so the frontend
+                        // watchdog knows the agent is still active even during long tool
+                        // execution (e.g. a bash command approaching the 300s timeout).
+                        if let Some(reporter) = self.hook_progress_reporter.as_mut() {
+                            reporter.on_progress(
+                                &format!("正在运行工具: {} (第 {} 轮)", tool_name, iterations),
+                                iterations,
+                                self.max_iterations,
+                            );
+                        }
+
+                        // Update shared execution progress for the frontend panels
+                        if let Some(ref progress) = self.progress {
+                            progress.begin_tool(&tool_name, Some(&effective_input));
+                        }
+
                         // Determine timeout based on tool category
                         let tool_timeout = Self::tool_timeout_for(&tool_name);
 
                         let (mut output, mut is_error) = {
-                            let tool_name_owned = tool_name.clone();
-                            let effective_input_owned = effective_input.clone();
-                            let tool_executor = self.tool_executor.clone();
-
+                            // Spawn tool execution on a dedicated thread so
+                            // `recv_timeout` actually enforces the timeout.
+                            // Previously execute() ran on the current thread
+                            // and the channel was populated *before* the
+                            // receive, making the timeout a no-op.
+                            let (tx, rx) = std::sync::mpsc::channel();
+                            let t_name = tool_name.clone();
+                            let t_input = effective_input.clone();
+                            let t_executor = self.tool_executor.clone();
+                            let t_timeout = tool_timeout;
+                            std::thread::spawn(move || {
+                                let result = match t_executor.lock() {
+                                    Ok(mut ex) => ex.execute(&t_name, &t_input),
+                                    Err(e) => Err(ToolError::new(format!("Lock error: {}", e))),
+                                };
+                                let _ = tx.send(result);
+                            });
                             let scope_result: Result<
                                 Result<String, ToolError>,
                                 std::sync::mpsc::RecvTimeoutError,
-                            > = tokio::task::block_in_place(|| {
-                                let mut tool_executor = match tool_executor.lock() {
-                                    Ok(executor) => executor,
-                                    Err(e) => {
-                                        let (tx, rx) = std::sync::mpsc::channel();
-                                        let _ = tx.send(Err(ToolError::new(format!(
-                                            "Lock error: {}",
-                                            e
-                                        ))));
-                                        return rx.recv_timeout(tool_timeout);
-                                    },
-                                };
-                                let result =
-                                    tool_executor.execute(&tool_name_owned, &effective_input_owned);
-                                let (tx, rx) = std::sync::mpsc::channel();
-                                let _ = tx.send(result);
-                                rx.recv_timeout(tool_timeout)
-                            });
+                            > = tokio::task::block_in_place(|| rx.recv_timeout(t_timeout));
 
                             let first_result: Result<String, RuntimeError> = match scope_result {
                                 Ok(Ok(output)) => Ok(output),
@@ -854,30 +888,43 @@ where
                                             std::thread::sleep(std::time::Duration::from_millis(
                                                 TOOL_RETRY_DELAY_MS * retry_count as u64,
                                             ));
-                                            // Retry with same timeout enforcement
-                                            let retry_tool_name = tool_name.clone();
-                                            let retry_input = effective_input.clone();
-                                            let retry_tool_executor = self.tool_executor.clone();
+                                            // Emit heartbeat before retry so the frontend
+                                            // watchdog doesn't fire during retry chains.
+                                            if let Some(reporter) =
+                                                self.hook_progress_reporter.as_mut()
+                                            {
+                                                reporter.on_progress(
+                                                    &format!(
+                                                        "正在重试工具: {} (第 {} 轮, 第 {} 次尝试)",
+                                                        tool_name, iterations, retry_count
+                                                    ),
+                                                    iterations,
+                                                    self.max_iterations,
+                                                );
+                                            }
+                                            // Retry with same timeout enforcement —
+                                            // spawn on a dedicated thread so the
+                                            // timeout actually applies.
+                                            let (retry_tx, retry_rx) = std::sync::mpsc::channel();
+                                            let rt_name = tool_name.clone();
+                                            let rt_input = effective_input.clone();
+                                            let rt_executor = self.tool_executor.clone();
+                                            let rt_timeout = tool_timeout;
+                                            std::thread::spawn(move || {
+                                                let result = match rt_executor.lock() {
+                                                    Ok(mut ex) => ex.execute(&rt_name, &rt_input),
+                                                    Err(e) => Err(ToolError::new(format!(
+                                                        "Lock error: {}",
+                                                        e
+                                                    ))),
+                                                };
+                                                let _ = retry_tx.send(result);
+                                            });
                                             let retry_scope_result: Result<
                                                 Result<String, ToolError>,
                                                 std::sync::mpsc::RecvTimeoutError,
                                             > = tokio::task::block_in_place(|| {
-                                                let mut executor = match retry_tool_executor.lock()
-                                                {
-                                                    Ok(ex) => ex,
-                                                    Err(e) => {
-                                                        let (tx, rx) = std::sync::mpsc::channel();
-                                                        let _ = tx.send(Err(ToolError::new(
-                                                            format!("Lock error: {}", e),
-                                                        )));
-                                                        return rx.recv_timeout(tool_timeout);
-                                                    },
-                                                };
-                                                let result = executor
-                                                    .execute(&retry_tool_name, &retry_input);
-                                                let (tx, rx) = std::sync::mpsc::channel();
-                                                let _ = tx.send(result);
-                                                rx.recv_timeout(tool_timeout)
+                                                retry_rx.recv_timeout(rt_timeout)
                                             });
                                             let retry_result: Result<String, RuntimeError> = match retry_scope_result {
                                                 Ok(Ok(output)) => Ok(output),
@@ -954,6 +1001,12 @@ where
                                 || post_hook_result.is_cancelled(),
                         );
 
+                        // Update shared execution progress before the
+                        // Allow arm closes (output/is_error live here).
+                        if let Some(ref progress) = self.progress {
+                            progress.end_tool(is_error, Some(&output));
+                        }
+
                         ConversationMessage::tool_result(tool_use_id, tool_name, output, is_error)
                     },
                     PermissionOutcome::Deny { reason } => ConversationMessage::tool_result(
@@ -994,6 +1047,10 @@ where
             thinking,
         };
         self.record_turn_completed(&summary);
+
+        if let Some(ref progress) = self.progress {
+            progress.finish();
+        }
 
         Ok(summary)
     }
@@ -1214,6 +1271,10 @@ where
     }
 
     fn record_turn_failed(&self, iteration: usize, error: &RuntimeError) {
+        if let Some(ref progress) = self.progress {
+            progress.fail(&error.to_string());
+        }
+
         let Some(session_tracer) = &self.session_tracer else {
             return;
         };

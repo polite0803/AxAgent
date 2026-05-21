@@ -7,10 +7,10 @@ use crate::shared_blackboard::SharedBlackboard;
 use axagent_core::repo::agent_session;
 use axagent_prompt_guard::{GuardConfig, PromptGuardPipeline};
 use axagent_runtime_core::{
-    CompactionConfig, ContentBlock, ConversationMessage, ConversationRuntime, HookEvent,
-    HookProgressEvent, HookProgressReporter, MessageRole, PermissionMode, PermissionPolicy,
-    PermissionPromptDecision, PermissionPrompter, PermissionRequest, RuntimeError, Session,
-    compact_session, should_compact,
+    AgentExecutionProgress, CompactionConfig, ContentBlock, ConversationMessage,
+    ConversationRuntime, HookEvent, HookProgressEvent, HookProgressReporter, MessageRole,
+    PermissionMode, PermissionPolicy, PermissionPromptDecision, PermissionPrompter,
+    PermissionRequest, RuntimeError, Session, compact_session, should_compact,
 };
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -229,6 +229,9 @@ pub struct SessionManager {
     db: Arc<DatabaseConnection>,
     app_handle: std::sync::Mutex<Option<AppHandle>>,
     default_workspace_dir: std::sync::Mutex<Option<String>>,
+    /// Per-conversation execution progress trackers for frontend panels.
+    progress_trackers:
+        std::sync::RwLock<std::collections::HashMap<String, Arc<AgentExecutionProgress>>>,
 }
 
 /// Maximum number of sessions to keep in memory (LRU eviction).
@@ -245,6 +248,7 @@ impl SessionManager {
             db: Arc::new(db),
             app_handle: std::sync::Mutex::new(None),
             default_workspace_dir: std::sync::Mutex::new(None),
+            progress_trackers: std::sync::RwLock::new(std::collections::HashMap::new()),
         }
     }
 
@@ -647,10 +651,28 @@ impl SessionManager {
             runtime = runtime.with_cancel_token(token);
         }
 
-        // Add Tauri event reporter for tool progress
+        // Create execution progress tracker for frontend panels.
+        // The runtime updates it synchronously during run_turn(); the
+        // agent_runtime_stats IPC reads it asynchronously.
+        // Also shared with TauriHookProgressReporter so agent-status events
+        // carry rich progress data (currentTool, iteration, toolCount, errors).
+        let max_iters =
+            dynamic_max_iterations(&axagent_trajectory::estimate_complexity_public(&user_input));
+        let progress = Arc::new(AgentExecutionProgress::new(max_iters));
+        runtime = runtime.with_progress(progress.clone());
+        {
+            let mut trackers = self.progress_trackers.write().unwrap();
+            trackers.insert(conversation_id.clone(), progress.clone());
+        }
+
+        // Add Tauri event reporter for tool progress — wired to the shared
+        // progress tracker so agent-status events include live execution data.
         if let Some(handle) = app_handle {
-            let reporter =
-                Box::new(TauriHookProgressReporter::new(handle, conversation_id.clone()));
+            let reporter = Box::new(TauriHookProgressReporter::with_progress(
+                handle,
+                conversation_id.clone(),
+                progress,
+            ));
             runtime = runtime.with_hook_progress_reporter(reporter);
         }
 
@@ -706,7 +728,21 @@ impl SessionManager {
         let mut sessions = self.sessions.lock().await;
         sessions.insert(session_id.to_string(), session);
 
+        // Clean up progress tracker — the frontend will get one final
+        // snapshot via agent-done before this removal.
+        {
+            let mut trackers = self.progress_trackers.write().unwrap();
+            trackers.remove(&conversation_id);
+        }
+
         Ok((summary, updated_session))
+    }
+
+    /// Get the execution progress tracker for a given conversation.
+    /// Used by `agent_runtime_stats` IPC to return real-time progress to the frontend.
+    pub fn get_progress(&self, conversation_id: &str) -> Option<Arc<AgentExecutionProgress>> {
+        let trackers = self.progress_trackers.read().unwrap();
+        trackers.get(conversation_id).cloned()
     }
 }
 
@@ -1007,6 +1043,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
 pub struct TauriHookProgressReporter {
     app_handle: AppHandle,
     conversation_id: String,
+    progress: Option<Arc<AgentExecutionProgress>>,
 }
 
 impl TauriHookProgressReporter {
@@ -1014,6 +1051,19 @@ impl TauriHookProgressReporter {
         Self {
             app_handle,
             conversation_id,
+            progress: None,
+        }
+    }
+
+    pub fn with_progress(
+        app_handle: AppHandle,
+        conversation_id: String,
+        progress: Arc<AgentExecutionProgress>,
+    ) -> Self {
+        Self {
+            app_handle,
+            conversation_id,
+            progress: Some(progress),
         }
     }
 }
@@ -1028,16 +1078,23 @@ impl HookProgressReporter for TauriHookProgressReporter {
                 command: _,
                 tool_use_id,
             } => {
-                let _ = self.app_handle.emit(
-                    "agent-tool-start",
-                    serde_json::json!({
-                        "conversationId": conversation_id,
-                        "toolUseId": tool_use_id.as_deref().unwrap_or(""),
-                        "toolName": tool_name,
-                        "input": serde_json::Value::Null,
-                        "assistantMessageId": "",
-                    }),
-                );
+                let mut payload = serde_json::json!({
+                    "conversationId": conversation_id,
+                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
+                    "toolName": tool_name,
+                    "input": serde_json::Value::Null,
+                    "assistantMessageId": "",
+                });
+                // Include server-side timestamp from the shared progress tracker
+                if let Some(ref p) = self.progress {
+                    let snap = p.snapshot();
+                    if let Some(started_at) = snap.current_tool_started_at {
+                        payload["startedAt"] = serde_json::json!(started_at);
+                    }
+                    payload["iteration"] = serde_json::json!(snap.current_iteration);
+                    payload["maxIterations"] = serde_json::json!(snap.max_iterations);
+                }
+                let _ = self.app_handle.emit("agent-tool-start", payload);
             },
             HookProgressEvent::Completed {
                 event: HookEvent::PostToolUse,
@@ -1045,18 +1102,23 @@ impl HookProgressReporter for TauriHookProgressReporter {
                 command: _,
                 tool_use_id,
             } => {
-                let _ = self.app_handle.emit(
-                    "agent-tool-result",
-                    serde_json::json!({
-                        "conversationId": conversation_id,
-                        "toolUseId": tool_use_id.as_deref().unwrap_or(""),
-                        "toolName": tool_name,
-                        "input": serde_json::Value::Null,
-                        "content": "",
-                        "isError": false,
-                        "assistantMessageId": "",
-                    }),
-                );
+                let mut payload = serde_json::json!({
+                    "conversationId": conversation_id,
+                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
+                    "toolName": tool_name,
+                    "input": serde_json::Value::Null,
+                    "content": "",
+                    "isError": false,
+                    "assistantMessageId": "",
+                });
+                // Include duration from the shared progress tracker
+                if let Some(ref p) = self.progress {
+                    let snap = p.snapshot();
+                    if let Some(started_at) = snap.current_tool_started_at {
+                        payload["startedAt"] = serde_json::json!(started_at);
+                    }
+                }
+                let _ = self.app_handle.emit("agent-tool-result", payload);
             },
             HookProgressEvent::Cancelled {
                 event: HookEvent::PostToolUse,
@@ -1070,35 +1132,53 @@ impl HookProgressReporter for TauriHookProgressReporter {
                 command: _,
                 tool_use_id,
             } => {
-                let _ = self.app_handle.emit(
-                    "agent-tool-result",
-                    serde_json::json!({
-                        "conversationId": conversation_id,
-                        "toolUseId": tool_use_id.as_deref().unwrap_or(""),
-                        "toolName": tool_name,
-                        "input": serde_json::Value::Null,
-                        "content": "",
-                        "isError": true,
-                        "assistantMessageId": "",
-                    }),
-                );
+                let mut payload = serde_json::json!({
+                    "conversationId": conversation_id,
+                    "toolUseId": tool_use_id.as_deref().unwrap_or(""),
+                    "toolName": tool_name,
+                    "input": serde_json::Value::Null,
+                    "content": "",
+                    "isError": true,
+                    "assistantMessageId": "",
+                });
+                // Include duration from the shared progress tracker
+                if let Some(ref p) = self.progress {
+                    let snap = p.snapshot();
+                    if let Some(started_at) = snap.current_tool_started_at {
+                        payload["startedAt"] = serde_json::json!(started_at);
+                    }
+                }
+                let _ = self.app_handle.emit("agent-tool-result", payload);
             },
             _ => {},
         }
     }
 
-    fn on_progress(&mut self, message: &str, _iteration: usize, _total: usize) {
-        // Emit agent-status event to reset frontend watchdog timer.
-        // This is called after each iteration of the conversation loop
-        // to confirm the agent is still running.
-        let _ = self.app_handle.emit(
-            "agent-status",
-            serde_json::json!({
-                "conversationId": self.conversation_id,
-                "phase": "running",
-                "message": message,
-            }),
-        );
+    fn on_progress(&mut self, message: &str, iteration: usize, total: usize) {
+        // Build rich progress payload for the frontend watchdog and panels.
+        // The `agent-status` event resets the frontend 10-min timer AND provides
+        // live execution status to AgentProgressBar, ExecutionTimeline, etc.
+        let mut payload = serde_json::json!({
+            "conversationId": self.conversation_id,
+            "phase": "running",
+            "message": message,
+            "iteration": iteration,
+            "totalIterations": total,
+        });
+
+        if let Some(ref progress) = self.progress {
+            let snap = progress.snapshot();
+            payload["currentTool"] =
+                serde_json::Value::String(snap.current_tool.unwrap_or_default());
+            payload["executedToolCount"] = serde_json::json!(snap.executed_tool_count);
+            payload["failedToolCount"] = serde_json::json!(snap.failed_tool_count);
+            if let Some(err) = &snap.last_error {
+                payload["lastError"] = serde_json::Value::String(err.clone());
+            }
+            payload["statusMessage"] = serde_json::Value::String(snap.status_message);
+        }
+
+        let _ = self.app_handle.emit("agent-status", payload);
     }
 }
 
