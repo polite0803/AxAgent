@@ -45,7 +45,7 @@ pub async fn start_workflow_execution(
     workflow_id: String,
     input: serde_json::Value,
 ) -> Result<String, String> {
-    let engine = state.work_engine.read().await;
+    let engine = &*state.work_engine;
     engine
         .start_workflow(&workflow_id, input)
         .await
@@ -57,7 +57,7 @@ pub async fn pause_workflow_execution(
     state: State<'_, AppState>,
     execution_id: String,
 ) -> Result<bool, String> {
-    let engine = state.work_engine.read().await;
+    let engine = &*state.work_engine;
     engine
         .pause(&execution_id)
         .await
@@ -70,7 +70,7 @@ pub async fn resume_workflow_execution(
     state: State<'_, AppState>,
     execution_id: String,
 ) -> Result<bool, String> {
-    let engine = state.work_engine.read().await;
+    let engine = &*state.work_engine;
     engine
         .resume(&execution_id)
         .await
@@ -83,7 +83,7 @@ pub async fn cancel_workflow_execution(
     state: State<'_, AppState>,
     execution_id: String,
 ) -> Result<bool, String> {
-    let engine = state.work_engine.read().await;
+    let engine = &*state.work_engine;
     engine
         .cancel(&execution_id)
         .await
@@ -96,7 +96,7 @@ pub async fn get_workflow_execution_status(
     state: State<'_, AppState>,
     execution_id: String,
 ) -> Result<ExecutionStatusResponse, String> {
-    let engine = state.work_engine.read().await;
+    let engine = &*state.work_engine;
     let status = engine
         .get_status(&execution_id)
         .await
@@ -117,7 +117,7 @@ pub async fn list_workflow_executions(
     state: State<'_, AppState>,
     workflow_id: String,
 ) -> Result<Vec<ExecutionSummaryResponse>, String> {
-    let engine = state.work_engine.read().await;
+    let engine = &*state.work_engine;
     let executions = engine
         .list_executions(&workflow_id)
         .await
@@ -126,6 +126,41 @@ pub async fn list_workflow_executions(
     Ok(executions
         .into_iter()
         .map(ExecutionSummaryResponse::from)
+        .collect())
+}
+
+// ── 可视化工作流节点执行 ──
+
+/// 执行单个 WorkflowNode（用于可视化工作流编辑器逐节点调试）。
+#[tauri::command]
+pub async fn execute_workflow_node(
+    state: State<'_, AppState>,
+    execution_id: String,
+    node_json: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let node: axagent_core::workflow_types::WorkflowNode =
+        serde_json::from_value(node_json).map_err(|e| format!("节点 JSON 解析失败: {}", e))?;
+
+    let engine = &*state.work_engine;
+    let context = engine
+        .get_status(&execution_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    match engine.execute_node(&node, &context).await {
+        Ok(output) => serde_json::to_value(output).map_err(|e| e.to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// 列出已注册的节点执行器类型。
+#[tauri::command]
+pub async fn list_node_executor_types(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let engine = &*state.work_engine;
+    Ok(engine
+        .registered_executor_types()
+        .into_iter()
+        .map(String::from)
         .collect())
 }
 

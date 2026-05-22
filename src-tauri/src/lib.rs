@@ -498,8 +498,6 @@ pub fn run() {
             commands::agent::shared_memory_get,
             commands::agent::shared_memory_stats,
             commands::agent::get_conversation_workflow_preview,
-            commands::agent::save_skill_workflow_from_llm,
-            commands::agent::force_save_skill_workflow,
             commands::agent::workflow_get_steps,
             commands::plan::plan_generate,
             commands::plan::plan_execute,
@@ -732,6 +730,8 @@ pub fn run() {
             commands::work_engine::list_workflow_executions,
             commands::work_engine::migrate_workflow_nodes,
             commands::work_engine::migrate_all_workflows,
+            commands::work_engine::execute_workflow_node,
+            commands::work_engine::list_node_executor_types,
             // User Profile & Style Migration commands
             commands::user_profile::get_user_profile,
             commands::user_profile::update_user_profile,

@@ -1,6 +1,7 @@
 use crate::AppState;
 use axagent_core::repo::workflow_template as db_repo;
 use axagent_core::workflow_types::*;
+use axagent_runtime::work_engine::node_executor_trait::node_type_name;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use serde::Deserialize;
 use tauri::State;
@@ -105,6 +106,18 @@ pub async fn create_workflow_template(
     input: WorkflowTemplateInput,
 ) -> Result<String, String> {
     let db = &state.sea_db;
+
+    // 节点组成相似性检查
+    let similar = find_similar_workflows(db, &input.nodes).await?;
+    if !similar.is_empty() {
+        tracing::info!(
+            "[workflow_template] 新建模板 '{}' 与 {} 个已有模板节点组成相似: {:?}",
+            input.name,
+            similar.len(),
+            similar.iter().map(|s| &s.name).collect::<Vec<_>>()
+        );
+    }
+
     let now = chrono::Utc::now().timestamp_millis();
 
     let template = WorkflowTemplateData {
@@ -748,6 +761,67 @@ async fn ensure_agent_profile(
     Ok(())
 }
 
+/// 相似工作流信息
+#[derive(Debug, serde::Serialize)]
+pub struct SimilarWorkflow {
+    pub workflow_id: String,
+    pub name: String,
+    pub similarity: f64,
+    pub overlapping_nodes: usize,
+    pub total_nodes: usize,
+}
+
+/// 基于节点类型组成查找相似工作流（Jaccard 相似度 ≥ 0.6 视为相似）。
+/// 用于创建、导入工作流时检测是否与已有模板高度重合。
+pub async fn find_similar_workflows(
+    db: &DatabaseConnection,
+    nodes: &[WorkflowNode],
+) -> Result<Vec<SimilarWorkflow>, String> {
+    let input_types: std::collections::HashSet<String> = nodes
+        .iter()
+        .map(|n| node_type_name(n).to_string())
+        .collect();
+
+    if input_types.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let all = axagent_core::entity::workflow_template::Entity::find()
+        .all(db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut results = Vec::new();
+    for tmpl in &all {
+        let existing_nodes: Vec<WorkflowNode> =
+            serde_json::from_str(&tmpl.nodes).unwrap_or_default();
+        let existing_types: std::collections::HashSet<String> = existing_nodes
+            .iter()
+            .map(|n| node_type_name(n).to_string())
+            .collect();
+
+        let intersection = input_types.intersection(&existing_types).count();
+        let union = input_types.union(&existing_types).count();
+        let similarity = if union > 0 {
+            intersection as f64 / union as f64
+        } else {
+            0.0
+        };
+
+        if similarity >= 0.6 {
+            results.push(SimilarWorkflow {
+                workflow_id: tmpl.id.clone(),
+                name: tmpl.name.clone(),
+                similarity,
+                overlapping_nodes: intersection,
+                total_nodes: input_types.len(),
+            });
+        }
+    }
+
+    Ok(results)
+}
+
 /// 语义重复检查：Jaccard 相似度 ≥ 0.6 视为重复
 /// 注意：此函数当前全表扫描已导入模板进行字符级相似度比较。
 /// 本地客户端模板数量有限（通常 < 1000），性能影响可接受。
@@ -1209,13 +1283,29 @@ async fn do_import_workflow(
     };
 
     let mut warnings: Vec<String> = Vec::new();
+
+    // 名称相似性检查
     if let Some(_existing) = check_workflow_duplicate(db, &workflow_name).await? {
         let new_name = format!("{} (Imported)", workflow_name);
         warnings.push(format!(
-            "Workflow renamed from '{}' to '{}' due to similarity with existing workflow",
+            "Workflow renamed from '{}' to '{}' due to name similarity with existing workflow",
             workflow_name, new_name
         ));
         new_template.name = new_name;
+    }
+
+    // 节点组成相似性检查
+    let node_similar = find_similar_workflows(db, &new_template.nodes).await?;
+    if !node_similar.is_empty() {
+        warnings.push(format!(
+            "Node composition {}% similar to existing workflow(s): {}",
+            (node_similar[0].similarity * 100.0) as u32,
+            node_similar
+                .iter()
+                .map(|s| s.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
     }
 
     let active_model = model_to_active_model(&new_template);

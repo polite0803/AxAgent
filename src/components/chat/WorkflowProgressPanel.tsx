@@ -30,17 +30,30 @@ import "reactflow/dist/style.css";
 // Types
 // ---------------------------------------------------------------------------
 
-interface WorkflowStep {
-  id: string;
-  goal: string;
-  agent_role: string;
-  needs: string[];
-  status: "pending" | "running" | "completed" | "failed" | "skipped";
-  result: string | null;
-  error: string | null;
+// WorkflowNode JSON shape（来自后端 serde 序列化）
+interface WorkflowNodeJson {
+  type?: string;
+  id?: string;
+  base?: { id: string; title: string; description?: string; enabled: boolean };
+  title?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+// NodeRuntimeState JSON shape
+interface NodeRuntimeState {
+  status: "pending" | "ready" | "running" | "completed" | "failed" | "skipped";
   attempts: number;
-  max_retries: number;
-  on_failure: "abort" | "skip";
+  error: string | null;
+  started_at: number | null;
+  completed_at: number | null;
+}
+
+interface WorkflowEdgeJson {
+  id: string;
+  source: string;
+  target: string;
+  edge_type: string;
 }
 
 interface WorkflowData {
@@ -53,10 +66,60 @@ interface WorkflowData {
     | "partially_completed"
     | "failed"
     | "cancelled";
-  steps: WorkflowStep[];
-  max_concurrent: number;
+  nodes: WorkflowNodeJson[];
+  edges: WorkflowEdgeJson[];
+  node_states: Record<string, NodeRuntimeState>;
+  results: Record<string, unknown>;
   created_at?: number;
   completed_at?: number;
+}
+
+// 从 edges 推导每个节点的 needs 列表
+function computeNeeds(edges: WorkflowEdgeJson[]): Record<string, string[]> {
+  const needs: Record<string, string[]> = {};
+  for (const e of edges) {
+    if (!needs[e.target]) { needs[e.target] = []; }
+    needs[e.target].push(e.source);
+  }
+  return needs;
+}
+
+// 将 WorkflowNode JSON 转为可视化用的 StepLike 视图
+interface StepLike {
+  id: string;
+  goal: string;
+  agent_role: string;
+  needs: string[];
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+  result: string | null;
+  error: string | null;
+  attempts: number;
+  max_retries: number;
+  on_failure: "abort" | "skip";
+}
+
+function toStepLike(
+  wf: WorkflowData,
+): StepLike[] {
+  const needs = computeNeeds(wf.edges);
+  return wf.nodes.map((n) => {
+    const nodeId = n.base?.id ?? n.id ?? "";
+    const state = wf.node_states[nodeId];
+    return {
+      id: nodeId,
+      goal: n.base?.title ?? n.title ?? n.description ?? nodeId,
+      agent_role: (n as Record<string, unknown>).config
+        ? ((n as Record<string, unknown>).config as Record<string, unknown>).role as string ?? "executor"
+        : "executor",
+      needs: needs[nodeId] ?? [],
+      status: (state?.status ?? "pending") as StepLike["status"],
+      result: wf.results[nodeId] ? JSON.stringify(wf.results[nodeId]) : null,
+      error: state?.error ?? null,
+      attempts: state?.attempts ?? 0,
+      max_retries: 2,
+      on_failure: "abort",
+    };
+  });
 }
 
 interface WorkflowProgressPanelProps {
@@ -133,7 +196,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-function isDone(status: WorkflowStep["status"]): boolean {
+function isDone(status: StepLike["status"]): boolean {
   return status === "completed" || status === "failed" || status === "skipped";
 }
 
@@ -145,10 +208,10 @@ interface WorkflowDagNodeData {
   stepId: string;
   goal: string;
   agentRole: string;
-  status: WorkflowStep["status"];
+  status: StepLike["status"];
 }
 
-function computeDagLayout(steps: WorkflowStep[]): {
+function computeDagLayout(steps: StepLike[]): {
   nodes: Node<WorkflowDagNodeData>[];
   edges: Edge[];
 } {
@@ -178,7 +241,7 @@ function computeDagLayout(steps: WorkflowStep[]): {
     getLayer(step.id);
   }
 
-  const layerGroups = new Map<number, WorkflowStep[]>();
+  const layerGroups = new Map<number, StepLike[]>();
   for (const step of steps) {
     const layer = layerCache.get(step.id)!;
     if (!layerGroups.has(layer)) {
@@ -305,7 +368,7 @@ const nodeTypes = { workflowStep: WorkflowDagNode };
 // WorkflowDagView (inner - needs ReactFlowProvider)
 // ---------------------------------------------------------------------------
 
-const WorkflowDagView: React.FC<{ steps: WorkflowStep[] }> = memo(
+const WorkflowDagView: React.FC<{ steps: StepLike[] }> = memo(
   ({ steps }) => {
     const { fitView } = useReactFlow();
     const { nodes, edges } = useMemo(() => computeDagLayout(steps), [steps]);
@@ -352,7 +415,7 @@ WorkflowDagView.displayName = "WorkflowDagView";
 // ---------------------------------------------------------------------------
 
 interface StepRowProps {
-  step: WorkflowStep;
+  step: StepLike;
   expanded: boolean;
   onToggle: () => void;
 }
@@ -688,9 +751,11 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
     return null;
   }
 
+  const steps = useMemo(() => toStepLike(workflow), [workflow]);
+
   const workflowColor = getStatusColor(workflow.status);
-  const doneCount = workflow.steps.filter((s) => isDone(s.status)).length;
-  const totalCount = workflow.steps.length;
+  const doneCount = steps.filter((s) => isDone(s.status)).length;
+  const totalCount = steps.length;
   const progressPct = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
   const canCancel = workflow.status === "running" && !cancelling;
 
@@ -754,7 +819,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
             {t("chat.workflow.dagVisualization")}
           </button>
           {!dagCollapsed
-            && (workflow.steps.length === 0
+            && (steps.length === 0
               ? (
                 <div className="px-3 py-4 text-xs text-zinc-400 text-center">
                   {t("chat.workflow.noSteps")}
@@ -767,7 +832,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
                     style={{ height: DAG_HEIGHT }}
                   >
                     <ReactFlowProvider>
-                      <WorkflowDagView steps={workflow.steps} />
+                      <WorkflowDagView steps={steps} />
                     </ReactFlowProvider>
                   </div>
                 </div>
@@ -777,7 +842,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
 
       {/* Step List View */}
       {!showDag
-        && (workflow.steps.length === 0
+        && (steps.length === 0
           ? (
             <div className="px-3 py-4 text-xs text-zinc-400 text-center">
               {t("chat.workflow.noSteps")}
@@ -785,7 +850,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
           )
           : (
             <div className="max-h-64 overflow-auto">
-              {workflow.steps.map((step) => (
+              {steps.map((step) => (
                 <StepRow
                   key={step.id}
                   step={step}

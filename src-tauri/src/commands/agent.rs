@@ -10,11 +10,9 @@ use axagent_core::types::{
 };
 use axagent_core::workspace_uri::WorkspaceUri;
 use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
-use axagent_runtime::workflow_engine::SessionCallback;
 use axagent_tools::context_keys;
 use base64::Engine;
-use futures::FutureExt;
-use sea_orm::{DatabaseConnection, EntityTrait, Set};
+use sea_orm::{DatabaseConnection, EntityTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -2629,169 +2627,25 @@ fn detect_inter_skill_dependencies(
     dependencies
 }
 
-type StepExecutor = Arc<
-    dyn Fn(
-            axagent_runtime::workflow_engine::WorkflowStep,
-            std::collections::HashMap<String, String>,
-        )
-            -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>
-        + Send
-        + Sync,
->;
-
-fn create_llm_step_executor(
-    adapter: Arc<dyn ProviderAdapter>,
-    key_id: String,
-    api_key: String,
-    provider_id: String,
-    base_url: String,
-    db: Option<Arc<sea_orm::DatabaseConnection>>,
-    output_language: Option<String>,
-) -> StepExecutor {
-    Arc::new(
-        move |step: axagent_runtime::workflow_engine::WorkflowStep,
-              deps_results: std::collections::HashMap<String, String>| {
-            let adapter = adapter.clone();
-            let key_id = key_id.clone();
-            let api_key = api_key.clone();
-            let provider_id = provider_id.clone();
-            let base_url = base_url.clone();
-            let db = db.clone();
-            let output_language = output_language.clone();
-
-            async move {
-                let ctx = ProviderRequestContext {
-                    api_key,
-                    key_id,
-                    provider_id,
-                    base_url: Some(base_url),
-                    api_path: None,
-                    proxy_config: None,
-                    custom_headers: None,
-                    api_mode: None,
-                    conversation: None,
-                    previous_response_id: None,
-                    store_response: None,
-                };
-
-                // Resolve system_prompt and effective agent_role:
-                // 1. agent_profile_id → load from agent_profiles table
-                // 2. agent_role_override → overrides profile's default role
-                // 3. Fallback: step.agent_role default system_prompt
-                let effective_role = step.agent_role_override.unwrap_or(step.agent_role);
-
-                let system_prompt = if let (Some(profile_id), Some(db)) =
-                    (&step.agent_profile_id, &db)
-                {
-                    match axagent_core::repo::agent_profile::get_agent_profile(
-                        db.as_ref(),
-                        profile_id,
-                    )
-                    .await
-                    {
-                        Ok(profile) if !profile.system_prompt.is_empty() => profile.system_prompt,
-                        _ => effective_role.system_prompt().to_string(),
-                    }
-                } else {
-                    effective_role.system_prompt().to_string()
-                };
-
-                let system_prompt = if let Some(ref lang) = output_language {
-                    axagent_core::utils::append_language_directive(&system_prompt, lang)
-                } else {
-                    system_prompt
-                };
-
-                let mut user_message = format!("Task goal: {}\n\n", step.goal);
-                if !deps_results.is_empty() {
-                    user_message.push_str("Previous step results:\n");
-                    for (dep_id, result) in &deps_results {
-                        user_message.push_str(&format!("- [{}]: {}\n", dep_id, result));
-                    }
-                    user_message.push('\n');
-                }
-                if let Some(context) = &step.context {
-                    user_message.push_str(&format!("Additional context: {}\n", context));
-                }
-
-                let messages = vec![
-                    axagent_core::types::ChatMessage {
-                        role: "system".to_string(),
-                        content: axagent_core::types::ChatContent::Text(system_prompt),
-                        tool_calls: None,
-                        tool_call_id: None,
-                        thinking: None,
-                    },
-                    axagent_core::types::ChatMessage {
-                        role: "user".to_string(),
-                        content: axagent_core::types::ChatContent::Text(user_message),
-                        tool_calls: None,
-                        tool_call_id: None,
-                        thinking: None,
-                    },
-                ];
-
-                let request = axagent_core::types::ChatRequest {
-                    model: "".to_string(),
-                    messages,
-                    stream: false,
-                    temperature: None,
-                    top_p: None,
-                    max_tokens: None,
-                    tools: None,
-                    thinking_budget: None,
-                    use_max_completion_tokens: None,
-                    thinking_param_style: None,
-                    api_mode: None,
-                    instructions: None,
-                    conversation: None,
-                    previous_response_id: None,
-                    store: None,
-                };
-
-                let response = adapter
-                    .chat(&ctx, request)
-                    .await
-                    .map_err(|e| format!("LLM call failed: {}", e))?;
-
-                Ok(response.content)
-            }
-            .boxed()
-        },
-    ) as StepExecutor
-}
-
 #[derive(Clone)]
 struct SkillExecutionContext {
-    app: tauri::AppHandle,
-    workflow_engine: Arc<axagent_runtime::workflow_engine::WorkflowEngine>,
-    adapter: Arc<dyn ProviderAdapter>,
-    provider_key_id: String,
-    provider_api_key: String,
     sea_db: sea_orm::DatabaseConnection,
     conversation_id: String,
-    message_id: String,
 }
 
 impl SkillExecutionContext {
     fn new(
-        app: tauri::AppHandle,
+        _app: tauri::AppHandle,
         app_state: &AppState,
-        adapter: Arc<dyn ProviderAdapter>,
-        key_id: String,
-        api_key: String,
+        _adapter: Arc<dyn ProviderAdapter>,
+        _key_id: String,
+        _api_key: String,
         conversation_id: String,
-        message_id: String,
+        _message_id: String,
     ) -> Self {
         Self {
-            app,
-            workflow_engine: app_state.workflow_engine.clone(),
-            adapter,
-            provider_key_id: key_id,
-            provider_api_key: api_key,
             sea_db: app_state.sea_db.clone(),
             conversation_id,
-            message_id,
         }
     }
 
@@ -2842,18 +2696,11 @@ fn detect_skill_execution_mode(
     content: &str,
 ) -> (String, Option<Vec<SkillStep>>, Option<McpToolCall>) {
     let content_lower = content.to_lowercase();
-    if content_lower.contains("```workflow")
-        || content_lower.contains("steps:") && content_lower.contains("- action:")
-    {
-        let steps = extract_workflow_steps(content);
-        if !steps.is_empty() {
-            return ("workflow".to_string(), Some(steps), None);
-        }
-    }
     if content_lower.contains("```mcp") || content_lower.contains("mcp tool:") {
         let mcp_call = extract_mcp_tool_call(content);
         return ("mcp".to_string(), None, mcp_call);
     }
+    // 不再将 Skill 输出解析为 DAG——统一走 content 模式，由 Agent 自然处理
     ("content".to_string(), None, None)
 }
 
@@ -2897,100 +2744,6 @@ fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
     })
 }
 
-fn extract_workflow_steps(content: &str) -> Vec<SkillStep> {
-    let mut steps = Vec::new();
-    let mut in_steps = false;
-    let mut current_step = 0;
-
-    for line in content.lines() {
-        let line_trimmed = line.trim();
-        if line_trimmed.starts_with("steps:") || line_trimmed.starts_with("## Steps") {
-            in_steps = true;
-            continue;
-        }
-        if in_steps {
-            if line_trimmed.starts_with('#')
-                || (line_trimmed.starts_with("---") && current_step > 0)
-            {
-                break;
-            }
-            if line_trimmed.starts_with('-') || line_trimmed.parse::<usize>().is_ok() {
-                current_step += 1;
-                let description = line_trimmed
-                    .trim_start_matches('-')
-                    .trim_start_matches(|c: char| c.is_numeric() || c == '.' || c == ')')
-                    .trim()
-                    .to_string();
-                let action = if line_trimmed.to_lowercase().contains("call ")
-                    || line_trimmed.to_lowercase().contains("invoke ")
-                {
-                    "tool_call".to_string()
-                } else if line_trimmed.to_lowercase().contains("read ")
-                    || line_trimmed.to_lowercase().contains("get ")
-                {
-                    "read".to_string()
-                } else if line_trimmed.to_lowercase().contains("write ")
-                    || line_trimmed.to_lowercase().contains("create ")
-                {
-                    "write".to_string()
-                } else {
-                    "process".to_string()
-                };
-                let needs = extract_step_dependencies(&description, current_step);
-                steps.push(SkillStep {
-                    step: current_step,
-                    action,
-                    description,
-                    needs,
-                });
-            }
-        }
-    }
-    steps
-}
-
-fn extract_step_dependencies(description: &str, current_step: usize) -> Vec<usize> {
-    let mut deps = Vec::new();
-    let desc_lower = description.to_lowercase();
-
-    if desc_lower.contains("previous step")
-        || desc_lower.contains("last step")
-        || desc_lower.contains("use the ")
-    {
-        if current_step > 1 {
-            deps.push(current_step - 1);
-        }
-    }
-
-    let patterns = [
-        ("step ", " "),
-        ("step ", ""),
-        ("result from step ", ""),
-        ("output from step ", ""),
-        ("use step ", ""),
-    ];
-
-    for (prefix, _suffix) in patterns {
-        if let Some(pos) = desc_lower.find(prefix) {
-            let start = pos + prefix.len();
-            let remaining = &desc_lower[start..];
-            let end_pos = remaining
-                .find(|c: char| !c.is_numeric())
-                .unwrap_or(remaining.len());
-            if end_pos > 0 {
-                if let Ok(step_num) = remaining[..end_pos].parse::<usize>() {
-                    if step_num < current_step && !deps.contains(&step_num) {
-                        deps.push(step_num);
-                    }
-                }
-            }
-        }
-    }
-
-    deps.sort();
-    deps
-}
-
 fn infer_agent_role(action: &str, description: &str) -> axagent_runtime::agent_roles::AgentRole {
     let combined = format!("{} {}", action, description).to_lowercase();
     if combined.contains("research") || combined.contains("search") || combined.contains("find") {
@@ -3021,99 +2774,8 @@ fn infer_agent_role(action: &str, description: &str) -> axagent_runtime::agent_r
     }
 }
 
-fn skill_steps_to_workflow_steps(
-    skill_steps: Vec<SkillStep>,
-) -> Vec<axagent_runtime::workflow_engine::WorkflowStep> {
-    skill_steps
-        .into_iter()
-        .map(|s| {
-            let step_id = format!("step_{}", s.step);
-            let role = infer_agent_role(&s.action, &s.description);
-            let needs: Vec<String> = s.needs.iter().map(|n| format!("step_{}", n)).collect();
-            axagent_runtime::workflow_engine::WorkflowStep {
-                id: step_id,
-                agent_role: role,
-                goal: s.description,
-                needs,
-                context: None,
-                result: None,
-                status: axagent_runtime::workflow_engine::StepStatus::Pending,
-                attempts: 0,
-                error: None,
-                max_retries: 2,
-                on_failure: axagent_runtime::workflow_engine::OnStepFailure::Abort,
-                retry_policy: axagent_runtime::workflow_engine::RetryPolicy::default(),
-                circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
-                agent_profile_id: None,
-                agent_role_override: None,
-                fallback_step_id: None,
-                timeout_secs: None,
-                expected_output_schema: None,
-            }
-        })
-        .collect()
-}
-
-fn skill_steps_to_nodes_edges(
-    skill_steps: &[SkillStep],
-) -> (Vec<serde_json::Value>, Vec<serde_json::Value>) {
-    let mut nodes = Vec::new();
-    let mut edges = Vec::new();
-
-    for s in skill_steps {
-        let step_id = format!("step_{}", s.step);
-        let role = infer_agent_role(&s.action, &s.description);
-        let role_str = match role {
-            axagent_runtime::agent_roles::AgentRole::Researcher => "researcher",
-            axagent_runtime::agent_roles::AgentRole::Developer => "developer",
-            axagent_runtime::agent_roles::AgentRole::Reviewer => "reviewer",
-            axagent_runtime::agent_roles::AgentRole::Planner => "planner",
-            axagent_runtime::agent_roles::AgentRole::Synthesizer => "synthesizer",
-            axagent_runtime::agent_roles::AgentRole::Executor => "executor",
-            axagent_runtime::agent_roles::AgentRole::Coordinator => "coordinator",
-            axagent_runtime::agent_roles::AgentRole::Browser => "browser",
-        };
-
-        let node = serde_json::json!({
-            "id": step_id,
-            "type": "agent",
-            "position": { "x": 250, "y": s.step * 150 },
-            "data": {
-                "id": step_id,
-                "title": s.action,
-                "description": s.description,
-                "node_type": "agent",
-                "config": {
-                    "role": role_str,
-                    "system_prompt": format!("You are a {}. Task: {}", role_str, s.description),
-                    "output_var": "result",
-                    "context_sources": [],
-                },
-                "retry": {
-                    "max_attempts": 2,
-                    "delay_ms": 1000,
-                },
-                "enabled": true,
-            },
-        });
-        nodes.push(node);
-
-        if s.step > 1 {
-            let edge = serde_json::json!({
-                "id": format!("edge_{}_{}", s.step - 1, s.step),
-                "source": format!("step_{}", s.step - 1),
-                "target": step_id,
-                "edge_type": "default",
-            });
-            edges.push(edge);
-        }
-    }
-
-    (nodes, edges)
-}
-
 async fn execute_skill_async(
-    skill_id: &str,
+    _skill_id: &str,
     skill_name: &str,
     skill_content: &str,
     input: &str,
@@ -3143,116 +2805,9 @@ async fn execute_skill_async(
     tracker.record_execution(&conversation_id, execution_record);
 
     let mut mcp_result: Option<String> = None;
-    let mut message =
-        format!("Skill '{}' executed in '{}' mode. Task: {}", skill_name, execution_mode, task);
+    let mut message = format!("Skill '{}' executed. Task: {}", skill_name, task);
 
     match execution_mode.as_str() {
-        "workflow" => {
-            if let Some(ref skill_steps) = steps {
-                let skill_id_owned = skill_id.to_string();
-                let skill_name_owned = skill_name.to_string();
-                let conversation_id_owned = ctx.conversation_id.clone();
-                let message_id_owned = ctx.message_id.clone();
-                let app_handle = ctx.app.clone();
-
-                let cached_workflow_id: Option<String> = None;
-
-                if let Some(workflow_id) = cached_workflow_id {
-                    let step_executor = create_llm_step_executor(
-                        ctx.adapter.clone(),
-                        ctx.provider_key_id.clone(),
-                        ctx.provider_api_key.clone(),
-                        ctx.provider_key_id.clone(),
-                        "https://api.openai.com/v1".to_string(),
-                        None,
-                        None,
-                    );
-                    let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
-                        ctx.workflow_engine.clone(),
-                        step_executor,
-                    );
-                    match runner.run(&workflow_id).await {
-                        Ok(completed_workflow) => {
-                            message = format!(
-                                "Skill '{}' formal workflow completed. {} steps executed. Task: {}",
-                                skill_name,
-                                completed_workflow.steps.len(),
-                                task
-                            );
-                        },
-                        Err(e) => {
-                            message = format!(
-                                "Skill '{}' formal workflow execution failed: {}. Task: {}",
-                                skill_name, e, task
-                            );
-                        },
-                    }
-                } else {
-                    let workflow_steps = skill_steps_to_workflow_steps(skill_steps.clone());
-                    let (nodes, edges) = skill_steps_to_nodes_edges(skill_steps);
-
-                    let _ = app_handle.emit(
-                        "skill-workflow-parse",
-                        serde_json::json!({
-                            "conversation_id": conversation_id_owned,
-                            "assistant_message_id": message_id_owned,
-                            "skill_id": skill_id_owned,
-                            "skill_name": skill_name_owned,
-                            "workflow_name": format!("skill_workflow_{}", skill_name_owned),
-                            "nodes": nodes,
-                            "edges": edges,
-                        }),
-                    );
-
-                    let step_executor = create_llm_step_executor(
-                        ctx.adapter.clone(),
-                        ctx.provider_key_id.clone(),
-                        ctx.provider_api_key.clone(),
-                        ctx.provider_key_id.clone(),
-                        "https://api.openai.com/v1".to_string(),
-                        None,
-                        None,
-                    );
-                    let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
-                        ctx.workflow_engine.clone(),
-                        step_executor,
-                    );
-                    let workflow_name = format!("skill_workflow_{}", skill_name);
-                    match ctx
-                        .workflow_engine
-                        .create_workflow(&workflow_name, workflow_steps)
-                    {
-                        Ok(workflow) => match runner.run(&workflow.id).await {
-                            Ok(completed_workflow) => {
-                                message = format!(
-                                    "Skill '{}' workflow completed (editor opened for saving). {} steps executed. Task: {}",
-                                    skill_name,
-                                    completed_workflow.steps.len(),
-                                    task
-                                );
-                            },
-                            Err(e) => {
-                                message = format!(
-                                    "Skill '{}' workflow execution failed: {}. Task: {}",
-                                    skill_name, e, task
-                                );
-                            },
-                        },
-                        Err(e) => {
-                            message = format!(
-                                "Skill '{}' failed to create workflow: {}. Task: {}",
-                                skill_name, e, task
-                            );
-                        },
-                    }
-                }
-            } else {
-                message = format!(
-                    "Skill '{}' identified as workflow mode but no steps found. Task: {}",
-                    skill_name, task
-                );
-            }
-        },
         "mcp" => {
             if let Some(ref mcp_call) = mcp_tool_call {
                 match execute_mcp_tool_call(&mcp_call.tool_name, mcp_call.arguments.clone(), ctx)
@@ -4166,36 +3721,12 @@ pub async fn agent_restore_sdk_context_from_backup(
 // Workflow commands — multi-agent DAG orchestration
 // ---------------------------------------------------------------------------
 
-/// Request to create a workflow from a template
+/// Request to create a workflow from nodes + edges JSON
 #[derive(Debug, Deserialize)]
 pub struct WorkflowCreateRequest {
     pub name: String,
-    pub steps: Vec<WorkflowStepInput>,
-}
-
-/// Input for a single workflow step
-#[derive(Debug, Deserialize)]
-pub struct WorkflowStepInput {
-    pub id: String,
-    pub goal: String,
-    pub role: String,
-    #[serde(rename = "needs")]
-    pub needs: Vec<String>,
-    pub context: Option<String>,
-    /// Maximum retry attempts before declaring failure (default 2).
-    #[serde(rename = "maxRetries", default = "default_max_retries")]
-    pub max_retries: u32,
-    /// Failure policy: "abort" (default) or "skip".
-    #[serde(rename = "onFailure", default)]
-    pub on_failure: String,
-    #[serde(rename = "agentProfileId", default)]
-    pub agent_profile_id: Option<String>,
-    #[serde(rename = "agentRoleOverride", default)]
-    pub agent_role_override: Option<String>,
-}
-
-fn default_max_retries() -> u32 {
-    2
+    pub nodes: Vec<serde_json::Value>,
+    pub edges: Vec<serde_json::Value>,
 }
 
 /// Response from workflow creation
@@ -4208,56 +3739,33 @@ pub struct WorkflowCreateResponse {
     pub step_count: usize,
 }
 
-/// Create a new workflow DAG
+/// Create a new workflow DAG from WorkflowNode + WorkflowEdge
 #[tauri::command]
 pub async fn workflow_create(
     app_state: State<'_, AppState>,
     request: WorkflowCreateRequest,
 ) -> Result<WorkflowCreateResponse, String> {
-    let steps: Vec<axagent_runtime::workflow_engine::WorkflowStep> = request
-        .steps
+    let nodes: Vec<axagent_core::workflow_types::WorkflowNode> = request
+        .nodes
         .into_iter()
-        .map(|s| {
-            let role = axagent_runtime::agent_roles::AgentRole::from_str_opt(&s.role)
-                .unwrap_or(axagent_runtime::agent_roles::AgentRole::Executor);
-            let on_failure = match s.on_failure.as_str() {
-                "skip" => axagent_runtime::workflow_engine::OnStepFailure::Skip,
-                _ => axagent_runtime::workflow_engine::OnStepFailure::Abort,
-            };
-            axagent_runtime::workflow_engine::WorkflowStep {
-                id: s.id,
-                goal: s.goal,
-                agent_role: role,
-                needs: s.needs,
-                context: s.context,
-                result: None,
-                status: axagent_runtime::workflow_engine::StepStatus::Pending,
-                attempts: 0,
-                error: None,
-                max_retries: s.max_retries,
-                on_failure,
-                retry_policy: axagent_runtime::workflow_engine::RetryPolicy::default(),
-                circuit_breaker: axagent_runtime::workflow_engine::CircuitBreaker::default(),
-                agent_profile_id: s.agent_profile_id,
-                agent_role_override: s
-                    .agent_role_override
-                    .and_then(|r| axagent_runtime::agent_roles::AgentRole::from_str_opt(&r)),
-                fallback_step_id: None,
-                timeout_secs: None,
-                expected_output_schema: None,
-            }
-        })
+        .filter_map(|n| serde_json::from_value(n).ok())
+        .collect();
+    let edges: Vec<axagent_core::workflow_types::WorkflowEdge> = request
+        .edges
+        .into_iter()
+        .filter_map(|e| serde_json::from_value(e).ok())
         .collect();
 
     let workflow = app_state
-        .workflow_engine
-        .create_workflow(&request.name, steps)
+        .work_engine
+        .create_workflow(&request.name, nodes, edges)
+        .await
         .map_err(|e| e.to_string())?;
 
     Ok(WorkflowCreateResponse {
         workflow_id: workflow.id.clone(),
         name: workflow.name,
-        step_count: workflow.steps.len(),
+        step_count: workflow.nodes.len(),
     })
 }
 
@@ -4269,8 +3777,9 @@ pub async fn workflow_execute(
     provider_id: String,
 ) -> Result<String, String> {
     let _workflow = app_state
-        .workflow_engine
+        .work_engine
         .get_workflow(&workflow_id)
+        .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Workflow not found".to_string())?;
 
@@ -4284,446 +3793,75 @@ pub async fn workflow_execute(
         .find(|k| k.enabled)
         .ok_or_else(|| "No active API key for provider".to_string())?;
 
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &app_state.master_key)
+    // 验证 provider + key 有效（执行通过 NodeDispatcher，无需显式构造 adapter）
+    let _api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &app_state.master_key)
         .map_err(|e| e.to_string())?;
 
-    let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        axagent_core::types::ProviderType::OpenAI => {
-            Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        },
-        axagent_core::types::ProviderType::OpenAIResponses => {
-            Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        },
-        axagent_core::types::ProviderType::Anthropic => {
-            Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        },
-        axagent_core::types::ProviderType::Gemini => {
-            Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        },
-        axagent_core::types::ProviderType::Ollama => {
-            Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        },
+    let _: Result<(), String> = match prov.provider_type {
+        axagent_core::types::ProviderType::OpenAI
+        | axagent_core::types::ProviderType::OpenAIResponses
+        | axagent_core::types::ProviderType::Anthropic
+        | axagent_core::types::ProviderType::Gemini
+        | axagent_core::types::ProviderType::Ollama => Ok(()),
         _ => return Err(format!("Unsupported provider type: {:?}", prov.provider_type)),
     };
 
-    let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-
-    let workflow_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
+    let _workflow_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
         .await
         .ok()
         .map(|s| s.language);
 
-    let step_executor = create_llm_step_executor(
-        adapter,
-        key.id.clone(),
-        api_key,
-        prov.id.clone(),
-        base_url,
-        Some(Arc::new(app_state.sea_db.clone())),
-        workflow_language,
-    );
-
-    let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
-        app_state.workflow_engine.clone(),
-        step_executor,
-    );
-
+    let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
     tokio::spawn(async move {
-        if let Err(e) = runner.run(&wid).await {
-            tracing::error!("[workflow] Execution failed: {}", e);
+        let opts = axagent_runtime::work_engine::RunOptions::default();
+        if let Err(e) = engine.run_workflow(&wid, opts).await {
+            tracing::error!("[workflow] 执行失败: {}", e);
         }
     });
 
     Ok(workflow_id)
 }
 
-/// Tauri session callback for workflow step events
-struct TauriSessionCallback {
-    app: tauri::AppHandle,
-    conversation_id: String,
-    message_id: String,
-}
-
-impl TauriSessionCallback {
-    fn new(app: tauri::AppHandle, conversation_id: String, message_id: String) -> Self {
-        Self {
-            app,
-            conversation_id,
-            message_id,
-        }
-    }
-}
-
-impl axagent_runtime::workflow_engine::SessionCallback for TauriSessionCallback {
-    fn on_step_start(&self, step: &axagent_runtime::workflow_engine::WorkflowStep) {
-        let _ = self.app.emit(
-            "agent-stream-text",
-            serde_json::json!({
-                "conversation_id": self.conversation_id,
-                "assistant_message_id": self.message_id,
-                "type": "workflow_step_start",
-                "step_id": step.id,
-                "step_goal": step.goal,
-                "agent_role": format!("{:?}", step.agent_role),
-            }),
-        );
-    }
-
-    fn on_step_result(
-        &self,
-        step: &axagent_runtime::workflow_engine::WorkflowStep,
-        result: Result<&str, &str>,
-    ) {
-        match result {
-            Ok(text) => {
-                let _ = self.app.emit(
-                    "agent-stream-text",
-                    serde_json::json!({
-                        "conversation_id": self.conversation_id,
-                        "assistant_message_id": self.message_id,
-                        "type": "workflow_step_complete",
-                        "step_id": step.id,
-                        "step_goal": step.goal,
-                        "result": text,
-                    }),
-                );
-            },
-            Err(e) => {
-                let _ = self.app.emit(
-                    "agent-stream-text",
-                    serde_json::json!({
-                        "conversation_id": self.conversation_id,
-                        "assistant_message_id": self.message_id,
-                        "type": "workflow_step_error",
-                        "step_id": step.id,
-                        "error": e,
-                    }),
-                );
-            },
-        }
-    }
-
-    fn on_step_error(&self, step: &axagent_runtime::workflow_engine::WorkflowStep, error: &str) {
-        let _ = self.app.emit(
-            "agent-stream-text",
-            serde_json::json!({
-                "conversation_id": self.conversation_id,
-                "assistant_message_id": self.message_id,
-                "type": "workflow_step_error",
-                "step_id": step.id,
-                "error": error,
-            }),
-        );
-    }
-
-    fn on_workflow_start(&self, workflow_id: &str) {
-        let _ = self.app.emit(
-            "agent-stream-text",
-            serde_json::json!({
-                "conversation_id": self.conversation_id,
-                "assistant_message_id": self.message_id,
-                "type": "workflow_start",
-                "workflow_id": workflow_id,
-            }),
-        );
-    }
-
-    fn on_workflow_complete(&self, workflow_id: &str, success: bool) {
-        let _ = self.app.emit(
-            "workflow-complete",
-            serde_json::json!({
-                "conversation_id": self.conversation_id,
-                "assistant_message_id": self.message_id,
-                "workflow_id": workflow_id,
-                "success": success,
-            }),
-        );
-    }
-}
-
-/// Execute a workflow with LLM step execution and session binding
+/// Execute a workflow with Tauri event notifications
 #[tauri::command]
 pub async fn workflow_execute_with_session(
     app: tauri::AppHandle,
     app_state: State<'_, AppState>,
     workflow_id: String,
     conversation_id: String,
-    streaming_message_id: String,
-    provider_id: String,
+    _streaming_message_id: String,
+    _provider_id: String,
 ) -> Result<(), String> {
-    let _workflow = app_state
-        .workflow_engine
-        .get_workflow(&workflow_id)
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Workflow not found".to_string())?;
-
-    let prov = axagent_core::repo::provider::get_provider(&app_state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let key = prov
-        .keys
-        .iter()
-        .find(|k| k.enabled)
-        .ok_or_else(|| "No active API key for provider".to_string())?;
-
-    let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &app_state.master_key)
-        .map_err(|e| e.to_string())?;
-
-    let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
-        axagent_core::types::ProviderType::OpenAI => {
-            Arc::new(axagent_providers::openai::OpenAIAdapter::new())
-        },
-        axagent_core::types::ProviderType::OpenAIResponses => {
-            Arc::new(axagent_providers::openai_responses::OpenAIResponsesAdapter::new())
-        },
-        axagent_core::types::ProviderType::Anthropic => {
-            Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
-        },
-        axagent_core::types::ProviderType::Gemini => {
-            Arc::new(axagent_providers::gemini::GeminiAdapter::new())
-        },
-        axagent_core::types::ProviderType::Ollama => {
-            Arc::new(axagent_providers::ollama::OllamaAdapter::new())
-        },
-        _ => return Err(format!("Unsupported provider type: {:?}", prov.provider_type)),
-    };
-
-    let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
-
-    let plan_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
-        .await
-        .ok()
-        .map(|s| s.language);
-
-    let llm_executor = create_llm_step_executor(
-        adapter,
-        key.id.clone(),
-        api_key.clone(),
-        prov.id.clone(),
-        base_url,
-        Some(Arc::new(app_state.sea_db.clone())),
-        plan_language,
-    );
-
-    let session_callback: Arc<dyn SessionCallback> = Arc::new(TauriSessionCallback::new(
-        app.clone(),
-        conversation_id.clone(),
-        streaming_message_id.clone(),
-    ));
-
-    let callback_arc = Arc::clone(&session_callback);
-    let step_executor =
-        axagent_runtime::workflow_engine::wrap_executor_with_callback(llm_executor, callback_arc);
-
-    let runner = axagent_runtime::workflow_engine::WorkflowRunner::new(
-        app_state.workflow_engine.clone(),
-        step_executor,
-    );
-
+    let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
-    let cap = session_callback;
+    let cid = conversation_id.clone();
 
     tokio::spawn(async move {
-        cap.on_workflow_start(&wid);
-        match runner.run(&wid).await {
-            Ok(_) => {
-                cap.on_workflow_complete(&wid, true);
-            },
-            Err(e) => {
-                tracing::error!("[workflow] Execution failed: {}", e);
-                cap.on_workflow_complete(&wid, false);
-            },
-        }
+        let _ = app.emit(
+            "agent-stream-text",
+            serde_json::json!({
+                "conversation_id": cid,
+                "type": "workflow_start",
+                "workflow_id": wid,
+            }),
+        );
+
+        let opts = axagent_runtime::work_engine::RunOptions::default();
+        let success = engine.run_workflow(&wid, opts).await.is_ok();
+
+        let _ = app.emit(
+            "agent-stream-text",
+            serde_json::json!({
+                "conversation_id": cid,
+                "type": "workflow_complete",
+                "workflow_id": wid,
+                "success": success,
+            }),
+        );
     });
 
     Ok(())
-}
-
-/// Request to save a skill's parsed workflow as a formal workflow template
-#[derive(Debug, serde::Deserialize)]
-pub struct SaveSkillWorkflowFromLlmRequest {
-    pub skill_id: String,
-    pub skill_name: String,
-    pub workflow_name: String,
-    pub description: Option<String>,
-    pub nodes: Vec<serde_json::Value>,
-    pub edges: Vec<serde_json::Value>,
-}
-
-/// Response for save_skill_workflow_from_llm when similar workflows exist
-#[derive(Debug, serde::Serialize)]
-pub struct SaveSkillWorkflowResponse {
-    pub needs_review: bool,
-    pub workflow_id: Option<String>,
-    pub similar_workflows: Vec<SimilarWorkflow>,
-}
-
-/// Similar workflow info for user to review
-#[derive(Debug, serde::Serialize)]
-pub struct SimilarWorkflow {
-    pub workflow_id: String,
-    pub name: String,
-    pub skill_ids: Vec<String>,
-    pub similarity: f64,
-}
-
-/// Extract skill_ids from nodes.
-/// Checks both `config.skill_id` (frontend AtomicSkillNode format) and
-/// `data.skill_id` (legacy format) paths.
-fn extract_skill_ids_from_nodes(nodes: &[serde_json::Value]) -> Vec<String> {
-    let mut skill_ids = Vec::new();
-    for node in nodes {
-        // Check modern format: node.config.skill_id
-        let from_config = node
-            .get("config")
-            .and_then(|c| c.get("skill_id"))
-            .and_then(|s| s.as_str());
-        // Check legacy format: node.data.skill_id
-        let from_data = node
-            .get("data")
-            .and_then(|d| d.get("skill_id"))
-            .and_then(|s| s.as_str());
-        if let Some(skill_id) = from_config.or(from_data) {
-            if !skill_ids.contains(&skill_id.to_string()) {
-                skill_ids.push(skill_id.to_string());
-            }
-        }
-    }
-    skill_ids
-}
-
-/// Find similar workflows — always returns empty (atomic_skills removed)
-async fn find_similar_workflows(
-    _db: &DatabaseConnection,
-    _skill_ids: &[String],
-) -> Result<Vec<SimilarWorkflow>, String> {
-    Ok(Vec::new())
-}
-
-/// Save a skill's parsed workflow from LLM result as a formal workflow template
-/// and create skill_reference to establish the mapping
-#[tauri::command]
-pub async fn save_skill_workflow_from_llm(
-    app_state: State<'_, AppState>,
-    request: SaveSkillWorkflowFromLlmRequest,
-) -> Result<SaveSkillWorkflowResponse, String> {
-    let db = &app_state.sea_db;
-    let now = axagent_core::utils::now_ts();
-
-    let skill_ids = extract_skill_ids_from_nodes(&request.nodes);
-
-    let similar_workflows = find_similar_workflows(db, &skill_ids).await?;
-
-    if !similar_workflows.is_empty() {
-        return Ok(SaveSkillWorkflowResponse {
-            needs_review: true,
-            workflow_id: None,
-            similar_workflows,
-        });
-    }
-
-    let workflow_id = format!("skill_wf_{}", uuid::Uuid::new_v4());
-    let nodes_str = serde_json::to_string(&request.nodes).map_err(|e| e.to_string())?;
-    let edges_str = serde_json::to_string(&request.edges).map_err(|e| e.to_string())?;
-
-    let composite_source = serde_json::to_string(&serde_json::json!({
-        "market": request.skill_id,
-        "repo": request.skill_name,
-    }))
-    .map_err(|e| e.to_string())?;
-
-    let template = axagent_core::entity::workflow_template::ActiveModel {
-        id: Set(workflow_id.clone()),
-        name: Set(request.workflow_name.clone()),
-        description: Set(request.description.clone()),
-        icon: Set("⚡".to_string()),
-        tags: Set(None),
-        version: Set(1),
-        is_preset: Set(false),
-        is_editable: Set(true),
-        is_public: Set(false),
-        trigger_config: Set(None),
-        nodes: Set(nodes_str),
-        edges: Set(edges_str),
-        input_schema: Set(None),
-        output_schema: Set(None),
-        variables: Set(None),
-        error_config: Set(None),
-        composite_source: Set(Some(composite_source)),
-        created_at: Set(now),
-        updated_at: Set(now),
-    };
-
-    axagent_core::repo::workflow_template::insert_workflow_template(db, template)
-        .await
-        .map_err(|e| format!("Failed to save workflow template: {}", e))?;
-
-    Ok(SaveSkillWorkflowResponse {
-        needs_review: false,
-        workflow_id: Some(workflow_id),
-        similar_workflows: Vec::new(),
-    })
-}
-
-/// Request to force save (replace existing) workflow
-#[derive(Debug, serde::Deserialize)]
-pub struct ForceSaveWorkflowRequest {
-    pub skill_id: String,
-    pub skill_name: String,
-    pub workflow_name: String,
-    pub description: Option<String>,
-    pub nodes: Vec<serde_json::Value>,
-    pub edges: Vec<serde_json::Value>,
-    pub target_workflow_id: String,
-}
-
-/// Force save workflow, replacing the existing one
-#[tauri::command]
-pub async fn force_save_skill_workflow(
-    app_state: State<'_, AppState>,
-    request: ForceSaveWorkflowRequest,
-) -> Result<String, String> {
-    let db = &app_state.sea_db;
-    let now = axagent_core::utils::now_ts();
-
-    let nodes_str = serde_json::to_string(&request.nodes).map_err(|e| e.to_string())?;
-    let edges_str = serde_json::to_string(&request.edges).map_err(|e| e.to_string())?;
-
-    let composite_source = serde_json::to_string(&serde_json::json!({
-        "market": request.skill_id,
-        "repo": request.skill_name,
-    }))
-    .map_err(|e| e.to_string())?;
-
-    let template = axagent_core::entity::workflow_template::ActiveModel {
-        id: Set(request.target_workflow_id.clone()),
-        name: Set(request.workflow_name.clone()),
-        description: Set(request.description.clone()),
-        icon: Set("⚡".to_string()),
-        tags: Set(None),
-        version: Set(1),
-        is_preset: Set(false),
-        is_editable: Set(true),
-        is_public: Set(false),
-        trigger_config: Set(None),
-        nodes: Set(nodes_str),
-        edges: Set(edges_str),
-        input_schema: Set(None),
-        output_schema: Set(None),
-        variables: Set(None),
-        error_config: Set(None),
-        composite_source: Set(Some(composite_source)),
-        created_at: Set(now),
-        updated_at: Set(now),
-    };
-
-    axagent_core::repo::workflow_template::insert_workflow_template(db, template)
-        .await
-        .map_err(|e| format!("Failed to update workflow template: {}", e))?;
-
-    Ok(request.target_workflow_id)
 }
 
 /// Get workflow status
@@ -4733,8 +3871,9 @@ pub async fn workflow_get_status(
     workflow_id: String,
 ) -> Result<Value, String> {
     let workflow = app_state
-        .workflow_engine
+        .work_engine
         .get_workflow(&workflow_id)
+        .await
         .map_err(|e| e.to_string())?;
 
     match workflow {
@@ -4750,8 +3889,9 @@ pub async fn workflow_cancel(
     workflow_id: String,
 ) -> Result<Value, String> {
     let workflow = app_state
-        .workflow_engine
+        .work_engine
         .cancel_workflow(&workflow_id)
+        .await
         .map_err(|e| e.to_string())?;
 
     serde_json::to_value(workflow).map_err(|e| e.to_string())
@@ -4761,8 +3901,9 @@ pub async fn workflow_cancel(
 #[tauri::command]
 pub async fn workflow_list(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
     let workflows = app_state
-        .workflow_engine
+        .work_engine
         .list_workflows()
+        .await
         .map_err(|e| e.to_string())?;
 
     Ok(workflows
@@ -5059,12 +4200,13 @@ pub async fn workflow_get_steps(
     workflow_id: String,
 ) -> Result<Vec<Value>, String> {
     let workflow = app_state
-        .workflow_engine
+        .work_engine
         .get_workflow(&workflow_id)
+        .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Workflow not found".to_string())?;
     Ok(workflow
-        .steps
+        .nodes
         .iter()
         .filter_map(|s| serde_json::to_value(s).ok())
         .collect())

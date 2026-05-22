@@ -1067,15 +1067,16 @@ fn start_cron_scheduler(state: &AppState) {
     // 注入共享存储到 tools crate，使 CronCreateTool 等可用
     axagent_tools::tools::cron::init_cron_store(store.clone());
 
-    let workflow_engine = state.workflow_engine.clone();
+    let work_engine = state.work_engine.clone();
     let mut executor = CronExecutor::new();
     executor.set_handler(move |job| {
         if let Some(ref wf_id) = job.workflow_id {
-            let wf_engine = workflow_engine.clone();
+            let engine = work_engine.clone();
             let wf_id = wf_id.clone();
             let job_name = job.name.clone();
             tokio::task::spawn(async move {
-                match wf_engine.run_workflow(&wf_id).await {
+                let opts = axagent_runtime::work_engine::RunOptions::default();
+                match engine.run_workflow(&wf_id, opts).await {
                     Ok(workflow) => {
                         tracing::info!(
                             "[CronScheduler] 工作流任务 '{}' 完成: {:?}",

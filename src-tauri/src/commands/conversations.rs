@@ -4337,7 +4337,6 @@ mod tests_conversation {
             agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
-            workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
             reflector: Arc::new(axagent_agent::Reflector::new()),
             shared_memory: Arc::new(tokio::sync::RwLock::new(
                 axagent_runtime::shared_memory::SharedMemory::new(),
@@ -4416,9 +4415,9 @@ mod tests_conversation {
             local_tool_registry: Arc::new(tokio::sync::Mutex::new(
                 axagent_tools::registry::UnifiedToolRegistry::new(),
             )),
-            work_engine: Arc::new(tokio::sync::RwLock::new(
-                axagent_runtime::work_engine::WorkEngine::new(Arc::new(db.clone())),
-            )),
+            work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(
+                db.clone(),
+            ))),
             skill_decomposer: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::SkillDecomposer::new(),
             )),

@@ -1177,6 +1177,38 @@ export const WorkflowTemplateSelector: React.FC<
     if (template.steps && template.steps.length > 0) {
       setCreatingWorkflow(template.id);
       try {
+        // Convert steps to WorkflowNode[] + WorkflowEdge[] format
+        const nodes = template.steps.map((s) => ({
+          type: "agent",
+          id: s.id,
+          title: s.goal,
+          description: s.goal,
+          position: { x: 0, y: 0 },
+          config: {
+            role: s.role,
+            system_prompt: `You are a ${s.role}. Task: ${s.goal}`,
+            output_var: "result",
+            context_sources: [],
+          },
+          retry: {
+            enabled: true,
+            max_retries: 2,
+            backoff_type: "exponential",
+            base_delay_ms: 1000,
+            max_delay_ms: 30000,
+          },
+          timeout: null,
+          enabled: true,
+        }));
+        const edges = template.steps.flatMap((s) =>
+          s.needs.map((needId) => ({
+            id: `edge_${needId}_${s.id}`,
+            source: needId,
+            target: s.id,
+            edge_type: "direct",
+          }))
+        );
+
         const result = await invoke<{
           workflowId: string;
           name: string;
@@ -1184,7 +1216,8 @@ export const WorkflowTemplateSelector: React.FC<
         }>("workflow_create", {
           request: {
             name: template.name,
-            steps: template.steps,
+            nodes,
+            edges,
           },
         });
         onSelect(template, result.workflowId);

@@ -157,7 +157,6 @@ pub struct AppState {
     pub agent_cancel_tokens: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
     pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
-    pub workflow_engine: Arc<axagent_runtime::workflow_engine::WorkflowEngine>,
     pub reflector: Arc<axagent_agent::Reflector>,
     // 以下字段从 std::sync::RwLock 改为 tokio::sync::RwLock
     // 原因：std::sync::RwLock 的 guard 是 !Send，在异步上下文中跨 await 持有会导致未定义行为
@@ -184,7 +183,7 @@ pub struct AppState {
     pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
-    pub work_engine: Arc<tokio::sync::RwLock<axagent_runtime::work_engine::WorkEngine>>,
+    pub work_engine: Arc<axagent_runtime::work_engine::WorkEngine>,
     pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
     pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
     pub dashboard_registry: Option<Arc<DashboardRegistry>>,

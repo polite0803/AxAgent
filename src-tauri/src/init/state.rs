@@ -177,7 +177,6 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         agent_cancel_tokens: Arc::new(Mutex::new(std::collections::HashMap::new())),
         agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
-        workflow_engine: Arc::new(axagent_runtime::workflow_engine::WorkflowEngine::new()),
         reflector: Arc::new(axagent_agent::Reflector::new()),
         shared_memory: Arc::new(TokioRwLock::new(
             axagent_runtime::shared_memory::SharedMemory::new(),
@@ -279,9 +278,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             rt.block_on(registry.load_enabled_state(&sea_db));
             Arc::new(tokio::sync::Mutex::new(registry))
         },
-        work_engine: Arc::new(tokio::sync::RwLock::new(
-            axagent_runtime::work_engine::WorkEngine::new(Arc::new(sea_db.clone())),
-        )),
+        work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(
+            sea_db.clone(),
+        ))),
         skill_decomposer: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::SkillDecomposer::new(),
         )),

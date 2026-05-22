@@ -482,7 +482,6 @@ pub enum WorkflowNode {
     DocumentParser(DocumentParserNode),
     VectorRetrieve(VectorRetrieveNode),
     End(EndNode),
-    // Legacy variants for backward compatibility during deserialization
     #[serde(rename = "tool")]
     Tool(ToolNode),
     #[serde(rename = "code")]
@@ -508,6 +507,39 @@ impl WorkflowNode {
             WorkflowNode::Validation(n) => &n.base.id,
             WorkflowNode::End(n) => &n.base.id,
         }
+    }
+
+    /// 从节点变体中提取基类引用
+    pub fn base(&self) -> &WorkflowNodeBase {
+        match self {
+            WorkflowNode::Trigger(n) => &n.base,
+            WorkflowNode::Agent(n) => &n.base,
+            WorkflowNode::Llm(n) => &n.base,
+            WorkflowNode::Condition(n) => &n.base,
+            WorkflowNode::Parallel(n) => &n.base,
+            WorkflowNode::Loop(n) => &n.base,
+            WorkflowNode::Merge(n) => &n.base,
+            WorkflowNode::Delay(n) => &n.base,
+            WorkflowNode::Tool(n) => &n.base,
+            WorkflowNode::Code(n) => &n.base,
+            WorkflowNode::SubWorkflow(n) => &n.base,
+            WorkflowNode::DocumentParser(n) => &n.base,
+            WorkflowNode::VectorRetrieve(n) => &n.base,
+            WorkflowNode::Validation(n) => &n.base,
+            WorkflowNode::End(n) => &n.base,
+        }
+    }
+
+    pub fn base_timeout(&self) -> Option<u64> {
+        self.base().timeout
+    }
+
+    pub fn base_retry(&self) -> &RetryConfig {
+        &self.base().retry
+    }
+
+    pub fn base_enabled(&self) -> bool {
+        self.base().enabled
     }
 }
 
@@ -768,7 +800,7 @@ pub struct ValidationResult {
     pub warnings: Vec<ValidationWarning>,
 }
 
-/// Result of migrating a workflow from legacy Tool/Code nodes to Agent nodes
+/// Result of migrating Tool/Code nodes to Agent nodes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MigrationResult {
     pub workflow_id: String,
@@ -786,7 +818,7 @@ pub struct NodeMigrationEntry {
     pub status: String,
 }
 
-/// Workflow migrator that converts legacy Tool/Code nodes to AtomicSkill nodes
+/// Workflow migrator that converts Tool/Code nodes to Agent nodes
 pub struct WorkflowMigrator;
 
 impl WorkflowMigrator {
@@ -865,7 +897,7 @@ impl WorkflowMigrator {
         }
     }
 
-    /// Check if a workflow contains legacy Tool or Code nodes
+    /// Check if a workflow contains Tool or Code nodes
     pub fn has_legacy_nodes(nodes: &[WorkflowNode]) -> bool {
         nodes
             .iter()

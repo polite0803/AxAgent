@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "axagent"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "android_logger",
  "async-trait",
@@ -804,7 +804,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -844,7 +844,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-core"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-gateway"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -927,7 +927,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-migration"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "sea-orm",
  "sea-orm-migration",
@@ -936,7 +936,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-npm"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "flate2",
  "reqwest 0.13.2",
@@ -951,7 +951,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-plugins"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "axagent-npm",
  "axagent-runtime-core",
@@ -965,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-prompt-guard"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "regex",
  "serde",
@@ -976,7 +976,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-providers"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -994,7 +994,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-dashboard"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "async-trait",
  "serde",
@@ -1006,7 +1006,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-messaging"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1035,7 +1035,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-theme"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1045,7 +1045,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-webhook"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "async-trait",
  "axagent-rt-messaging",
@@ -1064,7 +1064,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-workflow"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "async-trait",
  "axagent-core",
@@ -1075,13 +1075,14 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-util",
  "tracing",
  "uuid",
 ]
 
 [[package]]
 name = "axagent-runtime"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1133,7 +1134,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime-core"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1151,7 +1152,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-telemetry"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "axagent-core",
  "chrono",
@@ -1169,7 +1170,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-tools"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1214,7 +1215,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-trajectory"
-version = "2.0.1"
+version = "2.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
