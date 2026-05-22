@@ -5,6 +5,10 @@ use tauri::State;
 
 #[cfg(not(target_os = "android"))]
 use crate::AppState;
+#[cfg(not(target_os = "android"))]
+use crate::commands::error::ErrorResponse;
+#[cfg(not(target_os = "android"))]
+use crate::commands::error_code::browser as browser_err;
 
 #[cfg(not(target_os = "android"))]
 async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
@@ -26,7 +30,9 @@ pub async fn browser_navigate(
 ) -> Result<NavigateResult, String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client.navigate(&url).await.map_err(|e| e.to_string())
 }
 
@@ -38,7 +44,9 @@ pub async fn browser_screenshot(
 ) -> Result<ScreenshotResult, String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client
         .screenshot(full_page.unwrap_or(false))
         .await
@@ -50,7 +58,9 @@ pub async fn browser_screenshot(
 pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Result<(), String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client.click(&selector).await.map_err(|e| e.to_string())
 }
 
@@ -63,7 +73,9 @@ pub async fn browser_fill(
 ) -> Result<(), String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client
         .fill(&selector, &value)
         .await
@@ -79,7 +91,9 @@ pub async fn browser_type(
 ) -> Result<(), String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client
         .type_text(&selector, &text)
         .await
@@ -94,7 +108,9 @@ pub async fn browser_extract_text(
 ) -> Result<String, String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client
         .extract_text(&selector)
         .await
@@ -109,7 +125,9 @@ pub async fn browser_extract_all(
 ) -> Result<Vec<ExtractedElement>, String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client
         .extract_all(&selector)
         .await
@@ -121,7 +139,9 @@ pub async fn browser_extract_all(
 pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client.get_content().await.map_err(|e| e.to_string())
 }
 
@@ -134,7 +154,9 @@ pub async fn browser_wait_for(
 ) -> Result<(), String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client
         .wait_for(&selector, timeout)
         .await
@@ -150,7 +172,9 @@ pub async fn browser_select(
 ) -> Result<(), String> {
     ensure_browser_client(&state).await?;
     let mut guard = state.browser_client.lock().await;
-    let client = guard.as_mut().ok_or("浏览器客户端未初始化")?;
+    let client = guard
+        .as_mut()
+        .ok_or(ErrorResponse::new(browser_err::NOT_INITIALIZED))?;
     client
         .select_option(&selector, &value)
         .await

@@ -665,12 +665,17 @@ pub async fn archive_workflow_session(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Conversation {} not found", conversation_id))?;
 
+    use crate::commands::error::ErrorResponse;
+    use crate::commands::error_code::conversation as conv_err;
+
     if conv.session_type != "workflow" {
-        return Err("此会话不是工作流类型，请使用普通归档".to_string());
+        return Err(ErrorResponse::new(conv_err::NOT_WORKFLOW)
+            .with_detail("此会话不是工作流类型，请使用普通归档"));
     }
 
     if conv.is_archived != 0 {
-        return Err(format!("会话 {} 已经归档，请勿重复操作", conversation_id));
+        return Err(ErrorResponse::new(conv_err::ALREADY_ARCHIVED)
+            .with_detail(format!("会话 {} 已经归档，请勿重复操作", conversation_id)));
     }
 
     // 如果有绑定的工作流模板，将执行数据写回模板
@@ -931,18 +936,19 @@ async fn consume_stream(
                     && full_content.is_empty()
                     && final_tool_calls.as_ref().is_none_or(|tc| tc.is_empty())
                 {
-                    // i18n-note: Error message returned to frontend. Future: convert to error codes for frontend i18n.
-                    let err_msg = "Provider returned empty response. This may indicate the model could not generate content for the given input, the request was filtered by content policy, or the connection was interrupted before any data was received. Try rephrasing your message or try again.".to_string();
+                    use crate::commands::error_code::stream as stream_err;
+                    let err_msg = ErrorResponse::new(stream_err::EMPTY_RESPONSE)
+                        .with_detail("Provider returned empty response. This may indicate the model could not generate content for the given input, the request was filtered by content policy, or the connection was interrupted before any data was received. Try rephrasing your message or try again.".to_string());
                     let _ = app.emit(
                         "chat-stream-error",
                         ChatStreamErrorEvent {
                             conversation_id: conversation_id.to_string(),
                             message_id: message_id.to_string(),
-                            error: err_msg.clone(),
+                            error: err_msg.code.clone(),
                         },
                     );
                     tracing::warn!("[consume_stream] Empty response from provider");
-                    stream_error = Some(err_msg);
+                    stream_error = Some(err_msg.code);
                     break;
                 }
 
@@ -1222,7 +1228,12 @@ async fn execute_tool_call(
             .unwrap_or("")
             .to_string();
         if query.is_empty() {
-            return ("Error: web_search requires a 'query' parameter".to_string(), true);
+            use crate::commands::error_code::tool as tool_err;
+            return (
+                ErrorResponse::new(tool_err::PARAM_REQUIRED)
+                    .with_detail("web_search requires a 'query' parameter"),
+                true,
+            );
         }
         let text = if let Ok(providers) =
             axagent_core::repo::search_provider::list_search_providers(db).await
@@ -1264,12 +1275,12 @@ async fn execute_tool_call(
     let (server, _td) = match server_and_tool {
         Ok(Some(pair)) => pair,
         _ => {
-            // i18n-note: Error message returned to frontend. Future: convert to error codes for frontend i18n.
+            use crate::commands::error_code::tool as tool_err;
             return (
-                format!(
-                    "Error: Tool '{}' not found on any enabled MCP server",
+                ErrorResponse::new(tool_err::NOT_FOUND).with_detail(format!(
+                    "Tool '{}' not found on any enabled MCP server",
                     tool_call.function.name
-                ),
+                )),
                 true,
             );
         },
@@ -1298,8 +1309,12 @@ async fn execute_tool_call(
                 }),
                 Ok(Err(e)) => Err(axagent_core::error::AxAgentError::Gateway(e.to_string())),
                 Err(_) => {
+                    use crate::commands::error_code::tool as tool_err;
                     return (
-                        format!("Error: Tool execution timed out after {}s", timeout_secs),
+                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
+                            "Tool execution timed out after {}s",
+                            timeout_secs
+                        )),
                         true,
                     );
                 },
@@ -1308,7 +1323,10 @@ async fn execute_tool_call(
         "stdio" => {
             let command = match &server.command {
                 Some(cmd) => cmd.clone(),
-                None => return ("Error: stdio server has no command configured".into(), true),
+                None => {
+                    use crate::commands::error_code::tool as tool_err;
+                    return (ErrorResponse::new(tool_err::STDIO_NO_COMMAND), true);
+                },
             };
             let args: Vec<String> = server
                 .args_json
@@ -1334,8 +1352,12 @@ async fn execute_tool_call(
             {
                 Ok(r) => r,
                 Err(_) => {
+                    use crate::commands::error_code::tool as tool_err;
                     return (
-                        format!("Error: Tool execution timed out after {}s", timeout_secs),
+                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
+                            "Tool execution timed out after {}s",
+                            timeout_secs
+                        )),
                         true,
                     );
                 },
@@ -1344,7 +1366,10 @@ async fn execute_tool_call(
         "http" => {
             let endpoint = match &server.endpoint {
                 Some(ep) => ep.clone(),
-                None => return ("Error: HTTP server has no endpoint configured".into(), true),
+                None => {
+                    use crate::commands::error_code::tool as tool_err;
+                    return (ErrorResponse::new(tool_err::HTTP_NO_ENDPOINT), true);
+                },
             };
             match tokio::time::timeout(
                 timeout_duration,
@@ -1359,8 +1384,12 @@ async fn execute_tool_call(
             {
                 Ok(r) => r,
                 Err(_) => {
+                    use crate::commands::error_code::tool as tool_err;
                     return (
-                        format!("Error: Tool execution timed out after {}s", timeout_secs),
+                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
+                            "Tool execution timed out after {}s",
+                            timeout_secs
+                        )),
                         true,
                     );
                 },
@@ -1369,7 +1398,10 @@ async fn execute_tool_call(
         "sse" => {
             let endpoint = match &server.endpoint {
                 Some(ep) => ep.clone(),
-                None => return ("Error: SSE server has no endpoint configured".into(), true),
+                None => {
+                    use crate::commands::error_code::tool as tool_err;
+                    return (ErrorResponse::new(tool_err::SSE_NO_ENDPOINT), true);
+                },
             };
             match tokio::time::timeout(
                 timeout_duration,
@@ -1384,19 +1416,37 @@ async fn execute_tool_call(
             {
                 Ok(r) => r,
                 Err(_) => {
+                    use crate::commands::error_code::tool as tool_err;
                     return (
-                        format!("Error: Tool execution timed out after {}s", timeout_secs),
+                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
+                            "Tool execution timed out after {}s",
+                            timeout_secs
+                        )),
                         true,
                     );
                 },
             }
         },
-        other => return (format!("Error: Unsupported transport '{}'", other), true),
+        other => {
+            use crate::commands::error_code::tool as tool_err;
+            return (
+                ErrorResponse::new(tool_err::TRANSPORT_UNSUPPORTED)
+                    .with_detail(format!("Unsupported transport '{}'", other)),
+                true,
+            );
+        },
     };
 
     match result {
         Ok(r) => (r.content, r.is_error),
-        Err(e) => (format!("Error executing tool: {}", e), true),
+        Err(e) => {
+            use crate::commands::error_code::tool as tool_err;
+            (
+                ErrorResponse::new(tool_err::EXECUTION_ERROR)
+                    .with_detail(format!("Error executing tool: {}", e)),
+                true,
+            )
+        },
     }
 }
 

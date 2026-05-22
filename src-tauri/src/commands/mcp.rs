@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::mcp as mcp_err;
 use axagent_core::types::*;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
@@ -50,7 +52,8 @@ pub async fn test_mcp_server(
         .map_err(|e| format!("获取 MCP 服务器配置失败: {e}"))?;
 
     if !server.enabled {
-        return Ok(serde_json::json!({"ok": false, "error": "服务器未启用"}));
+        let err = ErrorResponse::new(mcp_err::SERVER_NOT_ENABLED);
+        return Ok(serde_json::json!({"ok": false, "error": serde_json::to_string(&err).unwrap()}));
     }
 
     // Builtin servers don't need real connection testing
@@ -88,7 +91,12 @@ pub async fn test_mcp_server(
 
                 let tools = axagent_core::mcp_client::discover_tools_stdio(command, &args, &env)
                     .await
-                    .map_err(|e| format!("连接失败: {e}"))?;
+                    .map_err(|e| {
+                        serde_json::to_string(
+                            &ErrorResponse::new(mcp_err::CONNECT_FAILED).with_detail(e.to_string()),
+                        )
+                        .unwrap()
+                    })?;
                 Ok::<_, String>(serde_json::json!({
                     "ok": true,
                     "capabilities": {"tools": true},
@@ -105,11 +113,23 @@ pub async fn test_mcp_server(
                 let tools = if server.transport == "http" {
                     axagent_core::mcp_client::discover_tools_http(endpoint)
                         .await
-                        .map_err(|e| format!("连接失败: {e}"))?
+                        .map_err(|e| {
+                            serde_json::to_string(
+                                &ErrorResponse::new(mcp_err::CONNECT_FAILED)
+                                    .with_detail(e.to_string()),
+                            )
+                            .unwrap()
+                        })?
                 } else {
                     axagent_core::mcp_client::discover_tools_sse(endpoint)
                         .await
-                        .map_err(|e| format!("连接失败: {e}"))?
+                        .map_err(|e| {
+                            serde_json::to_string(
+                                &ErrorResponse::new(mcp_err::CONNECT_FAILED)
+                                    .with_detail(e.to_string()),
+                            )
+                            .unwrap()
+                        })?
                 };
                 Ok::<_, String>(serde_json::json!({
                     "ok": true,
@@ -118,11 +138,20 @@ pub async fn test_mcp_server(
                     "toolNames": tools.iter().map(|t| &t.name).collect::<Vec<_>>()
                 }))
             },
-            other => Err(format!("不支持的传输类型: {other}")),
+            other => Err(serde_json::to_string(
+                &ErrorResponse::new(mcp_err::TRANSPORT_UNSUPPORTED).with_detail(other),
+            )
+            .unwrap()),
         }
     })
     .await
-    .map_err(|_| format!("连接测试超时（{} 秒）", TEST_TIMEOUT_SECS))?
+    .map_err(|_| {
+        serde_json::to_string(
+            &ErrorResponse::new(mcp_err::TIMEOUT)
+                .with_detail(format!("连接测试超时（{} 秒）", TEST_TIMEOUT_SECS)),
+        )
+        .unwrap()
+    })?
 }
 
 #[tauri::command]
@@ -271,7 +300,13 @@ async fn discover_mcp_tools_inner(
         ),
     )
     .await
-    .map_err(|_| format!("工具发现超时（{} 秒）", timeout_secs))?
+    .map_err(|_| {
+        serde_json::to_string(
+            &ErrorResponse::new(mcp_err::TOOL_DISCOVERY_TIMEOUT)
+                .with_detail(format!("工具发现超时（{} 秒）", timeout_secs)),
+        )
+        .unwrap()
+    })?
     .map_err(|e| e.to_string())?;
 
     Ok(tools)

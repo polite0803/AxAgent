@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::search as search_err;
 use axagent_core::types::{CreateSearchProviderInput, SearchProvider};
 use tauri::command;
 
@@ -113,7 +115,9 @@ pub async fn test_search_provider(
         .map_err(|e| e.to_string())?;
 
     let Some(endpoint) = &provider.endpoint else {
-        return Ok(serde_json::json!({ "ok": false, "error": "未配置端点" }));
+        return Ok(
+            serde_json::json!({ "ok": false, "error": ErrorResponse::new(search_err::ENDPOINT_NOT_CONFIGURED) }),
+        );
     };
 
     let start = Instant::now();
@@ -159,7 +163,8 @@ pub async fn execute_search(
     let api_key = get_search_api_key(&state.sea_db, &provider_id, &state.master_key).await?;
 
     let Some(endpoint) = &provider.endpoint else {
-        return Err("搜索提供商未配置端点".to_string());
+        return Err(ErrorResponse::new(search_err::ENDPOINT_NOT_CONFIGURED)
+            .with_detail("搜索提供商未配置端点"));
     };
 
     let client = reqwest::Client::builder()

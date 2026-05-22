@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::skill as skill_err;
 use crate::paths::axagent_home;
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::*;
@@ -372,8 +374,10 @@ fn check_skill_dependencies(skill_dir: &Path, target_dir: &Path) -> Result<(), S
         return Ok(()); // 无清单文件，跳过检查
     }
     let contents = std::fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
-    let manifest: serde_json::Value = serde_json::from_str(&contents)
-        .map_err(|e| format!("解析 skill-manifest.json 失败: {}", e))?;
+    let manifest: serde_json::Value = serde_json::from_str(&contents).map_err(|e| {
+        ErrorResponse::new(skill_err::MANIFEST_PARSE_FAILED)
+            .with_detail(format!("解析 skill-manifest.json 失败: {}", e))
+    })?;
 
     let deps = match manifest.get("dependencies") {
         Some(serde_json::Value::Object(deps)) => deps,
@@ -383,11 +387,21 @@ fn check_skill_dependencies(skill_dir: &Path, target_dir: &Path) -> Result<(), S
     for dep_name in deps.keys() {
         let dep_dir = target_dir.join(dep_name);
         if !dep_dir.exists() || !dep_dir.is_dir() {
-            return Err(format!(
-                "依赖未满足: Skill '{}' 需要 '{}'，但未在目标目录中找到",
-                skill_dir.file_name().unwrap_or_default().to_string_lossy(),
-                dep_name
-            ));
+            return Err(ErrorResponse::new(skill_err::DEPENDENCY_NOT_FOUND)
+                .with_detail(format!(
+                    "依赖未满足: Skill '{}' 需要 '{}'，但未在目标目录中找到",
+                    skill_dir.file_name().unwrap_or_default().to_string_lossy(),
+                    dep_name
+                ))
+                .with_param(
+                    "skill",
+                    skill_dir
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
+                )
+                .with_param("dependency", dep_name.to_string()))?;
         }
     }
     Ok(())
@@ -653,8 +667,9 @@ fn save_skill_manifest(
         manifest["versions"] = serde_json::json!([version_entry]);
     }
 
-    let manifest_str =
-        serde_json::to_string_pretty(&manifest).map_err(|e| format!("JSON 序列化失败: {e}"))?;
+    let manifest_str = serde_json::to_string_pretty(&manifest).map_err(|e| {
+        ErrorResponse::new(skill_err::SERIALIZE_FAILED).with_detail(format!("JSON 序列化失败: {e}"))
+    })?;
     std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())
 }
 
@@ -790,8 +805,9 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
         "installed_via": "local"
     });
     let manifest_path = skill_target.join("skill-manifest.json");
-    let manifest_str =
-        serde_json::to_string_pretty(&manifest).map_err(|e| format!("JSON 序列化失败: {e}"))?;
+    let manifest_str = serde_json::to_string_pretty(&manifest).map_err(|e| {
+        ErrorResponse::new(skill_err::SERIALIZE_FAILED).with_detail(format!("JSON 序列化失败: {e}"))
+    })?;
     std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())?;
 
     Ok((name, "local".to_string()))
@@ -1640,8 +1656,9 @@ pub async fn skill_set_manifest(
     }
 
     let manifest_path = skill_dir.join("skill-manifest.json");
-    let manifest_str =
-        serde_json::to_string_pretty(&manifest).map_err(|e| format!("JSON 序列化失败: {e}"))?;
+    let manifest_str = serde_json::to_string_pretty(&manifest).map_err(|e| {
+        ErrorResponse::new(skill_err::SERIALIZE_FAILED).with_detail(format!("JSON 序列化失败: {e}"))
+    })?;
     std::fs::write(&manifest_path, manifest_str).map_err(|e| e.to_string())?;
 
     Ok(format!("清单已保存: '{}'", name))
@@ -1683,21 +1700,22 @@ pub async fn skill_analyze_frontend(
     };
 
     if skill_content.trim().is_empty() {
-        return Err("Skill 内容为空，无法分析".to_string());
+        return Err(ErrorResponse::new(skill_err::CONTENT_EMPTY)
+            .with_detail("Skill 内容为空，无法分析".to_string()));
     }
 
     // 获取默认 Provider 配置
     let settings = axagent_core::repo::settings::get_settings(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?;
-    let provider_id = settings
-        .default_provider_id
-        .as_ref()
-        .ok_or_else(|| "未配置默认模型提供商".to_string())?;
-    let model_id = settings
-        .default_model_id
-        .as_ref()
-        .ok_or_else(|| "未配置默认模型".to_string())?;
+    let provider_id = settings.default_provider_id.as_ref().ok_or_else(|| {
+        ErrorResponse::new(skill_err::MODEL_PROVIDER_NOT_CONFIGURED)
+            .with_detail("未配置默认模型提供商".to_string())
+    })?;
+    let model_id = settings.default_model_id.as_ref().ok_or_else(|| {
+        ErrorResponse::new(skill_err::MODEL_NOT_CONFIGURED)
+            .with_detail("未配置默认模型".to_string())
+    })?;
 
     let provider = axagent_core::repo::provider::get_provider(&state.sea_db, provider_id)
         .await

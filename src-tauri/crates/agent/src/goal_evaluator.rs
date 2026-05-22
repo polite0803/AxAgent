@@ -88,8 +88,20 @@ impl GoalEvaluator {
         };
         let no_sub_goals = sub_goals.is_empty();
 
+        // 安全检查：连续多次未达成，强制放行，防止无限重试
+        if self.consecutive_not_achieved >= self.max_not_achieved {
+            return GoalEvaluation {
+                achieved: true,
+                confidence: 0.5,
+                reason: format!(
+                    "连续 {} 次评估未达成，强制进入综合阶段",
+                    self.consecutive_not_achieved
+                ),
+                missing: Vec::new(),
+            };
+        }
+
         if !has_completed_steps {
-            // 没有任何已验证完成的步骤
             self.consecutive_not_achieved += 1;
             return GoalEvaluation {
                 achieved: false,
@@ -104,7 +116,6 @@ impl GoalEvaluator {
         }
 
         if failure_ratio > 0.5 && completed_steps < 3 {
-            // 失败率太高且完成步骤太少
             self.consecutive_not_achieved += 1;
             return GoalEvaluation {
                 achieved: false,
@@ -119,7 +130,6 @@ impl GoalEvaluator {
         }
 
         if goal_coverage < 0.5 && !no_sub_goals {
-            // 子目标覆盖率不足
             self.consecutive_not_achieved += 1;
             return GoalEvaluation {
                 achieved: false,
@@ -130,19 +140,6 @@ impl GoalEvaluator {
                     missing_goals.join(", ")
                 ),
                 missing: missing_goals,
-            };
-        }
-
-        // 连续多次未达成的保护
-        if self.consecutive_not_achieved >= self.max_not_achieved {
-            return GoalEvaluation {
-                achieved: true,
-                confidence: 0.5,
-                reason: format!(
-                    "连续 {} 次评估未达成，强制进入综合阶段",
-                    self.consecutive_not_achieved
-                ),
-                missing: Vec::new(),
             };
         }
 
@@ -206,14 +203,14 @@ mod tests {
     fn test_consecutive_not_achieved_force_through() {
         let chain = ThoughtChain::new();
         let context = ReasoningContext::new("impossible goal");
-        let mut evaluator = GoalEvaluator::new(2);
+        let mut evaluator = GoalEvaluator::new(1);
 
-        // 第一次
+        // 第一次 — 未达成
         let r1 = evaluator.evaluate(&chain, &context);
         assert!(!r1.achieved);
-        // 第二次
+        // 第二次 — consecutive=1 >= max=1，强制通过
         let r2 = evaluator.evaluate(&chain, &context);
-        assert!(r2.achieved); // 强制通过
+        assert!(r2.achieved);
         assert!(r2.confidence < 0.6);
     }
 

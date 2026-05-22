@@ -1,6 +1,8 @@
 // 新用户引导 — 智能环境检测与快速预设
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::onboarding as onboarding_err;
 use axagent_core::repo::provider::{
     add_provider_key, create_provider, list_providers, toggle_provider,
 };
@@ -141,7 +143,7 @@ pub async fn detect_api_keys() -> Result<Vec<DetectedApiKey>, String> {
 pub async fn apply_quick_start_preset(
     app_state: State<'_, AppState>,
     preset: String,
-) -> Result<PresetResult, String> {
+) -> Result<PresetResult, ErrorResponse> {
     let db = &app_state.sea_db;
 
     match preset.as_str() {
@@ -185,7 +187,7 @@ pub async fn apply_quick_start_preset(
                 success: true,
                 provider_enabled: Some("ollama".into()),
                 default_model_set: Some(provider_id),
-                message: "Ollama 本地提供者已启用，请到设置中拉取模型列表".into(),
+                message: ErrorResponse::new(onboarding_err::OLLAMA_NOT_CONFIGURED).to_string(),
             })
         },
 
@@ -226,7 +228,10 @@ pub async fn apply_quick_start_preset(
             if !key_val.is_empty() {
                 add_provider_key(db, &pid, &key_val, &key_prefix)
                     .await
-                    .map_err(|e| format!("添加 Key 失败: {}", e))?;
+                    .map_err(|e| {
+                        ErrorResponse::new(onboarding_err::API_KEY_FAILED)
+                            .with_detail(format!("添加 Key 失败: {}", e))
+                    })?;
             }
 
             Ok(PresetResult {
@@ -234,7 +239,7 @@ pub async fn apply_quick_start_preset(
                 provider_enabled: Some("openai".into()),
                 default_model_set: Some("gpt-4o".into()),
                 message: if key_val.is_empty() {
-                    "OpenAI 提供者已启用，请添加 API Key".into()
+                    ErrorResponse::new(onboarding_err::OPENAI_NOT_CONFIGURED).to_string()
                 } else {
                     "OpenAI 提供者已启用，API Key 已配置".into()
                 },
@@ -256,11 +261,11 @@ pub async fn apply_quick_start_preset(
                 message: if has_enabled {
                     "已检测到启用的提供者，你可以直接开始".into()
                 } else {
-                    "请在设置中添加模型供应商".into()
+                    ErrorResponse::new(onboarding_err::NO_PROVIDER).to_string()
                 },
             })
         },
 
-        _ => Err(format!("未知预设: {}", preset)),
+        _ => Err(ErrorResponse::new("UNKNOWN_PRESET").with_detail(format!("未知预设: {}", preset))),
     }
 }

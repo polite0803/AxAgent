@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::agent as agent_err;
 use axagent_agent::{
     AgentExecutionProgressSnapshot, AxAgentApiClient, McpServerConfig, ToolRegistry,
 };
@@ -659,7 +661,7 @@ pub async fn agent_query(
     let mut _guard = Some({
         let mut running = app_state.running_agents.write().await;
         if running.contains(&conversation_id) {
-            return Err("Agent already running for this conversation".to_string());
+            return Err(ErrorResponse::new(agent_err::RUNNING).into());
         }
         running.insert(conversation_id.clone());
         AsyncRunningAgentGuard {
@@ -3287,7 +3289,9 @@ pub async fn agent_pause(
     {
         let running = app_state.running_agents.read().await;
         if !running.contains(&conversation_id) {
-            return Err(format!("No running agent for conversation {}", conversation_id));
+            return Err(ErrorResponse::new(agent_err::NOT_RUNNING)
+                .with_detail(format!("No running agent for conversation {}", conversation_id))
+                .into());
         }
     }
 
@@ -3319,7 +3323,9 @@ pub async fn agent_resume(
     {
         let paused = app_state.agent_paused.lock().await;
         if !paused.contains(&conversation_id) {
-            return Err(format!("Agent for conversation {} is not paused", conversation_id));
+            return Err(ErrorResponse::new(agent_err::NOT_PAUSED)
+                .with_detail(format!("Agent for conversation {} is not paused", conversation_id))
+                .into());
         }
     }
 
@@ -3782,7 +3788,7 @@ pub async fn workflow_execute(
         .get_workflow(&workflow_id)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Workflow not found".to_string())?;
+        .ok_or_else(|| ErrorResponse::new(agent_err::WORKFLOW_NOT_FOUND).into())?;
 
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
@@ -3813,7 +3819,7 @@ pub async fn workflow_get_status(
 
     match workflow {
         Some(w) => Ok(serde_json::to_value(w).map_err(|e| e.to_string())?),
-        None => Err("Workflow not found".to_string()),
+        None => Err(ErrorResponse::new(agent_err::WORKFLOW_NOT_FOUND).into()),
     }
 }
 
@@ -3878,7 +3884,7 @@ pub async fn sub_agent_get(
     let registry = app_state.sub_agent_registry.read().await;
     let agent = registry
         .get(&agent_id)
-        .ok_or_else(|| "Agent not found".to_string())?;
+        .ok_or_else(|| ErrorResponse::new(agent_err::NOT_FOUND).into())?;
     serde_json::to_value(agent).map_err(|e| e.to_string())
 }
 
@@ -4139,7 +4145,7 @@ pub async fn workflow_get_steps(
         .get_workflow(&workflow_id)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Workflow not found".to_string())?;
+        .ok_or_else(|| ErrorResponse::new(agent_err::WORKFLOW_NOT_FOUND).into())?;
     Ok(workflow
         .nodes
         .iter()

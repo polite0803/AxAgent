@@ -26,6 +26,8 @@ pub mod dashboard;
 #[cfg(not(mobile))]
 pub mod desktop;
 pub mod dream;
+pub mod error;
+pub mod error_code;
 pub mod evaluator;
 pub mod evolution;
 pub(crate) mod file_cleanup;

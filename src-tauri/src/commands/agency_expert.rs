@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::expert as expert_err;
 use axagent_core::entity::agency_experts;
 use axagent_core::repo::provider::{self as provider_repo, get_active_key};
 use axagent_core::repo::settings::get_settings;
@@ -22,7 +24,7 @@ pub struct ImportResult {
     pub count: u32,
     pub workflows_created: u32,
     pub tools_matched: u32,
-    pub errors: Vec<String>,
+    pub errors: Vec<ErrorResponse>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -289,21 +291,25 @@ pub async fn import_agency_experts(
     let path = Path::new(&request.path);
 
     if !path.exists() || !path.is_dir() {
-        // i18n-note: Error message returned to frontend. Future: convert to error codes for frontend i18n.
-        return Err(format!("路径不存在或不是目录: {}", request.path));
+        return Err(ErrorResponse::new(expert_err::READ_DIR_FAILED)
+            .with_detail(format!("路径不存在或不是目录: {}", request.path)));
     }
 
     let now = chrono::Utc::now().timestamp();
     let mut count: u32 = 0;
     let mut workflows_created: u32 = 0;
     let mut tools_matched: u32 = 0;
-    let mut errors: Vec<String> = Vec::new();
+    let mut errors: Vec<ErrorResponse> = Vec::new();
 
-    // i18n-note: Error messages in this command returned to frontend. Future: convert to error codes for frontend i18n.
-    let entries = fs::read_dir(path).map_err(|e| format!("读取目录失败: {}", e))?;
+    let entries = fs::read_dir(path).map_err(|e| {
+        ErrorResponse::new(expert_err::READ_DIR_FAILED).with_detail(format!("读取目录失败: {}", e))
+    })?;
 
     for entry in entries {
-        let entry = entry.map_err(|e| format!("读取条目失败: {}", e))?;
+        let entry = entry.map_err(|e| {
+            ErrorResponse::new(expert_err::READ_ENTRY_FAILED)
+                .with_detail(format!("读取条目失败: {}", e))
+        })?;
         let entry_path = entry.path();
         if !entry_path.is_dir() {
             continue;
@@ -323,10 +329,16 @@ pub async fn import_agency_experts(
         }
 
         let category = map_directory_to_category(&dir_name);
-        let md_files = fs::read_dir(&entry_path).map_err(|e| format!("读取目录失败: {}", e))?;
+        let md_files = fs::read_dir(&entry_path).map_err(|e| {
+            ErrorResponse::new(expert_err::READ_DIR_FAILED)
+                .with_detail(format!("读取目录失败: {}", e))
+        })?;
 
         for md_entry in md_files {
-            let md_entry = md_entry.map_err(|e| format!("读取文件条目失败: {}", e))?;
+            let md_entry = md_entry.map_err(|e| {
+                ErrorResponse::new(expert_err::READ_ENTRY_FAILED)
+                    .with_detail(format!("读取文件条目失败: {}", e))
+            })?;
             let md_path = md_entry.path();
             if md_path.extension().is_none_or(|ext| ext != "md") {
                 continue;
@@ -340,7 +352,13 @@ pub async fn import_agency_experts(
             let content = match fs::read_to_string(&md_path) {
                 Ok(c) => c,
                 Err(e) => {
-                    errors.push(format!("读取文件失败 {}: {}", md_path.display(), e));
+                    errors.push(
+                        ErrorResponse::new(expert_err::READ_FILE_FAILED).with_detail(format!(
+                            "读取文件失败 {}: {}",
+                            md_path.display(),
+                            e
+                        )),
+                    );
                     continue;
                 },
             };
@@ -424,7 +442,10 @@ pub async fn import_agency_experts(
             {
                 Ok(_) => count += 1,
                 Err(e) => {
-                    errors.push(format!("保存失败 {}: {}", id, e));
+                    errors.push(
+                        ErrorResponse::new(expert_err::SAVE_FAILED)
+                            .with_detail(format!("保存失败 {}: {}", id, e)),
+                    );
                 },
             }
         }
@@ -447,7 +468,9 @@ pub async fn list_agency_experts(
         .filter(agency_experts::Column::IsEnabled.eq(1))
         .all(db)
         .await
-        .map_err(|e| format!("查询失败: {}", e))?;
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::QUERY_FAILED).with_detail(format!("查询失败: {}", e))
+        })?;
 
     let rows: Vec<AgencyExpertRow> = models
         .into_iter()
@@ -532,31 +555,47 @@ pub async fn extract_expert_structure(
     let expert = agency_experts::Entity::find_by_id(&request.expert_id)
         .one(db)
         .await
-        .map_err(|e| format!("查询失败: {}", e))?
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::QUERY_FAILED).with_detail(format!("查询失败: {}", e))
+        })?
         .ok_or_else(|| format!("专家不存在: {}", request.expert_id))?;
 
     // Get default provider/model from settings
-    let settings = get_settings(db)
-        .await
-        .map_err(|e| format!("加载设置失败: {}", e))?;
-    let provider_id = settings.default_provider_id.ok_or("未配置默认模型供应商")?;
-    let model_id = settings.default_model_id.ok_or("未配置默认模型")?;
+    let settings = get_settings(db).await.map_err(|e| {
+        ErrorResponse::new(expert_err::LOAD_SETTINGS_FAILED)
+            .with_detail(format!("加载设置失败: {}", e))
+    })?;
+    let provider_id = settings.default_provider_id.ok_or_else(|| {
+        ErrorResponse::new(expert_err::LOAD_SETTINGS_FAILED)
+            .with_detail("未配置默认模型供应商".to_string())
+    })?;
+    let model_id = settings.default_model_id.ok_or_else(|| {
+        ErrorResponse::new(expert_err::LOAD_SETTINGS_FAILED)
+            .with_detail("未配置默认模型".to_string())
+    })?;
 
     // Load provider
     let provider_config = provider_repo::get_provider(db, &provider_id)
         .await
-        .map_err(|e| format!("加载供应商失败: {}", e))?;
-    let key_row = get_active_key(db, &provider_id)
-        .await
-        .map_err(|e| format!("无活跃密钥: {}", e))?;
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::QUERY_FAILED)
+                .with_detail(format!("加载供应商失败: {}", e))
+        })?;
+    let key_row = get_active_key(db, &provider_id).await.map_err(|e| {
+        ErrorResponse::new(expert_err::NO_ACTIVE_KEY)
+            .with_detail(format!("无活跃密钥: {}", provider_id))
+    })?;
     let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
-        .map_err(|e| format!("密钥解密失败: {}", e))?;
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::KEY_DECRYPT_FAILED).with_detail(e.to_string())
+        })?;
 
     let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
     let registry = ProviderRegistry::create_default();
-    let adapter = registry
-        .get(&registry_key)
-        .ok_or_else(|| format!("未找到供应商适配器: {}", registry_key))?;
+    let adapter = registry.get(&registry_key).ok_or_else(|| {
+        ErrorResponse::new(expert_err::VENDOR_NOT_FOUND)
+            .with_detail(format!("未找到供应商适配器: {}", registry_key))
+    })?;
 
     let ctx = axagent_providers::ProviderRequestContext {
         api_key,
@@ -648,11 +687,12 @@ pub async fn extract_expert_structure(
     let response = adapter
         .chat(&ctx, chat_request)
         .await
-        .map_err(|e| format!("LLM调用失败: {}", e))?;
+        .map_err(|e| ErrorResponse::new(expert_err::LLM_CALL_FAILED).with_detail(e.to_string()))?;
 
     let extracted = extract_json_from_text(&response.content).map_err(|e| {
         let preview = &response.content[..200.min(response.content.len())];
-        format!("JSON解析失败: {}. 响应预览: {}", e, preview)
+        ErrorResponse::new(expert_err::JSON_PARSE_FAILED)
+            .with_detail(format!("JSON解析失败: {}. 响应预览: {}", e, preview))
     })?;
 
     let workflows: Vec<ExtractedWorkflow> =
@@ -676,7 +716,9 @@ pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportRe
     let result = agency_experts::Entity::delete_many()
         .exec(db)
         .await
-        .map_err(|e| format!("删除失败: {}", e))?;
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::DELETE_FAILED).with_detail(format!("删除失败: {}", e))
+        })?;
 
     Ok(ImportResult {
         count: result.rows_affected as u32,
@@ -706,7 +748,9 @@ pub async fn update_agency_expert(
     let expert = agency_experts::Entity::find_by_id(&request.id)
         .one(db)
         .await
-        .map_err(|e| format!("查询失败: {}", e))?
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::QUERY_FAILED).with_detail(format!("查询失败: {}", e))
+        })?
         .ok_or_else(|| format!("专家不存在: {}", request.id))?;
 
     let mut am: agency_experts::ActiveModel = expert.into();
@@ -727,9 +771,9 @@ pub async fn update_agency_expert(
         am.is_enabled = Set(if enabled { 1 } else { 0 });
     }
 
-    am.update(db)
-        .await
-        .map_err(|e| format!("更新失败: {}", e))?;
+    am.update(db).await.map_err(|e| {
+        ErrorResponse::new(expert_err::UPDATE_FAILED).with_detail(format!("更新失败: {}", e))
+    })?;
     Ok(())
 }
 
@@ -747,7 +791,9 @@ pub async fn delete_agency_expert(
     agency_experts::Entity::delete_by_id(&request.id)
         .exec(db)
         .await
-        .map_err(|e| format!("删除失败: {}", e))?;
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::DELETE_FAILED).with_detail(format!("删除失败: {}", e))
+        })?;
     Ok(())
 }
 
@@ -758,7 +804,9 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
         .filter(agency_experts::Column::IsEnabled.eq(1))
         .all(db)
         .await
-        .map_err(|e| format!("查询失败: {}", e))?;
+        .map_err(|e| {
+            ErrorResponse::new(expert_err::QUERY_FAILED).with_detail(format!("查询失败: {}", e))
+        })?;
 
     let rows: Vec<AgencyExpertRow> = models
         .into_iter()
@@ -780,5 +828,7 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
         })
         .collect();
 
-    serde_json::to_string_pretty(&rows).map_err(|e| format!("序列化失败: {}", e))
+    serde_json::to_string_pretty(&rows).map_err(|e| {
+        ErrorResponse::new(expert_err::SAVE_FAILED).with_detail(format!("序列化失败: {}", e))
+    })
 }

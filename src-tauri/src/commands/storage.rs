@@ -1,7 +1,10 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::storage as storage_err;
 use axagent_core::storage_inventory::{self, StorageInventory};
 use axagent_core::storage_paths;
 use serde::Serialize;
+use serde_json;
 use std::path::PathBuf;
 use tauri::State;
 
@@ -34,14 +37,22 @@ pub async fn validate_documents_root(path: String) -> Result<ValidateResult, Str
     let target = PathBuf::from(&path);
 
     if !target.is_absolute() {
-        return Err("路径必须是绝对路径".into());
+        return Err(
+            serde_json::to_string(&ErrorResponse::new(storage_err::PATH_NOT_ABSOLUTE)).unwrap()
+        );
     }
 
     let exists = target.exists();
 
     // Create if missing (to test writability), then remove if we created it.
     let created_now = if !exists {
-        std::fs::create_dir_all(&target).map_err(|e| format!("无法创建目录: {e}"))?;
+        std::fs::create_dir_all(&target).map_err(|e| {
+            serde_json::to_string(
+                &ErrorResponse::new(storage_err::CREATE_DIR_FAILED)
+                    .with_detail(format!("无法创建目录: {e}")),
+            )
+            .unwrap()
+        })?;
         true
     } else {
         false
@@ -93,13 +104,20 @@ pub async fn change_documents_root(
     }
 
     if !new_root.is_absolute() {
-        return Err("路径必须是绝对路径".into());
+        return Err(
+            serde_json::to_string(&ErrorResponse::new(storage_err::PATH_NOT_ABSOLUTE)).unwrap()
+        );
     }
 
     // Ensure the target directory and subdirs exist
     for sub in &["images", "files", "backups"] {
-        std::fs::create_dir_all(new_root.join(sub))
-            .map_err(|e| format!("无法创建目录 {sub}: {e}"))?;
+        std::fs::create_dir_all(new_root.join(sub)).map_err(|e| {
+            serde_json::to_string(
+                &ErrorResponse::new(storage_err::CREATE_DIR_FAILED)
+                    .with_detail(format!("无法创建目录 {sub}: {e}")),
+            )
+            .unwrap()
+        })?;
     }
 
     let mut result = ChangeDocumentsRootResult {
