@@ -4415,9 +4415,10 @@ mod tests_conversation {
             local_tool_registry: Arc::new(tokio::sync::Mutex::new(
                 axagent_tools::registry::UnifiedToolRegistry::new(),
             )),
-            work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(
-                db.clone(),
-            ))),
+            work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
+                Arc::new(db.clone()),
+                [0; 32],
+            )),
             skill_decomposer: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::SkillDecomposer::new(),
             )),
