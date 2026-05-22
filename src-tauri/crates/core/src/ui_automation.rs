@@ -3,6 +3,9 @@ use anyhow::Result;
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_os = "android")]
+use crate::constants::android_msg;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UIElement {
     pub role: String,
@@ -92,7 +95,7 @@ impl UIAutomation {
 
     #[cfg(target_os = "android")]
     pub async fn click(_x: f64, _y: f64, _button: MouseButton) -> Result<()> {
-        anyhow::bail!("UI automation is not supported on Android")
+        anyhow::bail!(android_msg::UI_AUTOMATION_NOT_SUPPORTED)
     }
 
     #[cfg(not(target_os = "android"))]
@@ -116,7 +119,7 @@ impl UIAutomation {
 
     #[cfg(target_os = "android")]
     pub async fn type_text(_text: &str, _x: Option<f64>, _y: Option<f64>) -> Result<()> {
-        anyhow::bail!("UI automation is not supported on Android")
+        anyhow::bail!(android_msg::UI_AUTOMATION_NOT_SUPPORTED)
     }
 
     #[cfg(not(target_os = "android"))]
@@ -148,7 +151,7 @@ impl UIAutomation {
 
     #[cfg(target_os = "android")]
     pub async fn press_key(_key: &str, _modifiers: Vec<KeyModifier>) -> Result<()> {
-        anyhow::bail!("UI automation is not supported on Android")
+        anyhow::bail!(android_msg::UI_AUTOMATION_NOT_SUPPORTED)
     }
 
     #[cfg(not(target_os = "android"))]
@@ -166,7 +169,7 @@ impl UIAutomation {
 
     #[cfg(target_os = "android")]
     pub async fn scroll(_x: f64, _y: f64, _delta: i32) -> Result<()> {
-        anyhow::bail!("UI automation is not supported on Android")
+        anyhow::bail!(android_msg::UI_AUTOMATION_NOT_SUPPORTED)
     }
 
     #[cfg(not(target_os = "android"))]
@@ -181,7 +184,7 @@ impl UIAutomation {
 
     #[cfg(target_os = "android")]
     pub async fn move_mouse(_x: f64, _y: f64) -> Result<()> {
-        anyhow::bail!("UI automation is not supported on Android")
+        anyhow::bail!(android_msg::UI_AUTOMATION_NOT_SUPPORTED)
     }
 
     // ── Windows 专属: UI 元素枚举 ──

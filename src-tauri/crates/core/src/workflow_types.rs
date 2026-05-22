@@ -5,6 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::constants;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub x: f64,
@@ -834,7 +836,7 @@ impl WorkflowMigrator {
                     has_changes = true;
                     migrated_nodes.push(NodeMigrationEntry {
                         node_id: tool_node.base.id.clone(),
-                        from_type: "tool".to_string(),
+                        from_type: constants::role::TOOL.to_string(),
                         to_skill_id: String::new(),
                         to_skill_name: String::new(),
                         status: "migrated_to_agent".to_string(),

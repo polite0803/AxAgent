@@ -1,6 +1,7 @@
 use sea_orm::sea_query::Expr;
 use sea_orm::*;
 
+use crate::constants;
 use crate::entity::{memory_items, memory_namespaces};
 use crate::error::{AxAgentError, Result};
 use crate::types::{
@@ -196,7 +197,7 @@ pub async fn update_item(
     if let Some(content) = input.content {
         am.content = Set(content);
         // Content changed — reset index status to pending
-        am.index_status = Set("pending".to_string());
+        am.index_status = Set(constants::status::PENDING.to_string());
     }
     am.updated_at = Set(chrono::Utc::now().to_rfc3339());
     am.update(db).await?;

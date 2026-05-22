@@ -110,6 +110,9 @@ pub fn create_sandbox_runner() -> SandboxRunner {
 }
 
 #[cfg(target_os = "android")]
+use crate::constants::android_msg;
+
+#[cfg(target_os = "android")]
 pub struct SandboxRunner;
 
 #[cfg(target_os = "android")]
@@ -118,7 +121,7 @@ impl SandboxRunner {
         Self
     }
     pub async fn execute(&self, _code: &str, _language: &str) -> anyhow::Result<ExecutionResult> {
-        anyhow::bail!("Sandbox execution is not available on Android")
+        anyhow::bail!(android_msg::SANDBOX_NOT_AVAILABLE)
     }
 }
 

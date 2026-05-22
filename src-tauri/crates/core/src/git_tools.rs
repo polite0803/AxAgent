@@ -420,6 +420,8 @@ mod tests {
 
 #[cfg(target_os = "android")]
 use serde::{Deserialize, Serialize};
+#[cfg(target_os = "android")]
+use crate::constants::android_msg;
 
 #[cfg(target_os = "android")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -502,57 +504,57 @@ pub struct GitTools;
 #[cfg(target_os = "android")]
 impl GitTools {
     pub fn get_staged_diff(_repo_path: &str) -> Result<GitDiffSummary, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn get_branch_diff(_repo_path: &str, _base_branch: &str) -> Result<GitDiffSummary, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn get_branch_commits(
         _repo_path: &str,
         _base_branch: &str,
     ) -> Result<Vec<GitLogEntry>, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn commit(_repo_path: &str, _message: &str) -> Result<String, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn stage_all(_repo_path: &str) -> Result<String, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn stage_files(_repo_path: &str, _files: &[&str]) -> Result<String, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn get_status(_repo_path: &str) -> Result<Vec<GitStatusEntry>, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn list_branches(_repo_path: &str) -> Result<Vec<BranchInfo>, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn get_log(_repo_path: &str, _max_count: usize) -> Result<Vec<GitLogEntry>, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn create_branch(_repo_path: &str, _name: &str) -> Result<String, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn switch_branch(_repo_path: &str, _name: &str) -> Result<String, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn generate_commit_context(_repo_path: &str) -> Result<String, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 
     pub fn generate_pr_context(_repo_path: &str, _base_branch: &str) -> Result<String, String> {
-        Err("Git tools are not available on Android".to_string())
+        Err(android_msg::GIT_TOOLS_NOT_AVAILABLE.to_string())
     }
 }

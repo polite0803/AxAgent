@@ -164,7 +164,8 @@ pub async fn execute_search(
 
     let Some(endpoint) = &provider.endpoint else {
         return Err(ErrorResponse::new(search_err::ENDPOINT_NOT_CONFIGURED)
-            .with_detail("搜索提供商未配置端点"));
+            .with_detail("搜索提供商未配置端点")
+            .into());
     };
 
     let client = reqwest::Client::builder()

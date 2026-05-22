@@ -5,6 +5,9 @@ use crate::ui_automation::{KeyModifier, MouseButton, UIAutomation, UIElementQuer
 #[cfg(not(target_os = "android"))]
 use anyhow::Result;
 
+#[cfg(target_os = "android")]
+use crate::constants::android_msg;
+
 #[cfg(not(target_os = "android"))]
 pub async fn screen_capture(
     monitor: Option<u32>,
@@ -73,37 +76,37 @@ pub async fn screen_capture(
     _region: Option<crate::screen_capture::CaptureRegion>,
     _window_title: Option<String>,
 ) -> anyhow::Result<serde_json::Value> {
-    Err(anyhow::anyhow!("Computer control is not available on Android"))
+    Err(anyhow::anyhow!(android_msg::COMPUTER_CONTROL_NOT_AVAILABLE))
 }
 
 #[cfg(target_os = "android")]
 pub async fn find_ui_elements(
     _query: crate::ui_automation::UIElementQuery,
 ) -> anyhow::Result<Vec<crate::ui_automation::UIElement>> {
-    Err(anyhow::anyhow!("Computer control is not available on Android"))
+    Err(anyhow::anyhow!(android_msg::COMPUTER_CONTROL_NOT_AVAILABLE))
 }
 
 #[cfg(target_os = "android")]
 pub async fn mouse_click(_x: f64, _y: f64, _button: Option<String>) -> anyhow::Result<()> {
-    Err(anyhow::anyhow!("Computer control is not available on Android"))
+    Err(anyhow::anyhow!(android_msg::COMPUTER_CONTROL_NOT_AVAILABLE))
 }
 
 #[cfg(target_os = "android")]
 pub async fn type_text(_text: String, _x: Option<f64>, _y: Option<f64>) -> anyhow::Result<()> {
-    Err(anyhow::anyhow!("Computer control is not available on Android"))
+    Err(anyhow::anyhow!(android_msg::COMPUTER_CONTROL_NOT_AVAILABLE))
 }
 
 #[cfg(target_os = "android")]
 pub async fn press_key(_key: String, _modifiers: Vec<String>) -> anyhow::Result<()> {
-    Err(anyhow::anyhow!("Computer control is not available on Android"))
+    Err(anyhow::anyhow!(android_msg::COMPUTER_CONTROL_NOT_AVAILABLE))
 }
 
 #[cfg(target_os = "android")]
 pub async fn mouse_scroll(_x: f64, _y: f64, _delta: i32) -> anyhow::Result<()> {
-    Err(anyhow::anyhow!("Computer control is not available on Android"))
+    Err(anyhow::anyhow!(android_msg::COMPUTER_CONTROL_NOT_AVAILABLE))
 }
 
 #[cfg(target_os = "android")]
 pub async fn mouse_move(_x: f64, _y: f64) -> anyhow::Result<()> {
-    Err(anyhow::anyhow!("Computer control is not available on Android"))
+    Err(anyhow::anyhow!(android_msg::COMPUTER_CONTROL_NOT_AVAILABLE))
 }

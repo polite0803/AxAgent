@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
 use futures::Stream;
@@ -8,7 +9,7 @@ use std::pin::Pin;
 
 use crate::{ProviderAdapter, ProviderRequestContext, build_http_client, resolve_chat_url};
 
-const DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
+const DEFAULT_BASE_URL: &str = default_url::OPENAI_BASE;
 
 pub struct OpenAIAdapter {
     client: reqwest::Client,

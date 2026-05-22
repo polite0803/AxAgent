@@ -1,6 +1,8 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
+use crate::constants;
+
 /// Deserialize `Option<Option<T>>` so that a JSON `null` becomes `Some(None)`
 /// while a missing field (via `#[serde(default)]`) stays `None`.
 fn deserialize_double_option<'de, T, D>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
@@ -82,7 +84,7 @@ impl ProviderProxyConfig {
         match global_settings.proxy_type.as_deref() {
             Some("none") | None => None,
             Some("system") => Some(Self {
-                proxy_type: Some("system".to_string()),
+                proxy_type: Some(constants::role::SYSTEM.to_string()),
                 proxy_address: None,
                 proxy_port: None,
             }),
@@ -899,7 +901,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             language: "zh-CN".to_string(),
-            theme_mode: "system".to_string(),
+            theme_mode: constants::role::SYSTEM.to_string(),
             primary_color: "#17A93D".to_string(),
             border_radius: 8,
             auto_start: false,

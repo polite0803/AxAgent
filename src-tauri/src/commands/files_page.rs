@@ -271,11 +271,11 @@ pub async fn reveal_attachment_file(
     if path.exists() {
         app.opener()
             .reveal_item_in_dir(&abs)
-            .map_err(|e| e.to_string())
+            .map_err(|e| ErrorResponse::new(file_err::FILE_NOT_FOUND).with_detail(e.to_string()))
     } else if let Some(parent) = path.parent().filter(|p| p.exists()) {
         app.opener()
             .reveal_item_in_dir(parent.to_string_lossy().as_ref())
-            .map_err(|e| e.to_string())
+            .map_err(|e| ErrorResponse::new(file_err::FILE_NOT_FOUND).with_detail(e.to_string()))
     } else {
         Err(ErrorResponse::new(file_err::FILE_AND_PARENT_NOT_EXIST))
     }

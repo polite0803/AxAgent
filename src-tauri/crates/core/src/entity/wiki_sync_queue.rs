@@ -2,6 +2,8 @@ use sea_orm::entity::prelude::*;
 use sea_orm::{NotSet, Set};
 use serde::{Deserialize, Serialize};
 
+use crate::constants;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "wiki_sync_queue")]
 #[serde(rename_all = "camelCase")]
@@ -40,7 +42,7 @@ impl Model {
             target_type: Set(target_type),
             target_id: Set(target_id),
             payload: Set(payload),
-            status: Set("pending".to_string()),
+            status: Set(constants::status::PENDING.to_string()),
             retry_count: Set(0),
             error_message: Set(None),
             created_at: Set(chrono::Utc::now().timestamp()),

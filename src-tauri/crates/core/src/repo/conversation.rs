@@ -1,6 +1,7 @@
 use sea_orm::*;
 use serde_json;
 
+use crate::constants;
 use crate::entity::{
     agent_sessions, conversation_summaries, conversations, knowledge_attributes,
     knowledge_documents, knowledge_entities, knowledge_flows, knowledge_relations, messages,
@@ -418,7 +419,7 @@ pub async fn archive_to_knowledge_base(
         source_path: Set(format!("conversation://{}", conversation_id)),
         mime_type: Set("text/markdown".to_string()),
         size_bytes: Set(content_bytes),
-        indexing_status: Set("pending".to_string()),
+        indexing_status: Set(constants::status::PENDING.to_string()),
         doc_type: Set("conversation".to_string()),
         index_error: Set(None),
         source_conversation_id: Set(Some(conversation_id.to_string())),

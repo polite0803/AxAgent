@@ -292,7 +292,8 @@ pub async fn import_agency_experts(
 
     if !path.exists() || !path.is_dir() {
         return Err(ErrorResponse::new(expert_err::READ_DIR_FAILED)
-            .with_detail(format!("路径不存在或不是目录: {}", request.path)));
+            .with_detail(format!("路径不存在或不是目录: {}", request.path))
+            .to_string());
     }
 
     let now = chrono::Utc::now().timestamp();
@@ -580,10 +581,12 @@ pub async fn extract_expert_structure(
         .map_err(|e| {
             ErrorResponse::new(expert_err::QUERY_FAILED)
                 .with_detail(format!("加载供应商失败: {}", e))
+                .to_string()
         })?;
     let key_row = get_active_key(db, &provider_id).await.map_err(|e| {
         ErrorResponse::new(expert_err::NO_ACTIVE_KEY)
             .with_detail(format!("无活跃密钥: {}", provider_id))
+            .to_string()
     })?;
     let api_key = axagent_core::crypto::decrypt_key(&key_row.key_encrypted, &state.master_key)
         .map_err(|e| {
@@ -829,6 +832,8 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
         .collect();
 
     serde_json::to_string_pretty(&rows).map_err(|e| {
-        ErrorResponse::new(expert_err::SAVE_FAILED).with_detail(format!("序列化失败: {}", e))
+        ErrorResponse::new(expert_err::SAVE_FAILED)
+            .with_detail(format!("序列化失败: {}", e))
+            .to_string()
     })
 }

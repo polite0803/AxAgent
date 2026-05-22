@@ -2,6 +2,7 @@ use sea_orm::sea_query::Expr;
 use sea_orm::*;
 use std::collections::HashSet;
 
+use crate::constants;
 use crate::entity::messages;
 use crate::error::{AxAgentError, Result};
 use crate::types::{Attachment, ConversationStats, Message, MessagePage, MessageRole};
@@ -532,7 +533,7 @@ pub async fn create_tool_result_message(
     crate::entity::messages::ActiveModel {
         id: Set(id),
         conversation_id: Set(conversation_id.to_string()),
-        role: Set("tool".to_string()),
+        role: Set(constants::role::TOOL.to_string()),
         content: Set(content.to_string()),
         provider_id: Set(None),
         model_id: Set(None),
@@ -574,7 +575,7 @@ pub async fn create_assistant_tool_call_message(
     crate::entity::messages::ActiveModel {
         id: Set(id.clone()),
         conversation_id: Set(conversation_id.to_string()),
-        role: Set("assistant".to_string()),
+        role: Set(constants::role::ASSISTANT.to_string()),
         content: Set(content.to_string()),
         provider_id: Set(Some(provider_id.to_string())),
         model_id: Set(Some(model_id.to_string())),

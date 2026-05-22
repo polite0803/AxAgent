@@ -13,6 +13,9 @@ use tokio::process::{Child, Command};
 #[cfg(not(target_os = "android"))]
 use tokio::sync::Mutex;
 
+#[cfg(target_os = "android")]
+use crate::constants::android_msg;
+
 #[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
 struct BrowserRequest {
@@ -240,7 +243,7 @@ pub struct PlaywrightClient;
 #[cfg(target_os = "android")]
 impl PlaywrightClient {
     pub async fn launch() -> anyhow::Result<Self> {
-        anyhow::bail!("Browser automation is not available on Android")
+        anyhow::bail!(android_msg::BROWSER_NOT_AVAILABLE)
     }
 }
 

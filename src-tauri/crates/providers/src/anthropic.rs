@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
 use futures::Stream;
@@ -11,7 +12,7 @@ use crate::{
     resolve_chat_url,
 };
 
-const DEFAULT_BASE_URL: &str = "https://api.anthropic.com/v1";
+const DEFAULT_BASE_URL: &str = default_url::ANTHROPIC_BASE;
 const ANTHROPIC_VERSION: &str = "2023-06-01";
 const BETA_CACHE_HEADER: &str = "prompt-caching-2024-07-31";
 

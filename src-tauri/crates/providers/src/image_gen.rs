@@ -3,6 +3,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use axagent_core::constants::default_url;
+
 #[derive(Error, Debug)]
 pub enum ImageGenError {
     #[error("API request failed: {0}")]
@@ -123,7 +125,7 @@ impl ImageGenProvider for FluxProvider {
 
         let resp = self
             .client
-            .post("https://api.replicate.com/v1/predictions")
+            .post(default_url::REPLICATE_API)
             .header("Authorization", format!("Token {}", self.api_token))
             .json(&prediction)
             .send()
@@ -131,7 +133,7 @@ impl ImageGenProvider for FluxProvider {
 
         let mut replicate_resp: ReplicateResponse = resp.json().await?;
 
-        let poll_url = format!("https://api.replicate.com/v1/predictions/{}", replicate_resp.id);
+        let poll_url = format!("{}/{}", default_url::REPLICATE_API, replicate_resp.id);
         for _ in 0..60 {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             let poll_resp = self
@@ -178,7 +180,7 @@ impl DallEProvider {
     pub fn new(api_key: String, base_url: Option<String>) -> Self {
         Self {
             api_key,
-            base_url: base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string()),
+            base_url: base_url.unwrap_or_else(|| default_url::OPENAI_BASE.to_string()),
             client: crate::build_default_http_client().unwrap_or_else(|e| {
                 tracing::warn!("无法构建 ImageGen HTTP 客户端: {e}，降级为默认客户端");
                 reqwest::Client::new()

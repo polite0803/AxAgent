@@ -14,6 +14,7 @@
 use crate::openai::OpenAIAdapter;
 use crate::{ProviderAdapter, ProviderRequestContext};
 use async_trait::async_trait;
+use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
 use futures::Stream;
@@ -21,7 +22,7 @@ use serde::Deserialize;
 use std::pin::Pin;
 
 /// Default base URL for a local Ollama instance.
-const DEFAULT_OLLAMA_HOST: &str = "http://localhost:11434";
+const DEFAULT_OLLAMA_HOST: &str = default_url::OLLAMA_HOST;
 
 /// Default API path for Ollama's OpenAI-compatible chat endpoint.
 const DEFAULT_OLLAMA_PATH: &str = "/v1/chat/completions";

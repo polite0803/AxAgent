@@ -28,7 +28,7 @@ pub async fn git_get_branch() -> Result<String, String> {
         .map_err(|e| format!("Failed to execute git: {}", e))?;
 
     if !output.status.success() {
-        return Err(ErrorResponse::new(terminal_err::GIT_BRANCH_FAILED));
+        return Err(ErrorResponse::err(terminal_err::GIT_BRANCH_FAILED));
     }
 
     let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();

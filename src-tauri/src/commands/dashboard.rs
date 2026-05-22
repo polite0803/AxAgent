@@ -154,7 +154,7 @@ pub async fn dashboard_install_plugin(
             let dest = dest_dir;
             copy_dir_recursive(&source, &dest)?;
         } else {
-            return Err(ErrorResponse::new(dashboard_err::NO_MANIFEST));
+            return Err(ErrorResponse::err(dashboard_err::NO_MANIFEST));
         }
     } else if source.extension().and_then(|e| e.to_str()) == Some("json") {
         let manifest_str = std::fs::read_to_string(&source)
@@ -169,7 +169,7 @@ pub async fn dashboard_install_plugin(
                 .with_detail(format!("Failed to copy manifest: {}", e))
         })?;
     } else {
-        return Err(ErrorResponse::new(dashboard_err::NO_MANIFEST));
+        return Err(ErrorResponse::err(dashboard_err::NO_MANIFEST));
     }
 
     let registry = state

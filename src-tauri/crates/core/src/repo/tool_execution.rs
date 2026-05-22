@@ -1,5 +1,6 @@
 use sea_orm::*;
 
+use crate::constants;
 use crate::entity::tool_executions;
 use crate::error::{AxAgentError, Result};
 use crate::types::ToolExecution;
@@ -55,7 +56,7 @@ pub async fn create_tool_execution(
         message_id: Set(message_id.map(|s| s.to_string())),
         server_id: Set(server_id.to_string()),
         tool_name: Set(tool_name.to_string()),
-        status: Set("pending".to_string()),
+        status: Set(constants::status::PENDING.to_string()),
         input_preview: Set(input_preview.map(|s| s.to_string())),
         output_preview: Set(None),
         error_message: Set(None),

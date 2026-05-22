@@ -1,5 +1,6 @@
 use sea_orm::*;
 
+use crate::constants;
 use crate::entity::gateway_link_activities;
 use crate::entity::gateway_link_policies;
 use crate::entity::gateway_links;
@@ -298,7 +299,7 @@ pub async fn connect_gateway_link(
         Err(e) => {
             let now = now_ts();
             let mut am: gateway_links::ActiveModel = link.into();
-            am.status = Set("error".to_string());
+            am.status = Set(constants::status::ERROR.to_string());
             am.error_message = Set(Some(e.to_string()));
             am.updated_at = Set(now);
             am.update(db).await?;

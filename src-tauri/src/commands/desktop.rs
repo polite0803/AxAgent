@@ -143,7 +143,7 @@ pub async fn test_proxy(
     }
 
     if is_private {
-        return Err(ErrorResponse::new(proxy_err::ADDRESS_NOT_ALLOWED));
+        return Err(ErrorResponse::err(proxy_err::ADDRESS_NOT_ALLOWED));
     }
 
     let addr = format!("{}:{}", proxy_address, proxy_port);

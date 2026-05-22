@@ -7,6 +7,8 @@ use super::{
     TransportToolCall, TransportUsage,
 };
 
+use axagent_core::constants::default_url;
+
 pub struct ChatCompletionsTransport;
 
 impl ChatCompletionsTransport {
@@ -100,7 +102,8 @@ impl TransportProvider for ChatCompletionsTransport {
         api_key: &str,
         base_url: Option<&str>,
     ) -> anyhow::Result<TransportResponse> {
-        let url = format!("{}/chat/completions", base_url.unwrap_or("https://api.openai.com/v1"));
+        let url = format!("{}/chat/completions", base_url.unwrap_or(default_url::OPENAI_BASE));
+
 
         let client = reqwest::Client::new();
         let resp = client
@@ -122,7 +125,8 @@ impl TransportProvider for ChatCompletionsTransport {
     ) -> anyhow::Result<
         Box<dyn futures::Stream<Item = anyhow::Result<TransportStreamChunk>> + Send + Unpin>,
     > {
-        let url = format!("{}/chat/completions", base_url.unwrap_or("https://api.openai.com/v1"));
+        let url = format!("{}/chat/completions", base_url.unwrap_or(default_url::OPENAI_BASE));
+
 
         let client = reqwest::Client::new();
         let response = client

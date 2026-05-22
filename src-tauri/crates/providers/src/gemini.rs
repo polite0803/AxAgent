@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
 use futures::Stream;
@@ -8,7 +9,7 @@ use std::pin::Pin;
 
 use crate::{ProviderAdapter, ProviderRequestContext, build_http_client, parse_base64_data_url};
 
-const DEFAULT_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta";
+const DEFAULT_BASE_URL: &str = default_url::GEMINI_BASE;
 
 pub struct GeminiAdapter {
     client: reqwest::Client,

@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use axagent_core::constants::default_url;
 use axagent_core::error::{AxAgentError, Result};
 use axagent_core::types::*;
 use futures::Stream;
@@ -152,7 +153,7 @@ impl OpenClawAdapter {
     fn base_url(ctx: &ProviderRequestContext) -> String {
         ctx.base_url
             .clone()
-            .unwrap_or_else(|| "http://localhost:8100".to_string())
+            .unwrap_or_else(|| default_url::OPENCLAW_HOST.to_string())
     }
 
     #[allow(clippy::result_large_err)]

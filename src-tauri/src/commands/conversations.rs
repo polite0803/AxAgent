@@ -683,13 +683,16 @@ pub async fn archive_workflow_session(
     use crate::commands::error_code::conversation as conv_err;
 
     if conv.session_type != "workflow" {
-        return Err(ErrorResponse::new(conv_err::NOT_WORKFLOW)
-            .with_detail("此会话不是工作流类型，请使用普通归档"));
+        return Err(ErrorResponse::err_with_detail(
+            conv_err::NOT_WORKFLOW,
+            "此会话不是工作流类型，请使用普通归档",
+        ));
     }
 
     if conv.is_archived != 0 {
         return Err(ErrorResponse::new(conv_err::ALREADY_ARCHIVED)
-            .with_detail(format!("会话 {} 已经归档，请勿重复操作", conversation_id)));
+            .with_detail(format!("会话 {} 已经归档，请勿重复操作", conversation_id))
+            .to_string());
     }
 
     // 如果有绑定的工作流模板，将执行数据写回模板
@@ -819,7 +822,7 @@ async fn consume_stream(
                             if !full_content.is_empty() {
                                 emit_content.push_str("\n\n");
                             }
-                            emit_content.push_str(get_thinking_block_start());
+                            emit_content.push_str(&get_thinking_block_start());
                             in_thinking_block = true;
                             thinking_block_start = Some(std::time::Instant::now());
                         }
@@ -897,7 +900,7 @@ async fn consume_stream(
                                     if !full_content.is_empty() {
                                         emit_content.push_str("\n\n");
                                     }
-                                    emit_content.push_str(get_thinking_block_start());
+                                    emit_content.push_str(&get_thinking_block_start());
                                     in_thinking_block = true;
                                     thinking_block_start = Some(std::time::Instant::now());
                                 }
@@ -931,7 +934,7 @@ async fn consume_stream(
                         .map(|s| s.elapsed().as_millis() as u64)
                         .unwrap_or(0);
                     thinking_durations.push(total_ms);
-                    emit_content.push_str(get_thinking_block_end());
+                    emit_content.push_str(&get_thinking_block_end());
                     in_thinking_block = false;
                     thinking_block_start = None;
                 }
@@ -1025,7 +1028,7 @@ async fn consume_stream(
             .map(|s| s.elapsed().as_millis() as u64)
             .unwrap_or(0);
         thinking_durations.push(total_ms);
-        full_content.push_str(get_thinking_block_end());
+        full_content.push_str(&get_thinking_block_end());
     }
 
     // Flush any content buffered in cross-delta inline <think> accumulation.
@@ -1244,8 +1247,10 @@ async fn execute_tool_call(
         if query.is_empty() {
             use crate::commands::error_code::tool as tool_err;
             return (
-                ErrorResponse::new(tool_err::PARAM_REQUIRED)
-                    .with_detail("web_search requires a 'query' parameter"),
+                ErrorResponse::err_with_detail(
+                    tool_err::PARAM_REQUIRED,
+                    "web_search requires a query parameter",
+                ),
                 true,
             );
         }
@@ -1291,10 +1296,13 @@ async fn execute_tool_call(
         _ => {
             use crate::commands::error_code::tool as tool_err;
             return (
-                ErrorResponse::new(tool_err::NOT_FOUND).with_detail(format!(
-                    "Tool '{}' not found on any enabled MCP server",
-                    tool_call.function.name
-                )),
+                ErrorResponse::err_with_detail(
+                    tool_err::NOT_FOUND,
+                    format!(
+                        "Tool {}' not found on any enabled MCP server",
+                        tool_call.function.name
+                    ),
+                ),
                 true,
             );
         },
@@ -1325,10 +1333,10 @@ async fn execute_tool_call(
                 Err(_) => {
                     use crate::commands::error_code::tool as tool_err;
                     return (
-                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
-                            "Tool execution timed out after {}s",
-                            timeout_secs
-                        )),
+                        ErrorResponse::err_with_detail(
+                            tool_err::EXECUTION_TIMEOUT,
+                            format!("Tool execution timed out after {}s", timeout_secs),
+                        ),
                         true,
                     );
                 },
@@ -1339,7 +1347,7 @@ async fn execute_tool_call(
                 Some(cmd) => cmd.clone(),
                 None => {
                     use crate::commands::error_code::tool as tool_err;
-                    return (ErrorResponse::new(tool_err::STDIO_NO_COMMAND), true);
+                    return (ErrorResponse::err(tool_err::STDIO_NO_COMMAND), true);
                 },
             };
             let args: Vec<String> = server
@@ -1368,10 +1376,10 @@ async fn execute_tool_call(
                 Err(_) => {
                     use crate::commands::error_code::tool as tool_err;
                     return (
-                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
-                            "Tool execution timed out after {}s",
-                            timeout_secs
-                        )),
+                        ErrorResponse::err_with_detail(
+                            tool_err::EXECUTION_TIMEOUT,
+                            format!("Tool execution timed out after {}s", timeout_secs),
+                        ),
                         true,
                     );
                 },
@@ -1382,7 +1390,7 @@ async fn execute_tool_call(
                 Some(ep) => ep.clone(),
                 None => {
                     use crate::commands::error_code::tool as tool_err;
-                    return (ErrorResponse::new(tool_err::HTTP_NO_ENDPOINT), true);
+                    return (ErrorResponse::err(tool_err::HTTP_NO_ENDPOINT), true);
                 },
             };
             match tokio::time::timeout(
@@ -1400,10 +1408,10 @@ async fn execute_tool_call(
                 Err(_) => {
                     use crate::commands::error_code::tool as tool_err;
                     return (
-                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
-                            "Tool execution timed out after {}s",
-                            timeout_secs
-                        )),
+                        ErrorResponse::err_with_detail(
+                            tool_err::EXECUTION_TIMEOUT,
+                            format!("Tool execution timed out after {}s", timeout_secs),
+                        ),
                         true,
                     );
                 },
@@ -1414,7 +1422,7 @@ async fn execute_tool_call(
                 Some(ep) => ep.clone(),
                 None => {
                     use crate::commands::error_code::tool as tool_err;
-                    return (ErrorResponse::new(tool_err::SSE_NO_ENDPOINT), true);
+                    return (ErrorResponse::err(tool_err::SSE_NO_ENDPOINT), true);
                 },
             };
             match tokio::time::timeout(
@@ -1432,10 +1440,10 @@ async fn execute_tool_call(
                 Err(_) => {
                     use crate::commands::error_code::tool as tool_err;
                     return (
-                        ErrorResponse::new(tool_err::EXECUTION_TIMEOUT).with_detail(format!(
-                            "Tool execution timed out after {}s",
-                            timeout_secs
-                        )),
+                        ErrorResponse::err_with_detail(
+                            tool_err::EXECUTION_TIMEOUT,
+                            format!("Tool execution timed out after {}s", timeout_secs),
+                        ),
                         true,
                     );
                 },
@@ -1444,8 +1452,11 @@ async fn execute_tool_call(
         other => {
             use crate::commands::error_code::tool as tool_err;
             return (
-                ErrorResponse::new(tool_err::TRANSPORT_UNSUPPORTED)
-                    .with_detail(format!("Unsupported transport '{}'", other)),
+                ErrorResponse::err_with_detail(
+                    tool_err::TRANSPORT_UNSUPPORTED,
+                    format!("Unsupported transport {}'", other),
+                )
+                .to_string(),
                 true,
             );
         },
@@ -1456,8 +1467,11 @@ async fn execute_tool_call(
         Err(e) => {
             use crate::commands::error_code::tool as tool_err;
             (
-                ErrorResponse::new(tool_err::EXECUTION_ERROR)
-                    .with_detail(format!("Error executing tool: {}", e)),
+                ErrorResponse::err_with_detail(
+                    tool_err::EXECUTION_ERROR,
+                    format!("Error executing tool: {}", e),
+                )
+                .to_string(),
                 true,
             )
         },
@@ -1740,7 +1754,7 @@ pub async fn regenerate_conversation_title(
         .collect();
 
     if conversation_messages.is_empty() {
-        return Err(ErrorResponse::new(title_err::NO_MESSAGES));
+        return Err(ErrorResponse::err(title_err::NO_MESSAGES));
     }
 
     // Load provider for fallback
@@ -4017,7 +4031,7 @@ pub async fn compress_context(
     }
 
     if history_messages.is_empty() {
-        return Err(ErrorResponse::new(session_err::NO_MESSAGES));
+        return Err(ErrorResponse::err(session_err::NO_MESSAGES));
     }
 
     // Load existing summary

@@ -1,6 +1,28 @@
+use axagent_core::prompts::{PromptLang, PromptRegistry};
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, Message, MessageRole};
 use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
+
+/// 获取当前语言的知识提取系统提示
+/// TODO: 从 AppState 或参数获取用户语言偏好
+fn extraction_system_prompt(lang: PromptLang) -> &'static str {
+    PromptRegistry::get("extraction.system_prompt", lang)
+}
+
+/// 获取当前语言的记忆合并系统提示
+fn consolidation_system_prompt(lang: PromptLang) -> &'static str {
+    PromptRegistry::get("consolidation.system_prompt", lang)
+}
+
+/// 获取当前语言的实体提取系统提示
+fn entity_extraction_system_prompt(lang: PromptLang) -> &'static str {
+    PromptRegistry::get("entity_extraction.system_prompt", lang)
+}
+
+/// 获取当前语言的增量提取系统提示
+fn incremental_extract_system_prompt(lang: PromptLang) -> &'static str {
+    PromptRegistry::get("incremental_extract.system_prompt", lang)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedMemory {
@@ -58,39 +80,6 @@ pub struct ExtractionResult {
     pub conversation_id: String,
 }
 
-const EXTRACTION_SYSTEM_PROMPT: &str = r#"You are a knowledge extraction assistant. Your task is to extract important, reusable knowledge from conversation transcripts.
-
-Extract the following types of knowledge:
-1. **Facts**: Important factual information the user shared (e.g., "User's project uses React 18 with TypeScript")
-2. **Preferences**: User preferences and patterns (e.g., "User prefers functional components over class components")
-3. **Procedures**: Step-by-step processes or solutions discussed (e.g., "To deploy: run build, then push to S3")
-4. **Context**: Important context about the user's work environment (e.g., "User works on a Tauri desktop app")
-
-For each extracted item, also determine:
-- **importance**: A score from 0.0 to 1.0 indicating how important this memory is (0.3=minor, 0.5=moderate, 0.7=important, 0.9=critical)
-- **nature**: Whether this is "episodic" (a specific event/interaction) or "semantic" (general knowledge/preference)
-- **tags**: 1-3 relevant tags for categorization
-
-Rules:
-- Only extract knowledge that would be useful in FUTURE conversations
-- Do NOT extract trivial or obvious information
-- Do NOT extract information that is only relevant to the current conversation
-- Each item should be self-contained and understandable without context
-- Keep titles concise (under 50 characters)
-- Keep content detailed but concise (under 200 characters)
-- Preferences and facts should be marked as "semantic"
-- Specific events or interactions should be marked as "episodic"
-
-Respond with a JSON array of extracted items. Each item should have:
-- "title": a short label
-- "content": the detailed knowledge
-- "category": one of "fact", "preference", "procedure", "context"
-- "importance": a number from 0.0 to 1.0
-- "nature": either "episodic" or "semantic"
-- "tags": an array of 1-3 relevant tags
-
-If no significant knowledge is found, return an empty array: []"#;
-
 pub async fn extract_memories_from_messages(
     messages: &[Message],
     conversation_id: &str,
@@ -134,7 +123,7 @@ pub async fn extract_memories_from_messages(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(EXTRACTION_SYSTEM_PROMPT.to_string()),
+                content: ChatContent::Text(extraction_system_prompt(PromptLang::ZhCN).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -204,21 +193,6 @@ pub async fn extract_memories_from_messages(
 
 // ── Memory Consolidation ──────────────────────────────────────────────────────
 
-const CONSOLIDATION_PROMPT: &str = r#"You are a memory consolidation assistant. Given multiple similar memory entries, produce a single consolidated memory that preserves all important information while removing redundancy.
-
-Rules:
-- Merge overlapping information into a single coherent statement
-- Preserve specific details that are unique to each entry
-- Keep the result concise but comprehensive (under 200 characters)
-- Use clear, factual language
-- If the entries contradict each other, keep the most recent/reliable information
-
-Respond with a JSON object:
-{
-  "content": "The consolidated memory content",
-  "importance": 0.0-1.0,
-  "tags": ["tag1", "tag2"]
-}"#;
 
 pub async fn consolidate_memories(
     contents: &[String],
@@ -248,7 +222,7 @@ pub async fn consolidate_memories(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(CONSOLIDATION_PROMPT.to_string()),
+                content: ChatContent::Text(consolidation_system_prompt(PromptLang::ZhCN).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -339,55 +313,6 @@ pub struct EntityExtractionResult {
     pub relations: Vec<ExtractedRelation>,
 }
 
-const ENTITY_EXTRACTION_PROMPT: &str = r#"You are a knowledge graph extraction assistant. Extract entities and their relationships from the conversation.
-
-Entity types to identify:
-- **project**: Software projects, codebases, applications
-- **user**: People mentioned (including the conversation participant)
-- **concept**: Technical concepts, frameworks, languages, patterns
-- **file**: Specific files, directories, or code modules
-- **task**: Tasks, goals, or work items being discussed
-
-Relationship types to identify:
-- **part_of**: X is part of Y (e.g., a module is part of a project)
-- **depends_on**: X depends on Y
-- **implements**: X implements Y
-- **owns**: X owns/maintains Y
-- **contains**: X contains Y
-- **associated_with**: General association between entities
-- **performs**: X performs Y (e.g., a user performs a task)
-
-Rules:
-- Only extract entities that are clearly mentioned or strongly implied
-- Use consistent naming (e.g., always "React" not "react" or "REACT")
-- Include common aliases for entities (e.g., "TypeScript" alias "TS")
-- Set confidence: 0.9+ for explicit mentions, 0.7-0.9 for strong implications, 0.5-0.7 for weak implications
-- Only extract relationships between entities that are both present
-- Set weight: 0.9+ for explicitly stated relationships, 0.5-0.7 for inferred
-
-Respond with a JSON object:
-{
-  "entities": [
-    {
-      "name": "EntityName",
-      "entity_type": "project|user|concept|file|task",
-      "properties": {"key": "value"},
-      "aliases": ["alias1"],
-      "confidence": 0.9
-    }
-  ],
-  "relations": [
-    {
-      "source_name": "EntityA",
-      "target_name": "EntityB",
-      "relation_type": "part_of|depends_on|...",
-      "properties": {},
-      "weight": 0.8
-    }
-  ]
-}
-
-If no significant entities or relations are found, return empty arrays."#;
 
 pub async fn extract_entities_from_messages(
     messages: &[Message],
@@ -432,7 +357,7 @@ pub async fn extract_entities_from_messages(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(ENTITY_EXTRACTION_PROMPT.to_string()),
+                content: ChatContent::Text(entity_extraction_system_prompt(PromptLang::ZhCN).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -532,7 +457,7 @@ pub async fn extract_incremental_memories(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(EXTRACTION_SYSTEM_PROMPT.to_string()),
+                content: ChatContent::Text(extraction_system_prompt(PromptLang::ZhCN).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,

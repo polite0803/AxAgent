@@ -17,6 +17,7 @@ pub mod command_validator;
 pub mod computer_control;
 #[cfg(target_os = "android")]
 pub mod computer_control;
+pub mod constants;
 pub mod crypto;
 pub mod db;
 #[allow(clippy::unwrap_used)]
@@ -25,6 +26,7 @@ pub mod document_parser;
 pub mod entity;
 #[allow(clippy::unwrap_used)]
 pub mod error;
+pub mod error_codes;
 #[allow(clippy::unwrap_used)]
 pub mod file_authorizer;
 #[allow(clippy::unwrap_used)]
@@ -66,6 +68,7 @@ pub mod platform_config;
 pub mod preset_templates;
 #[allow(clippy::unwrap_used)]
 pub mod prompt_template;
+pub mod prompts;
 pub mod query_enhancement;
 #[allow(clippy::unwrap_used)]
 pub mod rag;

@@ -1,5 +1,6 @@
 use sea_orm::*;
 
+use crate::constants;
 use crate::entity::workflow_executions;
 use crate::error::Result;
 use crate::utils::now_ts;
@@ -14,7 +15,7 @@ pub async fn create_workflow_execution(
     let model = workflow_executions::ActiveModel {
         id: Set(id.to_string()),
         workflow_id: Set(workflow_id.to_string()),
-        status: Set("running".to_string()),
+        status: Set(constants::status::RUNNING.to_string()),
         input_params: Set(input_params.map(|s| s.to_string())),
         output_result: Set(None),
         node_executions: Set(None),
