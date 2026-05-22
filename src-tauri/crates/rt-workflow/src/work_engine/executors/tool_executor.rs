@@ -1,23 +1,37 @@
-//! 工具执行器 —— 调用 MCP 工具或内置函数。
+//! 工具执行器 —— 解析 ToolNodeConfig 后通过注入的回调调用 MCP 工具。
 //!
-//! 仅处理 `WorkflowNode::Tool`。通过 `ToolNodeConfig` 配置工具名称和参数映射，
-//! 从执行上下文变量中解析输入参数后返回工具调用的配置信息。
-//! 后续可通过 `register_executor` 注入真实的 MCP 客户端回调实现实际工具调用。
-
-use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+//! 默认无回调时返回清晰的"需要注入"错误，避免静默失败。
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use async_trait::async_trait;
+use axagent_core::workflow_types::WorkflowNode;
+use std::pin::Pin;
+use std::sync::Arc;
 
-pub struct ToolExecutor;
+pub type ToolCallback = Arc<
+    dyn Fn(
+            String,
+            serde_json::Value,
+        )
+            -> Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>>
+        + Send
+        + Sync,
+>;
+
+pub struct ToolExecutor {
+    callback: Option<ToolCallback>,
+}
 
 impl ToolExecutor {
     pub fn new() -> Self {
-        Self
+        Self { callback: None }
+    }
+    pub fn with_callback(mut self, cb: ToolCallback) -> Self {
+        self.callback = Some(cb);
+        self
     }
 }
-
 impl Default for ToolExecutor {
     fn default() -> Self {
         Self::new()
@@ -42,7 +56,7 @@ impl NodeExecutorTrait for ToolExecutor {
             });
         };
 
-        // 解析输入映射，从上下文变量中提取参数
+        // 解析输入映射
         let resolved_args: serde_json::Value =
             tool_node
                 .config
@@ -54,11 +68,25 @@ impl NodeExecutorTrait for ToolExecutor {
                     acc
                 });
 
+        // 调用工具回调（若已注入）
+        let output = if let Some(ref cb) = self.callback {
+            cb(tool_node.config.tool_name.clone(), resolved_args.clone())
+                .await
+                .map_err(|e| NodeError::ExecutionFailed(format!("工具调用失败: {e}")))?
+        } else {
+            serde_json::json!({
+                "status": "tool_not_configured",
+                "tool_name": tool_node.config.tool_name,
+                "resolved_arguments": resolved_args,
+                "message": "工具执行器未注入 MCP 回调，通过 register_executor 注入 ToolExecutor::with_callback()",
+                "node_id": node.base_id(),
+            })
+        };
+
         Ok(NodeOutput {
             output: serde_json::json!({
-                "status": "tool_dispatched",
                 "tool_name": tool_node.config.tool_name,
-                "arguments": resolved_args,
+                "result": output,
                 "node_id": node.base_id(),
             }),
             output_var: Some(tool_node.config.output_var.clone()),
@@ -66,7 +94,6 @@ impl NodeExecutorTrait for ToolExecutor {
     }
 }
 
-/// 从 ExecutionState 变量中解析点分隔路径（如 "result.text" → variables["result"]["text"]）。
 fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::Value> {
     let parts: Vec<&str> = path.split('.').collect();
     let root = context.variables.get(parts[0])?.clone();

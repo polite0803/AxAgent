@@ -21,6 +21,7 @@ use crate::workflow_engine::{
 
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
+use super::executors::{AgentExecutor, LlmExecutor};
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
 /// 工作流运行选项
@@ -28,6 +29,8 @@ use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 pub struct RunOptions {
     pub max_concurrent: usize,
     pub step_timeout: Duration,
+    /// 调用方指定的模型 ID（来自会话/用户设置），执行器优先使用
+    pub model_id: Option<String>,
 }
 
 impl Default for RunOptions {
@@ -35,6 +38,7 @@ impl Default for RunOptions {
         Self {
             max_concurrent: 3,
             step_timeout: Duration::from_secs(300),
+            model_id: None,
         }
     }
 }
@@ -49,6 +53,10 @@ impl RunOptions {
     }
     pub fn with_step_timeout(mut self, timeout: Duration) -> Self {
         self.step_timeout = timeout;
+        self
+    }
+    pub fn with_model(mut self, model_id: String) -> Self {
+        self.model_id = Some(model_id);
         self
     }
 }
@@ -121,16 +129,28 @@ impl WorkEngine {
     pub fn registered_executor_types(&self) -> Vec<&'static str> {
         self.dispatcher.registered_types()
     }
+
+    /// 初始化需要外部依赖的执行器（DB、主密钥等）。
+    /// 在 WorkEngine 构造后调用，注入 LlmExecutor/AgentExecutor 所需的 provider 查询能力。
+    pub fn init_executors(&mut self, db: Arc<DatabaseConnection>, master_key: [u8; 32]) {
+        self.dispatcher
+            .register(LlmExecutor::new(db.clone(), master_key));
+        self.dispatcher.register(AgentExecutor::new(db, master_key));
+    }
 }
 
 impl WorkEngine {
-    pub fn new(db: Arc<DatabaseConnection>) -> Self {
+    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
+        let mut dispatcher = NodeDispatcher::new();
+        // 用真实 DB + 密钥替换默认空壳执行器
+        dispatcher.register(LlmExecutor::new(db.clone(), master_key));
+        dispatcher.register(AgentExecutor::new(db.clone(), master_key));
         Self {
             db,
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             cancel_tokens: Arc::new(Mutex::new(HashMap::new())),
-            dispatcher: NodeDispatcher::new(),
+            dispatcher,
         }
     }
 
@@ -437,10 +457,28 @@ impl WorkEngine {
             tokens.insert(workflow_id.to_string(), cancel_token.clone());
         }
 
+        // 构建执行输入：将 model_id 写入上下文，供执行器读取
+        let input = if let Some(ref model_id) = options.model_id {
+            serde_json::json!({"__workflow_model__": model_id})
+        } else {
+            serde_json::json!({})
+        };
+
         let execution_id = self
-            .start_workflow(workflow_id, serde_json::json!({}))
+            .start_workflow(workflow_id, input)
             .await
             .map_err(|e| WorkflowError::SerializationError(e.to_string()))?;
+
+        // 将调用方指定的 model_id 写入变量区，供 Agent/LlmExecutor 读取
+        if let Some(ref model_id) = options.model_id {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(&execution_id) {
+                state.variables.insert(
+                    "__workflow_model__".to_string(),
+                    serde_json::Value::String(model_id.clone()),
+                );
+            }
+        }
 
         {
             let mut workflows = self.workflows.write().await;

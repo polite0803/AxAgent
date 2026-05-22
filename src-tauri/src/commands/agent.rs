@@ -3774,6 +3774,7 @@ pub async fn workflow_create(
 pub async fn workflow_execute(
     app_state: State<'_, AppState>,
     workflow_id: String,
+    model_id: Option<String>,
 ) -> Result<String, String> {
     // 验证工作流存在
     let _ = app_state
@@ -3786,7 +3787,10 @@ pub async fn workflow_execute(
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
     tokio::spawn(async move {
-        let opts = axagent_runtime::work_engine::RunOptions::default();
+        let mut opts = axagent_runtime::work_engine::RunOptions::default();
+        if let Some(m) = model_id {
+            opts = opts.with_model(m);
+        }
         if let Err(e) = engine.run_workflow(&wid, opts).await {
             tracing::error!("[workflow] 执行失败: {}", e);
         }

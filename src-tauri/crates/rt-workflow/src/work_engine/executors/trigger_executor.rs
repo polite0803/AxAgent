@@ -1,9 +1,9 @@
-//! 触发器执行器 —— 工作流的入口节点，标记触发已激活。
+//! 触发器执行器 —— 解析触发配置（manual/schedule/webhook/event）并初始化工作流入口变量。
 
 use async_trait::async_trait;
-use axagent_core::workflow_types::WorkflowNode;
+use axagent_core::workflow_types::{TriggerType, WorkflowNode};
 
-use crate::work_engine::ExecutionState;
+use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
 pub struct TriggerExecutor;
@@ -13,7 +13,6 @@ impl TriggerExecutor {
         Self
     }
 }
-
 impl Default for TriggerExecutor {
     fn default() -> Self {
         Self::new()
@@ -31,9 +30,24 @@ impl NodeExecutorTrait for TriggerExecutor {
         node: &WorkflowNode,
         _context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
+        let WorkflowNode::Trigger(trigger_node) = node else {
+            return Err(NodeError::InvalidNodeType {
+                expected: "trigger".to_string(),
+                got: super::node_type_name(node).to_string(),
+            });
+        };
+        let trigger_type = match trigger_node.config.trigger_type {
+            TriggerType::Manual => "manual",
+            TriggerType::Schedule => "schedule",
+            TriggerType::Webhook => "webhook",
+            TriggerType::Event => "event",
+        };
         Ok(NodeOutput {
             output: serde_json::json!({
                 "status": "triggered",
+                "trigger_type": trigger_type,
+                "config": trigger_node.config.config,
+                "timestamp": chrono::Utc::now().timestamp_millis(),
                 "node_id": node.base_id(),
             }),
             output_var: None,

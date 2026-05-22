@@ -31,8 +31,8 @@ impl NodeDispatcher {
         };
         // 注册全部 15 种节点类型的执行器
         dispatcher.register(TriggerExecutor::new());
-        dispatcher.register(AgentExecutor::new());
-        dispatcher.register(LlmExecutor::new());
+        dispatcher.register(AgentExecutor::default());
+        dispatcher.register(LlmExecutor::default());
         dispatcher.register(ConditionExecutor::new());
         dispatcher.register(ParallelExecutor::new());
         dispatcher.register(LoopExecutor::new());

@@ -278,9 +278,10 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             rt.block_on(registry.load_enabled_state(&sea_db));
             Arc::new(tokio::sync::Mutex::new(registry))
         },
-        work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(Arc::new(
-            sea_db.clone(),
-        ))),
+        work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
+            Arc::new(sea_db.clone()),
+            master_key,
+        )),
         skill_decomposer: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::SkillDecomposer::new(),
         )),

@@ -17,6 +17,7 @@ chrono = { workspace = true }
 sea-orm = { workspace = true }
 itertools = "0.14"
 axagent-core = { path = "../core" }
+axagent-providers = { path = "../providers" }
 
 [lints]
 # workspace = true

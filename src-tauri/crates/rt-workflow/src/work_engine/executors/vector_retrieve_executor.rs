@@ -1,19 +1,37 @@
-//! 向量检索执行器 —— 从向量存储中检索相关内容。
+//! 向量检索执行器 —— 通过注入的回调查询向量存储。
+//!
+//! 默认无回调时返回解析后的 query 和配置，不报错但标记为未配置。
 
+use crate::work_engine::execution_state::ExecutionState;
+use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
+use std::pin::Pin;
+use std::sync::Arc;
 
-use crate::work_engine::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+pub type VectorRetrieveCallback = Arc<
+    dyn Fn(
+            String,
+            u32,
+        ) -> Pin<
+            Box<dyn std::future::Future<Output = Result<Vec<serde_json::Value>, String>> + Send>,
+        > + Send
+        + Sync,
+>;
 
-pub struct VectorRetrieveExecutor;
+pub struct VectorRetrieveExecutor {
+    callback: Option<VectorRetrieveCallback>,
+}
 
 impl VectorRetrieveExecutor {
     pub fn new() -> Self {
-        Self
+        Self { callback: None }
+    }
+    pub fn with_callback(mut self, cb: VectorRetrieveCallback) -> Self {
+        self.callback = Some(cb);
+        self
     }
 }
-
 impl Default for VectorRetrieveExecutor {
     fn default() -> Self {
         Self::new()
@@ -29,15 +47,46 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
     async fn execute(
         &self,
         node: &WorkflowNode,
-        _context: &ExecutionState,
+        context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
+        let WorkflowNode::VectorRetrieve(vr) = node else {
+            return Err(NodeError::InvalidNodeType {
+                expected: "vector_retrieve".to_string(),
+                got: super::node_type_name(node).to_string(),
+            });
+        };
+        let resolved_query = resolve_query_template(&vr.config.query, &context.variables);
+
+        let results = if let Some(ref cb) = self.callback {
+            cb(resolved_query.clone(), vr.config.top_k)
+                .await
+                .map_err(|e| NodeError::ExecutionFailed(format!("向量检索失败: {e}")))?
+        } else {
+            vec![
+                serde_json::json!({"status": "not_configured", "message": "向量检索执行器未注入回调"}),
+            ]
+        };
+
         Ok(NodeOutput {
             output: serde_json::json!({
-                "status": "retrieved",
-                "node_id": node.base_id(),
-                "results": [],
+                "query": resolved_query, "knowledge_base_id": vr.config.knowledge_base_id,
+                "top_k": vr.config.top_k, "results": results, "node_id": node.base_id(),
             }),
-            output_var: None,
+            output_var: Some(vr.config.output_var.clone()),
         })
     }
+}
+
+fn resolve_query_template(
+    template: &str,
+    vars: &std::collections::HashMap<String, serde_json::Value>,
+) -> String {
+    let mut result = template.to_string();
+    for (k, v) in vars {
+        let placeholder = format!("{{{{{}}}}}", k);
+        let owned = v.to_string();
+        let replacement = v.as_str().unwrap_or(&owned);
+        result = result.replace(&placeholder, replacement);
+    }
+    result
 }

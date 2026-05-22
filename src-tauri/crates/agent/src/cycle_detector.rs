@@ -296,9 +296,13 @@ mod tests {
         let alerts = detector.record_step("bash", "cmd", 1, Some("out1"), 1);
         assert!(alerts.is_empty());
 
-        // 重复步骤
+        // 重复步骤 — 触发 RepeatCall (count=2 >= 2)，但 NoProgress 尚未触发 (count=1 < 2)
         let alerts = detector.record_step("bash", "cmd", 1, Some("out1"), 2);
-        assert_eq!(alerts.len(), 2); // 同时触发 RepeatCall 和 NoProgress
+        assert_eq!(alerts.len(), 1);
+
+        // 第三次相同调用 — 同时触发 RepeatCall (count=3) 和 NoProgress (count=2)
+        let alerts = detector.record_step("bash", "cmd", 1, Some("out1"), 3);
+        assert_eq!(alerts.len(), 2);
     }
 
     #[test]

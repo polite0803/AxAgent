@@ -107,6 +107,31 @@ pub async fn list_providers(db: &DatabaseConnection) -> Result<Vec<ProviderConfi
     Ok(result)
 }
 
+/// 解析系统默认 LLM 调用配置：第一个启用的 provider + 第一个启用的 key + 第一个启用的 model。
+/// 工作流 Llm/Agent 执行器调用此函数自动获取模型，无需每个节点手动配置。
+pub async fn resolve_default_provider(
+    db: &DatabaseConnection,
+) -> std::result::Result<(ProviderConfig, ProviderKey, String), String> {
+    let providers = list_providers(db).await.map_err(|e| e.to_string())?;
+    let prov = providers
+        .into_iter()
+        .find(|p| p.enabled)
+        .ok_or_else(|| "无可用 LLM provider".to_string())?;
+    let key = prov
+        .keys
+        .iter()
+        .find(|k| k.enabled)
+        .cloned()
+        .ok_or_else(|| "provider 无可用 API key".to_string())?;
+    let model = prov
+        .models
+        .iter()
+        .find(|m| m.enabled)
+        .map(|m| m.model_id.clone())
+        .ok_or_else(|| "provider 无可用模型".to_string())?;
+    Ok((prov, key, model))
+}
+
 pub async fn get_provider(db: &DatabaseConnection, id: &str) -> Result<ProviderConfig> {
     let row = providers::Entity::find_by_id(id)
         .one(db)
