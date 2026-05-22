@@ -2,6 +2,11 @@
 //!
 //! 前端根据 error code 查询 i18n 翻译
 //!
+//! 本文件中的常量和别名供其他命令模块引用，编译器误报 unused 属正常现象。
+
+#![allow(unused_imports)]
+#![allow(dead_code)]
+//!
 //! 命名规范: {CATEGORY}_{SHORT_NAME}
 //! - CATEGORY: 会话(CONVERSATION), 工具(TOOL), MCP, 浏览器(BROWSER)等
 //! - SHORT_NAME: 简短描述性名称,如 NOT_FOUND, TIMEOUT, FAILED等

@@ -116,9 +116,9 @@ impl From<(&str, &str)> for ErrorResponse {
 }
 
 /// 将 ErrorResponse 转换为 JSON 字符串
-impl ToString for ErrorResponse {
-    fn to_string(&self) -> String {
-        serde_json::to_string(self).unwrap_or_else(|_| {
+impl std::fmt::Display for ErrorResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let json = serde_json::to_string(self).unwrap_or_else(|_| {
             format!(
                 r#"{{"code":"{}","detail":{}}}"#,
                 self.code,
@@ -127,6 +127,7 @@ impl ToString for ErrorResponse {
                     .map(|d| format!(r#""{}""#, d))
                     .unwrap_or_else(|| "null".to_string())
             )
-        })
+        });
+        write!(f, "{}", json)
     }
 }

@@ -583,7 +583,7 @@ pub async fn extract_expert_structure(
                 .with_detail(format!("加载供应商失败: {}", e))
                 .to_string()
         })?;
-    let key_row = get_active_key(db, &provider_id).await.map_err(|e| {
+    let key_row = get_active_key(db, &provider_id).await.map_err(|_e| {
         ErrorResponse::new(expert_err::NO_ACTIVE_KEY)
             .with_detail(format!("无活跃密钥: {}", provider_id))
             .to_string()

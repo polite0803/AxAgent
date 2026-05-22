@@ -388,7 +388,7 @@ fn check_skill_dependencies(skill_dir: &Path, target_dir: &Path) -> Result<(), S
     for dep_name in deps.keys() {
         let dep_dir = target_dir.join(dep_name);
         if !dep_dir.exists() || !dep_dir.is_dir() {
-            return Err(ErrorResponse::new(skill_err::DEPENDENCY_NOT_FOUND)
+            Err(ErrorResponse::new(skill_err::DEPENDENCY_NOT_FOUND)
                 .with_detail(format!(
                     "依赖未满足: Skill '{}' 需要 '{}'，但未在目标目录中找到",
                     skill_dir.file_name().unwrap_or_default().to_string_lossy(),

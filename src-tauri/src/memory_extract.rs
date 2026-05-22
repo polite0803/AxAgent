@@ -20,6 +20,7 @@ fn entity_extraction_system_prompt(lang: PromptLang) -> &'static str {
 }
 
 /// 获取当前语言的增量提取系统提示
+#[allow(dead_code)]
 fn incremental_extract_system_prompt(lang: PromptLang) -> &'static str {
     PromptRegistry::get("incremental_extract.system_prompt", lang)
 }
