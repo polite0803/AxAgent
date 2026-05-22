@@ -5,6 +5,8 @@ use std::path::Path;
 
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 
+#[cfg(test)]
+use crate::constants;
 use crate::entity::{messages, stored_files};
 use crate::storage_paths::{build_relative_path, documents_root};
 
@@ -255,7 +257,7 @@ mod tests {
         let am = messages::ActiveModel {
             id: Set(id.into()),
             conversation_id: Set(conv.into()),
-            role: Set("user".into()),
+            role: Set(constants::role::USER.into()),
             content: Set("hi".into()),
             provider_id: Set(None),
             model_id: Set(None),

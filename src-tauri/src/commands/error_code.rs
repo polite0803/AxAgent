@@ -94,6 +94,8 @@ pub mod skill {
     pub const MODEL_NOT_CONFIGURED: &str = "SKILL_MODEL_NOT_CONFIGURED";
     /// 输出格式不正确
     pub const OUTPUT_FORMAT_ERROR: &str = "SKILL_OUTPUT_FORMAT_ERROR";
+    /// 资源未找到
+    pub const NOT_FOUND: &str = "SKILL_NOT_FOUND";
 }
 
 /// 专家(Expert)相关错误码
@@ -170,6 +172,8 @@ pub mod onboarding {
 pub mod provider {
     /// 获取模型列表超时，请检查网络连接和API地址
     pub const MODEL_LIST_TIMEOUT: &str = "PROVIDER_MODEL_LIST_TIMEOUT";
+    /// 未找到提供商适配器
+    pub const ADAPTER_NOT_FOUND: &str = "PROVIDER_ADAPTER_NOT_FOUND";
 }
 
 /// 搜索相关错误码
@@ -184,6 +188,10 @@ pub mod search {
 pub mod backup {
     /// 不支持的备份格式，仅支持sqlite和json格式
     pub const FORMAT_UNSUPPORTED: &str = "BACKUP_FORMAT_UNSUPPORTED";
+    /// 备份创建失败
+    pub const CREATE_FAILED: &str = "BACKUP_CREATE_FAILED";
+    /// 备份恢复失败
+    pub const RESTORE_FAILED: &str = "BACKUP_RESTORE_FAILED";
 }
 
 /// 流式响应相关错误码
@@ -256,6 +264,16 @@ pub mod terminal {
     pub const GIT_BRANCH_FAILED: &str = "TERMINAL_GIT_BRANCH_FAILED";
 }
 
+/// 工作流相关错误码
+pub mod workflow {
+    /// 工作流未找到
+    pub const NOT_FOUND: &str = "WORKFLOW_NOT_FOUND";
+    /// 工作流计划未找到
+    pub const PLAN_NOT_FOUND: &str = "WORKFLOW_PLAN_NOT_FOUND";
+    /// JSON格式无效
+    pub const INVALID_JSON: &str = "WORKFLOW_INVALID_JSON";
+}
+
 /// 平台集成相关错误码
 pub mod platform {
     /// Telegram集成未启用
@@ -264,6 +282,8 @@ pub mod platform {
     pub const DISCORD_NOT_ENABLED: &str = "PLATFORM_DISCORD_NOT_ENABLED";
     /// API服务器未启用
     pub const API_SERVER_NOT_ENABLED: &str = "PLATFORM_API_SERVER_NOT_ENABLED";
+    /// Webhook订阅管理器未配置
+    pub const WEBHOOK_NOT_CONFIGURED: &str = "PLATFORM_WEBHOOK_NOT_CONFIGURED";
 }
 
 /// 代理测试相关错误码
@@ -322,5 +342,6 @@ pub use storage as storage_err;
 pub use storage_path as storage_path_err;
 pub use terminal as terminal_err;
 pub use thinking as thinking_err;
+pub use workflow as workflow_err;
 pub use title as title_err;
 pub use tool as tool_err;

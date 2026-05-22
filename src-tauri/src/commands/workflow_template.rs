@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::workflow as workflow_err;
 use axagent_core::repo::workflow_template as db_repo;
 use axagent_core::workflow_types::*;
 use axagent_runtime::work_engine::node_executor_trait::node_type_name;
@@ -201,7 +203,9 @@ pub async fn duplicate_workflow_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    let template = template.ok_or("Template not found")?;
+    let template = template.ok_or_else(|| {
+        ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
+    })?;
     let response = WorkflowTemplateResponse::from(template);
 
     let now = chrono::Utc::now().timestamp_millis();
@@ -490,7 +494,9 @@ pub async fn export_workflow_template(
         .await
         .map_err(|e| e.to_string())?;
 
-    let template = template.ok_or("Template not found")?;
+    let template = template.ok_or_else(|| {
+        ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
+    })?;
     let response = WorkflowTemplateResponse::from(template);
 
     serde_json::to_string_pretty(&response).map_err(|e| e.to_string())
@@ -1394,7 +1400,11 @@ pub async fn import_n8n_directory(
     let db = &state.sea_db;
     let dir = Path::new(&path);
     if !dir.is_dir() {
-        return Err(format!("Path does not exist or is not a directory: {}", path));
+        return Err(
+        ErrorResponse::new(workflow_err::NOT_FOUND)
+            .with_detail(format!("Path does not exist or is not a directory: {}", path))
+            .into(),
+    );
     }
 
     let mut imported = Vec::new();
@@ -1470,7 +1480,11 @@ pub async fn import_workflow_directory(
     let db = &state.sea_db;
     let dir = Path::new(&path);
     if !dir.is_dir() {
-        return Err(format!("Path does not exist or is not a directory: {}", path));
+        return Err(
+        ErrorResponse::new(workflow_err::NOT_FOUND)
+            .with_detail(format!("Path does not exist or is not a directory: {}", path))
+            .into(),
+    );
     }
 
     let mut imported = Vec::new();

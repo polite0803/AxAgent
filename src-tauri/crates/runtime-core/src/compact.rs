@@ -155,16 +155,16 @@ pub fn get_compact_continuation_message(
     suppress_follow_up_questions: bool,
     recent_messages_preserved: bool,
 ) -> String {
-    let mut base = format!("{compact_continuation_preamble()}{}", format_compact_summary(summary));
+    let mut base = compact_continuation_preamble().to_string() + &format_compact_summary(summary);
 
     if recent_messages_preserved {
         base.push_str("\n\n");
-        base.push_str(COMPACT_RECENT_MESSAGES_NOTE);
+        base.push_str(compact_recent_messages_note());
     }
 
     if suppress_follow_up_questions {
         base.push('\n');
-        base.push_str(COMPACT_DIRECT_RESUME_INSTRUCTION);
+        base.push_str(compact_direct_resume_instruction());
     }
 
     base
@@ -663,10 +663,10 @@ fn extract_existing_compacted_summary(message: &ConversationMessage) -> Option<S
     let text = first_text_block(message)?;
     let summary = text.strip_prefix(compact_continuation_preamble())?;
     let summary = summary
-        .split_once(&format!("\n\n{COMPACT_RECENT_MESSAGES_NOTE}"))
+        .split_once(&("\n\n".to_string() + compact_recent_messages_note()))
         .map_or(summary, |(value, _)| value);
     let summary = summary
-        .split_once(&format!("\n{COMPACT_DIRECT_RESUME_INSTRUCTION}"))
+        .split_once(&("\n".to_string() + compact_direct_resume_instruction()))
         .map_or(summary, |(value, _)| value);
     Some(summary.trim().to_string())
 }

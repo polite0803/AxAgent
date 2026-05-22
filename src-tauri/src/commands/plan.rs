@@ -8,6 +8,9 @@
 //! 5. Final result emitted as `plan-execution-complete` event
 
 use crate::app_state::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::provider as provider_err;
+use crate::commands::error_code::workflow as workflow_err;
 use axagent_core::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,
     ProviderProxyConfig,
@@ -223,7 +226,12 @@ async fn generate_plan_via_llm(
     let registry = ProviderRegistry::create_default();
     let adapter = registry
         .get(&registry_key)
-        .ok_or_else(|| format!("Provider adapter not found for: {}", registry_key))?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                provider_err::ADAPTER_NOT_FOUND,
+                format!("Provider adapter not found for: {}", registry_key),
+            )
+        })?;
 
     // Get active key and decrypt
     let key_row = get_active_key(db, provider_id)
@@ -317,7 +325,11 @@ async fn generate_plan_via_llm(
         .ok_or_else(|| "Plan response missing 'steps' array".to_string())?;
 
     if steps_raw.is_empty() {
-        return Err("Plan must have at least one step".to_string());
+        return Err(
+            ErrorResponse::new(workflow_err::INVALID_JSON)
+                .with_detail("Plan must have at least one step")
+                .into(),
+        );
     }
 
     let now = chrono::Utc::now().timestamp_millis();
@@ -799,7 +811,12 @@ pub async fn plan_execute(
         .one(db)
         .await
         .map_err(|e| format!("Failed to load plan: {}", e))?
-        .ok_or_else(|| format!("Plan not found: {}", request.plan_id))?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                workflow_err::PLAN_NOT_FOUND,
+                format!("Plan not found: {}", request.plan_id),
+            )
+        })?;
 
     // Update plan status to executing
     let mut am: axagent_core::entity::plans::ActiveModel = plan_row.clone().into();
@@ -984,7 +1001,12 @@ pub async fn plan_activate(
         .one(db)
         .await
         .map_err(|e| format!("DB error: {}", e))?
-        .ok_or_else(|| format!("Plan not found: {}", request.plan_id))?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                workflow_err::PLAN_NOT_FOUND,
+                format!("Plan not found: {}", request.plan_id),
+            )
+        })?;
 
     let mut am: axagent_core::entity::plans::ActiveModel = row.clone().into();
     am.is_active = Set(1);
@@ -1117,7 +1139,12 @@ pub async fn plan_modify_step(
         .one(db)
         .await
         .map_err(|e| format!("DB error: {}", e))?
-        .ok_or_else(|| format!("Plan not found: {}", request.plan_id))?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                workflow_err::PLAN_NOT_FOUND,
+                format!("Plan not found: {}", request.plan_id),
+            )
+        })?;
 
     let mut steps: Vec<PlanStep> = serde_json::from_str(&row.steps_json)
         .map_err(|e| format!("Failed to parse steps: {}", e))?;

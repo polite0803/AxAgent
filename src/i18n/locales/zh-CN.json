@@ -558,6 +558,7 @@
         "ONBOARDING_OPENAI_NOT_CONFIGURED": "OpenAI提供者已启用，请添加API Key",
         "ONBOARDING_NO_PROVIDER": "请在设置中添加模型供应商",
         "ONBOARDING_API_KEY_FAILED": "添加Key失败",
+        "ONBOARDING_UNKNOWN_PRESET": "未知预设",
         "PROVIDER_MODEL_LIST_TIMEOUT": "获取模型列表超时，请检查网络连接和API地址",
         "SEARCH_ENDPOINT_NOT_CONFIGURED": "未配置端点",
         "SEARCH_PROVIDER_NOT_CONFIGURED": "搜索提供商未配置",
@@ -6495,5 +6496,46 @@
     "emptyClipboard": "剪贴板为空",
     "clipboardUnavailable": "请长按输入框手动粘贴",
     "pasteFromClipboard": "从剪贴板粘贴"
+  },
+  "llm": {
+    "prompts": {
+      "extraction": {
+        "systemPrompt": "你是一个知识提取助手。从对话转录中提取重要、可复用的知识。",
+        "userTemplate": "从以下对话中提取可复用的知识：\n\n{0}"
+      },
+      "consolidation": {
+        "systemPrompt": "你是一个知识整合助手。将多条相似的记忆合并为一条简洁的摘要。",
+        "userTemplate": "将以下 {0} 条相似记忆合并为一条：\n\n{1}"
+      },
+      "entityExtraction": {
+        "systemPrompt": "你是一个实体和关系提取助手。从对话转录中提取关键实体及其关系。",
+        "userTemplate": "从以下对话中提取实体和关系：\n\n{0}"
+      },
+      "incrementalExtract": {
+        "systemPrompt": "从最近的对话中提取新的知识。重点关注用户的偏好、决策和项目背景。",
+        "userTemplate": "从以下最近的对话中提取新知识：\n\n{0}"
+      },
+      "conversationSummary": {
+        "mergeTemplate": "你是一个对话摘要助手。请将新增对话内容合并到已有摘要中。\n\n已有摘要：\n{0}\n\n新增对话：\n{1}",
+        "compressTemplate": "你是一个对话摘要助手。请将对话历史压缩为简洁摘要。\n\n对话内容：\n{0}"
+      },
+      "titleGeneration": {
+        "systemPrompt": "你是一个对话标题生成助手。根据对话内容生成简洁标题（不超过50字符）。只返回标题文本。",
+        "userTemplate": "请为以下对话生成标题：\n\n{0}"
+      },
+      "webSearch": {
+        "functionName": "web_search",
+        "functionDesc": "搜索网络获取最新信息。"
+      },
+      "compact": {
+        "continuationPreamble": "此会话从之前的对话续接而来。以下摘要覆盖了对话的早期部分。",
+        "recentMessagesNote": "最近的消息被原样保留。",
+        "resumeInstruction": "从上次中断的地方继续对话，不要再向用户提问。直接继续。"
+      },
+      "workflowAi": {
+        "generationSystem": "你是一个工作流设计助手。根据用户描述生成结构化自动化工作流。输出 JSON 格式。",
+        "generationUser": "基于以下描述生成工作流：{0}"
+      }
+    }
   }
 }

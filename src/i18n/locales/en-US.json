@@ -606,6 +606,7 @@
         "ONBOARDING_OPENAI_NOT_CONFIGURED": "OpenAI provider enabled. Please add API Key.",
         "ONBOARDING_NO_PROVIDER": "Please add a model provider in settings.",
         "ONBOARDING_API_KEY_FAILED": "Failed to add key",
+        "ONBOARDING_UNKNOWN_PRESET": "Unknown preset",
         "PROVIDER_MODEL_LIST_TIMEOUT": "Model list request timed out. Please check network connection and API address.",
         "SEARCH_ENDPOINT_NOT_CONFIGURED": "Endpoint not configured",
         "SEARCH_PROVIDER_NOT_CONFIGURED": "Search provider not configured",
@@ -6428,5 +6429,46 @@
     "emptyClipboard": "Clipboard is empty",
     "clipboardUnavailable": "Long-press to paste manually",
     "pasteFromClipboard": "Paste from clipboard"
+  },
+  "llm": {
+    "prompts": {
+      "extraction": {
+        "systemPrompt": "You are a knowledge extraction assistant. Extract important, reusable knowledge from conversation transcripts.",
+        "userTemplate": "Extract reusable knowledge from this conversation:\n\n{0}"
+      },
+      "consolidation": {
+        "systemPrompt": "You are a knowledge consolidation assistant. Merge multiple similar memories into one.",
+        "userTemplate": "Consolidate these {0} similar memories into one:\n\n{1}"
+      },
+      "entityExtraction": {
+        "systemPrompt": "You are an entity extraction assistant. Extract entities and relationships from conversations.",
+        "userTemplate": "Extract entities and relationships:\n\n{0}"
+      },
+      "incrementalExtract": {
+        "systemPrompt": "Extract NEW knowledge from recent exchanges only. Focus on preferences, decisions, context.",
+        "userTemplate": "Extract NEW knowledge from recent exchange:\n\n{0}"
+      },
+      "conversationSummary": {
+        "mergeTemplate": "Merge new conversation into existing summary.\n\nExisting:\n{0}\n\nNew:\n{1}",
+        "compressTemplate": "Compress conversation history to concise summary.\n\nContent:\n{0}"
+      },
+      "titleGeneration": {
+        "systemPrompt": "Generate a concise title (max 50 chars). Return only the title text.",
+        "userTemplate": "Generate title for:\n\n{0}"
+      },
+      "webSearch": {
+        "functionName": "web_search",
+        "functionDesc": "Search the web for up-to-date information."
+      },
+      "compact": {
+        "continuationPreamble": "This session continues from a previous conversation. The summary covers earlier parts.",
+        "recentMessagesNote": "Recent messages preserved verbatim.",
+        "resumeInstruction": "Continue directly — do not acknowledge the summary or recap previous events."
+      },
+      "workflowAi": {
+        "generationSystem": "You are a workflow design assistant. Generate structured automation workflows. Output JSON.",
+        "generationUser": "Generate workflow based on: {0}"
+      }
+    }
   }
 }

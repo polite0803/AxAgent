@@ -177,7 +177,10 @@
       "enabled": "已啟用",
       "disabled": "已停用",
       "count": "{{count}} 個",
-      "tokenMax": "Token Limit"
+      "tokenMax": "Token Limit",
+      "messages": "Messages",
+      "systemPrompt": "System Prompt",
+      "skills": "Skills"
     },
     "artifacts": {
       "empty": "暫無製品",
@@ -188,7 +191,11 @@
     "branch": {
       "compare": "分支比較",
       "left": "左側",
-      "right": "右側"
+      "right": "右側",
+      "compareTitle": "Branch Compare",
+      "current": "Current",
+      "unknownModel": "Unknown Model",
+      "selectVersion": "Select Version"
     },
     "search": {
       "title": "聯網搜尋",
@@ -557,8 +564,140 @@
         "GATEWAY_SSL_NO_CERT": "SSL已啟用但未配置證書文件",
         "GATEWAY_SSL_NO_KEY": "SSL已啟用但未配置私鑰文件",
         "GATEWAY_HTTP_UNAVAILABLE": "強制SSL時HTTP不可用",
-        "GATEWAY_ALREADY_RUNNING": "網關已在運行"
-      }
+        "GATEWAY_ALREADY_RUNNING": "網關已在運行",
+        "ONBOARDING_UNKNOWN_PRESET": "Unknown preset",
+        "GATEWAY_QUICK_CONNECT_INVALID": "Invalid quick connect protocol",
+        "GATEWAY_TEMPLATE_NOT_FOUND": "Template not found",
+        "GATEWAY_NOT_CONNECTED": "Gateway is not connected",
+        "GATEWAY_LINK_NOT_FOUND": "Gateway link not found",
+        "CONVERSATION_CREATE_FAILED": "Failed to create conversation",
+        "CONVERSATION_UPDATE_FAILED": "Failed to update conversation",
+        "CONVERSATION_LIST_FAILED": "Failed to list conversations",
+        "CONVERSATION_COMPRESS_FAILED": "Failed to compress conversation",
+        "CONVERSATION_TITLE_FAILED": "Failed to generate title",
+        "CONVERSATION_LOAD_MESSAGES_FAILED": "Failed to load messages",
+        "CONVERSATION_ARCHIVE_FAILED": "Failed to archive conversation",
+        "CONVERSATION_MESSAGE_CREATE_FAILED": "Failed to create message",
+        "CONVERSATION_MESSAGE_DELETE_FAILED": "Failed to delete message",
+        "CONVERSATION_TOOL_LOOP_EXCEEDED": "Tool call loop exceeded max iterations",
+        "CONVERSATION_WEB_SEARCH_PARAM_MISSING": "Web search requires a query parameter",
+        "MCP_SERVER_CREATE_FAILED": "Failed to create MCP server",
+        "MCP_SERVER_UPDATE_FAILED": "Failed to update MCP server",
+        "MCP_SERVER_DELETE_FAILED": "Failed to delete MCP server",
+        "MCP_SERVER_LIST_FAILED": "Failed to list MCP servers",
+        "MCP_SERVER_TEST_FAILED": "MCP server test failed",
+        "MCP_SERVER_CONFIG_FAILED": "Failed to read MCP server config",
+        "MCP_STDIO_COMMAND_MISSING": "Stdio server missing command config",
+        "MCP_SERVER_ENDPOINT_MISSING": "Server missing endpoint config",
+        "STORAGE_FILE_TOO_LARGE": "File too large",
+        "STORAGE_AUTHORIZATION_NOT_FOUND": "Authorization not found",
+        "SKILL_INSTALL_FAILED": "Failed to install skill",
+        "SKILL_UNINSTALL_FAILED": "Failed to uninstall skill",
+        "SKILL_UPDATE_FAILED": "Failed to update skill",
+        "SKILL_LOAD_FAILED": "Failed to load skill",
+        "SKILL_SEARCH_FAILED": "Failed to search skills",
+        "SKILL_GIT_CLONE_FAILED": "Git clone failed",
+        "SKILL_ALREADY_EXISTS": "Skill already exists",
+        "SKILL_NOT_FOUND": "Skill not found",
+        "SKILL_GROUP_NOT_FOUND": "Skill group not found",
+        "SKILL_DIR_NOT_FOUND": "Directory not found",
+        "SKILL_INVALID_GITHUB_URL": "Invalid GitHub URL",
+        "SKILL_SOURCE_NOT_FOUND": "Source path not found",
+        "SKILL_SOURCE_NOT_DIR": "Source path is not a directory",
+        "SKILL_HUB_FETCH_FAILED": "Failed to fetch from Skills Hub",
+        "EXPERT_PATH_NOT_DIR": "Path does not exist or is not a directory",
+        "EXPERT_NOT_FOUND": "Expert not found",
+        "AGENT_PROVIDER_LOAD_FAILED": "Failed to load provider",
+        "AGENT_STREAM_ERROR": "Stream error",
+        "AGENT_MAX_TURNS_EXCEEDED": "Max turns exceeded",
+        "AGENT_CANCEL_FAILED": "Failed to cancel",
+        "AGENT_EXECUTION_ABORTED": "Execution aborted",
+        "AGENT_INVALID_STATE": "Invalid state",
+        "AGENT_SKILL_MISSING": "Skill missing",
+        "AGENT_WORKSPACE_URI_INVALID": "Invalid workspace URI",
+        "AGENT_NOT_INITIALIZED": "Agent not initialized",
+        "AGENT_FEEDBACK_TYPE_UNKNOWN": "Unknown feedback type",
+        "AGENT_FEEDBACK_SOURCE_UNKNOWN": "Unknown feedback source",
+        "AGENT_PATTERN_TYPE_UNKNOWN": "Unknown pattern type",
+        "PROVIDER_CREATE_FAILED": "Failed to create provider",
+        "PROVIDER_UPDATE_FAILED": "Failed to update provider",
+        "PROVIDER_DELETE_FAILED": "Failed to delete provider",
+        "PROVIDER_KEY_ADD_FAILED": "Failed to add key",
+        "PROVIDER_KEY_DECRYPT_FAILED": "Key decryption failed",
+        "PROVIDER_FETCH_MODELS_FAILED": "Failed to fetch model list",
+        "PROVIDER_TEST_FAILED": "Provider test failed",
+        "PROVIDER_NO_ACTIVE_KEY": "No active key",
+        "PROVIDER_ADAPTER_NOT_FOUND": "Adapter not found",
+        "SEARCH_PROVIDER_NOT_FOUND": "Search provider not found",
+        "SEARCH_FAILED": "Search failed",
+        "SEARCH_HTTP_ERROR": "Search HTTP error",
+        "BACKUP_CREATE_FAILED": "Failed to create backup",
+        "BACKUP_RESTORE_FAILED": "Failed to restore backup",
+        "BACKUP_LIST_FAILED": "Failed to list backups",
+        "BACKUP_DELETE_FAILED": "Failed to delete backup",
+        "BACKUP_PATH_INVALID": "Invalid backup path",
+        "BACKUP_AUTO_BACKUP_FAILED": "Auto backup failed",
+        "PLATFORM_UNSUPPORTED": "Unsupported platform",
+        "PLATFORM_ADAPTER_NOT_FOUND": "Platform adapter not found",
+        "PLATFORM_SEND_FAILED": "Failed to send message",
+        "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook not configured",
+        "TERMINAL_SESSION_NOT_FOUND": "Terminal session not found",
+        "TERMINAL_SSH_FAILED": "SSH connection failed",
+        "TERMINAL_DOCKER_FAILED": "Docker execution failed",
+        "MEMORY_CREATE_FAILED": "Failed to create memory",
+        "MEMORY_UPDATE_FAILED": "Failed to update memory",
+        "MEMORY_DELETE_FAILED": "Failed to delete memory",
+        "MEMORY_LIST_FAILED": "Failed to list memories",
+        "MEMORY_EXTRACT_FAILED": "Failed to extract memories",
+        "MEMORY_SEARCH_FAILED": "Failed to search memories",
+        "MEMORY_NOT_FOUND": "Memory not found",
+        "MEMORY_EMBED_FAILED": "Embedding failed",
+        "MEMORY_CONSOLIDATE_FAILED": "Failed to consolidate memories",
+        "MEMORY_NO_NAMESPACE": "No memory namespace found",
+        "MEMORY_NOT_ENOUGH_MESSAGES": "Not enough messages",
+        "WIKI_NO_EMBEDDING_PROVIDER": "No embedding provider configured",
+        "WIKI_PATH_NOT_DIR": "Path is not a directory",
+        "WORKFLOW_NODE_NOT_FOUND": "Node not found",
+        "WORKFLOW_VERSION_NOT_FOUND": "Version not found",
+        "WORKFLOW_INVALID_JSON": "Invalid JSON",
+        "WORKFLOW_NOT_FOUND": "Workflow not found",
+        "WORKFLOW_PLAN_NOT_FOUND": "Plan not found",
+        "CLOUD_NOT_CLOUD_URI": "Not a cloud URI",
+        "CLOUD_UNKNOWN_CONFLICT": "Unknown conflict resolution",
+        "CLOUD_UNKNOWN_STRATEGY": "Unknown storage strategy",
+        "CLOUD_UNKNOWN_STORAGE": "Unknown storage type",
+        "CLOUD_SYNC_FAILED": "Cloud sync failed",
+        "DESKTOP_CONNECTION_TIMEOUT": "Connection timed out",
+        "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Native notification failed"
+      },
+      "errorCode": {
+        "PROVIDER_QUERY_FAILED": "Provider query failed",
+        "NO_AVAILABLE_PROVIDER": "No available LLM provider",
+        "API_KEY_DECRYPT_FAILED": "API key decryption failed",
+        "UNSUPPORTED_PROVIDER": "Unsupported provider type",
+        "LLM_CALL_FAILED": "LLM call failed",
+        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found",
+        "TOOL_CALL_FAILED": "Tool call failed",
+        "TOOL_NOT_CONFIGURED": "Tool callback not configured",
+        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow callback not configured",
+        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
+        "VECTOR_NOT_CONFIGURED": "Vector retrieve callback not configured",
+        "VARIABLE_NOT_FOUND": "Required variable not found",
+        "VALIDATION_FAILED": "Validation failed",
+        "TIMEOUT": "Execution timeout",
+        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open",
+        "NODE_TYPE_MISMATCH": "Node type mismatch",
+        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
+        "CACHE_DESERIALIZE_FAILED": "Cache deserialization failed",
+        "MODEL_NOT_CONFIGURED": "Model not configured",
+        "NODE_NOT_FOUND": "Node not found"
+      },
+      "loading": "Loading...",
+      "cancelled": "Cancelled",
+      "cancelFailed": "Cancel failed",
+      "cancel": "Cancel",
+      "noSteps": "No steps"
     },
     "modelRoutingConfig": {
       "title": "模型路由配置",
@@ -669,7 +808,9 @@
       "running": "運行中",
       "session": "個會話",
       "tokens": "個令牌",
-      "tool": "個工具"
+      "tool": "個工具",
+      "askUser": "questions",
+      "loading": "Loading..."
     },
     "benchmarks": {
       "failed": "失敗",
@@ -798,6 +939,16 @@
         "static": "靜態",
         "title": "UI 分析",
         "types": "類型"
+      },
+      "analyze": "Analyze",
+      "confidence": "Confidence",
+      "uploadImage": "Click or drag to upload an image",
+      "taskLabels": {
+        "ImageDescription": "Image Description",
+        "Ocr": "OCR / Text Extraction",
+        "UiElementDetection": "UI Element Detection",
+        "ChartAnalysis": "Chart Analysis",
+        "CodeScreenshotReading": "Code Reading"
       }
     },
     "waiting": "等待中...",
@@ -948,7 +1099,9 @@
       "fallbackTitle": "對話",
       "searchPastSessions": "搜尋歷史工作階段"
     },
-    "proactiveInsights": "主動洞察與提醒"
+    "proactiveInsights": "主動洞察與提醒",
+    "steerSent": "Steering instruction sent",
+    "steerError": "Failed to send steering instruction"
   },
   "gateway": {
     "title": "閘道",
@@ -2592,7 +2745,11 @@
     "tool": "個工具",
     "session": "個工作階段",
     "resume": "繼續",
-    "pause": "暫停"
+    "pause": "暫停",
+    "loading": "Loading...",
+    "failed": "failed",
+    "iteration": "iterations",
+    "askUser": "question(s)"
   },
   "image": {
     "loadError": "圖片載入失敗",
@@ -2642,7 +2799,8 @@
     "proxyTestFailed": "代理測試失敗",
     "invalidFormat": "格式無效",
     "page": "Error",
-    "message": "错误"
+    "message": "错误",
+    "pageNotFound": "Sorry, the page you visited does not exist."
   },
   "desktop": {
     "title": "桌面整合",
@@ -4632,7 +4790,21 @@
     "today": "今天",
     "tomorrow": "明天",
     "unknown": "未知",
-    "yesterday": "昨天"
+    "yesterday": "昨天",
+    "deleteConfirm": "Are you sure you want to delete this reminder?",
+    "everyInterval": "Every {{interval}} {{unit}}",
+    "everySingle": "Every {{unit}}",
+    "overdue": "Overdue",
+    "recurrenceUnitDay": "day",
+    "recurrenceUnitDays": "days",
+    "recurrenceUnitMonth": "month",
+    "recurrenceUnitMonths": "months",
+    "recurrenceUnitWeek": "week",
+    "recurrenceUnitWeeks": "weeks",
+    "scheduledWas": "Scheduled: {{time}}",
+    "retry": "Retry",
+    "applied": "Applied",
+    "copied": "Copied to clipboard"
   },
   "review": {
     "commentPlaceholder": "輸入評論...",
@@ -6112,7 +6284,8 @@
     "pendingChanges": "Pending changes detected. Changes apply next session. Use --now to force.",
     "fresh": "新會話",
     "pending": "待生效",
-    "cached": "已快取"
+    "cached": "已快取",
+    "active": "Cache active. {{hits}} hits, ~{{tokens}} tokens saved."
   },
   "artifactPanel": {
     "fullscreen": "Fullscreen"
@@ -6137,7 +6310,28 @@
     "qualityAnalysis": "Quality Analysis",
     "efficiencyAnalysis": "Efficiency Analysis",
     "generatedInsights": "Generated Insights",
-    "usageCount": "Usage count"
+    "usageCount": "Usage count",
+    "qualityScore": "Quality Score",
+    "excellent": "Excellent",
+    "good": "Good",
+    "needsImprovement": "Needs Improvement",
+    "startReflection": "Start Reflection",
+    "reflecting": "Reflecting...",
+    "analyzing": "Analyzing task execution...",
+    "errorPatterns": "Error Patterns",
+    "reusablePatterns": "Reusable Patterns",
+    "knowledgeSuggestions": "Knowledge Suggestions",
+    "improvementSuggestions": "Improvement Suggestions",
+    "summary": "Summary",
+    "qualityMetrics": "Quality Metrics",
+    "taskSuccessScore": "Task Success",
+    "toolEfficiencyScore": "Tool Efficiency",
+    "iterationEfficiencyScore": "Iteration Efficiency",
+    "timeEfficiencyScore": "Time Efficiency",
+    "errorRecoveryScore": "Error Recovery",
+    "goalCompletionScore": "Goal Completion",
+    "reflectError": "Reflection Failed",
+    "retry": "Retry"
   },
   "subAgentCard": {
     "viewConversation": "查看子會話"
@@ -6241,5 +6435,46 @@
     "emptyClipboard": "剪貼板為空",
     "clipboardUnavailable": "請長按輸入框手動貼上",
     "pasteFromClipboard": "從剪貼板貼上"
+  },
+  "llm": {
+    "prompts": {
+      "extraction": {
+        "systemPrompt": "You are a knowledge extraction assistant. Extract important, reusable knowledge from conversation transcripts.",
+        "userTemplate": "Extract reusable knowledge from this conversation:\n\n{0}"
+      },
+      "consolidation": {
+        "systemPrompt": "You are a knowledge consolidation assistant. Merge multiple similar memories into one.",
+        "userTemplate": "Consolidate these {0} similar memories into one:\n\n{1}"
+      },
+      "entityExtraction": {
+        "systemPrompt": "You are an entity extraction assistant. Extract entities and relationships from conversations.",
+        "userTemplate": "Extract entities and relationships:\n\n{0}"
+      },
+      "incrementalExtract": {
+        "systemPrompt": "Extract NEW knowledge from recent exchanges only. Focus on preferences, decisions, context.",
+        "userTemplate": "Extract NEW knowledge from recent exchange:\n\n{0}"
+      },
+      "conversationSummary": {
+        "mergeTemplate": "Merge new conversation into existing summary.\n\nExisting:\n{0}\n\nNew:\n{1}",
+        "compressTemplate": "Compress conversation history to concise summary.\n\nContent:\n{0}"
+      },
+      "titleGeneration": {
+        "systemPrompt": "Generate a concise title (max 50 chars). Return only the title text.",
+        "userTemplate": "Generate title for:\n\n{0}"
+      },
+      "webSearch": {
+        "functionName": "web_search",
+        "functionDesc": "Search the web for up-to-date information."
+      },
+      "compact": {
+        "continuationPreamble": "This session continues from a previous conversation. The summary covers earlier parts.",
+        "recentMessagesNote": "Recent messages preserved verbatim.",
+        "resumeInstruction": "Continue directly — do not acknowledge the summary or recap previous events."
+      },
+      "workflowAi": {
+        "generationSystem": "You are a workflow design assistant. Generate structured automation workflows. Output JSON.",
+        "generationUser": "Generate workflow based on: {0}"
+      }
+    }
   }
 }

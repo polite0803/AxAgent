@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::platform as platform_err;
 use axagent_runtime::webhook_subscription::{WebhookEvent, WebhookSubscription};
 use tauri::State;
 
@@ -40,7 +42,12 @@ pub async fn webhook_list_subscriptions(
     let manager = state
         .webhook_subscription_manager
         .as_ref()
-        .ok_or("Webhook subscription manager not initialized")?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                platform_err::WEBHOOK_NOT_CONFIGURED,
+                "Webhook subscription manager not initialized",
+            )
+        })?;
     let subscriptions = manager.list_subscriptions().await;
     Ok(subscriptions.into_iter().map(Into::into).collect())
 }
@@ -55,7 +62,12 @@ pub async fn webhook_create_subscription(
     let manager = state
         .webhook_subscription_manager
         .as_ref()
-        .ok_or("Webhook subscription manager not initialized")?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                platform_err::WEBHOOK_NOT_CONFIGURED,
+                "Webhook subscription manager not initialized",
+            )
+        })?;
     let webhook_events: Vec<WebhookEvent> = events
         .iter()
         .filter_map(|e| WebhookEvent::from_event_str(e))
@@ -72,7 +84,12 @@ pub async fn webhook_delete_subscription(
     let manager = state
         .webhook_subscription_manager
         .as_ref()
-        .ok_or("Webhook subscription manager not initialized")?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                platform_err::WEBHOOK_NOT_CONFIGURED,
+                "Webhook subscription manager not initialized",
+            )
+        })?;
     manager.unsubscribe(&subscription_id).await
 }
 
@@ -85,7 +102,12 @@ pub async fn webhook_toggle_subscription(
     let manager = state
         .webhook_subscription_manager
         .as_ref()
-        .ok_or("Webhook subscription manager not initialized")?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                platform_err::WEBHOOK_NOT_CONFIGURED,
+                "Webhook subscription manager not initialized",
+            )
+        })?;
     manager.set_enabled(&subscription_id, enabled).await
 }
 
@@ -97,7 +119,12 @@ pub async fn webhook_test_subscription(
     let manager = state
         .webhook_subscription_manager
         .as_ref()
-        .ok_or("Webhook subscription manager not initialized")?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                platform_err::WEBHOOK_NOT_CONFIGURED,
+                "Webhook subscription manager not initialized",
+            )
+        })?;
     manager.test_subscription(&subscription_id).await
 }
 
@@ -106,6 +133,11 @@ pub async fn webhook_reload(state: State<'_, AppState>) -> Result<(), String> {
     let manager = state
         .webhook_subscription_manager
         .as_ref()
-        .ok_or("Webhook subscription manager not initialized")?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                platform_err::WEBHOOK_NOT_CONFIGURED,
+                "Webhook subscription manager not initialized",
+            )
+        })?;
     manager.reload().await
 }

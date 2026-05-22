@@ -1,5 +1,12 @@
 use std::path::PathBuf;
 
+/// AxAgent 数据目录名
+const AXAGENT_DIR: &str = ".axagent";
+
+/// Android 包名
+#[cfg(target_os = "android")]
+const ANDROID_PKG: &str = "top.axagent.desktop";
+
 /// Returns the canonical AxAgent home directory and ensures it exists.
 ///
 /// - macOS / Linux: `~/.axagent/`
@@ -33,13 +40,13 @@ pub fn axagent_home() -> PathBuf {
                 ("data_dir", || {
                     dirs::data_dir()
                         .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop"))
-                        .join(".axagent")
+                        .join(AXAGENT_DIR)
                 }),
                 // 3. 内部 cache dir
                 ("cache_dir", || {
                     dirs::cache_dir()
                         .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop/cache"))
-                        .join(".axagent")
+                        .join(AXAGENT_DIR)
                 }),
                 // 4. Download 目录（最低优先级，用户可见）
                 ("download", || PathBuf::from("/storage/emulated/0/Download/.axagent")),
@@ -74,7 +81,7 @@ pub fn axagent_home() -> PathBuf {
                     tracing::warn!("Could not determine home directory, using current dir");
                     PathBuf::from(".")
                 });
-            base.join(".axagent")
+            base.join(AXAGENT_DIR)
         }
     }
     #[cfg(not(mobile))]
@@ -90,6 +97,6 @@ pub fn axagent_home() -> PathBuf {
             String::from(".")
         });
 
-        PathBuf::from(home).join(".axagent")
+        PathBuf::from(home).join(AXAGENT_DIR)
     }
 }

@@ -2,6 +2,8 @@
 //! 命令名保持与旧 ScheduledTaskService 兼容，供前端 SchedulerSettings 调用。
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::task as task_err;
 use axagent_runtime_core::{CronJob, CronJobStatus, TaskConfig, TaskRunResult};
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -234,7 +236,12 @@ pub async fn execute_scheduled_task(
         .cron_job_store
         .get(&task_id)
         .await
-        .ok_or_else(|| format!("Task not found: {}", task_id))?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                task_err::NOT_FOUND,
+                format!("Task not found: {}", task_id),
+            )
+        })?;
     let result = TaskRunResult {
         success: true,
         output: Some(format!("Task '{}' executed manually", job.name)),

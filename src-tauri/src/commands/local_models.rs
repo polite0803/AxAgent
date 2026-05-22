@@ -1,3 +1,5 @@
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::provider as provider_err;
 use axagent_core::model_downloader::{LocalModelInfo, ModelDownloader, PresetModel};
 
 #[tauri::command]
@@ -13,7 +15,12 @@ pub async fn download_model(filename: String) -> Result<(), String> {
     let preset = presets
         .iter()
         .find(|p| p.filename == filename)
-        .ok_or_else(|| format!("Unknown model: {}", filename))?;
+        .ok_or_else(|| {
+            ErrorResponse::err_with_detail(
+                provider_err::ADAPTER_NOT_FOUND,
+                format!("Unknown model: {}", filename),
+            )
+        })?;
     dl.ensure_model(preset)
         .await
         .map(|_| ())

@@ -3,6 +3,8 @@
 //! 提供前端 appConfigStore 的后端持久化支持。
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::storage as storage_err;
 use tauri::State;
 
 #[tauri::command]
@@ -13,7 +15,11 @@ pub async fn get_app_config(state: State<'_, AppState>) -> Result<serde_json::Va
             serde_json::from_str(&json_str).map_err(|e| format!("解析配置失败: {}", e))
         },
         Ok(None) => Ok(serde_json::json!({})),
-        Err(e) => Err(format!("读取配置失败: {}", e)),
+        Err(e) => Err(
+            ErrorResponse::new(storage_err::READ_FILE_FAILED)
+                .with_detail(format!("读取配置失败: {}", e))
+                .into(),
+        ),
     }
 }
 

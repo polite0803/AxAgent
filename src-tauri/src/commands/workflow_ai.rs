@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::provider as provider_err;
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ProviderType};
 use axagent_core::workflow_types::*;
@@ -332,7 +334,12 @@ pub async fn generate_workflow_from_prompt(
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
     let adapter = registry
         .get(registry_key)
-        .ok_or_else(|| format!("Provider adapter not found for type: {}", registry_key))?;
+        .ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
 
     let base_url = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
 
@@ -454,7 +461,12 @@ pub async fn optimize_agent_prompt(
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
     let adapter = registry
         .get(registry_key)
-        .ok_or_else(|| format!("Provider adapter not found for type: {}", registry_key))?;
+        .ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
 
     let base_url = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
 
@@ -561,7 +573,12 @@ pub async fn recommend_nodes(
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
     let adapter = registry
         .get(registry_key)
-        .ok_or_else(|| format!("Provider adapter not found for type: {}", registry_key))?;
+        .ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
 
     let base_url = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
 

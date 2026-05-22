@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::backup as backup_err;
 use axagent_core::crypto::{decrypt_key, encrypt_key};
 use axagent_core::repo::{backup, settings as settings_repo};
 use axagent_core::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};
@@ -145,7 +147,11 @@ pub async fn webdav_restore(
         let ok =
             webdav::verify_db_checksum(&contents.db_path, expected).map_err(|e| e.to_string())?;
         if !ok {
-            return Err("Backup checksum verification failed — file may be corrupted".to_string());
+            return Err(
+                ErrorResponse::new(backup_err::RESTORE_FAILED)
+                    .with_detail("Backup checksum verification failed — file may be corrupted")
+                    .into(),
+            );
         }
     }
 
@@ -325,7 +331,11 @@ async fn do_webdav_backup_once(
     // 1. Load config
     let config = get_webdav_config_from_db(db, master_key).await?;
     if config.host.is_empty() {
-        return Err("WebDAV is not configured".to_string());
+        return Err(
+            ErrorResponse::new(backup_err::CREATE_FAILED)
+                .with_detail("WebDAV is not configured")
+                .into(),
+        );
     }
 
     let settings = settings_repo::get_settings(db)
