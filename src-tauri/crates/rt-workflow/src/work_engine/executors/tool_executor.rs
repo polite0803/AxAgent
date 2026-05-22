@@ -3,7 +3,9 @@
 //! 默认无回调时返回清晰的"需要注入"错误，避免静默失败。
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
 use std::pin::Pin;
@@ -20,16 +22,18 @@ pub type ToolCallback = Arc<
 >;
 
 pub struct ToolExecutor {
-    callback: Option<ToolCallback>,
+    callback: Arc<tokio::sync::Mutex<Option<ToolCallback>>>,
 }
 
 impl ToolExecutor {
     pub fn new() -> Self {
-        Self { callback: None }
+        Self {
+            callback: Arc::new(tokio::sync::Mutex::new(None)),
+        }
     }
-    pub fn with_callback(mut self, cb: ToolCallback) -> Self {
-        self.callback = Some(cb);
-        self
+    /// 设置工具回调（Arc<WorkEngine> 下可安全调用）
+    pub async fn set_callback(&self, cb: ToolCallback) {
+        *self.callback.lock().await = Some(cb);
     }
 }
 impl Default for ToolExecutor {
@@ -50,10 +54,10 @@ impl NodeExecutorTrait for ToolExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Tool(tool_node) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "tool".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "tool".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
 
         // 解析输入映射
@@ -69,16 +73,23 @@ impl NodeExecutorTrait for ToolExecutor {
                 });
 
         // 调用工具回调（若已注入）
-        let output = if let Some(ref cb) = self.callback {
+        let cb_guard = self.callback.lock().await;
+        let output = if let Some(ref cb) = *cb_guard {
             cb(tool_node.config.tool_name.clone(), resolved_args.clone())
                 .await
-                .map_err(|e| NodeError::ExecutionFailed(format!("工具调用失败: {e}")))?
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::TOOL_CALL_FAILED,
+                        format!("Tool call failed: {e}"),
+                    )
+                })?
         } else {
+            drop(cb_guard);
             serde_json::json!({
                 "status": "tool_not_configured",
                 "tool_name": tool_node.config.tool_name,
                 "resolved_arguments": resolved_args,
-                "message": "工具执行器未注入 MCP 回调，通过 register_executor 注入 ToolExecutor::with_callback()",
+                "message": "工具执行器未注入 MCP 回调，通过 ToolExecutor::set_callback() 注入",
                 "node_id": node.base_id(),
             })
         };

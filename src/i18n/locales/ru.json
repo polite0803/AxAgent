@@ -441,7 +441,30 @@
       "switchToWorkflow": "Switch to Workflow",
       "unnamed": "Workflow",
       "viewDetails": "View Details",
-      "presetsNotImported": "Development workflow templates (code review, bug fix, refactoring, etc.) require importing built-in experts in the expert selector first."
+      "presetsNotImported": "Development workflow templates (code review, bug fix, refactoring, etc.) require importing built-in experts in the expert selector first.",
+      "errorDetail": {
+        "PROVIDER_QUERY_FAILED": "Provider query failed, please check provider configuration",
+        "NO_AVAILABLE_PROVIDER": "No available LLM provider, please enable one in settings",
+        "API_KEY_DECRYPT_FAILED": "API key decryption failed, please check key configuration",
+        "UNSUPPORTED_PROVIDER": "Unsupported LLM provider type",
+        "LLM_CALL_FAILED": "LLM call failed, please check network and API configuration",
+        "AGENT_PROFILE_NOT_FOUND": "Agent profile not found, please check configuration",
+        "TOOL_CALL_FAILED": "Tool call failed",
+        "TOOL_NOT_CONFIGURED": "Tool executor callback not configured",
+        "SUBWORKFLOW_FAILED": "Sub-workflow execution failed",
+        "SUBWORKFLOW_NOT_CONFIGURED": "Sub-workflow executor callback not configured",
+        "VECTOR_RETRIEVE_FAILED": "Vector retrieval failed",
+        "VECTOR_NOT_CONFIGURED": "Vector retrieve executor callback not configured",
+        "VARIABLE_NOT_FOUND": "Required variable not found, check upstream node output",
+        "VALIDATION_FAILED": "Validation failed",
+        "TIMEOUT": "Execution timeout, check node config or increase timeout",
+        "CIRCUIT_BREAKER_OPEN": "Circuit breaker open, please retry later",
+        "NODE_TYPE_MISMATCH": "Node type mismatch",
+        "UNSUPPORTED_NODE_TYPE": "Unsupported node type",
+        "CACHE_DESERIALIZE_FAILED": "Cache data deserialization failed",
+        "MODEL_NOT_CONFIGURED": "Model not configured, please select a model in node settings",
+        "NODE_NOT_FOUND": "Node not found"
+      }
     },
     "modelRoutingConfig": {
       "title": "Конфигурация маршрутизации моделей",

@@ -28,10 +28,10 @@ impl NodeExecutorTrait for LoopExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Loop(ln) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "loop".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "loop".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
         let items: Vec<serde_json::Value> = ln
             .config

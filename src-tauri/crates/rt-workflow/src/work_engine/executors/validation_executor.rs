@@ -32,10 +32,10 @@ impl NodeExecutorTrait for ValidationExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Validation(validation_node) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "validation".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "validation".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
 
         let mut results = Vec::new();
@@ -97,7 +97,7 @@ impl NodeExecutorTrait for ValidationExecutor {
         let on_fail = &validation_node.config.on_fail;
         if !all_passed && on_fail == "abort" {
             return Err(NodeError::Validation(format!(
-                "校验失败: {}",
+                "Validation failed: {}",
                 serde_json::to_string(&results).unwrap_or_default()
             )));
         }

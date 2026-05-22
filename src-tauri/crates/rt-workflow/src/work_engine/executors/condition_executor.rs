@@ -32,10 +32,10 @@ impl NodeExecutorTrait for ConditionExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Condition(condition_node) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "condition".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "condition".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
 
         let mut results = Vec::new();

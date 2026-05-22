@@ -31,10 +31,10 @@ impl NodeExecutorTrait for TriggerExecutor {
         _context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Trigger(trigger_node) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "trigger".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "trigger".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
         let trigger_type = match trigger_node.config.trigger_type {
             TriggerType::Manual => "manual",

@@ -1,7 +1,9 @@
 //! LLM 执行器 —— 解析系统默认 provider 和模型后调用 `adapter.chat()`。
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 use async_trait::async_trait;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::workflow_types::WorkflowNode;
@@ -39,17 +41,17 @@ impl NodeExecutorTrait for LlmExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Llm(llm_node) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "llm".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "llm".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
 
         // 解析 provider + key。模型优先级：context.__workflow_model__ > 系统默认
         let (prov, key, default_model) =
             axagent_core::repo::provider::resolve_default_provider(&self.db)
                 .await
-                .map_err(NodeError::ExecutionFailed)?;
+                .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?;
         let session_model = context
             .variables
             .get("__workflow_model__")
@@ -57,7 +59,12 @@ impl NodeExecutorTrait for LlmExecutor {
             .map(|s| s.to_string());
         let model = session_model.unwrap_or(default_model);
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
-            .map_err(|e| NodeError::ExecutionFailed(format!("API key 解密失败: {e}")))?;
+            .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::API_KEY_DECRYPT_FAILED,
+                    format!("API key decryption failed: {e}"),
+                )
+            })?;
 
         // 创建 adapter
         use axagent_core::types::ProviderType;
@@ -73,10 +80,10 @@ impl NodeExecutorTrait for LlmExecutor {
             ProviderType::Gemini => Arc::new(axagent_providers::gemini::GeminiAdapter::new()),
             ProviderType::Ollama => Arc::new(axagent_providers::ollama::OllamaAdapter::new()),
             _ => {
-                return Err(NodeError::ExecutionFailed(format!(
-                    "不支持的 provider: {:?}",
-                    prov.provider_type
-                )));
+                return Err(NodeError::exec_failed(
+                    error_code::API_KEY_DECRYPT_FAILED,
+                    format!("Unsupported provider: {:?}", prov.provider_type),
+                ));
             },
         };
 
@@ -147,10 +154,12 @@ impl NodeExecutorTrait for LlmExecutor {
             store: None,
         };
 
-        let response = adapter
-            .chat(&req_ctx, request)
-            .await
-            .map_err(|e| NodeError::ExecutionFailed(format!("LLM 调用失败: {e}")))?;
+        let response = adapter.chat(&req_ctx, request).await.map_err(|e| {
+            NodeError::exec_failed(
+                error_code::API_KEY_DECRYPT_FAILED,
+                format!("LLM call failed: {e}"),
+            )
+        })?;
 
         Ok(NodeOutput {
             output: serde_json::json!({

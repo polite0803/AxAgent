@@ -88,14 +88,18 @@ impl GoalEvaluator {
         };
         let no_sub_goals = sub_goals.is_empty();
 
-        if !has_completed_steps && !no_sub_goals {
-            // 没有任何已验证完成的步骤且存在子目标
+        if !has_completed_steps {
+            // 没有任何已验证完成的步骤
             self.consecutive_not_achieved += 1;
             return GoalEvaluation {
                 achieved: false,
                 confidence: 0.2,
                 reason: "尚未完成任何已验证步骤".to_string(),
-                missing: sub_goals.clone(),
+                missing: if no_sub_goals {
+                    vec!["(无子目标)".to_string()]
+                } else {
+                    sub_goals.clone()
+                },
             };
         }
 

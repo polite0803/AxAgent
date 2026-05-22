@@ -159,6 +159,7 @@ pub async fn list_node_executor_types(state: State<'_, AppState>) -> Result<Vec<
     let engine = &*state.work_engine;
     Ok(engine
         .registered_executor_types()
+        .await
         .into_iter()
         .map(String::from)
         .collect())

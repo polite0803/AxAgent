@@ -4,7 +4,9 @@
 
 use crate::work_engine::cache_layer::{CacheLayer, InMemoryCache};
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 use async_trait::async_trait;
 use axagent_core::workflow_types::{SubWorkflowNode, WorkflowNode};
 use itertools::Itertools;
@@ -45,7 +47,7 @@ impl Default for SubWorkflowExecutorConfig {
 pub struct SubWorkflowExecutor {
     cache: Arc<InMemoryCache>,
     config: SubWorkflowExecutorConfig,
-    callback: Option<SubWorkflowCallback>,
+    callback: Arc<tokio::sync::Mutex<Option<SubWorkflowCallback>>>,
 }
 
 impl SubWorkflowExecutor {
@@ -56,12 +58,11 @@ impl SubWorkflowExecutor {
         Self {
             cache: Arc::new(InMemoryCache::new(config.cache_ttl_secs)),
             config,
-            callback: None,
+            callback: Arc::new(tokio::sync::Mutex::new(None)),
         }
     }
-    pub fn with_callback(mut self, cb: SubWorkflowCallback) -> Self {
-        self.callback = Some(cb);
-        self
+    pub async fn set_callback(&self, cb: SubWorkflowCallback) {
+        *self.callback.lock().await = Some(cb);
     }
 
     fn compute_cache_key(&self, node: &SubWorkflowNode, context: &ExecutionState) -> String {
@@ -94,8 +95,12 @@ impl SubWorkflowExecutor {
         if self.config.cache_enabled
             && let Some(cached) = self.cache.get(&cache_key).await
         {
-            return serde_json::from_slice(&cached)
-                .map_err(|e| NodeError::ExecutionFailed(format!("缓存反序列化失败: {e}")));
+            return serde_json::from_slice(&cached).map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::SUBWORKFLOW_FAILED,
+                    format!("Cache deserialization failed: {e}"),
+                )
+            });
         }
         let result = self.execute_with_retry(node, mapped_input).await?;
         if self.config.cache_enabled
@@ -117,7 +122,10 @@ impl SubWorkflowExecutor {
         let mut mapped = HashMap::new();
         for (target_var, source_var) in &node.config.input_mapping {
             let value = context.variables.get(source_var).cloned().ok_or_else(|| {
-                NodeError::ExecutionFailed(format!("变量 '{}' 未找到", source_var))
+                NodeError::exec_failed(
+                    error_code::SUBWORKFLOW_FAILED,
+                    format!("Variable '{}' not found", source_var),
+                )
             })?;
             mapped.insert(target_var.clone(), value);
         }
@@ -141,8 +149,12 @@ impl SubWorkflowExecutor {
                 },
             }
         }
-        Err(last_error
-            .unwrap_or_else(|| NodeError::ExecutionFailed("子工作流执行失败".to_string())))
+        Err(last_error.unwrap_or_else(|| {
+            NodeError::exec_failed(
+                error_code::SUBWORKFLOW_FAILED,
+                "Sub-workflow execution failed".to_string(),
+            )
+        }))
     }
 
     async fn execute_single_attempt(
@@ -150,16 +162,22 @@ impl SubWorkflowExecutor {
         node: &SubWorkflowNode,
         input: HashMap<String, Value>,
     ) -> Result<Value, NodeError> {
-        if let Some(ref cb) = self.callback {
+        let cb_guard = self.callback.lock().await;
+        if let Some(ref cb) = *cb_guard {
             cb(node.config.sub_workflow_id.clone(), input)
                 .await
-                .map_err(|e| NodeError::ExecutionFailed(format!("子工作流执行失败: {e}")))
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::SUBWORKFLOW_FAILED,
+                        format!("Sub-workflow execution failed: {e}"),
+                    )
+                })
         } else {
             Ok(serde_json::json!({
                 "status": "sub_workflow_not_configured",
                 "sub_workflow_id": node.config.sub_workflow_id,
                 "mapped_input": input,
-                "message": "子工作流执行器未注入回调，通过 register_executor 注入 SubWorkflowExecutor::with_callback()"
+                "message": "Sub-workflow callback not configured, use set_subworkflow_callback()"
             }))
         }
     }
@@ -184,10 +202,10 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
         let sub_node = match node {
             WorkflowNode::SubWorkflow(s) => s,
             _ => {
-                return Err(NodeError::InvalidNodeType {
-                    expected: "sub_workflow".to_string(),
-                    got: super::node_type_name(node).to_string(),
-                });
+                return Err(NodeError::type_mismatch(
+                    "sub_workflow".to_string(),
+                    super::node_type_name(node).to_string(),
+                ));
             },
         };
         let timeout = Duration::from_secs(self.config.timeout_secs);
@@ -195,7 +213,10 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
             tokio::time::timeout(timeout, self.execute_subworkflow_internal(sub_node, context))
                 .await
                 .map_err(|_| {
-                    NodeError::Timeout(format!("子工作流超时({}s)", self.config.timeout_secs))
+                    NodeError::timed_out(
+                        error_code::SUBWORKFLOW_FAILED,
+                        format!("Sub-workflow timeout({}s)", self.config.timeout_secs),
+                    )
                 })??;
         Ok(NodeOutput {
             output: result,

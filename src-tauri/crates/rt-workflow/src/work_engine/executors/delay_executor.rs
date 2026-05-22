@@ -32,10 +32,10 @@ impl NodeExecutorTrait for DelayExecutor {
         _context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Delay(delay_node) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "delay".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "delay".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
 
         let seconds = delay_node.config.seconds;

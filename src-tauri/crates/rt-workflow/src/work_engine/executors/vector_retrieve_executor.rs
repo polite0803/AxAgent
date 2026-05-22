@@ -3,7 +3,9 @@
 //! 默认无回调时返回解析后的 query 和配置，不报错但标记为未配置。
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
 use std::pin::Pin;
@@ -20,16 +22,17 @@ pub type VectorRetrieveCallback = Arc<
 >;
 
 pub struct VectorRetrieveExecutor {
-    callback: Option<VectorRetrieveCallback>,
+    callback: Arc<tokio::sync::Mutex<Option<VectorRetrieveCallback>>>,
 }
 
 impl VectorRetrieveExecutor {
     pub fn new() -> Self {
-        Self { callback: None }
+        Self {
+            callback: Arc::new(tokio::sync::Mutex::new(None)),
+        }
     }
-    pub fn with_callback(mut self, cb: VectorRetrieveCallback) -> Self {
-        self.callback = Some(cb);
-        self
+    pub async fn set_callback(&self, cb: VectorRetrieveCallback) {
+        *self.callback.lock().await = Some(cb);
     }
 }
 impl Default for VectorRetrieveExecutor {
@@ -50,20 +53,26 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::VectorRetrieve(vr) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "vector_retrieve".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "vector_retrieve".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
         let resolved_query = resolve_query_template(&vr.config.query, &context.variables);
 
-        let results = if let Some(ref cb) = self.callback {
+        let cb_guard = self.callback.lock().await;
+        let results = if let Some(ref cb) = *cb_guard {
             cb(resolved_query.clone(), vr.config.top_k)
                 .await
-                .map_err(|e| NodeError::ExecutionFailed(format!("向量检索失败: {e}")))?
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::VECTOR_RETRIEVE_FAILED,
+                        format!("Vector retrieval failed: {e}"),
+                    )
+                })?
         } else {
             vec![
-                serde_json::json!({"status": "not_configured", "message": "向量检索执行器未注入回调"}),
+                serde_json::json!({"status": "not_configured", "message": "Vector retrieve callback not configured"}),
             ]
         };
 

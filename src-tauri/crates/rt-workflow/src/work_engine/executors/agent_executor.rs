@@ -1,7 +1,9 @@
 //! Agent 执行器 —— 支持 inline role 和 agent_profile 两种模式，均自动使用系统默认模型。
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 use async_trait::async_trait;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::workflow_types::WorkflowNode;
@@ -39,10 +41,10 @@ impl NodeExecutorTrait for AgentExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Agent(an) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "agent".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "agent".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
 
         // 1. 加载 agent profile（若配置）
@@ -52,7 +54,12 @@ impl NodeExecutorTrait for AgentExecutor {
             agent_profiles::Entity::find_by_id(pid.as_str())
                 .one(self.db.as_ref())
                 .await
-                .map_err(|e| NodeError::ExecutionFailed(format!("查询 agent profile 失败: {e}")))?
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::AGENT_PROFILE_NOT_FOUND,
+                        format!("Agent profile query failed: {e}"),
+                    )
+                })?
         } else {
             None
         };
@@ -67,14 +74,22 @@ impl NodeExecutorTrait for AgentExecutor {
         let (prov, key, default_model) = if let Some(ref p) = profile {
             let all = axagent_core::repo::provider::list_providers(&self.db)
                 .await
-                .map_err(|e| NodeError::ExecutionFailed(format!("获取 provider 失败: {e}")))?;
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::AGENT_PROFILE_NOT_FOUND,
+                        format!("Provider query failed: {e}"),
+                    )
+                })?;
             if let Some(ref suggested_id) = p.suggested_provider_id {
                 if let Some(sp) = all
                     .into_iter()
                     .find(|pr| pr.id == *suggested_id && pr.enabled)
                 {
                     let key = sp.keys.iter().find(|k| k.enabled).cloned().ok_or_else(|| {
-                        NodeError::ExecutionFailed("建议的 provider 无可用 key".to_string())
+                        NodeError::exec_failed(
+                            error_code::AGENT_PROFILE_NOT_FOUND,
+                            "建议的 provider 无可用 key".to_string(),
+                        )
                     })?;
                     let model = sp
                         .models
@@ -82,26 +97,34 @@ impl NodeExecutorTrait for AgentExecutor {
                         .find(|m| m.enabled)
                         .map(|m| m.model_id.clone())
                         .ok_or_else(|| {
-                            NodeError::ExecutionFailed("建议的 provider 无可用模型".to_string())
+                            NodeError::exec_failed(
+                                error_code::AGENT_PROFILE_NOT_FOUND,
+                                "建议的 provider 无可用模型".to_string(),
+                            )
                         })?;
                     Ok::<_, NodeError>((sp, key, model))
                 } else {
                     axagent_core::repo::provider::resolve_default_provider(&self.db)
                         .await
-                        .map_err(NodeError::ExecutionFailed)
+                        .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))
                 }
             } else {
                 axagent_core::repo::provider::resolve_default_provider(&self.db)
                     .await
-                    .map_err(NodeError::ExecutionFailed)
+                    .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))
             }
         } else {
             axagent_core::repo::provider::resolve_default_provider(&self.db)
                 .await
-                .map_err(NodeError::ExecutionFailed)
+                .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))
         }?;
         let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
-            .map_err(|e| NodeError::ExecutionFailed(format!("API key 解密失败: {e}")))?;
+            .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    format!("API key decryption failed: {e}"),
+                )
+            })?;
 
         // 3. 创建 adapter
         use axagent_core::types::ProviderType;
@@ -117,10 +140,10 @@ impl NodeExecutorTrait for AgentExecutor {
             ProviderType::Gemini => Arc::new(axagent_providers::gemini::GeminiAdapter::new()),
             ProviderType::Ollama => Arc::new(axagent_providers::ollama::OllamaAdapter::new()),
             _ => {
-                return Err(NodeError::ExecutionFailed(format!(
-                    "不支持的 provider: {:?}",
-                    prov.provider_type
-                )));
+                return Err(NodeError::exec_failed(
+                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    format!("Unsupported provider: {:?}", prov.provider_type),
+                ));
             },
         };
 
@@ -216,10 +239,12 @@ impl NodeExecutorTrait for AgentExecutor {
             store: None,
         };
 
-        let response = adapter
-            .chat(&req_ctx, request)
-            .await
-            .map_err(|e| NodeError::ExecutionFailed(format!("Agent LLM 调用失败: {e}")))?;
+        let response = adapter.chat(&req_ctx, request).await.map_err(|e| {
+            NodeError::exec_failed(
+                error_code::AGENT_PROFILE_NOT_FOUND,
+                format!("Agent LLM call failed: {e}"),
+            )
+        })?;
 
         Ok(NodeOutput {
             output: serde_json::json!({

@@ -39,7 +39,7 @@ impl NodeExecutorTrait for FallbackExecutor {
                 "status": "degraded",
                 "node_type": type_name,
                 "node_id": node.base_id(),
-                "message": "此节点类型尚未实现专用执行器，使用兜底模拟输出"
+                "message": "Unsupported node type, using fallback"
             }),
             output_var: None,
         })

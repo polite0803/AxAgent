@@ -28,10 +28,10 @@ impl NodeExecutorTrait for MergeExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Merge(mn) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "merge".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "merge".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
         // 从 context.variables 中收集所有输入变量
         let collected: serde_json::Value =

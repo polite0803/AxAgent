@@ -94,15 +94,15 @@ pub enum WorkflowError {
 impl std::fmt::Display for WorkflowError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::DuplicateNodeId(id) => write!(f, "重复节点 ID: {id}"),
+            Self::DuplicateNodeId(id) => write!(f, "Duplicate node ID: {id}"),
             Self::InvalidDependency {
                 node_id,
                 missing_dep,
-            } => write!(f, "节点 '{node_id}' 依赖不存在的 '{missing_dep}'"),
-            Self::WorkflowNotFound => write!(f, "工作流未找到"),
-            Self::NodeNotFound => write!(f, "节点未找到"),
-            Self::CycleDetected => write!(f, "工作流中存在循环依赖"),
-            Self::SerializationError(msg) => write!(f, "序列化错误: {msg}"),
+            } => write!(f, "Node '{node_id}' depends on non-existent '{missing_dep}'"),
+            Self::WorkflowNotFound => write!(f, "Workflow not found"),
+            Self::NodeNotFound => write!(f, "Node not found"),
+            Self::CycleDetected => write!(f, "Cycle detected in workflow"),
+            Self::SerializationError(msg) => write!(f, "Serialization error: {msg}"),
         }
     }
 }

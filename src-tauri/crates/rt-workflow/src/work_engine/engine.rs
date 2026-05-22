@@ -21,7 +21,9 @@ use crate::workflow_engine::{
 
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
-use super::executors::{AgentExecutor, LlmExecutor};
+use super::executors::{
+    AgentExecutor, LlmExecutor, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
+};
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
 /// 工作流运行选项
@@ -110,12 +112,16 @@ pub struct WorkEngine {
     executions: Arc<Mutex<HashMap<String, ExecutionState>>>,
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
     cancel_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
-    dispatcher: NodeDispatcher,
+    dispatcher: Arc<tokio::sync::RwLock<NodeDispatcher>>,
+    tool_callback: Arc<Mutex<Option<ToolCallback>>>,
+    subworkflow_callback: Arc<Mutex<Option<SubWorkflowCallback>>>,
+    vector_retrieve_callback: Arc<Mutex<Option<VectorRetrieveCallback>>>,
 }
 
 impl WorkEngine {
-    pub fn register_executor<E: NodeExecutorTrait + 'static>(&mut self, executor: E) {
-        self.dispatcher.register(executor);
+    /// 注册/替换节点执行器（Arc<WorkEngine> 下可安全调用）
+    pub async fn register_executor<E: NodeExecutorTrait + 'static>(&self, executor: E) {
+        self.dispatcher.write().await.register(executor);
     }
 
     pub async fn execute_node(
@@ -123,26 +129,30 @@ impl WorkEngine {
         node: &WorkflowNode,
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
-        self.dispatcher.dispatch(node, context).await
+        self.dispatcher.read().await.dispatch(node, context).await
     }
 
-    pub fn registered_executor_types(&self) -> Vec<&'static str> {
-        self.dispatcher.registered_types()
+    pub async fn registered_executor_types(&self) -> Vec<&'static str> {
+        self.dispatcher.read().await.registered_types()
     }
 
-    /// 初始化需要外部依赖的执行器（DB、主密钥等）。
-    /// 在 WorkEngine 构造后调用，注入 LlmExecutor/AgentExecutor 所需的 provider 查询能力。
-    pub fn init_executors(&mut self, db: Arc<DatabaseConnection>, master_key: [u8; 32]) {
-        self.dispatcher
-            .register(LlmExecutor::new(db.clone(), master_key));
-        self.dispatcher.register(AgentExecutor::new(db, master_key));
+    /// 设置工具回调（Arc<WorkEngine> 下可安全调用，注入后 ToolExecutor 即生效）
+    pub async fn set_tool_callback(&self, cb: ToolCallback) {
+        *self.tool_callback.lock().await = Some(cb);
+    }
+    /// 设置子工作流回调
+    pub async fn set_subworkflow_callback(&self, cb: SubWorkflowCallback) {
+        *self.subworkflow_callback.lock().await = Some(cb);
+    }
+    /// 设置向量检索回调
+    pub async fn set_vector_retrieve_callback(&self, cb: VectorRetrieveCallback) {
+        *self.vector_retrieve_callback.lock().await = Some(cb);
     }
 }
 
 impl WorkEngine {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
         let mut dispatcher = NodeDispatcher::new();
-        // 用真实 DB + 密钥替换默认空壳执行器
         dispatcher.register(LlmExecutor::new(db.clone(), master_key));
         dispatcher.register(AgentExecutor::new(db.clone(), master_key));
         Self {
@@ -150,7 +160,10 @@ impl WorkEngine {
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             cancel_tokens: Arc::new(Mutex::new(HashMap::new())),
-            dispatcher,
+            dispatcher: Arc::new(tokio::sync::RwLock::new(dispatcher)),
+            tool_callback: Arc::new(Mutex::new(None)),
+            subworkflow_callback: Arc::new(Mutex::new(None)),
+            vector_retrieve_callback: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -535,7 +548,7 @@ impl WorkEngine {
                     &node_id,
                     NodeStatus::Failed,
                     None,
-                    Some("断路器已断开".to_string()),
+                    Some("Circuit breaker open".to_string()),
                 )
                 .await
                 .ok();
@@ -568,9 +581,23 @@ impl WorkEngine {
             );
             exec_ctx.variables = deps_results;
 
-            let dispatch_result =
-                tokio::time::timeout(node_timeout, self.dispatcher.dispatch(&node, &exec_ctx))
-                    .await;
+            // 注入运行时回调到执行上下文
+            {
+                let tool_cb = self.tool_callback.lock().await.clone();
+                let sub_cb = self.subworkflow_callback.lock().await.clone();
+                let vr_cb = self.vector_retrieve_callback.lock().await.clone();
+                exec_ctx.callbacks = Some(super::execution_state::ExecutionContextCallbacks {
+                    tool: tool_cb,
+                    subworkflow: sub_cb,
+                    vector_retrieve: vr_cb,
+                });
+            }
+
+            let dispatch_result = tokio::time::timeout(
+                node_timeout,
+                self.dispatcher.read().await.dispatch(&node, &exec_ctx),
+            )
+            .await;
 
             let elapsed_ms = (Utc::now().timestamp_millis() - started_at) as u64;
 
@@ -679,7 +706,7 @@ impl WorkEngine {
                         .or_insert_with(NodeCircuitBreaker::new)
                         .record_failure(current_epoch_ms());
 
-                    let err_msg = "节点执行超时".to_string();
+                    let err_msg = "Node execution timeout".to_string();
                     let current_attempts = {
                         let workflows = self.workflows.read().await;
                         workflows
@@ -965,7 +992,7 @@ pub enum WorkEngineError {
 impl std::fmt::Display for WorkEngineError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NotFound(id) => write!(f, "执行记录未找到: {id}"),
+            Self::NotFound(id) => write!(f, "Execution record not found: {id}"),
             Self::Db(e) => write!(f, "数据库错误: {e}"),
             Self::Execution(e) => write!(f, "执行错误: {e}"),
         }

@@ -26,11 +26,11 @@ pub use llm_executor::LlmExecutor;
 pub use loop_executor::LoopExecutor;
 pub use merge_executor::MergeExecutor;
 pub use parallel_executor::ParallelExecutor;
-pub use subworkflow_executor::SubWorkflowExecutor;
-pub use tool_executor::ToolExecutor;
+pub use subworkflow_executor::{SubWorkflowCallback, SubWorkflowExecutor};
+pub use tool_executor::{ToolCallback, ToolExecutor};
 pub use trigger_executor::TriggerExecutor;
 pub use validation_executor::ValidationExecutor;
-pub use vector_retrieve_executor::VectorRetrieveExecutor;
+pub use vector_retrieve_executor::{VectorRetrieveCallback, VectorRetrieveExecutor};
 
 /// 获取节点类型名称（从 node_executor_trait 导入，供执行器使用）。
 pub use crate::work_engine::node_executor_trait::node_type_name;

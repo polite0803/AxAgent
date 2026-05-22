@@ -34,10 +34,10 @@ impl NodeExecutorTrait for CodeExecutor {
         _context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Code(code_node) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "code".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "code".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
 
         // 当前不实际执行代码，返回代码摘要供 LLM 或下游节点使用

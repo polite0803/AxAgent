@@ -28,10 +28,10 @@ impl NodeExecutorTrait for ParallelExecutor {
         _ctx: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Parallel(pn) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "parallel".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "parallel".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
         let branches: Vec<String> = pn.config.branches.iter().map(|b| b.id.clone()).collect();
         Ok(NodeOutput {

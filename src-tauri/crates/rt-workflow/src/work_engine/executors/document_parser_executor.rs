@@ -28,10 +28,10 @@ impl NodeExecutorTrait for DocumentParserExecutor {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::DocumentParser(dp) = node else {
-            return Err(NodeError::InvalidNodeType {
-                expected: "document_parser".to_string(),
-                got: super::node_type_name(node).to_string(),
-            });
+            return Err(NodeError::type_mismatch(
+                "document_parser".to_string(),
+                super::node_type_name(node).to_string(),
+            ));
         };
         // 从上下文变量中获取输入文档内容
         let input_content = context

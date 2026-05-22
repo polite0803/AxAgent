@@ -37,9 +37,31 @@ pub struct NodeExecutionRecord {
     pub completed_at: Option<i64>,
 }
 
+use super::executors::{SubWorkflowCallback, ToolCallback, VectorRetrieveCallback};
+
+/// 运行时回调容器（非序列化，仅在内存中传递）
+#[derive(Clone)]
+pub struct ExecutionContextCallbacks {
+    pub tool: Option<ToolCallback>,
+    pub subworkflow: Option<SubWorkflowCallback>,
+    pub vector_retrieve: Option<VectorRetrieveCallback>,
+}
+
+impl std::fmt::Debug for ExecutionContextCallbacks {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ExecutionContextCallbacks")
+            .field("tool", &self.tool.is_some())
+            .field("subworkflow", &self.subworkflow.is_some())
+            .field("vector_retrieve", &self.vector_retrieve.is_some())
+            .finish()
+    }
+}
+
 /// Runtime execution state for a workflow
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionState {
+    #[serde(skip, default)]
+    pub callbacks: Option<ExecutionContextCallbacks>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -63,6 +85,7 @@ impl ExecutionState {
             variables: std::collections::HashMap::new(),
             node_records: Vec::new(),
             current_node_id: None,
+            callbacks: None,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,
