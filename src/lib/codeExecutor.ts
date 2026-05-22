@@ -90,7 +90,7 @@ class CodeExecutor {
     } catch (error) {
       return {
         stdout: "",
-        stderr: "Execution failed. Check your code for errors.",
+        stderr: error instanceof Error ? error.message : String(error),
         exit_code: -1,
         duration_ms: performance.now() - start,
       };
@@ -153,11 +153,12 @@ json.dumps({"stdout": _stdout, "stderr": _stderr})
         duration_ms: performance.now() - start,
       };
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
         stdout: "",
-        stderr: error instanceof Error && error.message.includes("timed out")
+        stderr: message.includes("timed out")
           ? "Python execution timed out (30s limit)"
-          : "Execution failed. Check your code for errors.",
+          : message,
         exit_code: -1,
         duration_ms: performance.now() - start,
       };

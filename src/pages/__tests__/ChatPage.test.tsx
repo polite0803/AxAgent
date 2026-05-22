@@ -32,6 +32,11 @@ const tabState = {
 };
 
 vi.mock("antd", () => ({
+  Typography: {
+    Title: ({ children }: any) => children,
+    Text: ({ children }: any) => children,
+    Paragraph: ({ children }: any) => children,
+  },
   theme: {
     useToken: () => ({
       token: {
@@ -49,6 +54,10 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => {},
+  },
 }));
 
 vi.mock("@/stores", () => ({

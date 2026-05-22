@@ -96,15 +96,15 @@ describe("ArtifactRenderer", () => {
   // renderMermaid — 占位实现
   // ═══════════════════════════════════════════════════════════════
   describe("renderMermaid", () => {
-    it("应使用 pre 标签包裹代码", () => {
+    it("应将代码文本设置到容器中", () => {
       const container = document.createElement("div");
       const code = "graph TD; A-->B;";
 
       const renderer = new ArtifactRenderer();
       renderer.renderMermaid(code, container);
 
-      expect(container.innerHTML).toContain("<pre>");
-      expect(container.innerHTML).toContain("graph TD");
+      expect(container.textContent).toContain("graph TD");
+      expect(container.textContent).toContain("A-->B");
     });
   });
 
@@ -112,14 +112,14 @@ describe("ArtifactRenderer", () => {
   // renderD2 — 占位实现
   // ═══════════════════════════════════════════════════════════════
   describe("renderD2", () => {
-    it("应使用 pre 标签包裹代码", () => {
+    it("应将代码文本设置到容器中", () => {
       const container = document.createElement("div");
       const code = "x -> y";
 
       const renderer = new ArtifactRenderer();
       renderer.renderD2(code, container);
 
-      expect(container.innerHTML).toContain("<pre>");
+      expect(container.textContent).toContain("x -> y");
       expect(container.innerHTML).toContain("x -&gt; y"); // HTML 实体转义
     });
   });

@@ -90,7 +90,9 @@ describe("WebDavSync", () => {
       screen.getByRole("textbox", { name: "backup.webdav.username" }),
       "alice",
     );
-    await user.type(screen.getByLabelText("backup.webdav.password"), "secret");
+    // Ant Design Input.Password 在 Form.Item 中不暴露标准 role
+    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+    await user.type(passwordInput, "secret");
 
     await user.click(screen.getByRole("button", { name: "OK" }));
 

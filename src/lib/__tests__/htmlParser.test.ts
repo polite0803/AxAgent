@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { composeHtml, isChartOption } from "../htmlParser";
+import { composeHtml, enableHtmlCompose, isChartOption } from "../htmlParser";
 
 describe("composeHtml", () => {
+  enableHtmlCompose();
+
   it("wraps HTML with boilerplate structure", () => {
     const result = composeHtml({ html: "<p>Hello</p>" });
     expect(result).toContain("<!DOCTYPE html>");
