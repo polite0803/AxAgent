@@ -1311,10 +1311,7 @@ export const WorkflowTemplateSelector: React.FC<
               color: "var(--ant-color-text-secondary, #666)",
             }}
           >
-            {t(
-              "chat.workflow.presetsNotImported",
-              "开发场景工作流模板（代码审查、Bug修复、重构等）需先在专家选择器中「导入内置专家」后解锁。",
-            )}
+            {t("chat.workflow.presetsNotImported")}
           </div>
         )}
         {filteredTemplates.map((template) => (

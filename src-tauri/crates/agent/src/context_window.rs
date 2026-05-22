@@ -62,15 +62,29 @@ impl ContextWindow {
         let (old_steps, recent) = steps.split_at(split_point);
 
         // 提取关键步骤（已验证通过且有观察结果）
-        let crucial: Vec<ThoughtStep> = old_steps
-            .iter()
-            .filter(|s| {
-                s.is_verified
-                    && s.observation.is_some()
-                    && matches!(s.state, ReasoningState::Acting | ReasoningState::Observing)
-            })
-            .cloned()
-            .collect();
+        let crucial: Vec<ThoughtStep> = {
+            let qualified: Vec<ThoughtStep> = old_steps
+                .iter()
+                .filter(|s| {
+                    s.is_verified
+                        && s.observation.is_some()
+                        && matches!(s.state, ReasoningState::Acting | ReasoningState::Observing)
+                })
+                .cloned()
+                .collect();
+            if config.deduplicate_similar {
+                let mut seen = std::collections::HashSet::new();
+                qualified
+                    .into_iter()
+                    .filter(|s| {
+                        let key = s.observation.as_deref().unwrap_or("").to_lowercase();
+                        seen.insert(key)
+                    })
+                    .collect()
+            } else {
+                qualified
+            }
+        };
 
         // 生成旧步骤摘要
         let summary = if old_steps.len() > config.summarize_older_than {
