@@ -1,6 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
+use crate::commands::error_code::storage_path as storage_path_err;
 use axagent_core::storage_inventory::{self, StorageInventory};
 use axagent_core::storage_paths;
 use serde::Serialize;
@@ -100,7 +101,11 @@ pub async fn change_documents_root(
     let old_root = storage_paths::documents_root();
 
     if new_root == old_root {
-        return Err("新目录与当前目录相同".into());
+        return Err(serde_json::to_string(
+            &ErrorResponse::new(storage_path_err::SAME_AS_CURRENT)
+                .with_detail("新目录与当前目录相同".to_string()),
+        )
+        .unwrap());
     }
 
     if !new_root.is_absolute() {

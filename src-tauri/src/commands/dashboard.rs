@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::dashboard as dashboard_err;
 use axagent_runtime::dashboard_plugin::{DashboardPluginAdapter, DashboardPluginManifest};
 use axagent_runtime::dashboard_registry::DashboardPluginInfo;
 use std::path::PathBuf;
@@ -152,7 +154,7 @@ pub async fn dashboard_install_plugin(
             let dest = dest_dir;
             copy_dir_recursive(&source, &dest)?;
         } else {
-            return Err("Selected directory does not contain a manifest.json".to_string());
+            return Err(ErrorResponse::new(dashboard_err::NO_MANIFEST));
         }
     } else if source.extension().and_then(|e| e.to_str()) == Some("json") {
         let manifest_str = std::fs::read_to_string(&source)
@@ -162,11 +164,12 @@ pub async fn dashboard_install_plugin(
         let dest_dir = plugins_dir.join(&manifest.id);
         std::fs::create_dir_all(&dest_dir)
             .map_err(|e| format!("Failed to create plugin dir: {}", e))?;
-        std::fs::copy(&source, dest_dir.join("manifest.json"))
-            .map_err(|e| format!("Failed to copy manifest: {}", e))?;
+        std::fs::copy(&source, dest_dir.join("manifest.json")).map_err(|e| {
+            ErrorResponse::new(dashboard_err::COPY_MANIFEST_FAILED)
+                .with_detail(format!("Failed to copy manifest: {}", e))
+        })?;
     } else {
-        return Err("Please select a directory containing manifest.json or a manifest.json file"
-            .to_string());
+        return Err(ErrorResponse::new(dashboard_err::NO_MANIFEST));
     }
 
     let registry = state

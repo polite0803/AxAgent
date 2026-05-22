@@ -1,6 +1,10 @@
 use crate::AppState;
 #[cfg(test)]
 use crate::app_state::SemanticCacheState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::session as session_err;
+use crate::commands::error_code::thinking as thinking_err;
+use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use axagent_core::types::*;
@@ -28,6 +32,16 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
     }
+}
+
+/// 获取思考块开始标记
+fn get_thinking_block_start() -> &'static str {
+    &format!("<think data-axagent=\"{}\" data-code=\"{}\">\n", "1", thinking_err::BLOCK_START)
+}
+
+/// 获取思考块结束标记
+fn get_thinking_block_end() -> &'static str {
+    &format!("\n</think>\n\n")
 }
 
 /// Resolve effective system prompt with priority: Conversation → Category → Global Default
@@ -805,7 +819,7 @@ async fn consume_stream(
                             if !full_content.is_empty() {
                                 emit_content.push_str("\n\n");
                             }
-                            emit_content.push_str("<think data-axagent=\"1\">\n");
+                            emit_content.push_str(get_thinking_block_start());
                             in_thinking_block = true;
                             thinking_block_start = Some(std::time::Instant::now());
                         }
@@ -883,7 +897,7 @@ async fn consume_stream(
                                     if !full_content.is_empty() {
                                         emit_content.push_str("\n\n");
                                     }
-                                    emit_content.push_str("<think data-axagent=\"1\">\n");
+                                    emit_content.push_str(get_thinking_block_start());
                                     in_thinking_block = true;
                                     thinking_block_start = Some(std::time::Instant::now());
                                 }
@@ -917,7 +931,7 @@ async fn consume_stream(
                         .map(|s| s.elapsed().as_millis() as u64)
                         .unwrap_or(0);
                     thinking_durations.push(total_ms);
-                    emit_content.push_str("\n</think>\n\n");
+                    emit_content.push_str(get_thinking_block_end());
                     in_thinking_block = false;
                     thinking_block_start = None;
                 }
@@ -1011,7 +1025,7 @@ async fn consume_stream(
             .map(|s| s.elapsed().as_millis() as u64)
             .unwrap_or(0);
         thinking_durations.push(total_ms);
-        full_content.push_str("\n</think>\n\n");
+        full_content.push_str(get_thinking_block_end());
     }
 
     // Flush any content buffered in cross-delta inline <think> accumulation.
@@ -1726,7 +1740,7 @@ pub async fn regenerate_conversation_title(
         .collect();
 
     if conversation_messages.is_empty() {
-        return Err("No messages found to generate title from".to_string());
+        return Err(ErrorResponse::new(title_err::NO_MESSAGES));
     }
 
     // Load provider for fallback
@@ -4003,7 +4017,7 @@ pub async fn compress_context(
     }
 
     if history_messages.is_empty() {
-        return Err("No messages to compress".to_string());
+        return Err(ErrorResponse::new(session_err::NO_MESSAGES));
     }
 
     // Load existing summary

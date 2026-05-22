@@ -1,3 +1,5 @@
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::terminal as terminal_err;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -26,7 +28,7 @@ pub async fn git_get_branch() -> Result<String, String> {
         .map_err(|e| format!("Failed to execute git: {}", e))?;
 
     if !output.status.success() {
-        return Err("Failed to get git branch".to_string());
+        return Err(ErrorResponse::new(terminal_err::GIT_BRANCH_FAILED));
     }
 
     let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();

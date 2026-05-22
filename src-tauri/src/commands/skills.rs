@@ -729,12 +729,12 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
     let branch = manifest["branch"].as_str().unwrap_or("main");
 
     if source_kind != "github" {
-        return Err("Rollback is only supported for GitHub-sourced skills".to_string());
+        return Err(ErrorResponse::new(skill_op_err::ROLLBACK_NOT_SUPPORTED));
     }
 
     let parts: Vec<&str> = source_ref.split('/').collect();
     if parts.len() != 2 {
-        return Err("Invalid source_ref format".to_string());
+        return Err(ErrorResponse::new(skill_op_err::INVALID_FORMAT));
     }
 
     let (owner, repo) = (parts[0], parts[1]);

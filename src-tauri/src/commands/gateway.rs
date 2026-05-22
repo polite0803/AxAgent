@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::gateway as gateway_err;
 use axagent_core::repo::cli_config::CliTool;
 use axagent_core::types::*;
 use tauri::State;
@@ -70,10 +72,10 @@ fn validate_ssl_settings(s: &GatewayRuntimeSettings) -> Result<(), String> {
         return Ok(());
     }
     if s.ssl_cert_path.as_deref().unwrap_or("").trim().is_empty() {
-        return Err("SSL is enabled but no certificate file is configured".to_string());
+        return Err(ErrorResponse::new(gateway_err::SSL_NO_CERT));
     }
     if s.ssl_key_path.as_deref().unwrap_or("").trim().is_empty() {
-        return Err("SSL is enabled but no private key file is configured".to_string());
+        return Err(ErrorResponse::new(gateway_err::SSL_NO_KEY));
     }
     if s.port == s.ssl_port {
         return Err(format!(
@@ -108,7 +110,7 @@ fn build_gateway_url_for_selected_protocol(
     protocol: QuickConnectProtocol,
 ) -> Result<String, String> {
     if matches!(protocol, QuickConnectProtocol::Http) && force_ssl {
-        return Err("HTTP is unavailable for quick connect while Force SSL is enabled".to_string());
+        return Err(ErrorResponse::new(gateway_err::HTTP_UNAVAILABLE));
     }
 
     build_gateway_url_for_protocol(listen_address, http_port, https_port, tool, protocol)
@@ -464,7 +466,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
     {
         let gw = state.gateway.lock().await;
         if gw.as_ref().is_some_and(|s| s.is_running()) {
-            return Err("Gateway is already running".to_string());
+            return Err(ErrorResponse::new(gateway_err::ALREADY_RUNNING));
         }
     }
 
@@ -473,7 +475,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
 
     let mut gw = state.gateway.lock().await;
     if gw.as_ref().is_some_and(|s| s.is_running()) {
-        return Err("Gateway is already running".to_string());
+        return Err(ErrorResponse::new(gateway_err::ALREADY_RUNNING));
     }
     // Drop any stale stopped server before storing the new one.
     if gw.is_some() {

@@ -191,3 +191,113 @@ pub mod stream {
     /// 提供商返回空响应
     pub const EMPTY_RESPONSE: &str = "STREAM_EMPTY_RESPONSE";
 }
+
+/// Agent状态消息码
+pub mod agent_status {
+    /// 正在初始化
+    pub const INITIALIZING: &str = "AGENT_STATUS_INITIALIZING";
+    /// 正在调用模型
+    pub const CALLING_MODEL: &str = "AGENT_STATUS_CALLING_MODEL";
+    /// 已应用引导指令
+    pub const STEER_APPLIED: &str = "AGENT_STATUS_STEER_APPLIED";
+}
+
+/// 思考块标记
+pub mod thinking {
+    /// 思考块开始标记
+    pub const BLOCK_START: &str = "THINKING_BLOCK_START";
+    /// 思考块结束标记
+    pub const BLOCK_END: &str = "THINKING_BLOCK_END";
+}
+
+/// 标题生成相关错误码
+pub mod title {
+    /// 没有可用于生成标题的消息
+    pub const NO_MESSAGES: &str = "TITLE_NO_MESSAGES";
+}
+
+/// 会话压缩相关错误码
+pub mod session {
+    /// 没有可压缩的消息
+    pub const NO_MESSAGES: &str = "SESSION_NO_MESSAGES_TO_COMPRESS";
+}
+
+/// Agent指令相关错误码
+pub mod steer {
+    /// 指令太长
+    pub const INSTRUCTION_TOO_LONG: &str = "STEER_INSTRUCTION_TOO_LONG";
+}
+
+/// 存储路径相关错误码
+pub mod storage_path {
+    /// 新目录与当前目录相同
+    pub const SAME_AS_CURRENT: &str = "STORAGE_PATH_SAME_AS_CURRENT";
+}
+
+/// ZIP安全相关错误码
+pub mod security {
+    /// 检测到路径遍历
+    pub const PATH_TRAVERSAL: &str = "SECURITY_PATH_TRAVERSAL";
+    /// 访问被拒绝，文件在技能目录外
+    pub const ACCESS_DENIED: &str = "SECURITY_ACCESS_DENIED";
+}
+
+/// 技能操作相关错误码
+pub mod skill_operation {
+    /// 仅支持GitHub源技能的回滚
+    pub const ROLLBACK_NOT_SUPPORTED: &str = "SKILL_OP_ROLLBACK_NOT_SUPPORTED";
+    /// 无效的source_ref格式
+    pub const INVALID_FORMAT: &str = "SKILL_OP_INVALID_SOURCE_REF";
+}
+
+/// 终端相关错误码
+pub mod terminal {
+    /// 获取git分支失败
+    pub const GIT_BRANCH_FAILED: &str = "TERMINAL_GIT_BRANCH_FAILED";
+}
+
+/// 平台集成相关错误码
+pub mod platform {
+    /// Telegram集成未启用
+    pub const TELEGRAM_NOT_ENABLED: &str = "PLATFORM_TELEGRAM_NOT_ENABLED";
+    /// Discord集成未启用
+    pub const DISCORD_NOT_ENABLED: &str = "PLATFORM_DISCORD_NOT_ENABLED";
+    /// API服务器未启用
+    pub const API_SERVER_NOT_ENABLED: &str = "PLATFORM_API_SERVER_NOT_ENABLED";
+}
+
+/// 代理测试相关错误码
+pub mod proxy {
+    /// 无法使用内部/私有地址测试代理
+    pub const ADDRESS_NOT_ALLOWED: &str = "PROXY_ADDRESS_NOT_ALLOWED";
+}
+
+/// 仪表盘相关错误码
+pub mod dashboard {
+    /// 目录不包含manifest.json
+    pub const NO_MANIFEST: &str = "DASHBOARD_NO_MANIFEST";
+    /// 复制manifest失败
+    pub const COPY_MANIFEST_FAILED: &str = "DASHBOARD_COPY_MANIFEST_FAILED";
+}
+
+/// 文件操作相关错误码
+pub mod file {
+    /// 路径为空
+    pub const PATH_EMPTY: &str = "FILE_PATH_EMPTY";
+    /// 文件未找到
+    pub const FILE_NOT_FOUND: &str = "FILE_NOT_FOUND";
+    /// 文件和父目录都不存在
+    pub const FILE_AND_PARENT_NOT_EXIST: &str = "FILE_AND_PARENT_NOT_EXIST";
+}
+
+/// 网关相关错误码
+pub mod gateway {
+    /// SSL已启用但未配置证书文件
+    pub const SSL_NO_CERT: &str = "GATEWAY_SSL_NO_CERT";
+    /// SSL已启用但未配置私钥文件
+    pub const SSL_NO_KEY: &str = "GATEWAY_SSL_NO_KEY";
+    /// HTTP在强制SSL时不可用
+    pub const HTTP_UNAVAILABLE: &str = "GATEWAY_HTTP_UNAVAILABLE";
+    /// 网关已在运行
+    pub const ALREADY_RUNNING: &str = "GATEWAY_ALREADY_RUNNING";
+}

@@ -141,7 +141,7 @@ pub async fn test_proxy(
     }
 
     if is_private {
-        return Err("Cannot test proxy with internal/private addresses".into());
+        return Err(ErrorResponse::new(proxy_err::ADDRESS_NOT_ALLOWED));
     }
 
     let addr = format!("{}:{}", proxy_address, proxy_port);

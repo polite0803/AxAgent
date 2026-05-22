@@ -171,12 +171,12 @@ pub fn parse_entry_id(entry_id: &str) -> Result<(&str, &str), String> {
 
 /// Validate that `path` is non-empty and exists on disk.
 /// Returns a descriptive error that surfaces to the caller; never swallows it.
-pub fn validate_path_for_open(path: &str) -> Result<(), String> {
+pub fn validate_path_for_open(path: &str) -> Result<(), ErrorResponse> {
     if path.is_empty() {
-        return Err("Path is empty".to_string());
+        return Err(ErrorResponse::new(file_err::PATH_EMPTY));
     }
     if !Path::new(path).exists() {
-        return Err(format!("File not found: {}", path));
+        return Err(ErrorResponse::new(file_err::FILE_NOT_FOUND));
     }
     Ok(())
 }
@@ -248,9 +248,9 @@ pub async fn save_avatar_file(data: String, mime_type: String) -> Result<String,
 }
 
 #[tauri::command]
-pub async fn resolve_attachment_path(file_path: String) -> Result<String, String> {
+pub async fn resolve_attachment_path(file_path: String) -> Result<String, ErrorResponse> {
     if file_path.is_empty() {
-        return Err("file_path is empty".to_string());
+        return Err(ErrorResponse::new(file_err::PATH_EMPTY));
     }
     Ok(resolve_storage_path(&file_path))
 }
@@ -259,9 +259,9 @@ pub async fn resolve_attachment_path(file_path: String) -> Result<String, String
 pub async fn reveal_attachment_file(
     app: tauri::AppHandle,
     file_path: String,
-) -> Result<(), String> {
+) -> Result<(), ErrorResponse> {
     if file_path.is_empty() {
-        return Err("file_path is empty".to_string());
+        return Err(ErrorResponse::new(file_err::PATH_EMPTY));
     }
     let abs = resolve_storage_path(&file_path);
     use tauri_plugin_opener::OpenerExt;
@@ -275,14 +275,14 @@ pub async fn reveal_attachment_file(
             .reveal_item_in_dir(parent.to_string_lossy().as_ref())
             .map_err(|e| e.to_string())
     } else {
-        Err("File and parent directory do not exist".to_string())
+        Err(ErrorResponse::new(file_err::FILE_AND_PARENT_NOT_EXIST))
     }
 }
 
 /// Pure validation logic for `open_attachment_file`, extracted for unit tests.
-fn open_attachment_file_validate(file_path: &str) -> Result<String, String> {
+fn open_attachment_file_validate(file_path: &str) -> Result<String, ErrorResponse> {
     if file_path.is_empty() {
-        return Err("file_path is empty".to_string());
+        return Err(ErrorResponse::new(file_err::PATH_EMPTY));
     }
     let abs = resolve_storage_path(file_path);
     validate_path_for_open(&abs)?;
@@ -372,6 +372,7 @@ pub async fn cleanup_missing_files_page_entry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::error_code::file as file_err;
     use crate::commands::file_cleanup;
 
     fn make_stored_file(id: &str, name: &str, mime: &str, path: &str) -> StoredFile {
@@ -535,17 +536,16 @@ mod tests {
     fn test_open_returns_error_for_unavailable_path() {
         let result = validate_path_for_open("/absolutely/does/not/exist/file.txt");
         assert!(result.is_err());
-        let msg = result.unwrap_err();
-        assert!(
-            msg.to_lowercase().contains("not found") || msg.to_lowercase().contains("empty"),
-            "error message should describe the problem, got: {msg}"
-        );
+        let err = result.unwrap_err();
+        assert_eq!(err.code, file_err::FILE_NOT_FOUND);
     }
 
     #[test]
     fn test_open_returns_error_for_empty_path() {
         let result = validate_path_for_open("");
         assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.code, file_err::PATH_EMPTY);
     }
 
     #[test]
@@ -561,20 +561,18 @@ mod tests {
 
     #[test]
     fn test_open_attachment_rejects_empty_path() {
-        // open_attachment_file's first guard: empty string → Err
-        assert_eq!(open_attachment_file_validate(""), Err("file_path is empty".to_string()),);
+        let result = open_attachment_file_validate("");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.code, file_err::PATH_EMPTY);
     }
 
     #[test]
     fn test_open_attachment_rejects_missing_file() {
-        // After resolve, validate_path_for_open should reject a non-existent path
         let result = open_attachment_file_validate("nonexistent/dir/fake.pdf");
         assert!(result.is_err());
-        let msg = result.unwrap_err();
-        assert!(
-            msg.to_lowercase().contains("not found"),
-            "should report file not found, got: {msg}"
-        );
+        let err = result.unwrap_err();
+        assert_eq!(err.code, file_err::FILE_NOT_FOUND);
     }
 
     #[test]

@@ -1,6 +1,8 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
+use crate::commands::error_code::agent_status as agent_status_err;
+use crate::commands::error_code::steer as steer_err;
 use axagent_agent::{
     AgentExecutionProgressSnapshot, AxAgentApiClient, McpServerConfig, ToolRegistry,
 };
@@ -237,6 +239,9 @@ pub struct AgentStatusPayload {
     /// 当前阶段: "init" | "setup" | "running" | "done" | "error"
     pub phase: String,
     pub message: String,
+    /// 消息的错误码，用于前端i18n翻译查询
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -543,13 +548,20 @@ pub struct AgentEnsureWorkspaceResponse {
 
 /// Execute an agent query
 /// 发射 agent 状态事件，让前端实时展示后端进度
-fn emit_status(app: &AppHandle, conversation_id: &str, phase: &str, message: &str) {
+fn emit_status(
+    app: &AppHandle,
+    conversation_id: &str,
+    phase: &str,
+    message: &str,
+    code: Option<&str>,
+) {
     let _ = app.emit(
         "agent-status",
         AgentStatusPayload {
             conversation_id: conversation_id.to_string(),
             phase: phase.to_string(),
             message: message.to_string(),
+            code: code.map(String::from),
         },
     );
 }
@@ -562,7 +574,13 @@ pub async fn agent_query(
 ) -> Result<AgentQueryResponse, String> {
     let conversation_id = request.conversation_id.clone();
     info!("[agent_query] Starting for conversation: {}", conversation_id);
-    emit_status(&app, &conversation_id, "init", "正在初始化...");
+    emit_status(
+        &app,
+        &conversation_id,
+        "init",
+        "正在初始化...",
+        Some(agent_status_err::INITIALIZING),
+    );
 
     let conversation = conversation::get_conversation(&app_state.sea_db, &conversation_id)
         .await
@@ -1656,7 +1674,13 @@ pub async fn agent_query(
     // post-compaction, and session persistence)
     let session_id = session.session().session_id.clone();
     info!("[agent_query] About to run_turn_with_tools for session: {}", session_id);
-    emit_status(&app, &conversation_id, "running", "正在调用模型...");
+    emit_status(
+        &app,
+        &conversation_id,
+        "running",
+        "正在调用模型...",
+        Some(agent_status_err::CALLING_MODEL),
+    );
 
     // Create and register a cancel token for this agent run
     let cancel_token = Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -1682,6 +1706,7 @@ pub async fn agent_query(
                 &conversation_id,
                 "steer_applied",
                 &format!("已应用 {} 条引导指令", instructions.len()),
+                Some(agent_status_err::STEER_APPLIED),
             );
             format!(
                 "{}\n[系统提示：用户发送了以下引导指令，请在后续操作中遵循这些指引]\n{}",
@@ -4454,7 +4479,8 @@ pub async fn agent_steer(
     instruction: String,
 ) -> Result<(), String> {
     if instruction.len() > 10_000 {
-        return Err("instruction too long (max 10KB)".into());
+        return Err(ErrorResponse::new(steer_err::INSTRUCTION_TOO_LONG)
+            .with_detail("instruction too long (max 10KB)".to_string()));
     }
     tracing::debug!("[agent_steer] instruction queued ({} bytes)", instruction.len());
     steer_queue().lock().await.push(instruction);
