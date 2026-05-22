@@ -3774,42 +3774,14 @@ pub async fn workflow_create(
 pub async fn workflow_execute(
     app_state: State<'_, AppState>,
     workflow_id: String,
-    provider_id: String,
 ) -> Result<String, String> {
-    let _workflow = app_state
+    // 验证工作流存在
+    let _ = app_state
         .work_engine
         .get_workflow(&workflow_id)
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Workflow not found".to_string())?;
-
-    let prov = axagent_core::repo::provider::get_provider(&app_state.sea_db, &provider_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    let key = prov
-        .keys
-        .iter()
-        .find(|k| k.enabled)
-        .ok_or_else(|| "No active API key for provider".to_string())?;
-
-    // 验证 provider + key 有效（执行通过 NodeDispatcher，无需显式构造 adapter）
-    let _api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &app_state.master_key)
-        .map_err(|e| e.to_string())?;
-
-    let _: Result<(), String> = match prov.provider_type {
-        axagent_core::types::ProviderType::OpenAI
-        | axagent_core::types::ProviderType::OpenAIResponses
-        | axagent_core::types::ProviderType::Anthropic
-        | axagent_core::types::ProviderType::Gemini
-        | axagent_core::types::ProviderType::Ollama => Ok(()),
-        _ => return Err(format!("Unsupported provider type: {:?}", prov.provider_type)),
-    };
-
-    let _workflow_language = axagent_core::repo::settings::get_settings(&app_state.sea_db)
-        .await
-        .ok()
-        .map(|s| s.language);
 
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
@@ -3821,47 +3793,6 @@ pub async fn workflow_execute(
     });
 
     Ok(workflow_id)
-}
-
-/// Execute a workflow with Tauri event notifications
-#[tauri::command]
-pub async fn workflow_execute_with_session(
-    app: tauri::AppHandle,
-    app_state: State<'_, AppState>,
-    workflow_id: String,
-    conversation_id: String,
-    _streaming_message_id: String,
-    _provider_id: String,
-) -> Result<(), String> {
-    let engine = app_state.work_engine.clone();
-    let wid = workflow_id.clone();
-    let cid = conversation_id.clone();
-
-    tokio::spawn(async move {
-        let _ = app.emit(
-            "agent-stream-text",
-            serde_json::json!({
-                "conversation_id": cid,
-                "type": "workflow_start",
-                "workflow_id": wid,
-            }),
-        );
-
-        let opts = axagent_runtime::work_engine::RunOptions::default();
-        let success = engine.run_workflow(&wid, opts).await.is_ok();
-
-        let _ = app.emit(
-            "agent-stream-text",
-            serde_json::json!({
-                "conversation_id": cid,
-                "type": "workflow_complete",
-                "workflow_id": wid,
-                "success": success,
-            }),
-        );
-    });
-
-    Ok(())
 }
 
 /// Get workflow status

@@ -1220,6 +1220,18 @@ export const WorkflowTemplateSelector: React.FC<
             edges,
           },
         });
+        // 创建成功后立即启动执行
+        try {
+          await invoke("workflow_execute", {
+            workflowId: result.workflowId,
+          });
+        } catch (execErr) {
+          console.error(
+            "[WorkflowTemplateSelector] Workflow created but execution failed:",
+            execErr,
+          );
+        }
+
         onSelect(template, result.workflowId);
       } catch (e) {
         console.error(

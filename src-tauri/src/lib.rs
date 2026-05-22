@@ -485,7 +485,6 @@ pub fn run() {
             commands::agent::agent_restore_sdk_context_from_backup,
             commands::agent::workflow_create,
             commands::agent::workflow_execute,
-            commands::agent::workflow_execute_with_session,
             commands::agent::workflow_get_status,
             commands::agent::workflow_cancel,
             commands::agent::workflow_list,
