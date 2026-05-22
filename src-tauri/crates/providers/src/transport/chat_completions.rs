@@ -104,7 +104,6 @@ impl TransportProvider for ChatCompletionsTransport {
     ) -> anyhow::Result<TransportResponse> {
         let url = format!("{}/chat/completions", base_url.unwrap_or(default_url::OPENAI_BASE));
 
-
         let client = reqwest::Client::new();
         let resp = client
             .post(&url)
@@ -126,7 +125,6 @@ impl TransportProvider for ChatCompletionsTransport {
         Box<dyn futures::Stream<Item = anyhow::Result<TransportStreamChunk>> + Send + Unpin>,
     > {
         let url = format!("{}/chat/completions", base_url.unwrap_or(default_url::OPENAI_BASE));
-
 
         let client = reqwest::Client::new();
         let response = client

@@ -1400,11 +1400,9 @@ pub async fn import_n8n_directory(
     let db = &state.sea_db;
     let dir = Path::new(&path);
     if !dir.is_dir() {
-        return Err(
-        ErrorResponse::new(workflow_err::NOT_FOUND)
+        return Err(ErrorResponse::new(workflow_err::NOT_FOUND)
             .with_detail(format!("Path does not exist or is not a directory: {}", path))
-            .into(),
-    );
+            .into());
     }
 
     let mut imported = Vec::new();
@@ -1480,11 +1478,9 @@ pub async fn import_workflow_directory(
     let db = &state.sea_db;
     let dir = Path::new(&path);
     if !dir.is_dir() {
-        return Err(
-        ErrorResponse::new(workflow_err::NOT_FOUND)
+        return Err(ErrorResponse::new(workflow_err::NOT_FOUND)
             .with_detail(format!("Path does not exist or is not a directory: {}", path))
-            .into(),
-    );
+            .into());
     }
 
     let mut imported = Vec::new();

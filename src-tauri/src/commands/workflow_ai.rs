@@ -332,9 +332,7 @@ pub async fn generate_workflow_from_prompt(
 
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = registry
-        .get(registry_key)
-        .ok_or_else(|| {
+    let adapter = registry.get(registry_key).ok_or_else(|| {
         ErrorResponse::err_with_detail(
             provider_err::ADAPTER_NOT_FOUND,
             format!("Provider adapter not found for type: {}", registry_key),
@@ -459,9 +457,7 @@ pub async fn optimize_agent_prompt(
 
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = registry
-        .get(registry_key)
-        .ok_or_else(|| {
+    let adapter = registry.get(registry_key).ok_or_else(|| {
         ErrorResponse::err_with_detail(
             provider_err::ADAPTER_NOT_FOUND,
             format!("Provider adapter not found for type: {}", registry_key),
@@ -571,9 +567,7 @@ pub async fn recommend_nodes(
 
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = registry
-        .get(registry_key)
-        .ok_or_else(|| {
+    let adapter = registry.get(registry_key).ok_or_else(|| {
         ErrorResponse::err_with_detail(
             provider_err::ADAPTER_NOT_FOUND,
             format!("Provider adapter not found for type: {}", registry_key),

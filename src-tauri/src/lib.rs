@@ -1267,8 +1267,7 @@ pub fn run() {
                 let lower = error_msg.to_lowercase();
                 if lower.contains("webview2") || lower.contains("webview") || lower.contains("edge")
                 {
-                    const WEBVIEW2_DOWNLOAD_URL: &str =
-                        "https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH#download";
+                    const WEBVIEW2_DOWNLOAD_URL: &str = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH#download";
                     let user_ok = windows_utils::show_warning_ok_cancel(
                         "AxAgent",
                         "未检测到 Microsoft Edge WebView2 Runtime，AxAgent 无法启动。\n\n点击「确定」打开下载页面进行安装，安装完成后重新启动 AxAgent。",

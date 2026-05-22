@@ -232,16 +232,9 @@ pub async fn execute_scheduled_task(
     state: State<'_, AppState>,
     task_id: String,
 ) -> Result<TaskRunResultDto, String> {
-    let job = state
-        .cron_job_store
-        .get(&task_id)
-        .await
-        .ok_or_else(|| {
-            ErrorResponse::err_with_detail(
-                task_err::NOT_FOUND,
-                format!("Task not found: {}", task_id),
-            )
-        })?;
+    let job = state.cron_job_store.get(&task_id).await.ok_or_else(|| {
+        ErrorResponse::err_with_detail(task_err::NOT_FOUND, format!("Task not found: {}", task_id))
+    })?;
     let result = TaskRunResult {
         success: true,
         output: Some(format!("Task '{}' executed manually", job.name)),

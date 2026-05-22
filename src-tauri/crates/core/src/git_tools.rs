@@ -419,9 +419,9 @@ mod tests {
 }
 
 #[cfg(target_os = "android")]
-use serde::{Deserialize, Serialize};
-#[cfg(target_os = "android")]
 use crate::constants::android_msg;
+#[cfg(target_os = "android")]
+use serde::{Deserialize, Serialize};
 
 #[cfg(target_os = "android")]
 #[derive(Debug, Clone, Serialize, Deserialize)]

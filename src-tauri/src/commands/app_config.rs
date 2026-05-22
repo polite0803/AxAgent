@@ -15,11 +15,9 @@ pub async fn get_app_config(state: State<'_, AppState>) -> Result<serde_json::Va
             serde_json::from_str(&json_str).map_err(|e| format!("解析配置失败: {}", e))
         },
         Ok(None) => Ok(serde_json::json!({})),
-        Err(e) => Err(
-            ErrorResponse::new(storage_err::READ_FILE_FAILED)
-                .with_detail(format!("读取配置失败: {}", e))
-                .into(),
-        ),
+        Err(e) => Err(ErrorResponse::new(storage_err::READ_FILE_FAILED)
+            .with_detail(format!("读取配置失败: {}", e))
+            .into()),
     }
 }
 

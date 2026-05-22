@@ -224,14 +224,12 @@ async fn generate_plan_via_llm(
     // Resolve provider adapter
     let registry_key = format!("{:?}", provider_config.provider_type).to_lowercase();
     let registry = ProviderRegistry::create_default();
-    let adapter = registry
-        .get(&registry_key)
-        .ok_or_else(|| {
-            ErrorResponse::err_with_detail(
-                provider_err::ADAPTER_NOT_FOUND,
-                format!("Provider adapter not found for: {}", registry_key),
-            )
-        })?;
+    let adapter = registry.get(&registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for: {}", registry_key),
+        )
+    })?;
 
     // Get active key and decrypt
     let key_row = get_active_key(db, provider_id)
@@ -325,11 +323,9 @@ async fn generate_plan_via_llm(
         .ok_or_else(|| "Plan response missing 'steps' array".to_string())?;
 
     if steps_raw.is_empty() {
-        return Err(
-            ErrorResponse::new(workflow_err::INVALID_JSON)
-                .with_detail("Plan must have at least one step")
-                .into(),
-        );
+        return Err(ErrorResponse::new(workflow_err::INVALID_JSON)
+            .with_detail("Plan must have at least one step")
+            .into());
     }
 
     let now = chrono::Utc::now().timestamp_millis();

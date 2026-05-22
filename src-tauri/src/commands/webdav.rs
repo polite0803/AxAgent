@@ -147,11 +147,9 @@ pub async fn webdav_restore(
         let ok =
             webdav::verify_db_checksum(&contents.db_path, expected).map_err(|e| e.to_string())?;
         if !ok {
-            return Err(
-                ErrorResponse::new(backup_err::RESTORE_FAILED)
-                    .with_detail("Backup checksum verification failed — file may be corrupted")
-                    .into(),
-            );
+            return Err(ErrorResponse::new(backup_err::RESTORE_FAILED)
+                .with_detail("Backup checksum verification failed — file may be corrupted")
+                .into());
         }
     }
 
@@ -331,11 +329,9 @@ async fn do_webdav_backup_once(
     // 1. Load config
     let config = get_webdav_config_from_db(db, master_key).await?;
     if config.host.is_empty() {
-        return Err(
-            ErrorResponse::new(backup_err::CREATE_FAILED)
-                .with_detail("WebDAV is not configured")
-                .into(),
-        );
+        return Err(ErrorResponse::new(backup_err::CREATE_FAILED)
+            .with_detail("WebDAV is not configured")
+            .into());
     }
 
     let settings = settings_repo::get_settings(db)

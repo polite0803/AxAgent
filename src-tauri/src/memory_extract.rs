@@ -193,7 +193,6 @@ pub async fn extract_memories_from_messages(
 
 // ── Memory Consolidation ──────────────────────────────────────────────────────
 
-
 pub async fn consolidate_memories(
     contents: &[String],
     adapter: &dyn ProviderAdapter,
@@ -222,7 +221,9 @@ pub async fn consolidate_memories(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(consolidation_system_prompt(PromptLang::ZhCN).to_string()),
+                content: ChatContent::Text(
+                    consolidation_system_prompt(PromptLang::ZhCN).to_string(),
+                ),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -313,7 +314,6 @@ pub struct EntityExtractionResult {
     pub relations: Vec<ExtractedRelation>,
 }
 
-
 pub async fn extract_entities_from_messages(
     messages: &[Message],
     adapter: &dyn ProviderAdapter,
@@ -357,7 +357,9 @@ pub async fn extract_entities_from_messages(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(entity_extraction_system_prompt(PromptLang::ZhCN).to_string()),
+                content: ChatContent::Text(
+                    entity_extraction_system_prompt(PromptLang::ZhCN).to_string(),
+                ),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
