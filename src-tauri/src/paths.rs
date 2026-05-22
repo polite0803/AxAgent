@@ -1,8 +1,5 @@
 use std::path::PathBuf;
 
-/// AxAgent 数据目录名
-const AXAGENT_DIR: &str = ".axagent";
-
 /// Android 包名
 #[cfg(target_os = "android")]
 const ANDROID_PKG: &str = "top.axagent.desktop";
@@ -40,13 +37,13 @@ pub fn axagent_home() -> PathBuf {
                 ("data_dir", || {
                     dirs::data_dir()
                         .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop"))
-                        .join(AXAGENT_DIR)
+                        .join(".axagent")
                 }),
                 // 3. 内部 cache dir
                 ("cache_dir", || {
                     dirs::cache_dir()
                         .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop/cache"))
-                        .join(AXAGENT_DIR)
+                        .join(".axagent")
                 }),
                 // 4. Download 目录（最低优先级，用户可见）
                 ("download", || PathBuf::from("/storage/emulated/0/Download/.axagent")),
@@ -81,7 +78,7 @@ pub fn axagent_home() -> PathBuf {
                     tracing::warn!("Could not determine home directory, using current dir");
                     PathBuf::from(".")
                 });
-            base.join(AXAGENT_DIR)
+            base.join(".axagent")
         }
     }
     #[cfg(not(mobile))]
@@ -97,6 +94,6 @@ pub fn axagent_home() -> PathBuf {
             String::from(".")
         });
 
-        PathBuf::from(home).join(AXAGENT_DIR)
+        PathBuf::from(home).join(".axagent")
     }
 }
