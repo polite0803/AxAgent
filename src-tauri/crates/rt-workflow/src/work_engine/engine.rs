@@ -27,12 +27,41 @@ use super::executors::{
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
 /// 工作流运行选项
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RunOptions {
     pub max_concurrent: usize,
     pub step_timeout: Duration,
     /// 调用方指定的模型 ID（来自会话/用户设置），执行器优先使用
     pub model_id: Option<String>,
+    /// 步骤进度回调（用于向前端推送实时进度事件）
+    pub progress_callback: Option<ProgressCallback>,
+}
+
+/// 步骤进度事件
+#[derive(Debug, Clone)]
+pub struct StepProgressEvent {
+    pub node_id: String,
+    pub status: String,
+    pub total_nodes: usize,
+    pub completed_nodes: usize,
+}
+
+/// 步骤进度回调：`&self` 不可用时使用独立函数签名
+pub type ProgressCallback = Arc<
+    dyn Fn(StepProgressEvent) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>
+        + Send
+        + Sync,
+>;
+
+impl std::fmt::Debug for RunOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RunOptions")
+            .field("max_concurrent", &self.max_concurrent)
+            .field("step_timeout", &self.step_timeout)
+            .field("model_id", &self.model_id)
+            .field("progress_callback", &self.progress_callback.is_some())
+            .finish()
+    }
 }
 
 impl Default for RunOptions {
@@ -41,6 +70,7 @@ impl Default for RunOptions {
             max_concurrent: 3,
             step_timeout: Duration::from_secs(300),
             model_id: None,
+            progress_callback: None,
         }
     }
 }
@@ -59,6 +89,10 @@ impl RunOptions {
     }
     pub fn with_model(mut self, model_id: String) -> Self {
         self.model_id = Some(model_id);
+        self
+    }
+    pub fn with_progress_callback(mut self, cb: ProgressCallback) -> Self {
+        self.progress_callback = Some(cb);
         self
     }
 }
@@ -500,6 +534,14 @@ impl WorkEngine {
             }
         }
 
+        let total_nodes = {
+            let workflows = self.workflows.read().await;
+            workflows
+                .get(workflow_id)
+                .map(|w| w.nodes.len())
+                .unwrap_or(0)
+        };
+        let progress_cb = options.progress_callback.clone();
         let mut breakers: HashMap<String, NodeCircuitBreaker> = HashMap::new();
 
         loop {
@@ -524,7 +566,31 @@ impl WorkEngine {
             // 1. 取一个就绪节点
             let ready_nodes = self.get_ready_steps(workflow_id).await?;
             let Some(node_id) = ready_nodes.into_iter().next() else {
-                break; // 无就绪节点，结束
+                // 死锁检测：上游 Failed 可能永久阻塞下游 Pending/Ready 节点
+                let has_blocked = {
+                    let workflows = self.workflows.read().await;
+                    workflows
+                        .get(workflow_id)
+                        .map(|wf| {
+                            wf.node_states.values().any(|s| {
+                                matches!(s.status, NodeStatus::Pending | NodeStatus::Ready)
+                            })
+                        })
+                        .unwrap_or(false)
+                };
+                if has_blocked {
+                    let mut workflows = self.workflows.write().await;
+                    if let Some(wf) = workflows.get_mut(workflow_id) {
+                        for state in wf.node_states.values_mut() {
+                            if matches!(state.status, NodeStatus::Pending | NodeStatus::Ready) {
+                                state.status = NodeStatus::Skipped;
+                            }
+                        }
+                        wf.status = WorkflowStatus::PartiallyCompleted;
+                        wf.completed_at = Some(current_timestamp());
+                    }
+                }
+                break;
             };
 
             let node = {
@@ -568,6 +634,36 @@ impl WorkEngine {
             self.update_node_status(workflow_id, &node_id, NodeStatus::Running, None, None)
                 .await
                 .ok();
+
+            // 向前端推送"步骤开始运行"进度事件
+            if let Some(ref cb) = progress_cb {
+                let completed = {
+                    let workflows = self.workflows.read().await;
+                    workflows
+                        .get(workflow_id)
+                        .map(|w| {
+                            w.node_states
+                                .values()
+                                .filter(|s| {
+                                    matches!(
+                                        s.status,
+                                        NodeStatus::Completed
+                                            | NodeStatus::Failed
+                                            | NodeStatus::Skipped
+                                    )
+                                })
+                                .count()
+                        })
+                        .unwrap_or(0)
+                };
+                cb(StepProgressEvent {
+                    node_id: node_id.clone(),
+                    status: "running".to_string(),
+                    total_nodes,
+                    completed_nodes: completed,
+                })
+                .await;
+            }
 
             // 3. 分发执行
             let node_timeout = node

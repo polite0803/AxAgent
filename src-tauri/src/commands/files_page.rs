@@ -6,6 +6,8 @@ use std::path::Path;
 use tauri::State;
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::file as file_err;
 
 // ── Shared row type sent to the frontend ─────────────────────────────────────
 

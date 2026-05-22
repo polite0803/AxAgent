@@ -1,4 +1,6 @@
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::proxy as proxy_err;
 use std::sync::atomic::Ordering;
 use tauri::Manager;
 

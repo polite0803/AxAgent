@@ -301,3 +301,27 @@ pub mod gateway {
     /// 网关已在运行
     pub const ALREADY_RUNNING: &str = "GATEWAY_ALREADY_RUNNING";
 }
+
+// ── 别名模块：统一子命令内部使用的简写名称 ──
+pub use agent as agent_err;
+pub use backup as backup_err;
+pub use browser as browser_err;
+pub use conversation as conv_err;
+pub use dashboard as dashboard_err;
+pub use expert as expert_err;
+pub use file as file_err;
+pub use gateway as gateway_err;
+pub use platform as platform_err;
+pub use provider as provider_err;
+pub use proxy as proxy_err;
+pub use search as search_err;
+pub use session as session_err;
+pub use skill as skill_err;
+pub use skill_operation as skill_op_err;
+pub use steer as steer_err;
+pub use storage as storage_err;
+pub use storage_path as storage_path_err;
+pub use terminal as terminal_err;
+pub use thinking as thinking_err;
+pub use title as title_err;
+pub use tool as tool_err;

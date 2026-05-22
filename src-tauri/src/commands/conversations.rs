@@ -35,13 +35,13 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
 }
 
 /// 获取思考块开始标记
-fn get_thinking_block_start() -> &'static str {
-    &format!("<think data-axagent=\"{}\" data-code=\"{}\">\n", "1", thinking_err::BLOCK_START)
+fn get_thinking_block_start() -> String {
+    format!("<think data-axagent=\"{}\" data-code=\"{}\">\n", "1", thinking_err::BLOCK_START)
 }
 
 /// 获取思考块结束标记
-fn get_thinking_block_end() -> &'static str {
-    &format!("\n</think>\n\n")
+fn get_thinking_block_end() -> String {
+    "\n</think>\n\n".to_string()
 }
 
 /// Resolve effective system prompt with priority: Conversation → Category → Global Default

@@ -81,6 +81,13 @@ impl From<String> for ErrorResponse {
     }
 }
 
+/// 将 ErrorResponse 转换为 String，使 `?` 运算符和 `.into()` 可以直接使用
+impl From<ErrorResponse> for String {
+    fn from(e: ErrorResponse) -> Self {
+        e.to_string()
+    }
+}
+
 /// 从 &str 转换为 ErrorResponse
 impl From<&str> for ErrorResponse {
     fn from(s: &str) -> Self {
