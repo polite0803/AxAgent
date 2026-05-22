@@ -3813,7 +3813,7 @@ pub async fn workflow_execute(
         .get_workflow(&workflow_id)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| ErrorResponse::new(agent_err::WORKFLOW_NOT_FOUND).into())?;
+        .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
 
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
@@ -3909,7 +3909,7 @@ pub async fn sub_agent_get(
     let registry = app_state.sub_agent_registry.read().await;
     let agent = registry
         .get(&agent_id)
-        .ok_or_else(|| ErrorResponse::new(agent_err::NOT_FOUND).into())?;
+        .ok_or_else(|| ErrorResponse::err(agent_err::NOT_FOUND))?;
     serde_json::to_value(agent).map_err(|e| e.to_string())
 }
 
@@ -4170,7 +4170,7 @@ pub async fn workflow_get_steps(
         .get_workflow(&workflow_id)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| ErrorResponse::new(agent_err::WORKFLOW_NOT_FOUND).into())?;
+        .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
     Ok(workflow
         .nodes
         .iter()
@@ -4479,8 +4479,10 @@ pub async fn agent_steer(
     instruction: String,
 ) -> Result<(), String> {
     if instruction.len() > 10_000 {
-        return Err(ErrorResponse::new(steer_err::INSTRUCTION_TOO_LONG)
-            .with_detail("instruction too long (max 10KB)".to_string()));
+        return Err(ErrorResponse::err_with_detail(
+            steer_err::INSTRUCTION_TOO_LONG,
+            "instruction too long (max 10KB)",
+        ));
     }
     tracing::debug!("[agent_steer] instruction queued ({} bytes)", instruction.len());
     steer_queue().lock().await.push(instruction);

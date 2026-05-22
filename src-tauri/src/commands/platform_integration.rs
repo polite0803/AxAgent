@@ -168,7 +168,7 @@ pub async fn send_telegram_message(
     let config = axagent_core::repo::platform_config::get_platform_config(&state.sea_db).await;
 
     if !config.telegram_enabled {
-        return Err(ErrorResponse::new(platform_err::TELEGRAM_NOT_ENABLED));
+        return Err(ErrorResponse::err(platform_err::TELEGRAM_NOT_ENABLED));
     }
 
     let adapter = state
@@ -191,7 +191,7 @@ pub async fn send_discord_message(
     let config = axagent_core::repo::platform_config::get_platform_config(&state.sea_db).await;
 
     if !config.discord_enabled {
-        return Err(ErrorResponse::new(platform_err::DISCORD_NOT_ENABLED));
+        return Err(ErrorResponse::err(platform_err::DISCORD_NOT_ENABLED));
     }
 
     let webhook_url = config
@@ -312,7 +312,7 @@ pub async fn start_api_server(state: State<'_, AppState>) -> Result<(), String> 
     let config = axagent_core::repo::platform_config::get_platform_config(&state.sea_db).await;
 
     if !config.api_server_enabled {
-        return Err(ErrorResponse::new(platform_err::API_SERVER_NOT_ENABLED));
+        return Err(ErrorResponse::err(platform_err::API_SERVER_NOT_ENABLED));
     }
 
     let port = config.api_server_port.unwrap_or(8080);

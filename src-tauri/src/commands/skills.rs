@@ -1,6 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
+use crate::commands::error_code::skill_op_err;
 use crate::paths::axagent_home;
 use axagent_core::crypto::decrypt_key;
 use axagent_core::types::*;
@@ -729,12 +730,12 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
     let branch = manifest["branch"].as_str().unwrap_or("main");
 
     if source_kind != "github" {
-        return Err(ErrorResponse::new(skill_op_err::ROLLBACK_NOT_SUPPORTED));
+        return Err(ErrorResponse::err(skill_op_err::ROLLBACK_NOT_SUPPORTED));
     }
 
     let parts: Vec<&str> = source_ref.split('/').collect();
     if parts.len() != 2 {
-        return Err(ErrorResponse::new(skill_op_err::INVALID_FORMAT));
+        return Err(ErrorResponse::err(skill_op_err::INVALID_FORMAT));
     }
 
     let (owner, repo) = (parts[0], parts[1]);
@@ -1700,8 +1701,10 @@ pub async fn skill_analyze_frontend(
     };
 
     if skill_content.trim().is_empty() {
-        return Err(ErrorResponse::new(skill_err::CONTENT_EMPTY)
-            .with_detail("Skill 内容为空，无法分析".to_string()));
+        return Err(ErrorResponse::err_with_detail(
+            skill_err::CONTENT_EMPTY,
+            "Skill 内容为空，无法分析",
+        ));
     }
 
     // 获取默认 Provider 配置

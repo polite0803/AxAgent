@@ -72,10 +72,10 @@ fn validate_ssl_settings(s: &GatewayRuntimeSettings) -> Result<(), String> {
         return Ok(());
     }
     if s.ssl_cert_path.as_deref().unwrap_or("").trim().is_empty() {
-        return Err(ErrorResponse::new(gateway_err::SSL_NO_CERT));
+        return Err(ErrorResponse::err(gateway_err::SSL_NO_CERT));
     }
     if s.ssl_key_path.as_deref().unwrap_or("").trim().is_empty() {
-        return Err(ErrorResponse::new(gateway_err::SSL_NO_KEY));
+        return Err(ErrorResponse::err(gateway_err::SSL_NO_KEY));
     }
     if s.port == s.ssl_port {
         return Err(format!(
@@ -110,7 +110,7 @@ fn build_gateway_url_for_selected_protocol(
     protocol: QuickConnectProtocol,
 ) -> Result<String, String> {
     if matches!(protocol, QuickConnectProtocol::Http) && force_ssl {
-        return Err(ErrorResponse::new(gateway_err::HTTP_UNAVAILABLE));
+        return Err(ErrorResponse::err(gateway_err::HTTP_UNAVAILABLE));
     }
 
     build_gateway_url_for_protocol(listen_address, http_port, https_port, tool, protocol)
@@ -466,7 +466,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
     {
         let gw = state.gateway.lock().await;
         if gw.as_ref().is_some_and(|s| s.is_running()) {
-            return Err(ErrorResponse::new(gateway_err::ALREADY_RUNNING));
+            return Err(ErrorResponse::err(gateway_err::ALREADY_RUNNING));
         }
     }
 
@@ -475,7 +475,7 @@ pub async fn start_gateway(state: State<'_, AppState>) -> Result<(), String> {
 
     let mut gw = state.gateway.lock().await;
     if gw.as_ref().is_some_and(|s| s.is_running()) {
-        return Err(ErrorResponse::new(gateway_err::ALREADY_RUNNING));
+        return Err(ErrorResponse::err(gateway_err::ALREADY_RUNNING));
     }
     // Drop any stale stopped server before storing the new one.
     if gw.is_some() {

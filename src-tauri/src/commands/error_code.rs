@@ -243,7 +243,7 @@ pub mod security {
 }
 
 /// 技能操作相关错误码
-pub mod skill_operation {
+pub mod skill_op_err {
     /// 仅支持GitHub源技能的回滚
     pub const ROLLBACK_NOT_SUPPORTED: &str = "SKILL_OP_ROLLBACK_NOT_SUPPORTED";
     /// 无效的source_ref格式
@@ -317,7 +317,6 @@ pub use proxy as proxy_err;
 pub use search as search_err;
 pub use session as session_err;
 pub use skill as skill_err;
-pub use skill_operation as skill_op_err;
 pub use steer as steer_err;
 pub use storage as storage_err;
 pub use storage_path as storage_path_err;

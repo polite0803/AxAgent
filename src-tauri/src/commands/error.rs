@@ -43,7 +43,12 @@ impl ErrorResponse {
         }
     }
 
-    /// 添加技术详情
+    pub fn err(code: impl Into<String>) -> String {
+        Self::new(code).to_string()
+    }
+    pub fn err_with_detail(code: impl Into<String>, detail: impl Into<String>) -> String {
+        Self::new(code).with_detail(detail).to_string()
+    }
     pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = Some(detail.into());
         self
