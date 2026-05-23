@@ -4,6 +4,12 @@
     "title": "Smart Workspace",
     "description": "AI-Powered Work Assistant"
   },
+  "appHeader": {
+    "knowledgeContext": "Knowledge Base Overview",
+    "gatewayContext": "Gateway Running",
+    "filesContext": "File Management",
+    "terminalContext": "Terminal Sessions"
+  },
   "artifact": {
     "copiedToClipboard": "Copied to clipboard",
     "copyFailed": "Failed to copy"

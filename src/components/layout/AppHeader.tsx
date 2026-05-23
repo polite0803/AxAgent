@@ -38,12 +38,12 @@ function resolvePageLabel(pathname: string): string | null {
   return null;
 }
 
-/** 非对话页面的上下文摘要 — 后续可通过 store 动态注入 */
-function getPageContext(pathname: string): string | null {
-  if (pathname.startsWith("/knowledge")) { return "6 来源 · 3 命名空间 · 2 Wiki"; }
-  if (pathname.startsWith("/gateway")) { return "运行中 · 4 密钥"; }
-  if (pathname.startsWith("/files")) { return "24 文件 · 1.2 GB"; }
-  if (pathname.startsWith("/terminal")) { return "2 会话"; }
+/** 非对话页面的上下文摘要 — 后续通过 store 动态注入实际数值 */
+function getPageContext(pathname: string, t: (k: string) => string): string | null {
+  if (pathname.startsWith("/knowledge")) { return t("appHeader.knowledgeContext"); }
+  if (pathname.startsWith("/gateway")) { return t("appHeader.gatewayContext"); }
+  if (pathname.startsWith("/files")) { return t("appHeader.filesContext"); }
+  if (pathname.startsWith("/terminal")) { return t("appHeader.terminalContext"); }
   return null;
 }
 
@@ -56,7 +56,7 @@ export function AppHeader() {
 
   const isChatPage = location.pathname === "/" || location.pathname === "";
   const labelKey = resolvePageLabel(location.pathname);
-  const contextSummary = getPageContext(location.pathname);
+  const contextSummary = getPageContext(location.pathname, t);
 
   // 对话页不显示 AppHeader（对话页有自己的 TabBar）
   if (isChatPage) { return null; }

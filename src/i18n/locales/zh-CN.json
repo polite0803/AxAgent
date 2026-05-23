@@ -4,6 +4,12 @@
     "title": "智聊助手",
     "description": "智能工作助手"
   },
+  "appHeader": {
+    "knowledgeContext": "知识库概览",
+    "gatewayContext": "网关运行中",
+    "filesContext": "文件管理",
+    "terminalContext": "终端会话"
+  },
   "artifact": {
     "copiedToClipboard": "已复制到剪贴板",
     "copyFailed": "复制失败"
