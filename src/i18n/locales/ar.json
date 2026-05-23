@@ -6414,7 +6414,9 @@
     "reminders": "تذكير",
     "contextPrediction": "تنبؤ",
     "teammate": "فريق",
-    "steerInput": "قيادة"
+    "steerInput": "قيادة",
+    "showExtras": "المزيد",
+    "hideExtras": "إخفاء"
   },
   "knowledgeSettings": {
     "title": "المعرفة"

@@ -6414,7 +6414,9 @@
     "reminders": "提醒",
     "contextPrediction": "上下文預測",
     "teammate": "協作",
-    "steerInput": "引導"
+    "steerInput": "引導",
+    "showExtras": "更多面板",
+    "hideExtras": "收起"
   },
   "knowledgeSettings": {
     "title": "知識庫"

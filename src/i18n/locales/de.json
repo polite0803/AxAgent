@@ -6414,7 +6414,9 @@
     "reminders": "Erinner.",
     "contextPrediction": "Vorhersage",
     "teammate": "Team",
-    "steerInput": "Steuern"
+    "steerInput": "Steuern",
+    "showExtras": "Mehr",
+    "hideExtras": "Weniger"
   },
   "knowledgeSettings": {
     "title": "Wissen"

@@ -231,7 +231,7 @@ function AssistantFooter({
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <ArrowDown size={10} />
-                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>
+                <span className="ax-glow-text">
                   {formatTokenCount(msg.prompt_tokens)}
                 </span>{" "}
                 {t("chat.tokens")}
@@ -242,7 +242,7 @@ function AssistantFooter({
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <ArrowDown size={10} />
-                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>
+                <span className="ax-glow-text">
                   {formatTokenCount(msg.completion_tokens)}
                 </span>{" "}
                 {t("chat.tokens")}
@@ -254,7 +254,7 @@ function AssistantFooter({
               >
                 <Coins size={10} />
                 {t("chat.totalTokens")}:{" "}
-                <span style={{ textShadow: "0 0 4px rgba(0,240,255,0.3)" }}>
+                <span className="ax-glow-text">
                   {formatTokenCount(totalTokens)}
                 </span>
               </span>

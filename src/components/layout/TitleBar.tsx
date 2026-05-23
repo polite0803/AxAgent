@@ -545,10 +545,10 @@ export function TitleBar() {
             <img
               src={appLogo}
               alt={t("app.name")}
+              className="ax-glow-drop"
               style={{
                 width: 18,
                 height: 18,
-                filter: "drop-shadow(0 0 4px rgba(0,240,255,0.3))",
               }}
               draggable={false}
             />

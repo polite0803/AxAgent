@@ -3055,14 +3055,14 @@ export function InputArea() {
                       && activeConversation?.workflow_status === "completed"
                     ? t("chat.workflow.sessionCompletedHint")
                     : undefined}
-                  style={value.trim()
+                  className={value.trim()
                       && !streaming
                       && !(
                         activeConversation?.session_type === "workflow"
                         && activeConversation?.workflow_status === "completed"
                       )
-                    ? { boxShadow: "0 0 12px rgba(0,240,255,0.3)" }
-                    : undefined}
+                    ? "ax-glow-shadow"
+                    : ""}
                 />
               )}
           </div>

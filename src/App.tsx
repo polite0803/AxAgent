@@ -395,6 +395,10 @@ function AppRoot() {
   }, [isDark]);
 
   useEffect(() => {
+    document.documentElement.dataset.themePreset = themePreset ?? "";
+  }, [themePreset]);
+
+  useEffect(() => {
     enableD2(() => import("@terrastruct/d2"));
     void preloadChatRenderers();
   }, []);

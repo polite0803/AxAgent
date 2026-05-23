@@ -6414,7 +6414,9 @@
     "reminders": "रिमाइंडर",
     "contextPrediction": "पूर्वानुमान",
     "teammate": "टीम",
-    "steerInput": "चलाएं"
+    "steerInput": "चलाएं",
+    "showExtras": "और",
+    "hideExtras": "छुपाएं"
   },
   "knowledgeSettings": {
     "title": "ज्ञान"

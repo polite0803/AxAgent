@@ -6414,7 +6414,9 @@
     "reminders": "알림",
     "contextPrediction": "예측",
     "teammate": "팀",
-    "steerInput": "조종"
+    "steerInput": "조종",
+    "showExtras": "더보기",
+    "hideExtras": "숨기기"
   },
   "knowledgeSettings": {
     "title": "지식"

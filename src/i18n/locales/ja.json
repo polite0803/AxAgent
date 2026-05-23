@@ -6414,7 +6414,9 @@
     "reminders": "リマインダ",
     "contextPrediction": "予測",
     "teammate": "チーム",
-    "steerInput": "誘導"
+    "steerInput": "誘導",
+    "showExtras": "その他",
+    "hideExtras": "隠す"
   },
   "knowledgeSettings": {
     "title": "ナレッジ"

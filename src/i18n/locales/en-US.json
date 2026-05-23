@@ -6410,7 +6410,9 @@
     "reminders": "Reminders",
     "contextPrediction": "Prediction",
     "teammate": "Team",
-    "steerInput": "SteerInput"
+    "steerInput": "SteerInput",
+    "showExtras": "More",
+    "hideExtras": "Hide"
   },
   "knowledgeSettings": {
     "title": "Knowledge"

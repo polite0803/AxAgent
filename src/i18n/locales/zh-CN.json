@@ -6477,7 +6477,9 @@
     "reminders": "提醒",
     "contextPrediction": "上下文预测",
     "teammate": "协作",
-    "steerInput": "引导"
+    "steerInput": "引导",
+    "showExtras": "更多面板",
+    "hideExtras": "收起"
   },
   "knowledgeSettings": {
     "title": "知识库"
