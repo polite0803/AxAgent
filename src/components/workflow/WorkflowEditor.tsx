@@ -13,6 +13,7 @@ import {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { autoLayoutWorkflow } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { message, Modal, Spin, theme } from "antd";
@@ -664,6 +665,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     [loadTemplate],
   );
 
+  const handleAutoLayout = useCallback(() => {
+    const { nodes: layoutedNodes, edges: layoutedEdges } = autoLayoutWorkflow(
+      reactFlowNodes,
+      reactFlowEdges,
+    );
+    setRNodes(layoutedNodes);
+    setREdges(layoutedEdges);
+    message.success(t("workflow.autoLayout"));
+  }, [reactFlowNodes, reactFlowEdges, setRNodes, setREdges, t]);
+
   const handleClose = useCallback(() => {
     if (isDirty) {
       Modal.confirm({
@@ -738,6 +749,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             redo();
           }
         }}
+        onAutoLayout={handleAutoLayout}
         canUndo={canUndo()}
         canRedo={canRedo()}
         aiPanelVisible={aiPanelVisible}

@@ -4209,6 +4209,8 @@
     },
     "undo": "撤销",
     "redo": "重做",
+    "autoLayout": "一键布局",
+    "autoLayoutTooltip": "自动优化节点排列，使工作流结构清晰可读",
     "noUndoAvailable": "无可撤销操作",
     "noRedoAvailable": "无可重做操作",
     "nodeDropFailed": "节点放置失败",

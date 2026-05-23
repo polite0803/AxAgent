@@ -1,5 +1,18 @@
 import { Button, Input, Popover, Space, theme, Tooltip } from "antd";
-import { ArrowLeft, Bot, Bug, Download, Eye, Keyboard, Redo2, Save, Share2, Sparkles, Undo2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Bot,
+  Bug,
+  Download,
+  Eye,
+  Keyboard,
+  Redo2,
+  Save,
+  Share2,
+  Shuffle,
+  Sparkles,
+  Undo2,
+} from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -13,6 +26,7 @@ interface EditorHeaderProps {
   onToggleAIPanel?: () => void;
   onToggleDebugPanel?: () => void;
   onOpenImportExport?: () => void;
+  onAutoLayout?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -31,6 +45,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onToggleAIPanel,
   onToggleDebugPanel,
   onOpenImportExport,
+  onAutoLayout,
   onUndo,
   onRedo,
   canUndo = false,
@@ -159,6 +174,19 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   : token.colorTextQuaternary,
               }}
             />
+          </Tooltip>
+        )}
+
+        {onAutoLayout && (
+          <Tooltip title={t("workflow.autoLayoutTooltip")}>
+            <Button
+              type="text"
+              icon={<Shuffle size={18} />}
+              onClick={onAutoLayout}
+              style={{ color: token.colorTextSecondary }}
+            >
+              {t("workflow.autoLayout")}
+            </Button>
           </Tooltip>
         )}
 

@@ -3478,6 +3478,8 @@
     "debugPanel": "Debug Panel",
     "undo": "Undo",
     "redo": "Redo",
+    "autoLayout": "Auto Layout",
+    "autoLayoutTooltip": "Automatically arrange nodes for a clean, readable workflow structure",
     "noUndoAvailable": "No actions to undo",
     "noRedoAvailable": "No actions to redo",
     "nodeDropFailed": "Failed to place node: {{error}}",
