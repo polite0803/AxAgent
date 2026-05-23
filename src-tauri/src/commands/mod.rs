@@ -17,6 +17,7 @@ pub mod chart_generator;
 pub mod cloud_workspace;
 #[cfg(not(mobile))]
 pub mod computer_control;
+pub mod context_breakdown;
 pub mod context_sources;
 pub mod conversation_categories;
 pub mod conversations;

@@ -174,6 +174,7 @@ pub fn run() {
             commands::conversations::list_message_versions,
             commands::conversations::switch_message_version,
             commands::conversations::send_system_message,
+            commands::context_breakdown::get_context_breakdown,
             commands::messages::list_messages,
             commands::messages::list_messages_page,
             commands::messages::delete_message,
@@ -610,6 +611,7 @@ pub fn run() {
             commands::gateway::list_gateway_request_logs,
             commands::gateway::clear_gateway_request_logs,
             commands::gateway::generate_self_signed_cert,
+            commands::gateway::get_active_gateway_platform,
             // Gateway Link commands
             commands::gateway_link::list_gateway_links,
             commands::gateway_link::create_gateway_link,

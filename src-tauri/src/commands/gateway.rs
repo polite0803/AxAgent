@@ -816,6 +816,37 @@ pub async fn generate_self_signed_cert(
     })
 }
 
+// ─── Platform Detection ─────────────────────────────────
+
+#[tauri::command]
+pub async fn get_active_gateway_platform(state: State<'_, AppState>) -> Result<String, String> {
+    // 优先检查 PlatformManager 中正在运行的平台适配器
+    let running = state.platform_manager.get_running_adapters().await;
+    if let Some(platform) = running.first() {
+        return Ok(platform.clone());
+    }
+
+    // 回退：检查 gateway_link 表中是否有激活的平台链接
+    let links = axagent_core::repo::gateway_link::list_gateway_links(&state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 常见的平台 link_type 映射
+    let platform_link_types = [
+        "telegram", "discord", "slack", "wechat", "feishu", "dingtalk", "qq", "whatsapp",
+    ];
+    for link in &links {
+        if link.enabled
+            && link.status == "connected"
+            && platform_link_types.contains(&link.link_type.as_str())
+        {
+            return Ok(link.link_type.clone());
+        }
+    }
+
+    Ok(String::new())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{

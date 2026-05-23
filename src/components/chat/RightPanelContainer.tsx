@@ -5,7 +5,6 @@ import { useCacheStore } from "@/stores/feature/cacheStore";
 import { Tabs, theme, Tooltip } from "antd";
 import {
   BarChart3,
-  Bell,
   Bug,
   Camera,
   Eye,
@@ -30,9 +29,6 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ContextPredictionPanel } from "../proactive/ContextPredictionPanel";
-import { PrefetchIndicator } from "../proactive/PrefetchIndicator";
-import { ReminderList } from "../proactive/ReminderList";
 import { AgentExecutionPanel } from "./AgentExecutionPanel";
 import { AgentHierarchyTree } from "./AgentHierarchyTree";
 import { ArtifactPanel } from "./ArtifactPanel";
@@ -348,25 +344,6 @@ export function RightPanelContainer({
             }}
           />
         ),
-      },
-      // ── Proactive ──
-      {
-        key: "prefetch",
-        icon: <Zap size={ICON} />,
-        labelKey: "chatRightPanel.prefetch",
-        render: () => <PrefetchIndicator />,
-      },
-      {
-        key: "reminders",
-        icon: <Bell size={ICON} />,
-        labelKey: "chatRightPanel.reminders",
-        render: () => <ReminderList />,
-      },
-      {
-        key: "contextPrediction",
-        icon: <Eye size={ICON} />,
-        labelKey: "chatRightPanel.contextPrediction",
-        render: () => <ContextPredictionPanel context={panelData.predictionContext} />,
       },
     );
 
