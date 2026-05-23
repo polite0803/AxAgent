@@ -297,11 +297,20 @@ pub async fn fetch_remote_models(
         previous_response_id: None,
         store_response: None,
     };
-    let mut models =
-        tokio::time::timeout(std::time::Duration::from_secs(30), adapter.list_models(&ctx))
-            .await
-            .map_err(|_| ErrorResponse::new(provider_err::MODEL_LIST_TIMEOUT))?
-            .map_err(|e| e.to_string())?;
+    // Android 网络延迟更高，超时放宽到 60s；桌面端保持 30s
+    let model_timeout_secs = if cfg!(target_os = "android") { 60 } else { 30 };
+    let mut models = tokio::time::timeout(
+        std::time::Duration::from_secs(model_timeout_secs),
+        adapter.list_models(&ctx),
+    )
+    .await
+    .map_err(|_| {
+        ErrorResponse::new(provider_err::MODEL_LIST_TIMEOUT).with_detail(format!(
+            "获取模型列表超时 ({}s)。请检查网络连接和 API 地址是否正确。",
+            model_timeout_secs
+        ))
+    })?
+    .map_err(|e| e.to_string())?;
     for model in &mut models {
         if model.max_tokens.is_none() {
             model.max_tokens =

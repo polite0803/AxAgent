@@ -527,6 +527,11 @@ pub fn parse_base64_data_url(url: &str) -> Option<(String, String)> {
 /// - "http"/"socks5": use explicit proxy with address/port
 /// - None or "none": disable all proxies
 pub fn build_http_client(proxy_config: Option<&ProviderProxyConfig>) -> Result<reqwest::Client> {
+    // Android TLS: aws-lc-rs 在 ARM 设备上经常不可用，ring 也可能缺失。
+    // 使用 native-tls-vendored 静态链接 OpenSSL，确保 Android 上 HTTPS 可靠工作。
+    #[cfg(target_os = "android")]
+    let mut builder = reqwest::Client::builder().use_native_tls();
+    #[cfg(not(target_os = "android"))]
     let mut builder = reqwest::Client::builder().use_rustls_tls();
 
     if let Some(config) = proxy_config {
@@ -562,9 +567,11 @@ pub fn build_http_client(proxy_config: Option<&ProviderProxyConfig>) -> Result<r
         builder = builder.no_proxy();
     }
 
+    // Android 网络环境不稳定，连接超时缩短避免长时间挂起
+    let connect_timeout = if cfg!(target_os = "android") { 15 } else { 30 };
     builder
         .tcp_nodelay(true)
-        .connect_timeout(std::time::Duration::from_secs(30))
+        .connect_timeout(std::time::Duration::from_secs(connect_timeout))
         .timeout(std::time::Duration::from_secs(300))
         .pool_idle_timeout(std::time::Duration::from_secs(90))
         .build()
