@@ -149,23 +149,37 @@ pub async fn test_search_provider(
 }
 
 /// 执行搜索
+/// 当 provider_id 无效或提供商未配置时，自动降级到 DuckDuckGo 免费搜索。
 #[command]
 pub async fn execute_search(
     state: tauri::State<'_, AppState>,
     provider_id: String,
     query: String,
 ) -> Result<serde_json::Value, String> {
+    // 尝试从 DB 获取提供商配置，失败则走 DDG 免费搜索
     let provider =
-        axagent_core::repo::search_provider::get_search_provider(&state.sea_db, &provider_id)
+        match axagent_core::repo::search_provider::get_search_provider(&state.sea_db, &provider_id)
             .await
-            .map_err(|e| e.to_string())?;
+        {
+            Ok(p) => p,
+            Err(_) => {
+                // 无匹配提供商 — 直接走 DuckDuckGo 免费搜索
+                return search_via_ddg(&query).await;
+            },
+        };
 
-    let api_key = get_search_api_key(&state.sea_db, &provider_id, &state.master_key).await?;
+    // 提供商无 API Key 或 endpoint → 走 DDG 免费搜索
+    let api_key: Option<String> =
+        match get_search_api_key(&state.sea_db, &provider_id, &state.master_key).await {
+            Ok(Some(k)) if !k.is_empty() => Some(k),
+            _ => None,
+        };
 
     let Some(endpoint) = &provider.endpoint else {
-        return Err(ErrorResponse::new(search_err::ENDPOINT_NOT_CONFIGURED)
-            .with_detail("搜索提供商未配置端点")
-            .into());
+        return search_via_ddg(&query).await;
+    };
+    if api_key.is_none() {
+        return search_via_ddg(&query).await;
     };
 
     let client = reqwest::Client::builder()
@@ -209,5 +223,75 @@ pub async fn execute_search(
     Ok(serde_json::json!({
         "ok": true,
         "results": results,
+    }))
+}
+
+/// DuckDuckGo 免费搜索兜底 — 无需 API Key，始终可用。
+async fn search_via_ddg(query: &str) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
+    tracing::debug!("[search] DDG fallback: GET {}", url);
+
+    let resp = client
+        .get(&url)
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .send()
+        .await
+        .map_err(|e| format!("DDG request failed: {e}"))?;
+
+    let status = resp.status();
+    let html = resp
+        .text()
+        .await
+        .map_err(|e| format!("DDG read failed: {e}"))?;
+
+    if !status.is_success() {
+        tracing::warn!("[search] DDG returned HTTP {}", status.as_u16());
+        return Ok(serde_json::json!({"ok": true, "results": [], "provider": "ddg"}));
+    }
+
+    // 简易 HTML 解析：提取 .result__a 和 .result__snippet
+    let results: Vec<serde_json::Value> = html
+        .split("result__a")
+        .skip(1)
+        .filter_map(|chunk| {
+            let title = chunk
+                .split("</a>")
+                .next()?
+                .rsplit('>')
+                .next()?
+                .trim()
+                .to_string();
+            let snippet = chunk
+                .split("result__snippet")
+                .nth(1)?
+                .split("</td>")
+                .next()?
+                .rsplit('>')
+                .next()?
+                .trim()
+                .to_string();
+            if title.is_empty() && snippet.is_empty() {
+                return None;
+            }
+            Some(serde_json::json!({
+                "title": title,
+                "content": snippet,
+                "url": "",
+            }))
+        })
+        .take(5)
+        .collect();
+
+    tracing::debug!("[search] DDG parsed {} results for '{}'", results.len(), query);
+
+    Ok(serde_json::json!({
+        "ok": true,
+        "results": results,
+        "provider": "ddg",
     }))
 }

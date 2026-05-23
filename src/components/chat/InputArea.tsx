@@ -311,12 +311,16 @@ export function InputArea() {
     (s) => s.setSearchProviderId,
   );
   const searchProviders = useSearchStore((s) => s.providers);
-  // 兜底：搜索已启用但未选择具体服务商时，自动取第一个可用的
+  // 兜底策略（三级）：
+  // 1. 用户明确选择的 → 直接使用
+  // 2. 未选但有启用的 → 自动取第一个
+  // 3. 全未启用/无配置 → 仍传非空值，后端 DuckDuckGo 免费搜索兜底
   const effectiveSearchProviderId = useMemo(() => {
-    if (!searchEnabled) { return null; }
     if (searchProviderId) { return searchProviderId; }
     const enabled = (searchProviders || []).filter((p) => p.enabled);
-    return enabled.length > 0 ? enabled[0].id : null;
+    if (enabled.length > 0) { return enabled[0].id; }
+    // 没有任何可用服务商时，传一个非空占位让后端走 DDG 免费搜索
+    return searchEnabled ? "__ddg_fallback__" : null;
   }, [searchEnabled, searchProviderId, searchProviders]);
   const loadSearchProviders = useSearchStore((s) => s.loadProviders);
 

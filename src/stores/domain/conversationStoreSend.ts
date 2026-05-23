@@ -260,9 +260,13 @@ export function createSendMethods(
             if (searchResult?.ok && searchResult.results.length > 0) {
               finalContent = formatSearchContent(searchResult.results, content);
               searchResultTag = buildSearchTag("done", searchResult.results);
+            } else if (searchResult?.ok) {
+              // 搜索执行了但无结果 — 告知 LLM 未找到，避免幻觉
+              searchResultTag = '<web-search status="empty" data-axagent="1">No results found</web-search>';
             }
           } catch (e) {
             // Search failed, continue without search results
+            searchResultTag = '<web-search status="error" data-axagent="1">Search unavailable</web-search>';
           }
           // Replace searching tag with results, keep RAG searching tags if present
           const kbPart = hasKnowledgeRag ? buildKnowledgeTag("searching") : "";
