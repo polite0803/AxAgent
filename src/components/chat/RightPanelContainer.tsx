@@ -1,6 +1,6 @@
 import { Icon } from "@/components/common/Icon";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
-import { useConversationStore, useSettingsStore } from "@/stores";
+import { useConversationStore, useRightPanelStore, useSettingsStore } from "@/stores";
 import { useCacheStore } from "@/stores/feature/cacheStore";
 import { Tabs, theme, Tooltip } from "antd";
 import {
@@ -8,7 +8,6 @@ import {
   Bell,
   Bug,
   Camera,
-  Clock,
   Eye,
   FileSearch,
   FileText,
@@ -24,7 +23,6 @@ import {
   Monitor,
   Search,
   Share2,
-  Shield,
   Sparkles,
   User,
   Users,
@@ -42,7 +40,6 @@ import { BenchmarkPanel } from "./BenchmarkPanel";
 import { BranchComparePanel } from "./BranchComparePanel";
 import { BrowserAutomationPanel } from "./BrowserAutomationPanel";
 import { CacheIndicator } from "./CacheIndicator";
-import { CategoryEditModal } from "./CategoryEditModal";
 import { ChartInterpreter } from "./ChartInterpreter";
 import { ChatInspector } from "./ChatInspector";
 import { getChatCodeThemes } from "./ChatMarkdownNodes";
@@ -51,10 +48,8 @@ import { CodeExecutorPanel } from "./CodeExecutorPanel";
 import { CollaborationPanel } from "./CollaborationPanel";
 import { ComputerControlPanel } from "./ComputerControlPanel";
 import { ContextClassificationBar } from "./ContextClassificationBar";
-import { CronResultMessage } from "./CronResultMessage";
 import { ErrorRecoveryPanel } from "./ErrorRecoveryPanel";
 import { EvolutionSidebar } from "./EvolutionSidebar";
-import { FilePermissionDialog } from "./FilePermissionDialog";
 import { GatewaySessionBadge } from "./GatewaySessionBadge";
 import { GitCommitPanel } from "./GitCommitPanel";
 import { ImageAnalysisPanel } from "./ImageAnalysisPanel";
@@ -100,6 +95,7 @@ export function RightPanelContainer({
   const isAgent = convMode === "agent";
   const settings = useSettingsStore((s) => s.settings);
   const cacheState = useCacheStore();
+  const panelData = useRightPanelStore();
   const isDarkMode = useResolvedDarkMode(settings.theme_mode);
 
   const codeThemes = useMemo(
@@ -235,13 +231,23 @@ export function RightPanelContainer({
         key: "chart",
         icon: <BarChart3 size={ICON} />,
         labelKey: "chatRightPanel.chart",
-        render: () => <ChartInterpreter chartData={null} rawAnalysis="" />,
+        render: () => (
+          <ChartInterpreter
+            chartData={panelData.chartData as any}
+            rawAnalysis={panelData.chartRawAnalysis}
+          />
+        ),
       },
       {
         key: "snapshot",
         icon: <Camera size={ICON} />,
         labelKey: "chatRightPanel.snapshot",
-        render: () => <UISnapshotViewer elements={[]} rawDescription="" />,
+        render: () => (
+          <UISnapshotViewer
+            elements={panelData.snapshotElements}
+            rawDescription={panelData.snapshotDescription}
+          />
+        ),
       },
       {
         key: "profile",
@@ -300,20 +306,6 @@ export function RightPanelContainer({
         render: () => <ContextClassificationBar segments={[]} maxTokens={0} />,
       },
       {
-        key: "cronResult",
-        icon: <Clock size={ICON} />,
-        labelKey: "chatRightPanel.cronResult",
-        render: () => (
-          <CronResultMessage
-            jobName=""
-            schedule=""
-            result=""
-            success={false}
-            timestamp={0}
-          />
-        ),
-      },
-      {
         key: "reflection",
         icon: <Eye size={ICON} />,
         labelKey: "chatRightPanel.reflection",
@@ -336,26 +328,7 @@ export function RightPanelContainer({
         key: "researchSources",
         icon: <Search size={ICON} />,
         labelKey: "chatRightPanel.researchSources",
-        render: () => <ResearchSources sources={[]} />,
-      },
-      // ── 对话框（作为面板内容直接展示）──
-      {
-        key: "categoryEdit",
-        icon: <Layers size={ICON} />,
-        labelKey: "chatRightPanel.categoryEdit",
-        render: () => (
-          <CategoryEditModal
-            open={false}
-            onClose={() => {}}
-            onOk={(_data) => {}}
-          />
-        ),
-      },
-      {
-        key: "filePermission",
-        icon: <Shield size={ICON} />,
-        labelKey: "chatRightPanel.filePermission",
-        render: () => <FilePermissionDialog open={false} onClose={() => {}} path="" />,
+        render: () => <ResearchSources sources={panelData.researchSources} />,
       },
       {
         key: "sessionShare",
@@ -393,7 +366,7 @@ export function RightPanelContainer({
         key: "contextPrediction",
         icon: <Eye size={ICON} />,
         labelKey: "chatRightPanel.contextPrediction",
-        render: () => <ContextPredictionPanel context={{}} />,
+        render: () => <ContextPredictionPanel context={panelData.predictionContext} />,
       },
     );
 

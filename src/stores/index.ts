@@ -1,5 +1,6 @@
 export { useArtifactStore } from "./shared/artifactStore";
 export { useChatWorkspaceStore } from "./shared/chatWorkspaceStore";
+export { useRightPanelStore } from "./shared/rightPanelStore";
 export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
 
