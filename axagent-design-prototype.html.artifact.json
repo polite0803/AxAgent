@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "AxAgent 布局设计原型",
+  "entry": "axagent-design-prototype.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-23T19:15:36.722Z",
+  "updatedAt": "2026-05-23T19:15:36.733Z",
+  "metadata": {
+    "identifier": "axagent-design-prototype",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

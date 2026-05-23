@@ -85,3 +85,11 @@ service-account*.json
 cargo-check-output.txt
 eslint.config.js
 .check-i18n-tmp-*
+
+# Design prototypes (local only)
+axagent-design-prototype.html
+axagent-design-prototype.html.artifact.json
+axagent-layout-v2.html
+axagent-layout-v3.html
+design-prototype.html
+design-spec.html

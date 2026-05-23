@@ -1,0 +1,389 @@
+
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AxAgent — 布局设计原型</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-size:14px}
+body{font-family:var(--font-body);color:var(--fg);background:var(--bg);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+ul{list-style:none}
+button{border:none;background:none;cursor:pointer;font:inherit;color:inherit}
+input,textarea{font:inherit;color:inherit}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+:root{--bg:oklch(99% 0.002 240);--surface:oklch(100% 0 0);--fg:oklch(18% 0.012 250);--muted:oklch(54% 0.012 250);--border:oklch(92% 0.005 250);--accent:oklch(58% 0.18 255);--accent-soft:oklch(58% 0.18 255 / 0.12);--accent-bg:oklch(58% 0.18 255 / 0.08);--green:oklch(55% 0.18 145);--green-bg:oklch(55% 0.18 145 / 0.10);--red:oklch(55% 0.20 28);--red-bg:oklch(55% 0.20 28 / 0.10);--amber:oklch(60% 0.18 85);--amber-bg:oklch(60% 0.18 85 / 0.10);--font-display:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;--font-body:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;--font-mono:'SF Mono','JetBrains Mono','IBM Plex Mono',ui-monospace,Menlo,monospace;--nav-w:48px;--title-h:36px;--tab-h:34px;--status-h:24px;--radius:6px;--radius-lg:10px;--ease:cubic-bezier(.25,.1,.25,1)}
+[data-theme="dark"]{--bg:oklch(16% 0.006 250);--surface:oklch(20% 0.008 250);--fg:oklch(92% 0.005 250);--muted:oklch(55% 0.008 250);--border:oklch(26% 0.008 250);--accent:oklch(65% 0.18 255);--accent-soft:oklch(65% 0.18 255 / 0.15);--accent-bg:oklch(65% 0.18 255 / 0.10);--green:oklch(62% 0.18 145);--red:oklch(60% 0.20 28);--amber:oklch(65% 0.18 85)}
+.app-shell{display:flex;flex-direction:column;height:100vh;background:var(--bg)}
+.titlebar{height:var(--title-h);min-height:var(--title-h);display:flex;align-items:center;padding:0 12px;border-bottom:1px solid var(--border);-webkit-app-region:drag;gap:8px}
+.titlebar-drag{flex:1;-webkit-app-region:drag}
+.titlebar-actions{display:flex;align-items:center;gap:4px;-webkit-app-region:no-drag}
+.titlebar-btn{width:28px;height:28px;display:grid;place-items:center;border-radius:var(--radius);color:var(--muted);transition:all .15s var(--ease)}
+.titlebar-btn:hover{background:var(--accent-bg);color:var(--accent)}
+.titlebar-btn.close:hover{background:var(--red-bg);color:var(--red)}
+.titlebar-logo{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--fg)}
+.titlebar-logo svg{width:16px;height:16px}
+.main-area{display:flex;flex:1;overflow:hidden}
+.nav-sidebar{width:var(--nav-w);min-width:var(--nav-w);display:flex;flex-direction:column;align-items:center;border-right:1px solid var(--border);padding:8px 0;gap:2px;background:var(--surface)}
+.nav-item{width:36px;height:36px;display:grid;place-items:center;border-radius:var(--radius);color:var(--muted);transition:all .15s var(--ease);position:relative}
+.nav-item:hover{background:var(--accent-bg);color:var(--accent)}
+.nav-item.active{background:var(--accent-soft);color:var(--accent)}
+.nav-item.active::before{content:'';position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:16px;border-radius:2px;background:var(--accent)}
+.nav-spacer{flex:1}
+.nav-item svg{width:18px;height:18px}
+.nav-divider{width:24px;height:1px;background:var(--border);margin:4px 0}
+.content-col{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tabbar{height:var(--tab-h);min-height:var(--tab-h);display:flex;align-items:center;padding:0 8px;border-bottom:1px solid var(--border);background:var(--surface);gap:2px;overflow-x:auto}
+.tabbar::-webkit-scrollbar{display:none}
+.tab-item{display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:var(--radius);font-size:12px;color:var(--muted);white-space:nowrap;transition:all .15s var(--ease);cursor:pointer;flex-shrink:0;max-width:180px}
+.tab-item:hover{background:var(--accent-bg);color:var(--fg)}
+.tab-item.active{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.tab-item .tab-icon{width:14px;height:14px;flex-shrink:0;opacity:.6}
+.tab-item.active .tab-icon{opacity:1}
+.tab-item .tab-close{width:16px;height:16px;display:grid;place-items:center;border-radius:3px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.tab-item:hover .tab-close{opacity:.5}
+.tab-item .tab-close:hover{opacity:1;background:var(--border)}
+.tab-item .tab-badge{font-size:10px;padding:0 4px;height:14px;line-height:14px;border-radius:3px;background:var(--accent-bg);color:var(--accent);margin-left:auto}
+.tab-new{width:26px;height:26px;display:grid;place-items:center;border-radius:var(--radius);color:var(--muted);flex-shrink:0;transition:all .15s var(--ease);cursor:pointer}
+.tab-new:hover{background:var(--accent-bg);color:var(--accent)}
+.tab-new svg{width:14px;height:14px}
+.tabbar-right{margin-left:auto;display:flex;align-items:center;gap:4px}
+.page-area{flex:1;display:flex;overflow:hidden;position:relative}
+.chat-layout{display:flex;flex:1;overflow:hidden}
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.chat-messages{flex:1;overflow-y:auto;padding:24px 32px 0}
+.chat-input-area{padding:12px 32px 16px;border-top:1px solid var(--border);background:var(--bg)}
+.chat-input-box{display:flex;align-items:flex-end;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:8px 12px;transition:border-color .15s var(--ease)}
+.chat-input-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.chat-input-box textarea{flex:1;border:none;outline:none;resize:none;background:transparent;font-size:13.5px;line-height:1.5;min-height:22px;max-height:120px}
+.chat-input-tools{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.chat-input-btn{width:28px;height:28px;display:grid;place-items:center;border-radius:var(--radius);color:var(--muted);transition:all .15s var(--ease)}
+.chat-input-btn:hover{background:var(--accent-bg);color:var(--accent)}
+.chat-input-btn.send{color:var(--accent)}
+.chat-input-btn.send:hover{background:var(--accent-soft)}
+.chat-input-btn svg{width:16px;height:16px}
+.msg-group{margin-bottom:20px}
+.msg-row{display:flex;gap:10px;align-items:flex-start}
+.msg-avatar{width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;flex-shrink:0;font-size:12px;font-weight:600}
+.msg-avatar.user{background:var(--accent-soft);color:var(--accent)}
+.msg-avatar.assistant{background:var(--accent-bg);color:var(--accent)}
+.msg-body{flex:1;min-width:0}
+.msg-name{font-size:11.5px;font-weight:600;color:var(--fg);margin-bottom:2px;letter-spacing:.01em}
+.msg-content{font-size:13.5px;line-height:1.65;color:var(--fg);word-wrap:break-word}
+.msg-content p{margin-bottom:6px}
+.msg-content code{font-family:var(--font-mono);font-size:12.5px;background:var(--accent-bg);padding:1px 5px;border-radius:3px}
+.msg-content pre{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin:8px 0;overflow-x:auto}
+.msg-content pre code{background:none;padding:0}
+.msg-tools{display:flex;gap:4px;margin-top:4px;opacity:0;transition:opacity .15s}
+.msg-row:hover .msg-tools{opacity:1}
+.msg-tool-btn{width:24px;height:24px;display:grid;place-items:center;border-radius:4px;color:var(--muted);font-size:11px;transition:all .12s}
+.msg-tool-btn:hover{background:var(--accent-bg);color:var(--accent)}
+.right-panel{width:280px;min-width:280px;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden}
+.rp-header{padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.03em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.rp-body{flex:1;overflow-y:auto;padding:12px 16px}
+.rp-section{margin-bottom:16px}
+.rp-section-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.02em;margin-bottom:8px;text-transform:uppercase}
+.rp-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);transition:background .15s;cursor:pointer}
+.rp-item:hover{background:var(--accent-bg)}
+.rp-item-icon{width:16px;height:16px;color:var(--muted);flex-shrink:0}
+.rp-item-text{flex:1;font-size:12.5px;color:var(--fg);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rp-item-meta{font-size:11px;color:var(--muted);flex-shrink:0}
+.statusbar{height:var(--status-h);min-height:var(--status-h);display:flex;align-items:center;padding:0 12px;border-top:1px solid var(--border);background:var(--surface);font-size:11px;color:var(--muted);gap:12px}
+.statusbar-left{display:flex;align-items:center;gap:12px;flex:1}
+.statusbar-right{display:flex;align-items:center;gap:12px}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.status-dot.online{background:var(--green)}
+.status-dot.busy{background:var(--amber)}
+.status-item{display:flex;align-items:center;gap:4px}
+.comp-section{padding:32px;overflow-y:auto;height:100%}
+.comp-section h1{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+.comp-section h2{font-size:15px;font-weight:600;margin-bottom:16px;margin-top:24px}
+.comp-section p{color:var(--muted);font-size:13px;margin-bottom:20px}
+.comp-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.comp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 14px;border-radius:var(--radius);font-size:12.5px;font-weight:500;transition:all .15s var(--ease);white-space:nowrap}
+.btn-primary{background:var(--accent);color:var(--surface)}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{background:var(--surface);border:1px solid var(--border);color:var(--fg)}
+.btn-secondary:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.btn-ghost{color:var(--muted)}
+.btn-ghost:hover{background:var(--accent-bg);color:var(--accent)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{filter:brightness(1.1)}
+.btn-sm{height:24px;padding:0 10px;font-size:11.5px}
+.btn-lg{height:36px;padding:0 20px;font-size:14px}
+.btn-icon{width:30px;padding:0;display:grid;place-items:center}
+.btn svg{width:14px;height:14px}
+.input{height:30px;padding:0 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;color:var(--fg);outline:none;width:200px;transition:border-color .15s var(--ease)}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.input::placeholder{color:var(--muted);opacity:.5}
+.badge{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:4px;font-size:11px;font-weight:500;line-height:1}
+.badge-accent{background:var(--accent-bg);color:var(--accent)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-neutral{background:var(--accent-bg);color:var(--muted)}
+.switch{width:32px;height:18px;border-radius:9px;background:var(--border);position:relative;cursor:pointer;transition:background .2s var(--ease);flex-shrink:0}
+.switch.on{background:var(--accent)}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s var(--ease)}
+.switch.on::after{transform:translateX(14px)}
+.select{height:30px;padding:0 28px 0 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;color:var(--fg);outline:none;appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.cmp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
+.cmp-tab{padding:8px 16px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;position:relative;transition:color .15s var(--ease)}
+.cmp-tab:hover{color:var(--fg)}
+.cmp-tab.active{color:var(--accent)}
+.cmp-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent);border-radius:1px}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:8px 12px;font-weight:600;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);font-size:11.5px;letter-spacing:.02em;text-transform:uppercase}
+td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--fg);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--accent-bg)}
+.dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:grid;place-items:center;z-index:100}
+.dialog{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:420px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.dialog-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.dialog-desc{font-size:12.5px;color:var(--muted);margin-bottom:16px}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.dropdown-menu{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:180px}
+.dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;font-size:12.5px;color:var(--fg);cursor:pointer;transition:background .12s}
+.dropdown-item:hover{background:var(--accent-bg);color:var(--accent)}
+.dropdown-item.danger{color:var(--red)}
+.dropdown-item.danger:hover{background:var(--red-bg)}
+.dropdown-divider{height:1px;background:var(--border);margin:4px 0}
+.dropdown-item svg{width:14px;height:14px;opacity:.6}
+.dropdown-shortcut{margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+.view-toggle{display:flex;height:28px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;flex-shrink:0}
+.view-toggle button{padding:0 10px;font-size:11.5px;font-weight:500;color:var(--muted);transition:all .15s;border-right:1px solid var(--border)}
+.view-toggle button:last-child{border-right:none}
+.view-toggle button.active{background:var(--accent);color:var(--surface)}
+.view-toggle button:hover:not(.active){background:var(--accent-bg);color:var(--accent)}
+[data-tooltip]{position:relative}
+[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:11px;padding:3px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
+.flex{display:flex}
+.items-center{align-items:center}
+.gap-4{gap:4px}
+.gap-8{gap:8px}
+.gap-12{gap:12px}
+.ml-auto{margin-left:auto}
+.text-muted{color:var(--muted)}
+.text-sm{font-size:12px}
+.font-mono{font-family:var(--font-mono)}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--muted)}
+.empty-state svg{width:48px;height:48px;opacity:.3}
+.empty-state-text{font-size:13px;max-width:280px;text-align:center;line-height:1.5}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .25s var(--ease) both}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.slide-up{animation:slideUp .2s var(--ease) both}
+.theme-toggle{position:fixed;bottom:40px;right:16px;z-index:50;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;cursor:pointer;color:var(--fg);transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.theme-toggle:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.theme-toggle svg{width:16px;height:16px}
+.swatch-group{display:flex;gap:6px;flex-wrap:wrap}
+.swatch{width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);position:relative}
+.swatch-label{font-size:9px;color:var(--muted);text-align:center;margin-top:3px}
+</style>
+</head>
+<body>
+<div class="app-shell" id="app">
+  <header class="titlebar">
+    <div class="titlebar-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      AxAgent
+    </div>
+    <div class="titlebar-drag"></div>
+    <div class="titlebar-actions">
+      <button class="titlebar-btn" data-tooltip="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></button>
+      <button class="titlebar-btn" data-tooltip="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></button>
+      <button class="titlebar-btn" data-tooltip="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="titlebar-btn" data-tooltip="Maximize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+      <button class="titlebar-btn close" data-tooltip="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+  </header>
+  <div class="main-area">
+    <nav class="nav-sidebar" id="navSidebar">
+      <button class="nav-item active" data-tooltip="Chat" data-view="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></button>
+      <button class="nav-item" data-tooltip="Knowledge" data-view="knowledge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></button>
+      <button class="nav-item" data-tooltip="Gateway" data-view="gateway"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></button>
+      <button class="nav-item" data-tooltip="Terminal" data-view="terminal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></button>
+      <button class="nav-item" data-tooltip="Workflow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+      <button class="nav-item" data-tooltip="Files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></button>
+      <div class="nav-spacer"></div>
+      <div class="nav-divider"></div>
+      <button class="nav-item" data-tooltip="Memory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></button>
+      <button class="nav-item" data-tooltip="Settings" data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
+    </nav>
+    <div class="content-col">
+      <div class="tabbar">
+        <div class="tab-item active">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span class="truncate">设计系统讨论</span><span class="tab-badge">3</span>
+          <span class="tab-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+        </div>
+        <div class="tab-item">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span class="truncate">API 重构方案</span>
+          <span class="tab-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+        </div>
+        <div class="tab-item">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span class="truncate">Bug #2891</span>
+          <span class="tab-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+        </div>
+        <div class="tab-new" data-tooltip="New conversation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div class="tabbar-right"><div class="view-toggle"><button class="active">Chat</button><button>Inspect</button></div></div>
+      </div>
+      <div class="page-area" id="pageArea">
+        <div class="chat-layout view-pane active" id="viewChat">
+          <div class="chat-main">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+              <div class="chat-input-box">
+                <textarea rows="1" placeholder="Send a message… (Cmd+Enter to send)" id="chatInput"></textarea>
+                <div class="chat-input-tools">
+                  <button class="chat-input-btn" data-tooltip="Attach files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></button>
+                  <button class="chat-input-btn" data-tooltip="Select model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></button>
+                  <button class="chat-input-btn send" data-tooltip="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <aside class="right-panel">
+            <div class="rp-header"><span>Context</span>
+              <button class="chat-input-btn" style="width:22px;height:22px" data-tooltip="Close panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="rp-body">
+              <div class="rp-section"><div class="rp-section-title">Active Agents</div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="rp-item-text">Code Analyzer</span><span class="rp-item-meta"><span class="status-dot online"></span></span></div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="rp-item-text">Web Searcher</span><span class="rp-item-meta"><span class="status-dot online"></span></span></div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="rp-item-text">Git Reviewer</span><span class="rp-item-meta"><span class="status-dot busy"></span></span></div>
+              </div>
+              <div class="rp-section"><div class="rp-section-title">Context Files</div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/></svg><span class="rp-item-text">src/layout/Sidebar.tsx</span></div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/></svg><span class="rp-item-text">src/styles/global.css</span></div>
+              </div>
+              <div class="rp-section"><div class="rp-section-title">Tools</div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="rp-item-text">file_read</span></div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span class="rp-item-text">file_edit</span></div>
+                <div class="rp-item"><svg class="rp-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><span class="rp-item-text">web_search</span></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div class="view-pane" id="viewSettings" style="display:none">
+          <div class="comp-section">
+            <h1>Settings</h1><p>Configure your AxAgent experience. Changes are applied immediately.</p>
+            <div class="cmp-tabs"><span class="cmp-tab active">General</span><span class="cmp-tab">Providers</span><span class="cmp-tab">Appearance</span><span class="cmp-tab">Skills</span><span class="cmp-tab">Advanced</span></div>
+            <div style="max-width:560px">
+              <div class="flex items-center gap-12" style="margin-bottom:16px"><label style="width:120px;font-size:12.5px;color:var(--muted);flex-shrink:0">Language</label><select class="select" style="width:200px"><option>简体中文</option><option>English</option><option>日本語</option><option>한국어</option></select></div>
+              <div class="flex items-center gap-12" style="margin-bottom:16px"><label style="width:120px;font-size:12.5px;color:var(--muted);flex-shrink:0">Font size</label><select class="select" style="width:200px"><option>12px — Compact</option><option selected>13px — Default</option><option>14px — Large</option><option>15px — Extra large</option></select></div>
+              <div class="flex items-center gap-12" style="margin-bottom:16px"><label style="width:120px;font-size:12.5px;color:var(--muted);flex-shrink:0">Theme mode</label><div class="flex gap-8"><button class="btn btn-secondary btn-sm">Light</button><button class="btn btn-primary btn-sm">Dark</button><button class="btn btn-secondary btn-sm">System</button></div></div>
+              <div class="flex items-center gap-12" style="margin-bottom:16px"><label style="width:120px;font-size:12.5px;color:var(--muted);flex-shrink:0">Minimize to tray</label><div class="switch on"></div></div>
+              <div class="flex items-center gap-12" style="margin-bottom:16px"><label style="width:120px;font-size:12.5px;color:var(--muted);flex-shrink:0">Auto-update</label><div class="switch on"></div></div>
+            </div>
+            <h2>Model Providers</h2>
+            <div class="table-wrap" style="max-width:560px"><table><thead><tr><th>Provider</th><th>Model</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+              <tbody>
+                <tr><td>OpenAI</td><td><span class="font-mono">gpt-4o</span></td><td><span class="badge badge-green">Connected</span></td><td style="text-align:right"><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td>Anthropic</td><td><span class="font-mono">claude-sonnet-4-6</span></td><td><span class="badge badge-green">Connected</span></td><td style="text-align:right"><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td>Ollama</td><td><span class="font-mono">llama-3.2-3b</span></td><td><span class="badge badge-amber">Unverified</span></td><td style="text-align:right"><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+                <tr><td>Google AI</td><td><span class="font-mono">gemini-2.0-flash</span></td><td><span class="badge badge-red">Error</span></td><td style="text-align:right"><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+              </tbody></table></div>
+          </div>
+        </div>
+        <div class="view-pane" id="viewGallery" style="display:none">
+          <div class="comp-section">
+            <h1>Component System</h1><p>Typography, colors, and UI components in the Modern Minimal system.</p>
+            <h2>Typography</h2>
+            <div style="margin-bottom:24px">
+              <div style="font-family:var(--font-display);font-size:32px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px">Display — 32px / Bold</div>
+              <div style="font-family:var(--font-display);font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px">Heading 1 — 24px / Semibold</div>
+              <div style="font-size:20px;font-weight:600;margin-bottom:4px">Heading 2 — 20px / Semibold</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px">Heading 3 — 15px / Semibold</div>
+              <div style="font-size:13.5px;line-height:1.6;margin-bottom:2px">Body — 13.5px / Regular, line-height 1.6</div>
+              <div style="font-size:12px;color:var(--muted)">Caption — 12px / Muted</div>
+              <div style="font-family:var(--font-mono);font-size:13px;margin-top:4px">Code: const result = await invoke("command");</div>
+            </div>
+            <h2>Color Palette</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px">
+              <div><div class="swatch" style="background:var(--bg);border-color:var(--border)"></div><div class="swatch-label">--bg</div></div>
+              <div><div class="swatch" style="background:var(--surface);border-color:var(--border)"></div><div class="swatch-label">--surface</div></div>
+              <div><div class="swatch" style="background:var(--fg)"></div><div class="swatch-label">--fg</div></div>
+              <div><div class="swatch" style="background:var(--muted)"></div><div class="swatch-label">--muted</div></div>
+              <div><div class="swatch" style="background:var(--border)"></div><div class="swatch-label">--border</div></div>
+              <div><div class="swatch" style="background:var(--accent)"></div><div class="swatch-label">--accent</div></div>
+              <div><div class="swatch" style="background:var(--green)"></div><div class="swatch-label">--green</div></div>
+              <div><div class="swatch" style="background:var(--red)"></div><div class="swatch-label">--red</div></div>
+              <div><div class="swatch" style="background:var(--amber)"></div><div class="swatch-label">--amber</div></div>
+            </div>
+            <h2>Buttons</h2>
+            <div class="comp-grid" style="align-items:center">
+              <button class="btn btn-primary">Primary</button>
+              <button class="btn btn-secondary">Secondary</button>
+              <button class="btn btn-ghost">Ghost</button>
+              <button class="btn btn-danger">Danger</button>
+              <button class="btn btn-primary btn-sm">Small</button>
+              <button class="btn btn-primary btn-lg">Large</button>
+              <button class="btn btn-secondary btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.66V20a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h5.34"/><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/></svg></button>
+              <button class="btn btn-primary" disabled style="opacity:.4;pointer-events:none">Disabled</button>
+            </div>
+            <h2>Badges</h2>
+            <div class="comp-grid"><span class="badge badge-accent">Primary</span><span class="badge badge-green">Online</span><span class="badge badge-red">Error</span><span class="badge badge-amber">Pending</span><span class="badge badge-neutral">12 items</span></div>
+            <h2>Input Controls</h2>
+            <div class="comp-grid" style="align-items:center">
+              <input class="input" placeholder="Text input...">
+              <select class="select"><option>Option 1</option><option selected>Option 2</option><option>Option 3</option></select>
+              <div class="switch"></div><div class="switch on"></div>
+            </div>
+            <h2>Cards</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+              <div class="comp-card"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">Total messages</div><div style="font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;font-family:var(--font-mono)">12,847</div><div style="font-size:12px;color:var(--green);margin-top:4px">+12% this week</div></div>
+              <div class="comp-card"><div style="font-size:12px;color:var(--muted);margin-bottom:4px">Active conversations</div><div style="font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;font-family:var(--font-mono)">8</div><div style="font-size:12px;color:var(--muted);margin-top:4px">3 with pending actions</div></div>
+            </div>
+            <h2>Dropdown Menu</h2>
+            <div class="dropdown-menu" style="position:relative;margin-bottom:24px">
+              <div class="dropdown-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>View profile<span class="dropdown-shortcut">⌘P</span></div>
+              <div class="dropdown-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notifications<span class="dropdown-shortcut">⌘N</span></div>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Settings<span class="dropdown-shortcut">⌘,</span></div>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-item danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</div>
+            </div>
+            <h2>Empty State</h2>
+            <div class="empty-state" style="height:160px;border:1px dashed var(--border);border-radius:var(--radius-lg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg><div class="empty-state-text">No documents yet. Upload a file or create a new one to get started.</div><button class="btn btn-primary">Create document</button></div>
+            <h2>Dialog / Modal</h2>
+            <button class="btn btn-secondary" onclick="document.getElementById('demoDialog').style.display='grid'">Show dialog</button>
+          </div>
+        </div>
+        <div class="view-pane" id="viewEmpty" style="display:none"><div class="empty-state" style="height:100%"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><div class="empty-state-text" id="emptyViewLabel">This view has no content yet.</div></div></div>
+      </div>
+    </div>
+  </div>
+  <footer class="statusbar">
+    <div class="statusbar-left"><span class="status-item"><span class="status-dot online"></span> Connected</span><span class="status-item">Model: <span class="font-mono">claude-sonnet-4-6</span></span><span class="status-item">Tokens: <span class="font-mono">1,284 / 8,192</span></span></div>
+    <div class="statusbar-right"><span class="status-item"><span class="status-dot busy"></span> Code Analyzer running</span><span class="status-item">v2.1.3</span></div>
+  </footer>
+</div>
+<div class="dialog-overlay" id="demoDialog" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="dialog slide-up">
+    <div class="dialog-title">Delete conversation</div>
+    <div class="dialog-desc">This will permanently delete "设计系统讨论" and all its messages. This action cannot be undone.</div>
+    <div class="dialog-actions"><button class="btn btn-secondary" onclick="document.getElementById('demoDialog').style.display='none'">Cancel</button><button class="btn btn-danger" onclick="document.getElementById('demoDialog').style.display='none'">Delete</button></div>
+  </div>
+</div>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" data-tooltip="Toggle theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+<script>
+(function(){const e=document.getElementById('chatMessages'),m=[{role:'user',name:'You',content:'我想重新设计 AxAgent 的布局和样式系统，你有什么建议？'},{role:'assistant',name:'AxAgent',content:'好的！我建议采用 **Modern Minimal** 方向，参考 Linear / Vercel 的风格：\n\n- **布局**：48px 窄导航 + 独立 Tab 栏 + 内容区 + 右侧面板\n- **色彩**：冷中性基底 + 蓝色强调色\n- **字体**：SF Pro Display + SF Pro Text 系统字体\n- **细节**：发丝级边框、无阴影、等宽数字\n\n需要我出个高保真原型看看效果吗？'},{role:'user',name:'You',content:'对，先出个布局 Demo 看看整体结构。注意要有暗色模式。'},{role:'assistant',name:'AxAgent',content:'已经准备好了，这个原型就是：\n\n1. **顶部 TitleBar** — 窗口控制 + 搜索 + 通知\n2. **左侧导航** — 48px 图标栏，激活态左侧指示线\n3. **Tab 栏** — 会话标签页，支持切换和关闭\n4. **内容区** — 当前视图（聊天页带右侧 Context 面板）\n5. **底部 StatusBar** — 连接状态、模型信息、Token 计数\n\n右下角有暗色模式切换按钮，你可以试试。'}];m.forEach((t,i)=>{const n=document.createElement('div');n.className='msg-group fade-in',n.style.animationDelay=i*.05+'s',n.innerHTML='<div class="msg-row"><div class="msg-avatar '+t.role+'">'+(t.role==='user'?'U':'A')+'</div><div class="msg-body"><div class="msg-name">'+t.name+'</div><div class="msg-content">'+t.content.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')+'</div><div class="msg-tools"><button class="msg-tool-btn" title="Copy">📋</button><button class="msg-tool-btn" title="Edit">✏️</button><button class="msg-tool-btn" title="Regenerate">🔄</button></div></div></div>',e.appendChild(n)});e.scrollTop=e.scrollHeight})();
+document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.addEventListener('click',function(){let v=this.dataset.view;document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')),this.classList.add('active');document.querySelectorAll('.view-pane').forEach(p=>p.style.display='none');let t=document.getElementById({chat:'viewChat',knowledge:'viewEmpty',gateway:'viewEmpty',terminal:'viewEmpty',workflow:'viewEmpty',files:'viewEmpty',memory:'viewEmpty',settings:'viewSettings'}[v]||'viewEmpty');if(t){t.style.display='';if(t.id==='viewEmpty'){let l={knowledge:'Knowledge',gateway:'Gateway',terminal:'Terminal',workflow:'Workflow',files:'Files',memory:'Memory'};document.getElementById('emptyViewLabel').textContent=l[v]+' view'}}},false));
+function toggleTheme(){let h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')}
+document.getElementById('chatInput')?.addEventListener('input',function(){this.style.height='auto',this.style.height=Math.min(this.scrollHeight,120)+'px'});
+document.querySelectorAll('.switch').forEach(s=>s.addEventListener('click',function(){this.classList.toggle('on')}));
+</script>
+</body>
+</html>
