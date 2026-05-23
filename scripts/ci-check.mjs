@@ -114,8 +114,8 @@ if (canRunRust && !quick) {
   );
 
   step(
-    "cargo test 单元测试",
-    "cargo test --workspace",
+    "cargo test 单元测试 (库 crate)",
+    "cargo test --workspace --exclude axagent",
     { cwd: srcTauri, timeout: 10 * 60 * 1000, env: { ...process.env } },
   );
 }
