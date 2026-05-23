@@ -143,8 +143,7 @@ pub async fn get_context_breakdown(
     let tools_tokens = if mcp_count > 0 || tool_count > 0 {
         // MCP 工具声明 + 内建工具声明
         (mcp_count.saturating_mul(500) + tool_count.saturating_mul(150) as usize)
-            .min(crate::context_manager::token_budget::SKILLS)
-            .max(1)
+            .clamp(1, crate::context_manager::token_budget::SKILLS)
     } else {
         0
     };

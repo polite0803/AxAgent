@@ -1479,3 +1479,28 @@ export interface InstallOutcomeDto {
   version: string;
   install_path: string;
 }
+
+// === Session Share ===
+
+export interface SharePermissions {
+  allow_terminal_access: boolean;
+  allow_file_access: boolean;
+  allow_model_access: boolean;
+  require_approval_for_actions: boolean;
+  max_participants: number;
+}
+
+export interface ShareSessionInfo {
+  session_id: string;
+  invite_code: string;
+  conversation_id: string;
+  permissions: SharePermissions;
+  participant_count: number;
+  created_at: number;
+}
+
+export interface ShareParticipant {
+  id: string;
+  name: string;
+  joined_at: number;
+}

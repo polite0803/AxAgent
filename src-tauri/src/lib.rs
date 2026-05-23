@@ -771,6 +771,7 @@ pub fn run() {
             commands::rl::rl_train_policy,
             commands::rl::rl_export_model,
             commands::rl::rl_import_model,
+            commands::research::generate_research_report,
             commands::reflection::reflect_on_task,
             commands::reflection::get_reflection_history,
             commands::reflection::clear_reflection_history,
@@ -919,6 +920,10 @@ pub fn run() {
             commands::agent_nudge::proactive_convert_to_nudge,
             #[cfg(not(mobile))]
             crate::tray::set_tray_labels,
+            // Session share
+            commands::session_share::create_share_session,
+            commands::session_share::join_share_session,
+            commands::session_share::list_share_participants,
             // Crash diagnostics
             commands::crash_report::get_crash_log,
         ])

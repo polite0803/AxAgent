@@ -179,7 +179,12 @@ export function RightPanelContainer({
         key: "report",
         icon: <FileText size={ICON} />,
         labelKey: "chatRightPanel.report",
-        render: () => <ReportViewer report={null} />,
+        render: () => (
+          <ReportViewer
+            report={panelData.report}
+            onReset={() => panelData.setReport(null)}
+          />
+        ),
       },
       {
         key: "citation",

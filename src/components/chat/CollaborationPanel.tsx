@@ -92,26 +92,6 @@ export function CollaborationPanel({
     max_participants: 5,
   });
 
-  const handleJoinSession = async (code: string) => {
-    try {
-      const { invoke } = await import("@/lib/invoke");
-      await invoke("collaboration_join_session", {
-        conversation_id: conversationId,
-        invite_code: code,
-      });
-      setDialogOpen(false);
-      const updated = await invoke<SharedSession[]>(
-        "collaboration_list_sessions",
-      ).catch(() => []);
-      setSessions(updated);
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn("Failed to join session:", e);
-      }
-      throw e;
-    }
-  };
-
   const shareDialog = (
     <SessionShareDialog
       open={dialogOpen}
@@ -119,7 +99,6 @@ export function CollaborationPanel({
       permissions={dialogPermissions}
       onClose={() => setDialogOpen(false)}
       onPermissionsChange={(perms) => setDialogPermissions(perms)}
-      onJoinSession={handleJoinSession}
     />
   );
 

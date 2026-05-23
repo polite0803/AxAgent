@@ -402,6 +402,7 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         sync_engine,
         plugin_manager,
         file_authorizer: Arc::new(axagent_core::file_authorizer::FileAuthorizer::new()),
+        session_share_manager: Arc::new(TokioRwLock::new(std::collections::HashMap::new())),
     }
 }
 

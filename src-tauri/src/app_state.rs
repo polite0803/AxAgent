@@ -125,6 +125,53 @@ pub struct InMemoryCacheEntry {
     pub ttl_secs: u64,
 }
 
+// ─── Session Share 类型 ───
+
+/// 共享会话的内部存储记录
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShareSessionRecord {
+    pub session_id: String,
+    pub invite_code: String,
+    pub conversation_id: String,
+    pub permissions: SharePermissions,
+    pub participants: Vec<ShareParticipant>,
+    pub created_at: i64,
+}
+
+/// 共享会话权限配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SharePermissions {
+    pub allow_terminal_access: bool,
+    pub allow_file_access: bool,
+    pub allow_model_access: bool,
+    pub require_approval_for_actions: bool,
+    pub max_participants: u32,
+}
+
+impl Default for SharePermissions {
+    fn default() -> Self {
+        Self {
+            allow_terminal_access: true,
+            allow_file_access: true,
+            allow_model_access: false,
+            require_approval_for_actions: true,
+            max_participants: 10,
+        }
+    }
+}
+
+/// 会话参与者
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShareParticipant {
+    pub id: String,
+    pub name: String,
+    pub joined_at: i64,
+}
+
+/// 共享会话存储类型
+pub type SessionShareStore =
+    Arc<TokioRwLock<std::collections::HashMap<String, ShareSessionRecord>>>;
+
 pub struct AppState {
     pub sea_db: DatabaseConnection,
     pub master_key: [u8; 32],
@@ -216,6 +263,7 @@ pub struct AppState {
     pub sync_engine: Option<Arc<SyncEngine>>,
     pub plugin_manager: std::sync::Mutex<PluginManager>,
     pub file_authorizer: Arc<FileAuthorizer>,
+    pub session_share_manager: SessionShareStore,
 }
 
 impl Drop for AppState {

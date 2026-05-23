@@ -1,3 +1,5 @@
+import { invoke } from "@/lib/invoke";
+import type { SharePermissions, ShareSessionInfo } from "@/types";
 import { Button, Card, Input, InputNumber, message, Modal, Space, Switch, Typography } from "antd";
 import { Copy, Link, Shield, Terminal, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -22,19 +24,6 @@ interface SessionPermissions {
   max_participants: number;
 }
 
-function generateInviteCode(sessionId: string): string {
-  let hash = 0;
-  const base = sessionId.replace(/-/g, "");
-  for (let i = 0; i < base.length; i++) {
-    const char = base.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  const ts = Date.now().toString(16).slice(-4).toUpperCase();
-  const code = Math.abs(hash).toString(16).slice(0, 4).toUpperCase();
-  return `${code}${ts}`;
-}
-
 export function SessionShareDialog({
   open,
   sessionId,
@@ -48,33 +37,92 @@ export function SessionShareDialog({
   const [joinCode, setJoinCode] = useState("");
   const [mode, setMode] = useState<"share" | "join">("share");
   const [joining, setJoining] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [shareInfo, setShareInfo] = useState<ShareSessionInfo | null>(null);
   const copiedTimerRef = useRef<number | undefined>(undefined);
+  const previousOpenRef = useRef(false);
 
-  const inviteCode = useMemo(
-    () => (sessionId ? generateInviteCode(sessionId) : ""),
-    [sessionId],
+  // 转换为后端 SharePermissions 格式
+  const toBackendPermissions = useCallback(
+    (p: SessionPermissions): SharePermissions => ({
+      allow_terminal_access: p.allow_terminal_access,
+      allow_file_access: p.allow_file_access,
+      allow_model_access: p.allow_model_access,
+      require_approval_for_actions: p.require_approval_for_actions,
+      max_participants: p.max_participants,
+    }),
+    [],
   );
 
+  // 打开弹窗或切换到共享模式时，创建/更新共享会话以获取邀请码
   useEffect(() => {
-    return () => clearTimeout(copiedTimerRef.current);
-  }, []);
+    if (open && mode === "share" && sessionId) {
+      let cancelled = false;
+      const createSession = async () => {
+        setCreating(true);
+        try {
+          const info = await invoke<ShareSessionInfo>(
+            "create_share_session",
+            {
+              conversationId: sessionId,
+              permissions: toBackendPermissions(permissions),
+            },
+          );
+          if (!cancelled) {
+            setShareInfo(info);
+          }
+        } catch {
+          if (!cancelled) {
+            message.error(
+              t("chat.collaboration.sessionShare.createFailed")
+                || "Failed to create share session",
+            );
+          }
+        } finally {
+          if (!cancelled) {
+            setCreating(false);
+          }
+        }
+      };
+      createSession();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [open, mode, sessionId, permissions, toBackendPermissions, t]);
 
+  // 弹窗打开/关闭时重置状态
   useEffect(() => {
-    if (open) {
+    if (open && !previousOpenRef.current) {
       setMode("share");
       setJoinCode("");
       setCopied(false);
       setJoining(false);
+      setShareInfo(null);
     }
+    previousOpenRef.current = open;
   }, [open]);
 
-  const handleSwitchMode = useCallback((newMode: "share" | "join") => {
-    setMode(newMode);
-    setJoinCode("");
-    setCopied(false);
-  }, []);
+  // 后端返回的邀请码（优先于前端生成）
+  const inviteCode = useMemo(
+    () => shareInfo?.invite_code ?? "",
+    [shareInfo],
+  );
+
+  const handleSwitchMode = useCallback(
+    (newMode: "share" | "join") => {
+      setMode(newMode);
+      setJoinCode("");
+      setCopied(false);
+      if (newMode !== "share") {
+        setShareInfo(null);
+      }
+    },
+    [],
+  );
 
   const copyInviteCode = useCallback(() => {
+    if (!inviteCode) { return; }
     navigator.clipboard.writeText(inviteCode).then(
       () => {
         setCopied(true);
@@ -94,13 +142,21 @@ export function SessionShareDialog({
 
   const handleJoin = useCallback(async () => {
     const trimmed = joinCode.trim();
-    if (!trimmed || !onJoinSession) {
+    if (!trimmed) {
       return;
     }
     setJoining(true);
     try {
-      await onJoinSession(trimmed);
+      // 调用真实的 Tauri join_share_session 命令
+      await invoke<ShareSessionInfo>("join_share_session", {
+        inviteCode: trimmed,
+      });
       setJoinCode("");
+      message.success(
+        t("chat.collaboration.sessionShare.joinSuccess") || "Joined session successfully",
+      );
+      // 同时通知父组件（向后兼容）
+      onJoinSession?.(trimmed);
     } catch {
       message.error(
         t("chat.collaboration.sessionShare.joinFailed") || "Join failed",
@@ -112,9 +168,24 @@ export function SessionShareDialog({
 
   const handlePermissionChange = useCallback(
     (key: keyof SessionPermissions, value: boolean | number) => {
-      onPermissionsChange?.({ ...permissions, [key]: value });
+      const newPermissions = { ...permissions, [key]: value };
+      // 调用后端 create_share_session 更新权限
+      if (sessionId) {
+        invoke<ShareSessionInfo>("create_share_session", {
+          conversationId: sessionId,
+          permissions: toBackendPermissions(newPermissions),
+        })
+          .then((info) => setShareInfo(info))
+          .catch(() => {
+            message.error(
+              t("chat.collaboration.sessionShare.updateFailed")
+                || "Failed to update permissions",
+            );
+          });
+      }
+      onPermissionsChange?.(newPermissions);
     },
-    [permissions, onPermissionsChange],
+    [permissions, sessionId, onPermissionsChange, t, toBackendPermissions],
   );
 
   return (
@@ -163,6 +234,7 @@ export function SessionShareDialog({
                     value={inviteCode}
                     readOnly
                     size="small"
+                    placeholder={creating ? "Generating..." : ""}
                     suffix={<Link size={14} className="text-zinc-400" />}
                   />
                   <Button

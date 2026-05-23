@@ -34,6 +34,9 @@ interface RightPanelState {
 
   predictionContext: Record<string, unknown>;
   setPredictionContext: (ctx: Record<string, unknown>) => void;
+
+  report: any | null;
+  setReport: (report: any | null) => void;
 }
 
 export const useRightPanelStore = create<RightPanelState>((set) => ({
@@ -50,4 +53,7 @@ export const useRightPanelStore = create<RightPanelState>((set) => ({
 
   predictionContext: {},
   setPredictionContext: (predictionContext) => set({ predictionContext }),
+
+  report: null,
+  setReport: (report) => set({ report }),
 }));
