@@ -2261,7 +2261,11 @@
       "myWorkflows": "My Workflows",
       "marketplace": "Marketplace"
     },
-    "themePreset": "Theme Preset",
+    "themePreset": "थीम प्रीसेट",
+    "themePresetDeepDusk": "Deep Dusk",
+    "themePresetLightDawn": "Light Dawn",
+    "themePresetOceanicDark": "Oceanic Dark",
+    "themePresetForestDark": "Forest Dark",
     "imageGen": {
       "defaultProvider": "Default Provider",
       "providerFlux": "Flux (Replicate)",

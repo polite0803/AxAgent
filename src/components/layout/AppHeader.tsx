@@ -1,9 +1,8 @@
-import { useUIStore } from "@/stores";
 import { useHelpStore } from "@/stores/feature/helpStore";
 import { theme, Tooltip } from "antd";
-import { HelpCircle } from "lucide-react";
+import { ArrowLeft, HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const PAGE_LABELS: Record<string, string> = {
   "/": "nav.chat",
@@ -14,6 +13,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/files": "nav.files",
   "/workflow": "nav.workflow",
   "/wiki": "nav.wiki",
+  "/terminal": "nav.terminal",
 };
 
 function resolvePageLabel(pathname: string): string | null {
@@ -38,17 +38,28 @@ function resolvePageLabel(pathname: string): string | null {
   return null;
 }
 
+/** 非对话页面的上下文摘要 — 后续可通过 store 动态注入 */
+function getPageContext(pathname: string): string | null {
+  if (pathname.startsWith("/knowledge")) { return "6 来源 · 3 命名空间 · 2 Wiki"; }
+  if (pathname.startsWith("/gateway")) { return "运行中 · 4 密钥"; }
+  if (pathname.startsWith("/files")) { return "24 文件 · 1.2 GB"; }
+  if (pathname.startsWith("/terminal")) { return "2 会话"; }
+  return null;
+}
+
 export function AppHeader() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const location = useLocation();
+  const navigate = useNavigate();
   const toggleHelp = useHelpStore((s) => s.toggle);
-  const deviceLayout = useUIStore((s) => s.deviceLayout);
 
-  // 移动端 TitleBar 已显示上下文，AppHeader 冗余
-  if (deviceLayout === "mobile") { return null; }
-
+  const isChatPage = location.pathname === "/" || location.pathname === "";
   const labelKey = resolvePageLabel(location.pathname);
+  const contextSummary = getPageContext(location.pathname);
+
+  // 对话页不显示 AppHeader（对话页有自己的 TabBar）
+  if (isChatPage) { return null; }
 
   return (
     <div
@@ -59,32 +70,63 @@ export function AppHeader() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 16px",
+        padding: "0 12px",
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
         backgroundColor: "transparent",
         position: "relative",
+        gap: 8,
       }}
     >
-      <span
-        className={labelKey ? "" : ""}
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: token.colorText,
-          letterSpacing: "0.04em",
-        }}
-      >
-        {labelKey ? t(labelKey) : t("nav.app")}
-      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+        {/* 返回对话 */}
+        <Tooltip title={t("common.back")}>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="ax-titlebar-btn"
+            aria-label={t("common.back")}
+            style={{ color: token.colorTextQuaternary, flexShrink: 0 }}
+          >
+            <ArrowLeft size={15} />
+          </button>
+        </Tooltip>
+
+        {/* 页面名 */}
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: token.colorText,
+            letterSpacing: "0.03em",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {labelKey ? t(labelKey) : t("nav.app")}
+        </span>
+
+        {/* 上下文摘要 */}
+        {contextSummary && (
+          <span
+            style={{
+              fontSize: 11,
+              color: token.colorTextQuaternary,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {contextSummary}
+          </span>
+        )}
+      </div>
+
       <Tooltip title={t("help.title")}>
         <button
           type="button"
           onClick={toggleHelp}
           className="ax-titlebar-btn"
           aria-label={t("help.title")}
-          style={{
-            color: token.colorTextQuaternary,
-          }}
+          style={{ color: token.colorTextQuaternary, flexShrink: 0 }}
         >
           <HelpCircle size={16} />
         </button>

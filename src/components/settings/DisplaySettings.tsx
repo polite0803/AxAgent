@@ -9,59 +9,86 @@ import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
 
-const THEME_PRESETS: {
-  key: ThemePreset;
-  label: string;
-  bg: string;
-  accent: string;
-}[] = [
-  {
-    key: "cyberpunk-dark",
-    label: "Cyberpunk Dark",
-    bg: "#0a0a12",
-    accent: "#00f0ff",
-  },
-  {
-    key: "cyberpunk-light",
-    label: "Cyberpunk Light",
-    bg: "#f0f0f8",
-    accent: "#7b2ff7",
-  },
-  {
-    key: "paperclip-dark",
-    label: "Paperclip Dark",
-    bg: "#18181b",
-    accent: "#a1a1aa",
-  },
-  {
-    key: "paperclip-light",
-    label: "Paperclip Light",
-    bg: "#fafafa",
-    accent: "#71717a",
-  },
-  {
-    key: "dark-elegance",
-    label: "Dark Elegance",
-    bg: "#141414",
-    accent: "#1677ff",
-  },
-  { key: "dark-neon", label: "Dark Neon", bg: "#0a0a0f", accent: "#a855f7" },
-  {
-    key: "light-professional",
-    label: "Light Pro",
-    bg: "#ffffff",
-    accent: "#1677ff",
-  },
-  {
-    key: "light-minimal",
-    label: "Light Minimal",
-    bg: "#f8fafc",
-    accent: "#0891b2",
-  },
-];
-
 export function DisplaySettings() {
   const { t } = useTranslation();
+
+  const THEME_PRESETS: {
+    key: ThemePreset;
+    label: string;
+    bg: string;
+    accent: string;
+  }[] = [
+    // 2026 设计改版新增预设
+    {
+      key: "deep-dusk",
+      label: t("settings.themePresetDeepDusk"),
+      bg: "#1a1817",
+      accent: "#00A8A8",
+    },
+    {
+      key: "light-dawn",
+      label: t("settings.themePresetLightDawn"),
+      bg: "#f5f0ea",
+      accent: "#00A8A8",
+    },
+    {
+      key: "oceanic-dark",
+      label: t("settings.themePresetOceanicDark"),
+      bg: "#12141a",
+      accent: "#5b9aff",
+    },
+    {
+      key: "forest-dark",
+      label: t("settings.themePresetForestDark"),
+      bg: "#131a13",
+      accent: "#3dbf5c",
+    },
+    // 经典预设
+    {
+      key: "cyberpunk-dark",
+      label: "Cyberpunk Dark",
+      bg: "#0a0a12",
+      accent: "#00f0ff",
+    },
+    {
+      key: "cyberpunk-light",
+      label: "Cyberpunk Light",
+      bg: "#f0f0f8",
+      accent: "#7b2ff7",
+    },
+    {
+      key: "paperclip-dark",
+      label: "Paperclip Dark",
+      bg: "#18181b",
+      accent: "#a1a1aa",
+    },
+    {
+      key: "paperclip-light",
+      label: "Paperclip Light",
+      bg: "#fafafa",
+      accent: "#71717a",
+    },
+    {
+      key: "dark-elegance",
+      label: "Dark Elegance",
+      bg: "#141414",
+      accent: "#1677ff",
+    },
+    { key: "dark-neon", label: "Dark Neon", bg: "#0a0a0f", accent: "#a855f7" },
+    {
+      key: "light-professional",
+      label: "Light Pro",
+      bg: "#ffffff",
+      accent: "#1677ff",
+    },
+    {
+      key: "light-minimal",
+      label: "Light Minimal",
+      bg: "#f8fafc",
+      accent: "#0891b2",
+    },
+  ];
+
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
@@ -129,7 +156,7 @@ export function DisplaySettings() {
           <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
           <div style={{ display: "flex", gap: 6 }}>
             {THEME_PRESETS.map((preset) => {
-              const isActive = (settings.theme_preset || "cyberpunk-dark") === preset.key;
+              const isActive = (settings.theme_preset || "deep-dusk") === preset.key;
               return (
                 <Tooltip key={preset.key} title={preset.label}>
                   <div

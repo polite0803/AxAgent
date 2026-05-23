@@ -2278,7 +2278,11 @@
       "sessionEvents": "セッションイベント",
       "messageEvents": "メッセージイベント"
     },
-    "themePreset": "主题预设",
+    "themePreset": "テーマプリセット",
+    "themePresetDeepDusk": "ディープダスク",
+    "themePresetLightDawn": "ライトドーン",
+    "themePresetOceanicDark": "オーシャニックダーク",
+    "themePresetForestDark": "フォレストダーク",
     "expandAll": "展开所有",
     "mcp": {
       "builtin": "内置工具",

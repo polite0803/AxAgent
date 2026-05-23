@@ -10,7 +10,12 @@ export type ThemePreset =
   | "paperclip-dark"
   | "paperclip-light"
   | "cyberpunk-dark"
-  | "cyberpunk-light";
+  | "cyberpunk-light"
+  // 新预设（2026-05 设计改版）
+  | "deep-dusk"
+  | "light-dawn"
+  | "oceanic-dark"
+  | "forest-dark";
 
 interface PresetColors {
   bgBase: string;
@@ -64,6 +69,50 @@ const PRESETS: Record<ThemePreset, PresetColors> = {
     borderRadiusBias: 4,
     shadowStyle: "none",
   },
+  // 深色暮色 — 暖深灰基底 + 青绿强调（2026 设计改版默认）
+  "deep-dusk": {
+    bgBase: "#1a1817",
+    bgElevated: "#242220",
+    borderColor: "#353230",
+    textPrimary: "rgba(245,240,235,0.92)",
+    textSecondary: "rgba(180,175,165,0.7)",
+    primaryColor: "#00A8A8",
+    borderRadiusBias: 0,
+    shadowStyle: "border-only",
+  },
+  // 亮色晨曦 — 暖白基底 + 青绿强调
+  "light-dawn": {
+    bgBase: "#f5f0ea",
+    bgElevated: "#faf7f3",
+    borderColor: "#e5ddd5",
+    textPrimary: "rgba(30,28,25,0.92)",
+    textSecondary: "rgba(130,120,110,0.7)",
+    primaryColor: "#00A8A8",
+    borderRadiusBias: 0,
+    shadowStyle: "soft-light",
+  },
+  // 海洋深色 — 冷蓝灰基底 + 亮蓝强调
+  "oceanic-dark": {
+    bgBase: "#12141a",
+    bgElevated: "#1a1d26",
+    borderColor: "#252a36",
+    textPrimary: "rgba(230,235,245,0.92)",
+    textSecondary: "rgba(150,160,180,0.7)",
+    primaryColor: "#5b9aff",
+    borderRadiusBias: 0,
+    shadowStyle: "border-only",
+  },
+  // 森林深色 — 绿调基底 + 翠绿强调
+  "forest-dark": {
+    bgBase: "#131a13",
+    bgElevated: "#1a241a",
+    borderColor: "#263226",
+    textPrimary: "rgba(230,245,230,0.92)",
+    textSecondary: "rgba(150,175,150,0.7)",
+    primaryColor: "#3dbf5c",
+    borderRadiusBias: 0,
+    shadowStyle: "border-only",
+  },
   "paperclip-dark": {
     bgBase: "#18181b",
     bgElevated: "#27272a",
@@ -106,7 +155,7 @@ const PRESETS: Record<ThemePreset, PresetColors> = {
   },
 };
 
-const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
+export const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
   "dark-elegance": true,
   "dark-neon": true,
   "light-professional": false,
@@ -115,6 +164,10 @@ const IS_DARK_PRESET: Record<ThemePreset, boolean> = {
   "paperclip-light": false,
   "cyberpunk-dark": true,
   "cyberpunk-light": false,
+  "deep-dusk": true,
+  "light-dawn": false,
+  "oceanic-dark": true,
+  "forest-dark": true,
 };
 
 function resolveShadow(preset: PresetColors): {

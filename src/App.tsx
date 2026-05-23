@@ -4,7 +4,7 @@ import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
 import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
 import { GlobalErrorBoundary } from "@/components/layout/GlobalErrorBoundary";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { GlobalStatusBar } from "@/components/layout/GlobalStatusBar";
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
@@ -12,7 +12,6 @@ import { InteractiveTutorial } from "@/components/onboarding/InteractiveTutorial
 import { WelcomeWizard } from "@/components/onboarding/WelcomeWizard";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPanels } from "@/components/skill/SkillPanels";
-import { SkillStatusBar } from "@/components/skill/SkillStatusBar";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
 import { useGlobalShortcutManager } from "@/hooks/useGlobalShortcutManager";
@@ -28,11 +27,10 @@ import {
   useSettingsStore,
   useSkillExtensionStore,
   useStreamStore,
-  useUIStore,
 } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
-import { App as AntdApp, ConfigProvider, Drawer, Layout, theme } from "antd";
+import { App as AntdApp, ConfigProvider, Layout, theme } from "antd";
 import { enableD2, setDefaultI18nMap } from "markstream-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -66,13 +64,11 @@ async function showWindow() {
   }
 }
 
-/** 仅当技能扩展注册了状态栏项时才渲染 */
-function ConditionalSkillStatusBar() {
-  const count = useSkillExtensionStore((s) => s.statusBarItems.length);
-  if (count === 0) { return null; }
+/** 全局底部状态栏 */
+function ConditionalGlobalStatusBar() {
   return (
-    <ModuleErrorBoundary moduleName="SkillStatusBar">
-      <SkillStatusBar alignment="right" />
+    <ModuleErrorBoundary moduleName="GlobalStatusBar">
+      <GlobalStatusBar />
     </ModuleErrorBoundary>
   );
 }
@@ -86,9 +82,6 @@ function AppInner() {
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
-  const deviceLayout = useUIStore((s) => s.deviceLayout);
-  const mobileNavOpen = useUIStore((s) => s.mobileNavOpen);
-  const setMobileNavOpen = useUIStore((s) => s.setMobileNavOpen);
 
   // 同步检测 QuickBar 窗口（在首次渲染前），避免 ChatPage 先渲染导致崩溃
   const [isQuickBarWindow] = useState(() => {
@@ -262,64 +255,38 @@ function AppInner() {
               <ModuleErrorBoundary moduleName="TitleBar">
                 <TitleBar />
               </ModuleErrorBoundary>
-              <ConditionalSkillStatusBar />
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
-              {/* 移动端/平板：滑出式导航抽屉 + 全宽内容区 + 底部导航栏 */}
-              {(deviceLayout === "mobile" || deviceLayout === "tablet") && (
-                <>
-                  <Drawer
-                    open={mobileNavOpen}
-                    onClose={() => setMobileNavOpen(false)}
-                    placement="left"
-                    width={280}
-                    styles={{ body: { padding: 0 } }}
-                    closeIcon={null}
+              {/* 所有屏幕尺寸统一使用左侧侧栏导航，移动端不再显示滑出式 Drawer */}
+              <Layout
+                hasSider={!isInSettings}
+                className="flex-1 overflow-hidden"
+                style={{ backgroundColor: "transparent" }}
+              >
+                {!isInSettings && (
+                  <div
+                    style={{
+                      backgroundColor: "transparent",
+                      borderRight: "1px solid var(--border-color)",
+                      flexShrink: 0,
+                    }}
                   >
                     <ModuleErrorBoundary moduleName="Sidebar">
                       <Sidebar />
                     </ModuleErrorBoundary>
-                  </Drawer>
-                  <div className="flex-1 overflow-hidden">
-                    <div className="ax-page-transition" style={{ height: "100%" }}>
-                      <ContentArea />
-                    </div>
                   </div>
-                  {/* 浮动导航 — position:fixed，不占布局空间 */}
-                  <MobileBottomNav />
-                </>
-              )}
-              {/* 桌面：固定侧边栏 + 内容区 */}
-              {deviceLayout === "desktop" && (
-                <Layout
-                  hasSider={!isInSettings}
-                  className="flex-1 overflow-hidden"
-                  style={{ backgroundColor: "transparent" }}
-                >
-                  {!isInSettings && (
-                    <div
-                      style={{
-                        backgroundColor: "transparent",
-                        borderRight: "1px solid var(--border-color)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <ModuleErrorBoundary moduleName="Sidebar">
-                        <Sidebar />
-                      </ModuleErrorBoundary>
-                    </div>
-                  )}
-                  <Content className="overflow-hidden">
-                    <div
-                      className="ax-page-transition"
-                      style={{ height: "100%" }}
-                      key={location.pathname}
-                    >
-                      <ContentArea />
-                    </div>
-                  </Content>
-                </Layout>
-              )}
+                )}
+                <Content className="overflow-hidden">
+                  <div
+                    className="ax-page-transition"
+                    style={{ height: "100%" }}
+                    key={location.pathname}
+                  >
+                    <ContentArea />
+                  </div>
+                </Content>
+              </Layout>
+              <ConditionalGlobalStatusBar />
             </>
           )}
       </div>

@@ -13,8 +13,6 @@ interface UIState {
   workflowEditorOpen: boolean;
   /** 根据窗口宽度自动检测的布局模式 */
   deviceLayout: DeviceLayout;
-  /** 移动端导航抽屉是否打开 */
-  mobileNavOpen: boolean;
   setActivePage: (page: PageKey) => void;
   enterSettings: () => void;
   exitSettings: () => void;
@@ -25,15 +23,12 @@ interface UIState {
   closeWorkflowEditor: () => void;
   /** 设置布局模式（启动时由 useResponsive hook 自动调用） */
   setDeviceLayout: (layout: DeviceLayout) => void;
-  /** 移动端导航抽屉开关 */
-  setMobileNavOpen: (open: boolean) => void;
-  toggleMobileNav: () => void;
 }
 
 /** 根据窗口宽度解析布局模式 */
 export function resolveDeviceLayout(width: number): DeviceLayout {
-  if (width < 768) { return "mobile"; }
-  if (width < 1280) { return "tablet"; }
+  if (width < 600) { return "mobile"; }
+  if (width < 900) { return "tablet"; }
   return "desktop";
 }
 
@@ -45,7 +40,6 @@ export const useUIStore = create<UIState>((set, get) => ({
   selectedProviderId: null,
   workflowEditorOpen: false,
   deviceLayout: resolveDeviceLayout(window.innerWidth),
-  mobileNavOpen: false,
   setActivePage: (page) => set({ activePage: page }),
   enterSettings: () => {
     const current = get().activePage;
@@ -77,13 +71,7 @@ export const useUIStore = create<UIState>((set, get) => ({
       } else if (s.sidebarCollapsed && s.deviceLayout !== "desktop") {
         updates.sidebarCollapsed = false;
       }
-      // 离开移动端时关闭导航抽屉
-      if (layout !== "mobile") {
-        updates.mobileNavOpen = false;
-      }
       return updates;
     });
   },
-  setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
-  toggleMobileNav: () => set((s) => ({ mobileNavOpen: !s.mobileNavOpen })),
 }));

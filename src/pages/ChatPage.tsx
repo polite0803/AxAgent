@@ -14,7 +14,7 @@ import {
   useUIStore,
 } from "@/stores";
 import { theme } from "antd";
-import { ChevronRight, PanelRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -39,6 +39,8 @@ export function ChatPage() {
   const providerCount = useProviderStore((s) => s.providers.length);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
   const isMobile = deviceLayout === "mobile";
+  const isTablet = deviceLayout === "tablet";
+  const isSmallScreen = isMobile || isTablet;
 
   // 右侧面板状态
   const settings = useSettingsStore((s) => s.settings);
@@ -247,7 +249,7 @@ export function ChatPage() {
   return (
     <div
       className="flex h-full"
-      style={{ overflow: "hidden", position: isMobile ? "relative" : "static" }}
+      style={{ overflow: "hidden", position: isSmallScreen ? "relative" : "static" }}
       data-testid="chat-view"
     >
       {/* 左侧会话列表 */}
@@ -369,19 +371,71 @@ export function ChatPage() {
           }}
         />
       )}
+      {/* 小屏：右侧面板覆盖层遮罩 */}
+      {isSmallScreen && showRightPanel && !rightPanelCollapsed && (
+        <div
+          onClick={toggleRightPanel}
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 39,
+            backgroundColor: "rgba(0,0,0,0.35)",
+            transition: "opacity 0.2s",
+          }}
+        />
+      )}
+      {/* 小屏：展开按钮 */}
+      {isSmallScreen && showRightPanel && rightPanelCollapsed && (
+        <button
+          type="button"
+          onClick={toggleRightPanel}
+          style={{
+            position: "absolute",
+            right: 8,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 30,
+            width: 32,
+            height: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: 8,
+            backgroundColor: token.colorBgElevated,
+            color: token.colorTextSecondary,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          }}
+          aria-label={t("chat.agentPanel.expand")}
+        >
+          <ChevronLeft size={16} />
+        </button>
+      )}
       {/* 右侧面板 */}
       {showRightPanel && (
         <div
           style={{
-            width: rightPanelCollapsed ? 48 : rightPanelWidth,
-            minWidth: 0,
-            borderLeft: "1px solid var(--border-color)",
+            width: rightPanelCollapsed ? (isSmallScreen ? 0 : 48) : rightPanelWidth,
+            minWidth: isSmallScreen && rightPanelCollapsed ? 0 : undefined,
+            overflow: isSmallScreen && rightPanelCollapsed ? "hidden" : undefined,
+            borderLeft: (isSmallScreen && rightPanelCollapsed)
+              ? "none"
+              : "1px solid var(--border-color)",
             backgroundColor: token.colorBgContainer,
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
             transition: rightDragging ? "none" : "width 0.2s",
-            position: "relative",
+            // 小屏：覆盖在主内容之上
+            position: isSmallScreen ? "absolute" : "relative",
+            top: isSmallScreen ? 0 : undefined,
+            right: isSmallScreen ? 0 : undefined,
+            bottom: isSmallScreen ? 0 : undefined,
+            zIndex: isSmallScreen ? 40 : undefined,
+            boxShadow: isSmallScreen && !rightPanelCollapsed
+              ? "-4px 0 16px rgba(0,0,0,0.15)"
+              : "none",
           }}
         >
           {/* 折叠/展开按钮 — 始终在 ChatPage 层级，覆盖在面板左上角 */}

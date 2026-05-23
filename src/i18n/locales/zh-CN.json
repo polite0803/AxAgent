@@ -2253,6 +2253,10 @@
       "messageEvents": "消息事件"
     },
     "themePreset": "主题预设",
+    "themePresetDeepDusk": "深色暮色",
+    "themePresetLightDawn": "亮色晨曦",
+    "themePresetOceanicDark": "海洋深色",
+    "themePresetForestDark": "森林深色",
     "imageGen": {
       "defaultProvider": "默认服务商",
       "providerFlux": "Flux (Replicate)",

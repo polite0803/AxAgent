@@ -110,13 +110,19 @@ export function StatusBarWidget({
 
   const statusItems: React.ReactNode[] = [];
 
+  const successColor = "var(--color-status-success, #22c55e)";
+  const warningColor = "var(--color-status-warning, #eab308)";
+  const infoColor = "var(--color-status-info, #3b82f6)";
+  const errorColor = "var(--color-status-error, #ef4444)";
+  const normalColor = "var(--color-text-secondary, #94a3b8)";
+
   if (showGit && status.gitBranch) {
     statusItems.push(
       <StatusBarItem
         key="git"
         icon={<GitBranch size={12} />}
         label={status.gitBranch}
-        color="#a6e3a1"
+        color={successColor}
       />,
     );
   }
@@ -127,7 +133,7 @@ export function StatusBarWidget({
         key="timer"
         icon={<Clock size={12} />}
         label={formatDuration(elapsedTime)}
-        color="#f9e2af"
+        color={warningColor}
       />,
     );
   }
@@ -139,7 +145,7 @@ export function StatusBarWidget({
           key="tokens"
           icon={<Hash size={12} />}
           label={formatTokens(status.tokenCount)}
-          color="#89b4fa"
+          color={infoColor}
         />,
       );
     } else if (
@@ -153,7 +159,7 @@ export function StatusBarWidget({
           key="tokens"
           icon={<Hash size={12} />}
           label={`${formatTokens(inTokens)} / ${formatTokens(outTokens)}`}
-          color="#89b4fa"
+          color={infoColor}
         />,
       );
     }
@@ -166,7 +172,7 @@ export function StatusBarWidget({
           key="cpu"
           icon={<Cpu size={12} />}
           label={`${status.cpuUsage.toFixed(0)}%`}
-          color={status.cpuUsage > 80 ? "#f38ba8" : "#94e2d5"}
+          color={status.cpuUsage > 80 ? errorColor : successColor}
         />,
       );
     }
@@ -177,7 +183,7 @@ export function StatusBarWidget({
           key="memory"
           icon={<MemoryStick size={12} />}
           label={`${status.memoryUsage.toFixed(0)}%`}
-          color={status.memoryUsage > 80 ? "#f38ba8" : "#94e2d5"}
+          color={status.memoryUsage > 80 ? errorColor : successColor}
         />,
       );
     }
@@ -190,7 +196,7 @@ export function StatusBarWidget({
           label={status.networkStatus === "connected"
             ? t("terminal.online")
             : t("terminal.offline")}
-          color={status.networkStatus === "connected" ? "#a6e3a1" : "#f38ba8"}
+          color={status.networkStatus === "connected" ? successColor : errorColor}
         />,
       );
     }
@@ -202,7 +208,7 @@ export function StatusBarWidget({
         key="sessions"
         icon={<span style={{ fontSize: 10, fontWeight: "bold" }}>#</span>}
         label={`${status.activeSessions}`}
-        color="#f5c2e7"
+        color={normalColor}
       />,
     );
   }
@@ -219,8 +225,8 @@ export function StatusBarWidget({
         alignItems: "center",
         gap: 16,
         padding: "4px 12px",
-        background: "#181825",
-        borderTop: "1px solid #333",
+        background: "var(--color-bg-elevated)",
+        borderTop: "1px solid var(--border-color)",
         fontSize: 12,
         fontFamily: "'JetBrains Mono', monospace",
         ...style,
@@ -250,7 +256,7 @@ export function StatusBarItem({
         display: "flex",
         alignItems: "center",
         gap: 4,
-        color: color || "#cdd6f4",
+        color: color || "var(--color-text-secondary)",
         cursor: tooltip ? "help" : "default",
       }}
       title={tooltip}

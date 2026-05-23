@@ -2285,7 +2285,11 @@
       "sessionEvents": "세션 이벤트",
       "messageEvents": "메시지 이벤트"
     },
-    "themePreset": "Theme Preset",
+    "themePreset": "테마 프리셋",
+    "themePresetDeepDusk": "딥 더스크",
+    "themePresetLightDawn": "라이트 돈",
+    "themePresetOceanicDark": "오셔닉 다크",
+    "themePresetForestDark": "포레스트 다크",
     "imageGen": {
       "defaultProvider": "Default Provider",
       "providerFlux": "Flux (Replicate)",

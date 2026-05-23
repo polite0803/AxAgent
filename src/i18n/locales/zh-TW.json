@@ -2286,6 +2286,10 @@
       "messageEvents": "訊息事件"
     },
     "themePreset": "主題預設",
+    "themePresetDeepDusk": "深色暮色",
+    "themePresetLightDawn": "亮色晨曦",
+    "themePresetOceanicDark": "海洋深色",
+    "themePresetForestDark": "森林深色",
     "imageGen": {
       "defaultProvider": "默認服務商",
       "providerFlux": "Flux (Replicate)",

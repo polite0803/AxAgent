@@ -1,11 +1,6 @@
 import type { ThemePreset } from "@/theme/shadcnTheme";
+import { IS_DARK_PRESET } from "@/theme/shadcnTheme";
 import { useEffect, useState } from "react";
-
-const DARK_PRESETS: Set<string> = new Set([
-  "dark-elegance",
-  "dark-neon",
-  "paperclip-dark",
-]);
 
 export function useResolvedDarkMode(
   themeMode: string,
@@ -27,7 +22,7 @@ export function useResolvedDarkMode(
 
   // Preset takes highest priority for dark/light determination
   if (themePreset) {
-    return DARK_PRESETS.has(themePreset);
+    return IS_DARK_PRESET[themePreset];
   }
   if (themeMode === "dark") {
     return true;

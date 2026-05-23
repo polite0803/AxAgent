@@ -3,8 +3,8 @@ import { useEffect } from "react";
 
 /** 分辨率的 CSS 媒体查询 breakpoint 常量 */
 export const BREAKPOINTS = {
-  mobile: 768,
-  tablet: 1280,
+  mobile: 600,
+  tablet: 900,
 } as const;
 
 /**

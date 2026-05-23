@@ -14,7 +14,6 @@ import {
   Dna,
   Ellipsis,
   Globe,
-  Menu,
   MessageSquarePlus,
   Minus,
   Monitor,
@@ -119,8 +118,6 @@ export function TitleBar() {
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const settings = useSettingsStore((s) => s.settings);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
-  const toggleMobileNav = useUIStore((s) => s.toggleMobileNav);
-
   const isInSettings = activePage === "settings";
   const [pinned, setPinned] = useState(alwaysOnTop ?? false);
 
@@ -519,17 +516,6 @@ export function TitleBar() {
         position: "relative",
       }}
     >
-      {/* 移动端汉堡按钮 */}
-      {(deviceLayout === "mobile" || deviceLayout === "tablet") && (
-        <button
-          className="title-bar-nodrag ax-titlebar-btn"
-          onClick={toggleMobileNav}
-          style={{ marginRight: 8, color: token.colorTextSecondary }}
-          aria-label={t("sidebar.toggle")}
-        >
-          <Menu size={14} />
-        </button>
-      )}
       {/* Left: App icon + name (Windows only) */}
       {IS_WINDOWS
         ? (
