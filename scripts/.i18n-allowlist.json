@@ -126,7 +126,7 @@
     },
     {
       "file": "src/components/settings/__tests__/ProviderDetail.test.tsx",
-      "lines": "132,140,164",
+      "lines": "133,141,165",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
