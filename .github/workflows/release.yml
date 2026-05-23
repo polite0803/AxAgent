@@ -166,10 +166,11 @@ jobs:
 
       - name: Install Protoc (Windows)
         if: matrix.os == 'windows-latest'
-        uses: arduino/setup-protoc@v4
-        with:
-          version: '27.x'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = '27.3'
+          Invoke-WebRequest -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v$ver/protoc-$ver-win64.zip" -OutFile protoc.zip
+          Expand-Archive protoc.zip -DestinationPath "$env:RUNNER_TOOL_CACHE\protoc"
+          echo "$env:RUNNER_TOOL_CACHE\protoc\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - uses: actions/setup-node@v4
         with:
@@ -424,7 +425,7 @@ jobs:
         run: npm install
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v4
+        uses: arduino/setup-protoc@v3
         with:
           version: '27.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}

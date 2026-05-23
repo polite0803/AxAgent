@@ -40,9 +40,7 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v4
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        run: sudo apt-get install -y protobuf-compiler
 
       - uses: actions/setup-node@v4
         with:
