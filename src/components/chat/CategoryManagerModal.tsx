@@ -1,4 +1,4 @@
-import { useCategoryStore } from "@/stores";
+import { useCategoryStore, useConversationStore } from "@/stores";
 import type { ConversationCategory } from "@/types";
 import { Avatar, Button, Empty, List, message, Modal, Popconfirm, theme, Tooltip } from "antd";
 import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
@@ -58,6 +58,8 @@ export function CategoryManagerModal({
         });
         setCreateModalOpen(false);
         message.success(t("chat.createCategory") + " " + t("common.success"));
+        // 同步：新分类可能被赋值到已有对话的 categoryId
+        useConversationStore.getState().fetchConversations();
       } finally {
         setSaving(false);
       }
@@ -86,6 +88,8 @@ export function CategoryManagerModal({
         });
         setEditingCategory(null);
         message.success(t("chat.editCategory") + " " + t("common.success"));
+        // 同步：分类重命名可能影响侧栏分类视图
+        useConversationStore.getState().fetchConversations();
       } finally {
         setSaving(false);
       }
@@ -97,6 +101,8 @@ export function CategoryManagerModal({
     async (category: ConversationCategory) => {
       await deleteCategory(category.id);
       message.success(t("chat.deleteCategory") + " " + t("common.success"));
+      // 同步：后端将关联对话的 categoryId 置 null，前端需要刷新
+      useConversationStore.getState().fetchConversations();
     },
     [deleteCategory, t],
   );
