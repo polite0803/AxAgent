@@ -6,13 +6,13 @@ import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
 
-interface DataPoint {
+export interface DataPoint {
   label: string;
   value: number;
   series?: string;
 }
 
-interface ChartData {
+export interface ChartData {
   chart_type: string;
   title: string;
   labels: string[];

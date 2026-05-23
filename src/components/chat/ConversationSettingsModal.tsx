@@ -232,7 +232,7 @@ export function ConversationSettingsModal({
                   marginLeft: 6,
                 }}
               >
-                {t("settings.expertPromptNote") || "系统提示词已由专家角色预设"}
+                {t("settings.expertPromptNote")}
               </span>
             </div>
           )}

@@ -40,7 +40,7 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@v4
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 

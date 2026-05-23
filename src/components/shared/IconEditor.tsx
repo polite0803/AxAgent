@@ -11,7 +11,7 @@ import { DynamicLobeIcon } from "./DynamicLobeIcon";
 import { EmojiPicker } from "./EmojiPicker";
 
 const IconPickerModal = lazy(
-  () => import("@/components/settings/IconPickerModal"),
+  () => import("@/components/settings/IconPickerModal").then((m) => ({ default: m.IconPickerModal })),
 );
 
 export interface IconEditorProps {

@@ -1,3 +1,4 @@
+import type { ChartData } from "@/components/chat/ChartInterpreter";
 import { create } from "zustand";
 
 /** UISnapshotViewer 元素 */
@@ -21,9 +22,9 @@ export interface ResearchSourceItem {
 
 /** 右侧面板跨组件共享数据 */
 interface RightPanelState {
-  chartData: Record<string, unknown> | null;
+  chartData: ChartData | null;
   chartRawAnalysis: string;
-  setChartResult: (data: Record<string, unknown> | null, rawAnalysis: string) => void;
+  setChartResult: (data: ChartData | null, rawAnalysis: string) => void;
 
   snapshotElements: SnapshotElement[];
   snapshotDescription: string;

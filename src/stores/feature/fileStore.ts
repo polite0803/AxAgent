@@ -106,7 +106,7 @@ export const useFileStore = create<FileStoreState>((set, get) => ({
     }
     try {
       await invoke("cleanup_missing_files_page_entry", { entryId });
-      set({ rows: get().rows.filter((r) => r.id !== entryId) });
+      set((state) => ({ rows: state.rows.filter((r) => r.id !== entryId) }));
     } catch (e) {
       set({ error: String(e) });
       throw e;

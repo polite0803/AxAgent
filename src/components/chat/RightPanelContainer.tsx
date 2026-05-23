@@ -297,7 +297,7 @@ export function RightPanelContainer({
         shouldRender: !!panelData.chartData,
         render: () => (
           <ChartInterpreter
-            chartData={panelData.chartData as any}
+            chartData={panelData.chartData}
             rawAnalysis={panelData.chartRawAnalysis}
           />
         ),

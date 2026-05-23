@@ -55,6 +55,7 @@ vi.mock("@lobehub/icons", () => ({
 }));
 
 vi.mock("../IconPickerModal", () => ({
+  IconPickerModal: () => null,
   default: () => null,
 }));
 

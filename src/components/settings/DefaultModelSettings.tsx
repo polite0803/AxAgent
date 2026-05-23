@@ -10,11 +10,8 @@ import { SettingsGroup } from "./SettingsGroup";
 
 const { TextArea } = Input;
 
-const DEFAULT_TITLE_SUMMARY_PROMPT =
-  "请根据以下对话内容，生成一个简短精炼的标题（不超过20个字），直接返回标题文本，不要包含引号或任何额外说明。";
-
-const DEFAULT_COMPRESSION_PROMPT =
-  "你是一个对话摘要助手。请将以下对话历史压缩为简洁摘要。\n\n要求：\n1. 保留所有用户明确表达的需求、偏好和决策\n2. 保留关键技术细节（代码片段、配置、错误信息等）\n3. 保留待办事项和未解决的问题\n4. 用简洁的要点形式组织\n5. 保持摘要简洁，不超过 500 字";
+// 默认 prompt 已移至 i18n locale keys:
+// settings.titleSummaryPromptDefault / settings.compressionPromptDefault
 
 // ── Context count slider ───────────────────────────────────
 
@@ -172,7 +169,7 @@ function ModelParamsModal({
           <TextArea
             rows={4}
             value={(settings[promptKey] as string | null)
-              ?? (defaultPrompt || DEFAULT_TITLE_SUMMARY_PROMPT)}
+              ?? (defaultPrompt || t("settings.titleSummaryPromptDefault"))}
             onChange={(e) =>
               saveSettings({
                 [promptKey]: e.target.value || null,
@@ -429,7 +426,7 @@ export function DefaultModelSettings() {
         defaultTemperature={0.3}
         defaultTopP={1.0}
         defaultMaxTokens={1024}
-        defaultPrompt={DEFAULT_COMPRESSION_PROMPT}
+        defaultPrompt={t("settings.compressionPromptDefault")}
         promptPlaceholder={t("settings.compressionPromptPlaceholder")}
       />
     </div>

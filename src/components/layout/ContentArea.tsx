@@ -36,7 +36,7 @@ const LazyToolRecommender = lazy(() =>
     default: m.ToolRecommender,
   }))
 );
-const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.default })));
+const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.FineTunePage })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
 const LazyWikiGraphPage = lazy(() => import("@/pages/WikiGraphPage").then((m) => ({ default: m.WikiGraphPage })));
 const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => ({ default: m.WikiEditPage })));
@@ -102,7 +102,7 @@ function SkillRoutePage() {
 }
 
 const SkillPageByParam = lazy(
-  () => import("@/components/skill/SkillPageByParam"),
+  () => import("@/components/skill/SkillPageByParam").then((m) => ({ default: m.SkillPageByParam })),
 );
 
 function NotFoundRoute() {

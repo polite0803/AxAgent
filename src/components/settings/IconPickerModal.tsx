@@ -12,7 +12,7 @@ interface IconPickerModalProps {
   defaultTab?: "model" | "provider";
 }
 
-export default function IconPickerModal({
+export function IconPickerModal({
   open,
   onClose,
   onSelect,

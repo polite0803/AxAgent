@@ -6,7 +6,7 @@ import { Tabs } from "antd";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-export default function FineTunePage() {
+export function FineTunePage() {
   const { t } = useTranslation();
   const fetchDatasets = useFineTuneStore((s) => s.fetchDatasets);
   const fetchTrainingJobs = useFineTuneStore((s) => s.fetchTrainingJobs);

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { SkillPageRenderer } from "./SkillPageRenderer";
 
-export default function SkillPageByParam() {
+export function SkillPageByParam() {
   const { t } = useTranslation();
   const { skillName, pageId } = useParams<{
     skillName: string;
@@ -111,5 +111,3 @@ export default function SkillPageByParam() {
     />
   );
 }
-
-export { SkillPageByParam };

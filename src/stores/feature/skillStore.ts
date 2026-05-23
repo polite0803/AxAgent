@@ -141,7 +141,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
     await triggerOnUninstall(name).catch((e) => console.error("onUninstall failed:", e));
     await invoke("uninstall_skill", { name });
-    set({ skills: get().skills.filter((s) => s.name !== name) });
+    set((state) => ({ skills: state.skills.filter((s) => s.name !== name) }));
     syncExtensionStore();
   },
 
@@ -154,7 +154,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       ),
     );
     await invoke("uninstall_skill_group", { group });
-    set({ skills: get().skills.filter((s) => s.group !== group) });
+    set((state) => ({ skills: state.skills.filter((s) => s.group !== group) }));
     syncExtensionStore();
   },
 

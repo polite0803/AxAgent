@@ -7,6 +7,7 @@ import {
   StarOutlined,
 } from "@ant-design/icons";
 import { Progress, Space, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
@@ -25,17 +26,13 @@ interface ResearchProgressProps {
   showDetails?: boolean;
 }
 
-const phaseSteps: {
-  key: ResearchPhase;
-  label: string;
-  icon: React.ReactNode;
-}[] = [
-  { key: "planning", label: "规划", icon: <ClockCircleOutlined /> },
-  { key: "searching", label: "搜索", icon: <SearchOutlined /> },
-  { key: "extracting", label: "提取", icon: <LinkOutlined /> },
-  { key: "analyzing", label: "分析", icon: <StarOutlined /> },
-  { key: "synthesizing", label: "综合", icon: <CheckCircleOutlined /> },
-  { key: "reporting", label: "报告", icon: <FileTextOutlined /> },
+const PHASE_KEYS: { key: ResearchPhase; labelKey: string; icon: React.ReactNode }[] = [
+  { key: "planning", labelKey: "research.progress.phasePlanning", icon: <ClockCircleOutlined /> },
+  { key: "searching", labelKey: "research.progress.phaseSearching", icon: <SearchOutlined /> },
+  { key: "extracting", labelKey: "research.progress.phaseExtracting", icon: <LinkOutlined /> },
+  { key: "analyzing", labelKey: "research.progress.phaseAnalyzing", icon: <StarOutlined /> },
+  { key: "synthesizing", labelKey: "research.progress.phaseSynthesizing", icon: <CheckCircleOutlined /> },
+  { key: "reporting", labelKey: "research.progress.phaseReporting", icon: <FileTextOutlined /> },
 ];
 
 export function ResearchProgress({
@@ -44,12 +41,13 @@ export function ResearchProgress({
   currentQuery,
   showDetails = true,
 }: ResearchProgressProps) {
-  const currentIndex = phaseSteps.findIndex((p) => p.key === currentPhase);
+  const { t } = useTranslation();
+  const currentIndex = PHASE_KEYS.findIndex((p) => p.key === currentPhase);
 
   return (
     <div className="research-progress">
       <div className="flex items-center justify-between mb-2">
-        {phaseSteps.map((step, index) => {
+        {PHASE_KEYS.map((step, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = index === currentIndex;
           return (
@@ -74,7 +72,7 @@ export function ResearchProgress({
               >
                 {step.icon}
               </div>
-              <Text className="text-xs mt-1">{step.label}</Text>
+              <Text className="text-xs mt-1">{t(step.labelKey)}</Text>
             </div>
           );
         })}
@@ -84,7 +82,7 @@ export function ResearchProgress({
       {showDetails && (
         <div className="mt-2">
           <Text type="secondary" className="text-sm">
-            当前阶段: {phaseSteps[currentIndex]?.label || "未知"}
+            {t("research.progress.currentPhase", { phase: t(PHASE_KEYS[currentIndex]?.labelKey || "") })}
             {currentQuery && ` - ${currentQuery}`}
           </Text>
         </div>
@@ -105,15 +103,16 @@ export function ResearchProgressMini({ percentage }: { percentage: number }) {
 }
 
 export function ResearchPhaseIndicator({ phase }: { phase: ResearchPhase }) {
-  const phaseIndex = phaseSteps.findIndex((p) => p.key === phase);
-  const completedPhases = phaseSteps.slice(0, phaseIndex);
-  const remainingPhases = phaseSteps.slice(phaseIndex + 1);
+  const { t } = useTranslation();
+  const phaseIndex = PHASE_KEYS.findIndex((p) => p.key === phase);
+  const completedPhases = PHASE_KEYS.slice(0, phaseIndex);
+  const remainingPhases = PHASE_KEYS.slice(phaseIndex + 1);
 
   return (
     <Space size="small">
       {completedPhases.map((step) => <CheckCircleOutlined key={step.key} className="text-green-500" />)}
       <span className="text-blue-500 font-medium">
-        {phaseSteps[phaseIndex]?.label}
+        {t(PHASE_KEYS[phaseIndex]?.labelKey || "")}
       </span>
       {remainingPhases.map((step) => <ClockCircleOutlined key={step.key} className="text-zinc-400" />)}
     </Space>
