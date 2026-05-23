@@ -311,6 +311,13 @@ export function InputArea() {
     (s) => s.setSearchProviderId,
   );
   const searchProviders = useSearchStore((s) => s.providers);
+  // 兜底：搜索已启用但未选择具体服务商时，自动取第一个可用的
+  const effectiveSearchProviderId = useMemo(() => {
+    if (!searchEnabled) { return null; }
+    if (searchProviderId) { return searchProviderId; }
+    const enabled = (searchProviders || []).filter((p) => p.enabled);
+    return enabled.length > 0 ? enabled[0].id : null;
+  }, [searchEnabled, searchProviderId, searchProviders]);
   const loadSearchProviders = useSearchStore((s) => s.loadProviders);
 
   // MCP state
@@ -1785,26 +1792,26 @@ export function InputArea() {
         await sendPlanMessage(
           trimmed,
           attachments,
-          searchEnabled ? searchProviderId : null,
+          effectiveSearchProviderId,
         );
       } else if (currentMode === "agent") {
         await sendAgentMessage(
           trimmed,
           attachments,
-          searchEnabled ? searchProviderId : null,
+          effectiveSearchProviderId,
         );
       } else if (companionModels.length > 0) {
         await sendMultiModelMessage(
           trimmed,
           companionModels,
           attachments,
-          searchEnabled ? searchProviderId : null,
+          effectiveSearchProviderId,
         );
       } else {
         await sendMessage(
           trimmed,
           attachments,
-          searchEnabled ? searchProviderId : null,
+          effectiveSearchProviderId,
         );
       }
     } catch (e) {
