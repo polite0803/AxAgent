@@ -206,18 +206,23 @@ impl ToolAuditor {
             if parts.len() >= 3 {
                 for i in 0..parts.len() - 2 {
                     if parts[i].ends_with("eyJ")
-                        || (parts[i].len() > 30
-                            && parts[i + 1].len() > 30
-                            && parts[i + 2].len() > 20)
+                        || parts[i].contains("eyJ")
+                        || (parts[i].len() > 20
+                            && parts[i + 1].len() > 20
+                            && parts[i + 2].len() > 10)
                     {
+                        // 提取 JWT 起始部分（去除前缀文本）
+                        let header = if let Some(pos) = parts[i].rfind("eyJ") {
+                            &parts[i][pos..]
+                        } else {
+                            parts[i]
+                        };
                         // 简单启发式：三个连续的长段 = 可能的 JWT
-                        if parts[i]
-                            .chars()
-                            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-                            && parts[i + 1]
-                                .chars()
+                        let is_base64 = |s: &str| {
+                            s.chars()
                                 .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-                        {
+                        };
+                        if is_base64(header) && is_base64(parts[i + 1]) {
                             return true;
                         }
                     }

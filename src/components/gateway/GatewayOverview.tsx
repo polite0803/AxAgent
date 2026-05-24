@@ -186,7 +186,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
   }, [loadRecentLogs]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div data-testid="gateway-overview" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Server Status */}
       <Card size="small" data-testid="gateway-status">
         <div className="flex items-center justify-between">
