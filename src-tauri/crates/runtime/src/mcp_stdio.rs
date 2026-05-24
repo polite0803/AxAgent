@@ -1807,7 +1807,7 @@ mod tests {
                 Some(McpListToolsResult {
                     tools: vec![McpTool {
                         name: "echo".to_string(),
-                        description: Some("Echoes text".to_string()),
+                        description: Some("Echo tool for server".to_string()),
                         input_schema: Some(json!({
                             "type": "object",
                             "properties": {"text": {"type": "string"}},
