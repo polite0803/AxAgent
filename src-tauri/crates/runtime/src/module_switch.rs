@@ -184,7 +184,7 @@ impl ModuleRegistry {
         entries
             .iter()
             .find(|e| e.module.module_id() == module_id)
-            .map(|e| e.state)
+            .map(|e| e.module.state())
     }
 
     /// List all registered modules.
