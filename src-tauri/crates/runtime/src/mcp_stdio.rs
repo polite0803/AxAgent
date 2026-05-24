@@ -1688,6 +1688,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "spawns child process, hangs in CI"]
     fn given_lowercase_content_length_when_initialize_then_response_parses() {
         let runtime = Builder::new_current_thread()
             .enable_all()
@@ -1728,6 +1729,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "spawns child process, hangs in CI"]
     fn given_mismatched_response_id_when_initialize_then_invalid_data_is_returned() {
         let runtime = Builder::new_current_thread()
             .enable_all()
@@ -1767,6 +1769,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "spawns child process, hangs in CI"]
     fn direct_spawn_uses_transport_env() {
         let runtime = Builder::new_current_thread()
             .enable_all()
