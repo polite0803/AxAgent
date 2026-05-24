@@ -780,15 +780,6 @@ svg.lucide {
   app-region: no-drag;
 }
 
-/* Unify all Ant Design component borders via CSS variable */
-.ant-conversations .ant-conversations-list {
-  border-color: var(--border-color) !important;
-}
-
-.ant-menu {
-  border-inline-end: none !important;
-}
-
 .gateway-quick-connect-card.ant-card {
   transition:
     border-color 0.2s ease,
@@ -938,6 +929,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   color: var(--color-primary);
   font-weight: 500;
 }
+.nav-label { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-shortcut { margin-left: auto; font-size: 10px; color: var(--color-text-secondary); flex-shrink: 0; }
 
 /* ── TitleBar window controls ──────── */
 .ax-titlebar-winctrl {

@@ -9,7 +9,7 @@ import { resolveIconComponent } from "@/lib/skillIcons";
 import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
-import { Avatar, theme } from "antd";
+import { Avatar } from "antd";
 import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -182,7 +182,6 @@ function UserAvatarButton({
   profile: { avatarType?: string; avatarValue?: string; name?: string };
   resolvedAvatarSrc: string | undefined;
 }) {
-  const { token } = theme.useToken();
   const size = 28;
 
   if (profile.avatarType === "emoji" && profile.avatarValue) {
@@ -192,7 +191,7 @@ function UserAvatarButton({
           width: size,
           height: size,
           borderRadius: "50%",
-          backgroundColor: token.colorFillSecondary,
+          backgroundColor: "var(--color-fill-secondary)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -215,7 +214,7 @@ function UserAvatarButton({
     <Avatar
       size={size}
       icon={<User size={14} />}
-      style={{ cursor: "pointer", backgroundColor: token.colorPrimary }}
+      style={{ cursor: "pointer", backgroundColor: "var(--color-primary)" }}
     />
   );
 }
@@ -223,7 +222,6 @@ function UserAvatarButton({
 /** Mobile action buttons — mirrors TitleBar actions on Android where they get clipped */
 function MobileActions() {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const navigate = useNavigate();
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
@@ -259,7 +257,7 @@ function MobileActions() {
     border: "none",
     backgroundColor: "transparent",
     cursor: "pointer",
-    color: token.colorTextSecondary,
+    color: "var(--color-text-secondary)",
     transition: "color 0.15s",
   };
 
@@ -271,7 +269,7 @@ function MobileActions() {
         gap: 2,
         justifyContent: "center",
         padding: "4px 0",
-        borderTop: `1px solid ${token.colorBorderSecondary}`,
+        borderTop: `1px solid ${"var(--color-border-secondary)"}`,
       }}
     >
       <Tooltip title={t("desktop.alwaysOnTop")} placement="right">
@@ -300,7 +298,6 @@ function MobileActions() {
 
 export function Sidebar() {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const navigate = useNavigate();
   const location = useLocation();
   const activePage = pathToPageKey(location.pathname);
@@ -402,7 +399,7 @@ export function Sidebar() {
         onClick={toggleSidebar}
         aria-label={sidebarCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
         aria-expanded={!sidebarCollapsed}
-        style={{ color: token.colorTextSecondary }}
+        style={{ color: "var(--color-text-secondary)" }}
       >
         {sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
       </button>
@@ -461,7 +458,7 @@ export function Sidebar() {
           aria-label={t("help.title")}
           style={{ justifyContent: "center" }}
         >
-          <Icon icon="fluent:question-circle-20-filled" size={17} color={token.colorTextQuaternary} />
+          <Icon icon="fluent:question-circle-20-filled" size={17} color={"var(--color-text-quaternary)"} />
         </button>
       </Tooltip>
 
@@ -484,7 +481,7 @@ export function Sidebar() {
               className="sidebar-user-name"
               style={{
                 fontSize: 13,
-                color: token.colorTextSecondary,
+                color: "var(--color-text-secondary)",
               }}
             >
               {profile.name || t("userProfile.title")}

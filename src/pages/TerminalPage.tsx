@@ -61,23 +61,8 @@ export function TerminalPage() {
   );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        padding: 16,
-        gap: 12,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          flexShrink: 0,
-        }}
-      >
+    <div className="term-layout">
+      <div className="term-topbar">
         <TerminalBackendSelector
           current={selectedBackend}
           backends={backends}
@@ -86,7 +71,7 @@ export function TerminalPage() {
         />
       </div>
 
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div className="term-main">
         <IntegratedTerminal height={typeof window !== "undefined" ? window.innerHeight - 160 : 600} />
       </div>
 

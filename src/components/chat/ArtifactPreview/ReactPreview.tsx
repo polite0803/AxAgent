@@ -40,7 +40,12 @@ window.onerror = function(msg, src, line, col, err) {
   window.parent.postMessage({ type: 'react-preview-error', message: String(msg) }, window.location.origin);
 };
 try {
-  var transformed = Babel.transform(${JSON.stringify(code)}, {
+  var _code = ${JSON.stringify(code)};
+  // catch common mistake: const { X } from "module" instead of import { X } from "module"
+  if (/\\bconst\\s*\\{[^}]*\\}\\s+from\\s/.test(_code)) {
+    throw new Error('Syntax: "const { ... } from \\"...\\"" is not valid JS. Use "import { ... } from \\"...\\"" instead.');
+  }
+  var transformed = Babel.transform(_code, {
     presets: ['react'],
     filename: 'component.tsx'
   });
