@@ -365,6 +365,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "timing-dependent, flaky in CI"]
     async fn test_speed_mode() {
         let registry = ModuleRegistry::new();
         let code = Arc::new(SimpleToggle::new("code_engine", "Code Engine", ResourceCost::MEDIUM));

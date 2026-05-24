@@ -314,13 +314,10 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex h-full" data-testid="settings-panel">
+    <div className="settings-layout" data-testid="settings-panel">
       {!isMobile && (
         <>
-          <div
-            className="shrink-0 h-full"
-            style={{ width: sidebarWidth, backgroundColor: token.colorBgContainer }}
-          >
+          <div className="settings-sidebar" style={{ width: sidebarWidth }}>
             <SettingsSidebar />
           </div>
           <div
@@ -329,7 +326,7 @@ export function SettingsPage() {
             tabIndex={0}
             style={{
               width: 5,
-              borderRight: "1px solid var(--border-color)",
+              borderRight: "1px solid var(--border)",
               backgroundColor: "transparent",
               transition: "background-color 0.15s",
             }}
@@ -339,14 +336,7 @@ export function SettingsPage() {
           />
         </>
       )}
-      <div
-        className="min-w-0 flex-1 flex flex-col"
-        style={{
-          backgroundColor: token.colorBgElevated,
-          overflowY: "auto",
-          overflowX: "hidden",
-        }}
-      >
+      <div className="settings-content">
         {isMobile && (
           <div className="w-full shrink-0">
             <SettingsSidebar />

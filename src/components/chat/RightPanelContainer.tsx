@@ -2,7 +2,7 @@ import { Icon } from "@/components/common/Icon";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useConversationStore, useRightPanelStore, useSettingsStore } from "@/stores";
 import { useCacheStore } from "@/stores/feature/cacheStore";
-import { Button, Tabs, theme, Tooltip } from "antd";
+import { Button, Tabs, Tooltip } from "antd";
 import {
   BarChart3,
   Bug,
@@ -27,6 +27,7 @@ import {
   Sparkles,
   User,
   Users,
+  X,
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -90,7 +91,6 @@ export function RightPanelContainer({
   onToggleCompact,
 }: RightPanelContainerProps) {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const [inspectorTab, setInspectorTab] = useState("overview");
   const [extrasExpanded, setExtrasExpanded] = useState(false);
 
@@ -478,18 +478,34 @@ export function RightPanelContainer({
 
   return (
     <div className="right-panel">
+      <div className="rp-header">
+        <span className="rp-header-title">
+          {t("chatRightPanel.title")}
+        </span>
+        <button
+          className="rp-toggle"
+          onClick={() => {
+            panelData.setChartResult(null, "");
+            panelData.setReport(null);
+          }}
+          title={t("chatRightPanel.close")}
+        >
+          <X size={14} />
+        </button>
+      </div>
       <Tabs
         size="small"
-        tabPosition={compactMode ? "top" : "left"}
+        tabPosition="top"
         items={tabItems}
-        style={{ height: "100%", flex: 1 }}
-        tabBarStyle={compactMode
-          ? { padding: "4px 8px 0" }
-          : { width: 44, padding: "8px 0" }}
+        className="rp-tabs-container"
+        style={{ height: "100%", flex: 1, overflow: "hidden" }}
+        tabBarStyle={{ padding: "0 8px", margin: 0 }}
       />
-      {/* 扩展面板折叠按钮 */}
       {!compactMode && (
-        <div style={{ padding: "4px 8px", borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+        <div
+          className="rp-header"
+          style={{ justifyContent: "center", borderTop: "1px solid var(--border)", borderBottom: "none" }}
+        >
           <Button
             type="text"
             size="small"
