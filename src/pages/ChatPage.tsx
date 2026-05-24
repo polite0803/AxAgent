@@ -230,7 +230,7 @@ export function ChatPage() {
 
   return (
     <div
-      className="ax-chat-layout"
+      className="chat-layout"
       style={{ position: isSmallScreen ? "relative" : "static" }}
       data-testid="chat-view"
     >
@@ -305,7 +305,7 @@ export function ChatPage() {
         />
       )}
       {/* 中间主区域 */}
-      <div className="ax-chat-main" style={{ backgroundColor: token.colorBgElevated }}>
+      <div className="chat-main" style={{ backgroundColor: token.colorBgElevated }}>
         <ChatView onScrollToReady={handleScrollToReady} />
       </div>
       {/* 右侧拖拽手柄 */}

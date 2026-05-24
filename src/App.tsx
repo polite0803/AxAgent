@@ -232,13 +232,17 @@ function AppInner() {
     };
   }, [updateCheckInterval, checkForUpdate]);
 
-  const shellDataMode = !isQuickBar && isInSettings ? "settings" : undefined;
+  const shellClass = [
+    "app-shell",
+    "ax-safe-top",
+    "ax-safe-bottom",
+    isInSettings ? "page-mode" : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <>
       <div
-        className="ax-shell ax-safe-top ax-safe-bottom"
-        data-page-mode={shellDataMode}
+        className={shellClass}
         style={{ backgroundColor: token.colorBgContainer }}
       >
         {isQuickBar
@@ -272,17 +276,17 @@ function AppInner() {
               </ModuleErrorBoundary>
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
-              <div className="ax-main">
+              <div className="main-area">
                 {!isInSettings && (
-                  <nav className="ax-nav">
+                  <nav className="nav-sidebar">
                     <ModuleErrorBoundary moduleName="Sidebar">
                       <Sidebar />
                     </ModuleErrorBoundary>
                   </nav>
                 )}
-                <div className="ax-content-col">
+                <div className="content-col">
                   <GlobalTabBar />
-                  <div className="ax-page">
+                  <div className="page-area">
                     <div
                       className="ax-page-transition"
                       style={{ flex: 1, display: "flex", overflow: "hidden" }}

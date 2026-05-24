@@ -90,10 +90,10 @@ const Tab = memo(function Tab({
             onSelect(tab.id);
           }
         }}
-        className={`ax-tab${isActive ? " ax-active" : ""}`}
+        className={`tab-item${isActive ? " active" : ""}`}
         style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
       >
-        <span className="ax-tab-icon">
+        <span className="tab-icon">
           {customIcon
             ? (
               customIcon.type === "emoji" ? <span style={{ fontSize: 12 }}>{customIcon.value}</span> : (
@@ -127,7 +127,7 @@ const Tab = memo(function Tab({
           {truncateTitle(tab.title)}
         </span>
 
-        {isStreaming && <span className="ax-tab-streaming-dot" />}
+        {isStreaming && <span className="tab-streaming-dot" />}
 
         <span
           onClick={handleClose}
@@ -139,7 +139,7 @@ const Tab = memo(function Tab({
               handleClose(e);
             }
           }}
-          className="ax-tab-close"
+          className="tab-close"
         >
           <X size={10} />
         </span>
@@ -212,10 +212,10 @@ export function TabBar() {
   }
 
   return (
-    <div className="ax-tabbar">
+    <div className="tabbar">
       <div
         ref={scrollRef}
-        className="ax-tabbar-scroll"
+        className="tabbar-scroll"
       >
         {tabs.map((tab) => {
           const conv = conversations.find((c) => c.id === tab.conversationId);
@@ -240,7 +240,7 @@ export function TabBar() {
         <button
           type="button"
           onClick={handleNewConversation}
-          className="ax-tabbar-new"
+          className="tabbar-new"
           aria-label={t("chat.newConversation")}
           style={{ color: token.colorTextSecondary }}
         >
@@ -249,12 +249,12 @@ export function TabBar() {
       </Tooltip>
 
       {/* Help button */}
-      <div className="ax-tabbar-right">
+      <div className="tabbar-right">
         <Tooltip title={t("help.title")}>
           <button
             type="button"
             onClick={toggleHelp}
-            className="ax-tabbar-new"
+            className="tabbar-new"
             aria-label={t("help.title")}
             style={{ color: token.colorTextQuaternary }}
           >

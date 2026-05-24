@@ -118,7 +118,6 @@ function NavItemButton({
   onNavigate: (path: string) => void;
 }) {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const location = useLocation();
 
   const isActive = item.isPlugin
@@ -137,39 +136,22 @@ function NavItemButton({
     ? `${tooltipText} (${shortcutLabel})`
     : tooltipText;
 
+  const navClass = sidebarCollapsed
+    ? `nav-item${isActive ? " active" : ""}`
+    : `nav-item-expanded${isActive ? " active" : ""}`;
+
   return (
     <button
       type="button"
       onClick={() => onNavigate(item.path)}
-      className={`ax-nav-item${isActive ? " ax-nav-item-active" : ""}`}
+      className={navClass}
       data-tutorial={item.key === "knowledge" ? "knowledge-nav" : undefined}
       aria-label={title}
       aria-current={isActive ? "page" : undefined}
-      style={{
-        backgroundColor: isActive ? token.colorPrimaryBg : undefined,
-      }}
     >
-      <div className="ax-nav-indicator" />
-      <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexShrink: 0,
-          width: 18,
-          justifyContent: "center",
-        }}
-      >
-        {item.icon}
-      </span>
+      {item.icon}
       {!sidebarCollapsed && (
-        <span
-          className="ax-nav-label"
-          style={{
-            fontSize: 13,
-            fontWeight: isActive ? 500 : 400,
-            color: isActive ? token.colorPrimary : token.colorText,
-          }}
-        >
+        <span className="nav-label">
           {label}
         </span>
       )}
@@ -178,7 +160,7 @@ function NavItemButton({
           style={{
             marginLeft: "auto",
             fontSize: 10,
-            color: token.colorTextQuaternary,
+            color: "var(--color-text-secondary)",
             flexShrink: 0,
           }}
         >
@@ -499,7 +481,7 @@ export function Sidebar() {
           />
           {!sidebarCollapsed && (
             <span
-              className="ax-sidebar-user-name"
+              className="sidebar-user-name"
               style={{
                 fontSize: 13,
                 color: token.colorTextSecondary,

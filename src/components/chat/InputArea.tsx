@@ -2229,7 +2229,7 @@ export function InputArea() {
   }, [currentMode, handleModeSwitch]);
 
   return (
-    <div className="px-4 pb-3 pt-1" data-tutorial="chat-input">
+    <div className="chat-input-area" data-tutorial="chat-input">
       <input
         ref={fileInputRef}
         type="file"
@@ -2470,7 +2470,7 @@ export function InputArea() {
         )}
 
         {/* Textarea with command suggest */}
-        <div className="relative">
+        <div className="chat-input-box">
           <CommandSuggest
             value={value}
             cursorPosition={cursorPosition}
@@ -2500,7 +2500,7 @@ export function InputArea() {
             visible={showSuggest}
           />
           <textarea
-            className="axagent-input-textarea outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+            className=""
             ref={textareaRef}
             data-testid="message-input"
             value={value}
@@ -2510,18 +2510,9 @@ export function InputArea() {
             placeholder={t("chat.inputPlaceholder")}
             rows={1}
             style={{
-              width: "100%",
-              border: "none",
-              resize: "none",
-              padding: "4px 16px 8px",
-              fontSize: token.fontSize,
-              lineHeight: 1.6,
-              backgroundColor: "transparent",
               color: token.colorText,
-              fontFamily: "inherit",
               minHeight: userMinHeight,
               maxHeight: ABSOLUTE_MAX_HEIGHT,
-              overflowY: "auto",
             }}
             onKeyUp={() => {
               if (textareaRef.current) {
@@ -2547,7 +2538,7 @@ export function InputArea() {
         </div>
 
         {/* Bottom action bar */}
-        <div className="flex items-center justify-between px-2 pb-2">
+        <div className="chat-input-tools">
           <div className="flex items-center gap-0.5">
             <SkillToolbar position="left" />
             {searchEnabled

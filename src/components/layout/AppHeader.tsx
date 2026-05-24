@@ -83,7 +83,7 @@ export function AppHeader() {
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="ax-titlebar-btn"
+            className="titlebar-btn"
             aria-label={t("common.back")}
             style={{ color: token.colorTextQuaternary, flexShrink: 0 }}
           >
@@ -124,7 +124,7 @@ export function AppHeader() {
         <button
           type="button"
           onClick={toggleHelp}
-          className="ax-titlebar-btn"
+          className="titlebar-btn"
           aria-label={t("help.title")}
           style={{ color: token.colorTextQuaternary, flexShrink: 0 }}
         >

@@ -477,13 +477,7 @@ export function RightPanelContainer({
   }));
 
   return (
-    <div
-      className="flex flex-col h-full"
-      style={{
-        backgroundColor: token.colorBgContainer,
-        borderLeft: `1px solid ${token.colorBorderSecondary}`,
-      }}
-    >
+    <div className="right-panel">
       <Tabs
         size="small"
         tabPosition={compactMode ? "top" : "left"}

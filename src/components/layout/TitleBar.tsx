@@ -497,7 +497,7 @@ export function TitleBar() {
 
   return (
     <div
-      className="ax-titlebar"
+      className="titlebar"
       role="toolbar"
       tabIndex={-1}
       {...(!IS_WINDOWS ? { "data-tauri-drag-region": true } : {})}
@@ -512,13 +512,8 @@ export function TitleBar() {
       {IS_WINDOWS
         ? (
           <div
-            className="title-bar-nodrag"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginRight: 8,
-            }}
+            className="titlebar-actions"
+            style={{ marginRight: 8 }}
           >
             <img
               src={appLogo}
@@ -562,15 +557,12 @@ export function TitleBar() {
 
       <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
         {!IS_ANDROID && (
-          <div
-            className="title-bar-nodrag"
-            style={{ display: "flex", alignItems: "center", gap: 4 }}
-          >
+          <div className="titlebar-actions">
             {/* Pin Toggle — 移动端隐藏，从设置中访问 */}
             {deviceLayout !== "mobile" && (
               <Tooltip title={t("desktop.alwaysOnTop")}>
                 <button
-                  className="ax-titlebar-btn"
+                  className="titlebar-btn"
                   onClick={handlePinToggle}
                   style={{
                     color: pinned ? token.colorPrimary : token.colorTextSecondary,
@@ -620,7 +612,7 @@ export function TitleBar() {
               destroyOnHidden
             >
               <button
-                className="ax-titlebar-btn"
+                className="titlebar-btn"
                 style={{ color: token.colorTextSecondary }}
               >
                 <Globe size={12} color={TITLEBAR_ICON_COLORS.Globe} />
@@ -753,7 +745,7 @@ export function TitleBar() {
               >
                 <Tooltip title={t("titlebar.quickBackup")}>
                   <button
-                    className="ax-titlebar-btn"
+                    className="titlebar-btn"
                     style={{
                       color: countdownText
                         ? token.colorPrimary
@@ -821,7 +813,7 @@ export function TitleBar() {
                 destroyOnHidden
               >
                 <button
-                  className="ax-titlebar-btn"
+                  className="titlebar-btn"
                   style={{ color: token.colorTextSecondary }}
                 >
                   <Ellipsis size={12} color={TITLEBAR_ICON_COLORS.GitFork} />
@@ -841,7 +833,7 @@ export function TitleBar() {
               })`}
             >
               <button
-                className="ax-titlebar-btn"
+                className="titlebar-btn"
                 data-testid="settings-nav-btn"
                 onClick={(e) => {
                   handleSettingsToggle();
@@ -874,8 +866,8 @@ export function TitleBar() {
         {/* Windows window controls */}
         {IS_WINDOWS && isTauri() && (
           <div
-            className="title-bar-nodrag"
-            style={{ display: "flex", alignItems: "center", marginLeft: 4 }}
+            className="titlebar-actions"
+            style={{ marginLeft: 4 }}
           >
             {/* Minimize */}
             <button

@@ -17,7 +17,7 @@ export function GlobalStatusBar() {
   const [connected] = useState(true); // TODO: 后续接入真实连接状态
 
   return (
-    <div className="ax-statusbar">
+    <div className="statusbar">
       {/* 左侧：技能状态项 */}
       {count > 0 && <SkillStatusBar alignment="left" />}
 

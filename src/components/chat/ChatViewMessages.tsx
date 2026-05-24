@@ -1073,6 +1073,7 @@ export function useChatViewMessages({
       const attachments = msg?.attachments ?? [];
       return {
         placement: "end" as const,
+        className: "msg-row",
         ...getBubbleVariant(true),
         avatar: userAvatar,
         contentRender: attachments.length > 0
@@ -1347,6 +1348,7 @@ export function useChatViewMessages({
 
       return {
         placement: "start" as const,
+        className: "msg-row",
         ...getBubbleVariant(false),
         avatar: isNonTabsMultiModel
           ? undefined
