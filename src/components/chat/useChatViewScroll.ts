@@ -113,7 +113,7 @@ export function useChatViewScroll({
     let scrollBox = scrollBoxRef.current;
     if (!scrollBox) {
       scrollBox = (bubbleListRef.current?.scrollBoxNativeElement as HTMLElement)
-        ?? document.querySelector<HTMLElement>(".ant-bubble-list-scroll-box");
+        ?? document.querySelector<HTMLElement>(".msg-list-scroll-box");
       if (scrollBox) {
         scrollBoxRef.current = scrollBox;
       }

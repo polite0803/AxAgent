@@ -20,10 +20,16 @@ export type ThemePreset =
 interface PresetColors {
   bgBase: string;
   bgElevated: string;
+  bgSurface2: string;
   borderColor: string;
+  borderLight: string;
   textPrimary: string;
   textSecondary: string;
+  textFg2: string;
   primaryColor: string;
+  successColor: string;
+  errorColor: string;
+  warningColor: string;
   borderRadiusBias: number;
   shadowStyle: "soft-dark" | "glow" | "soft-light" | "none" | "border-only";
 }
@@ -32,124 +38,196 @@ const PRESETS: Record<ThemePreset, PresetColors> = {
   "dark-elegance": {
     bgBase: "#141414",
     bgElevated: "#1a1a1a",
+    bgSurface2: "#1f1f1f",
     borderColor: "#2a2a2a",
+    borderLight: "#222",
     textPrimary: "rgba(255,255,255,0.85)",
     textSecondary: "rgba(255,255,255,0.45)",
+    textFg2: "rgba(255,255,255,0.65)",
     primaryColor: "#1677ff",
+    successColor: "#49aa19",
+    errorColor: "#dc4446",
+    warningColor: "#d89614",
     borderRadiusBias: 0,
     shadowStyle: "soft-dark",
   },
   "dark-neon": {
     bgBase: "#0a0a0f",
     bgElevated: "#12121a",
+    bgSurface2: "#17172a",
     borderColor: "#1e1e3a",
+    borderLight: "#181830",
     textPrimary: "rgba(230,230,255,0.9)",
     textSecondary: "rgba(200,200,255,0.5)",
+    textFg2: "rgba(200,200,255,0.7)",
     primaryColor: "#a855f7",
+    successColor: "#4ade80",
+    errorColor: "#f87171",
+    warningColor: "#fbbf24",
     borderRadiusBias: -2,
     shadowStyle: "glow",
   },
   "light-professional": {
     bgBase: "#ffffff",
     bgElevated: "#fafafa",
+    bgSurface2: "#f0f0f0",
     borderColor: "#e5e7eb",
+    borderLight: "#f3f4f6",
     textPrimary: "rgba(0,0,0,0.88)",
     textSecondary: "rgba(0,0,0,0.45)",
+    textFg2: "rgba(0,0,0,0.65)",
     primaryColor: "#1677ff",
+    successColor: "#49aa19",
+    errorColor: "#dc4446",
+    warningColor: "#d89614",
     borderRadiusBias: 0,
     shadowStyle: "soft-light",
   },
   "light-minimal": {
     bgBase: "#f8fafc",
     bgElevated: "#ffffff",
+    bgSurface2: "#f1f5f9",
     borderColor: "#f1f5f9",
+    borderLight: "#f8fafc",
     textPrimary: "rgba(0,0,0,0.9)",
     textSecondary: "rgba(0,0,0,0.35)",
+    textFg2: "rgba(0,0,0,0.55)",
     primaryColor: "#0891b2",
+    successColor: "#16a34a",
+    errorColor: "#dc2626",
+    warningColor: "#d97706",
     borderRadiusBias: 4,
     shadowStyle: "none",
   },
   // 深色暮色 — 暖深灰基底 + 青绿强调（2026 设计改版默认）
   "deep-dusk": {
-    bgBase: "#1a1817",
-    bgElevated: "#242220",
-    borderColor: "#353230",
-    textPrimary: "rgba(245,240,235,0.92)",
-    textSecondary: "rgba(180,175,165,0.7)",
-    primaryColor: "#00A8A8",
+    bgBase: "oklch(17% 0.008 55)",
+    bgElevated: "oklch(21% 0.01 55)",
+    bgSurface2: "oklch(24% 0.011 55)",
+    borderColor: "oklch(28% 0.01 55)",
+    borderLight: "oklch(25% 0.008 55)",
+    textPrimary: "oklch(90% 0.005 70)",
+    textSecondary: "oklch(52% 0.01 70)",
+    textFg2: "oklch(75% 0.006 70)",
+    primaryColor: "oklch(62% 0.16 195)",
+    successColor: "oklch(62% 0.18 150)",
+    errorColor: "oklch(60% 0.20 30)",
+    warningColor: "oklch(68% 0.16 85)",
     borderRadiusBias: 0,
     shadowStyle: "border-only",
   },
   // 亮色晨曦 — 暖白基底 + 青绿强调
   "light-dawn": {
-    bgBase: "#f5f0ea",
-    bgElevated: "#faf7f3",
-    borderColor: "#e5ddd5",
-    textPrimary: "rgba(30,28,25,0.92)",
-    textSecondary: "rgba(130,120,110,0.7)",
-    primaryColor: "#00A8A8",
+    bgBase: "oklch(96% 0.006 75)",
+    bgElevated: "oklch(99% 0.004 75)",
+    bgSurface2: "oklch(93% 0.006 75)",
+    borderColor: "oklch(88% 0.005 70)",
+    borderLight: "oklch(92% 0.004 70)",
+    textPrimary: "oklch(20% 0.01 70)",
+    textSecondary: "oklch(55% 0.006 70)",
+    textFg2: "oklch(45% 0.008 70)",
+    primaryColor: "oklch(54% 0.18 195)",
+    successColor: "oklch(52% 0.18 150)",
+    errorColor: "oklch(52% 0.20 30)",
+    warningColor: "oklch(58% 0.16 85)",
     borderRadiusBias: 0,
     shadowStyle: "soft-light",
   },
   // 海洋深色 — 冷蓝灰基底 + 亮蓝强调
   "oceanic-dark": {
-    bgBase: "#12141a",
-    bgElevated: "#1a1d26",
-    borderColor: "#252a36",
-    textPrimary: "rgba(230,235,245,0.92)",
-    textSecondary: "rgba(150,160,180,0.7)",
-    primaryColor: "#5b9aff",
+    bgBase: "oklch(15% 0.012 250)",
+    bgElevated: "oklch(19% 0.014 250)",
+    bgSurface2: "oklch(22% 0.015 250)",
+    borderColor: "oklch(26% 0.012 250)",
+    borderLight: "oklch(23% 0.01 250)",
+    textPrimary: "oklch(90% 0.008 240)",
+    textSecondary: "oklch(52% 0.012 240)",
+    textFg2: "oklch(75% 0.01 240)",
+    primaryColor: "oklch(60% 0.18 220)",
+    successColor: "oklch(60% 0.16 150)",
+    errorColor: "oklch(58% 0.18 30)",
+    warningColor: "oklch(65% 0.14 85)",
     borderRadiusBias: 0,
     shadowStyle: "border-only",
   },
   // 森林深色 — 绿调基底 + 翠绿强调
   "forest-dark": {
-    bgBase: "#131a13",
-    bgElevated: "#1a241a",
-    borderColor: "#263226",
-    textPrimary: "rgba(230,245,230,0.92)",
-    textSecondary: "rgba(150,175,150,0.7)",
-    primaryColor: "#3dbf5c",
+    bgBase: "oklch(16% 0.012 140)",
+    bgElevated: "oklch(20% 0.014 140)",
+    bgSurface2: "oklch(23% 0.015 140)",
+    borderColor: "oklch(26% 0.01 140)",
+    borderLight: "oklch(23% 0.008 140)",
+    textPrimary: "oklch(90% 0.006 120)",
+    textSecondary: "oklch(52% 0.008 120)",
+    textFg2: "oklch(75% 0.008 120)",
+    primaryColor: "oklch(58% 0.18 150)",
+    successColor: "oklch(62% 0.18 145)",
+    errorColor: "oklch(58% 0.20 30)",
+    warningColor: "oklch(65% 0.16 85)",
     borderRadiusBias: 0,
     shadowStyle: "border-only",
   },
   "paperclip-dark": {
     bgBase: "#18181b",
     bgElevated: "#27272a",
+    bgSurface2: "#303036",
     borderColor: "#3f3f46",
+    borderLight: "#2a2a30",
     textPrimary: "rgba(250,250,250,0.95)",
     textSecondary: "rgba(161,161,170,0.85)",
+    textFg2: "rgba(200,200,200,0.9)",
     primaryColor: "#a1a1aa",
+    successColor: "#4ade80",
+    errorColor: "#f87171",
+    warningColor: "#fbbf24",
     borderRadiusBias: 0,
     shadowStyle: "border-only",
   },
   "paperclip-light": {
     bgBase: "#fafafa",
     bgElevated: "#ffffff",
+    bgSurface2: "#f4f4f5",
     borderColor: "#e4e4e7",
+    borderLight: "#f0f0f0",
     textPrimary: "rgba(24,24,27,0.92)",
     textSecondary: "rgba(113,113,122,0.85)",
+    textFg2: "rgba(63,63,70,0.85)",
     primaryColor: "#71717a",
+    successColor: "#16a34a",
+    errorColor: "#dc2626",
+    warningColor: "#d97706",
     borderRadiusBias: 0,
     shadowStyle: "border-only",
   },
   "cyberpunk-dark": {
     bgBase: "#0a0a12",
     bgElevated: "#12121f",
+    bgSurface2: "#18182a",
     borderColor: "#1e1e3a",
+    borderLight: "#161630",
     textPrimary: "rgba(224,224,255,0.92)",
     textSecondary: "rgba(160,160,210,0.7)",
+    textFg2: "rgba(190,190,230,0.82)",
     primaryColor: "#00f0ff",
+    successColor: "#00ff88",
+    errorColor: "#ff4466",
+    warningColor: "#ffaa00",
     borderRadiusBias: -2,
     shadowStyle: "glow",
   },
   "cyberpunk-light": {
     bgBase: "#f0f0f8",
     bgElevated: "#ffffff",
+    bgSurface2: "#e8e8f0",
     borderColor: "#c8c8e0",
+    borderLight: "#d8d8e8",
     textPrimary: "rgba(10,10,30,0.92)",
     textSecondary: "rgba(80,80,140,0.7)",
+    textFg2: "rgba(50,50,100,0.82)",
     primaryColor: "#7b2ff7",
+    successColor: "#16a34a",
+    errorColor: "#dc2626",
+    warningColor: "#d97706",
     borderRadiusBias: -2,
     shadowStyle: "soft-light",
   },
@@ -245,22 +323,53 @@ export function useShadcnTheme(
         boxShadowSecondary: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
       };
 
+    // Derive accent alpha string for shadow / active states
+    const accentAlpha = preset
+      ? preset.primaryColor.replace(/\)$/, " / 0.18)")
+      : "rgba(0,168,168,0.18)";
+
     return {
       algorithm,
       token: {
+        // ── 品牌色 ──
         colorPrimary: effectivePrimary,
         colorLink: effectivePrimary,
+        colorSuccess: preset?.successColor ?? "#49aa19",
+        colorError: preset?.errorColor ?? "#dc4446",
+        colorWarning: preset?.warningColor ?? "#d89614",
+        colorInfo: effectivePrimary,
+
+        // ── 背景色 — 从原型 bg/surface/surface-2 映射 ──
+        colorBgLayout: preset?.bgBase ?? (effectiveDark ? "#141414" : "#ffffff"),
+        colorBgContainer: preset?.bgElevated ?? (effectiveDark ? "#1a1a1a" : "#ffffff"),
+        colorBgElevated: preset?.bgSurface2 ?? (effectiveDark ? "#1f1f1f" : "#f5f5f5"),
+        colorFillSecondary: preset?.bgSurface2 ?? (effectiveDark ? "#1f1f1f" : "#f5f5f5"),
+        colorFillTertiary: preset?.bgBase ?? (effectiveDark ? "#141414" : "#ffffff"),
+
+        // ── 文字色 — 从原型 fg/fg-2/muted 映射 ──
+        colorText: preset?.textPrimary ?? (effectiveDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.88)"),
+        colorTextSecondary: preset?.textSecondary ?? (effectiveDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)"),
+        colorTextTertiary: preset?.textSecondary ?? (effectiveDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)"),
+        colorTextQuaternary: preset?.textFg2 ?? (effectiveDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)"),
+
+        // ── 边框色 — 从原型 border/border-light 映射 ──
+        colorBorder: preset?.borderColor ?? (effectiveDark ? "#2a2a2a" : "#e5e7eb"),
+        colorBorderSecondary: preset?.borderLight ?? (effectiveDark ? "#1f1f1f" : "#f0f0f0"),
+
+        // ── 排版 ──
         fontSize,
         fontSizeSM: 12,
         fontWeightStrong: 500,
         ...(fontFamily ? { fontFamily } : {}),
         ...(codeFontFamily ? { fontFamilyCode: codeFontFamily } : {}),
 
+        // ── 圆角 ──
         borderRadius: baseRadius,
         borderRadiusXS: radiusXS,
         borderRadiusSM: radiusSM,
         borderRadiusLG: radiusLG,
 
+        // ── 间距 ──
         padding: 16,
         paddingSM: 12,
         paddingLG: 24,
@@ -268,20 +377,54 @@ export function useShadcnTheme(
         marginSM: 12,
         marginLG: 24,
 
+        // ── 阴影 ──
         boxShadow: shadows.boxShadow,
         boxShadowSecondary: shadows.boxShadowSecondary,
+        lineWidth: 1,
+        lineType: "solid",
+        sizeUnit: 4,
+        sizeStep: 4,
+        sizePopupArrow: 8,
+        controlHeight: 28,
+        controlHeightSM: 24,
+        controlHeightLG: 32,
       },
       components: {
         Button: {
+          controlHeight: 28,
+          controlHeightSM: 24,
+          borderRadiusSM: baseRadius,
+          paddingContentHorizontal: 12,
+          paddingContentHorizontalSM: 8,
           primaryShadow: "none",
           defaultShadow: "none",
           dangerShadow: "none",
         },
         Input: {
-          activeShadow: "none",
+          paddingBlock: 6,
+          paddingInline: 10,
+          activeBorderColor: effectivePrimary,
+          activeShadow: `0 0 0 2px ${accentAlpha}`,
         },
         Select: {
           optionSelectedFontWeight: 500,
+        },
+        Tag: {
+          defaultBg: "transparent",
+        },
+        Tabs: {
+          inkBarColor: effectivePrimary,
+          itemColor: preset?.textSecondary ?? "rgba(0,0,0,0.45)",
+          itemHoverColor: preset?.textPrimary ?? "rgba(0,0,0,0.88)",
+          itemSelectedColor: effectivePrimary,
+          horizontalItemPadding: "8px 0",
+        },
+        Card: {
+          paddingLG: 16,
+          borderRadiusLG: 10,
+        },
+        Divider: {
+          colorSplit: preset?.borderColor ?? (effectiveDark ? "#2a2a2a" : "#e5e7eb"),
         },
         Modal: {
           borderRadiusLG: Math.min(Math.max(radiusLG, 4), 8),
@@ -292,7 +435,6 @@ export function useShadcnTheme(
           railSize: 4,
         },
         Switch: {
-          // High-contrast enabled/disabled distinction
           trackHeight: 22,
           trackMinWidth: 44,
           handleSize: 18,

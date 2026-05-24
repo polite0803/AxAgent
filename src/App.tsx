@@ -241,10 +241,7 @@ function AppInner() {
 
   return (
     <>
-      <div
-        className={shellClass}
-        style={{ backgroundColor: token.colorBgContainer }}
-      >
+      <div className={shellClass}>
         {isQuickBar
           ? (
             isQuickBarWindow && location.pathname !== "/quickbar"
@@ -277,13 +274,11 @@ function AppInner() {
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
               <div className="main-area">
-                {!isInSettings && (
-                  <nav className="nav-sidebar">
-                    <ModuleErrorBoundary moduleName="Sidebar">
-                      <Sidebar />
-                    </ModuleErrorBoundary>
-                  </nav>
-                )}
+                <nav className="nav-sidebar">
+                  <ModuleErrorBoundary moduleName="Sidebar">
+                    <Sidebar />
+                  </ModuleErrorBoundary>
+                </nav>
                 <div className="content-col">
                   <GlobalTabBar />
                   <div className="page-area">

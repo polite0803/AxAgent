@@ -2195,16 +2195,6 @@ export function ChatSidebar({
               >
                 <style>
                   {`
-                .ant-conversations .ant-conversations-item-active {
-                  background-color: ${token.colorPrimaryBg} !important;
-                }
-                .ant-conversations .ant-conversations-item-active .ant-conversations-label {
-                  color: ${token.colorPrimary} !important;
-                }
-                .ant-conversations .ant-conversations-group-label {
-                  flex: 1;
-                  overflow: hidden;
-                }
                 @keyframes spin {
                   from { transform: rotate(0deg); }
                   to { transform: rotate(360deg); }

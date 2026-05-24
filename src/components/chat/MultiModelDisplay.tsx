@@ -136,15 +136,15 @@ function MultiModelDisplayInner({
     let cur: HTMLElement | null = el;
     while (cur) {
       const classList = cur.classList;
-      if (classList.contains("ant-bubble")) {
+      if (classList.contains("msg-row")) {
         modified.push({ el: cur, prev: cur.style.cssText });
         cur.style.width = "100%";
         cur.style.boxSizing = "border-box";
         break;
       }
       if (
-        classList.contains("ant-bubble-body")
-        || classList.contains("ant-bubble-content")
+        classList.contains("msg-body")
+        || classList.contains("msg-content")
       ) {
         modified.push({ el: cur, prev: cur.style.cssText });
         cur.style.overflow = "hidden";

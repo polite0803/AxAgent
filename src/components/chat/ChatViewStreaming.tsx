@@ -48,61 +48,57 @@ export function BubbleStyleOverrides() {
   return (
     <style>
       {`
-        .ant-bubble-end .ant-bubble-content {
+        .msg-row.user .msg-content {
           width: auto;
           max-width: 100%;
           margin-inline-start: auto;
         }
-        .ant-bubble,
-        .ant-bubble-content-wrapper,
-        .ant-bubble-body {
+        .msg-row,
+        .msg-body {
           min-width: 0;
           max-width: 100%;
         }
-        .ant-bubble-footer {
+        .msg-footer {
           margin-block-start: 4px !important;
         }
-        .ant-bubble-start .ant-bubble-body {
+        .msg-row.assistant .msg-body {
           width: 100%;
         }
-        .ant-bubble-content {
+        .msg-content {
           overflow: hidden;
           min-width: 0;
         }
-        .ant-bubble-content .markstream-react {
+        .msg-content .markstream-react {
           overflow: hidden;
           min-width: 0;
         }
-        .ant-bubble-content .ant-think,
-        .ant-bubble-content .ant-think-content,
-        .ant-bubble-content .ant-think-description {
+        .msg-content .think-block,
+        .msg-content .think-body,
+        .msg-content .think-header {
           max-width: 100%;
           min-width: 0;
           overflow: hidden;
         }
-        .ant-bubble-content .code-block-node,
-        .ant-bubble-content .code-block-container {
+        .msg-content .code-block-node,
+        .msg-content .code-block-container {
           overflow-x: auto;
           max-width: 100%;
           min-width: 0 !important;
           width: 100%;
           box-sizing: border-box;
         }
-        .bubble-compact .ant-bubble {
+        .bubble-compact .msg-row {
           margin-bottom: 4px;
         }
-        .bubble-compact .ant-bubble-content {
+        .bubble-compact .msg-content {
           padding: 6px 10px;
         }
-        .context-clear-bubble.ant-bubble {
+        .context-clear-bubble.msg-row {
           width: 100%;
           padding-inline-end: 0 !important;
           padding-inline-start: 0 !important;
         }
-        .context-clear-bubble .ant-bubble-content-wrapper {
-          flex: 1;
-        }
-        .bubble-minimal .ant-bubble-content {
+        .bubble-minimal .msg-content {
           background: transparent !important;
           box-shadow: none !important;
           border: none !important;

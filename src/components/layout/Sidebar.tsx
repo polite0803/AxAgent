@@ -364,7 +364,7 @@ export function Sidebar() {
     sections.push({
       key: "infrastructure",
       labelKey: "sidebar.sectionInfrastructure",
-      items: builtinNavItems.filter((n) => n.key === "gateway"),
+      items: builtinNavItems.filter((n) => n.key === "gateway" || n.key === "terminal" || n.key === "files"),
     });
 
     if (bottomPlugins.length > 0) {
@@ -445,6 +445,18 @@ export function Sidebar() {
       </nav>
 
       <div className="flex-1" />
+
+      {/* Settings — lower group, above plugins in prototype */}
+      <Tooltip title={sidebarCollapsed ? t("settings.openSettings") : ""} placement="right">
+        <button
+          type="button"
+          className={`nav-item${activePage === "settings" ? " active" : ""}`}
+          onClick={() => navigate("/settings")}
+          aria-label={t("settings.openSettings")}
+        >
+          <Icon icon="fluent:settings-20-filled" size={17} color={"var(--color-text-quaternary)"} />
+        </button>
+      </Tooltip>
 
       {/* Mobile action buttons (TitleBar actions on Android) */}
       <MobileActions />
