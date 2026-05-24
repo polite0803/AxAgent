@@ -1,5 +1,6 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useAgentStore } from "@/stores";
-import { Button, Card, Modal, Space, Tag, theme, Tooltip, Typography } from "antd";
+import { Button, Card, Modal, Space, Tag, theme, Typography } from "antd";
 import {
   AlertTriangle,
   ChevronDown,

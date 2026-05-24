@@ -1,8 +1,10 @@
+import { DropdownMenu } from "@/components/layout/DropdownMenu";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { executeActionChain } from "@/lib/skillActionExecutor";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore } from "@/stores";
 import type { MergedToolbarButton } from "@/stores/feature/skillExtensionStore";
-import { Button, Dropdown, Space, Tooltip } from "antd";
+import { Button, Space } from "antd";
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -93,9 +95,9 @@ function ToolbarButton({
     }));
 
     return (
-      <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+      <DropdownMenu items={menuItems} trigger={["click"]}>
         {buttonEl}
-      </Dropdown>
+      </DropdownMenu>
     );
   }
 

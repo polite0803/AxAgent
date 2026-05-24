@@ -1,8 +1,9 @@
 import { ModelParamSliders } from "@/components/common/ModelParamSliders";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { ModelSelect, parseModelValue } from "@/components/shared/ModelSelect";
 import { useProviderStore, useSettingsStore } from "@/stores";
 import type { AppSettings } from "@/types";
-import { Button, Divider, Input, InputNumber, Modal, Slider, theme, Tooltip } from "antd";
+import { Button, Divider, Input, InputNumber, Modal, Slider, theme } from "antd";
 import { Info, Settings, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

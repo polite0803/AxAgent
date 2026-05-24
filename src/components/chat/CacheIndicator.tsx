@@ -1,4 +1,5 @@
-import { Tag, Tooltip } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Tag } from "antd";
 import { AlertTriangle, Clock, Database } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

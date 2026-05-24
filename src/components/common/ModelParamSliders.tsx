@@ -1,4 +1,5 @@
-import { Divider, InputNumber, Slider, Switch, theme, Tooltip } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Divider, InputNumber, Slider, Switch, theme } from "antd";
 import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

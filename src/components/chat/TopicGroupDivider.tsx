@@ -1,11 +1,12 @@
 // 消息主题分组分隔条 — 折叠/展开，手动调整
 import { useTopicGroupStore } from "@/stores/feature/topicGroupStore";
 import type { TopicGroup } from "@/stores/feature/topicGroupStore";
-import { Dropdown, Input, theme } from "antd";
+import { Input, theme } from "antd";
 import { ChevronDown, ChevronRight, Edit3, GitBranch, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./TopicGroupDivider.css";
+import { DropdownMenu, toDropdownItems } from "@/components/layout/DropdownMenu";
 
 interface TopicGroupDividerProps {
   conversationId: string;
@@ -72,7 +73,10 @@ export function TopicGroupDivider({
       className="topic-group-divider"
       style={{ borderColor: token.colorBorderSecondary }}
     >
-      <Dropdown menu={menuItems} trigger={["contextMenu"]}>
+      <DropdownMenu
+        items={toDropdownItems(menuItems.items, (key) => menuItems.onClick({ key }))}
+        trigger={["contextMenu"]}
+      >
         <div
           className="topic-group-divider__bar"
           onClick={() => toggleCollapse(conversationId, group.id)}
@@ -155,7 +159,7 @@ export function TopicGroupDivider({
             />
           )}
         </div>
-      </Dropdown>
+      </DropdownMenu>
     </div>
   );
 }

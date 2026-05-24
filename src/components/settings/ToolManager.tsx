@@ -1,6 +1,7 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useLocalToolStore } from "@/stores";
 import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
-import { Alert, Collapse, Empty, Spin, Switch, Tabs, Tag, Tooltip, Typography } from "antd";
+import { Alert, Collapse, Empty, Spin, Switch, Tabs, Tag, Typography } from "antd";
 import {
   BookOpen,
   Bot,

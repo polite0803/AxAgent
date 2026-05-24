@@ -1,3 +1,4 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useBackupStore } from "@/stores";
 import type { BackupManifest } from "@/types";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -16,7 +17,6 @@ import {
   Switch,
   Table,
   Tag,
-  Tooltip,
   Typography,
 } from "antd";
 import { CloudUpload, FileJson, FolderOpen, HardDrive, Settings2, Trash2, Undo2 } from "lucide-react";

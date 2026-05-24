@@ -1,6 +1,5 @@
 import { SyncOutlined } from "@ant-design/icons";
-import { Button, Dropdown, Input, Popover, Spin, Tooltip, Typography } from "antd";
-import type { MenuProps } from "antd";
+import { Button, Input, Popover, Spin, Tooltip, Typography } from "antd";
 import type { InputRef } from "antd";
 import {
   ArrowDownRight,
@@ -25,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useAgentProfileStore, useConversationStore } from "@/stores";
 import type { ConversationStats } from "@/types";
 
+import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { ExpertBadge } from "./ExpertBadge";
 import { GatewaySessionBadge } from "./GatewaySessionBadge";
@@ -252,7 +252,7 @@ export interface ChatViewToolbarProps {
   statsOpen: boolean;
   stats: ConversationStats | null;
   handleStatsOpenChange: (open: boolean) => void;
-  exportMenuItems: MenuProps["items"];
+  exportMenuItems: Record<string, unknown>["items"];
   setExtractMemoriesOpen: (v: boolean) => void;
   setExpertOpen: (v: boolean) => void;
   streamingMessageId: string | null;
@@ -499,9 +499,9 @@ export function ChatViewToolbar({
                 />
               </Tooltip>
             </Popover>
-            <Dropdown menu={{ items: exportMenuItems }} trigger={["click"]}>
+            <DropdownMenu items={(exportMenuItems ?? []) as DropdownItem[]} trigger={["click"]}>
               <Button type="text" icon={<Share2 size={14} />} size="small" />
-            </Dropdown>
+            </DropdownMenu>
             <Tooltip title={t("chat.extractMemories")}>
               <Button
                 type="text"

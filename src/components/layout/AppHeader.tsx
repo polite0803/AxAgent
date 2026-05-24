@@ -1,5 +1,6 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useHelpStore } from "@/stores/feature/helpStore";
-import { theme, Tooltip } from "antd";
+import { theme } from "antd";
 import { ArrowLeft, HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";

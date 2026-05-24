@@ -1,4 +1,5 @@
 import { ContextHelp } from "@/components/help/ContextHelp";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { getVisibleModelCapabilities } from "@/lib/modelCapabilities";
 import { SmartProviderIcon } from "@/lib/providerIcons";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
@@ -6,7 +7,7 @@ import { useConversationStore, useProviderStore, useSettingsStore, useUIStore } 
 import type { Model, ModelCapability } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Button, Checkbox, Input, Modal, Tag, theme, Tooltip } from "antd";
+import { Button, Checkbox, Input, Modal, Tag, theme } from "antd";
 import {
   Check,
   ChevronDown,

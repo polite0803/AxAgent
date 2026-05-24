@@ -1,9 +1,10 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { usePathCompleter } from "@/components/terminal/PathCompleter";
 import { useSlashCompleter } from "@/components/terminal/SlashCompleter";
 import { useXtermEnhancement } from "@/components/terminal/XtermEnhancement";
 import type { XtermEnhancementOptions } from "@/components/terminal/XtermEnhancement";
 import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminalStore";
-import { Badge, Button, Empty, Select, Tooltip } from "antd";
+import { Badge, Button, Empty, Select } from "antd";
 import { AlertTriangle, CheckCircle, Maximize2, Minimize2, Plus, RefreshCw, Terminal, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

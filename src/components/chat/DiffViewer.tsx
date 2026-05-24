@@ -1,4 +1,5 @@
-import { Button, Space, Tag, theme, Tooltip, Typography } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Button, Space, Tag, theme, Typography } from "antd";
 import { Check, FileCode, FileDiff, GitBranch, Minus, Plus, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

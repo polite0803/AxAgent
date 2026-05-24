@@ -1,7 +1,8 @@
 // 通知铃铛 — 显示 Agent 生命周期通知和未读计数
 
+import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { BellOutlined } from "@ant-design/icons";
-import { Badge, Dropdown, Empty, Typography } from "antd";
+import { Badge, Empty, Typography } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -91,16 +92,10 @@ export function NotificationBell() {
     }));
 
   return (
-    <Dropdown
-      menu={{ items }}
-      open={open}
-      onOpenChange={setOpen}
-      trigger={["click"]}
-      placement="bottomRight"
-    >
+    <DropdownMenu items={items} open={open} onOpenChange={setOpen} trigger={["click"]}>
       <Badge count={unreadCount} size="small" offset={[-2, 2]}>
         <BellOutlined style={{ fontSize: 16, cursor: "pointer", padding: 4 }} />
       </Badge>
-    </Dropdown>
+    </DropdownMenu>
   );
 }

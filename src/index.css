@@ -2225,6 +2225,24 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   overflow-y: auto;
   padding: 10px 12px;
 }
+.rp-footer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border-bottom: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.rp-footer-btn:hover { background: var(--accent-dim); color: var(--fg); }
 
 /* ── 设置页布局 ── */
 .settings-layout { display: flex; flex: 1; min-height: 0; overflow: hidden; }
@@ -2657,7 +2675,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   .settings-sidebar { width: 100%; min-width: 0; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
   .settings-content { padding: 20px; }
   .provider-grid { grid-template-columns: 1fr; }
-  .theme-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))); }
+  .theme-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 }
 @media (max-width: 600px) {
   .settings-content { padding: 14px; }
@@ -3100,3 +3118,207 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .kb-stat-card-icon.green { background: var(--green-bg); color: var(--green); }
 .kb-stat-card-icon.amber { background: var(--amber-bg); color: var(--amber); }
 .set-card-content-header { margin-bottom: 28px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ── Tooltip (自定义, 替代 antd Tooltip) ──────────────────────────
+   ═══════════════════════════════════════════════════════════════ */
+.tooltip-content {
+  position: fixed;
+  z-index: 9999;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tooltipIn 0.12s ease;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes tooltipIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   ── DropdownMenu (自定义, 替代 antd Dropdown) ────────────────────
+   ═══════════════════════════════════════════════════════════════ */
+.dropdown-trigger { position: relative; display: inline-flex; }
+.dropdown-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 6px;
+  min-width: 160px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  animation: dropdownIn 0.1s ease;
+}
+@keyframes dropdownIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  color: var(--fg);
+  cursor: pointer;
+  transition: all 0.1s;
+  border: none;
+  background: none;
+  text-align: left;
+  white-space: nowrap;
+}
+.dropdown-item:hover { background: var(--accent-bg); }
+.dropdown-item-danger { color: var(--red); }
+.dropdown-item-danger:hover { background: var(--red-bg); }
+.dropdown-item-disabled { opacity: 0.35; pointer-events: none; }
+.dropdown-item-icon { width: 16px; height: 16px; display: grid; place-items: center; flex-shrink: 0; }
+.dropdown-item-label { flex: 1; }
+.dropdown-item-has-children { justify-content: space-between; padding-right: 4px; }
+.dropdown-item-arrow { font-size: 9px; color: var(--muted); margin-left: 12px; }
+.dropdown-submenu { position: relative; }
+.dropdown-submenu-panel {
+  position: absolute;
+  left: calc(100% + 2px);
+  top: -6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 6px;
+  min-width: 150px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+}
+.dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+.dropdown-group { padding: 2px 0; }
+.dropdown-group-label {
+  padding: 4px 10px 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ── SettingsMenu (自定义, 替代 antd Menu) ────────────────────────
+   ═══════════════════════════════════════════════════════════════ */
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+}
+.settings-menu-group { margin-bottom: 2px; }
+.settings-menu-group-label {
+  padding: 8px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.settings-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.settings-menu-item:hover { background: var(--accent-bg); color: var(--fg); }
+.settings-menu-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.settings-menu-item-icon { width: 18px; height: 18px; display: grid; place-items: center; flex-shrink: 0; }
+.settings-menu-item-label { flex: 1; }
+
+/* Settings 标签页按钮区域 */
+.settings-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  text-align: left;
+  width: 100%;
+  transition: color 0.12s;
+}
+.settings-back-btn:hover { color: var(--fg); background: var(--accent-bg); }
+.settings-back-kbd {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 4px;
+  line-height: 16px;
+}
+.settings-tab-area { display: flex; overflow: hidden; }
+.settings-tab-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 4px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+.settings-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--radius);
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  width: 100%;
+}
+.settings-tab-btn:hover { background: var(--accent-bg); color: var(--fg); }
+.settings-tab-btn.active { background: var(--accent-soft); color: var(--accent); }
+.settings-tab-btn-label { font-size: 13px; }
+.settings-resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  background: transparent;
+  transition: background-color 0.15s;
+}
+.settings-resize-handle:hover { background: var(--accent); }
+.settings-menu-panel { flex: 1; overflow-y: auto; min-width: 0; }
+
+/* Mobile settings layout */
+@media (max-width: 600px) {
+  .settings-tab-area { flex-direction: column; }
+  .settings-tab-buttons {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 4px 6px;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .settings-tab-btn { padding: 6px 10px; width: auto; }
+  .settings-tab-btn-label { display: none; }
+  .settings-menu-panel { max-height: none; }
+}

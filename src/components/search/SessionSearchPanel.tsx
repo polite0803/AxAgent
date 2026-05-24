@@ -1,19 +1,6 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { SavedFilter, SearchResult, useSearchStore } from "@/stores/feature/searchStore";
-import {
-  Button,
-  Card,
-  Checkbox,
-  Empty,
-  Input,
-  List,
-  Modal,
-  Popconfirm,
-  Select,
-  Space,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
+import { Button, Card, Checkbox, Empty, Input, List, Modal, Popconfirm, Select, Space, Tag, Typography } from "antd";
 import { Clock, FileText, Filter, History, Regex, Search as SearchIcon, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

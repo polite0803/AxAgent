@@ -1,4 +1,5 @@
-import { Badge, Button, Card, Space, Tag, Tooltip, Typography } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Badge, Button, Card, Space, Tag, Typography } from "antd";
 import { Clock, Copy, Link, Plus, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

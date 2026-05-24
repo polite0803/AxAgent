@@ -1,3 +1,5 @@
+import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { getConvIcon } from "@/lib/convIcon";
 import {
   type TabItem,
@@ -8,7 +10,7 @@ import {
   useTabStore,
 } from "@/stores";
 import { ModelIcon } from "@lobehub/icons";
-import { Dropdown, theme, Tooltip } from "antd";
+import { theme } from "antd";
 import { Avatar } from "antd";
 import { HelpCircle, MessageSquarePlus, X } from "lucide-react";
 import { Bot } from "lucide-react";
@@ -59,25 +61,14 @@ const Tab = memo(function Tab({
 
   const customIcon = getConvIcon(tab.conversationId);
 
-  const contextMenuItems = [
-    { key: "closeOthers", label: t("chat.tabCloseOthers") },
-    { key: "closeRight", label: t("chat.tabCloseRight") },
+  const contextMenuItems: DropdownItem[] = [
+    { key: "closeOthers", label: t("chat.tabCloseOthers"), onClick: () => onCloseOthers(tab.id) },
+    { key: "closeRight", label: t("chat.tabCloseRight"), onClick: () => onCloseRight(tab.id) },
   ];
 
-  const handleContextMenuClick = useCallback(
-    ({ key }: { key: string }) => {
-      if (key === "closeOthers") {
-        onCloseOthers(tab.id);
-      } else if (key === "closeRight") {
-        onCloseRight(tab.id);
-      }
-    },
-    [onCloseOthers, onCloseRight, tab.id],
-  );
-
   return (
-    <Dropdown
-      menu={{ items: contextMenuItems, onClick: handleContextMenuClick }}
+    <DropdownMenu
+      items={contextMenuItems}
       trigger={["contextMenu"]}
     >
       <div
@@ -144,7 +135,7 @@ const Tab = memo(function Tab({
           <X size={10} />
         </span>
       </div>
-    </Dropdown>
+    </DropdownMenu>
   );
 });
 

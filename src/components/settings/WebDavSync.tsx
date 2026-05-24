@@ -1,4 +1,5 @@
 import { PasteButton } from "@/components/common/PasteButton";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
 import type { WebDavConfig, WebDavFileInfo } from "@/types";
@@ -17,7 +18,6 @@ import {
   Switch,
   Table,
   Tag,
-  Tooltip,
   Typography,
 } from "antd";
 import { Cloud, CloudUpload, RefreshCw, Settings2, Trash2, Undo2 } from "lucide-react";

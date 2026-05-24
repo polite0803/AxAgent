@@ -1,6 +1,6 @@
 // 可复用的上下文帮助按钮 — 悬浮 Tooltip + 点击打开 HelpPanel
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useHelpStore } from "@/stores/feature/helpStore";
-import { Tooltip } from "antd";
 import { HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

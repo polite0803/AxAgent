@@ -221,11 +221,12 @@ impl ModuleRegistry {
     ///
     /// `essential_ids` lists the module IDs to keep active. All others are disabled.
     pub async fn enter_speed_mode(&self, essential_ids: &[&str]) -> Result<usize, String> {
-        let entries = self.entries.read().await;
+        let mut entries = self.entries.write().await;
         let mut disabled = 0;
-        for entry in entries.iter() {
+        for entry in entries.iter_mut() {
             if !essential_ids.contains(&entry.module.module_id()) {
                 entry.module.disable().await?;
+                entry.state = entry.module.state();
                 disabled += 1;
             }
         }
@@ -365,7 +366,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "timing-dependent, flaky in CI"]
     async fn test_speed_mode() {
         let registry = ModuleRegistry::new();
         let code = Arc::new(SimpleToggle::new("code_engine", "Code Engine", ResourceCost::MEDIUM));

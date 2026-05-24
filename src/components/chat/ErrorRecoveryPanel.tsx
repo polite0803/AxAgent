@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Progress, Statistic, Timeline, Tooltip, Typography } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Alert, Button, Card, Progress, Statistic, Timeline, Typography } from "antd";
 import {
   AlertCircle,
   AlertTriangle,

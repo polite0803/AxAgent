@@ -1,5 +1,6 @@
 import { formatTokenCount } from "@/components/gateway/tokenFormat";
-import { Space, theme, Tooltip } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Space, theme } from "antd";
 import { useTranslation } from "react-i18next";
 
 export interface ContextSegment {

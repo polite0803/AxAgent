@@ -1,6 +1,7 @@
 import { formatTokenCount } from "@/components/gateway/tokenFormat";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { estimateMessageTokens } from "@/lib/tokenEstimator";
-import { Space, Tag, theme, Tooltip } from "antd";
+import { Space, Tag, theme } from "antd";
 import { BookOpen, Bot, Brain, Lightbulb, Search, Wrench } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";

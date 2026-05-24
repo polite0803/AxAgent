@@ -1,6 +1,7 @@
 import { CopyButton } from "@/components/common/CopyButton";
 import { ModelParamSliders } from "@/components/common/ModelParamSliders";
 import { PasteButton } from "@/components/common/PasteButton";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { invoke } from "@/lib/invoke";
@@ -36,7 +37,6 @@ import {
   Switch,
   Tag,
   theme,
-  Tooltip,
   Typography,
 } from "antd";
 import {

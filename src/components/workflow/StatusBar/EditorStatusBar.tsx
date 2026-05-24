@@ -1,4 +1,5 @@
-import { Tag, theme, Tooltip } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Tag, theme } from "antd";
 import { AlertCircle, AlertTriangle, CheckCircle, Circle, Maximize2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";

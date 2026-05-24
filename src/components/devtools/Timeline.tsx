@@ -1,5 +1,6 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import type { Span, SpanType } from "@/types";
-import { Tag, Tooltip } from "antd";
+import { Tag } from "antd";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 

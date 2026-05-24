@@ -1,5 +1,6 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
-import { Alert, Badge, Button, Card, Progress, Tag, Tooltip, Typography } from "antd";
+import { Alert, Badge, Button, Card, Progress, Tag, Typography } from "antd";
 import { AlertTriangle, Brain, CheckCircle, Clock, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

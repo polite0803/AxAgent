@@ -1,4 +1,4 @@
-import { Dropdown, theme, Tooltip } from "antd";
+import { theme } from "antd";
 import { Check, ChevronRight, Copy, Eye, Maximize2, Minimize2, Minus, Palette, Plus, RotateCcw } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,10 +21,11 @@ interface CodeBlockActionContext {
   isPreviewable: boolean;
   previewCode: () => void;
 }
+import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { formatThemeName, SHIKI_DARK_THEMES, SHIKI_LIGHT_THEMES } from "@/constants/codeThemes";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useSettingsStore } from "@/stores";
-import type { MenuProps } from "antd";
 
 interface Props {
   ctx: CodeBlockActionContext;
@@ -44,7 +45,14 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
   const themeList = isDark ? SHIKI_DARK_THEMES : SHIKI_LIGHT_THEMES;
   const settingsKey = isDark ? "code_theme" : "code_theme_light";
 
-  const themeMenuItems: MenuProps["items"] = useMemo(
+  const handleThemeSelect = useCallback(
+    (key: string) => {
+      saveSettings({ [settingsKey]: key });
+    },
+    [saveSettings, settingsKey],
+  );
+
+  const themeMenuItems: DropdownItem[] = useMemo(
     () =>
       themeList.map((id) => ({
         key: id,
@@ -61,15 +69,9 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
             </span>
           </span>
         ),
+        onClick: () => handleThemeSelect(id),
       })),
-    [themeList, currentTheme, token.colorPrimary],
-  );
-
-  const handleThemeSelect = useCallback<NonNullable<MenuProps["onClick"]>>(
-    ({ key }) => {
-      saveSettings({ [settingsKey]: key });
-    },
-    [saveSettings, settingsKey],
+    [themeList, currentTheme, token.colorPrimary, handleThemeSelect],
   );
 
   const getBtnStyle = useCallback(
@@ -198,14 +200,9 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
       </Tooltip>
 
       {/* Theme Picker */}
-      <Dropdown
-        menu={{
-          items: themeMenuItems,
-          onClick: handleThemeSelect,
-          style: { maxHeight: 320, overflowY: "auto" },
-        }}
+      <DropdownMenu
+        items={themeMenuItems}
         trigger={["click"]}
-        placement="bottomRight"
       >
         <Tooltip title={t("settings.codeTheme")} mouseEnterDelay={0.4}>
           <button
@@ -218,7 +215,7 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
             <Palette size={14} />
           </button>
         </Tooltip>
-      </Dropdown>
+      </DropdownMenu>
 
       {/* Preview (only for HTML/SVG) */}
       {ctx.isPreviewable && (

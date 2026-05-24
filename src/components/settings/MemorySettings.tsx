@@ -1,3 +1,4 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
@@ -29,7 +30,6 @@ import {
   Table,
   Tag,
   theme,
-  Tooltip,
   Typography,
 } from "antd";
 import type { MenuProps } from "antd";

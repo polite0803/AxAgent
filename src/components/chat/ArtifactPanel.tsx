@@ -1,3 +1,4 @@
+import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import type { ArtifactFormat, ArtifactPreviewMode } from "@/types";
 import {
   CheckOutlined,
@@ -8,7 +9,7 @@ import {
   EyeOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Dropdown, message, Segmented, Space, Tooltip } from "antd";
+import { Button, Card, message, Segmented, Space, Tooltip } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArtifactPreview } from "./ArtifactPreview";
@@ -94,10 +95,10 @@ export function ArtifactPanel({
     );
   }
 
-  const menuItems = [
-    { key: "copy", label: "Copy code" },
-    { key: "download", label: "Download" },
-    { key: "fullscreen", label: "Fullscreen" },
+  const menuItems: DropdownItem[] = [
+    { key: "copy", label: "Copy code", onClick: handleCopy },
+    { key: "download", label: "Download", onClick: handleDownload },
+    { key: "fullscreen", label: "Fullscreen", onClick: onFullscreen },
   ];
 
   return (
@@ -136,22 +137,9 @@ export function ArtifactPanel({
               onClick={onFullscreen}
             />
           </Tooltip>
-          <Dropdown
-            menu={{
-              items: menuItems,
-              onClick: ({ key }) => {
-                if (key === "copy") {
-                  handleCopy();
-                } else if (key === "download") {
-                  handleDownload();
-                } else if (key === "fullscreen") {
-                  onFullscreen?.();
-                }
-              },
-            }}
-          >
+          <DropdownMenu items={menuItems}>
             <Button size="small" icon={<MoreOutlined />} />
-          </Dropdown>
+          </DropdownMenu>
         </Space>
       }
       styles={{ body: { padding: 0, height: "calc(100% - 57px)" } }}

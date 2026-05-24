@@ -16,7 +16,8 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { Card, Empty, Segmented, Select, Space, Tag, theme, Tooltip, Typography } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Card, Empty, Segmented, Select, Space, Tag, theme, Typography } from "antd";
 import {
   forceCenter,
   forceCollide,

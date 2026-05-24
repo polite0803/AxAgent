@@ -1,8 +1,8 @@
 import { Icon } from "@/components/common/Icon";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useConversationStore, useRightPanelStore, useSettingsStore } from "@/stores";
 import { useCacheStore } from "@/stores/feature/cacheStore";
-import { Button, Tabs, Tooltip } from "antd";
 import {
   BarChart3,
   Bug,
@@ -30,7 +30,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentExecutionPanel } from "./AgentExecutionPanel";
 import { AgentHierarchyTree } from "./AgentHierarchyTree";
@@ -459,22 +459,16 @@ export function RightPanelContainer({
     [panels, isAgent, extrasExpanded],
   );
 
-  const tabItems = visiblePanels.map((p) => ({
-    key: p.key,
-    label: (
-      <Tooltip title={t(p.labelKey)} placement="left">
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-          {p.icon}
-          {!compactMode && <span style={{ fontSize: 12 }}>{t(p.labelKey)}</span>}
-        </span>
-      </Tooltip>
-    ),
-    children: (
-      <div style={{ height: "100%", overflow: "auto", paddingBottom: 16 }}>
-        {p.render()}
-      </div>
-    ),
-  }));
+  const [activeTab, setActiveTab] = useState(() => visiblePanels[0]?.key ?? "");
+
+  // Ensure active tab stays valid when panels change
+  useEffect(() => {
+    if (!visiblePanels.some((p) => p.key === activeTab)) {
+      setActiveTab(visiblePanels[0]?.key ?? "");
+    }
+  }, [visiblePanels, activeTab]);
+
+  const activePanel = visiblePanels.find((p) => p.key === activeTab);
 
   return (
     <div className="right-panel">
@@ -482,40 +476,50 @@ export function RightPanelContainer({
         <span className="rp-header-title">
           {t("chatRightPanel.title")}
         </span>
-        <button
-          className="rp-toggle"
-          onClick={() => {
-            panelData.setChartResult(null, "");
-            panelData.setReport(null);
-          }}
-          title={t("chatRightPanel.close")}
-        >
-          <X size={14} />
-        </button>
-      </div>
-      <Tabs
-        size="small"
-        tabPosition="top"
-        items={tabItems}
-        className="rp-tabs-container"
-        style={{ height: "100%", flex: 1, overflow: "hidden" }}
-        tabBarStyle={{ padding: "0 8px", margin: 0 }}
-      />
-      {!compactMode && (
-        <div
-          className="rp-header"
-          style={{ justifyContent: "center", borderTop: "1px solid var(--border)", borderBottom: "none" }}
-        >
-          <Button
-            type="text"
-            size="small"
-            block
-            icon={extrasExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-            onClick={() => setExtrasExpanded((v) => !v)}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button
+            className="titlebar-btn"
+            onClick={onToggleCompact}
+            title={t(compactMode ? "chatRightPanel.expand" : "chatRightPanel.collapse")}
           >
-            {t(extrasExpanded ? "chatRightPanel.hideExtras" : "chatRightPanel.showExtras")}
-          </Button>
+            {compactMode ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          <button
+            className="titlebar-btn"
+            onClick={() => {
+              panelData.setChartResult(null, "");
+              panelData.setReport(null);
+            }}
+            title={t("chatRightPanel.close")}
+          >
+            <X size={14} />
+          </button>
         </div>
+      </div>
+      <div className="rp-tabs">
+        {visiblePanels.map((p) => (
+          <Tooltip key={p.key} title={t(p.labelKey)} placement="bottom">
+            <button
+              className={`rp-tab ${activeTab === p.key ? "active" : ""}`}
+              onClick={() => setActiveTab(p.key)}
+            >
+              {p.icon}
+              {!compactMode && <span>{t(p.labelKey)}</span>}
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+      <div className="rp-body" style={{ flex: 1, overflow: "auto", paddingBottom: 16 }}>
+        {activePanel?.render()}
+      </div>
+      {!compactMode && (
+        <button
+          className="rp-footer-btn"
+          onClick={() => setExtrasExpanded((v) => !v)}
+        >
+          {extrasExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          {t(extrasExpanded ? "chatRightPanel.hideExtras" : "chatRightPanel.showExtras")}
+        </button>
       )}
     </div>
   );

@@ -1,10 +1,11 @@
 import { ModelParamSliders } from "@/components/common/ModelParamSliders";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { CONV_ICON_KEY, type ConvIcon, type ConvIconType } from "@/lib/convIcon";
 import { useConversationStore, useSettingsStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { ModelIcon } from "@lobehub/icons";
-import { Button, Card, Input, Modal, Slider, Tag, theme, Tooltip } from "antd";
+import { Button, Card, Input, Modal, Slider, Tag, theme } from "antd";
 import type { MenuProps } from "antd";
 import { Bot, Info, Undo2 } from "lucide-react";
 import React, { useEffect, useState } from "react";

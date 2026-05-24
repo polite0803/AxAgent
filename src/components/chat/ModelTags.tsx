@@ -1,8 +1,9 @@
 import { ModelIcon } from "@lobehub/icons";
-import { theme, Tooltip } from "antd";
+import { theme } from "antd";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useConversationStore } from "@/stores";
 import type { Message } from "@/types";
 

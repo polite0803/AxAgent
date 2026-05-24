@@ -1,6 +1,7 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useCategoryStore, useConversationStore } from "@/stores";
 import type { ConversationCategory } from "@/types";
-import { Avatar, Button, Empty, List, message, Modal, Popconfirm, theme, Tooltip } from "antd";
+import { Avatar, Button, Empty, List, message, Modal, Popconfirm, theme } from "antd";
 import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

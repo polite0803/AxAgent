@@ -1,6 +1,7 @@
+import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { invoke } from "@/lib/invoke";
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Card, Dropdown, Empty, Input, message, Modal, Select, Spin, Tag, theme } from "antd";
+import { Button, Card, Empty, Input, message, Modal, Select, Spin, Tag, theme } from "antd";
 import { Copy, Download, Edit2, Eye, History, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -316,10 +317,9 @@ export const TemplateList: React.FC<TemplateListProps> = ({
               )}
             </div>
           </div>
-          <Dropdown
-            menu={{ items: menuItems }}
+          <DropdownMenu
+            items={menuItems}
             trigger={["click"]}
-            placement="bottomRight"
           >
             <Button
               type="text"
@@ -329,7 +329,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
               onClick={(e) => e.stopPropagation()}
               style={{ color: token.colorTextTertiary }}
             />
-          </Dropdown>
+          </DropdownMenu>
         </div>
       </Card>
     );

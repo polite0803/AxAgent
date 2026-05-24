@@ -1,8 +1,9 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { formatThemeName, SHIKI_DARK_THEMES, SHIKI_LIGHT_THEMES } from "@/constants/codeThemes";
 import { invoke, isTauri } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
 import type { ThemePreset } from "@/theme/shadcnTheme";
-import { ColorPicker, Divider, Segmented, Slider, Tooltip } from "antd";
+import { ColorPicker, Divider, Segmented, Slider } from "antd";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -1,9 +1,10 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { useProviderStore, useSettingsStore } from "@/stores";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import type { Model } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
-import { Input, theme, Tooltip, Typography } from "antd";
+import { Input, theme, Typography } from "antd";
 import {
   ArrowDownCircle,
   ArrowRight,

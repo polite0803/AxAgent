@@ -2,7 +2,7 @@ import Actions from "@ant-design/x/es/actions";
 import { BubbleItemType, type BubbleListRef, type RoleType } from "@ant-design/x/es/bubble/interface";
 import { ModelIcon } from "@lobehub/icons";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Alert, App, Avatar, Input, Modal, Popconfirm, Spin, Tag, theme, Tooltip, Typography } from "antd";
+import { Alert, App, Avatar, Input, Modal, Popconfirm, Spin, Tag, theme, Typography } from "antd";
 import {
   ArrowDown,
   ArrowLeftRight,
@@ -46,6 +46,7 @@ import {
 import { useContinuationStore } from "@/stores/feature/continuationStore";
 import type { Message } from "@/types";
 
+import { Tooltip } from "@/components/layout/Tooltip";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { AskUserCard } from "./AskUserCard";
 import { AttachmentPreview } from "./AttachmentPreview";

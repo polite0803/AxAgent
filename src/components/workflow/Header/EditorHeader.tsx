@@ -1,4 +1,5 @@
-import { Button, Input, Popover, Space, theme, Tooltip } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Button, Input, Popover, Space, theme } from "antd";
 import {
   ArrowLeft,
   Bot,

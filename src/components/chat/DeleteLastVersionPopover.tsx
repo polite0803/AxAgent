@@ -1,8 +1,9 @@
-import { App, Button, Popover, theme, Tooltip } from "antd";
+import { App, Button, Popover, theme } from "antd";
 import { AlertCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useConversationStore } from "@/stores";
 import type { Message } from "@/types";
 

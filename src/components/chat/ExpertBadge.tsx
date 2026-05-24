@@ -1,5 +1,5 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { Tooltip } from "antd";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

@@ -1,4 +1,5 @@
-import { Button, Dropdown, Tag } from "antd";
+import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
+import { Button, Tag } from "antd";
 import type { MenuProps } from "antd";
 import { Container, Monitor, Plus, Terminal } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -51,10 +52,10 @@ export function TerminalBackendSelector({
   });
 
   return (
-    <Dropdown menu={{ items }} trigger={["click"]}>
+    <DropdownMenu items={items.filter(Boolean) as DropdownItem[]} trigger={["click"]}>
       <Button size="small" icon={backendIcons[current]}>
         {t(`terminal.${current}`)}
       </Button>
-    </Dropdown>
+    </DropdownMenu>
   );
 }

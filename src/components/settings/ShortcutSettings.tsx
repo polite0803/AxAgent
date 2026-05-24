@@ -1,3 +1,4 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import {
   DEFAULT_SHORTCUT_BINDINGS,
   detectShortcutConflicts,
@@ -13,7 +14,7 @@ import {
   toTauriAccelerator,
 } from "@/lib/shortcuts";
 import { useSettingsStore } from "@/stores";
-import { Button, Divider, Input, Space, Switch, theme, Tooltip } from "antd";
+import { Button, Divider, Input, Space, Switch, theme } from "antd";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";

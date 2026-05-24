@@ -1,3 +1,4 @@
+import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type {
   CreatePromptTemplateInput,
@@ -18,7 +19,7 @@ import {
   StarFilled,
   StarOutlined,
 } from "@ant-design/icons";
-import { Button, Dropdown, Empty, Form, Input, List, message, Modal, Select, Space, Spin, Tag, Typography } from "antd";
+import { Button, Empty, Form, Input, List, message, Modal, Select, Space, Spin, Tag, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PromptImportModal } from "./PromptImportModal";
@@ -246,31 +247,17 @@ export function PromptTemplatesSettings() {
             >
               {t("promptTemplates.import")}
             </Button>
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "json",
-                    label: "JSON",
-                    onClick: () => handleExport("json"),
-                  },
-                  {
-                    key: "yaml",
-                    label: "YAML",
-                    onClick: () => handleExport("yaml"),
-                  },
-                  {
-                    key: "markdown",
-                    label: "Markdown",
-                    onClick: () => handleExport("markdown"),
-                  },
-                ],
-              }}
+            <DropdownMenu
+              items={[
+                { key: "json", label: "JSON", onClick: () => handleExport("json") },
+                { key: "yaml", label: "YAML", onClick: () => handleExport("yaml") },
+                { key: "markdown", label: "Markdown", onClick: () => handleExport("markdown") },
+              ]}
             >
               <Button icon={<ExportOutlined />}>
                 {t("promptTemplates.export")}
               </Button>
-            </Dropdown>
+            </DropdownMenu>
             <Button
               type="primary"
               icon={<PlusOutlined />}

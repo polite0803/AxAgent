@@ -1,4 +1,5 @@
-import { theme, Tooltip } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { theme } from "antd";
 import { Check, ChevronRight, Copy, Download, Maximize2, Minimize2 } from "lucide-react";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";

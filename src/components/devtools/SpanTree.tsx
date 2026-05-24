@@ -1,6 +1,7 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { SpanTreeNode, SpanType } from "@/types";
-import { Tag, Tooltip, Typography } from "antd";
+import { Tag, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 

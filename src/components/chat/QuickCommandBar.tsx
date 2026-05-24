@@ -1,5 +1,7 @@
+import { DropdownMenu } from "@/components/layout/DropdownMenu";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useCompressStore, useConversationStore, useProviderStore } from "@/stores";
-import { Button, Dropdown, theme, Tooltip } from "antd";
+import { Button, theme } from "antd";
 import { Cpu, Eraser, Scissors } from "lucide-react";
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -120,7 +122,7 @@ export const QuickCommandBar: React.FC = () => {
       }}
     >
       {commands.map((cmd) => (
-        <Tooltip key={cmd.key} title={cmd.tooltip} placement="top">
+        <Tooltip key={cmd.key} title={cmd.tooltip}>
           <Button
             size="small"
             type="text"
@@ -147,12 +149,11 @@ export const QuickCommandBar: React.FC = () => {
       ))}
 
       {availableModels.length > 0 && (
-        <Dropdown
-          menu={{ items: modelMenuItems }}
+        <DropdownMenu
+          items={modelMenuItems}
           trigger={["click"]}
-          placement="bottomLeft"
         >
-          <Tooltip title={t("chat.switchModel")} placement="top">
+          <Tooltip title={t("chat.switchModel")}>
             <Button
               size="small"
               type="text"
@@ -176,7 +177,7 @@ export const QuickCommandBar: React.FC = () => {
               </span>
             </Button>
           </Tooltip>
-        </Dropdown>
+        </DropdownMenu>
       )}
     </div>
   );

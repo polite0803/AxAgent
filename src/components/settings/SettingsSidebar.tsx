@@ -1,9 +1,11 @@
 import { Icon } from "@/components/common/Icon";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { SettingsMenu } from "@/components/settings/SettingsMenu";
+import type { SettingsMenuItem } from "@/components/settings/SettingsMenu";
 import { SETTINGS_ICON_COLORS } from "@/lib/iconColors";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { Menu, Tabs, theme, Tooltip } from "antd";
 import {
   ArrowLeft,
   Bell,
@@ -75,7 +77,6 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   cron: <Timer size={16} color={SETTINGS_ICON_COLORS.Clock} />,
 };
 
-// 分组定义：tab key → 包含的 sections
 const TAB_GROUPS: Record<string, SettingsSection[]> = {
   model: [
     "providers",
@@ -108,7 +109,6 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
   system: ["advanced", "evolution", "about"],
 };
 
-// Tab 图标映射（Fluent/Phosphor 高质量图标）
 const TAB_ICONS: Record<string, React.ReactNode> = {
   model: <Icon icon="fluent:brain-circuit-20-filled" size={20} color="#1677ff" />,
   appearance: <Icon icon="fluent:eye-20-filled" size={20} color="#52c41a" />,
@@ -125,9 +125,7 @@ function useDraggableWidth(initial: number, min: number, max: number) {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!dragging.current) {
-        return;
-      }
+      if (!dragging.current) { return; }
       const dx = e.clientX - startRef.current.startX;
       setWidth(Math.max(min, Math.min(max, startRef.current.startWidth + dx)));
     };
@@ -156,21 +154,15 @@ function useDraggableWidth(initial: number, min: number, max: number) {
 
 export function SettingsSidebar() {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const navigate = useNavigate();
   const settingsSection = useUIStore((s) => s.settingsSection);
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
-  const { width: tabBarWidth, onMouseDown: onTabBarResize } = useDraggableWidth(
-    72,
-    48,
-    200,
-  );
+  const { width: tabBarWidth, onMouseDown: onTabBarResize } = useDraggableWidth(72, 48, 200);
   const isMobile = deviceLayout === "mobile";
   const isTablet = deviceLayout === "tablet";
 
-  // 预构建 section → tab 反向映射，避免循环中调用 includes
   const sectionToTab = useMemo(() => {
     const map = new Map<string, string>();
     for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
@@ -181,26 +173,17 @@ export function SettingsSidebar() {
     return map;
   }, []);
 
-  // 根据当前选中的 section 反查所属 tab
-  const [activeTab, setActiveTab] = useState(() => {
-    return sectionToTab.get(settingsSection) ?? "model";
-  });
+  const [activeTab, setActiveTab] = useState(() => sectionToTab.get(settingsSection) ?? "model");
 
-  // 当 settingsSection 变化时，同步更新 activeTab
   useEffect(() => {
     const tab = sectionToTab.get(settingsSection);
-    if (tab) {
-      setActiveTab(tab);
-    }
+    if (tab) { setActiveTab(tab); }
   }, [settingsSection, sectionToTab]);
 
   const handleTabChange = (key: string) => {
     setActiveTab(key);
-    // 切换到该 tab 的第一个 section
     const firstSection = TAB_GROUPS[key]?.[0];
-    if (firstSection) {
-      setSettingsSection(firstSection);
-    }
+    if (firstSection) { setSettingsSection(firstSection); }
   };
 
   const skillItems = useMemo(() => {
@@ -214,141 +197,83 @@ export function SettingsSidebar() {
     });
   }, [skillSections]);
 
-  const tabItems = Object.entries(TAB_GROUPS).map(([key, sections]) => {
-    const builtin = sections.map((sec) => ({
-      key: sec,
-      icon: MENU_ICONS[sec],
-      label: t([`settings.${sec}.title`, `settings.${sec}`]),
-    }));
-    // 在最后添加技能扩展项
-    const items = key === "extensions" ? [...builtin, ...skillItems] : builtin;
+  // 构建每个 tab 的菜单项 (纯数据, 不包含 React 节点)
+  const tabMenus = useMemo(() => {
+    const result: Record<string, SettingsMenuItem[]> = {};
+    for (const [key, sections] of Object.entries(TAB_GROUPS)) {
+      const builtin: SettingsMenuItem[] = sections.map((sec) => ({
+        key: sec,
+        icon: MENU_ICONS[sec],
+        label: t([`settings.${sec}.title`, `settings.${sec}`]),
+      }));
+      result[key] = key === "extensions" ? [...builtin, ...skillItems] : builtin;
+    }
+    return result;
+  }, [t, skillItems]);
 
-    const tabLabel = t(
-      `settings.tab${key.charAt(0).toUpperCase() + key.slice(1)}`,
-    );
-    return {
-      key,
-      label: (
-        <Tooltip title={tabLabel} placement="right">
-          <span
-            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-          >
-            {TAB_ICONS[key]}
-            {tabBarWidth > 120 && <span style={{ fontSize: 13 }}>{tabLabel}</span>}
-          </span>
-        </Tooltip>
-      ),
-      children: (
-        <Menu
-          mode="inline"
-          selectedKeys={[settingsSection]}
-          items={items}
-          style={{ borderInlineEnd: "none" }}
-          onClick={({ key }) => {
-            if (typeof key === "string" && key.startsWith("skill:")) {
-              setSettingsSection(key as SettingsSection);
-            } else {
-              setSettingsSection(key as SettingsSection);
-            }
-          }}
-        />
-      ),
-    };
-  });
+  const handleMenuClick = ({ key }: { key: string }) => {
+    if (key.startsWith("skill:")) {
+      setSettingsSection(key as SettingsSection);
+    } else {
+      setSettingsSection(key as SettingsSection);
+    }
+  };
+
+  const tabKeys = Object.keys(TAB_GROUPS);
 
   return (
-    <div
-      className="h-full flex flex-col"
-      data-os-scrollbar
-      data-testid="settings-sidebar"
-      style={{ backgroundColor: token.colorBgContainer, overflowY: "auto" }}
-    >
+    <div className="h-full flex flex-col" data-testid="settings-sidebar">
       {/* Back button */}
-      <div
-        className="flex items-center gap-2 cursor-pointer"
-        role="button"
-        tabIndex={0}
-        style={{
-          color: token.colorTextSecondary,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          flexShrink: 0,
-          paddingLeft: isMobile ? 12 : 26,
-          paddingRight: isMobile ? 12 : 16,
-          paddingTop: isMobile ? 8 : 12,
-          paddingBottom: isMobile ? 8 : 12,
-        }}
+      <button
+        className="settings-back-btn"
         onClick={() => navigate("/")}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            navigate("/");
-          }
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = token.colorText;
-          e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = token.colorTextSecondary;
-          e.currentTarget.style.backgroundColor = "transparent";
-        }}
       >
         <ArrowLeft size={16} />
-        <span style={{ fontSize: 14 }}>{t("common.back")}</span>
-        {!isMobile && (
-          <span
-            style={{
-              fontSize: 12,
-              color: token.colorTextQuaternary,
-              border: `1px solid ${token.colorBorderSecondary}`,
-              borderRadius: 4,
-              padding: "1px 6px",
-              marginLeft: 4,
-              lineHeight: "16px",
-            }}
-          >
-            Esc
-          </span>
-        )}
-      </div>
-      <div
-        className="flex-1 pt-1"
-        style={{ overflowY: "auto", display: "flex" }}
-      >
-        <Tabs
-          activeKey={activeTab}
-          onChange={handleTabChange}
-          items={tabItems}
-          tabPlacement={isMobile ? "top" : "start"}
-          tabBarStyle={isMobile
-            ? { overflowX: "auto", whiteSpace: "nowrap" }
-            : {
-              width: tabBarWidth,
-              flexShrink: 0,
-              transition: "width 0.05s",
-            }}
-          style={{ height: "100%", flex: 1 }}
-        />
-        {/* Resize handle — 仅桌面端显示 */}
+        <span>{t("common.back")}</span>
+        {!isMobile && <kbd className="settings-back-kbd">Esc</kbd>}
+      </button>
+
+      <div className="flex-1 pt-1 settings-tab-area">
+        {/* Tab buttons sidebar */}
+        <div
+          className="settings-tab-buttons"
+          style={{ width: isMobile ? "auto" : tabBarWidth }}
+        >
+          {tabKeys.map((key) => {
+            const tabLabel = t(
+              `settings.tab${key.charAt(0).toUpperCase() + key.slice(1)}`,
+            );
+            return (
+              <Tooltip key={key} title={tabLabel} placement="right">
+                <button
+                  className={`settings-tab-btn${activeTab === key ? " active" : ""}`}
+                  onClick={() => handleTabChange(key)}
+                >
+                  {TAB_ICONS[key]}
+                  {tabBarWidth > 120 && <span className="settings-tab-btn-label">{tabLabel}</span>}
+                </button>
+              </Tooltip>
+            );
+          })}
+        </div>
+
+        {/* Resize handle */}
         {!isMobile && !isTablet && (
           <div
             role="separator"
-            tabIndex={0}
+            className="settings-resize-handle"
             onMouseDown={onTabBarResize}
-            style={{
-              width: 4,
-              cursor: "col-resize",
-              flexShrink: 0,
-              backgroundColor: "transparent",
-              transition: "background-color 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = token.colorPrimary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
           />
         )}
+
+        {/* Menu panel */}
+        <div className="settings-menu-panel">
+          <SettingsMenu
+            items={tabMenus[activeTab] ?? []}
+            selectedKeys={[settingsSection]}
+            onClick={handleMenuClick}
+          />
+        </div>
       </div>
     </div>
   );

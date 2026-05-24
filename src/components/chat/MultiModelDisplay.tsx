@@ -1,8 +1,9 @@
 import { CopyButton } from "@/components/common/CopyButton";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { stripAxAgentTags } from "@/lib/chatMarkdown";
 import type { Message } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
-import { Alert, Button, Popconfirm, Tag, theme, Tooltip, Typography } from "antd";
+import { Alert, Button, Popconfirm, Tag, theme, Typography } from "antd";
 import { Check, Columns2, LayoutList, Rows3, Trash2 } from "lucide-react";
 import { OverlayScrollbars } from "overlayscrollbars";
 import React, { useEffect, useLayoutEffect, useMemo, useRef } from "react";

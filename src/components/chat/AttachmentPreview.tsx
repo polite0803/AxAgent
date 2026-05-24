@@ -1,9 +1,10 @@
 import { CloseCircleFilled } from "@ant-design/icons";
-import { App, Dropdown, Image, Tag } from "antd";
+import { App, Image, Tag } from "antd";
 import { AlertCircle, FileImage, Paperclip } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { invoke } from "@/lib/invoke";
 import type { Attachment } from "@/types";
 
@@ -185,8 +186,8 @@ export function AttachmentPreview({
   }
 
   return (
-    <Dropdown menu={{ items: contextMenuItems }} trigger={["contextMenu"]}>
+    <DropdownMenu items={contextMenuItems} trigger={["contextMenu"]}>
       {tag}
-    </Dropdown>
+    </DropdownMenu>
   );
 }

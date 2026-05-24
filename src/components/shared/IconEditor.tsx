@@ -1,7 +1,8 @@
+import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { invoke, isTauri } from "@/lib/invoke";
 import type { AvatarType } from "@/stores";
-import { Avatar, Button, Dropdown, Input, theme } from "antd";
+import { Avatar, Button, Input, theme } from "antd";
 import type { MenuProps } from "antd";
 import { FileImage, Grid2x2, Link, Smile, Trash2 } from "lucide-react";
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
@@ -233,10 +234,9 @@ export function IconEditor({
 
   return (
     <>
-      <Dropdown
-        menu={{ items: menuItems }}
+      <DropdownMenu
+        items={menuItems.filter(Boolean) as DropdownItem[]}
         trigger={["click"]}
-        placement="bottomLeft"
       >
         <div style={{ cursor: "pointer", display: "inline-flex" }}>
           <AvatarEditBadge size={size}>
@@ -250,7 +250,7 @@ export function IconEditor({
             />
           </AvatarEditBadge>
         </div>
-      </Dropdown>
+      </DropdownMenu>
       <input
         ref={fileInputRef}
         type="file"
