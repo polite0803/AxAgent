@@ -486,7 +486,7 @@
     },
     {
       "file": "src/pages/QuickBarPage.tsx",
-      "lines": "1484",
+      "lines": "1485",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
