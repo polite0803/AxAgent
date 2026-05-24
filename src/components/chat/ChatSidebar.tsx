@@ -23,18 +23,15 @@ import {
 } from "@/stores";
 import { isSidebarAutoSelectSuppressed, resetSidebarAutoSelectSuppression } from "@/stores/domain/conversationStore";
 import type { Conversation, Message } from "@/types";
-import Conversations from "@ant-design/x/es/conversations";
-import type { ConversationItemType } from "@ant-design/x/es/conversations/interface";
+import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import { ModelIcon } from "@lobehub/icons";
 import {
   App,
   Avatar,
   Button,
   Checkbox,
-  Dropdown,
   Empty,
   Input,
-  type MenuProps,
   Modal,
   Radio,
   Space,
@@ -74,6 +71,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CategoryManagerModal } from "./CategoryManagerModal";
 import { GatewaySessionBadge } from "./GatewaySessionBadge";
+
+interface ConvItem {
+  key: string;
+  label: React.ReactNode;
+  icon: React.ReactNode;
+  group: string;
+  "data-conv-id"?: string;
+  style?: React.CSSProperties;
+}
 
 function getDateGroup(timestamp: number): string {
   const now = new Date();
@@ -209,9 +215,11 @@ export function ChatSidebar({
     new Set(),
   );
   const [archivedMultiSelect, setArchivedMultiSelect] = useState(false);
-  const [rightClickedConvId, setRightClickedConvId] = useState<string | null>(
-    null,
-  );
+  const [contextMenuState, setContextMenuState] = useState<{
+    x: number;
+    y: number;
+    convId: string;
+  } | null>(null);
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(
     new Set(),
   );
