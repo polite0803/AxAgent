@@ -166,15 +166,26 @@ impl SkillSandboxExecutor {
 
             let start = Instant::now();
 
-            let output_result = tokio::time::timeout(
-                std::time::Duration::from_secs(self.policy.timeout_secs),
-                Command::new("cmd")
-                    .args(["/C", &cmd])
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .output(),
-            )
-            .await;
+            let output_result =
+                tokio::time::timeout(std::time::Duration::from_secs(self.policy.timeout_secs), {
+                    #[cfg(target_family = "windows")]
+                    {
+                        Command::new("cmd")
+                            .args(["/C", &cmd])
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .output()
+                    }
+                    #[cfg(not(target_family = "windows"))]
+                    {
+                        Command::new("sh")
+                            .args(["-c", &cmd])
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .output()
+                    }
+                })
+                .await;
 
             result.execution_time_ms = start.elapsed().as_millis() as u64;
 
