@@ -512,77 +512,8 @@ button {
 
 /* 旧指标器已移除 — 使用 .nav-item.active::before 代替 */
 
-/* ═══════════════════════════════════════════════════════════════
-   ── 消息气泡 — 覆盖 Ant Design Bubble 匹配原型 msg-row 视觉 ──
-   ═══════════════════════════════════════════════════════════════ */
-.ant-bubble { margin-bottom: 0 !important; }
-.ant-bubble-list .ant-bubble { padding: 0 28px; gap: 10px; }
-.ant-bubble-list .ant-bubble .ant-bubble-avatar {
-  width: 30px !important;
-  height: 30px !important;
-  border-radius: var(--radius) !important;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  font-size: 13px;
-  font-weight: 700;
-  margin: 0 !important;
-}
-/* user avatar gradient */
-.ant-bubble-list .ant-bubble[data-role="user"] .ant-bubble-avatar {
-  background: linear-gradient(135deg, var(--teal), var(--accent)) !important;
-  color: #fff !important;
-}
-/* assistant avatar gradient */
-.ant-bubble-list .ant-bubble[data-role="ai"] .ant-bubble-avatar,
-.ant-bubble-list .ant-bubble[data-role="assistant"] .ant-bubble-avatar {
-  background: linear-gradient(135deg, var(--accent), var(--purple)) !important;
-  color: #fff !important;
-}
-.ant-bubble-list .ant-bubble .ant-bubble-content {
-  font-size: 13.5px !important;
-  line-height: 1.65 !important;
-  color: var(--fg) !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  max-width: none !important;
-}
-.ant-bubble-list .ant-bubble .ant-bubble-content p { margin-bottom: 6px; }
-.ant-bubble-list .ant-bubble .ant-bubble-content p:last-child { margin-bottom: 0; }
-/* inline code */
-.ant-bubble-list .ant-bubble .ant-bubble-content code {
-  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace) !important;
-  font-size: 12.5px !important;
-  background: var(--accent-bg) !important;
-  padding: 1px 5px !important;
-  border-radius: 4px !important;
-  color: var(--accent) !important;
-}
-/* code blocks */
-.ant-bubble-list .ant-bubble .ant-bubble-content pre {
-  background: var(--surface) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius) !important;
-  padding: 10px !important;
-  margin: 6px 0 !important;
-  overflow-x: auto !important;
-  font-size: 12.5px !important;
-}
-.ant-bubble-list .ant-bubble .ant-bubble-content pre code {
-  background: none !important;
-  padding: 0 !important;
-  color: var(--fg) !important;
-}
-/* message row spacing */
-.ant-bubble-list .ant-bubble + .ant-bubble { margin-top: 18px; }
-/* mobile */
-@media (max-width: 600px) {
-  .ant-bubble-list .ant-bubble { padding: 0 12px; gap: 8px; }
-}
-
 /* ── Re-enable text selection for content areas ───────────────────── */
-.ant-bubble-content,
+.msg-content,
 .markstream-react,
 textarea,
 input,
@@ -758,12 +689,8 @@ th,
 .title-bar-drag * {
   scrollbar-width: none;
 }
-.ant-bubble-list-scroll-box {
-  scrollbar-width: none;
-}
-.ant-conversations-list {
-  scrollbar-width: none;
-}
+
+
 
 .axagent-input-textarea {
   scrollbar-width: thin !important;
@@ -933,9 +860,7 @@ html[data-theme="dark"] .markstream-react .thematic-break {
 }
 
 /* Let AxAgent own chat bottom-lock behavior */
-[data-message-area] .ant-bubble-list-scroll-box {
-  overflow-anchor: none;
-}
+
 
 html[data-theme="dark"] .markstream-react .footnote-node {
   border-left-color: var(--border-color);
@@ -963,18 +888,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* Multi-model side-by-side: constrain bubble ancestors so overflow works */
-.ant-bubble:has(.axagent-multi-model-scroll) {
+.msg-content:has(.axagent-multi-model-scroll) {
   overflow: hidden;
   min-width: 0;
 }
-.ant-bubble:has(.axagent-multi-model-scroll) .ant-bubble-body {
-  overflow: hidden;
-  min-width: 0;
-}
-.ant-bubble:has(.axagent-multi-model-scroll) .ant-bubble-content {
-  overflow: hidden;
-  min-width: 0;
-}
+
 
 /* ── Switch 启用/禁用高对比度 ──────── */
 .ant-switch.ant-switch-checked {
@@ -1167,9 +1085,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   }
 
   /* Chat input area: reduce padding in landscape */
-  .ant-bubble,
-  .ant-bubble-content,
-  .ant-bubble-list {
+  .msg-row,
+  .msg-content,
+  .msg-body {
     max-height: none !important;
   }
 
@@ -1345,26 +1263,24 @@ html[data-theme="dark"] .markstream-react .table-node thead {
    ═══════════════════════════════════════════════════════════════ */
 @media (orientation: landscape) and (max-height: 600px) {
   /* Chat bubbles: reduce vertical padding */
-  .ant-bubble {
+  .msg-row {
     margin-bottom: 4px !important;
   }
 
-  .ant-bubble-content {
+  .msg-content {
     padding: 6px 10px !important;
   }
 
   /* Input area: compact in landscape */
-  .ant-bubble-footer {
-    margin-top: 4px !important;
-  }
+
 
   /* Hide scrollbar in landscape for more space */
-  .ant-bubble-list-scroll-box {
+  .msg-list-scroll-box {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
 
-  .ant-bubble-list-scroll-box::-webkit-scrollbar {
+  .msg-list-scroll-box::-webkit-scrollbar {
     display: none !important;
   }
 
