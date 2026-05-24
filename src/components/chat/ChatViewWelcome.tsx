@@ -1,5 +1,3 @@
-import Prompts from "@ant-design/x/es/prompts";
-import { Typography } from "antd";
 import { ChartNoAxesColumn, Code, FileText, Languages, Lightbulb, Search, Share2, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,14 +8,12 @@ export interface ChatViewWelcomeProps {
   onPromptClick: (info: {
     data: { label?: unknown; scenario?: string };
   }) => void;
-  token: Record<string, any>;
 }
 
 export function ChatViewWelcome({
   loading,
   activeConversationId,
   onPromptClick,
-  token,
 }: ChatViewWelcomeProps) {
   const { t } = useTranslation();
 
@@ -94,33 +90,30 @@ export function ChatViewWelcome({
     return (
       <div
         className="flex flex-col items-center justify-center h-full"
-        style={{ gap: 12, padding: "0 24px", color: token.colorTextSecondary }}
+        style={{ gap: 12, padding: "0 24px", color: "var(--muted)" }}
       >
-        <Typography.Text type="secondary">
-          {t("chat.loadingConversation")}
-        </Typography.Text>
+        <span>{t("chat.loadingConversation")}</span>
       </div>
     );
   }
 
   return (
-    <div
-      className="flex flex-col items-center justify-center h-full"
-      style={{ padding: "0 24px" }}
-    >
-      <Typography.Title
-        level={3}
-        className="ax-neon-text"
-        style={{ marginBottom: 24, fontWeight: 500 }}
-      >
+    <div className="flex flex-col items-center justify-center h-full" style={{ padding: "0 24px" }}>
+      <h2 className="ax-neon-text" style={{ marginBottom: 24, fontWeight: 500, fontSize: "1.5rem" }}>
         {greetingText}
-      </Typography.Title>
-      <Prompts
-        items={promptItems}
-        onItemClick={onPromptClick}
-        wrap
-        style={{ marginTop: 16 }}
-      />
+      </h2>
+      <div className="prompts-grid">
+        {promptItems.map((item) => (
+          <button
+            key={item.key}
+            className="prompt-card"
+            onClick={() => onPromptClick({ data: { label: item.label, scenario: item.scenario } })}
+          >
+            <span className="prompt-icon">{item.icon}</span>
+            <span className="prompt-label">{item.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

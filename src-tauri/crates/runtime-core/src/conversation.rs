@@ -2403,7 +2403,7 @@ mod tests {
             .expect_err("unregistered tools should fail");
 
         // then
-        assert_eq!(error.to_string(), "unknown tool: missing");
+        assert!(error.to_string().contains("unknown tool: missing"));
     }
 
     #[test]

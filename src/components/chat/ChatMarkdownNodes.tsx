@@ -1,5 +1,4 @@
 import { SyncOutlined } from "@ant-design/icons";
-import Think from "@ant-design/x/es/think";
 import { theme, Typography } from "antd";
 import DOMPurify from "dompurify";
 import {
@@ -375,7 +374,6 @@ function ThinkNode(
   }>,
 ) {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const selectedDarkCodeTheme = useSettingsStore((s) => s.settings.code_theme);
   const selectedLightCodeTheme = useSettingsStore(
     (s) => s.settings.code_theme_light,
@@ -453,82 +451,91 @@ function ThinkNode(
   const hasStructuredPhases = thinkingContent.length > 200;
 
   return (
-    <Think
-      title={title}
-      blink={isStreaming}
-      loading={isStreaming
-        ? (
-          <SyncOutlined
-            style={{
-              fontSize: 12,
-              animation: "axagent-think-spin 1s linear infinite",
-            }}
-          />
-        )
-        : (
-          false
-        )}
-      icon={<Brain size={14} />}
-      expanded={expanded}
-      onExpand={setExpanded}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {/* Structured thinking: phase-by-phase display */}
-        {hasStructuredPhases && (
-          <StructuredThinking
-            thinking={thinkingContent}
-            isStreaming={isStreaming}
-            totalMs={totalMs}
-          />
-        )}
-        {/* Raw markdown render (toggle) */}
-        {(!hasStructuredPhases || showRawMarkdown) && (
-          <NodeRenderer
-            key={`think:${rendererKey}:${isStreaming ? "s" : "f"}`}
-            nodes={thinkingNodes}
-            customId={ctx?.customId}
-            isDark={ctx?.isDark}
-            final={!isStreaming}
-            typewriter={false}
-            themes={themes}
-            codeBlockLightTheme={lightTheme}
-            codeBlockDarkTheme={darkTheme}
-            codeBlockProps={codeBlockProps}
-            codeBlockMonacoOptions={codeBlockMonacoOptions}
-            customHtmlTags={customHtmlTags}
-            mermaidProps={CHAT_MERMAID_PROPS}
-            infographicProps={CHAT_INFOGRAPHIC_PROPS}
-            {...CHAT_RENDER_BATCH_PROPS}
-          />
-        )}
-        {/* Toggle: structured view vs raw markdown */}
-        {hasStructuredPhases && !isStreaming && (
-          <div
-            onClick={() => setShowRawMarkdown(!showRawMarkdown)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setShowRawMarkdown(!showRawMarkdown);
-              }
-            }}
-            style={{
-              textAlign: "center",
-              padding: "4px 0",
-              fontSize: 12,
-              color: token.colorTextQuaternary,
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            {showRawMarkdown
-              ? t("chatMarkdown.toggleRaw")
-              : t("chatMarkdown.viewThinking")}
-          </div>
-        )}
+    <div className="think-block">
+      <div
+        className="think-header"
+        onClick={() => setExpanded(!expanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
+      >
+        <span className="think-icon">
+          <Brain size={14} />
+        </span>
+        <span className={`think-title${isStreaming ? " think-blinking" : ""}`}>
+          {title}
+        </span>
+        {isStreaming && <SyncOutlined className="think-spinner" style={{ fontSize: 12 }} />}
+        <span className={`think-chevron${expanded ? " expanded" : ""}`}>
+          <ChevronRight size={14} />
+        </span>
       </div>
-    </Think>
+      {expanded && (
+        <div className="think-body">
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {/* Structured thinking: phase-by-phase display */}
+            {hasStructuredPhases && (
+              <StructuredThinking
+                thinking={thinkingContent}
+                isStreaming={isStreaming}
+                totalMs={totalMs}
+              />
+            )}
+            {/* Raw markdown render (toggle) */}
+            {(!hasStructuredPhases || showRawMarkdown) && (
+              <NodeRenderer
+                key={`think:${rendererKey}:${isStreaming ? "s" : "f"}`}
+                nodes={thinkingNodes}
+                customId={ctx?.customId}
+                isDark={ctx?.isDark}
+                final={!isStreaming}
+                typewriter={false}
+                themes={themes}
+                codeBlockLightTheme={lightTheme}
+                codeBlockDarkTheme={darkTheme}
+                codeBlockProps={codeBlockProps}
+                codeBlockMonacoOptions={codeBlockMonacoOptions}
+                customHtmlTags={customHtmlTags}
+                mermaidProps={CHAT_MERMAID_PROPS}
+                infographicProps={CHAT_INFOGRAPHIC_PROPS}
+                {...CHAT_RENDER_BATCH_PROPS}
+              />
+            )}
+            {/* Toggle: structured view vs raw markdown */}
+            {hasStructuredPhases && !isStreaming && (
+              <div
+                onClick={() => setShowRawMarkdown(!showRawMarkdown)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowRawMarkdown(!showRawMarkdown);
+                  }
+                }}
+                style={{
+                  textAlign: "center",
+                  padding: "4px 0",
+                  fontSize: 12,
+                  color: "var(--muted)",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                {showRawMarkdown
+                  ? t("chatMarkdown.toggleRaw")
+                  : t("chatMarkdown.viewThinking")}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 type ChatD2CodeBlockNode = {

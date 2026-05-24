@@ -1,5 +1,4 @@
 import type { ToolCallState } from "@/types";
-import { ThoughtChain, type ThoughtChainItemType } from "@ant-design/x";
 import { Alert, Tag, theme, Typography } from "antd";
 import { FileEdit, Search, Terminal, Wrench } from "lucide-react";
 import { useMemo } from "react";
@@ -11,7 +10,17 @@ interface ToolCallChainProps {
   toolCalls: ToolCallState[];
 }
 
-const statusMap: Record<string, ThoughtChainItemType["status"]> = {
+interface ChainItem {
+  key: string;
+  icon: React.ReactNode;
+  title: React.ReactNode;
+  description: React.ReactNode;
+  status: "loading" | "success" | "error" | "abort";
+  collapsible: boolean;
+  content: React.ReactNode;
+}
+
+const statusMap: Record<string, ChainItem["status"]> = {
   queued: "loading",
   running: "loading",
   success: "success",
@@ -56,7 +65,7 @@ export const ToolCallCard = React.memo(
     const { t } = useTranslation();
     const { token } = theme.useToken();
 
-    const chainItems: ThoughtChainItemType[] = useMemo(() => {
+    const chainItems: ChainItem[] = useMemo(() => {
       return toolCalls.map((tc) => {
         const contentParts: React.ReactNode[] = [];
 
@@ -212,7 +221,7 @@ export const ToolCallCard = React.memo(
               </div>
             )
             : undefined,
-        } satisfies ThoughtChainItemType;
+        } satisfies ChainItem;
       });
     }, [toolCalls, token, t]);
 
@@ -242,14 +251,22 @@ export const ToolCallCard = React.memo(
             >
               {t("chat.inspector.toolCalls")}
             </Typography.Text>
-            <ThoughtChain
-              items={chainItems}
-              line="dashed"
-              styles={{
-                item: { padding: "6px 0" },
-                itemContent: { fontSize: 12 },
-              }}
-            />
+            <div className="thought-chain">
+              {chainItems.map((item) => (
+                <div key={item.key} className={`tc-item tc-${item.status}`}>
+                  <div className="tc-dot" />
+                  <div className="tc-line" />
+                  <div className="tc-body">
+                    <div className="tc-header">
+                      <span className="tc-icon">{item.icon}</span>
+                      <span className="tc-title">{item.title}</span>
+                    </div>
+                    {item.description && <div className="tc-desc">{item.description}</div>}
+                    {item.content && <div className="tc-content">{item.content}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </>
         )}
         <FileChangeList changes={fileChanges} />

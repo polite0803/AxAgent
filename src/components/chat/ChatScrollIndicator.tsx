@@ -56,7 +56,7 @@ function ChatScrollIndicatorInner() {
   useEffect(() => {
     const attach = () => {
       const el = document.querySelector<HTMLElement>(
-        ".ant-bubble-list-scroll-box",
+        ".msg-list-scroll-box",
       );
       if (!el || el === elRef.current) {
         return;
