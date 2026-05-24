@@ -275,36 +275,21 @@ function ChatViewInner({
     if (messages.length > 0) {
       recent_actions.push("UserMessaged");
     }
-    if (
-      content.includes("error")
-      || content.includes("Error")
-      || content.includes("bug")
-      || content.includes("修复")
-      || content.includes("报错")
-    ) {
+    const errorKeywords = ["error", "Error", "bug", "修复", "报错"];
+    const refactorKeywords = ["refactor", "优化", "重构", "improve"];
+    const testKeywords = ["test", "测试", "spec"];
+    const docKeywords = ["document", "文档", "readme", "doc"];
+
+    if (errorKeywords.some((kw) => content.includes(kw))) {
       recent_actions.push("ErrorDetected");
     }
-    if (
-      content.includes("refactor")
-      || content.includes("优化")
-      || content.includes("重构")
-      || content.includes("improve")
-    ) {
+    if (refactorKeywords.some((kw) => content.includes(kw))) {
       recent_actions.push("RefactorKeyword");
     }
-    if (
-      content.includes("test")
-      || content.includes("测试")
-      || content.includes("spec")
-    ) {
+    if (testKeywords.some((kw) => content.includes(kw))) {
       recent_actions.push("TestKeyword");
     }
-    if (
-      content.includes("document")
-      || content.includes("文档")
-      || content.includes("readme")
-      || content.includes("doc")
-    ) {
+    if (docKeywords.some((kw) => content.includes(kw))) {
       recent_actions.push("DocKeyword");
     }
     if (fileMatches.length > 0) {

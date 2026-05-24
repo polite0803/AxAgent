@@ -23,15 +23,17 @@ import {
 } from "@/stores";
 import { isSidebarAutoSelectSuppressed, resetSidebarAutoSelectSuppression } from "@/stores/domain/conversationStore";
 import type { Conversation, Message } from "@/types";
-import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
+import type { ConversationItemType } from "@ant-design/x/es/conversations/interface";
 import { ModelIcon } from "@lobehub/icons";
 import {
   App,
   Avatar,
   Button,
   Checkbox,
+  Dropdown,
   Empty,
   Input,
+  type MenuProps,
   Modal,
   Radio,
   Space,
@@ -71,15 +73,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CategoryManagerModal } from "./CategoryManagerModal";
 import { GatewaySessionBadge } from "./GatewaySessionBadge";
-
-interface ConvItem {
-  key: string;
-  label: React.ReactNode;
-  icon: React.ReactNode;
-  group: string;
-  "data-conv-id"?: string;
-  style?: React.CSSProperties;
-}
 
 function getDateGroup(timestamp: number): string {
   const now = new Date();
@@ -215,11 +208,9 @@ export function ChatSidebar({
     new Set(),
   );
   const [archivedMultiSelect, setArchivedMultiSelect] = useState(false);
-  const [contextMenuState, setContextMenuState] = useState<{
-    x: number;
-    y: number;
-    convId: string;
-  } | null>(null);
+  const [rightClickedConvId, setRightClickedConvId] = useState<string | null>(
+    null,
+  );
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(
     new Set(),
   );
@@ -2239,20 +2230,82 @@ export function ChatSidebar({
                   )
                   : conversationItems.length > 0
                   ? (
-                    <Conversations
-                      items={conversationItems}
-                      activeKey={multiSelectMode
-                        ? undefined
-                        : (activeConversationId ?? undefined)}
-                      onActiveChange={handleConversationClick}
-                      groupable={{
-                        label: (group: string) => renderGroupLabel(group),
-                        collapsible: (group: string) => group.startsWith("ws:"),
-                        expandedKeys: expandedKeys,
-                        onExpand: handleGroupExpand,
-                      }}
-                      menu={menuConfig}
-                    />
+                    <div className="conv-list">
+                      {(() => {
+                        const entries: Array<{ group: string; items: typeof conversationItems }> = [];
+                        const seen = new Map<string, typeof conversationItems>();
+                        conversationItems.forEach((item) => {
+                          const g = item.group ?? "__nogroup__";
+                          if (!seen.has(g)) {
+                            const arr: typeof conversationItems = [];
+                            seen.set(g, arr);
+                            entries.push({ group: g, items: arr });
+                          }
+                          seen.get(g)!.push(item);
+                        });
+                        return entries.map(({ group, items }) => {
+                          const isWsGroup = group.startsWith("ws:");
+                          const isExpanded = !isWsGroup || expandedKeys.includes(group);
+                          return (
+                            <div key={group} className="conv-group">
+                              {group !== "__nogroup__" && (
+                                <div
+                                  className="conv-group-header"
+                                  onClick={() => {
+                                    if (isWsGroup) {
+                                      handleGroupExpand(
+                                        isExpanded
+                                          ? expandedKeys.filter((k) => k !== group)
+                                          : [...expandedKeys, group],
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {isWsGroup && (
+                                    <span className={"conv-group-chevron" + (isExpanded ? " expanded" : "")}>
+                                      <ChevronRight size={12} />
+                                    </span>
+                                  )}
+                                  {renderGroupLabel(group)}
+                                </div>
+                              )}
+                              {isExpanded && items.map((item) => (
+                                <div
+                                  key={item.key}
+                                  className={"conv-item" + (activeConversationId === item.key ? " active" : "")}
+                                  data-conv-id={item["data-conv-id"]}
+                                  style={item.style}
+                                  onClick={() => handleConversationClick(item.key)}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      handleConversationClick(item.key);
+                                    }
+                                  }}
+                                >
+                                  <span className="conv-item-icon">{item.icon}</span>
+                                  <span className="conv-item-label">{item.label}</span>
+                                  {!multiSelectMode && (
+                                    <Dropdown menu={menuConfig(item)} trigger={["click"]} placement="bottomRight">
+                                      <button
+                                        className="conv-item-menu-btn"
+                                        onClick={(e) =>
+                                          e.stopPropagation()}
+                                        aria-label="Menu"
+                                      >
+                                        <Pencil size={12} />
+                                      </button>
+                                    </Dropdown>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   )
                   : (
                     <div className="flex items-center justify-center h-full">
