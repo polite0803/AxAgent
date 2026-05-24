@@ -3,7 +3,6 @@ import type { ChatViewScrollApi } from "@/components/chat/ChatView";
 import { ChatView } from "@/components/chat/ChatView";
 import { RightPanelContainer } from "@/components/chat/RightPanelContainer";
 import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
-import { TabBar } from "@/components/chat/TabBar";
 import { useSkillChatCommands } from "@/components/skill/SkillChatCommands";
 import {
   useConversationStore,
@@ -131,9 +130,6 @@ export function ChatPage() {
   const setActiveConversation = useConversationStore(
     (s) => s.setActiveConversation,
   );
-  const createConversation = useConversationStore((s) => s.createConversation);
-  const providers = useProviderStore((s) => s.providers);
-
   const tabs = useTabStore((s) => s.tabs);
   const activeTabId = useTabStore((s) => s.activeTabId);
   const openTab = useTabStore((s) => s.openTab);
@@ -197,20 +193,6 @@ export function ChatPage() {
     }
   }, [activeConversationId]);
 
-  // TabBar 新建对话
-  const handleNewConversation = useCallback(async () => {
-    let provider = providers.find(
-      (p) => p.enabled && p.models.some((m) => m.enabled),
-    );
-    let model = provider?.models.find((m) => m.enabled);
-    if (!provider || !model) {
-      return;
-    }
-
-    const conv = await createConversation("", model.model_id, provider.id);
-    openTab(conv.id, conv.title);
-  }, [providers, createConversation, openTab]);
-
   // 是否显示右侧面板（仅 agent 模式 + 设置启用）
   const setPredictionContext = useRightPanelStore((s) => s.setPredictionContext);
   const showRightPanel = agentPanelEnabled
@@ -248,23 +230,19 @@ export function ChatPage() {
 
   return (
     <div
-      className="flex h-full"
-      style={{ overflow: "hidden", position: isSmallScreen ? "relative" : "static" }}
+      className="ax-chat-layout"
+      style={{ position: isSmallScreen ? "relative" : "static" }}
       data-testid="chat-view"
     >
       {/* 左侧会话列表 */}
       <div
         ref={sidebarRef}
-        className="h-full"
+        className="ax-chat-sidebar"
         style={{
           width: sidebarCollapsed ? (isMobile ? 0 : 48) : (isMobile ? 280 : sidebarWidth),
-          borderRight: sidebarCollapsed ? "none" : "1px solid var(--border-color)",
-          backgroundColor: token.colorBgContainer,
-          flexShrink: 0,
           transition: dragging ? "none" : "width 0.2s",
-          position: isMobile ? "absolute" : "relative",
-          zIndex: isMobile ? 50 : "auto",
-          height: isMobile ? "100%" : "auto",
+          backgroundColor: token.colorBgContainer,
+          ...(isMobile ? { position: "absolute", zIndex: 50, height: "100%" } : {}),
         }}
       >
         {(!sidebarCollapsed || !isMobile) && <ChatSidebar onCollapseChange={setSidebarCollapsed} />}
@@ -327,16 +305,7 @@ export function ChatPage() {
         />
       )}
       {/* 中间主区域 */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          backgroundColor: token.colorBgElevated,
-        }}
-      >
-        <TabBar onNewConversation={handleNewConversation} />
+      <div className="ax-chat-main" style={{ backgroundColor: token.colorBgElevated }}>
         <ChatView onScrollToReady={handleScrollToReady} />
       </div>
       {/* 右侧拖拽手柄 */}

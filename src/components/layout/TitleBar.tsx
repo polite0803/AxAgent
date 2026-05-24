@@ -497,23 +497,15 @@ export function TitleBar() {
 
   return (
     <div
-      className="title-bar-drag ax-titlebar-compact"
+      className="ax-titlebar"
       role="toolbar"
       tabIndex={-1}
       {...(!IS_WINDOWS ? { "data-tauri-drag-region": true } : {})}
       onMouseDown={handleDragMouseDown}
       onDoubleClick={IS_WINDOWS ? handleTitleBarDoubleClick : undefined}
       style={{
-        height: 28,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
         paddingLeft: IS_WINDOWS ? 12 : 72,
         paddingRight: IS_WINDOWS ? 0 : 12,
-        backgroundColor: "transparent",
-        flexShrink: 0,
-        borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        position: "relative",
       }}
     >
       {/* Left: App icon + name (Windows only) */}

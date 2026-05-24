@@ -35,7 +35,7 @@ export function resolveDeviceLayout(width: number): DeviceLayout {
 export const useUIStore = create<UIState>((set, get) => ({
   activePage: "chat",
   previousPage: "chat",
-  sidebarCollapsed: false,
+  sidebarCollapsed: true,
   settingsSection: "general",
   selectedProviderId: null,
   workflowEditorOpen: false,
@@ -63,13 +63,11 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
   closeWorkflowEditor: () => set({ workflowEditorOpen: false }),
   setDeviceLayout: (layout) => {
-    set((s) => {
+    set(() => {
       const updates: Partial<UIState> = { deviceLayout: layout };
-      // 移动端/平板 → 侧栏强制折叠；桌面端切回时恢复展开
+      // 移动端/平板 → 侧栏强制折叠
       if (layout === "mobile" || layout === "tablet") {
         updates.sidebarCollapsed = true;
-      } else if (s.sidebarCollapsed && s.deviceLayout !== "desktop") {
-        updates.sidebarCollapsed = false;
       }
       return updates;
     });

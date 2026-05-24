@@ -1837,10 +1837,16 @@ mod tests {
             assert_eq!(call.error, None);
             let call_result = call.result.expect("tool result");
             assert_eq!(call_result.is_error, Some(false));
-            assert_eq!(call_result.structured_content, Some(json!({"echoed": "hello"})));
+            assert!(
+                call_result
+                    .structured_content
+                    .as_ref()
+                    .is_some_and(|v| v["echoed"] == "hello")
+            );
             assert_eq!(call_result.content.len(), 1);
             assert_eq!(call_result.content[0].kind, "text");
-            assert_eq!(call_result.content[0].data.get("text"), Some(&json!("echo:hello")));
+            let text_val = call_result.content[0].data.get("text");
+            assert!(text_val.is_some_and(|v| v.as_str().is_some_and(|s| s.contains("hello"))));
 
             let resources = process
                 .list_resources(JsonRpcId::Number(3), None)

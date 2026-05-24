@@ -1026,7 +1026,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ── Responsive: sidebar auto-collapse on small screens ──────── */
 @media (max-width: 600px) {
   .ax-sidebar {
-    width: 40px !important;
+    width: 48px !important;
     padding: 8px 2px 8px !important;
   }
   .ax-nav-label,
@@ -1039,7 +1039,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ── Tablet range sidebar: collapsed by default ────────────── */
 @media (min-width: 601px) and (max-width: 899px) {
   .ax-sidebar {
-    width: 40px !important;
+    width: 48px !important;
     padding: 8px 2px 8px !important;
   }
   .ax-nav-label,
@@ -1067,8 +1067,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 
   /* Sidebar: ultra-compact in landscape */
   .ax-sidebar {
-    width: 36px !important;
-    min-width: 36px !important;
+    width: 48px !important;
+    min-width: 48px !important;
     padding: 4px 2px !important;
   }
 
@@ -1559,4 +1559,433 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
   color: var(--accent-deco);
   border: 1px solid color-mix(in srgb, var(--accent-deco) 15%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ── 原型级布局 Shell (2026-05 设计改版) ──────────────────
+   对应 design-prototype.html / axagent-layout-v4.html
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 布局尺寸变量 */
+:root {
+  --ax-nav-w: 48px;
+  --ax-titlebar-h: 36px;
+  --ax-tabbar-h: 34px;
+  --ax-statusbar-h: 24px;
+  --ax-radius: 6px;
+  --ax-radius-lg: 10px;
+  --ax-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+@media (max-width: 600px) {
+  :root {
+    --ax-nav-w: 40px;
+    --ax-titlebar-h: 32px;
+    --ax-tabbar-h: 34px;
+  }
+}
+
+/* 根 Shell */
+.ax-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--color-bg, var(--color-bg-container));
+  overflow: hidden;
+}
+
+/* TitleBar 区 */
+.ax-titlebar {
+  height: var(--ax-titlebar-h);
+  min-height: var(--ax-titlebar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--color-bg-container);
+  -webkit-app-region: drag;
+  gap: 8px;
+}
+.ax-titlebar-drag {
+  flex: 1;
+  -webkit-app-region: drag;
+  min-width: 0;
+}
+.ax-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+/* 主区域: 侧栏 + 内容列 */
+.ax-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── 导航侧栏 (窄图标模式) ── */
+.ax-nav {
+  width: var(--ax-nav-w);
+  min-width: var(--ax-nav-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid var(--border-color);
+  background: var(--color-bg-container);
+  padding: 6px 0;
+  gap: 1px;
+  overflow: hidden;
+}
+.ax-nav-item-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ax-radius);
+  color: var(--color-text-secondary);
+  position: relative;
+  transition: all 0.15s var(--ax-ease);
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.ax-nav-item-btn:hover {
+  background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
+  color: var(--color-primary);
+}
+.ax-nav-item-btn.ax-active {
+  color: var(--color-primary);
+}
+.ax-nav-item-btn.ax-active::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--color-primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent-deco) 30%, transparent);
+}
+.ax-nav-item-btn svg {
+  width: 17px;
+  height: 17px;
+}
+.ax-nav-spacer {
+  flex: 1;
+}
+.ax-nav-divider {
+  width: 24px;
+  height: 1px;
+  background: var(--border-color);
+  margin: 3px 0;
+}
+.ax-nav-user-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ax-radius);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.15s var(--ax-ease);
+}
+.ax-nav-user-btn:hover {
+  background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
+}
+
+/* ── 内容列 ── */
+.ax-content-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── 标签栏 (对话 Tab，全局层级) ── */
+.ax-tabbar {
+  height: var(--ax-tabbar-h);
+  min-height: var(--ax-tabbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--color-bg-container);
+  gap: 2px;
+  overflow-x: auto;
+}
+.ax-tabbar::-webkit-scrollbar { display: none; }
+.ax-tabbar-scroll {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+}
+.ax-tabbar-scroll::-webkit-scrollbar { display: none; }
+.ax-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--ax-radius);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  max-width: 180px;
+  transition: all 0.12s;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.ax-tab:hover {
+  background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
+  color: var(--color-text);
+}
+.ax-tab.ax-active {
+  background: color-mix(in srgb, var(--accent-deco) 12%, transparent);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+.ax-tab .ax-tab-icon {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.ax-tab .ax-tab-close {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  opacity: 0;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+.ax-tab:hover .ax-tab-close {
+  opacity: 0.6;
+}
+.ax-tab.ax-active .ax-tab-close {
+  opacity: 0.4;
+}
+.ax-tab .ax-tab-close:hover {
+  opacity: 1;
+  background: var(--border-color);
+}
+.ax-tab .ax-tab-streaming-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-primary);
+  animation: axagent-tab-pulse 1.5s ease-in-out infinite;
+}
+.ax-tab .ax-tab-badge {
+  font-size: 10px;
+  padding: 0 4px;
+  height: 14px;
+  line-height: 14px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent-deco) 12%, transparent);
+  color: var(--color-primary);
+}
+
+@keyframes axagent-tab-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.ax-tabbar-new {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ax-radius);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ax-tabbar-new:hover {
+  background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
+  color: var(--color-primary);
+}
+.ax-tabbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── 页面区域 ── */
+.ax-page {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* ── 状态栏 ── */
+.ax-statusbar {
+  height: var(--ax-statusbar-h);
+  min-height: var(--ax-statusbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-top: 1px solid var(--border-color);
+  background: var(--color-bg-container);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  gap: 10px;
+}
+.ax-statusbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.ax-statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ax-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+.ax-status-dot.online {
+  background: var(--color-status-success);
+  box-shadow: 0 0 6px color-mix(in srgb, oklch(55% 0.18 145) 30%, transparent);
+}
+.ax-status-dot.busy {
+  background: var(--color-status-warning);
+  box-shadow: 0 0 6px color-mix(in srgb, oklch(60% 0.18 85) 30%, transparent);
+}
+
+/* ── 右面板 (详情/Agent 面板) ── */
+.ax-right-panel {
+  width: 280px;
+  min-width: 280px;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-container);
+  overflow: hidden;
+}
+.ax-right-panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ax-right-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+/* ── 页面头部 (非对话页) ── */
+.ax-page-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--color-bg-container);
+  min-height: 36px;
+  flex-shrink: 0;
+}
+.ax-page-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+.ax-page-header .ax-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  transition: all 0.12s;
+}
+.ax-page-header .ax-back-btn:hover {
+  background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
+  color: var(--color-primary);
+}
+
+/* ── 设置页面：隐藏 tabbar/statusbar ── */
+.ax-shell[data-page-mode="settings"] .ax-tabbar,
+.ax-shell[data-page-mode="settings"] .ax-statusbar {
+  display: none !important;
+}
+
+/* ── 对话区域 (chat-layout) ── */
+.ax-chat-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+.ax-chat-sidebar {
+  height: 100%;
+  border-right: 1px solid var(--border-color);
+  flex-shrink: 0;
+  overflow: hidden;
+  /* width set via inline style for resize drag */
+}
+.ax-chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── 响应式: 小屏适配 ── */
+@media (max-width: 600px) {
+  .ax-right-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+    width: 280px;
+    min-width: 280px;
+  }
 }

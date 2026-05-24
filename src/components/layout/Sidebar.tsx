@@ -94,7 +94,7 @@ interface SidebarSection {
 }
 
 const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 40;
+const SIDEBAR_COLLAPSED_WIDTH = 48;
 
 const NAV_SHORTCUT_MAP: Partial<Record<string, ShortcutAction>> = {
   gateway: "toggleGateway",

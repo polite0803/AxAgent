@@ -1,5 +1,12 @@
 import { getConvIcon } from "@/lib/convIcon";
-import { type TabItem, useConversationStore, useHelpStore, useStreamStore, useTabStore } from "@/stores";
+import {
+  type TabItem,
+  useConversationStore,
+  useHelpStore,
+  useProviderStore,
+  useStreamStore,
+  useTabStore,
+} from "@/stores";
 import { ModelIcon } from "@lobehub/icons";
 import { Dropdown, theme, Tooltip } from "antd";
 import { Avatar } from "antd";
@@ -83,41 +90,10 @@ const Tab = memo(function Tab({
             onSelect(tab.id);
           }
         }}
-        className="chat-tab-item group"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 8px 4px 10px",
-          height: "100%",
-          maxWidth: 200,
-          minWidth: 80,
-          cursor: "pointer",
-          userSelect: "none",
-          fontSize: 12,
-          lineHeight: "18px",
-          borderRadius: token.borderRadiusSM,
-          backgroundColor: isActive ? token.colorBgElevated : "transparent",
-          color: isActive ? token.colorText : token.colorTextSecondary,
-          borderRight: `1px solid ${token.colorBorderSecondary}`,
-          position: "relative",
-          flexShrink: 0,
-          transition: "background-color 0.15s, color 0.15s",
-          overflow: "hidden",
-        }}
-        onMouseEnter={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = "transparent";
-          }
-        }}
+        className={`ax-tab${isActive ? " ax-active" : ""}`}
+        style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
       >
-        {/* Icon */}
-        <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+        <span className="ax-tab-icon">
           {customIcon
             ? (
               customIcon.type === "emoji" ? <span style={{ fontSize: 12 }}>{customIcon.value}</span> : (
@@ -147,26 +123,12 @@ const Tab = memo(function Tab({
             )}
         </span>
 
-        {/* Title */}
         <span className="truncate" style={{ flex: 1, minWidth: 0 }}>
           {truncateTitle(tab.title)}
         </span>
 
-        {/* Streaming indicator */}
-        {isStreaming && (
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              backgroundColor: token.colorPrimary,
-              flexShrink: 0,
-              animation: "axagent-tab-pulse 1.5s ease-in-out infinite",
-            }}
-          />
-        )}
+        {isStreaming && <span className="ax-tab-streaming-dot" />}
 
-        {/* Close button */}
         <span
           onClick={handleClose}
           role="button"
@@ -177,26 +139,7 @@ const Tab = memo(function Tab({
               handleClose(e);
             }
           }}
-          className="chat-tab-close"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 16,
-            height: 16,
-            borderRadius: token.borderRadiusSM,
-            flexShrink: 0,
-            opacity: isActive ? 0.6 : 0,
-            transition: "opacity 0.15s, background-color 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = "1";
-            e.currentTarget.style.backgroundColor = token.colorFillSecondary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = isActive ? "0.6" : "0";
-            e.currentTarget.style.backgroundColor = "transparent";
-          }}
+          className="ax-tab-close"
         >
           <X size={10} />
         </span>
@@ -205,11 +148,7 @@ const Tab = memo(function Tab({
   );
 });
 
-interface TabBarProps {
-  onNewConversation?: () => void;
-}
-
-export function TabBar({ onNewConversation }: TabBarProps) {
+export function TabBar() {
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const toggleHelp = useHelpStore((s) => s.toggle);
@@ -219,13 +158,26 @@ export function TabBar({ onNewConversation }: TabBarProps) {
   const closeTab = useTabStore((s) => s.closeTab);
   const closeOtherTabs = useTabStore((s) => s.closeOtherTabs);
   const closeTabsToRight = useTabStore((s) => s.closeTabsToRight);
+  const openTab = useTabStore((s) => s.openTab);
 
   const conversations = useConversationStore((s) => s.conversations);
+  const createConversation = useConversationStore((s) => s.createConversation);
   const streamingConversationId = useStreamStore(
     (s) => s.streamingConversationId,
   );
+  const providers = useProviderStore((s) => s.providers);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleNewConversation = useCallback(async () => {
+    const provider = providers.find(
+      (p) => p.enabled && p.models.some((m) => m.enabled),
+    );
+    const model = provider?.models.find((m) => m.enabled);
+    if (!provider || !model) { return; }
+    const conv = await createConversation("", model.model_id, provider.id);
+    openTab(conv.id, conv.title);
+  }, [providers, createConversation, openTab]);
 
   const handleSelect = useCallback(
     (tabId: string) => {
@@ -260,42 +212,11 @@ export function TabBar({ onNewConversation }: TabBarProps) {
   }
 
   return (
-    <div
-      className="chat-tab-bar"
-      style={{
-        display: "flex",
-        alignItems: "stretch",
-        height: 34,
-        minHeight: 34,
-        borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        backgroundColor: token.colorBgContainer,
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      {/* Scrollable tab strip */}
+    <div className="ax-tabbar">
       <div
         ref={scrollRef}
-        style={{
-          display: "flex",
-          alignItems: "stretch",
-          flex: 1,
-          overflowX: "auto",
-          overflowY: "hidden",
-          scrollbarWidth: "none",
-        }}
+        className="ax-tabbar-scroll"
       >
-        <style>
-          {`
-          .chat-tab-bar::-webkit-scrollbar { display: none; }
-          .chat-tab-bar > div::-webkit-scrollbar { display: none; }
-          .chat-tab-item:hover .chat-tab-close { opacity: 0.6 !important; }
-          @keyframes axagent-tab-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-          }
-        `}
-        </style>
         {tabs.map((tab) => {
           const conv = conversations.find((c) => c.id === tab.conversationId);
           return (
@@ -315,78 +236,32 @@ export function TabBar({ onNewConversation }: TabBarProps) {
       </div>
 
       {/* New tab button */}
-      {onNewConversation && (
-        <Tooltip title={t("chat.newConversation")} mouseEnterDelay={0.4}>
-          <div
-            onClick={onNewConversation}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onNewConversation();
-              }
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 34,
-              height: "100%",
-              cursor: "pointer",
-              color: token.colorTextSecondary,
-              flexShrink: 0,
-              borderLeft: `1px solid ${token.colorBorderSecondary}`,
-              transition: "color 0.15s, background-color 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = token.colorText;
-              e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = token.colorTextSecondary;
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
-          >
-            <MessageSquarePlus size={14} />
-          </div>
-        </Tooltip>
-      )}
-
-      {/* Help button */}
-      <Tooltip title={t("help.title")}>
+      <Tooltip title={t("chat.newConversation")} mouseEnterDelay={0.4}>
         <button
           type="button"
-          onClick={toggleHelp}
-          className="ax-titlebar-btn"
-          aria-label={t("help.title")}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 34,
-            height: "100%",
-            cursor: "pointer",
-            color: token.colorTextQuaternary,
-            flexShrink: 0,
-            borderLeft: `1px solid ${token.colorBorderSecondary}`,
-            border: "none",
-            background: "transparent",
-            padding: 0,
-            transition: "color 0.15s, background-color 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = token.colorText;
-            e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = token.colorTextQuaternary;
-            e.currentTarget.style.backgroundColor = "transparent";
-          }}
+          onClick={handleNewConversation}
+          className="ax-tabbar-new"
+          aria-label={t("chat.newConversation")}
+          style={{ color: token.colorTextSecondary }}
         >
-          <HelpCircle size={14} />
+          <MessageSquarePlus size={14} />
         </button>
       </Tooltip>
+
+      {/* Help button */}
+      <div className="ax-tabbar-right">
+        <Tooltip title={t("help.title")}>
+          <button
+            type="button"
+            onClick={toggleHelp}
+            className="ax-tabbar-new"
+            aria-label={t("help.title")}
+            style={{ color: token.colorTextQuaternary }}
+          >
+            <HelpCircle size={14} />
+          </button>
+        </Tooltip>
+      </div>
     </div>
   );
 }
