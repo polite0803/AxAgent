@@ -1,9 +1,9 @@
 import { usePlanStore } from "@/stores";
 import type { Plan } from "@/types";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
-
 const _EMPTY: never[] = [];
-import { Badge, Button, Drawer, Tag, theme, Tooltip } from "antd";
+import { Tooltip } from "@/components/layout/Tooltip";
+import { Badge, Button, Drawer, Tag, theme } from "antd";
 import { ClipboardList, History, RotateCcw } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

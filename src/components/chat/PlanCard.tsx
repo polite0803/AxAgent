@@ -7,11 +7,12 @@ import {
   PlayCircleOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import { Button, Progress, Tag, theme, Tooltip } from "antd";
+import { Button, Progress, Tag, theme } from "antd";
 import { AlertTriangle, ClipboardList, Play, RotateCcw, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./PlanCard.css";
+import { Tooltip } from "@/components/layout/Tooltip";
 
 // ── Status Icons ──────────────────────────────────────────────────────
 

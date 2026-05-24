@@ -1,4 +1,5 @@
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
+import { Tooltip } from "@/components/layout/Tooltip";
 import type { ArtifactFormat, ArtifactPreviewMode } from "@/types";
 import {
   CheckOutlined,
@@ -9,7 +10,7 @@ import {
   EyeOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
-import { Button, Card, message, Segmented, Space, Tooltip } from "antd";
+import { Button, Card, message, Segmented, Space } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArtifactPreview } from "./ArtifactPreview";

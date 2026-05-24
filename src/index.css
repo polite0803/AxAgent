@@ -2684,7 +2684,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   .set-card-row { flex-wrap: wrap; gap: 6px; }
   .settings-sidebar { max-height: 160px; }
   .provider-grid { grid-template-columns: 1fr; }
-  .theme-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))); }
+  .theme-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3321,4 +3321,73 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   .settings-tab-btn { padding: 6px 10px; width: auto; }
   .settings-tab-btn-label { display: none; }
   .settings-menu-panel { max-height: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ── .set-select (自定义 Select, 替代 antd Dropdown) ────────────
+   ═══════════════════════════════════════════════════════════════ */
+.set-select { position: relative; display: inline-block; }
+.set-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--fg);
+  user-select: none;
+  transition: background 0.2s;
+}
+.set-select-trigger:hover,
+.set-select-trigger[data-hovered] { background: var(--accent-bg); }
+.set-select-trigger[data-open] { background: var(--accent-bg); }
+.set-select-label {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-select-panel {
+  position: absolute;
+  z-index: 1050;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  padding: 4px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  border: 1px solid var(--border);
+}
+.set-select-search { padding: 2px 4px 2px; }
+.set-select-options { overflow-y: auto; flex: 1; padding: 4px 0; }
+.set-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  min-width: 140px;
+}
+.set-select-option:hover { background: var(--accent-bg); }
+.set-select-option.active { background: var(--accent-soft); }
+.set-select-empty {
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
 }

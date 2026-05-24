@@ -1,7 +1,7 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { StarFilled, StarOutlined } from "@ant-design/icons";
-import { Progress, Space, Tag, Tooltip, Typography } from "antd";
+import { Progress, Space, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
-
 const { Text } = Typography;
 
 interface CredibilityBadgeProps {

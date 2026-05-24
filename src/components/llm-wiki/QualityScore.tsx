@@ -1,10 +1,10 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
 import type { LintIssue, LintResult } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, WarningOutlined } from "@ant-design/icons";
-import { Badge, Button, Card, Empty, List, Progress, Space, Spin, Tag, Tooltip, Typography } from "antd";
+import { Badge, Button, Card, Empty, List, Progress, Space, Spin, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 const { Text } = Typography;
 
 interface QualityScoreProps {

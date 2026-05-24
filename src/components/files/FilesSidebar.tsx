@@ -1,4 +1,3 @@
-import { Menu, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { FILE_CATEGORIES, type FileCategory } from "./fileCategories";
 
@@ -8,27 +7,22 @@ interface FilesSidebarProps {
 }
 
 export function FilesSidebar({ activeCategory, onSelect }: FilesSidebarProps) {
-  const { token } = theme.useToken();
   const { t } = useTranslation();
 
-  const items = FILE_CATEGORIES.map(({ id, labelKey, icon: Icon }) => ({
-    key: id,
-    icon: <Icon size={16} />,
-    label: t(labelKey),
-  }));
-
   return (
-    <div
-      data-testid="files-sidebar"
-      className="h-full"
-      style={{ backgroundColor: token.colorBgContainer }}
-    >
-      <Menu
-        mode="inline"
-        selectedKeys={[activeCategory]}
-        items={items}
-        onClick={({ key }) => onSelect(key as FileCategory)}
-      />
-    </div>
+    <nav className="settings-menu" data-testid="files-sidebar">
+      {FILE_CATEGORIES.map(({ id, labelKey, icon: Icon }) => (
+        <button
+          key={id}
+          className={`settings-menu-item${activeCategory === id ? " active" : ""}`}
+          onClick={() => onSelect(id)}
+        >
+          <span className="settings-menu-item-icon">
+            <Icon size={16} />
+          </span>
+          <span className="settings-menu-item-label">{t(labelKey)}</span>
+        </button>
+      ))}
+    </nav>
   );
 }

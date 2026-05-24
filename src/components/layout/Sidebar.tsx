@@ -1,4 +1,5 @@
 import { Icon } from "@/components/common/Icon";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { NAV_ICON_COLORS } from "@/lib/iconColors";
 import { invoke } from "@/lib/invoke";
@@ -8,13 +9,12 @@ import { resolveIconComponent } from "@/lib/skillIcons";
 import { useHelpStore, useSettingsStore, useSkillExtensionStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
-import { Avatar, theme, Tooltip } from "antd";
+import { Avatar, theme } from "antd";
 import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
-
 const pageKeyToPath: Record<PageKey, string> = {
   chat: "/",
   knowledge: "/knowledge",

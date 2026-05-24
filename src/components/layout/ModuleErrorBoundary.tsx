@@ -1,9 +1,9 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { ReloadOutlined, WarningOutlined } from "@ant-design/icons";
-import { Button, theme, Tooltip, Typography } from "antd";
+import { Button, theme, Typography } from "antd";
 import i18next from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 const { Text } = Typography;
 
 interface ModuleErrorBoundaryState {

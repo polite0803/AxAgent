@@ -1,4 +1,5 @@
 import { ContextHelp } from "@/components/help/ContextHelp";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
@@ -32,7 +33,7 @@ import type { PromptTemplate } from "@/types";
 import type { AttachmentInput, Model, ProviderConfig, RealtimeConfig } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Radio, Select, Tag, theme, Tooltip } from "antd";
+import { App, Badge, Button, Checkbox, Dropdown, Image, Popover, Radio, Select, Tag, theme } from "antd";
 import type { MenuProps } from "antd";
 import {
   ArrowUp,

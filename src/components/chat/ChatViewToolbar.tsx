@@ -1,5 +1,5 @@
 import { SyncOutlined } from "@ant-design/icons";
-import { Button, Input, Popover, Spin, Tooltip, Typography } from "antd";
+import { Button, Input, Popover, Spin, Typography } from "antd";
 import type { InputRef } from "antd";
 import {
   ArrowDownRight,
@@ -25,6 +25,7 @@ import { useAgentProfileStore, useConversationStore } from "@/stores";
 import type { ConversationStats } from "@/types";
 
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { ExpertBadge } from "./ExpertBadge";
 import { GatewaySessionBadge } from "./GatewaySessionBadge";

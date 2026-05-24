@@ -1,3 +1,4 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { WikiOperation } from "@/stores/feature/llmWikiStore";
 import {
   ExperimentOutlined,
@@ -6,7 +7,7 @@ import {
   SyncOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Badge, Card, Empty, Space, Tag, Timeline, Tooltip, Typography } from "antd";
+import { Badge, Card, Empty, Space, Tag, Timeline, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;

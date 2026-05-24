@@ -1,6 +1,6 @@
 import { SyncOutlined } from "@ant-design/icons";
 import Think from "@ant-design/x/es/think";
-import { theme, Tooltip, Typography } from "antd";
+import { theme, Typography } from "antd";
 import DOMPurify from "dompurify";
 import {
   Brain,
@@ -24,6 +24,7 @@ import NodeRenderer, {
   setCustomComponents,
 } from "markstream-react";
 
+import { Tooltip } from "@/components/layout/Tooltip";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { CHAT_CUSTOM_HTML_TAGS, type ChatMarkdownNode, parseChatMarkdown } from "@/lib/chatMarkdown";
 import { useSettingsStore } from "@/stores";

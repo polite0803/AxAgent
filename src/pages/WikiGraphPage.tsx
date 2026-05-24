@@ -1,3 +1,4 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { QualityScore } from "@/components/llm-wiki/QualityScore";
 import { SyncStatus } from "@/components/llm-wiki/SyncStatus";
 import { GraphData, GraphView } from "@/components/wiki/GraphView";
@@ -8,12 +9,11 @@ import { invoke } from "@/lib/invoke";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import { FileAddOutlined, NodeIndexOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, message, Select, Space, Spin, Tag, theme, Tooltip, Typography } from "antd";
+import { Button, Empty, Input, message, Select, Space, Spin, Tag, theme, Typography } from "antd";
 import { Eye, PanelLeft, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-
 const { Title, Text } = Typography;
 const DEFAULT_VAULT_ID = "default";
 const MIN_PANEL_WIDTH = 180;

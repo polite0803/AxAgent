@@ -1,3 +1,4 @@
+import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
 import { LintResult, useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
@@ -8,7 +9,7 @@ import {
   ReloadOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Empty, message, Modal, Progress, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, Empty, message, Modal, Progress, Select, Space, Table, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
