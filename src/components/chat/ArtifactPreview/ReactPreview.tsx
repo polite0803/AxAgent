@@ -41,10 +41,8 @@ window.onerror = function(msg, src, line, col, err) {
 };
 try {
   var _code = ${JSON.stringify(code)};
-  // catch common mistake: const { X } from "module" instead of import { X } from "module"
-  if (/\\bconst\\s*\\{[^}]*\\}\\s+from\\s/.test(_code)) {
-    throw new Error('Syntax: "const { ... } from \\"...\\"" is not valid JS. Use "import { ... } from \\"...\\"" instead.');
-  }
+  // auto-fix common mistake: const { X } from "module" → import { X } from "module"
+  _code = _code.replace(/\\bconst\\s*(\\{[^}]*\\})\\s+from\\s/g, 'import $1 from ');
   var transformed = Babel.transform(_code, {
     presets: ['react'],
     filename: 'component.tsx'
