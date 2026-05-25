@@ -3,11 +3,11 @@
 [![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
 
 <p align="center">
-  <a href="https://www.producthunt.com/products/axagent?embed=true&amp;amp;utm_source=badge-featured&amp;amp;&amp;#10;&amp;amp;amp;;utm_medium=badge&amp;amp;#10&amp;amp;;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
+  <a href="https://www.producthunt.com/products/axagent?embed=true&amp;amp;utm_source=badge-featured&amp;amp;utm_medium=badge&amp;amp;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
 </p>
 
 <p align="center">
-  <strong>Кроссплатформенный AI-десктоп-клиент | Мультиагентное сотрудничество | Локальность прежде всего</strong>
+  <strong>Кроссплатформенный AI-клиент десктоп/мобильный | Мультиагентное сотрудничество | Локальность прежде всего</strong>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <a href="https://github.com/polite0803/AxAgent/actions" target="_blank">
     <img src="https://img.shields.io/github/actions/workflow/status/polite0803/AxAgent/release.yml?style=flat-square" alt="Build">
   </a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square" alt="License">
 </p>
 
@@ -25,7 +25,7 @@
 
 ## Что такое AxAgent?
 
-AxAgent — это полнофункциональное кроссплатформенное AI-десктоп-приложение, объединяющее продвинутые возможности AI-агентов и богатые инструменты разработки. Поддерживает нескольких провайдеров моделей, автономное выполнение пайплайнов, визуальную оркестрацию рабочих процессов, локальное управление знаниями и встроенный API-шлюз.
+**AxAgent v2.0** — это полнофункциональное кроссплатформенное AI-приложение десктоп/мобильное, объединяющее продвинутые возможности AI-агентов и богатые инструменты разработки. Поддерживает нескольких провайдеров моделей, автономное выполнение пайплайнов, визуальную оркестрацию рабочих процессов, локальное управление знаниями, встроенный API-шлюз, охватывая пять платформ **Windows / macOS / Linux / Android / iOS**.
 
 ---
 
@@ -52,6 +52,7 @@ AxAgent — это полнофункциональное кроссплатфо
 - **Мультипровайдерная поддержка** — Нативная интеграция OpenAI, Anthropic Claude, Google Gemini, Ollama, OpenClaw, Hermes и всех OpenAI-совместимых API
 - **Ротация нескольких ключей** — Настройка нескольких API-ключей на провайдера с автоматической ротацией для распределения нагрузки лимитов
 - **Поддержка локальных моделей** — Полная поддержка локальных моделей Ollama, включая управление файлами GGUF/GGML
+- **Механизм вывода Candle** — Встроенный локальный вывод Candle, поддержка интерфейсов rerank/judge, загрузка GGUF по требованию
 - **Управление моделями** — Получение списков удалённых моделей, настройка параметров (температура, макс. токены, top-p и т.д.)
 - **Потоковый вывод** — Рендеринг в реальном времени токен за токеном с сворачиваемыми блоками размышлений (Claude Extended Thinking)
 - **Сравнение нескольких моделей** — Одновременный вопрос нескольким моделям с параллельным сравнением
@@ -166,7 +167,8 @@ AxAgent — это полнофункциональное кроссплатфо
 - **OAuth-аутентификация** — Поддержка потока OAuth для MCP-серверов
 - **Автозапуск MCP** — Автоматический запуск и управление жизненным циклом MCP-серверов
 - **Мост инструментов MCP** — Мост между инструментами MCP и системой инструментов агента
-- **Система плагинов** — Трёхуровневая архитектура плагинов (встроенные/связанные/внешние) с регистрацией инструментов, хуками и управлением жизненным циклом
+- **Система плагинов** — Трёхуровневая архитектура плагинов, совместимая с OpenClaw (встроенные/связанные/внешние), с установкой npm-пакетов, регистрацией инструментов, хуками и управлением жизненным циклом
+- **Маркетплейс плагинов** — Встроенный UI маркетплейса с поиском и установкой npm, диалогами подтверждения
 - **Встроенные инструменты** — Полные файловые операции (чтение/запись/редактирование), выполнение кода, поиск (Grep/Glob), Bash, веб-поиск, веб-извлечение, управление планами, планирование Cron, REPL, LSP, управление контекстом, управление компьютером, отправка сообщений, список задач и т.д.
 - **Система разрешений инструментов** — Классификация разрешений инструментов, управление правилами и отслеживание использования
 - **Безопасность Bash** — Анализ команд, валидация путей и контроль безопасности песочницы
@@ -247,6 +249,23 @@ AxAgent — это полнофункциональное кроссплатфо
 - **Губернатор ресурсов** — Ограничение и управление использованием ресурсов агентами
 - **LAN-передача** — Возможность передачи файлов по локальной сети
 
+### 🛡️ Защита от инъекции промптов (Prompt-Guard)
+
+- **Четырёхуровневая система защиты** — L1 обнаружение паттернов (перехват высокого риска + маркировка среднего риска) → L2 экранирование разделителей → L3 XML-обёртка → L4 теги доверия
+- **Оркестратор Pipeline** — Многоуровневый конвейер обнаружения, поддержка настраиваемых порогов риска
+- **Обнаружение Token Smuggling** — Специализированное обнаружение против обфускации кодирования и атак контрабанды токенов
+- **Строгий режим** — Тестирование в строгом режиме + именование причин среднего риска + документация пользовательских режимов
+- **Полная интеграция конвейера** — Интегрировано в session / prompt / git / RAG
+
+### 📱 Поддержка мобильных устройств
+
+- **Нативный Android** — Сборка APK/AAB, поддержка arm64-v8a / armeabi-v7a / x86_64
+- **Нативный iOS** — Сборка IPA, поддержка arm64
+- **Адаптивный макет** — Трёхуровневая автоматическая адаптация: десктоп/планшет/телефон
+- **Мобильная навигация** — Выдвижная навигация Drawer + нижняя панель навигации + всплывающая плавающая кнопка
+- **Адаптация безопасной зоны** — Адаптация CSS env() для строки состояния/панели навигации системы Android
+- **Оптимизация CSP** — Белый список протокола CSP для Android WebView
+
 ---
 
 ## Техническая архитектура
@@ -266,339 +285,51 @@ AxAgent — это полнофункциональное кроссплатфо
 | **Диаграммы** | Mermaid + D2 + ECharts (CDN) |
 | **Терминал** | xterm.js 6 |
 | **Рабочие процессы** | ReactFlow 11 |
+| **Инфографика** | @antv/infographic |
+| **Иконки** | Iconify + Lucide |
+| **Перетаскивание** | @dnd-kit |
 | **Сборка** | Vite 8 + npm |
+| **Тестирование** | Vitest + Playwright + cargo-nextest |
+| **Форматирование** | dprint (TS/JSON) + rustfmt |
+| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
+| **Мобильные** | Нативная сборка Tauri Android + iOS |
+| **Десктоп** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+
+### Поддержка платформ
+
+| Платформа | Архитектура |
+|-----------|------------|
+| Windows | x86_64, ARM64 |
+| macOS | Apple Silicon (arm64), Intel (x86_64) |
+| Linux | x86_64, ARM64 |
+| Android | arm64-v8a, armeabi-v7a, x86_64 (эмулятор) |
+| iOS | arm64 |
 
 ### Архитектура Rust-бэкенда
 
-Бэкенд организован как Rust-воркспейс с 10 специализированными крейтами:
+Бэкенд организован как Rust-воркспейс с **18** специализированными крейтами:
 
 ```
 src-tauri/crates/
-├── agent/         # Ядро AI-агента
-│   ├── react_engine.rs          # Механизм рассуждений ReAct
-│   ├── coordinator.rs           # Координация агентов
-│   ├── hierarchical_planner.rs  # Декомпозиция задач
-│   ├── task_decomposer.rs       # Декомпозиция подзадач
-│   ├── self_verifier.rs         # Верификация вывода
-│   ├── verification_agent.rs    # Агент верификации
-│   ├── error_recovery_engine.rs # Механизм восстановления ошибок
-│   ├── error_classifier.rs      # Классификация ошибок
-│   ├── recovery_strategies.rs   # Стратегии восстановления
-│   ├── loop_detector.rs         # Обнаружение циклов
-│   ├── vision_pipeline.rs       # Восприятие экрана
-│   ├── deep_research.rs         # Глубокое исследование
-│   ├── fact_checker.rs          # Проверка фактов
-│   ├── research_agent.rs        # Исследовательский агент
-│   ├── search_planner.rs        # Планирование поиска
-│   ├── search_orchestrator.rs   # Оркестрация поиска
-│   ├── academic_search.rs       # Академический поиск
-│   ├── source_validator.rs      # Валидация источников
-│   ├── source_classifier.rs     # Классификация источников
-│   ├── credibility_evaluator.rs # Оценка достоверности
-│   ├── citation_tracker.rs      # Отслеживание цитирования
-│   ├── content_synthesizer.rs   # Синтез контента
-│   ├── outline_builder.rs       # Построение структуры
-│   ├── reference_builder.rs     # Построение ссылок
-│   ├── proactive_mode.rs        # Проактивный режим
-│   ├── purpose_manager.rs       # Управление целями
-│   ├── graph_insights.rs        # Инсайты графов
-│   ├── insight_generator.rs     # Генерация инсайтов
-│   ├── schema_manager.rs        # Управление схемами
-│   ├── ingest_pipeline.rs       # Конвейер приёма данных
-│   ├── session_manager.rs       # Управление сессиями
-│   ├── health_checker.rs        # Проверка здоровья
-│   ├── metrics.rs               # Сбор метрик
-│   ├── evaluator/               # Оценка бенчмарков
-│   ├── fine_tune/               # LoRA-тонкая настройка
-│   ├── rl_optimizer/            # Оптимизация стратегий RL
-│   └── tool_recommender/        # Механизм рекомендаций инструментов
-│
-├── core/          # Основные утилиты
-│   ├── db.rs                   # База данных SeaORM
-│   ├── vector_store.rs         # Интеграция sqlite-vec
-│   ├── rag.rs                  # Уровень абстракции RAG
-│   ├── hybrid_search.rs        # Векторный + FTS5 поиск
-│   ├── recall_pipeline.rs      # Трёхуровневый конвейер вызова
-│   ├── crypto.rs               # Шифрование AES-256
-│   ├── mcp_client.rs           # Клиент протокола MCP
-│   ├── browser_automation.rs   # Автоматизация браузера
-│   ├── computer_control.rs     # Управление компьютером
-│   ├── screen_vision.rs        # Зрение экрана
-│   ├── screen_capture.rs       # Захват экрана
-│   ├── ui_automation.rs        # UI-автоматизация
-│   ├── ast_index.rs            # AST-индекс
-│   ├── incremental_indexer.rs  # Инкрементная индексация
-│   ├── document_parser.rs      # Парсер документов
-│   ├── markdown_parser.rs      # Markdown-парсер
-│   ├── text_chunker.rs         # Чанкинг текста
-│   ├── token_counter.rs        # Подсчёт токенов
-│   ├── token_budget.rs         # Бюджет токенов
-│   ├── file_index.rs           # Индекс файлов
-│   ├── file_authorizer.rs      # Авторизация файлов
-│   ├── file_store.rs           # Хранилище файлов
-│   ├── cache.rs                # Управление кэшем
-│   ├── disk_cache.rs           # Дисковый кэш
-│   ├── cache_persister.rs      # Персистентность кэша
-│   ├── cache_snapshot.rs       # Снимок кэша
-│   ├── vector_cache.rs         # Векторный кэш
-│   ├── marketplace_service.rs  # Сервис маркетплейса
-│   ├── marketplace.rs          # Абстракция маркетплейса
-│   ├── operation_audit.rs      # Аудит операций
-│   ├── unified_config.rs       # Унифицированная конфигурация
-│   ├── platform_config.rs      # Конфигурация платформы
-│   ├── command_validator.rs    # Валидация команд
-│   ├── shell_parser.rs         # Shell-парсер
-│   ├── output_processor.rs     # Обработка вывода
-│   ├── storage_inventory.rs    # Инвентаризация хранилища
-│   ├── storage_migration.rs    # Миграция хранилища
-│   ├── storage_paths.rs        # Пути хранилища
-│   ├── s3_backup.rs            # S3-резервное копирование
-│   ├── webdav.rs               # Синхронизация WebDAV
-│   ├── git_tools.rs            # Инструменты Git
-│   ├── sandbox_runner.rs       # Запуск в песочнице
-│   ├── search.rs               # Абстракция поиска
-│   ├── reranker.rs             # Переранжирование
-│   ├── model_knowledge.rs      # Знания о моделях
-│   ├── prompt_template.rs      # Шаблоны промптов
-│   ├── preset_templates.rs     # Предустановленные шаблоны
-│   ├── workflow_types.rs       # Типы рабочих процессов
-│   ├── workflow_version.rs     # Версия рабочего процесса
-│   ├── path_vars.rs            # Переменные путей
-│   ├── entity/                 # Сущности SeaORM (40+ таблиц)
-│   └── repo/                   # Репозитории данных (30+ репо)
-│
-├── gateway/       # API-шлюз
-│   ├── server.rs               # HTTP-сервер
-│   ├── handlers.rs             # API-обработчики
-│   ├── routes.rs               # Определение маршрутов
-│   ├── auth.rs                 # Аутентификация
-│   ├── middleware.rs           # Промежуточное ПО
-│   ├── metrics.rs              # Сбор метрик
-│   ├── native.rs               # Нативная интеграция
-│   ├── marketplace_handlers.rs # Интерфейс маркетплейса
-│   └── realtime.rs             # Поддержка WebSocket
-│
-├── plugins/       # Система плагинов
-│   ├── hooks.rs                # Исполнитель хуков
-│   ├── agent_provider.rs       # Провайдер агентов
-│   ├── test_isolation.rs       # Изоляция тестов
-│   └── lib.rs                  # Реестр плагинов и жизненный цикл
-│
-├── providers/     # Адаптеры моделей
-│   ├── adapter.rs              # Интерфейс адаптера
-│   ├── registry.rs             # Реестр провайдеров
-│   ├── openai.rs               # OpenAI API
-│   ├── openai_responses.rs     # OpenAI Responses API
-│   ├── anthropic.rs            # Claude API
-│   ├── gemini.rs               # Gemini API
-│   ├── ollama.rs               # Локальный Ollama
-│   ├── openclaw.rs             # OpenClaw
-│   ├── hermes.rs               # Hermes
-│   ├── image_gen.rs            # Генерация изображений
-│   ├── realtime_client.rs      # Клиент Realtime API
-│   └── transport/              # Транспортный уровень (Chat Completions / Responses / Anthropic)
-│
-├── runtime/       # Службы времени выполнения
-│   ├── session.rs              # Управление сессиями
-│   ├── workflow_engine.rs      # DAG-оркестрация
-│   ├── work_engine/            # Рабочий механизм (исполнители узлов + планировщик + уровень кэша)
-│   ├── mcp.rs                  # MCP-сервер
-│   ├── mcp_client.rs           # MCP-клиент
-│   ├── mcp_server.rs           # Реализация MCP-сервера
-│   ├── mcp_stdio.rs            # MCP-транспорт stdio
-│   ├── mcp_autostart.rs        # Автозапуск MCP
-│   ├── mcp_lifecycle_hardened.rs # Управление жизненным циклом MCP
-│   ├── mcp_tool_bridge.rs      # Мост инструментов MCP
-│   ├── cron/                   # Планирование задач
-│   ├── terminal/               # Терминальные бэкенды (локальный/Docker/SSH)
-│   ├── benchmarks/             # SWE-bench / Terminal-bench
-│   ├── collaboration/          # CRDT-сотрудничество и обмен сессиями
-│   ├── tool_generator/         # ИИ-генерация инструментов
-│   ├── message_gateway/        # Интеграции платформ (DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord)
-│   ├── buddy/                  # Система Buddy (виды/атрибуты/менеджер)
-│   ├── swarm/                  # Кластер Swarm (бэкенд процессов/синхронизация разрешений/переподключение)
-│   ├── tasks/                  # Фоновые задачи (сны/удалённые агенты/внутрипроцессные товарищи)
-│   ├── adversarial_debate.rs   # Состязательная дискуссия
-│   ├── agent_orchestrator.rs   # Мультиагентная оркестрация
-│   ├── agent_roles.rs          # Роли агентов
-│   ├── webhook_dispatcher.rs   # Диспетчеризация вебхуков
-│   ├── webhook_server.rs       # Сервер вебхуков
-│   ├── session_search.rs       # Поиск по сессиям
-│   ├── dashboard_plugin.rs     # Плагин панели
-│   ├── dashboard_registry.rs   # Реестр панели
-│   ├── permissions.rs          # Управление разрешениями
-│   ├── permission_enforcer.rs  # Применение разрешений
-│   ├── policy_engine.rs        # Движок политик
-│   ├── trust_resolver.rs       # Разрешение доверия
-│   ├── resource_governor.rs    # Губернатор ресурсов
-│   ├── green_contract.rs       # Зелёный контракт
-│   ├── feature_flags.rs        # Флаги функций
-│   ├── module_switch.rs        # Переключатель модулей
-│   ├── mode_selector.rs        # Селектор режима
-│   ├── config.rs               # Конфигурация времени выполнения
-│   ├── config_validate.rs      # Валидация конфигурации
-│   ├── prompt.rs               # Управление промптами
-│   ├── prompt_cache.rs         # Кэш промптов
-│   ├── compact.rs              # Сжатие контекста
-│   ├── summary_compression.rs  # Сжатие сводок
-│   ├── compact_thresholds.rs   # Пороги сжатия
-│   ├── compact_warning.rs      # Предупреждение о сжатии
-│   ├── reactive_compact.rs     # Реактивное сжатие
-│   ├── session_memory_compact.rs # Сжатие памяти сессии
-│   ├── message_importance.rs   # Оценка важности сообщений
-│   ├── message_batching.rs     # Пакетная обработка сообщений
-│   ├── rate_limiter.rs         # Ограничитель скорости
-│   ├── connection_pool.rs      # Пул соединений
-│   ├── persistent_queue.rs     # Постоянная очередь
-│   ├── persistent_queue_manager.rs # Менеджер очереди
-│   ├── health_check.rs         # Проверка здоровья
-│   ├── cache_guard.rs          # Страж кэша
-│   ├── checkpoint.rs           # Контрольная точка
-│   ├── branch_lock.rs          # Блокировка ветки
-│   ├── stale_base.rs           # Обнаружение устаревшей базы
-│   ├── watch_patterns.rs       # Паттерны наблюдения
-│   ├── lan_transfer.rs         # LAN-передача
-│   ├── tls_config.rs           # Конфигурация TLS
-│   ├── sse.rs                  # Поток событий SSE
-│   ├── api_server.rs           # API-сервер
-│   ├── gateway_auth.rs         # Аутентификация шлюза
-│   ├── gateway_metrics.rs      # Метрики шлюза
-│   ├── bash.rs                 # Выполнение Bash
-│   ├── bash_validation.rs      # Валидация Bash
-│   ├── shell_hooks.rs          # Shell-хуки
-│   ├── shell_completer.rs      # Shell-автодополнение
-│   ├── terminal_analyzer.rs    # Анализатор терминала
-│   ├── git_context.rs          # Контекст Git
-│   ├── git_tools.rs            # Инструменты Git
-│   ├── file_ops.rs             # Файловые операции
-│   ├── hooks.rs                # Управление хуками
-│   ├── hook_chain.rs           # Цепочка хуков
-│   ├── hook_config.rs          # Конфигурация хуков
-│   ├── plugin_hooks.rs         # Хуки плагинов
-│   ├── plugin_lifecycle.rs     # Жизненный цикл плагинов
-│   ├── profile.rs              # Профиль
-│   ├── profile_manager.rs      # Менеджер профилей
-│   ├── oauth.rs                # OAuth-аутентификация
-│   ├── usage.rs                # Статистика использования
-│   ├── bootstrap.rs            # Начальная загрузка
-│   ├── worker_boot.rs          # Загрузка воркера
-│   ├── fork_bridge.rs          # Мост форка
-│   ├── task_packet.rs          # Пакет задач
-│   ├── task_router.rs          # Маршрутизатор задач
-│   ├── task_registry.rs        # Реестр задач
-│   ├── transform_pipeline.rs   # Конвейер трансформации
-│   ├── transport_handlers.rs   # Обработчики транспорта
-│   ├── general_engine.rs       # Общий механизм
-│   ├── engine_bridge.rs        # Мост механизма
-│   ├── conversation.rs         # Управление разговором
-│   ├── session_control.rs      # Управление сессией
-│   ├── shared_memory.rs        # Общая память
-│   ├── validation_executor.rs  # Исполнитель валидации
-│   ├── recovery_recipes.rs     # Рецепты восстановления
-│   ├── error_recovery.rs       # Восстановление ошибок
-│   ├── theme_engine.rs         # Движок тем
-│   ├── token_budget_predictor.rs # Предсказание бюджета токенов
-│   ├── team_cron_registry.rs   # Реестр командного Cron
-│   ├── module_dream.rs         # Модуль сновидений
-│   ├── json.rs                 # JSON-утилиты
-│   └── lane_events.rs          # События Lane
-│
-├── telemetry/     # Телеметрия и трассировка
-│   ├── tracer.rs              # Распределённая трассировка
-│   ├── metrics.rs             # Сбор метрик
-│   ├── span.rs                # Управление Span'ами
-│   ├── event.rs               # Определения событий
-│   ├── collector.rs           # Сбор данных
-│   ├── exporter.rs            # Экспорт данных
-│   └── storage.rs             # Бэкенд хранения
-│
-├── tools/         # Система инструментов
-│   ├── registry.rs             # Реестр инструментов
-│   ├── builtin_tools.rs        # Определения встроенных инструментов
-│   ├── builtin_handlers.rs     # Обработчики встроенных инструментов
-│   ├── orchestration.rs        # Оркестрация инструментов
-│   ├── streaming.rs            # Потоковый вывод
-│   ├── stats.rs                # Статистика использования
-│   ├── recorder.rs             # Запись выполнения
-│   ├── agent_def_loader.rs     # Загрузчик определений агентов
-│   ├── agent_def_types.rs      # Типы определений агентов
-│   ├── bash/                   # Инструмент Bash (парсер/песочница/безопасность/валидация путей)
-│   ├── hooks/                  # Хуки (реестр/исполнитель)
-│   ├── mcp/                    # MCP-инструменты (реестр/OAuth/обёртка)
-│   ├── permissions/            # Разрешения (классификатор/правила/трекер)
-│   └── tools/                  # Конкретные реализации инструментов
-│       ├── agent.rs            # Инструмент агента
-│       ├── bash.rs             # Выполнение Bash
-│       ├── context.rs          # Управление контекстом
-│       ├── cron.rs             # Планирование Cron
-│       ├── glob.rs             # Glob файлов
-│       ├── grep.rs             # Поиск содержимого
-│       ├── lsp.rs              # LSP-инструмент
-│       ├── monitor.rs          # Инструмент мониторинга
-│       ├── plan.rs             # Инструмент плана
-│       ├── repl.rs             # REPL-инструмент
-│       ├── skill.rs            # Инструмент навыка
-│       ├── web_fetch.rs        # Веб-извлечение
-│       ├── web_search.rs       # Веб-поиск
-│       ├── file_read.rs        # Чтение файла
-│       ├── file_write.rs       # Запись файла
-│       ├── file_edit.rs        # Редактирование файла
-│       ├── computer_use.rs     # Управление компьютером
-│       ├── messaging.rs        # Отправка сообщений
-│       ├── push_notification.rs # Push-уведомление
-│       ├── task_system.rs      # Система задач
-│       ├── todo_write.rs       # Список задач
-│       └── batch_missing.rs    # Обнаружение отсутствующих пакетов
-│
-├── trajectory/    # Система обучения
-│   ├── memory.rs              # Управление памятью
-│   ├── memory_provider.rs     # Интерфейс провайдера памяти
-│   ├── auto_memory.rs         # Автоматическая экстракция памяти
-│   ├── skill.rs               # Система навыков
-│   ├── skill_manager.rs       # Менеджер навыков
-│   ├── skill_evolution.rs     # Эволюция навыков
-│   ├── skill_matcher.rs       # Сопоставление навыков
-│   ├── skill_proposal.rs      # Предложение навыков
-│   ├── skills_hub_adapter.rs  # Адаптер хаба навыков
-│   ├── skills_hub_client.rs   # Клиент хаба навыков
-│   ├── skill_decomposition/   # Декомпозиция навыков (LLM-ассистирование/мультираунд/валидация рабочим процессом/анализ инструментов)
-│   ├── rl.rs                  # Сигналы вознаграждения RL
-│   ├── rl_trainer.rs          # RL-тренер
-│   ├── training_env.rs        # Среда обучения
-│   ├── behavior_learner.rs    # Обучение поведению
-│   ├── behavior_tracker.rs    # Отслеживание поведения
-│   ├── pattern.rs             # Распознавание паттернов
-│   ├── pattern_analyzer.rs    # Анализ паттернов
-│   ├── user_profile.rs        # Профиль пользователя
-│   ├── preference_learner.rs  # Обучение предпочтениям
-│   ├── adaptation.rs          # Адаптивная подстройка
-│   ├── dream_consolidation.rs # Сновидческая интеграция
-│   ├── parallel_execution.rs  # Сервис параллельного выполнения
-│   ├── style_extractor.rs     # Извлечение стиля
-│   ├── style_applier.rs       # Применение стиля
-│   ├── style_vectorizer.rs    # Векторизация стиля
-│   ├── style_migrator.rs      # Миграция стиля
-│   ├── suggestion_engine.rs   # Механизм предложений
-│   ├── proactive_assistant.rs # Проактивный ассистент
-│   ├── context_predictor.rs   # Предсказание контекста
-│   ├── task_prefetcher.rs     # Предзагрузка задач
-│   ├── reminder_manager.rs    # Управление напоминаниями
-│   ├── nudge.rs               # Система подталкиваний
-│   ├── insight.rs             # Генерация инсайтов
-│   ├── compactor.rs           # Сжатие данных
-│   ├── trajectory.rs          # Управление траекторией
-│   ├── trajectory_compressor.rs # Сжатие траектории
-│   ├── sub_agent.rs           # Подагент
-│   ├── batch.rs               # Пакетная обработка
-│   ├── context.rs             # Управление контекстом
-│   ├── fts5.rs                # Поиск FTS5
-│   ├── hooks.rs               # Хуки
-│   ├── storage.rs             # Хранилище
-│   ├── scheduled_task.rs      # Запланированная задача
-│   └── memory_providers/      # Провайдеры памяти (Honcho/Mem0/замкнутый цикл/сервисы)
-│
-└── migration/     # Миграции базы данных
-    └── m20240101_000001~000010  # 10 файлов миграции
+├── agent/            # Ядро AI-агента (механизм ReAct, координация, планирование, глубокое исследование, проверка фактов и т.д.)
+├── core/             # Основные утилиты (БД, RAG, шифрование, MCP, автоматизация браузера, AST-индекс и т.д.)
+├── providers/        # Адаптеры провайдеров моделей (OpenAI, Anthropic, Gemini, Ollama, OpenClaw и т.д.)
+├── runtime-core/     # Уровень абстракции рантайма (общие типы, определения trait'ов, конфигурация)
+├── runtime/          # Службы рантайма (управление сессиями, MCP, терминал, ограничитель скорости, вебхуки, разрешения и т.д.)
+├── rt-workflow/      # Движок рабочих процессов (DAG-оркестрация, исполнители узлов, планировщик)
+├── rt-messaging/     # Шлюз сообщений (интеграция DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord)
+├── rt-webhook/       # Сервер и диспетчеризация вебхуков
+├── rt-dashboard/     # Система плагинов панели
+├── rt-theme/         # Движок тем
+├── gateway/          # API-шлюз (HTTP-сервер, аутентификация, маршруты, OpenAI-совместимый интерфейс)
+├── tools/            # Система инструментов (реестр, оркестрация, потоковый вывод, 40+ встроенных инструментов)
+├── trajectory/       # Система обучения (память, навыки, RL, профиль пользователя, сновидческая интеграция)
+├── telemetry/        # Телеметрия и распределённая трассировка
+├── plugins/          # Система плагинов (совместимая с OpenClaw, установка npm-пакетов)
+├── prompt-guard/     # Защита от инъекции промптов (многоуровневое обнаружение и защита L1-L4)
+├── migration/        # Миграции базы данных
+├── npm/              # Парсинг npm-пакетов и реестр
+└── code_engine/      # Механизм локального вывода Candle (устаревший, функциональность перенесена в core)
 ```
 
 ### Архитектура фронтенда
@@ -613,7 +344,7 @@ src/
 │   │   ├── multiModelStore.ts
 │   │   ├── preferenceStore.ts
 │   │   └── compressStore.ts
-│   ├── feature/               # Состояние функциональных модулей (30+ сторов)
+│   ├── feature/               # Состояние функциональных модулей (44 стора)
 │   │   ├── agentStore.ts
 │   │   ├── agentProfileStore.ts
 │   │   ├── appConfigStore.ts
@@ -724,14 +455,6 @@ src/
 └── i18n/                     # Переводы на 11 языков
 ```
 
-### Поддержка платформ
-
-| Платформа | Архитектура |
-|-----------|------------|
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Windows | x86_64, ARM64 |
-| Linux | x86_64, ARM64 (AppImage/deb/rpm) |
-
 ## Быстрый старт
 
 ### Загрузка готовых сборок
@@ -773,16 +496,24 @@ npm run tauri build
 
 ```bash
 # Модульные тесты
-npm run test
+npm run test          # Vitest watch
+npm run test:run      # Vitest однократный запуск
 
 # E2E-тесты
-npm run test:e2e
+npm run test:e2e      # Playwright
+npm run test:e2e:ui   # Playwright режим UI
+
+# Тестирование Rust-бэкенда
+cd src-tauri && cargo nextest run   # cargo-nextest (в 2-3x быстрее)
+cd src-tauri && cargo test          # Стандартные тесты
 
 # Проверка типов
-npm run typecheck
+npm run typecheck     # TypeScript
+cd src-tauri && cargo clippy -- -D warnings  # Rust
 
 # Форматирование кода
-npm run format
+npm run format        # dprint
+cd src-tauri && cargo fmt
 
 # CI-проверка
 npm run ci:check
@@ -821,29 +552,37 @@ AxAgent/
 │   │   ├── common/             # Общие компоненты
 │   │   └── shared/             # Разделяемые компоненты
 │   ├── pages/                   # Страничные компоненты (22 страницы)
-│   ├── stores/                  # Управление состоянием Zustand
-│   │   ├── domain/            # Состояние бизнес-логики (6 сторов)
-│   │   ├── feature/           # Состояние функциональных модулей (30+ сторов)
+│   ├── stores/                  # Управление состоянием Zustand (62 стора)
+│   │   ├── domain/            # Состояние бизнес-логики (9 сторов)
+│   │   ├── feature/           # Состояние функциональных модулей (44 стора)
 │   │   ├── devtools/          # Состояние инструментов разработчика (5 сторов)
 │   │   └── shared/            # Общее состояние (4 стора)
-│   ├── hooks/                   # React-хуки (10)
+│   ├── hooks/                   # React-хуки
 │   ├── lib/                     # Утилитные функции (включая Web Worker)
-│   ├── types/                   # Определения типов TypeScript (22)
+│   ├── types/                   # Определения типов TypeScript
 │   ├── sdk/                     # SDK (включая Python SDK)
 │   └── i18n/                    # Переводы на 11 языков
 │
 ├── src-tauri/                    # Исходный код бэкенда (Rust)
-│   ├── crates/                  # Rust-воркспейс (10 крейтов)
+│   ├── crates/                  # Rust-воркспейс (18 крейтов)
 │   │   ├── agent/             # Ядро AI-агента
-│   │   ├── core/              # База данных, шифрование, RAG
-│   │   ├── gateway/           # Сервер API-шлюза
-│   │   ├── plugins/           # Система плагинов
+│   │   ├── core/              # БД, шифрование, RAG, MCP
 │   │   ├── providers/         # Адаптеры провайдеров моделей
-│   │   ├── runtime/           # Службы времени выполнения
+│   │   ├── runtime-core/      # Уровень абстракции рантайма
+│   │   ├── runtime/           # Службы рантайма
+│   │   ├── rt-workflow/       # Движок рабочих процессов
+│   │   ├── rt-messaging/      # Шлюз сообщений
+│   │   ├── rt-webhook/        # Сервер вебхуков
+│   │   ├── rt-dashboard/      # Плагин панели
+│   │   ├── rt-theme/          # Движок тем
+│   │   ├── gateway/           # Сервер API-шлюза
 │   │   ├── tools/             # Система инструментов
 │   │   ├── trajectory/        # Память и обучение
 │   │   ├── telemetry/         # Трассировка и метрики
-│   │   └── migration/         # Миграции базы данных
+│   │   ├── plugins/           # Система плагинов
+│   │   ├── prompt-guard/      # Защита от инъекции промптов
+│   │   ├── migration/         # Миграции БД
+│   │   └── npm/               # Парсинг npm-пакетов
 │   └── src/                    # Точка входа Tauri (70+ модулей команд)
 │
 ├── extension/                  # Расширение браузера (Wiki Clipper)

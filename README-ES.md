@@ -3,11 +3,11 @@
 [![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
 
 <p align="center">
-  <a href="https://www.producthunt.com/products/axagent?embed=true&amp;amp;utm_source=badge-featured&amp;amp;&amp;#10;&amp;amp;amp;;utm_medium=badge&amp;amp;#10&amp;amp;;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
+  <a href="https://www.producthunt.com/products/axagent?embed=true&amp;amp;utm_source=badge-featured&amp;amp;utm_medium=badge&amp;amp;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
 </p>
 
 <p align="center">
-  <strong>Cliente desktop IA multiplataforma | Colaboración multi-agente | Local primero</strong>
+  <strong>Cliente IA multiplataforma de escritorio/móvil | Colaboración multi-agente | Local primero</strong>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <a href="https://github.com/polite0803/AxAgent/actions" target="_blank">
     <img src="https://img.shields.io/github/actions/workflow/status/polite0803/AxAgent/release.yml?style=flat-square" alt="Build">
   </a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square" alt="License">
 </p>
 
@@ -25,7 +25,7 @@
 
 ## ¿Qué es AxAgent?
 
-AxAgent es una aplicación desktop IA multiplataforma completa, que integra capacidades avanzadas de agentes IA y herramientas de desarrollo ricas. Soporta múltiples proveedores de modelos, ejecución autónoma de pipelines, orquestación visual de flujos de trabajo, gestión local de conocimientos y una pasarela API integrada.
+**AxAgent v2.0** es una aplicación IA multiplataforma de escritorio/móvil completa, que integra capacidades avanzadas de agentes IA y herramientas de desarrollo ricas. Soporta múltiples proveedores de modelos, ejecución autónoma de pipelines, orquestación visual de flujos de trabajo, gestión local de conocimientos, pasarela API integrada, cubriendo las cinco plataformas **Windows / macOS / Linux / Android / iOS**.
 
 ---
 
@@ -52,6 +52,7 @@ AxAgent es una aplicación desktop IA multiplataforma completa, que integra capa
 - **Soporte multi-proveedor** — Integración nativa de OpenAI, Anthropic Claude, Google Gemini, Ollama, OpenClaw, Hermes y todas las APIs compatibles con OpenAI
 - **Rotación multi-clave** — Configure múltiples claves API por proveedor con rotación automática para distribuir la presión de límites de tasa
 - **Soporte de modelos locales** — Soporte completo para modelos locales Ollama, incluyendo gestión de archivos GGUF/GGML
+- **Motor de inferencia Candle** — Inferencia local Candle integrada, soporte de interfaces rerank/judge, descarga GGUF bajo demanda
 - **Gestión de modelos** — Obtención de listas de modelos remotos, personalización de parámetros (temperatura, tokens máximos, top-p, etc.)
 - **Salida en streaming** — Renderizado en tiempo real token a token con bloques de pensamiento plegables (pensamiento extendido de Claude)
 - **Comparación multi-modelo** — Pregunte a múltiples modelos simultáneamente con comparación lado a lado
@@ -166,7 +167,8 @@ El motor de flujo de trabajo implementa un sistema de orquestación de tareas ba
 - **Autenticación OAuth** — Soporte de flujo OAuth para servidores MCP
 - **Inicio automático MCP** — Inicio automático y gestión del ciclo de vida de servidores MCP
 - **Puente de herramientas MCP** — Puente entre herramientas MCP y el sistema de herramientas del agente
-- **Sistema de plugins** — Arquitectura de plugins de tres niveles (integrado/empaquetado/externo), con registro de herramientas, hooks y gestión del ciclo de vida
+- **Sistema de plugins** — Arquitectura de plugins de tres niveles compatible con OpenClaw (integrado/empaquetado/externo), con instalación de paquetes npm, registro de herramientas, hooks y gestión del ciclo de vida
+- **Mercado de plugins** — UI de mercado integrada, con búsqueda e instalación npm, diálogos de confirmación
 - **Herramientas integradas** — Operaciones de archivos completas (lectura/escritura/edición), ejecución de código, búsqueda (Grep/Glob), Bash, búsqueda web, extracción web, gestión de planes, planificación Cron, REPL, LSP, gestión de contexto, control informático, envío de mensajes, lista de tareas, etc.
 - **Sistema de permisos de herramientas** — Clasificación de permisos de herramientas, gestión de reglas y seguimiento de uso
 - **Seguridad Bash** — Análisis de comandos, validación de rutas y control de seguridad sandbox
@@ -247,6 +249,23 @@ El motor de flujo de trabajo implementa un sistema de orquestación de tareas ba
 - **Gobernador de recursos** — Limitación y gobernanza del uso de recursos por agentes
 - **Transferencia LAN** — Capacidad de transferencia de archivos en red local
 
+### 🛡️ Protección contra inyección de prompts (Prompt-Guard)
+
+- **Sistema de protección de cuatro niveles** — L1 detección de patrones (intercepción de alto riesgo + marcado de riesgo medio) → L2 escape de delimitadores → L3 envoltorio XML → L4 etiquetas de confianza
+- **Orquestador Pipeline** — Canalización de detección multinivel en serie, soporte de umbrales de riesgo personalizables
+- **Detección de Token Smuggling** — Detección especializada contra ofuscación de codificación y ataques de contrabando de tokens
+- **Modo Strict** — Pruebas en modo estricto + nombramiento de causas de riesgo medio + documentación de modo personalizado
+- **Integración completa de pipeline** — Integrado en session / prompt / git / RAG
+
+### 📱 Soporte móvil
+
+- **Android nativo** — Compilación APK/AAB, soporte para arm64-v8a / armeabi-v7a / x86_64
+- **iOS nativo** — Compilación IPA, soporte para arm64
+- **Diseño adaptativo** — Adaptación automática en tres niveles: escritorio/tableta/teléfono
+- **Navegación móvil** — Navegación Drawer deslizante + barra de navegación inferior + botón flotante flash
+- **Adaptación de zona segura** — Adaptación CSS env() para barra de estado/barra de navegación del sistema Android
+- **Optimización CSP** — Lista blanca de protocolo CSP para Android WebView
+
 ---
 
 ## Arquitectura técnica
@@ -266,339 +285,51 @@ El motor de flujo de trabajo implementa un sistema de orquestación de tareas ba
 | **Diagramas** | Mermaid + D2 + ECharts (CDN) |
 | **Terminal** | xterm.js 6 |
 | **Flujo de trabajo** | ReactFlow 11 |
+| **Infografías** | @antv/infographic |
+| **Iconos** | Iconify + Lucide |
+| **Arrastrar y soltar** | @dnd-kit |
 | **Build** | Vite 8 + npm |
+| **Testing** | Vitest + Playwright + cargo-nextest |
+| **Formateo** | dprint (TS/JSON) + rustfmt |
+| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
+| **Móvil** | Compilación nativa Tauri Android + iOS |
+| **Escritorio** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+
+### Soporte de plataformas
+
+| Plataforma | Arquitectura |
+|------------|-------------|
+| Windows | x86_64, ARM64 |
+| macOS | Apple Silicon (arm64), Intel (x86_64) |
+| Linux | x86_64, ARM64 |
+| Android | arm64-v8a, armeabi-v7a, x86_64 (emulador) |
+| iOS | arm64 |
 
 ### Arquitectura Backend Rust
 
-El backend está organizado como un workspace de Rust con 10 crates especializadas:
+El backend está organizado como un workspace de Rust con **18** crates especializadas:
 
 ```
 src-tauri/crates/
-├── agent/         # Núcleo del agente IA
-│   ├── react_engine.rs          # Motor de razonamiento ReAct
-│   ├── coordinator.rs           # Coordinación de agentes
-│   ├── hierarchical_planner.rs  # Descomposición de tareas
-│   ├── task_decomposer.rs       # Descomposición de subtareas
-│   ├── self_verifier.rs         # Verificación de salidas
-│   ├── verification_agent.rs    # Agente de verificación
-│   ├── error_recovery_engine.rs # Motor de recuperación de errores
-│   ├── error_classifier.rs      # Clasificación de errores
-│   ├── recovery_strategies.rs   # Estrategias de recuperación
-│   ├── loop_detector.rs         # Detección de bucles
-│   ├── vision_pipeline.rs       # Percepción de pantalla
-│   ├── deep_research.rs         # Investigación profunda
-│   ├── fact_checker.rs          # Verificación de hechos
-│   ├── research_agent.rs        # Agente de investigación
-│   ├── search_planner.rs        # Planificación de búsqueda
-│   ├── search_orchestrator.rs   # Orquestación de búsqueda
-│   ├── academic_search.rs       # Búsqueda académica
-│   ├── source_validator.rs      # Validación de fuentes
-│   ├── source_classifier.rs     # Clasificación de fuentes
-│   ├── credibility_evaluator.rs # Evaluación de credibilidad
-│   ├── citation_tracker.rs      # Seguimiento de citas
-│   ├── content_synthesizer.rs   # Síntesis de contenido
-│   ├── outline_builder.rs       # Construcción de esquemas
-│   ├── reference_builder.rs     # Construcción de referencias
-│   ├── proactive_mode.rs        # Modo proactivo
-│   ├── purpose_manager.rs       # Gestión de propósitos
-│   ├── graph_insights.rs        # Insights de grafos
-│   ├── insight_generator.rs     # Generación de insights
-│   ├── schema_manager.rs        # Gestión de esquemas
-│   ├── ingest_pipeline.rs       # Pipeline de ingesta de datos
-│   ├── session_manager.rs       # Gestión de sesiones
-│   ├── health_checker.rs        # Verificación de salud
-│   ├── metrics.rs               # Recopilación de métricas
-│   ├── evaluator/               # Evaluación de benchmarks
-│   ├── fine_tune/               # Ajuste fino LoRA
-│   ├── rl_optimizer/            # Optimización de estrategias RL
-│   └── tool_recommender/        # Motor de recomendación de herramientas
-│
-├── core/          # Utilidades principales
-│   ├── db.rs                   # Base de datos SeaORM
-│   ├── vector_store.rs         # Integración sqlite-vec
-│   ├── rag.rs                  # Capa de abstracción RAG
-│   ├── hybrid_search.rs        # Búsqueda vectorial + FTS5
-│   ├── recall_pipeline.rs      # Pipeline de recall de tres niveles
-│   ├── crypto.rs               # Cifrado AES-256
-│   ├── mcp_client.rs           # Cliente protocolo MCP
-│   ├── browser_automation.rs   # Automatización de navegador
-│   ├── computer_control.rs     # Control informático
-│   ├── screen_vision.rs        # Visión de pantalla
-│   ├── screen_capture.rs       # Captura de pantalla
-│   ├── ui_automation.rs        # Automatización UI
-│   ├── ast_index.rs            # Índice AST
-│   ├── incremental_indexer.rs  # Indexación incremental
-│   ├── document_parser.rs      # Parser de documentos
-│   ├── markdown_parser.rs      # Parser Markdown
-│   ├── text_chunker.rs         # Fragmentación de texto
-│   ├── token_counter.rs        # Conteo de tokens
-│   ├── token_budget.rs         # Presupuesto de tokens
-│   ├── file_index.rs           # Índice de archivos
-│   ├── file_authorizer.rs      # Autorización de archivos
-│   ├── file_store.rs           # Almacenamiento de archivos
-│   ├── cache.rs                # Gestión de caché
-│   ├── disk_cache.rs           # Caché de disco
-│   ├── cache_persister.rs      # Persistencia de caché
-│   ├── cache_snapshot.rs       # Instantánea de caché
-│   ├── vector_cache.rs         # Caché vectorial
-│   ├── marketplace_service.rs  # Servicio de mercado
-│   ├── marketplace.rs          # Abstracción de mercado
-│   ├── operation_audit.rs      # Auditoría de operaciones
-│   ├── unified_config.rs       # Configuración unificada
-│   ├── platform_config.rs      # Configuración de plataforma
-│   ├── command_validator.rs    # Validación de comandos
-│   ├── shell_parser.rs         # Parser Shell
-│   ├── output_processor.rs     # Procesamiento de salidas
-│   ├── storage_inventory.rs    # Inventario de almacenamiento
-│   ├── storage_migration.rs    # Migración de almacenamiento
-│   ├── storage_paths.rs        # Rutas de almacenamiento
-│   ├── s3_backup.rs            # Backup S3
-│   ├── webdav.rs               # Sincronización WebDAV
-│   ├── git_tools.rs            # Herramientas Git
-│   ├── sandbox_runner.rs       # Ejecutor sandbox
-│   ├── search.rs               # Abstracción de búsqueda
-│   ├── reranker.rs             # Reranking
-│   ├── model_knowledge.rs      # Conocimiento de modelos
-│   ├── prompt_template.rs      # Plantillas de prompts
-│   ├── preset_templates.rs     # Plantillas predefinidas
-│   ├── workflow_types.rs       # Tipos de flujo de trabajo
-│   ├── workflow_version.rs     # Versión de flujo de trabajo
-│   ├── path_vars.rs            # Variables de ruta
-│   ├── entity/                 # Entidades SeaORM (40+ tablas)
-│   └── repo/                   # Repositorios de datos (30+ repos)
-│
-├── gateway/       # Pasarela API
-│   ├── server.rs               # Servidor HTTP
-│   ├── handlers.rs             # Gestores API
-│   ├── routes.rs               # Definición de rutas
-│   ├── auth.rs                 # Autenticación
-│   ├── middleware.rs           # Middleware
-│   ├── metrics.rs              # Recopilación de métricas
-│   ├── native.rs               # Integración nativa
-│   ├── marketplace_handlers.rs # Interfaz de mercado
-│   └── realtime.rs             # Soporte WebSocket
-│
-├── plugins/       # Sistema de plugins
-│   ├── hooks.rs                # Ejecutor de hooks
-│   ├── agent_provider.rs       # Proveedor de agentes
-│   ├── test_isolation.rs       # Aislamiento de pruebas
-│   └── lib.rs                  # Registro de plugins y ciclo de vida
-│
-├── providers/     # Adaptadores de modelos
-│   ├── adapter.rs              # Interfaz de adaptador
-│   ├── registry.rs             # Registro de proveedores
-│   ├── openai.rs               # API OpenAI
-│   ├── openai_responses.rs     # API Responses OpenAI
-│   ├── anthropic.rs            # API Claude
-│   ├── gemini.rs               # API Gemini
-│   ├── ollama.rs               # Ollama local
-│   ├── openclaw.rs             # OpenClaw
-│   ├── hermes.rs               # Hermes
-│   ├── image_gen.rs            # Generación de imágenes
-│   ├── realtime_client.rs      # Cliente API Realtime
-│   └── transport/              # Capa de transporte (Chat Completions / Responses / Anthropic)
-│
-├── runtime/       # Servicios de ejecución
-│   ├── session.rs              # Gestión de sesiones
-│   ├── workflow_engine.rs      # Orquestación DAG
-│   ├── work_engine/            # Motor de trabajo (ejecutores de nodos + planificador + capa de caché)
-│   ├── mcp.rs                  # Servidor MCP
-│   ├── mcp_client.rs           # Cliente MCP
-│   ├── mcp_server.rs           # Implementación del servidor MCP
-│   ├── mcp_stdio.rs            # Transporte MCP stdio
-│   ├── mcp_autostart.rs        # Inicio automático MCP
-│   ├── mcp_lifecycle_hardened.rs # Gestión del ciclo de vida MCP
-│   ├── mcp_tool_bridge.rs      # Puente de herramientas MCP
-│   ├── cron/                   # Planificación de tareas
-│   ├── terminal/               # Backends de terminal (local/Docker/SSH)
-│   ├── benchmarks/             # SWE-bench / Terminal-bench
-│   ├── collaboration/          # Colaboración CRDT y compartir sesión
-│   ├── tool_generator/         # Generación de herramientas IA
-│   ├── message_gateway/        # Integraciones de plataforma (DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord)
-│   ├── buddy/                  # Sistema Buddy (especies/atributos/gestor)
-│   ├── swarm/                  # Clúster Swarm (backend de procesos/sincronización de permisos/reconexión)
-│   ├── tasks/                  # Tareas en segundo plano (sueños/agentes remotos/compañeros in-process)
-│   ├── adversarial_debate.rs   # Debate adversarial
-│   ├── agent_orchestrator.rs   # Orquestación multi-agente
-│   ├── agent_roles.rs          # Roles de agentes
-│   ├── webhook_dispatcher.rs   # Despacho de webhooks
-│   ├── webhook_server.rs       # Servidor de webhooks
-│   ├── session_search.rs       # Búsqueda de sesiones
-│   ├── dashboard_plugin.rs     # Plugin de panel
-│   ├── dashboard_registry.rs   # Registro de panel
-│   ├── permissions.rs          # Gestión de permisos
-│   ├── permission_enforcer.rs  # Aplicación de permisos
-│   ├── policy_engine.rs        # Motor de políticas
-│   ├── trust_resolver.rs       # Resolución de confianza
-│   ├── resource_governor.rs    # Gobernador de recursos
-│   ├── green_contract.rs       # Contrato verde
-│   ├── feature_flags.rs        # Feature flags
-│   ├── module_switch.rs        # Interruptor de módulos
-│   ├── mode_selector.rs        # Selector de modo
-│   ├── config.rs               # Configuración de ejecución
-│   ├── config_validate.rs      # Validación de configuración
-│   ├── prompt.rs               # Gestión de prompts
-│   ├── prompt_cache.rs         # Caché de prompts
-│   ├── compact.rs              # Compresión de contexto
-│   ├── summary_compression.rs  # Compresión de resumen
-│   ├── compact_thresholds.rs   # Umbrales de compresión
-│   ├── compact_warning.rs      # Advertencia de compresión
-│   ├── reactive_compact.rs     # Compresión reactiva
-│   ├── session_memory_compact.rs # Compresión de memoria de sesión
-│   ├── message_importance.rs   # Evaluación de importancia de mensajes
-│   ├── message_batching.rs     # Procesamiento por lotes de mensajes
-│   ├── rate_limiter.rs         # Limitador de tasa
-│   ├── connection_pool.rs      # Pool de conexiones
-│   ├── persistent_queue.rs     # Cola persistente
-│   ├── persistent_queue_manager.rs # Gestor de cola
-│   ├── health_check.rs         # Verificación de salud
-│   ├── cache_guard.rs          # Guardia de caché
-│   ├── checkpoint.rs           # Punto de control
-│   ├── branch_lock.rs          # Bloqueo de rama
-│   ├── stale_base.rs           # Detección de base obsoleta
-│   ├── watch_patterns.rs       # Patrones de vigilancia
-│   ├── lan_transfer.rs         # Transferencia LAN
-│   ├── tls_config.rs           # Configuración TLS
-│   ├── sse.rs                  # Flujo de eventos SSE
-│   ├── api_server.rs           # Servidor API
-│   ├── gateway_auth.rs         # Autenticación de pasarela
-│   ├── gateway_metrics.rs      # Métricas de pasarela
-│   ├── bash.rs                 # Ejecución Bash
-│   ├── bash_validation.rs      # Validación Bash
-│   ├── shell_hooks.rs          # Hooks Shell
-│   ├── shell_completer.rs      # Autocompletado Shell
-│   ├── terminal_analyzer.rs    # Analizador de terminal
-│   ├── git_context.rs          # Contexto Git
-│   ├── git_tools.rs            # Herramientas Git
-│   ├── file_ops.rs             # Operaciones de archivos
-│   ├── hooks.rs                # Gestión de hooks
-│   ├── hook_chain.rs           # Cadena de hooks
-│   ├── hook_config.rs          # Configuración de hooks
-│   ├── plugin_hooks.rs         # Hooks de plugins
-│   ├── plugin_lifecycle.rs     # Ciclo de vida de plugins
-│   ├── profile.rs              # Perfil
-│   ├── profile_manager.rs      # Gestor de perfiles
-│   ├── oauth.rs                # Autenticación OAuth
-│   ├── usage.rs                # Estadísticas de uso
-│   ├── bootstrap.rs            # Arranque
-│   ├── worker_boot.rs          # Arranque de worker
-│   ├── fork_bridge.rs          # Puente de fork
-│   ├── task_packet.rs          # Paquete de tareas
-│   ├── task_router.rs          # Enrutador de tareas
-│   ├── task_registry.rs        # Registro de tareas
-│   ├── transform_pipeline.rs   # Pipeline de transformación
-│   ├── transport_handlers.rs   # Gestores de transporte
-│   ├── general_engine.rs       # Motor general
-│   ├── engine_bridge.rs        # Puente de motor
-│   ├── conversation.rs         # Gestión de conversación
-│   ├── session_control.rs      # Control de sesión
-│   ├── shared_memory.rs        # Memoria compartida
-│   ├── validation_executor.rs  # Ejecutor de validación
-│   ├── recovery_recipes.rs     # Recetas de recuperación
-│   ├── error_recovery.rs       # Recuperación de errores
-│   ├── theme_engine.rs         # Motor de temas
-│   ├── token_budget_predictor.rs # Predicción de presupuesto de tokens
-│   ├── team_cron_registry.rs   # Registro Cron de equipo
-│   ├── module_dream.rs         # Módulo onírico
-│   ├── json.rs                 # Utilidades JSON
-│   └── lane_events.rs          # Eventos Lane
-│
-├── telemetry/     # Telemetría y rastreo
-│   ├── tracer.rs              # Rastreo distribuido
-│   ├── metrics.rs             # Recopilación de métricas
-│   ├── span.rs                # Gestión de Spans
-│   ├── event.rs               # Definición de eventos
-│   ├── collector.rs           # Recopilación de datos
-│   ├── exporter.rs            # Exportación de datos
-│   └── storage.rs             # Backend de almacenamiento
-│
-├── tools/         # Sistema de herramientas
-│   ├── registry.rs             # Registro de herramientas
-│   ├── builtin_tools.rs        # Definiciones de herramientas integradas
-│   ├── builtin_handlers.rs     # Gestores de herramientas integradas
-│   ├── orchestration.rs        # Orquestación de herramientas
-│   ├── streaming.rs            # Salida en streaming
-│   ├── stats.rs                # Estadísticas de uso
-│   ├── recorder.rs             # Registro de ejecución
-│   ├── agent_def_loader.rs     # Cargador de definiciones de agentes
-│   ├── agent_def_types.rs      # Tipos de definiciones de agentes
-│   ├── bash/                   # Herramienta Bash (parser/sandbox/seguridad/validación de rutas)
-│   ├── hooks/                  # Hooks (registro/ejecutor)
-│   ├── mcp/                    # Herramientas MCP (registro/OAuth/wrapper)
-│   ├── permissions/            # Permisos (clasificador/reglas/seguidor)
-│   └── tools/                  # Implementaciones de herramientas específicas
-│       ├── agent.rs            # Herramienta de agente
-│       ├── bash.rs             # Ejecución Bash
-│       ├── context.rs          # Gestión de contexto
-│       ├── cron.rs             # Planificación Cron
-│       ├── glob.rs             # Glob de archivos
-│       ├── grep.rs             # Búsqueda de contenido
-│       ├── lsp.rs              # Herramienta LSP
-│       ├── monitor.rs          # Herramienta de monitor
-│       ├── plan.rs             # Herramienta de plan
-│       ├── repl.rs             # Herramienta REPL
-│       ├── skill.rs            # Herramienta de habilidad
-│       ├── web_fetch.rs        # Extracción web
-│       ├── web_search.rs       # Búsqueda web
-│       ├── file_read.rs        # Lectura de archivo
-│       ├── file_write.rs       # Escritura de archivo
-│       ├── file_edit.rs        # Edición de archivo
-│       ├── computer_use.rs     # Control informático
-│       ├── messaging.rs        # Envío de mensajes
-│       ├── push_notification.rs # Notificación push
-│       ├── task_system.rs      # Sistema de tareas
-│       ├── todo_write.rs       # Lista de tareas
-│       └── batch_missing.rs    # Detección de lotes faltantes
-│
-├── trajectory/    # Sistema de aprendizaje
-│   ├── memory.rs              # Gestión de memoria
-│   ├── memory_provider.rs     # Interfaz de proveedor de memoria
-│   ├── auto_memory.rs         # Extracción automática de memoria
-│   ├── skill.rs               # Sistema de habilidades
-│   ├── skill_manager.rs       # Gestor de habilidades
-│   ├── skill_evolution.rs     # Evolución de habilidades
-│   ├── skill_matcher.rs       # Coincidencia de habilidades
-│   ├── skill_proposal.rs      # Propuesta de habilidades
-│   ├── skills_hub_adapter.rs  # Adaptador del hub de habilidades
-│   ├── skills_hub_client.rs   # Cliente del hub de habilidades
-│   ├── skill_decomposition/   # Descomposición de habilidades (asistida por LLM/multi-ronda/validación flujo de trabajo/análisis de herramientas)
-│   ├── rl.rs                  # Señales de recompensa RL
-│   ├── rl_trainer.rs          # Entrenador RL
-│   ├── training_env.rs        # Entorno de entrenamiento
-│   ├── behavior_learner.rs    # Aprendizaje comportamental
-│   ├── behavior_tracker.rs    # Seguimiento comportamental
-│   ├── pattern.rs             # Reconocimiento de patrones
-│   ├── pattern_analyzer.rs    # Análisis de patrones
-│   ├── user_profile.rs        # Perfil de usuario
-│   ├── preference_learner.rs  # Aprendizaje de preferencias
-│   ├── adaptation.rs          # Ajuste adaptativo
-│   ├── dream_consolidation.rs # Integración onírica
-│   ├── parallel_execution.rs  # Servicio de ejecución paralela
-│   ├── style_extractor.rs     # Extracción de estilo
-│   ├── style_applier.rs       # Aplicación de estilo
-│   ├── style_vectorizer.rs    # Vectorización de estilo
-│   ├── style_migrator.rs      # Migración de estilo
-│   ├── suggestion_engine.rs   # Motor de sugerencias
-│   ├── proactive_assistant.rs # Asistente proactivo
-│   ├── context_predictor.rs   # Predicción de contexto
-│   ├── task_prefetcher.rs     # Prebúsqueda de tareas
-│   ├── reminder_manager.rs    # Gestión de recordatorios
-│   ├── nudge.rs               # Sistema de nudges
-│   ├── insight.rs             # Generación de insights
-│   ├── compactor.rs           # Compresión de datos
-│   ├── trajectory.rs          # Gestión de trayectoria
-│   ├── trajectory_compressor.rs # Compresión de trayectoria
-│   ├── sub_agent.rs           # Sub-agente
-│   ├── batch.rs               # Procesamiento por lotes
-│   ├── context.rs             # Gestión de contexto
-│   ├── fts5.rs                # Búsqueda FTS5
-│   ├── hooks.rs               # Hooks
-│   ├── storage.rs             # Almacenamiento
-│   ├── scheduled_task.rs      # Tarea programada
-│   └── memory_providers/      # Proveedores de memoria (Honcho/Mem0/bucle cerrado/servicios)
-│
-└── migration/     # Migraciones de base de datos
-    └── m20240101_000001~000010  # 10 archivos de migración
+├── agent/            # Núcleo del agente IA (motor ReAct, coordinación, planificación, investigación profunda, verificación de hechos, etc.)
+├── core/             # Herramientas principales (base de datos, RAG, cifrado, MCP, automatización de navegador, índice AST, etc.)
+├── providers/        # Adaptadores de proveedores de modelos (OpenAI, Anthropic, Gemini, Ollama, OpenClaw, etc.)
+├── runtime-core/     # Capa de abstracción del runtime (tipos comunes, definiciones de traits, configuración)
+├── runtime/          # Servicios del runtime (gestión de sesiones, MCP, terminal, limitador de tasa, Webhook, permisos, etc.)
+├── rt-workflow/      # Motor de flujo de trabajo (orquestación DAG, ejecutores de nodos, planificador)
+├── rt-messaging/     # Pasarela de mensajería (integración DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord)
+├── rt-webhook/       # Servidor y despacho de Webhooks
+├── rt-dashboard/     # Sistema de plugins del panel
+├── rt-theme/         # Motor de temas
+├── gateway/          # Pasarela API (servidor HTTP, autenticación, rutas, interfaz compatible con OpenAI)
+├── tools/            # Sistema de herramientas (registro, orquestación, salida en streaming, 40+ herramientas integradas)
+├── trajectory/       # Sistema de aprendizaje (memoria, habilidades, RL, perfil de usuario, integración onírica)
+├── telemetry/        # Telemetría y rastreo distribuido
+├── plugins/          # Sistema de plugins (compatible con OpenClaw, instalación de paquetes npm)
+├── prompt-guard/     # Protección contra inyección de prompts (detección y defensa multinivel L1-L4)
+├── migration/        # Migraciones de base de datos
+├── npm/              # Análisis de paquetes npm y registro
+└── code_engine/      # Motor de inferencia local Candle (obsoleto, funcionalidad integrada en core)
 ```
 
 ### Arquitectura Frontend
@@ -613,7 +344,7 @@ src/
 │   │   ├── multiModelStore.ts
 │   │   ├── preferenceStore.ts
 │   │   └── compressStore.ts
-│   ├── feature/               # Estado de módulos funcionales (30+ stores)
+│   ├── feature/               # Estado de módulos funcionales (44 stores)
 │   │   ├── agentStore.ts
 │   │   ├── agentProfileStore.ts
 │   │   ├── appConfigStore.ts
@@ -724,14 +455,6 @@ src/
 └── i18n/                     # Traducciones en 11 idiomas
 ```
 
-### Soporte de plataformas
-
-| Plataforma | Arquitectura |
-|------------|-------------|
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Windows | x86_64, ARM64 |
-| Linux | x86_64, ARM64 (AppImage/deb/rpm) |
-
 ## Inicio rápido
 
 ### Descargar versiones preconstruidas
@@ -773,16 +496,24 @@ Los artefactos de compilación están en `src-tauri/target/release/`.
 
 ```bash
 # Pruebas unitarias
-npm run test
+npm run test          # Vitest watch
+npm run test:run      # Vitest ejecución única
 
 # Pruebas E2E
-npm run test:e2e
+npm run test:e2e      # Playwright
+npm run test:e2e:ui   # Playwright modo UI
+
+# Pruebas del backend Rust
+cd src-tauri && cargo nextest run   # cargo-nextest (2-3x más rápido)
+cd src-tauri && cargo test          # Pruebas estándar
 
 # Verificación de tipos
-npm run typecheck
+npm run typecheck     # TypeScript
+cd src-tauri && cargo clippy -- -D warnings  # Rust
 
 # Formateo de código
-npm run format
+npm run format        # dprint
+cd src-tauri && cargo fmt
 
 # Verificación CI
 npm run ci:check
@@ -821,29 +552,37 @@ AxAgent/
 │   │   ├── common/             # Componentes comunes
 │   │   └── shared/             # Componentes compartidos
 │   ├── pages/                   # Componentes de página (22 páginas)
-│   ├── stores/                  # Gestión de estado Zustand
-│   │   ├── domain/            # Estado de negocio principal (6 stores)
-│   │   ├── feature/           # Estado de módulos funcionales (30+ stores)
+│   ├── stores/                  # Gestión de estado Zustand (62 stores)
+│   │   ├── domain/            # Estado de negocio principal (9 stores)
+│   │   ├── feature/           # Estado de módulos funcionales (44 stores)
 │   │   ├── devtools/          # Estado de herramientas de desarrollo (5 stores)
 │   │   └── shared/            # Estado compartido (4 stores)
-│   ├── hooks/                   # React hooks (10)
+│   ├── hooks/                   # React hooks
 │   ├── lib/                     # Funciones utilitarias (incluyendo Web Worker)
-│   ├── types/                   # Definiciones de tipos TypeScript (22)
+│   ├── types/                   # Definiciones de tipos TypeScript
 │   ├── sdk/                     # SDK (incluyendo SDK Python)
 │   └── i18n/                    # Traducciones en 11 idiomas
 │
 ├── src-tauri/                    # Código fuente backend (Rust)
-│   ├── crates/                  # Workspace Rust (10 crates)
+│   ├── crates/                  # Workspace Rust (18 crates)
 │   │   ├── agent/             # Núcleo del agente IA
-│   │   ├── core/              # Base de datos, cifrado, RAG
-│   │   ├── gateway/           # Servidor pasarela API
-│   │   ├── plugins/           # Sistema de plugins
+│   │   ├── core/              # Base de datos, cifrado, RAG, MCP
 │   │   ├── providers/         # Adaptadores de proveedores de modelos
-│   │   ├── runtime/           # Servicios de ejecución
+│   │   ├── runtime-core/      # Capa de abstracción del runtime
+│   │   ├── runtime/           # Servicios del runtime
+│   │   ├── rt-workflow/       # Motor de flujo de trabajo
+│   │   ├── rt-messaging/      # Pasarela de mensajería
+│   │   ├── rt-webhook/        # Servidor de Webhooks
+│   │   ├── rt-dashboard/      # Plugin de panel
+│   │   ├── rt-theme/          # Motor de temas
+│   │   ├── gateway/           # Servidor pasarela API
 │   │   ├── tools/             # Sistema de herramientas
 │   │   ├── trajectory/        # Memoria y aprendizaje
 │   │   ├── telemetry/         # Rastreo y métricas
-│   │   └── migration/         # Migraciones de base de datos
+│   │   ├── plugins/           # Sistema de plugins
+│   │   ├── prompt-guard/      # Protección contra inyección de prompts
+│   │   ├── migration/         # Migraciones de base de datos
+│   │   └── npm/               # Análisis de paquetes npm
 │   └── src/                    # Punto de entrada Tauri (70+ módulos de comandos)
 │
 ├── extension/                  # Extensión de navegador (Wiki Clipper)

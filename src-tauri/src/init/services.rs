@@ -1100,7 +1100,8 @@ fn start_cron_scheduler(state: &AppState) {
                     }
                 })
             });
-        let rt = tokio::runtime::Handle::current();
+        let rt = tokio::runtime::Runtime::new()
+            .expect("Failed to create tokio runtime for tool resolver");
         rt.block_on(state.work_engine.set_tool_resolver(resolver));
     }
 

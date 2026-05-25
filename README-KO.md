@@ -3,11 +3,11 @@
 [![AxAgent](https://github.com/polite0803/AxAgent/blob/main/src/assets/image/logo.png?raw=true)](https://github.com/polite0803/AxAgent)
 
 <p align="center">
-  <a href="https://www.producthunt.com/products/axagent?embed=true&amp&amp&utm_source=badge-featured&amp&amp;&amp;#10;&amp;amp&amp&amp;;utm_medium=badge&amp&amp;#10&amp&amp;;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
+  <a href="https://www.producthunt.com/products/axagent?embed=true&amp;amp&utm_source=badge-featured&amp;amp;&amp;#10;&amp;amp&amp;amp;;utm_medium=badge&amp;amp;#10&amp;amp;;utm_campaign=badge-axagent" target="_blank" rel="noopener noreferrer"><img alt="AxAgent - Lightweight, high-perf cross-platform AI desktop client | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118403&amp;theme=light&amp;t=1775627359538"></a>
 </p>
 
 <p align="center">
-  <strong>크로스 플랫폼 AI 데스크톱 클라이언트 | 멀티 에이전트 협업 | 로컬 우선</strong>
+  <strong>크로스 플랫폼 AI 데스크톱/모바일 클라이언트 | 멀티 에이전트 협업 | 로컬 우선</strong>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <a href="https://github.com/polite0803/AxAgent/actions" target="_blank">
     <img src="https://img.shields.io/github/actions/workflow/status/polite0803/AxAgent/release.yml?style=flat-square" alt="Build">
   </a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-green?style=flat-square" alt="License">
 </p>
 
@@ -25,7 +25,7 @@
 
 ## AxAgent란?
 
-AxAgent는 고급 AI 에이전트 기능과 풍부한 개발자 도구를 결합한 종합적인 크로스 플랫폼 AI 데스크톱 애플리케이션입니다. 멀티 프로바이더 모델 지원, 자율 에이전트 실행, 시각적 워크플로 오케스트레이션, 로컬 지식 관리 및 내장 API 게이트웨이를 제공합니다.
+**AxAgent v2.0**는 고급 AI 에이전트 기능과 풍부한 개발자 도구를 결합한 종합적인 크로스 플랫폼 AI 데스크톱/모바일 애플리케이션입니다. 멀티 프로바이더 모델 지원, 자율 에이전트 실행, 시각적 워크플로 오케스트레이션, 로컬 지식 관리 및 내장 API 게이트웨이를 제공하며, **Windows / macOS / Linux / Android / iOS** 5개 플랫폼을 지원합니다.
 
 ---
 
@@ -52,6 +52,7 @@ AxAgent는 고급 AI 에이전트 기능과 풍부한 개발자 도구를 결합
 - **멀티 프로바이더 지원** — OpenAI, Anthropic Claude, Google Gemini, Ollama, OpenClaw, Hermes 및 모든 OpenAI 호환 API와 네이티브 통합
 - **멀티 키 로테이션** — 각 프로바이더에 여러 API 키를 구성하고 자동 로테이션으로 비율 제한 분산
 - **로컬 모델 지원** — Ollama 로컬 모델 및 GGUF/GGML 파일 관리를 완벽하게 지원
+- **Candle 추론 엔진** — 내장 Candle 로컬 추론, rerank/judge 인터페이스 지원, GGUF 주문형 다운로드
 - **모델 관리** — 원격 모델 목록 가져오기, 사용자 지정 가능한 매개변수(temperature, max tokens, top-p 등)
 - **스트리밍 출력** — 실시간 토큰 단위 렌더링, 접이식 사고 블록(Claude 확장 사고) 지원
 - **멀티 모델 비교** — 여러 모델에 동시에 동일한 질문을 전송하고 나란히 비교
@@ -166,7 +167,8 @@ AxAgent는 고급 AI 에이전트 기능과 풍부한 개발자 도구를 결합
 - **OAuth 인증** — MCP 서버의 OAuth 흐름 지원
 - **MCP 자동 시작** — MCP 서버 자동 시작 및 수명 주기 관리
 - **MCP 도구 브릿지** — MCP 도구와 에이전트 도구 시스템의 브릿지
-- **플러그인 시스템** — 내장/번들/외부 3단계 플러그인 아키텍처, 도구 등록, 훅 및 수명 주기 관리 지원
+- **플러그인 시스템** — OpenClaw 호환 3단계 플러그인 아키텍처(내장/번들/외부), npm 패키지 설치, 도구 등록, 훅 및 수명 주기 관리 지원
+- **플러그인 마켓플레이스** — 내장 마켓플레이스 UI, npm 검색 설치 및 확인 대화상자 지원
 - **내장 도구** — 종합적인 파일 작업(읽기/쓰기/편집), 코드 실행, 검색(Grep/Glob), Bash, 웹 검색, 웹 스크래핑, 계획 관리, Cron 스케줄링, REPL, LSP, 컨텍스트 관리, 컴퓨터 제어, 메시지 푸시, 할 일 등
 - **도구 권한 시스템** — 도구 권한 분류, 규칙 관리 및 사용 추적
 - **Bash 보안** — 명령 파싱, 경로 검증 및 샌드박스 보안 제어
@@ -247,6 +249,23 @@ AxAgent는 고급 AI 에이전트 기능과 풍부한 개발자 도구를 결합
 - **리소스 거버넌스** — 에이전트 리소스 사용 제한 및 거버넌스
 - **LAN 전송** — 로컬 영역 네트워크 파일 전송 기능
 
+### 🛡️ 프롬프트 인젝션 방어 (Prompt-Guard)
+
+- **4단계 방어 체계** — L1 패턴 감지(고위험 차단 + 중위험 플래그) → L2 구분자 이스케이프 → L3 XML 래퍼 → L4 신뢰 태그
+- **파이프라인 오케스트레이터** — 다단계 감지 파이프라인, 사용자 정의 위험 임계값 지원
+- **토큰 스머글링 감지** — 인코딩 난독화 및 토큰 스머글링 공격 전용 감지
+- **Strict 모드** — 엄격 모드 테스트 + 중위험 사유 명명 + 사용자 정의 모드 문서
+- **전체 파이프라인 통합** — session / prompt / git / RAG 각 단계에 통합 완료
+
+### 📱 모바일 지원
+
+- **Android 네이티브** — APK/AAB 빌드, arm64-v8a / armeabi-v7a / x86_64 지원
+- **iOS 네이티브** — IPA 빌드, arm64 지원
+- **적응형 레이아웃** — 데스크톱/태블릿/스마트폰 3단계 자동 적응
+- **모바일 내비게이션** — Drawer 슬라이드 내비게이션 + 하단 내비바 + 플래시 FAB
+- **안전 영역 적응** — Android 시스템 상태바/내비바 CSS env() 적응
+- **CSP 최적화** — Android WebView CSP 프로토콜 화이트리스트
+
 ---
 
 ## 기술 아키텍처
@@ -266,339 +285,51 @@ AxAgent는 고급 AI 에이전트 기능과 풍부한 개발자 도구를 결합
 | **다이어그램** | Mermaid + D2 + ECharts(CDN) |
 | **터미널** | xterm.js 6 |
 | **워크플로** | ReactFlow 11 |
+| **인포그래픽** | @antv/infographic |
+| **아이콘** | Iconify + Lucide |
+| **드래그 앤 드롭** | @dnd-kit |
 | **빌드** | Vite 8 + npm |
+| **테스트** | Vitest + Playwright + cargo-nextest |
+| **포맷팅** | dprint (TS/JSON) + rustfmt |
+| **Lint** | TS: eslint + oxlint / Rust: clippy + cargo-deny |
+| **모바일** | Tauri Android + iOS 네이티브 빌드 |
+| **데스크톱** | Windows (MSI) · macOS (DMG) · Linux (AppImage/deb/rpm) |
+
+### 플랫폼 지원
+
+| 플랫폼 | 아키텍처 |
+|--------|----------|
+| Windows | x86_64, ARM64 |
+| macOS | Apple Silicon (arm64), Intel (x86_64) |
+| Linux | x86_64, ARM64 |
+| Android | arm64-v8a, armeabi-v7a, x86_64 (에뮬레이터) |
+| iOS | arm64 |
 
 ### Rust 백엔드 아키텍처
 
-백엔드는 전문화된 10개의 crates로 구성된 Rust workspace로 구성됩니다:
+백엔드는 전문화된 **18개** crates로 구성된 Rust workspace로 구성됩니다:
 
 ```
 src-tauri/crates/
-├── agent/         # AI 에이전트 코어
-│   ├── react_engine.rs          # ReAct 추론 엔진
-│   ├── coordinator.rs           # 에이전트 조정
-│   ├── hierarchical_planner.rs  # 작업 분해
-│   ├── task_decomposer.rs       # 하위 작업 분해
-│   ├── self_verifier.rs         # 출력 검증
-│   ├── verification_agent.rs    # 검증 에이전트
-│   ├── error_recovery_engine.rs # 오류 복구 엔진
-│   ├── error_classifier.rs      # 오류 분류
-│   ├── recovery_strategies.rs   # 복구 전략
-│   ├── loop_detector.rs         # 루프 감지
-│   ├── vision_pipeline.rs       # 화면 인식
-│   ├── deep_research.rs         # 심층 연구
-│   ├── fact_checker.rs          # 팩트체크
-│   ├── research_agent.rs        # 연구 에이전트
-│   ├── search_planner.rs        # 검색 계획
-│   ├── search_orchestrator.rs   # 검색 오케스트레이션
-│   ├── academic_search.rs       # 학술 검색
-│   ├── source_validator.rs      # 출처 검증
-│   ├── source_classifier.rs     # 출처 분류
-│   ├── credibility_evaluator.rs # 신뢰도 평가
-│   ├── citation_tracker.rs      # 인용 추적
-│   ├── content_synthesizer.rs   # 콘텐츠 종합
-│   ├── outline_builder.rs       # 개요 구축
-│   ├── reference_builder.rs     # 참조 구축
-│   ├── proactive_mode.rs        # 능동적 모드
-│   ├── purpose_manager.rs       # 목적 관리
-│   ├── graph_insights.rs        # 그래프 인사이트
-│   ├── insight_generator.rs     # 인사이트 생성
-│   ├── schema_manager.rs        # Schema 관리
-│   ├── ingest_pipeline.rs       # 데이터 수집 파이프라인
-│   ├── session_manager.rs       # 세션 관리
-│   ├── health_checker.rs        # 상태 확인
-│   ├── metrics.rs               # 지표 수집
-│   ├── evaluator/               # 벤치마크 평가
-│   ├── fine_tune/               # LoRA 미세 조정
-│   ├── rl_optimizer/            # RL 정책 최적화
-│   └── tool_recommender/        # 도구 추천 엔진
-│
-├── core/          # 코어 유틸리티
-│   ├── db.rs                   # SeaORM 데이터베이스
-│   ├── vector_store.rs         # sqlite-vec 통합
-│   ├── rag.rs                  # RAG 추상화 레이어
-│   ├── hybrid_search.rs        # 벡터 + FTS5 검색
-│   ├── recall_pipeline.rs      # 3단계 리콜 파이프라인
-│   ├── crypto.rs               # AES-256 암호화
-│   ├── mcp_client.rs           # MCP 프로토콜 클라이언트
-│   ├── browser_automation.rs   # 브라우저 자동화
-│   ├── computer_control.rs     # 컴퓨터 제어
-│   ├── screen_vision.rs        # 화면 비전
-│   ├── screen_capture.rs       # 화면 캡처
-│   ├── ui_automation.rs        # UI 자동화
-│   ├── ast_index.rs            # AST 인덱스
-│   ├── incremental_indexer.rs  # 증분 인덱서
-│   ├── document_parser.rs      # 문서 파싱
-│   ├── markdown_parser.rs      # Markdown 파싱
-│   ├── text_chunker.rs         # 텍스트 청킹
-│   ├── token_counter.rs        # 토큰 카운터
-│   ├── token_budget.rs         # 토큰 예산
-│   ├── file_index.rs           # 파일 인덱스
-│   ├── file_authorizer.rs      # 파일 권한 부여
-│   ├── file_store.rs           # 파일 저장소
-│   ├── cache.rs                # 캐시 관리
-│   ├── disk_cache.rs           # 디스크 캐시
-│   ├── cache_persister.rs      # 캐시 영속화
-│   ├── cache_snapshot.rs       # 캐시 스냅샷
-│   ├── vector_cache.rs         # 벡터 캐시
-│   ├── marketplace_service.rs  # 마켓플레이스 서비스
-│   ├── marketplace.rs          # 마켓플레이스 추상화
-│   ├── operation_audit.rs      # 작업 감사
-│   ├── unified_config.rs       # 통합 구성
-│   ├── platform_config.rs      # 플랫폼 구성
-│   ├── command_validator.rs    # 명령 검증
-│   ├── shell_parser.rs         # Shell 파싱
-│   ├── output_processor.rs     # 출력 처리
-│   ├── storage_inventory.rs    # 저장소 인벤토리
-│   ├── storage_migration.rs    # 저장소 마이그레이션
-│   ├── storage_paths.rs        # 저장소 경로
-│   ├── s3_backup.rs            # S3 백업
-│   ├── webdav.rs               # WebDAV 동기화
-│   ├── git_tools.rs            # Git 도구
-│   ├── sandbox_runner.rs       # 샌드박스 러너
-│   ├── search.rs               # 검색 추상화
-│   ├── reranker.rs             # 리랭커
-│   ├── model_knowledge.rs      # 모델 지식
-│   ├── prompt_template.rs      # 프롬프트 템플릿
-│   ├── preset_templates.rs     # 프리셋 템플릿
-│   ├── workflow_types.rs       # 워크플로 타입
-│   ├── workflow_version.rs     # 워크플로 버전
-│   ├── path_vars.rs            # 경로 변수
-│   ├── entity/                 # SeaORM 엔티티(40+ 테이블)
-│   └── repo/                   # 데이터 리포지토리(30+ 리포지토리)
-│
-├── gateway/       # API 게이트웨이
-│   ├── server.rs               # HTTP 서버
-│   ├── handlers.rs             # API 핸들러
-│   ├── routes.rs               # 라우트 정의
-│   ├── auth.rs                 # 인증
-│   ├── middleware.rs           # 미들웨어
-│   ├── metrics.rs              # 지표 수집
-│   ├── native.rs               # 네이티브 통합
-│   ├── marketplace_handlers.rs # 마켓플레이스 인터페이스
-│   └── realtime.rs             # WebSocket 지원
-│
-├── plugins/       # 플러그인 시스템
-│   ├── hooks.rs                # 훅 러너
-│   ├── agent_provider.rs       # 에이전트 프로바이더
-│   ├── test_isolation.rs       # 테스트 격리
-│   └── lib.rs                  # 플러그인 레지스트리 및 수명 주기
-│
-├── providers/     # 모델 어댑터
-│   ├── adapter.rs              # 어댑터 인터페이스
-│   ├── registry.rs             # 프로바이더 레지스트리
-│   ├── openai.rs               # OpenAI API
-│   ├── openai_responses.rs     # OpenAI Responses API
-│   ├── anthropic.rs            # Claude API
-│   ├── gemini.rs               # Gemini API
-│   ├── ollama.rs               # Ollama 로컬
-│   ├── openclaw.rs             # OpenClaw
-│   ├── hermes.rs               # Hermes
-│   ├── image_gen.rs            # 이미지 생성
-│   ├── realtime_client.rs      # 실시간 API 클라이언트
-│   └── transport/              # 전송 계층(Chat Completions / Responses / Anthropic)
-│
-├── runtime/       # 런타임 서비스
-│   ├── session.rs              # 세션 관리
-│   ├── workflow_engine.rs      # DAG 오케스트레이션
-│   ├── work_engine/            # 워크 엔진(노드 실행기 + 스케줄러 + 캐시 레이어)
-│   ├── mcp.rs                  # MCP 서버
-│   ├── mcp_client.rs           # MCP 클라이언트
-│   ├── mcp_server.rs           # MCP 서버 구현
-│   ├── mcp_stdio.rs            # MCP stdio 전송
-│   ├── mcp_autostart.rs        # MCP 자동 시작
-│   ├── mcp_lifecycle_hardened.rs # MCP 수명 주기 관리
-│   ├── mcp_tool_bridge.rs      # MCP 도구 브릿지
-│   ├── cron/                   # 작업 스케줄링
-│   ├── terminal/               # 터미널 백엔드(로컬/Docker/SSH)
-│   ├── benchmarks/             # SWE-bench / Terminal-bench
-│   ├── collaboration/          # CRDT 협업 및 세션 공유
-│   ├── tool_generator/         # AI 도구 생성
-│   ├── message_gateway/        # 플랫폼 통합(DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord)
-│   ├── buddy/                  # Buddy 파트너 시스템(종족/속성/관리자)
-│   ├── swarm/                  # Swarm 클러스터(프로세스 백엔드/권한 동기화/재연결)
-│   ├── tasks/                  # 백그라운드 작업(드림/원격 에이전트/인프로세스 팀원)
-│   ├── adversarial_debate.rs   # 적대적 디베이트
-│   ├── agent_orchestrator.rs   # 멀티 에이전트 오케스트레이션
-│   ├── agent_roles.rs          # 에이전트 역할
-│   ├── webhook_dispatcher.rs   # Webhook 디스패처
-│   ├── webhook_server.rs       # Webhook 서버
-│   ├── session_search.rs       # 세션 검색
-│   ├── dashboard_plugin.rs     # 대시보드 플러그인
-│   ├── dashboard_registry.rs   # 대시보드 레지스트리
-│   ├── permissions.rs          # 권한 관리
-│   ├── permission_enforcer.rs  # 권한 실행
-│   ├── policy_engine.rs        # 정책 엔진
-│   ├── trust_resolver.rs       # 신뢰 해석
-│   ├── resource_governor.rs    # 리소스 거버넌스
-│   ├── green_contract.rs       # 그린 컨트랙트
-│   ├── feature_flags.rs        # 기능 플래그
-│   ├── module_switch.rs        # 모듈 스위치
-│   ├── mode_selector.rs        # 모드 선택
-│   ├── config.rs               # 런타임 구성
-│   ├── config_validate.rs      # 구성 검증
-│   ├── prompt.rs               # 프롬프트 관리
-│   ├── prompt_cache.rs         # 프롬프트 캐시
-│   ├── compact.rs              # 컨텍스트 압축
-│   ├── summary_compression.rs  # 요약 압축
-│   ├── compact_thresholds.rs   # 압축 임계값
-│   ├── compact_warning.rs      # 압축 경고
-│   ├── reactive_compact.rs     # 반응형 압축
-│   ├── session_memory_compact.rs # 세션 메모리 압축
-│   ├── message_importance.rs   # 메시지 중요도 평가
-│   ├── message_batching.rs     # 메시지 배치 처리
-│   ├── rate_limiter.rs         # 속도 제한기
-│   ├── connection_pool.rs      # 연결 풀
-│   ├── persistent_queue.rs     # 영속성 큐
-│   ├── persistent_queue_manager.rs # 큐 관리자
-│   ├── health_check.rs         # 상태 확인
-│   ├── cache_guard.rs          # 캐시 가드
-│   ├── checkpoint.rs           # 체크포인트
-│   ├── branch_lock.rs          # 브랜치 잠금
-│   ├── stale_base.rs           # 만료 기준선 감지
-│   ├── watch_patterns.rs       # 감시 패턴
-│   ├── lan_transfer.rs         # LAN 전송
-│   ├── tls_config.rs           # TLS 구성
-│   ├── sse.rs                  # SSE 이벤트 스트림
-│   ├── api_server.rs           # API 서버
-│   ├── gateway_auth.rs         # 게이트웨이 인증
-│   ├── gateway_metrics.rs      # 게이트웨이 지표
-│   ├── bash.rs                 # Bash 실행
-│   ├── bash_validation.rs      # Bash 검증
-│   ├── shell_hooks.rs          # Shell 훅
-│   ├── shell_completer.rs      # Shell 자동완성
-│   ├── terminal_analyzer.rs    # 터미널 분석
-│   ├── git_context.rs          # Git 컨텍스트
-│   ├── git_tools.rs            # Git 도구
-│   ├── file_ops.rs             # 파일 작업
-│   ├── hooks.rs                # 훅 관리
-│   ├── hook_chain.rs           # 훅 체인
-│   ├── hook_config.rs          # 훅 구성
-│   ├── plugin_hooks.rs         # 플러그인 훅
-│   ├── plugin_lifecycle.rs     # 플러그인 수명 주기
-│   ├── profile.rs              # 프로필
-│   ├── profile_manager.rs      # 프로필 관리자
-│   ├── oauth.rs                # OAuth 인증
-│   ├── usage.rs                # 사용량 통계
-│   ├── bootstrap.rs            # 부트스트랩
-│   ├── worker_boot.rs          # Worker 부트
-│   ├── fork_bridge.rs          # Fork 브릿지
-│   ├── task_packet.rs          # 작업 패킷
-│   ├── task_router.rs          # 작업 라우터
-│   ├── task_registry.rs        # 작업 레지스트리
-│   ├── transform_pipeline.rs   # 변환 파이프라인
-│   ├── transport_handlers.rs   # 전송 핸들러
-│   ├── general_engine.rs       # 범용 엔진
-│   ├── engine_bridge.rs        # 엔진 브릿지
-│   ├── conversation.rs         # 대화 관리
-│   ├── session_control.rs      # 세션 제어
-│   ├── shared_memory.rs        # 공유 메모리
-│   ├── validation_executor.rs  # 검증 실행기
-│   ├── recovery_recipes.rs     # 복구 레시피
-│   ├── error_recovery.rs       # 오류 복구
-│   ├── theme_engine.rs         # 테마 엔진
-│   ├── token_budget_predictor.rs # 토큰 예산 예측
-│   ├── team_cron_registry.rs   # 팀 Cron 등록
-│   ├── module_dream.rs         # 드림 모듈
-│   ├── json.rs                 # JSON 도구
-│   └── lane_events.rs          # Lane 이벤트
-│
-├── telemetry/     # 원격 측정 및 추적
-│   ├── tracer.rs              # 분산 추적
-│   ├── metrics.rs             # 지표 수집
-│   ├── span.rs                # Span 관리
-│   ├── event.rs               # 이벤트 정의
-│   ├── collector.rs           # 데이터 수집
-│   ├── exporter.rs            # 데이터 내보내기
-│   └── storage.rs             # 저장소 백엔드
-│
-├── tools/         # 도구 시스템
-│   ├── registry.rs             # 도구 레지스트리
-│   ├── builtin_tools.rs        # 내장 도구 정의
-│   ├── builtin_handlers.rs     # 내장 도구 핸들러
-│   ├── orchestration.rs        # 도구 오케스트레이션
-│   ├── streaming.rs            # 스트리밍 출력
-│   ├── stats.rs                # 사용 통계
-│   ├── recorder.rs             # 실행 기록
-│   ├── agent_def_loader.rs     # 에이전트 정의 로더
-│   ├── agent_def_types.rs      # 에이전트 정의 타입
-│   ├── bash/                   # Bash 도구(파서/샌드박스/보안/경로 검증)
-│   ├── hooks/                  # 훅(레지스트리/실행기)
-│   ├── mcp/                    # MCP 도구(레지스트리/OAuth/래퍼)
-│   ├── permissions/            # 권한(분류기/규칙/추적기)
-│   └── tools/                  # 구체적 도구 구현
-│       ├── agent.rs            # 에이전트 도구
-│       ├── bash.rs             # Bash 실행
-│       ├── context.rs          # 컨텍스트 관리
-│       ├── cron.rs             # Cron 스케줄링
-│       ├── glob.rs             # 파일 글로브
-│       ├── grep.rs             # 콘텐츠 검색
-│       ├── lsp.rs              # LSP 도구
-│       ├── monitor.rs          # 모니터 도구
-│       ├── plan.rs             # 계획 도구
-│       ├── repl.rs             # REPL 도구
-│       ├── skill.rs            # 스킬 도구
-│       ├── web_fetch.rs        # 웹 스크래핑
-│       ├── web_search.rs       # 웹 검색
-│       ├── file_read.rs        # 파일 읽기
-│       ├── file_write.rs       # 파일 쓰기
-│       ├── file_edit.rs        # 파일 편집
-│       ├── computer_use.rs     # 컴퓨터 제어
-│       ├── messaging.rs        # 메시지 전송
-│       ├── push_notification.rs # 푸시 알림
-│       ├── task_system.rs      # 작업 시스템
-│       ├── todo_write.rs       # 할 일 작성
-│       └── batch_missing.rs    # 배치 누락 감지
-│
-├── trajectory/    # 학습 시스템
-│   ├── memory.rs              # 메모리 관리
-│   ├── memory_provider.rs     # 메모리 프로바이더 인터페이스
-│   ├── auto_memory.rs         # 자동 메모리 추출
-│   ├── skill.rs               # 스킬 시스템
-│   ├── skill_manager.rs       # 스킬 관리자
-│   ├── skill_evolution.rs     # 스킬 진화
-│   ├── skill_matcher.rs       # 스킬 매칭
-│   ├── skill_proposal.rs      # 스킬 제안
-│   ├── skills_hub_adapter.rs  # 스킬 허브 어댑터
-│   ├── skills_hub_client.rs   # 스킬 허브 클라이언트
-│   ├── skill_decomposition/   # 스킬 분해(LLM 보조/다중 라운드/워크플로 검증/도구 파싱)
-│   ├── rl.rs                  # RL 보상 신호
-│   ├── rl_trainer.rs          # RL 트레이너
-│   ├── training_env.rs        # 훈련 환경
-│   ├── behavior_learner.rs    # 행동 학습
-│   ├── behavior_tracker.rs    # 행동 추적
-│   ├── pattern.rs             # 패턴 인식
-│   ├── pattern_analyzer.rs    # 패턴 분석
-│   ├── user_profile.rs        # 사용자 프로파일링
-│   ├── preference_learner.rs  # 선호도 학습
-│   ├── adaptation.rs          # 적응형 조정
-│   ├── dream_consolidation.rs # 드림 통합
-│   ├── parallel_execution.rs  # 병렬 실행 서비스
-│   ├── style_extractor.rs     # 스타일 추출
-│   ├── style_applier.rs       # 스타일 적용
-│   ├── style_vectorizer.rs    # 스타일 벡터화
-│   ├── style_migrator.rs      # 스타일 전송
-│   ├── suggestion_engine.rs   # 제안 엔진
-│   ├── proactive_assistant.rs # 능동적 어시스턴트
-│   ├── context_predictor.rs   # 컨텍스트 예측
-│   ├── task_prefetcher.rs     # 작업 사전 로드
-│   ├── reminder_manager.rs    # 리마인더 관리
-│   ├── nudge.rs               # 넛지 시스템
-│   ├── insight.rs             # 인사이트 생성
-│   ├── compactor.rs           # 데이터 압축
-│   ├── trajectory.rs          # 궤적 관리
-│   ├── trajectory_compressor.rs # 궤적 압축
-│   ├── sub_agent.rs           # 하위 에이전트
-│   ├── batch.rs               # 배치 처리
-│   ├── context.rs             # 컨텍스트 관리
-│   ├── fts5.rs                # FTS5 검색
-│   ├── hooks.rs               # 훅
-│   ├── storage.rs             # 저장소
-│   ├── scheduled_task.rs      # 예약 작업
-│   └── memory_providers/      # 메모리 프로바이더(Honcho/Mem0/폐쇄 루프/서비스)
-│
-└── migration/     # 데이터베이스 마이그레이션
-    └── m20240101_000001~000010  # 10개 마이그레이션 파일
+├── agent/            # AI 에이전트 코어(ReAct 엔진, 조정, 계획, 심층 연구, 팩트체크 등)
+├── core/             # 코어 유틸리티(데이터베이스, RAG, 암호화, MCP, 브라우저 자동화, AST 인덱스 등)
+├── providers/        # 모델 프로바이더 어댑터(OpenAI, Anthropic, Gemini, Ollama, OpenClaw 등)
+├── runtime-core/     # 런타임 추상화 레이어(공통 타입, trait 정의, 구성)
+├── runtime/          # 런타임 서비스(세션 관리, MCP, 터미널, 속도 제한, Webhook, 권한 등)
+├── rt-workflow/      # 워크플로 엔진(DAG 오케스트레이션, 노드 실행기, 스케줄러)
+├── rt-messaging/     # 메시지 게이트웨이(DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord 통합)
+├── rt-webhook/       # Webhook 서버 및 디스패치
+├── rt-dashboard/     # 대시보드 플러그인 시스템
+├── rt-theme/         # 테마 엔진
+├── gateway/          # API 게이트웨이(HTTP 서버, 인증, 라우팅, OpenAI 호환 인터페이스)
+├── tools/            # 도구 시스템(레지스트리, 오케스트레이션, 스트리밍 출력, 40+ 내장 도구)
+├── trajectory/       # 학습 시스템(메모리, 스킬, RL, 사용자 프로파일링, 드림 통합)
+├── telemetry/        # 원격 측정 및 분산 추적
+├── plugins/          # 플러그인 시스템(OpenClaw 호환, npm 패키지 설치)
+├── prompt-guard/     # 프롬프트 인젝션 방어(L1-L4 다단계 감지 및 방어)
+├── migration/        # 데이터베이스 마이그레이션
+├── npm/              # npm 패키지 파싱 및 레지스트리
+└── code_engine/      # Candle 로컬 추론 엔진(사용 중단, 기능은 core에 통합됨)
 ```
 
 ### 프론트엔드 아키텍처
@@ -724,14 +455,6 @@ src/
 └── i18n/                     # 11개 언어 번역
 ```
 
-### 플랫폼 지원
-
-| 플랫폼 | 아키텍처 |
-|--------|----------|
-| macOS | Apple Silicon (arm64), Intel (x86_64) |
-| Windows | x86_64, ARM64 |
-| Linux | x86_64, ARM64 (AppImage/deb/rpm) |
-
 ## 시작하기
 
 ### 사전 빌드 다운로드
@@ -773,18 +496,26 @@ npm run tauri build
 
 ```bash
 # 단위 테스트
-npm run test
+npm run test          # Vitest watch
+npm run test:run      # Vitest 단일 실행
 
 # E2E 테스트
-npm run test:e2e
+npm run test:e2e      # Playwright
+npm run test:e2e:ui   # Playwright UI 모드
+
+# Rust 백엔드 테스트
+cd src-tauri && cargo nextest run   # cargo-nextest(2-3배 빠름)
+cd src-tauri && cargo test          # 표준 테스트
 
 # 타입 확인
-npm run typecheck
+npm run typecheck     # TypeScript
+cd src-tauri && cargo clippy -- -D warnings  # Rust
 
 # 코드 포맷팅
-npm run format
+npm run format        # dprint
+cd src-tauri && cargo fmt
 
-# CI 검사
+# CI 전체 검사
 npm run ci:check
 ```
 
@@ -820,30 +551,38 @@ AxAgent/
 │   │   ├── search/             # 세션 검색
 │   │   ├── common/             # 공통 컴포넌트
 │   │   └── shared/             # 공유 컴포넌트
-│   ├── pages/                   # 페이지 컴포넌트(22개 페이지)
-│   ├── stores/                  # Zustand 상태 관리
-│   │   ├── domain/            # 코어 비즈니스 상태(6개 store)
-│   │   ├── feature/           # 기능 모듈 상태(30+ store)
-│   │   ├── devtools/          # 개발자 도구 상태(5개 store)
-│   │   └── shared/            # 공유 상태(4개 store)
-│   ├── hooks/                   # React hooks(10개)
+│   ├── pages/                   # 페이지 컴포넌트(18개 페이지)
+│   ├── stores/                  # Zustand 상태 관리(62개 store)
+│   │   ├── domain/            # 코어 비즈니스 상태(9개)
+│   │   ├── feature/           # 기능 모듈 상태(44개)
+│   │   ├── devtools/          # 개발자 도구 상태(5개)
+│   │   └── shared/            # 공유 상태(4개)
+│   ├── hooks/                   # React hooks
 │   ├── lib/                     # 유틸리티 함수(Web Worker 포함)
-│   ├── types/                   # TypeScript 타입 정의(22개)
+│   ├── types/                   # TypeScript 타입 정의
 │   ├── sdk/                     # SDK(Python SDK 포함)
 │   └── i18n/                    # 11개 언어 번역
 │
 ├── src-tauri/                    # 백엔드 소스 (Rust)
-│   ├── crates/                  # Rust workspace(10개 crates)
+│   ├── crates/                  # Rust workspace(18개 crates)
 │   │   ├── agent/             # AI 에이전트 코어
-│   │   ├── core/              # 데이터베이스, 암호화, RAG
-│   │   ├── gateway/           # API 게이트웨이 서버
-│   │   ├── plugins/           # 플러그인 시스템
+│   │   ├── core/              # 데이터베이스, 암호화, RAG, MCP
 │   │   ├── providers/         # 모델 프로바이더 어댑터
+│   │   ├── runtime-core/      # 런타임 추상화 레이어
 │   │   ├── runtime/           # 런타임 서비스
+│   │   ├── rt-workflow/       # 워크플로 엔진
+│   │   ├── rt-messaging/      # 메시지 게이트웨이
+│   │   ├── rt-webhook/        # Webhook 서버
+│   │   ├── rt-dashboard/      # 대시보드 플러그인
+│   │   ├── rt-theme/          # 테마 엔진
+│   │   ├── gateway/           # API 게이트웨이 서버
 │   │   ├── tools/             # 도구 시스템
 │   │   ├── trajectory/        # 메모리 및 학습
 │   │   ├── telemetry/         # 추적 및 지표
-│   │   └── migration/         # 데이터베이스 마이그레이션
+│   │   ├── plugins/           # 플러그인 시스템
+│   │   ├── prompt-guard/      # 프롬프트 인젝션 방어
+│   │   ├── migration/         # 데이터베이스 마이그레이션
+│   │   └── npm/               # npm 패키지 파싱
 │   └── src/                    # Tauri 진입점(70+ 명령 모듈)
 │
 ├── extension/                  # 브라우저 확장(Wiki Clipper)
