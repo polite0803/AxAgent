@@ -37,7 +37,10 @@ pub struct NodeExecutionRecord {
     pub completed_at: Option<i64>,
 }
 
+use std::collections::HashMap;
+
 use super::executors::{SubWorkflowCallback, ToolCallback, VectorRetrieveCallback};
+use super::prompt_template::CompiledPrompt;
 
 /// 运行时回调容器（非序列化，仅在内存中传递）
 #[derive(Clone)]
@@ -62,6 +65,9 @@ impl std::fmt::Debug for ExecutionContextCallbacks {
 pub struct ExecutionState {
     #[serde(skip, default)]
     pub callbacks: Option<ExecutionContextCallbacks>,
+    /// 编译后的 prompt 模板（node_id -> CompiledPrompt），引擎注入，不序列化
+    #[serde(skip, default)]
+    pub compiled_prompts: Option<HashMap<String, CompiledPrompt>>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -86,6 +92,7 @@ impl ExecutionState {
             node_records: Vec::new(),
             current_node_id: None,
             callbacks: None,
+            compiled_prompts: None,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,
