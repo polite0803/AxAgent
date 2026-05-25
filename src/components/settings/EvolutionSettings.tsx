@@ -243,14 +243,16 @@ export function EvolutionSettings() {
     setError(null);
     try {
       const result = await invoke<EvolutionStats>("get_evolution_stats");
-      setStats(result);
-      const prevCount = stats?.auto_tools_count ?? 0;
-      if (result.auto_tools_count > prevCount) {
-        pushNotification("success", t("evolution.newToolDiscovered"));
-      }
-      const prevKnowledge = stats?.dream_knowledge_count ?? 0;
-      if (result.dream_knowledge_count > prevKnowledge) {
-        pushNotification("info", t("evolution.newDreamKnowledge"));
+      if (result && !Array.isArray(result)) {
+        setStats(result);
+        const prevCount = stats?.auto_tools_count ?? 0;
+        if (result.auto_tools_count > prevCount) {
+          pushNotification("success", t("evolution.newToolDiscovered"));
+        }
+        const prevKnowledge = stats?.dream_knowledge_count ?? 0;
+        if (result.dream_knowledge_count > prevKnowledge) {
+          pushNotification("info", t("evolution.newDreamKnowledge"));
+        }
       }
     } catch (e) {
       setError(String(e));
