@@ -35,7 +35,7 @@ export const NAV_ICONS = {
   chat: "fluent:chat-20-filled",
   knowledge: "fluent:book-database-20-filled",
   gateway: "fluent:server-20-filled",
-  terminal: "fluent:terminal-20-filled",
+  terminal: "fluent:prompt-20-filled",
   files: "fluent:folder-20-filled",
   settings: "fluent:settings-20-filled",
 } as const;

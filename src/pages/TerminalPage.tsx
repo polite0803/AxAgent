@@ -72,7 +72,7 @@ export function TerminalPage() {
       </div>
 
       <div className="term-main">
-        <IntegratedTerminal height={typeof window !== "undefined" ? window.innerHeight - 160 : 600} />
+        <IntegratedTerminal />
       </div>
 
       <DockerConfigModal

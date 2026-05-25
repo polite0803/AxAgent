@@ -73,7 +73,7 @@ const builtinNavItems: NavItem[] = [
   },
   {
     key: "terminal",
-    icon: <Icon icon="fluent:terminal-20-filled" size={17} />,
+    icon: <Icon icon="fluent:prompt-20-filled" size={17} />,
     labelKey: "nav.terminal",
     path: "/terminal",
     isPlugin: false,
