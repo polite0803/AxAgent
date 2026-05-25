@@ -160,7 +160,7 @@ export function LocalToolSettings() {
   }
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="p-6">
       <Typography.Title level={4}>
         {t("settings.localTools.title")}
       </Typography.Title>

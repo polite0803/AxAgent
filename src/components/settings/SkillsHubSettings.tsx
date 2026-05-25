@@ -156,7 +156,7 @@ export function SkillsHubSettings() {
   ];
 
   return (
-    <div className="max-w-5xl">
+    <div>
       <Title level={4}>{t("settings.skillsHub.title")}</Title>
       <Paragraph type="secondary" className="mb-6">
         {t("settings.skillsHub.description")}

@@ -2663,6 +2663,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .gw-tab:hover { color: var(--fg); }
 .gw-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
 .gw-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.gw-page { padding: 16px 24px; }
+.dev-page { padding: 16px 24px; }
 .gw-status-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px; }
 .gw-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .gw-status-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 500; }

@@ -289,7 +289,7 @@ colors:
   };
 
   return (
-    <div className="max-w-5xl">
+    <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <Title level={4}>{t("settings.theme.title")}</Title>
