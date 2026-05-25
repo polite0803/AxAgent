@@ -60,7 +60,7 @@ export function StorageSpaceManager() {
     setLoading(true);
     try {
       const data = await invoke<StorageInventory>("get_storage_inventory");
-      setInventory(data);
+      setInventory(data && !Array.isArray(data) ? data : null);
     } catch (e) {
       console.error("Failed to load storage inventory:", e);
     } finally {
@@ -189,8 +189,8 @@ export function StorageSpaceManager() {
     });
   };
 
-  const totalBytes = inventory?.buckets.reduce((sum, b) => sum + b.total_bytes, 0) ?? 0;
-  const totalFiles = inventory?.buckets.reduce((sum, b) => sum + b.file_count, 0) ?? 0;
+  const totalBytes = (inventory?.buckets ?? []).reduce((sum, b) => sum + b.total_bytes, 0) ?? 0;
+  const totalFiles = (inventory?.buckets ?? []).reduce((sum, b) => sum + b.file_count, 0) ?? 0;
 
   return (
     <div className="p-6 pb-12">
