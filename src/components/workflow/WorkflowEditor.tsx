@@ -129,6 +129,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
 
   const {
     isDecompositionTemplate,
@@ -738,6 +740,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         onClose={handleClose}
         onToggleAIPanel={() => setAiPanelVisible(!aiPanelVisible)}
         onToggleDebugPanel={() => setDebugPanelVisible(!debugPanelVisible)}
+        onToggleLeftPanel={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
+        onToggleRightPanel={() => setRightPanelCollapsed(!rightPanelCollapsed)}
+        leftPanelCollapsed={leftPanelCollapsed}
+        rightPanelCollapsed={rightPanelCollapsed}
         onOpenImportExport={() => setImportExportModalVisible(true)}
         onUndo={() => {
           if (canUndo()) {
@@ -757,7 +763,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <LeftPanel />
+        {!leftPanelCollapsed && <LeftPanel />}
 
         <div style={{ flex: 1, position: "relative" }}>
           {isInitialized
@@ -816,7 +822,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             )}
         </div>
 
-        <RightPanel selectedNode={selectedNode} selectedEdge={selectedEdge} />
+        {!rightPanelCollapsed && <RightPanel selectedNode={selectedNode} selectedEdge={selectedEdge} />}
       </div>
 
       {aiPanelVisible && (

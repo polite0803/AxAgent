@@ -15,14 +15,13 @@
     "gateway": "Шлюз",
     "terminal": "Терминал",
     "files": "Files",
-    "workflow": "Workflow",
+    "workflow": "Рабочий процесс",
     "settings": "Настройки",
     "skills": "Навыки",
     "marketplace": "Маркетплейс",
     "prompts": "Шаблоны",
     "link": "Связь",
     "devTools": "Инструменты разработчика",
-    "workflow": "Рабочий процесс",
     "wiki": "Wiki",
     "app": "AxAgent"
   },
@@ -3963,7 +3962,11 @@
       "paste": "Paste Node",
       "delete": "Delete Selected Node",
       "save": "Save"
-    }
+    },
+    "collapseLeftPanel": "Collapse Left Panel",
+    "expandLeftPanel": "Expand Left Panel",
+    "collapseRightPanel": "Collapse Right Panel",
+    "expandRightPanel": "Expand Right Panel"
   },
   "atomicSkill": {
     "entryType": "Entry Type",

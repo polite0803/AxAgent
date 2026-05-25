@@ -28,7 +28,6 @@
     "prompts": "提示词",
     "link": "连接",
     "devTools": "开发工具",
-    "workflow": "工作流",
     "wiki": "知识库",
     "app": "AxAgent"
   },
@@ -4434,7 +4433,11 @@
       "paste": "粘贴",
       "delete": "删除",
       "save": "保存"
-    }
+    },
+    "collapseLeftPanel": "折叠左侧面板",
+    "expandLeftPanel": "展开左侧面板",
+    "collapseRightPanel": "折叠右侧面板",
+    "expandRightPanel": "展开右侧面板"
   },
   "atomicSkill": {
     "entryType": "入口类型",

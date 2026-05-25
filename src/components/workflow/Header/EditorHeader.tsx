@@ -7,6 +7,8 @@ import {
   Download,
   Eye,
   Keyboard,
+  PanelLeft,
+  PanelRight,
   Redo2,
   Save,
   Share2,
@@ -34,6 +36,10 @@ interface EditorHeaderProps {
   canRedo?: boolean;
   aiPanelVisible?: boolean;
   debugPanelVisible?: boolean;
+  onToggleLeftPanel?: () => void;
+  onToggleRightPanel?: () => void;
+  leftPanelCollapsed?: boolean;
+  rightPanelCollapsed?: boolean;
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -53,6 +59,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   canRedo = false,
   aiPanelVisible = false,
   debugPanelVisible = false,
+  onToggleLeftPanel,
+  onToggleRightPanel,
+  leftPanelCollapsed = false,
+  rightPanelCollapsed = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(templateName);
@@ -257,6 +267,32 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
             style={{ color: token.colorTextSecondary }}
           />
         </Popover>
+
+        {onToggleLeftPanel && (
+          <Tooltip title={leftPanelCollapsed ? t("workflow.expandLeftPanel") : t("workflow.collapseLeftPanel")}>
+            <Button
+              type="text"
+              icon={<PanelLeft size={18} />}
+              onClick={onToggleLeftPanel}
+              style={{
+                color: !leftPanelCollapsed ? "#1890ff" : token.colorTextSecondary,
+              }}
+            />
+          </Tooltip>
+        )}
+
+        {onToggleRightPanel && (
+          <Tooltip title={rightPanelCollapsed ? t("workflow.expandRightPanel") : t("workflow.collapseRightPanel")}>
+            <Button
+              type="text"
+              icon={<PanelRight size={18} />}
+              onClick={onToggleRightPanel}
+              style={{
+                color: !rightPanelCollapsed ? "#1890ff" : token.colorTextSecondary,
+              }}
+            />
+          </Tooltip>
+        )}
 
         {onToggleAIPanel && (
           <Tooltip title={t("workflow.aiAssistant")}>

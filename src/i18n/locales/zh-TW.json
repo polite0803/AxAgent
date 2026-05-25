@@ -22,7 +22,6 @@
     "prompts": "提示詞",
     "link": "連接",
     "devTools": "開發工具",
-    "workflow": "工作流",
     "wiki": "知識庫",
     "app": "AxAgent"
   },
@@ -3962,7 +3961,11 @@
       "paste": "粘貼",
       "delete": "刪除",
       "save": "保存"
-    }
+    },
+    "collapseLeftPanel": "Collapse Left Panel",
+    "expandLeftPanel": "Expand Left Panel",
+    "collapseRightPanel": "Collapse Right Panel",
+    "expandRightPanel": "Expand Right Panel"
   },
   "atomicSkill": {
     "entryType": "入口類型",

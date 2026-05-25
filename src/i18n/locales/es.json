@@ -15,14 +15,13 @@
     "gateway": "Pasarela",
     "terminal": "Terminal",
     "files": "Files",
-    "workflow": "Workflow",
+    "workflow": "Flujo de trabajo",
     "settings": "Configuración",
     "skills": "Habilidades",
     "marketplace": "Mercado",
     "prompts": "Plantillas",
     "link": "Enlace",
     "devTools": "Herramientas de desarrollo",
-    "workflow": "Flujo de trabajo",
     "wiki": "Wiki",
     "app": "AxAgent"
   },
@@ -4362,7 +4361,11 @@
       "paste": "Paste Node",
       "delete": "Delete Selected Node",
       "save": "Save"
-    }
+    },
+    "collapseLeftPanel": "Collapse Left Panel",
+    "expandLeftPanel": "Expand Left Panel",
+    "collapseRightPanel": "Collapse Right Panel",
+    "expandRightPanel": "Expand Right Panel"
   },
   "atomicSkill": {
     "entryType": "Entry Type",
