@@ -1,6 +1,5 @@
 import {
   Bell,
-  BookOpen,
   Bot,
   Clock,
   Cloud,
@@ -56,7 +55,6 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   acp: <Network size={14} />,
   skillsHub: <ShoppingBag size={14} />,
   plugins: <Puzzle size={14} />,
-  knowledgeSettings: <BookOpen size={14} />,
   dashboardPlugins: <LayoutDashboard size={14} />,
   notificationCenter: <Bell size={14} />,
   webhooks: <Bell size={14} />,
@@ -84,7 +82,6 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "tools",
     "skillsHub",
     "plugins",
-    "knowledgeSettings",
     "dashboardPlugins",
     "workflow",
     "appConfig",

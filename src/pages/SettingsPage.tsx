@@ -73,9 +73,6 @@ const LazySettingsPanel = lazy(() =>
 const LazyPluginMarketplace = lazy(() =>
   import("@/components/chat/PluginMarketplace").then((m) => ({ default: m.PluginMarketplace }))
 );
-const LazyKnowledgeSettings = lazy(() =>
-  import("@/components/settings/KnowledgeSettings").then((m) => ({ default: m.KnowledgeSettings }))
-);
 const LazyDashboardPluginsSettings = lazy(() =>
   import("@/components/settings/DashboardPluginsSettings").then((m) => ({ default: m.DashboardPluginsSettings }))
 );
@@ -219,11 +216,6 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   plugins: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyPluginMarketplace />
-    </Suspense>
-  ),
-  knowledgeSettings: () => (
-    <Suspense fallback={<SectionFallback />}>
-      <LazyKnowledgeSettings />
     </Suspense>
   ),
   dashboardPlugins: () => (

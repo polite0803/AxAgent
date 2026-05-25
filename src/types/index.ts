@@ -726,7 +726,6 @@ export type SettingsSection =
   | "evolution"
   | "cloudWorkspace"
   | "plugins"
-  | "knowledgeSettings"
   | "notificationCenter"
   | "imageGen"
   | "theme"

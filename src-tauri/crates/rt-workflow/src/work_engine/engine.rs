@@ -25,6 +25,7 @@ use super::executors::{
     AgentExecutor, LlmExecutor, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use super::prompt_template::{CompiledPrompt, compile_prompt};
 
 /// 工作流运行选项
 #[derive(Clone)]
@@ -145,6 +146,8 @@ pub struct WorkEngine {
     db: Arc<DatabaseConnection>,
     executions: Arc<Mutex<HashMap<String, ExecutionState>>>,
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
+    /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
+    compiled_prompts: Arc<tokio::sync::RwLock<HashMap<String, HashMap<String, CompiledPrompt>>>>,
     cancel_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
     dispatcher: Arc<tokio::sync::RwLock<NodeDispatcher>>,
     tool_callback: Arc<Mutex<Option<ToolCallback>>>,
@@ -193,6 +196,7 @@ impl WorkEngine {
             db,
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             cancel_tokens: Arc::new(Mutex::new(HashMap::new())),
             dispatcher: Arc::new(tokio::sync::RwLock::new(dispatcher)),
             tool_callback: Arc::new(Mutex::new(None)),
@@ -277,6 +281,18 @@ impl WorkEngine {
             .iter()
             .map(|n| (n.base_id().to_string(), NodeRuntimeState::default()))
             .collect();
+
+        // 编译 Agent 节点的 prompt 模板（阶段一）
+        let mut compiled_map: HashMap<String, CompiledPrompt> = HashMap::new();
+        for node in &nodes {
+            if let WorkflowNode::Agent(an) = node {
+                compiled_map.insert(an.base.id.clone(), compile_prompt(&an.config.system_prompt));
+            }
+        }
+        self.compiled_prompts
+            .write()
+            .await
+            .insert(workflow_id.clone(), compiled_map);
 
         let workflow = Workflow {
             id: workflow_id.clone(),
@@ -534,6 +550,30 @@ impl WorkEngine {
             }
         }
 
+        // 懒编译兜底：若工作流从 DB 加载（非 create_workflow 新建），编译模板
+        {
+            let compiled = self.compiled_prompts.read().await;
+            if !compiled.contains_key(workflow_id) {
+                drop(compiled);
+                let workflows = self.workflows.read().await;
+                if let Some(wf) = workflows.get(workflow_id) {
+                    let mut compiled_map: HashMap<String, CompiledPrompt> = HashMap::new();
+                    for node in &wf.nodes {
+                        if let WorkflowNode::Agent(an) = node {
+                            compiled_map.insert(
+                                an.base.id.clone(),
+                                compile_prompt(&an.config.system_prompt),
+                            );
+                        }
+                    }
+                    self.compiled_prompts
+                        .write()
+                        .await
+                        .insert(workflow_id.to_string(), compiled_map);
+                }
+            }
+        }
+
         let total_nodes = {
             let workflows = self.workflows.read().await;
             workflows
@@ -676,6 +716,12 @@ impl WorkEngine {
                 serde_json::json!({}),
             );
             exec_ctx.variables = deps_results;
+
+            // 注入编译后的 prompt 模板
+            {
+                let compiled = self.compiled_prompts.read().await;
+                exec_ctx.compiled_prompts = compiled.get(workflow_id).cloned();
+            }
 
             // 注入运行时回调到执行上下文
             {
