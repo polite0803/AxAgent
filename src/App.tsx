@@ -28,6 +28,7 @@ import {
   useSettingsStore,
   useSkillExtensionStore,
   useStreamStore,
+  useUIStore,
 } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
@@ -94,6 +95,7 @@ function AppInner() {
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
 
   // 同步检测 QuickBar 窗口（在首次渲染前），避免 ChatPage 先渲染导致崩溃
   const [isQuickBarWindow] = useState(() => {
@@ -274,7 +276,7 @@ function AppInner() {
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
               <div className="main-area">
-                <nav className="nav-sidebar">
+                <nav className={`nav-sidebar${sidebarCollapsed ? "" : " expanded"}`}>
                   <ModuleErrorBoundary moduleName="Sidebar">
                     <Sidebar />
                   </ModuleErrorBoundary>

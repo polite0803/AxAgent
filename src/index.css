@@ -1609,7 +1609,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   overflow: hidden;
 }
 
-/* ── 导航侧栏 (窄图标模式) ── */
+/* ── 导航侧栏 ── */
 .nav-sidebar {
   width: var(--nav-w);
   min-width: var(--nav-w);
@@ -1621,6 +1621,14 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   padding: 4px 0;
   gap: 1px;
   overflow: hidden;
+  transition: width 0.2s var(--ease), min-width 0.2s var(--ease);
+}
+/* 展开模式：宽侧栏，左对齐（图标+标签） */
+.nav-sidebar.expanded {
+  width: 200px;
+  min-width: 200px;
+  align-items: stretch;
+  padding: 4px 6px;
 }
 .nav-item {
   width: 30px;
