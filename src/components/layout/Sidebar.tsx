@@ -23,6 +23,7 @@ const pageKeyToPath: Record<PageKey, string> = {
   gateway: "/gateway",
   files: "/files",
   terminal: "/terminal",
+  workflow: "/workflow",
   settings: "/settings",
 };
 
@@ -83,6 +84,13 @@ const builtinNavItems: NavItem[] = [
     icon: <Icon icon="fluent:folder-20-filled" size={17} />,
     labelKey: "nav.files",
     path: "/files",
+    isPlugin: false,
+  },
+  {
+    key: "workflow",
+    icon: <Icon icon="fluent:flow-20-filled" size={17} />,
+    labelKey: "nav.workflow",
+    path: "/workflow",
     isPlugin: false,
   },
 ];
@@ -361,7 +369,9 @@ export function Sidebar() {
     sections.push({
       key: "infrastructure",
       labelKey: "sidebar.sectionInfrastructure",
-      items: builtinNavItems.filter((n) => n.key === "gateway" || n.key === "terminal" || n.key === "files"),
+      items: builtinNavItems.filter((n) =>
+        n.key === "gateway" || n.key === "terminal" || n.key === "files" || n.key === "workflow"
+      ),
     });
 
     if (bottomPlugins.length > 0) {

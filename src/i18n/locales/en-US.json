@@ -22,6 +22,7 @@
     "gateway": "Gateway",
     "terminal": "Terminal",
     "files": "Files",
+    "workflow": "Workflow",
     "settings": "Settings",
     "skills": "Skills",
     "marketplace": "Marketplace",
@@ -2054,6 +2055,7 @@
       "fileCount": "files",
       "images": "Images",
       "files": "Files",
+      "workflow": "Workflow",
       "backups": "Backups",
       "documentsRoot": "Storage Location",
       "changeDir": "Change Directory",
@@ -3119,6 +3121,7 @@
   "files": {
     "images": "Images",
     "files": "Files",
+    "workflow": "Workflow",
     "backups": "Backups",
     "columnName": "Name",
     "columnSize": "Size",

@@ -15,6 +15,7 @@
     "gateway": "ゲートウェイ",
     "terminal": "ターミナル",
     "files": "ファイル",
+    "workflow": "ワークフロー",
     "settings": "設定",
     "skills": "スキル",
     "marketplace": "マーケットプレイス",
@@ -1910,6 +1911,7 @@
       "fileCount": "ファイル",
       "images": "画像",
       "files": "ファイル",
+      "workflow": "ワークフロー",
       "backups": "バックアップ",
       "documentsRoot": "保存場所",
       "changeDir": "ディレクトリを変更",
@@ -2882,6 +2884,7 @@
   "files": {
     "images": "画像",
     "files": "ファイル",
+    "workflow": "ワークフロー",
     "backups": "バックアップ",
     "columnName": "名前",
     "columnSize": "サイズ",

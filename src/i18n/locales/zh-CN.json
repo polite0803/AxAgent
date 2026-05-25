@@ -21,6 +21,7 @@
     "gateway": "网关",
     "terminal": "终端",
     "files": "文件",
+    "workflow": "工作流",
     "settings": "设置",
     "skills": "技能",
     "marketplace": "市场",
@@ -1881,6 +1882,7 @@
       "fileCount": "个文件",
       "images": "图片",
       "files": "文件",
+      "workflow": "工作流",
       "backups": "备份",
       "documentsRoot": "存储位置",
       "changeDir": "更改目录",
@@ -2851,6 +2853,7 @@
   "files": {
     "images": "图片",
     "files": "文件",
+    "workflow": "工作流",
     "backups": "备份",
     "columnName": "文件名",
     "columnSize": "大小",

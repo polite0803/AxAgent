@@ -15,6 +15,7 @@
     "gateway": "閘道",
     "terminal": "終端",
     "files": "檔案",
+    "workflow": "工作流",
     "settings": "設定",
     "skills": "技能",
     "marketplace": "市場",
@@ -1867,6 +1868,7 @@
       "fileCount": "個檔案",
       "images": "圖片",
       "files": "檔案",
+      "workflow": "工作流",
       "backups": "備份",
       "documentsRoot": "儲存位置",
       "changeDir": "更改目錄",
@@ -2882,6 +2884,7 @@
   "files": {
     "images": "圖片",
     "files": "檔案",
+    "workflow": "工作流",
     "backups": "備份",
     "columnName": "檔名",
     "columnSize": "大小",
