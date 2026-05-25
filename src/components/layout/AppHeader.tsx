@@ -68,6 +68,7 @@ export function AppHeader() {
       style={{
         height: 40,
         minHeight: 40,
+        minWidth: 0,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
