@@ -110,11 +110,15 @@ export function SettingsSidebar() {
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
-  const isMobile = deviceLayout === "mobile";
+  const isSmall = deviceLayout === "mobile" || deviceLayout === "tablet";
 
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    new Set(),
-  );
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    // 小屏默认折叠所有分组，节省垂直空间
+    if (isSmall) {
+      return new Set(Object.keys(TAB_GROUPS));
+    }
+    return new Set();
+  });
 
   const toggleGroup = useCallback((key: string) => {
     setCollapsedGroups((prev) => {
@@ -181,7 +185,7 @@ export function SettingsSidebar() {
           <polyline points="12 19 5 12 12 5" />
         </svg>
         <span>{t("common.back")}</span>
-        {!isMobile && <kbd className="settings-back-kbd">Esc</kbd>}
+        {!isSmall && <kbd className="settings-back-kbd">Esc</kbd>}
       </button>
 
       <div style={{ flex: 1, overflowY: "auto" }}>

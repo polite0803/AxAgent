@@ -236,7 +236,7 @@ export function SettingsPage() {
   const workflowEditorOpen = useUIStore((s) => s.workflowEditorOpen);
   const openWorkflowEditor = useUIStore((s) => s.openWorkflowEditor);
   const closeWorkflowEditor = useUIStore((s) => s.closeWorkflowEditor);
-  const isMobile = deviceLayout === "mobile";
+  const isSmallScreen = deviceLayout === "mobile" || deviceLayout === "tablet";
   const ContentComponent = SECTION_COMPONENTS[settingsSection as keyof typeof SECTION_COMPONENTS];
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
 
@@ -315,7 +315,7 @@ export function SettingsPage() {
 
   return (
     <div className="settings-layout" data-testid="settings-panel">
-      {!isMobile && (
+      {!isSmallScreen && (
         <>
           <div className="settings-sidebar" style={{ width: sidebarWidth }}>
             <SettingsSidebar />
@@ -337,8 +337,8 @@ export function SettingsPage() {
         </>
       )}
       <div className="settings-content">
-        {isMobile && (
-          <div className="w-full shrink-0">
+        {isSmallScreen && (
+          <div className="settings-sidebar">
             <SettingsSidebar />
           </div>
         )}
