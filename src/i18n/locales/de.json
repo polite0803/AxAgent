@@ -3010,7 +3010,8 @@
     "proposals": "Vorschläge",
     "dismiss": "Verwerfen",
     "atomic": "Atomar",
-    "extractAtomic": "Atomare Fähigkeiten extrahieren"
+    "extractAtomic": "Atomare Fähigkeiten extrahieren",
+    "stats": "Stats"
   },
   "agent": {
     "askUserPlaceholder": "Geben Sie Ihre Antwort ein...",

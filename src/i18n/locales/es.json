@@ -3010,7 +3010,8 @@
     "proposals": "Proposals",
     "dismiss": "Dismiss",
     "atomic": "Atomic",
-    "extractAtomic": "Extract Atomic Skills"
+    "extractAtomic": "Extract Atomic Skills",
+    "stats": "Stats"
   },
   "agent": {
     "askUserPlaceholder": "Escriba su respuesta...",

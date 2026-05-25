@@ -3010,7 +3010,8 @@
     "popular": "热门",
     "proposals": "提案",
     "save": "保存",
-    "sort": "排序"
+    "sort": "排序",
+    "stats": "Stats"
   },
   "agent": {
     "askUserPlaceholder": "回答を入力...",

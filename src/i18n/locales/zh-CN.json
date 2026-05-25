@@ -2979,7 +2979,8 @@
     "popular": "热门",
     "proposals": "提案",
     "save": "保存",
-    "sort": "排序"
+    "sort": "排序",
+    "stats": "统计"
   },
   "agent": {
     "askUserPlaceholder": "输入您的回答...",

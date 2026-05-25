@@ -3247,7 +3247,8 @@
     "popular": "Popular",
     "proposals": "Proposals",
     "save": "Save",
-    "sort": "Sort"
+    "sort": "Sort",
+    "stats": "Stats"
   },
   "agent": {
     "askUserPlaceholder": "Type your answer...",

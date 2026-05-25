@@ -647,16 +647,14 @@ export function SkillsPage() {
           setMarketplaceDetailContent({
             name: skill.name,
             repo: skill.repo,
-            content: `(${
-              result.error || t("skills.marketplace.skillsMdNotFound") || "Skill definition file not found"
-            })`,
+            content: `(${result.error || t("skills.marketplace.skillsMdNotFound")})`,
           });
         }
       } catch {
         setMarketplaceDetailContent({
           name: skill.name,
           repo: skill.repo,
-          content: `(${t("skills.marketplace.skillsMdFetchFailed") || "Failed to fetch skill content"})`,
+          content: `(${t("skills.marketplace.skillsMdFetchFailed")})`,
         });
       } finally {
         setMarketplaceDetailLoading(false);
@@ -1139,9 +1137,9 @@ export function SkillsPage() {
             onChange={(v) => setSortOrder(v)}
             style={{ width: 100, flexShrink: 0 }}
             options={[
-              { value: "popular", label: t("skills.sortPopular") || "Popular" },
-              { value: "latest", label: t("skills.sortLatest") || "Latest" },
-              { value: "stars", label: t("skills.sortStars") || "Stars" },
+              { value: "popular", label: t("skills.sortPopular") },
+              { value: "latest", label: t("skills.sortLatest") },
+              { value: "stars", label: t("skills.sortStars") },
             ]}
           />
           <Input.Search
@@ -1275,7 +1273,7 @@ export function SkillsPage() {
                   }}
                 >
                   <BarChart3 size={14} color={CHAT_ICON_COLORS.Chart} />
-                  {t("skills.stats") || "Stats"}
+                  {t("skills.stats")}
                 </span>
               ),
               children: (

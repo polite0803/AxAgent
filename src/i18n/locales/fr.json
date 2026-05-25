@@ -3010,7 +3010,8 @@
     "proposals": "Propositions",
     "dismiss": "Ignorer",
     "atomic": "Atomique",
-    "extractAtomic": "Extraire les compétences atomiques"
+    "extractAtomic": "Extraire les compétences atomiques",
+    "stats": "Stats"
   },
   "agent": {
     "askUserPlaceholder": "Saisissez votre réponse...",
