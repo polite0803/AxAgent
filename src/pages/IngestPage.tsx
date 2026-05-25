@@ -184,7 +184,7 @@ export function IngestPage() {
                   </span>
                 ),
                 children: (
-                  <Card className="max-w-2xl mx-auto">
+                  <Card>
                     <IngestPanel wikiId={displayWikiId} />
                   </Card>
                 ),

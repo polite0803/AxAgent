@@ -127,7 +127,7 @@ export function GatewayMonitor() {
   ];
 
   return (
-    <div style={{ padding: "16px 24px", maxWidth: 1200, margin: "0 auto" }}>
+    <div className="gw-page">
       <div
         style={{
           display: "flex",

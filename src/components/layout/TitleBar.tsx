@@ -556,6 +556,9 @@ export function TitleBar() {
         )
         : <div />}
 
+      {/* Spacer: pushes buttons to the right */}
+      <div className="titlebar-drag" />
+
       <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
         {!IS_ANDROID && (
           <div className="titlebar-actions">
