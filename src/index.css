@@ -1544,6 +1544,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   --radius: 6px;
   --radius-lg: 10px;
   --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* 对话内容最大宽度 — 保证大屏可读性 */
+  --chat-max-w: 820px;
+  /* 流体页面内边距 — 400px→10px, 600px→15px, 900px→22px, 1120px→28px */
+  --content-px: clamp(10px, 2.5vw, 28px);
+  --content-py: clamp(8px, 1.8vw, 20px);
 }
 
 @media (max-width: 600px) {
@@ -1922,12 +1927,18 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 28px 0;
+  padding: var(--content-py) var(--content-px) 0;
+  max-width: var(--chat-max-w);
+  margin: 0 auto;
+  width: 100%;
 }
 .chat-input-area {
-  padding: 10px 28px 14px;
+  padding: 10px var(--content-px) 14px;
   border-top: 1px solid var(--border-color);
   background: var(--color-bg, var(--color-bg-container));
+  max-width: var(--chat-max-w);
+  margin: 0 auto;
+  width: 100%;
 }
 .chat-input-box {
   display: flex;
@@ -2282,8 +2293,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 @media (max-width: 900px) {
   .right-panel { position: absolute; top: 0; bottom: 0; right: 0; z-index: 100; box-shadow: -4px 0 24px rgba(0,0,0,.3); }
   .right-panel.open { width: 50vw; min-width: 320px; max-width: 420px; }
-  .chat-messages { padding: 14px 20px 0; }
-  .chat-input-area { padding: 8px 20px 10px; }
   .nav-tooltip { display: block; }
   .titlebar-logo span { display: none; }
 }
@@ -2291,8 +2300,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* 手机: 进一步压缩 */
 @media (max-width: 600px) {
   .right-panel.open { width: 85vw; min-width: 0; max-width: 100vw; }
-  .chat-messages { padding: 12px 12px 0; }
-  .chat-input-area { padding: 6px 10px 10px; }
   .chat-input-box { padding: 6px 10px; border-radius: var(--radius); }
   .msg-row { gap: 8px; }
   .nav-sidebar { width: 36px; min-width: 36px; }
