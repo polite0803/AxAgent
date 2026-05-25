@@ -272,8 +272,8 @@ export function ShortcutSettings() {
             return (
               <div key={action}>
                 {index > 0 && <Divider style={{ margin: "4px 0" }} />}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex flex-col">
+                <div className="flex items-center justify-between gap-3" style={{ flexWrap: "wrap" }}>
+                  <div className="flex flex-col" style={{ flex: 1, minWidth: 120 }}>
                     <span>{t(descriptor.labelKey)}</span>
                     {descriptor.supportsGlobal
                       ? (
@@ -324,7 +324,7 @@ export function ShortcutSettings() {
                       onKeyDown={(event) => {
                         void onCaptureKeyDown(action, event);
                       }}
-                      style={{ width: 260 }}
+                      style={{ width: 140, maxWidth: 200, fontFamily: "monospace", textAlign: "center" }}
                     />
                     <Button
                       type={recordingAction === action ? "primary" : "default"}
