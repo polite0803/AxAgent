@@ -4982,7 +4982,8 @@
     "loadError": "加载 Skill 失败",
     "analyzeFrontend": "AI 分析生成",
     "analyzeSuccess": "智能分析完成",
-    "analyzeError": "智能分析失败: {{error}}"
+    "analyzeError": "智能分析失败: {{error}}",
+    "generateAgent": "生成智能体"
   },
   "task": {
     "title": "后台任务",

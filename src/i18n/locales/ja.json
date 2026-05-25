@@ -4909,7 +4909,8 @@
     "loadError": "Failed to load skill",
     "analyzeFrontend": "AI Generate",
     "analyzeSuccess": "AI analysis complete",
-    "analyzeError": "AI analysis failed: {{error}}"
+    "analyzeError": "AI analysis failed: {{error}}",
+    "generateAgent": "Generate Agent"
   },
   "task": {
     "title": "バックグラウンドタスク",

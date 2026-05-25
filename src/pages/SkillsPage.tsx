@@ -180,20 +180,21 @@ function SkillCard({
       style={{ marginBottom: 8 }}
       styles={{ body: { padding: "12px 16px" } }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: 8,
               marginBottom: 4,
+              flexWrap: "wrap",
             }}
           >
             <Text
               strong
               className="skill-card-title"
-              style={{ cursor: "pointer" }}
+              style={{ cursor: "pointer", whiteSpace: "nowrap" }}
               onClick={() => onDetail(skill.name)}
             >
               {skill.name}
@@ -236,8 +237,9 @@ function SkillCard({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 4,
             flexShrink: 0,
+            flexWrap: "wrap",
           }}
         >
           <Switch
