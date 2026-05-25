@@ -12,7 +12,7 @@ use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
-use axagent_core::workflow_types::{JsonSchema, WorkflowEdge, WorkflowNode};
+use axagent_core::workflow_types::{JsonSchema, Variable, WorkflowEdge, WorkflowNode};
 
 use crate::workflow_engine::{
     NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus, current_epoch_ms,
@@ -54,6 +54,8 @@ pub struct RunOptions {
     pub input_schema: Option<JsonSchema>,
     /// 输出 JSON Schema（非空时对 results 做过滤，写入 Workflow.output）
     pub output_schema: Option<JsonSchema>,
+    /// 模板级变量列表（来自 WorkflowTemplateData.variables），写入执行上下文
+    pub variables: Option<Vec<Variable>>,
 }
 
 /// 步骤进度事件
@@ -82,6 +84,7 @@ impl std::fmt::Debug for RunOptions {
             .field("input", &self.input)
             .field("input_schema", &self.input_schema.is_some())
             .field("output_schema", &self.output_schema.is_some())
+            .field("variables", &self.variables.as_ref().map(|v| v.len()))
             .finish()
     }
 }
@@ -96,6 +99,7 @@ impl Default for RunOptions {
             input: None,
             input_schema: None,
             output_schema: None,
+            variables: None,
         }
     }
 }
@@ -118,6 +122,11 @@ impl RunOptions {
     }
     pub fn with_progress_callback(mut self, cb: ProgressCallback) -> Self {
         self.progress_callback = Some(cb);
+        self
+    }
+    /// 注入模板级变量列表，运行时写入 ExecutionState.variables
+    pub fn with_variables(mut self, variables: Vec<Variable>) -> Self {
+        self.variables = Some(variables);
         self
     }
 }
@@ -606,6 +615,16 @@ impl WorkEngine {
                     "__workflow_model__".to_string(),
                     serde_json::Value::String(model_id.clone()),
                 );
+            }
+        }
+
+        // 将模板级变量写入执行上下文，供工具节点和 Agent 节点引用
+        if let Some(ref variables) = options.variables {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(&execution_id) {
+                for var in variables {
+                    state.variables.insert(var.name.clone(), var.value.clone());
+                }
             }
         }
 

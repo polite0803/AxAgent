@@ -115,10 +115,14 @@ impl NodeExecutorTrait for ToolExecutor {
 
 fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::Value> {
     let parts: Vec<&str> = path.split('.').collect();
-    let root = context.variables.get(parts[0])?.clone();
-    let mut current = root;
-    for part in &parts[1..] {
-        current = current.get(part)?.clone();
+    // 尝试按节点输出路径解析：root 为节点 ID，后续为嵌套字段
+    if let Some(root) = context.variables.get(parts[0]) {
+        let mut current = root.clone();
+        for part in &parts[1..] {
+            current = current.get(part)?.clone();
+        }
+        return Some(current);
     }
-    Some(current)
+    // fallback：root 不是节点 ID，将整个 path 作为模板变量名直查
+    context.variables.get(path).cloned()
 }

@@ -3806,6 +3806,7 @@ pub async fn workflow_execute(
     app_state: State<'_, AppState>,
     workflow_id: String,
     model_id: Option<String>,
+    variables: Option<Vec<axagent_core::workflow_types::Variable>>,
 ) -> Result<String, String> {
     // 验证工作流存在
     let _ = app_state
@@ -3857,6 +3858,9 @@ pub async fn workflow_execute(
         let mut opts = axagent_runtime::work_engine::RunOptions::default();
         if let Some(m) = model_id {
             opts = opts.with_model(m);
+        }
+        if let Some(vars) = variables {
+            opts = opts.with_variables(vars);
         }
         if let Err(e) = engine.run_workflow(&wid, opts).await {
             tracing::error!("[workflow] 执行失败: {}", e);

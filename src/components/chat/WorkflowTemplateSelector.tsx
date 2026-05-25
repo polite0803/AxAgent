@@ -26,6 +26,8 @@ export interface WorkflowTemplate {
   edges?: { source: string; target: string }[];
   /** 是否场景限定模板 */
   scenarios?: string[];
+  /** 模板变量 */
+  variables?: import("@/components/workflow/types").Variable[];
 }
 
 /**
@@ -60,6 +62,7 @@ function mapBackendTemplate(
     tags: bt.tags || [],
     steps: steps.length > 0 ? steps : undefined,
     edges: edges.length > 0 ? edges : undefined,
+    variables: bt.variables?.length ? bt.variables : undefined,
   };
 }
 
@@ -191,7 +194,10 @@ export const WorkflowTemplateSelector: React.FC<
         });
 
         try {
-          await invoke("workflow_execute", { workflowId: result.workflowId });
+          await invoke("workflow_execute", {
+            workflowId: result.workflowId,
+            variables: template.variables || null,
+          });
         } catch (execErr) {
           console.error(
             "[WorkflowTemplateSelector] Workflow created but execution failed:",
