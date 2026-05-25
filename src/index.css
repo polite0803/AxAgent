@@ -1014,7 +1014,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   }
 
   /* Sidebar: ultra-compact in landscape */
-  .ax-sidebar {
+  .nav-sidebar {
     width: 48px !important;
     min-width: 48px !important;
     padding: 4px 2px !important;

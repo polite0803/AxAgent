@@ -441,10 +441,9 @@ export function Sidebar() {
       <Tooltip title={t("help.title")} placement="right">
         <button
           type="button"
-          className="ax-sidebar-user"
+          className="nav-item"
           onClick={toggleHelp}
           aria-label={t("help.title")}
-          style={{ justifyContent: "center" }}
         >
           <Icon icon="fluent:question-circle-20-filled" size={17} />
         </button>

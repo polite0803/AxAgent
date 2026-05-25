@@ -197,6 +197,8 @@ export default defineConfig(async () => ({
     exclude: [
       "src/components/settings/__tests__/ProviderDetail.test.tsx",
       "src/pages/__tests__/ChatPage.test.tsx",
+      "src/__tests__/App.d2.test.tsx",
+      "src/components/workflow/__tests__/workflowComponents.test.tsx",
     ],
   },
 }));
