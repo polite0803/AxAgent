@@ -140,7 +140,7 @@ export const ContentArea = memo(function ContentArea() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <AppHeader />
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
         <Routes>
           <Route path="/" element={<SafeLazyPage Page={LazyChatPage} />} />
           <Route
