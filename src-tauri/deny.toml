@@ -1,8 +1,5 @@
 [advisories]
 unmaintained = "workspace"
-ignore = [
-    "RUSTSEC-2025-0012", # backoff: 已有依赖，待 migrate 到 backon
-]
 
 [licenses]
 private = { ignore = true }

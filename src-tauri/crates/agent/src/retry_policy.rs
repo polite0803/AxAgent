@@ -1,6 +1,6 @@
 use crate::recovery_strategies::{ErrorClassifier, ErrorType};
-use backoff::ExponentialBackoff;
-use backoff::backoff::Backoff;
+use backon::BackoffBuilder;
+use backon::ExponentialBuilder;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -46,20 +46,16 @@ impl RetryPolicy {
         self
     }
 
-    /// 构建 `backoff::ExponentialBackoff`，将自研退避逻辑委托给社区 crate
-    fn to_backoff(&self) -> ExponentialBackoff {
-        let mut eb = ExponentialBackoff {
-            current_interval: self.base_delay,
-            initial_interval: self.base_delay,
-            max_interval: self.max_delay,
-            max_elapsed_time: None, // 由 should_retry 控制终止
-            randomization_factor: if self.jitter { 0.1 } else { 0.0 },
-            multiplier: if self.exponential_backoff { 2.0 } else { 1.0 },
-            ..ExponentialBackoff::default()
-        };
-        // reset 到初始状态
-        eb.reset();
-        eb
+    /// 构建 `backon::ExponentialBuilder` 的迭代器，将自研退避逻辑委托给社区 crate
+    fn build_backoff(&self) -> impl Iterator<Item = Duration> {
+        let mut builder = ExponentialBuilder::default()
+            .with_min_delay(self.base_delay)
+            .with_max_delay(self.max_delay)
+            .with_factor(if self.exponential_backoff { 2.0 } else { 1.0 });
+        if self.jitter {
+            builder = builder.with_jitter();
+        }
+        builder.build()
     }
 
     pub fn should_retry(&self, attempt: usize, error_type: ErrorType) -> bool {
@@ -69,13 +65,13 @@ impl RetryPolicy {
         self.retry_on.contains(&error_type)
     }
 
-    /// 委托给 `backoff::ExponentialBackoff` 计算下次延迟
+    /// 委托给 `backon::ExponentialBuilder` 计算下次延迟
     pub fn next_delay(&self, attempt: usize) -> Duration {
-        let mut eb = self.to_backoff();
+        let mut it = self.build_backoff();
         for _ in 0..attempt {
-            let _ = eb.next_backoff();
+            it.next();
         }
-        eb.next_backoff().unwrap_or(self.max_delay)
+        it.next().unwrap_or(self.max_delay)
     }
 
     pub fn total_timeout(&self) -> Duration {
@@ -140,7 +136,7 @@ where
     let classifier = ErrorClassifier::new();
     let mut state = RetryState::new();
     let start = std::time::Instant::now();
-    let mut backoff = policy.to_backoff();
+    let mut backoff = policy.build_backoff();
 
     loop {
         match f().await {
@@ -160,7 +156,7 @@ where
                     });
                 }
 
-                let delay = backoff.next_backoff().unwrap_or(policy.max_delay);
+                let delay = backoff.next().unwrap_or(policy.max_delay);
                 state.increment(error_str.clone(), delay.as_millis() as u64);
 
                 if state.current_attempt >= policy.max_attempts {
