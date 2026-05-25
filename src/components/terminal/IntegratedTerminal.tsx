@@ -247,6 +247,7 @@ export function IntegratedTerminal({
         display: "flex",
         flexDirection: "column",
         flex: 1,
+        width: "100%",
         border: "1px solid #333",
         borderRadius: 8,
         overflow: "hidden",
