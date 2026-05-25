@@ -52,35 +52,35 @@ interface NavItem {
 const builtinNavItems: NavItem[] = [
   {
     key: "chat",
-    icon: <Icon icon="fluent:chat-20-filled" size={17} color={NAV_ICON_COLORS.MessageSquare} />,
+    icon: <Icon icon="fluent:chat-20-filled" size={17} />,
     labelKey: "nav.chat",
     path: "/",
     isPlugin: false,
   },
   {
     key: "knowledge",
-    icon: <Icon icon="fluent:book-database-20-filled" size={17} color={NAV_ICON_COLORS.Database} />,
+    icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
     labelKey: "nav.knowledge",
     path: "/knowledge",
     isPlugin: false,
   },
   {
     key: "gateway",
-    icon: <Icon icon="fluent:globe-20-filled" size={17} color={NAV_ICON_COLORS.Router} />,
+    icon: <Icon icon="fluent:globe-20-filled" size={17} />,
     labelKey: "nav.gateway",
     path: "/gateway",
     isPlugin: false,
   },
   {
     key: "terminal",
-    icon: <Icon icon="fluent:terminal-20-filled" size={17} color={NAV_ICON_COLORS.Database} />,
+    icon: <Icon icon="fluent:terminal-20-filled" size={17} />,
     labelKey: "nav.terminal",
     path: "/terminal",
     isPlugin: false,
   },
   {
     key: "files",
-    icon: <Icon icon="fluent:folder-20-filled" size={17} color={NAV_ICON_COLORS.Router} />,
+    icon: <Icon icon="fluent:folder-20-filled" size={17} />,
     labelKey: "nav.files",
     path: "/files",
     isPlugin: false,
@@ -94,7 +94,7 @@ interface SidebarSection {
 }
 
 const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 48;
+const SIDEBAR_COLLAPSED_WIDTH = 44;
 
 const NAV_SHORTCUT_MAP: Partial<Record<string, ShortcutAction>> = {
   gateway: "toggleGateway",
@@ -387,7 +387,7 @@ export function Sidebar() {
         flexDirection: "column",
         alignItems: "stretch",
         width: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
-        padding: sidebarCollapsed ? "8px 2px 8px" : "12px 8px 12px",
+        padding: sidebarCollapsed ? "4px 2px 4px" : "12px 8px 12px",
         overflow: "hidden",
         transition: "width 0.2s ease",
       }}
@@ -409,7 +409,7 @@ export function Sidebar() {
           flexShrink: 0,
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: 6,
         }}
       >
         {sections.map((section) => (
@@ -454,7 +454,7 @@ export function Sidebar() {
           onClick={() => navigate("/settings")}
           aria-label={t("settings.openSettings")}
         >
-          <Icon icon="fluent:settings-20-filled" size={17} color={"var(--color-text-quaternary)"} />
+          <Icon icon="fluent:settings-20-filled" size={17} />
         </button>
       </Tooltip>
 
@@ -470,7 +470,7 @@ export function Sidebar() {
           aria-label={t("help.title")}
           style={{ justifyContent: "center" }}
         >
-          <Icon icon="fluent:question-circle-20-filled" size={17} color={"var(--color-text-quaternary)"} />
+          <Icon icon="fluent:question-circle-20-filled" size={17} />
         </button>
       </Tooltip>
 

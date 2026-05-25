@@ -1653,45 +1653,43 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   overflow: hidden;
 }
 .nav-item {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius);
-  color: var(--color-text-secondary);
+  border-radius: 8px;
+  color: var(--fg);
+  background: transparent;
   position: relative;
-  transition: all 0.15s var(--ease);
+  transition: background 0.15s var(--ease);
   border: none;
-  background: none;
   cursor: pointer;
+  margin: 0 auto;
+  padding: 0;
+  font-size: 11px;
+  letter-spacing: 0.01em;
 }
-.nav-item:hover {
-  background: var(--accent-bg);
-  color: var(--color-primary);
-}
-.nav-item.active {
-  color: var(--color-primary);
-}
+.nav-item:hover { background: var(--accent-bg); }
+.nav-item.active { color: var(--accent); background: var(--accent-soft); }
 .nav-item.active::before {
   content: "";
   position: absolute;
-  left: -7px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: -2px;
+  top: 6px;
   width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--color-primary);
-  box-shadow: 0 0 5px var(--accent-soft);
+  height: 28px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent-soft);
 }
 .nav-item svg { width: 17px; height: 17px; }
 .nav-item.active svg { filter: drop-shadow(0 0 5px var(--accent-soft)); }
 .nav-spacer { flex: 1; }
 .nav-divider {
-  width: 20px;
+  width: 28px;
   height: 1px;
   background: var(--border-light);
-  margin: 3px 0;
+  margin: 4px auto;
 }
 
 /* ── 内容列 ── */
