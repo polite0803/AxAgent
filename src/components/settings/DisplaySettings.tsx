@@ -155,7 +155,7 @@ export function DisplaySettings() {
         <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-start justify-between">
           <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {THEME_PRESETS.map((preset) => {
               const isActive = (settings.theme_preset || "deep-dusk") === preset.key;
               return (
