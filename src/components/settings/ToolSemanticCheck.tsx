@@ -1,5 +1,6 @@
 import type { ToolUpgradeSuggestion } from "@/components/workflow/types/workflow.types";
 import { invoke } from "@/lib/invoke";
+import { useUIStore } from "@/stores";
 import type { LocalToolGroupInfo, LocalToolInfo } from "@/types";
 import { Button, Card, Empty, Input, List, message, Modal, Spin, Typography } from "antd";
 import { ArrowRight, CheckCircle, Search, Zap } from "lucide-react";
@@ -52,6 +53,8 @@ interface ToolUpgradeResponse {
 
 export function ToolSemanticCheck() {
   const { t } = useTranslation();
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+  const isSmall = deviceLayout === "mobile" || deviceLayout === "tablet";
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [matches, setMatches] = useState<NodeToolMatches[]>([]);
@@ -170,10 +173,18 @@ export function ToolSemanticCheck() {
   );
 
   return (
-    <div className="flex gap-4 flex-1" style={{ minHeight: 0 }}>
+    <div
+      className="flex gap-4 flex-1"
+      style={{ minHeight: 0, flexDirection: isSmall ? "column" : "row" }}
+    >
       <div
-        className="w-1/3 border rounded-lg overflow-hidden flex flex-col"
-        style={{ minHeight: 0 }}
+        className="border rounded-lg overflow-hidden flex flex-col"
+        style={{
+          minHeight: 0,
+          width: isSmall ? "100%" : "33.333%",
+          flexShrink: 0,
+          maxHeight: isSmall ? 300 : undefined,
+        }}
       >
         <div className="p-3 border-b shrink-0">
           <AntSearch
