@@ -10,8 +10,6 @@ import { useTranslation } from "react-i18next";
 
 /* Lazy-load settings sections on demand to avoid blocking first paint with 30+ eager imports. */
 const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
-const LazyWorkflowEditor = lazy(() => import("@/components/workflow").then((m) => ({ default: m.WorkflowEditor })));
-const LazyReactFlowProvider = lazy(() => import("reactflow").then((m) => ({ default: m.ReactFlowProvider })));
 const LazyNotificationCenter = lazy(() =>
   import("@/components/notification/NotificationCenter").then((m) => ({ default: m.NotificationCenter }))
 );
@@ -63,9 +61,6 @@ const LazyToolManager = lazy(() =>
 );
 const LazyBackupCenter = lazy(() =>
   import("@/components/settings/BackupCenter").then((m) => ({ default: m.BackupCenter }))
-);
-const LazyWorkflowSettings = lazy(() =>
-  import("@/components/settings/WorkflowSettings").then((m) => ({ default: m.WorkflowSettings }))
 );
 const LazySettingsPanel = lazy(() =>
   import("@/components/settings/SettingsPanel").then((m) => ({ default: m.SettingsPanel }))
@@ -196,11 +191,6 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
   backup: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyBackupCenter />
-    </Suspense>
-  ),
-  workflow: () => (
-    <Suspense fallback={<SectionFallback />}>
-      <LazyWorkflowSettings />
     </Suspense>
   ),
   appConfig: () => (
@@ -429,9 +419,6 @@ export function SettingsPage() {
   const { token } = theme.useToken();
   const settingsSection = useUIStore((s) => s.settingsSection);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
-  const workflowEditorOpen = useUIStore((s) => s.workflowEditorOpen);
-  const openWorkflowEditor = useUIStore((s) => s.openWorkflowEditor);
-  const closeWorkflowEditor = useUIStore((s) => s.closeWorkflowEditor);
   const isSmallScreen = deviceLayout === "mobile" || deviceLayout === "tablet";
   const ContentComponent = SECTION_COMPONENTS[settingsSection as keyof typeof SECTION_COMPONENTS];
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
@@ -471,48 +458,6 @@ export function SettingsPage() {
     )
     : null;
 
-  const [editingTemplateId, setEditingTemplateId] = useState<
-    string | undefined
-  >(undefined);
-
-  const handleOpenEditor = (templateId?: string) => {
-    setEditingTemplateId(templateId);
-    openWorkflowEditor();
-  };
-
-  const handleCreateNew = () => {
-    setEditingTemplateId(undefined);
-    openWorkflowEditor();
-  };
-
-  const handleCloseEditor = () => {
-    closeWorkflowEditor();
-    setEditingTemplateId(undefined);
-  };
-
-  const renderWorkflowContent = () => {
-    if (workflowEditorOpen) {
-      return (
-        <Suspense fallback={<SectionFallback />}>
-          <LazyReactFlowProvider>
-            <LazyWorkflowEditor
-              templateId={editingTemplateId}
-              onClose={handleCloseEditor}
-            />
-          </LazyReactFlowProvider>
-        </Suspense>
-      );
-    }
-    return (
-      <Suspense fallback={<SectionFallback />}>
-        <LazyWorkflowSettings
-          onOpenEditor={(templateId?: string) => handleOpenEditor(templateId)}
-          onCreateNew={handleCreateNew}
-        />
-      </Suspense>
-    );
-  };
-
   return (
     <div className="settings-layout" data-testid="settings-panel">
       {!isSmallScreen && (
@@ -542,11 +487,7 @@ export function SettingsPage() {
             <SettingsSidebar />
           </div>
         )}
-        {settingsSection === "workflow"
-          ? (
-            renderWorkflowContent()
-          )
-          : isSkillSection && skillSectionData
+        {isSkillSection && skillSectionData
           ? (
             <SectionErrorBoundary sectionKey={settingsSection}>
               <SkillPageRenderer

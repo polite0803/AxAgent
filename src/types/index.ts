@@ -713,7 +713,6 @@ export type SettingsSection =
   | "searchProviders"
   | "localTools"
   | "mcpServers"
-  | "workflow"
   | "tools"
   | "userProfile"
   | "skillsHub"
