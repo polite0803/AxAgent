@@ -63,11 +63,11 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
   closeWorkflowEditor: () => set({ workflowEditorOpen: false }),
   setDeviceLayout: (layout) => {
-    set(() => {
+    set((s) => {
       const updates: Partial<UIState> = { deviceLayout: layout };
-      // 移动端/平板 → 侧栏强制折叠
-      if (layout === "mobile" || layout === "tablet") {
-        updates.sidebarCollapsed = true;
+      // 布局模式切换时 → 小屏自动折叠，大屏自动展开
+      if (layout !== s.deviceLayout) {
+        updates.sidebarCollapsed = layout === "mobile" || layout === "tablet";
       }
       return updates;
     });
