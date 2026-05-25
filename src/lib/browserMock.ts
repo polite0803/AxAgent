@@ -2898,7 +2898,7 @@ export async function handleCommand<T>(
         return [] as unknown as T;
       }
       if (cmd.startsWith("get_")) {
-        return null as unknown as T;
+        return {} as unknown as T;
       }
       return undefined as T;
     }
