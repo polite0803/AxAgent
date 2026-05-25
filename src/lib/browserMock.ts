@@ -2891,8 +2891,16 @@ export async function handleCommand<T>(
     case "pty_clear_output":
       return null as T;
 
-    default:
+    default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
+      // Safe defaults based on command naming convention
+      if (cmd.startsWith("list_") || cmd.endsWith("_list") || cmd.includes("_list_") || cmd.endsWith("s")) {
+        return [] as unknown as T;
+      }
+      if (cmd.startsWith("get_")) {
+        return null as unknown as T;
+      }
       return undefined as T;
+    }
   }
 }
