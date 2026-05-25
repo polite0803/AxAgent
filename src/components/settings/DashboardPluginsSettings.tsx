@@ -45,7 +45,7 @@ export function DashboardPluginsSettings() {
       const result = await invoke<DashboardPluginInfo[]>(
         "dashboard_list_plugins",
       );
-      setPlugins(result);
+      setPlugins(Array.isArray(result) ? result : []);
     } catch (error) {
       message.error(`Failed to load plugins: ${error}`);
     } finally {

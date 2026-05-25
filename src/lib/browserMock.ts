@@ -2866,6 +2866,10 @@ export async function handleCommand<T>(
       } as T;
     }
 
+    // ── Dashboard Plugins (mock) ────────────────────────────────────
+    case "dashboard_list_plugins":
+      return [] as T;
+
     // ── Prompt Templates (mock) ─────────────────────────────────────
     case "list_prompt_templates":
       return [] as T;
