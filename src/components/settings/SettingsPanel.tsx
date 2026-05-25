@@ -858,7 +858,7 @@ export function SettingsPanel() {
       label: (
         <span className="flex items-center gap-1.5">
           <Zap size={14} />
-          Features
+          {t("settings.agent.features")}
         </span>
       ),
       children: <FeaturesTab />,
@@ -868,7 +868,7 @@ export function SettingsPanel() {
       label: (
         <span className="flex items-center gap-1.5">
           <Bot size={14} />
-          Agents
+          {t("settings.agent.agents")}
         </span>
       ),
       children: <AgentsTab />,
@@ -878,7 +878,7 @@ export function SettingsPanel() {
       label: (
         <span className="flex items-center gap-1.5">
           <Terminal size={14} />
-          Hooks
+          {t("settings.agent.hooks")}
         </span>
       ),
       children: <HooksTab />,
@@ -886,7 +886,7 @@ export function SettingsPanel() {
   ];
 
   return (
-    <div className="h-full" style={{ overflowY: "auto" }} data-os-scrollbar>
+    <div className="h-full" style={{ overflowY: "auto", overflowX: "hidden" }} data-os-scrollbar>
       <div
         style={{
           padding: "20px 24px 16px",

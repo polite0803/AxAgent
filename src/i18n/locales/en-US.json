@@ -2516,7 +2516,10 @@
       "qualityThreshold": "Quality Threshold",
       "debugMode": "Debug Mode",
       "debugLevel": "Debug Level",
-      "resetDefaults": "Reset to defaults"
+      "resetDefaults": "Reset to defaults",
+      "features": "Features",
+      "agents": "Agents",
+      "hooks": "Hooks"
     },
     "skillsHub": {
       "title": "Skills Hub",

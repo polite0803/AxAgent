@@ -2440,7 +2440,10 @@
       "statusRunning": "运行中",
       "toolsLabel": "工具",
       "typeLabel": "类型",
-      "workspaceWrite": "工作区写入"
+      "workspaceWrite": "工作区写入",
+      "features": "功能",
+      "agents": "Agents",
+      "hooks": "Hooks"
     },
     "activeProfile": "当前配置",
     "createProfile": "创建配置",

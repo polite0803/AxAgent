@@ -2432,7 +2432,10 @@
       "statusRunning": "Running",
       "toolsLabel": "Tools",
       "typeLabel": "Type",
-      "workspaceWrite": "Workspace Write"
+      "workspaceWrite": "Workspace Write",
+      "features": "Features",
+      "agents": "Agents",
+      "hooks": "Hooks"
     },
     "activeProfile": "Active Profile",
     "createProfile": "Create Profile",
