@@ -51,6 +51,18 @@ pub struct JsonSchema {
     pub items: Option<Box<JsonSchema>>,
 }
 
+/// 工具定义 —— 包含名称、描述和参数 JSON Schema。
+///
+/// 反序列化支持向后兼容：旧格式的纯字符串自动转为 ToolDef { name, ..Default::default() }。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolDef {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parameters: Option<JsonSchema>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonSchemaProperty {
     #[serde(rename = "type")]
@@ -192,11 +204,16 @@ pub struct AgentNodeConfig {
     pub model: Option<String>,
     pub temperature: Option<f32>,
     pub max_tokens: Option<u32>,
-    pub tools: Vec<String>,
+    /// 工具列表，支持向后兼容旧格式 `["name1", "name2"]`
+    #[serde(deserialize_with = "deserialize_tool_defs")]
+    pub tools: Vec<ToolDef>,
     pub output_mode: OutputMode,
     pub agent_profile_id: Option<String>,
     #[serde(default)]
     pub agent_role_override: Option<String>,
+    /// Agent 多轮工具调用最大轮数，默认 1（不配置则仅单轮）
+    #[serde(default)]
+    pub max_tool_rounds: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -273,6 +290,9 @@ pub struct Condition {
 pub struct ConditionNodeConfig {
     pub conditions: Vec<Condition>,
     pub logical_op: LogicalOperator,
+    /// 启用 LLM 动态路由：由 AI 判断走哪条分支（忽略 conditions 静态规则）
+    #[serde(default)]
+    pub judge_by_llm: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -851,10 +871,15 @@ impl WorkflowMigrator {
                             model: None,
                             temperature: None,
                             max_tokens: None,
-                            tools: vec![tool_node.config.tool_name.clone()],
+                            tools: vec![ToolDef {
+                                name: tool_node.config.tool_name.clone(),
+                                description: None,
+                                parameters: None,
+                            }],
                             output_mode: OutputMode::Text,
                             agent_profile_id: None,
                             agent_role_override: None,
+                            max_tool_rounds: None,
                         },
                     }))
                 },
@@ -881,6 +906,7 @@ impl WorkflowMigrator {
                             output_mode: OutputMode::Text,
                             agent_profile_id: None,
                             agent_role_override: None,
+                            max_tool_rounds: None,
                         },
                     }))
                 },
@@ -905,4 +931,29 @@ impl WorkflowMigrator {
             .iter()
             .any(|n| matches!(n, WorkflowNode::Tool(_) | WorkflowNode::Code(_)))
     }
+}
+
+// ── 自定义反序列化 ──
+
+/// 向后兼容的 ToolDef 反序列化：支持 `["name1", "name2"]`（旧）和 `[{name: "x"}]`（新）
+fn deserialize_tool_defs<'de, D>(deserializer: D) -> Result<Vec<ToolDef>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de;
+    let values: Vec<serde_json::Value> = Vec::deserialize(deserializer)?;
+    values
+        .into_iter()
+        .map(|v| {
+            if let Some(s) = v.as_str() {
+                Ok(ToolDef {
+                    name: s.to_string(),
+                    description: None,
+                    parameters: None,
+                })
+            } else {
+                ToolDef::deserialize(v).map_err(de::Error::custom)
+            }
+        })
+        .collect()
 }

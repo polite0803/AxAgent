@@ -39,6 +39,8 @@ pub struct Workflow {
     pub results: HashMap<String, serde_json::Value>,
     /// 每个节点的运行时状态
     pub node_states: HashMap<String, NodeRuntimeState>,
+    /// 工作流最终输出（经 output_schema 过滤或 EndNode 聚合后的精简结果）
+    pub output: Option<serde_json::Value>,
 }
 
 /// 单个节点的运行时追踪状态
@@ -89,6 +91,9 @@ pub enum WorkflowError {
     NodeNotFound,
     CycleDetected,
     SerializationError(String),
+    InputValidationFailed {
+        errors: Vec<String>,
+    },
 }
 
 impl std::fmt::Display for WorkflowError {
@@ -103,6 +108,9 @@ impl std::fmt::Display for WorkflowError {
             Self::NodeNotFound => write!(f, "Node not found"),
             Self::CycleDetected => write!(f, "Cycle detected in workflow"),
             Self::SerializationError(msg) => write!(f, "Serialization error: {msg}"),
+            Self::InputValidationFailed { errors } => {
+                write!(f, "Input validation failed: {}", errors.join("; "))
+            },
         }
     }
 }

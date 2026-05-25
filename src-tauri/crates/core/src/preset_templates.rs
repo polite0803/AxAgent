@@ -794,6 +794,7 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
             output_mode: OutputMode::Json,
             agent_profile_id: None,
             agent_role_override: None,
+            max_tool_rounds: None,
         },
     })
 }

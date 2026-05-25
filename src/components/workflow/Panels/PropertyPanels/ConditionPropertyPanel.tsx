@@ -1,4 +1,4 @@
-import { Button, Divider, Input, Select } from "antd";
+import { Button, Divider, Input, Select, Switch } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -110,6 +110,24 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
           ]}
         />
       </div>
+
+      {/* LLM 动态路由开关 */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <label style={{ color: "#999", fontSize: 12 }}>
+          {t("workflow.props.llmRouting")}
+        </label>
+        <Switch
+          size="small"
+          checked={config.judge_by_llm ?? false}
+          onChange={(checked) => onUpdate({ config: { ...config, judge_by_llm: checked || undefined } })}
+        />
+      </div>
+
+      {config.judge_by_llm && (
+        <div style={{ fontSize: 11, color: "#faad14", padding: "4px 8px", background: "#faad1410", borderRadius: 4 }}>
+          {t("workflow.props.llmRoutingHint")}
+        </div>
+      )}
 
       <div>
         <div

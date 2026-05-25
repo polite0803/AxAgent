@@ -73,6 +73,13 @@ export interface EventTriggerConfig {
 
 export type OutputMode = "json" | "text" | "artifact";
 
+/** 工具定义 —— 名称、描述和参数 JSON Schema */
+export interface ToolDef {
+  name: string;
+  description?: string;
+  parameters?: JsonSchema;
+}
+
 export interface AgentNodeConfig {
   /** 全局 AgentProfile ID，角色和专家信息统一由此获取 */
   agentProfileId?: string;
@@ -86,8 +93,11 @@ export interface AgentNodeConfig {
   model?: string;
   temperature?: number;
   max_tokens?: number;
-  tools: string[];
+  /** 工具列表，支持旧格式 `string[]` 和新格式 `ToolDef[]` */
+  tools: ToolDef[];
   output_mode: OutputMode;
+  /** 工具调用最大轮数（默认 5，仅 tools 非空时生效） */
+  max_tool_rounds?: number;
 }
 
 export interface AgentNode extends WorkflowNodeBase {
@@ -136,6 +146,8 @@ export interface Condition {
 export interface ConditionNodeConfig {
   conditions: Condition[];
   logical_op: LogicalOperator;
+  /** 启用 LLM 动态路由：由 AI 判断走哪条分支（忽略 conditions 静态规则） */
+  judge_by_llm?: boolean;
 }
 
 export interface ConditionNode extends WorkflowNodeBase {

@@ -1003,6 +1003,7 @@ async fn convert_n8n_to_axagent(
                 config: ConditionNodeConfig {
                     conditions: Vec::new(),
                     logical_op: LogicalOperator::And,
+                    judge_by_llm: None,
                 },
             });
             ax_nodes.push(condition_node);
@@ -1075,6 +1076,7 @@ async fn convert_n8n_to_axagent(
                 output_mode: OutputMode::Text,
                 agent_profile_id: Some(agent_profile_id.to_string()),
                 agent_role_override: None,
+                max_tool_rounds: None,
             },
         });
 

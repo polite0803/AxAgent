@@ -12,7 +12,7 @@ use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
-use axagent_core::workflow_types::{WorkflowEdge, WorkflowNode};
+use axagent_core::workflow_types::{JsonSchema, WorkflowEdge, WorkflowNode};
 
 use crate::workflow_engine::{
     NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus, current_epoch_ms,
@@ -28,6 +28,17 @@ use super::executors::{
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
 
+/// 工具解析器：给定工具名，返回对应的 ToolCallback（若可解析）。
+/// 用于 run_workflow 启动时自动扫描工作流节点并注册工具。
+pub type ToolResolver = Arc<
+    dyn Fn(
+            String,
+        )
+            -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<ToolCallback>> + Send>>
+        + Send
+        + Sync,
+>;
+
 /// 工作流运行选项
 #[derive(Clone)]
 pub struct RunOptions {
@@ -37,6 +48,12 @@ pub struct RunOptions {
     pub model_id: Option<String>,
     /// 步骤进度回调（用于向前端推送实时进度事件）
     pub progress_callback: Option<ProgressCallback>,
+    /// 工作流输入参数（替代默认的 `{}`，会经过 input_schema 校验）
+    pub input: Option<serde_json::Value>,
+    /// 输入 JSON Schema（非空时对 input 做校验）
+    pub input_schema: Option<JsonSchema>,
+    /// 输出 JSON Schema（非空时对 results 做过滤，写入 Workflow.output）
+    pub output_schema: Option<JsonSchema>,
 }
 
 /// 步骤进度事件
@@ -62,6 +79,9 @@ impl std::fmt::Debug for RunOptions {
             .field("step_timeout", &self.step_timeout)
             .field("model_id", &self.model_id)
             .field("progress_callback", &self.progress_callback.is_some())
+            .field("input", &self.input)
+            .field("input_schema", &self.input_schema.is_some())
+            .field("output_schema", &self.output_schema.is_some())
             .finish()
     }
 }
@@ -73,6 +93,9 @@ impl Default for RunOptions {
             step_timeout: Duration::from_secs(300),
             model_id: None,
             progress_callback: None,
+            input: None,
+            input_schema: None,
+            output_schema: None,
         }
     }
 }
@@ -151,7 +174,12 @@ pub struct WorkEngine {
     compiled_prompts: Arc<tokio::sync::RwLock<HashMap<String, HashMap<String, CompiledPrompt>>>>,
     cancel_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
     dispatcher: Arc<tokio::sync::RwLock<NodeDispatcher>>,
-    tool_callback: Arc<Mutex<Option<ToolCallback>>>,
+    /// 按工具名注册的 handler 映射（多路注册，优先级最高）
+    tool_handlers: Arc<Mutex<HashMap<String, ToolCallback>>>,
+    /// 旧版全局回调（fallback，tool_handlers 未命中时使用）
+    tool_fallback: Arc<Mutex<Option<ToolCallback>>>,
+    /// 工具解析器（按需延迟注册，从全局 tool registry 查找工具）
+    tool_resolver: Arc<Mutex<Option<ToolResolver>>>,
     subworkflow_callback: Arc<Mutex<Option<SubWorkflowCallback>>>,
     vector_retrieve_callback: Arc<Mutex<Option<VectorRetrieveCallback>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
@@ -177,9 +205,20 @@ impl WorkEngine {
         self.dispatcher.read().await.registered_types()
     }
 
-    /// 设置工具回调（Arc<WorkEngine> 下可安全调用，注入后 ToolExecutor 即生效）
+    /// 按工具名注册 handler（多路注册，Arc<WorkEngine> 下可安全调用）
+    pub async fn register_tool_handler(&self, tool_name: &str, cb: ToolCallback) {
+        self.tool_handlers
+            .lock()
+            .await
+            .insert(tool_name.to_string(), cb);
+    }
+    /// 设置工具 fallback 回调（旧版兼容，tool_handlers 未命中时使用）
     pub async fn set_tool_callback(&self, cb: ToolCallback) {
-        *self.tool_callback.lock().await = Some(cb);
+        *self.tool_fallback.lock().await = Some(cb);
+    }
+    /// 设置工具解析器（按需延迟注册，run_workflow 时自动扫描并注册工作流中的工具）
+    pub async fn set_tool_resolver(&self, resolver: ToolResolver) {
+        *self.tool_resolver.lock().await = Some(resolver);
     }
     /// 设置子工作流回调
     pub async fn set_subworkflow_callback(&self, cb: SubWorkflowCallback) {
@@ -211,7 +250,9 @@ impl WorkEngine {
             compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             cancel_tokens: Arc::new(Mutex::new(HashMap::new())),
             dispatcher: Arc::new(tokio::sync::RwLock::new(dispatcher)),
-            tool_callback: Arc::new(Mutex::new(None)),
+            tool_handlers: Arc::new(Mutex::new(HashMap::new())),
+            tool_fallback: Arc::new(Mutex::new(None)),
+            tool_resolver: Arc::new(Mutex::new(None)),
             subworkflow_callback: Arc::new(Mutex::new(None)),
             vector_retrieve_callback: Arc::new(Mutex::new(None)),
             agent_provider_cache,
@@ -318,6 +359,7 @@ impl WorkEngine {
             completed_at: None,
             results: HashMap::new(),
             node_states,
+            output: None,
         };
 
         let mut workflows = self.workflows.write().await;
@@ -534,12 +576,22 @@ impl WorkEngine {
             tokens.insert(workflow_id.to_string(), cancel_token.clone());
         }
 
-        // 构建执行输入：将 model_id 写入上下文，供执行器读取
-        let input = if let Some(ref model_id) = options.model_id {
-            serde_json::json!({"__workflow_model__": model_id})
-        } else {
-            serde_json::json!({})
-        };
+        // 构建执行输入：优先使用调用方传入的 input，否则用空对象
+        let mut input = options
+            .input
+            .clone()
+            .unwrap_or_else(|| serde_json::json!({}));
+        // 将 model_id 写入上下文，供执行器读取
+        if let Some(ref model_id) = options.model_id {
+            input["__workflow_model__"] = serde_json::Value::String(model_id.clone());
+        }
+
+        // 若配置了 input_schema，校验输入参数
+        if let Some(ref schema) = options.input_schema
+            && let Err(errors) = validate_input(&input, schema)
+        {
+            return Err(WorkflowError::InputValidationFailed { errors });
+        }
 
         let execution_id = self
             .start_workflow(workflow_id, input)
@@ -568,6 +620,36 @@ impl WorkEngine {
         {
             *self.agent_provider_cache.lock().await = None;
             self.agent_profile_cache.lock().await.clear();
+        }
+
+        // 自动扫描工作流节点中的工具定义，按需注册（模板级工具自动注册）
+        {
+            let resolver_opt = self.tool_resolver.lock().await.clone();
+            if let Some(ref resolver) = resolver_opt {
+                let workflows = self.workflows.read().await;
+                if let Some(wf) = workflows.get(workflow_id) {
+                    let tool_names = collect_workflow_tool_names(&wf.nodes);
+                    let mut handlers = self.tool_handlers.lock().await;
+                    for name in tool_names {
+                        if !handlers.contains_key(&name) {
+                            if let Some(cb) = resolver(name.clone()).await {
+                                tracing::info!(
+                                    "[WorkEngine] 自动注册工具: {} (来自工作流 {})",
+                                    name,
+                                    workflow_id
+                                );
+                                handlers.insert(name.clone(), cb);
+                            } else {
+                                tracing::warn!(
+                                    "[WorkEngine] 工具 '{}' 在注册表中未找到 (工作流 {})",
+                                    name,
+                                    workflow_id
+                                );
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // 懒编译兜底：若工作流从 DB 加载（非 create_workflow 新建），编译模板
@@ -745,11 +827,13 @@ impl WorkEngine {
 
             // 注入运行时回调到执行上下文
             {
-                let tool_cb = self.tool_callback.lock().await.clone();
+                let tool_handlers = self.tool_handlers.lock().await.clone();
+                let tool_fallback = self.tool_fallback.lock().await.clone();
                 let sub_cb = self.subworkflow_callback.lock().await.clone();
                 let vr_cb = self.vector_retrieve_callback.lock().await.clone();
                 exec_ctx.callbacks = Some(super::execution_state::ExecutionContextCallbacks {
-                    tool: tool_cb,
+                    tool_handlers,
+                    tool_fallback,
                     subworkflow: sub_cb,
                     vector_retrieve: vr_cb,
                 });
@@ -956,20 +1040,36 @@ impl WorkEngine {
             tokens.remove(workflow_id);
         }
 
-        let result = {
+        let mut result = {
             let workflows = self.workflows.read().await;
             workflows.get(workflow_id).cloned()
         };
 
-        if let Some(ref wf) = result {
-            let output = serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null));
+        if let Some(ref mut wf) = result {
+            // 提取 EndNode 的聚合输出（改进 3）
+            let end_output = extract_end_output(&wf.nodes, &wf.results);
+            // 应用 output_schema 过滤（改进 2b）
+            wf.output =
+                build_workflow_output(&wf.results, end_output, options.output_schema.as_ref());
+
+            let persist_output = wf.output.clone().unwrap_or_else(|| {
+                serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null))
+            });
             let total_time_ms = wf
                 .completed_at
                 .map(|end| end.saturating_sub(wf.created_at) * 1000)
                 .unwrap_or(0);
-            self.complete_execution(&execution_id, &output, total_time_ms)
+            self.complete_execution(&execution_id, &persist_output, total_time_ms)
                 .await
                 .ok();
+
+            // 写回共享 HashMap，确保 workflow_get_status 可读到 output
+            if wf.output.is_some() {
+                let mut workflows = self.workflows.write().await;
+                if let Some(shared_wf) = workflows.get_mut(workflow_id) {
+                    shared_wf.output = wf.output.clone();
+                }
+            }
         }
 
         Ok(result.unwrap_or_else(|| Workflow {
@@ -982,6 +1082,7 @@ impl WorkEngine {
             completed_at: None,
             results: HashMap::new(),
             node_states: HashMap::new(),
+            output: None,
         }))
     }
 
@@ -1140,6 +1241,148 @@ impl WorkEngine {
             Err(WorkEngineError::NotFound(execution_id.to_string()))
         }
     }
+}
+
+// ── 辅助函数（run_workflow 尾部使用）──
+
+/// 扫描所有 EndNode，提取其 output_var 指向的节点输出作为聚合结果。
+fn extract_end_output(
+    nodes: &[WorkflowNode],
+    results: &HashMap<String, serde_json::Value>,
+) -> Option<serde_json::Value> {
+    let end_nodes: Vec<_> = nodes
+        .iter()
+        .filter_map(|n| match n {
+            WorkflowNode::End(en) => Some(&en.config),
+            _ => None,
+        })
+        .collect();
+
+    if end_nodes.is_empty() {
+        return None;
+    }
+
+    // 收集所有 EndNode 的输出
+    let mut outputs = serde_json::Map::new();
+    for cfg in &end_nodes {
+        if let Some(ref var) = cfg.output_var
+            && let Some(val) = results.get(var)
+        {
+            outputs.insert(var.clone(), val.clone());
+        }
+    }
+
+    if outputs.is_empty() {
+        None
+    } else if outputs.len() == 1 {
+        outputs.into_values().next()
+    } else {
+        Some(serde_json::Value::Object(outputs))
+    }
+}
+
+/// 按 output_schema 过滤/重组输出。
+/// schema 中通过 `"$source": "node_id"` 字段标记值来源节点。
+fn build_workflow_output(
+    results: &HashMap<String, serde_json::Value>,
+    end_output: Option<serde_json::Value>,
+    output_schema: Option<&JsonSchema>,
+) -> Option<serde_json::Value> {
+    match output_schema {
+        None => {
+            // 无 schema → 优先使用 EndNode 聚合输出，否则返回全部 results
+            end_output.or_else(|| Some(serde_json::json!(results)))
+        },
+        Some(schema) => {
+            let filtered = filter_by_schema(results, schema);
+            Some(filtered)
+        },
+    }
+}
+
+/// 按 JsonSchema 从 results 中提取/重组字段。
+fn filter_by_schema(
+    results: &HashMap<String, serde_json::Value>,
+    schema: &JsonSchema,
+) -> serde_json::Value {
+    let props = match &schema.properties {
+        Some(p) => p,
+        None => return serde_json::json!(results),
+    };
+
+    let mut out = serde_json::Map::new();
+    for (key, prop) in props {
+        // 检查是否有 $source 自定义字段（标记值来源节点）
+        let source = prop
+            .default
+            .as_ref()
+            .and_then(|d| d.get("$source"))
+            .and_then(|s| s.as_str());
+
+        if let Some(node_id) = source {
+            // 从指定节点输出中提取
+            if let Some(node_output) = results.get(node_id) {
+                out.insert(key.clone(), extract_nested(node_output, key));
+            }
+        } else if let Some(val) = results.get(key) {
+            // 按 key 名直接匹配 node_id
+            out.insert(key.clone(), val.clone());
+        }
+    }
+
+    if out.is_empty() {
+        serde_json::json!(results)
+    } else {
+        serde_json::Value::Object(out)
+    }
+}
+
+/// 从嵌套 JSON 中提取最内层有意义的值。
+fn extract_nested(value: &serde_json::Value, _key: &str) -> serde_json::Value {
+    match value {
+        serde_json::Value::Object(obj) => {
+            // 尝试提取常见的包装字段
+            if let Some(inner) = obj
+                .get("result")
+                .or_else(|| obj.get("output"))
+                .or_else(|| obj.get("content"))
+            {
+                inner.clone()
+            } else {
+                value.clone()
+            }
+        },
+        _ => value.clone(),
+    }
+}
+
+/// 用 jsonschema crate 校验 input 是否匹配 schema。
+fn validate_input(input: &serde_json::Value, schema: &JsonSchema) -> Result<(), Vec<String>> {
+    let schema_json = serde_json::to_value(schema).unwrap_or(serde_json::Value::Null);
+    let validator = jsonschema::Validator::new(&schema_json)
+        .map_err(|e| vec![format!("Schema compile error: {e}")])?;
+    let mut errors: Vec<String> = Vec::new();
+    for err in validator.iter_errors(input) {
+        errors.push(format!("{}: {}", err.instance_path, err));
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+/// 扫描工作流节点，收集所有 AgentNode 中引用的工具名。
+fn collect_workflow_tool_names(nodes: &[WorkflowNode]) -> Vec<String> {
+    let mut names = std::collections::HashSet::new();
+    for node in nodes {
+        if let WorkflowNode::Agent(an) = node {
+            for tool in &an.config.tools {
+                names.insert(tool.name.clone());
+            }
+        }
+    }
+    names.into_iter().collect()
 }
 
 // ── 错误类型 ──

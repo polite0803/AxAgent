@@ -758,11 +758,13 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           if (metadata.triggerConfig !== undefined) {
             state.currentTemplate.trigger_config = metadata.triggerConfig;
           }
-          if (metadata.inputSchema !== undefined) {
-            state.currentTemplate.input_schema = metadata.inputSchema;
+          if ("inputSchema" in metadata) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            state.currentTemplate.input_schema = metadata.inputSchema as any;
           }
-          if (metadata.outputSchema !== undefined) {
-            state.currentTemplate.output_schema = metadata.outputSchema;
+          if ("outputSchema" in metadata) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            state.currentTemplate.output_schema = metadata.outputSchema as any;
           }
           if (metadata.variables !== undefined) {
             state.currentTemplate.variables = metadata.variables;

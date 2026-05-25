@@ -1,9 +1,9 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Divider, Input, Select, Tabs } from "antd";
+import { Button, Divider, Input, message, Select, Tabs } from "antd";
 import { Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "../types";
+import { type JsonSchema, NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "../types";
 import {
   AgentPropertyPanel,
   CodePropertyPanel,
@@ -184,6 +184,8 @@ function TemplateSettings({
     description?: string;
     icon?: string;
     tags?: string[];
+    inputSchema?: JsonSchema;
+    outputSchema?: JsonSchema;
   } | null;
 }) {
   const { t } = useTranslation();
@@ -303,6 +305,138 @@ function TemplateSettings({
             },
           ]}
         />
+      </div>
+
+      {/* Input Schema 编辑器 */}
+      <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 4,
+          }}
+        >
+          <label style={{ color: "#999", fontSize: 12 }}>
+            {t("workflow.rightPanel.inputSchema")}
+          </label>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              try {
+                const schema = currentTemplate?.inputSchema
+                  ? JSON.stringify(currentTemplate.inputSchema, null, 2)
+                  : "";
+                const newSchema = window.prompt(
+                  t("workflow.rightPanel.editSchema"),
+                  schema,
+                );
+                if (newSchema !== null) {
+                  if (newSchema.trim() === "") {
+                    useWorkflowEditorStore
+                      .getState()
+                      .updateTemplateMetadata({ inputSchema: undefined });
+                  } else {
+                    useWorkflowEditorStore
+                      .getState()
+                      .updateTemplateMetadata({ inputSchema: JSON.parse(newSchema) });
+                  }
+                }
+              } catch {
+                message.error(t("workflow.rightPanel.invalidJson"));
+              }
+            }}
+            style={{ fontSize: 11 }}
+          >
+            {currentTemplate?.inputSchema
+              ? t("workflow.rightPanel.edit")
+              : t("workflow.rightPanel.add")}
+          </Button>
+        </div>
+        {currentTemplate?.inputSchema && (
+          <pre
+            style={{
+              fontSize: 10,
+              color: "#888",
+              background: "#1a1a2e",
+              padding: 8,
+              borderRadius: 4,
+              maxHeight: 120,
+              overflow: "auto",
+              whiteSpace: "pre-wrap",
+              margin: 0,
+            }}
+          >
+            {JSON.stringify(currentTemplate.inputSchema, null, 2)}
+          </pre>
+        )}
+      </div>
+
+      {/* Output Schema 编辑器 */}
+      <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 4,
+          }}
+        >
+          <label style={{ color: "#999", fontSize: 12 }}>
+            {t("workflow.rightPanel.outputSchema")}
+          </label>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              try {
+                const schema = currentTemplate?.outputSchema
+                  ? JSON.stringify(currentTemplate.outputSchema, null, 2)
+                  : "";
+                const newSchema = window.prompt(
+                  t("workflow.rightPanel.editSchema"),
+                  schema,
+                );
+                if (newSchema !== null) {
+                  if (newSchema.trim() === "") {
+                    useWorkflowEditorStore
+                      .getState()
+                      .updateTemplateMetadata({ outputSchema: undefined });
+                  } else {
+                    useWorkflowEditorStore
+                      .getState()
+                      .updateTemplateMetadata({ outputSchema: JSON.parse(newSchema) });
+                  }
+                }
+              } catch {
+                message.error(t("workflow.rightPanel.invalidJson"));
+              }
+            }}
+            style={{ fontSize: 11 }}
+          >
+            {currentTemplate?.outputSchema
+              ? t("workflow.rightPanel.edit")
+              : t("workflow.rightPanel.add")}
+          </Button>
+        </div>
+        {currentTemplate?.outputSchema && (
+          <pre
+            style={{
+              fontSize: 10,
+              color: "#888",
+              background: "#1a1a2e",
+              padding: 8,
+              borderRadius: 4,
+              maxHeight: 120,
+              overflow: "auto",
+              whiteSpace: "pre-wrap",
+              margin: 0,
+            }}
+          >
+            {JSON.stringify(currentTemplate.outputSchema, null, 2)}
+          </pre>
+        )}
       </div>
     </div>
   );

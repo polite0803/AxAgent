@@ -152,6 +152,7 @@ fn parse_llm_response(
                         context_sources: vec![],
                         agent_profile_id: None,
                         agent_role_override: None,
+                        max_tool_rounds: None,
                     });
                 WorkflowNode::Agent(AgentNode {
                     base,
@@ -181,6 +182,7 @@ fn parse_llm_response(
                 .unwrap_or(ConditionNodeConfig {
                     conditions: vec![],
                     logical_op: LogicalOperator::And,
+                    judge_by_llm: None,
                 });
                 WorkflowNode::Condition(ConditionNode {
                     base,
@@ -261,6 +263,7 @@ fn parse_llm_response(
                     context_sources: vec![],
                     agent_profile_id: None,
                     agent_role_override: None,
+                    max_tool_rounds: None,
                 },
             }),
         };

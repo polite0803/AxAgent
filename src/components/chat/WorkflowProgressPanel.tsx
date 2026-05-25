@@ -70,6 +70,8 @@ interface WorkflowData {
   edges: WorkflowEdgeJson[];
   node_states: Record<string, NodeRuntimeState>;
   results: Record<string, unknown>;
+  /** 工作流最终输出（经 output_schema 过滤或 EndNode 聚合） */
+  output?: unknown;
   created_at?: number;
   completed_at?: number;
 }
@@ -820,6 +822,25 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
             danger
           >
             {t("chat.workflow.cancel")}
+          </Button>
+        )}
+
+        {/* 工作流最终输出（经 output_schema 过滤或 EndNode 聚合） */}
+        {(workflow.status === "completed" || workflow.status === "partially_completed")
+          && workflow.output != null && (
+          <Button
+            type="text"
+            size="small"
+            onClick={() => {
+              const outputStr = typeof workflow.output === "string"
+                ? workflow.output
+                : JSON.stringify(workflow.output, null, 2);
+              navigator.clipboard.writeText(outputStr);
+              message.success(t("chat.workflow.outputCopied"));
+            }}
+            className="text-xs px-1.5 py-0.5"
+          >
+            {t("chat.workflow.viewOutput")}
           </Button>
         )}
       </div>

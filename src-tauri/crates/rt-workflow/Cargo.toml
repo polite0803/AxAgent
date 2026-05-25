@@ -16,8 +16,10 @@ tracing = { workspace = true }
 chrono = { workspace = true }
 sea-orm = { workspace = true }
 itertools = "0.14"
+futures = "0.3"
 axagent-core = { path = "../core" }
 axagent-providers = { path = "../providers" }
+jsonschema = "0.28"
 
 [lints]
 # workspace = true

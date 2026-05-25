@@ -45,7 +45,10 @@ use super::prompt_template::CompiledPrompt;
 /// 运行时回调容器（非序列化，仅在内存中传递）
 #[derive(Clone)]
 pub struct ExecutionContextCallbacks {
-    pub tool: Option<ToolCallback>,
+    /// 按工具名注册的 handler 映射（多路注册，优先级最高）
+    pub tool_handlers: HashMap<String, ToolCallback>,
+    /// 旧版全局回调（fallback，tool_handlers 未命中时使用）
+    pub tool_fallback: Option<ToolCallback>,
     pub subworkflow: Option<SubWorkflowCallback>,
     pub vector_retrieve: Option<VectorRetrieveCallback>,
 }
@@ -53,7 +56,8 @@ pub struct ExecutionContextCallbacks {
 impl std::fmt::Debug for ExecutionContextCallbacks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ExecutionContextCallbacks")
-            .field("tool", &self.tool.is_some())
+            .field("tool_handlers", &self.tool_handlers.len())
+            .field("tool_fallback", &self.tool_fallback.is_some())
             .field("subworkflow", &self.subworkflow.is_some())
             .field("vector_retrieve", &self.vector_retrieve.is_some())
             .finish()

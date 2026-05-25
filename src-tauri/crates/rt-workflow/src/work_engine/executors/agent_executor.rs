@@ -10,6 +10,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_core::workflow_types::WorkflowNode;
+use futures::StreamExt;
 use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use tokio::sync::Mutex;
@@ -228,7 +229,7 @@ impl NodeExecutorTrait for AgentExecutor {
                 .join("\n")
         };
 
-        let messages = vec![
+        let mut messages: Vec<ChatMessage> = vec![
             ChatMessage {
                 role: "system".to_string(),
                 content: ChatContent::Text(system_prompt),
@@ -261,40 +262,200 @@ impl NodeExecutorTrait for AgentExecutor {
         };
         let model = session_model.unwrap_or(default_model);
         let model_for_output = model.clone();
-        let request = ChatRequest {
-            model,
-            messages,
-            stream: false,
-            temperature: an.config.temperature.map(|t| t as f64),
-            max_tokens: an.config.max_tokens,
-            top_p: None,
-            tools: None,
-            thinking_budget: None,
-            use_max_completion_tokens: None,
-            thinking_param_style: None,
-            api_mode: None,
-            instructions: None,
-            conversation: None,
-            previous_response_id: None,
-            store: None,
+
+        // 构建工具定义（若配置了 tools）
+        let tools: Option<Vec<axagent_core::types::ChatTool>> = if an.config.tools.is_empty() {
+            None
+        } else {
+            Some(
+                an.config
+                    .tools
+                    .iter()
+                    .map(|td| axagent_core::types::ChatTool {
+                        r#type: "function".to_string(),
+                        function: axagent_core::types::ChatToolFunction {
+                            name: td.name.clone(),
+                            description: td.description.clone(),
+                            parameters: td
+                                .parameters
+                                .as_ref()
+                                .map(|p| {
+                                    serde_json::to_value(p).unwrap_or(serde_json::json!({
+                                        "type": "object",
+                                        "properties": {},
+                                        "additionalProperties": true,
+                                    }))
+                                })
+                                .or_else(|| {
+                                    Some(serde_json::json!({
+                                        "type": "object",
+                                        "properties": {},
+                                        "additionalProperties": true,
+                                    }))
+                                }),
+                        },
+                    })
+                    .collect(),
+            )
         };
 
-        let response = adapter.chat(&req_ctx, request).await.map_err(|e| {
-            NodeError::exec_failed(
-                error_code::AGENT_PROFILE_NOT_FOUND,
-                format!("Agent LLM call failed: {e}"),
-            )
-        })?;
+        // 最大工具调用轮数：配置值或默认 5
+        let max_rounds = an.config.max_tool_rounds.unwrap_or(5).max(1);
+        let mut total_usage = (0u32, 0u32);
+        let mut final_content = String::new();
+        let mut final_thinking: Option<String> = None;
+        let mut tool_calls_made: Vec<serde_json::Value> = Vec::new();
+
+        for round in 0..max_rounds {
+            let request = ChatRequest {
+                model: model.clone(),
+                messages: messages.clone(),
+                stream: true,
+                temperature: an.config.temperature.map(|t| t as f64),
+                max_tokens: an.config.max_tokens,
+                top_p: None,
+                // 首轮传 tools，后续轮次若 tools 为空则不传
+                tools: if round == 0 { tools.clone() } else { None },
+                thinking_budget: None,
+                use_max_completion_tokens: None,
+                thinking_param_style: None,
+                api_mode: None,
+                instructions: None,
+                conversation: None,
+                previous_response_id: None,
+                store: None,
+            };
+
+            // 流式调用 LLM，聚合增量块
+            let mut stream = adapter.chat_stream(&req_ctx, request, None);
+            let mut stream_content = String::new();
+            let mut stream_thinking: Option<String> = None;
+            let mut stream_tool_calls: Option<Vec<axagent_core::types::ToolCall>> = None;
+            let mut stream_usage = (0u32, 0u32);
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::AGENT_PROFILE_NOT_FOUND,
+                        format!("Agent LLM stream error: {e}"),
+                    )
+                })?;
+
+                if let Some(ref content) = chunk.content {
+                    stream_content.push_str(content);
+                }
+                if let Some(ref thinking) = chunk.thinking {
+                    stream_thinking = Some(thinking.clone());
+                }
+                if let Some(usage) = chunk.usage {
+                    stream_usage = (usage.prompt_tokens, usage.completion_tokens);
+                }
+                if chunk.tool_calls.is_some() {
+                    stream_tool_calls = chunk.tool_calls;
+                }
+            }
+
+            total_usage.0 += stream_usage.0;
+            total_usage.1 += stream_usage.1;
+            final_content = stream_content.clone();
+            final_thinking = stream_thinking.clone();
+
+            // 检查是否有工具调用
+            let tool_calls = stream_tool_calls;
+            let has_tool_calls = tool_calls
+                .as_ref()
+                .map(|tc| !tc.is_empty())
+                .unwrap_or(false);
+
+            if !has_tool_calls {
+                // LLM 返回纯文本，结束循环
+                break;
+            }
+
+            // 处理工具调用
+            let tc_list = tool_calls.as_ref().unwrap();
+
+            // 构建 assistant 消息（含 tool_calls）
+            let assistant_msg = ChatMessage {
+                role: "assistant".to_string(),
+                content: if stream_content.is_empty() {
+                    ChatContent::Text(String::new())
+                } else {
+                    ChatContent::Text(stream_content.clone())
+                },
+                tool_calls: Some(tc_list.clone()),
+                tool_call_id: None,
+                thinking: stream_thinking.clone(),
+            };
+            messages.push(assistant_msg);
+
+            // 执行每个工具调用
+            for tc in tc_list {
+                let args: serde_json::Value =
+                    serde_json::from_str(&tc.function.arguments).unwrap_or(serde_json::Value::Null);
+
+                let tool_result = execute_tool(context, &tc.function.name, args.clone()).await;
+
+                let result_str = match &tool_result {
+                    Ok(v) => serde_json::to_string(v).unwrap_or_else(|_| format!("{v}")),
+                    Err(e) => e.clone(),
+                };
+
+                tool_calls_made.push(serde_json::json!({
+                    "tool": &tc.function.name,
+                    "arguments": args,
+                    "result": result_str,
+                }));
+
+                // 追加 tool 角色消息
+                messages.push(ChatMessage {
+                    role: "tool".to_string(),
+                    content: ChatContent::Text(result_str),
+                    tool_calls: None,
+                    tool_call_id: Some(tc.id.clone()),
+                    thinking: None,
+                });
+            }
+
+            // 最后一轮即使还有 tool_calls 也结束
+            if round + 1 >= max_rounds {
+                break;
+            }
+        }
 
         Ok(NodeOutput {
             output: serde_json::json!({
                 "role": role_desc, "model": model_for_output,
-                "content": response.content, "thinking": response.thinking,
-                "usage": { "input_tokens": response.usage.prompt_tokens, "output_tokens": response.usage.completion_tokens },
+                "content": final_content, "thinking": final_thinking,
+                "usage": { "input_tokens": total_usage.0, "output_tokens": total_usage.1 },
+                "tool_calls_made": tool_calls_made,
                 "node_id": node.base_id(),
             }),
             output_var: Some(an.config.output_var.clone()),
         })
+    }
+}
+
+/// 从 context.callbacks 中查找并执行工具。
+async fn execute_tool(
+    context: &ExecutionState,
+    tool_name: &str,
+    args: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let cb = context
+        .callbacks
+        .as_ref()
+        .and_then(|cbs| cbs.tool_handlers.get(tool_name).cloned())
+        .or_else(|| {
+            context
+                .callbacks
+                .as_ref()
+                .and_then(|cbs| cbs.tool_fallback.clone())
+        });
+
+    match cb {
+        Some(handler) => handler(tool_name.to_string(), args).await,
+        None => Err(format!("工具 '{tool_name}' 未注册")),
     }
 }
 

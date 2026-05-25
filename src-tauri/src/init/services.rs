@@ -1067,6 +1067,43 @@ fn start_cron_scheduler(state: &AppState) {
     // 注入共享存储到 tools crate，使 CronCreateTool 等可用
     axagent_tools::tools::cron::init_cron_store(store.clone());
 
+    // 设置工具解析器（从全局 registry 按需自动注册工作流中引用的工具）
+    {
+        let registry = state.local_tool_registry.clone();
+        let resolver: axagent_runtime::work_engine::ToolResolver =
+            std::sync::Arc::new(move |tool_name: String| {
+                let registry = registry.clone();
+                Box::pin(async move {
+                    let reg = registry.lock().await;
+                    let known = reg.list_all_tool_names().contains(&tool_name)
+                        || reg.mcp_tools.contains_key(&tool_name);
+                    if known {
+                        let registry = registry.clone();
+                        let cb: axagent_runtime::work_engine::ToolCallback =
+                            std::sync::Arc::new(move |tn: String, args: serde_json::Value| {
+                                let registry = registry.clone();
+                                Box::pin(async move {
+                                    let mut reg = registry.lock().await;
+                                    let input_str = serde_json::to_string(&args)
+                                        .unwrap_or_else(|_| "{}".to_string());
+                                    match reg.execute(&tn, &input_str).await {
+                                        Ok(output) => {
+                                            Ok(serde_json::json!({"content": output.content}))
+                                        },
+                                        Err(e) => Err(format!("Tool execution error: {}", e)),
+                                    }
+                                })
+                            });
+                        Some(cb)
+                    } else {
+                        None
+                    }
+                })
+            });
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(state.work_engine.set_tool_resolver(resolver));
+    }
+
     let work_engine = state.work_engine.clone();
     let mut executor = CronExecutor::new();
     executor.set_handler(move |job| {

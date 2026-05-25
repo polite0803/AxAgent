@@ -1,6 +1,10 @@
 //! 工具执行器 —— 解析 ToolNodeConfig 后通过注入的回调调用 MCP 工具。
 //!
 //! 默认无回调时返回清晰的"需要注入"错误，避免静默失败。
+//!
+//! 回调查找优先级：
+//!   1. `context.callbacks.tool_handlers` 按 tool_name 精确匹配（多路注册）
+//!   2. `context.callbacks.tool_fallback` 旧版全局回调（兼容）
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
@@ -21,21 +25,14 @@ pub type ToolCallback = Arc<
         + Sync,
 >;
 
-pub struct ToolExecutor {
-    callback: Arc<tokio::sync::Mutex<Option<ToolCallback>>>,
-}
+pub struct ToolExecutor;
 
 impl ToolExecutor {
     pub fn new() -> Self {
-        Self {
-            callback: Arc::new(tokio::sync::Mutex::new(None)),
-        }
-    }
-    /// 设置工具回调（Arc<WorkEngine> 下可安全调用）
-    pub async fn set_callback(&self, cb: ToolCallback) {
-        *self.callback.lock().await = Some(cb);
+        Self
     }
 }
+
 impl Default for ToolExecutor {
     fn default() -> Self {
         Self::new()
@@ -72,10 +69,22 @@ impl NodeExecutorTrait for ToolExecutor {
                     acc
                 });
 
-        // 调用工具回调（若已注入）
-        let cb_guard = self.callback.lock().await;
-        let output = if let Some(ref cb) = *cb_guard {
-            cb(tool_node.config.tool_name.clone(), resolved_args.clone())
+        let tool_name = &tool_node.config.tool_name;
+
+        // 查找回调：优先多路注册 → fallback → 未配置
+        let cb: Option<ToolCallback> = context
+            .callbacks
+            .as_ref()
+            .and_then(|cbs| cbs.tool_handlers.get(tool_name).cloned())
+            .or_else(|| {
+                context
+                    .callbacks
+                    .as_ref()
+                    .and_then(|cbs| cbs.tool_fallback.clone())
+            });
+
+        let output = if let Some(ref cb) = cb {
+            cb(tool_name.clone(), resolved_args.clone())
                 .await
                 .map_err(|e| {
                     NodeError::exec_failed(
@@ -84,19 +93,18 @@ impl NodeExecutorTrait for ToolExecutor {
                     )
                 })?
         } else {
-            drop(cb_guard);
             serde_json::json!({
                 "status": "tool_not_configured",
-                "tool_name": tool_node.config.tool_name,
+                "tool_name": tool_name,
                 "resolved_arguments": resolved_args,
-                "message": "工具执行器未注入 MCP 回调，通过 ToolExecutor::set_callback() 注入",
+                "message": "工具未注册，请通过 WorkEngine::register_tool_handler() 注册",
                 "node_id": node.base_id(),
             })
         };
 
         Ok(NodeOutput {
             output: serde_json::json!({
-                "tool_name": tool_node.config.tool_name,
+                "tool_name": tool_name,
                 "result": output,
                 "node_id": node.base_id(),
             }),

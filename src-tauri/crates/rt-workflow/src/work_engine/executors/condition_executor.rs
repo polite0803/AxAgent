@@ -38,6 +38,21 @@ impl NodeExecutorTrait for ConditionExecutor {
             ));
         };
 
+        // LLM 动态路由模式：由 AI 根据上下文判断走哪条分支
+        if condition_node.config.judge_by_llm.unwrap_or(false) {
+            let branch = evaluate_llm_route(&condition_node.config, context);
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "status": "evaluated",
+                    "result": branch,
+                    "judge_mode": "llm_heuristic",
+                    "note": "LLM 动态路由使用启发式降级：有上下文数据走 true 分支",
+                    "node_id": node.base_id(),
+                }),
+                output_var: None,
+            });
+        }
+
         let mut results = Vec::new();
 
         for condition in &condition_node.config.conditions {
@@ -128,6 +143,45 @@ fn compare_values(a: &serde_json::Value, b: &serde_json::Value) -> std::cmp::Ord
             .unwrap_or(std::cmp::Ordering::Equal),
         _ => a.to_string().cmp(&b.to_string()),
     }
+}
+
+/// LLM 动态路由的启发式实现：基于上下文变量智能判断。
+///
+/// 优先级：
+///   1. 若有上下文变量（非 __ 前缀），走 true 分支（有数据 = 继续）
+///   2. 若配置了静态条件，降级为静态评估
+///   3. 无上下文且无条件，走 false 分支（保守处理）
+///
+/// 后续可替换为真正的 LLM 调用。
+fn evaluate_llm_route(
+    config: &axagent_core::workflow_types::ConditionNodeConfig,
+    context: &ExecutionState,
+) -> bool {
+    // 优先：基于上下文判断（LLM 路由的核心语义）
+    let meaningful_vars = context
+        .variables
+        .iter()
+        .filter(|(k, _)| !k.starts_with("__"))
+        .count();
+    if meaningful_vars > 0 {
+        return true;
+    }
+
+    // 降级：无上下文但有静态条件时，按静态评估
+    if !config.conditions.is_empty() {
+        let mut results = Vec::new();
+        for c in &config.conditions {
+            let actual = resolve_var_path(&c.var_path, context);
+            results.push(evaluate_single(&c.operator, &actual, &c.value));
+        }
+        return match config.logical_op {
+            LogicalOperator::And => results.iter().all(|&r| r),
+            LogicalOperator::Or => results.iter().any(|&r| r),
+        };
+    }
+
+    // 最终保守：无数据也无条件，走 false
+    false
 }
 
 /// 从 ExecutionState 变量中解析点分隔路径。

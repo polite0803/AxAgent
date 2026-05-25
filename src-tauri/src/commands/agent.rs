@@ -3815,6 +3815,42 @@ pub async fn workflow_execute(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
 
+    // 设置工具解析器（从全局 registry 按需自动注册工作流中引用的工具）
+    {
+        let registry = app_state.local_tool_registry.clone();
+        let resolver: axagent_runtime::work_engine::ToolResolver =
+            std::sync::Arc::new(move |tool_name: String| {
+                let registry = registry.clone();
+                Box::pin(async move {
+                    let reg = registry.lock().await;
+                    let known = reg.list_all_tool_names().contains(&tool_name)
+                        || reg.mcp_tools.contains_key(&tool_name);
+                    if known {
+                        let registry = registry.clone();
+                        let cb: axagent_runtime::work_engine::ToolCallback =
+                            std::sync::Arc::new(move |tn: String, args: serde_json::Value| {
+                                let registry = registry.clone();
+                                Box::pin(async move {
+                                    let mut reg = registry.lock().await;
+                                    let input_str = serde_json::to_string(&args)
+                                        .unwrap_or_else(|_| "{}".to_string());
+                                    match reg.execute(&tn, &input_str).await {
+                                        Ok(output) => {
+                                            Ok(serde_json::json!({"content": output.content}))
+                                        },
+                                        Err(e) => Err(format!("Tool execution error: {}", e)),
+                                    }
+                                })
+                            });
+                        Some(cb)
+                    } else {
+                        None
+                    }
+                })
+            });
+        app_state.work_engine.set_tool_resolver(resolver).await;
+    }
+
     let engine = app_state.work_engine.clone();
     let wid = workflow_id.clone();
     tokio::spawn(async move {
