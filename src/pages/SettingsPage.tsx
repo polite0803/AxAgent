@@ -1,84 +1,286 @@
-import { NotificationCenter } from "@/components/notification/NotificationCenter";
-import {
-  AboutPage,
-  AcpSettings,
-  AdvancedSettings,
-  BackupCenter,
-  CloudWorkspaceSettings,
-  DashboardPluginsSettings,
-  DataManager,
-  DisplaySettings,
-  EvolutionSettings,
-  GeneralSettings,
-  KnowledgeSettings,
-  LocalToolSettings,
-  McpServerSettings,
-  MessageChannelSettings,
-  PluginMarketplace,
-  PromptTemplatesSettings,
-  ProviderSettings,
-  ProxySettings,
-  SchedulerSettings,
-  SearchProviderSettings,
-  SettingsPanel,
-  SettingsSidebar,
-  ShortcutSettings,
-  StorageSpaceManager,
-  ToolManager,
-  WebhookSettings,
-  WorkflowSettings,
-} from "@/components/settings";
-import { ConversationSettings } from "@/components/settings/ConversationSettings";
-import { CronManager } from "@/components/settings/CronManager";
-import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
-import { ImageGenSettings } from "@/components/settings/ImageGenSettings";
-import { ThemeManager } from "@/components/settings/ThemeManager";
+import { SettingsSidebar } from "@/components/settings";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
-import { WorkflowEditor } from "@/components/workflow";
 import { invoke } from "@/lib/invoke";
-import { SkillsPage } from "@/pages/SkillsPage";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
 import type { SettingsSection } from "@/types";
-import { Button, message, Result, theme } from "antd";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Button, message, Result, Spin, theme } from "antd";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ReactFlowProvider } from "reactflow";
+
+/* 按需 lazy-load 各设置 section，避免一次性加载 30+ 组件阻塞首屏 */
+const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
+const LazyWorkflowEditor = lazy(() => import("@/components/workflow").then((m) => ({ default: m.WorkflowEditor })));
+const LazyReactFlowProvider = lazy(() => import("reactflow").then((m) => ({ default: m.ReactFlowProvider })));
+const LazyNotificationCenter = lazy(() =>
+  import("@/components/notification/NotificationCenter").then((m) => ({ default: m.NotificationCenter }))
+);
+const LazyProviderSettings = lazy(() =>
+  import("@/components/settings/ProviderSettings").then((m) => ({ default: m.ProviderSettings }))
+);
+const LazyConversationSettings = lazy(() =>
+  import("@/components/settings/ConversationSettings").then((m) => ({ default: m.ConversationSettings }))
+);
+const LazyCloudWorkspaceSettings = lazy(() =>
+  import("@/components/settings/CloudWorkspaceSelector").then((m) => ({ default: m.CloudWorkspaceSelector }))
+);
+const LazyDefaultModelSettings = lazy(() =>
+  import("@/components/settings/DefaultModelSettings").then((m) => ({ default: m.DefaultModelSettings }))
+);
+const LazyGeneralSettings = lazy(() =>
+  import("@/components/settings/GeneralSettings").then((m) => ({ default: m.GeneralSettings }))
+);
+const LazyDisplaySettings = lazy(() =>
+  import("@/components/settings/DisplaySettings").then((m) => ({ default: m.DisplaySettings }))
+);
+const LazyProxySettings = lazy(() =>
+  import("@/components/settings/ProxySettings").then((m) => ({ default: m.ProxySettings }))
+);
+const LazyShortcutSettings = lazy(() =>
+  import("@/components/settings/ShortcutSettings").then((m) => ({ default: m.ShortcutSettings }))
+);
+const LazyDataManager = lazy(() =>
+  import("@/components/settings/DataManager").then((m) => ({ default: m.DataManager }))
+);
+const LazyStorageSpaceManager = lazy(() =>
+  import("@/components/settings/StorageSpaceManager").then((m) => ({ default: m.StorageSpaceManager }))
+);
+const LazySchedulerSettings = lazy(() =>
+  import("@/components/settings/SchedulerSettings").then((m) => ({ default: m.SchedulerSettings }))
+);
+const LazyAboutPage = lazy(() => import("@/components/settings/AboutPage").then((m) => ({ default: m.AboutPage })));
+const LazySearchProviderSettings = lazy(() =>
+  import("@/components/settings/SearchProviderSettings").then((m) => ({ default: m.SearchProviderSettings }))
+);
+const LazyLocalToolSettings = lazy(() =>
+  import("@/components/settings/LocalToolSettings").then((m) => ({ default: m.LocalToolSettings }))
+);
+const LazyMcpServerSettings = lazy(() =>
+  import("@/components/settings/McpServerSettings").then((m) => ({ default: m.McpServerSettings }))
+);
+const LazyToolManager = lazy(() =>
+  import("@/components/settings/ToolManager").then((m) => ({ default: m.ToolManager }))
+);
+const LazyBackupCenter = lazy(() =>
+  import("@/components/settings/BackupCenter").then((m) => ({ default: m.BackupCenter }))
+);
+const LazyWorkflowSettings = lazy(() =>
+  import("@/components/settings/WorkflowSettings").then((m) => ({ default: m.WorkflowSettings }))
+);
+const LazySettingsPanel = lazy(() =>
+  import("@/components/settings/SettingsPanel").then((m) => ({ default: m.SettingsPanel }))
+);
+const LazyPluginMarketplace = lazy(() =>
+  import("@/components/chat/PluginMarketplace").then((m) => ({ default: m.PluginMarketplace }))
+);
+const LazyKnowledgeSettings = lazy(() =>
+  import("@/components/settings/KnowledgeSettings").then((m) => ({ default: m.KnowledgeSettings }))
+);
+const LazyDashboardPluginsSettings = lazy(() =>
+  import("@/components/settings/DashboardPluginsSettings").then((m) => ({ default: m.DashboardPluginsSettings }))
+);
+const LazyWebhookSettings = lazy(() =>
+  import("@/components/settings/WebhookSettings").then((m) => ({ default: m.WebhookSettings }))
+);
+const LazyMessageChannelSettings = lazy(() =>
+  import("@/components/settings/MessageChannelSettings").then((m) => ({ default: m.MessageChannelSettings }))
+);
+const LazyAdvancedSettings = lazy(() =>
+  import("@/components/settings/AdvancedSettings").then((m) => ({ default: m.AdvancedSettings }))
+);
+const LazyPromptTemplatesSettings = lazy(() =>
+  import("@/components/settings/PromptTemplatesSettings").then((m) => ({ default: m.PromptTemplatesSettings }))
+);
+const LazyAcpSettings = lazy(() =>
+  import("@/components/settings/AcpSettings").then((m) => ({ default: m.AcpSettings }))
+);
+const LazyEvolutionSettings = lazy(() =>
+  import("@/components/settings/EvolutionSettings").then((m) => ({ default: m.EvolutionSettings }))
+);
+const LazyImageGenSettings = lazy(() =>
+  import("@/components/settings/ImageGenSettings").then((m) => ({ default: m.ImageGenSettings }))
+);
+const LazyThemeManager = lazy(() =>
+  import("@/components/settings/ThemeManager").then((m) => ({ default: m.ThemeManager }))
+);
+const LazyCronManager = lazy(() =>
+  import("@/components/settings/CronManager").then((m) => ({ default: m.CronManager }))
+);
+
+function SectionFallback() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", padding: 48 }}>
+      <Spin />
+    </div>
+  );
+}
 
 const SECTION_COMPONENTS: Record<SettingsSection, React.ComponentType<any>> = {
-  providers: ProviderSettings,
-  conversationSettings: ConversationSettings,
-  cloudWorkspace: CloudWorkspaceSettings,
-  defaultModel: DefaultModelSettings,
-  general: GeneralSettings,
-  display: DisplaySettings,
-  proxy: ProxySettings,
-  shortcuts: ShortcutSettings,
-  data: DataManager,
-  storage: StorageSpaceManager,
-  scheduler: SchedulerSettings,
-  about: AboutPage,
-  searchProviders: SearchProviderSettings,
-  localTools: LocalToolSettings,
-  mcpServers: McpServerSettings,
-  tools: ToolManager,
-  backup: BackupCenter,
-  workflow: WorkflowSettings,
-  appConfig: SettingsPanel,
-  skillsHub: SkillsPage,
-  plugins: PluginMarketplace,
-  knowledgeSettings: KnowledgeSettings,
-  dashboardPlugins: DashboardPluginsSettings,
-  notificationCenter: () => <NotificationCenter trigger={<span />} />,
-  webhooks: WebhookSettings,
-  messageChannels: MessageChannelSettings,
-  advanced: AdvancedSettings,
-  promptTemplates: PromptTemplatesSettings,
-  acp: AcpSettings,
-  evolution: EvolutionSettings,
-  imageGen: () => <ImageGenSettings />,
-  theme: () => <ThemeManager />,
-  cron: CronManagerWrapper,
+  providers: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyProviderSettings />
+    </Suspense>
+  ),
+  conversationSettings: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyConversationSettings />
+    </Suspense>
+  ),
+  cloudWorkspace: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyCloudWorkspaceSettings />
+    </Suspense>
+  ),
+  defaultModel: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyDefaultModelSettings />
+    </Suspense>
+  ),
+  general: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyGeneralSettings />
+    </Suspense>
+  ),
+  display: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyDisplaySettings />
+    </Suspense>
+  ),
+  proxy: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyProxySettings />
+    </Suspense>
+  ),
+  shortcuts: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyShortcutSettings />
+    </Suspense>
+  ),
+  data: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyDataManager />
+    </Suspense>
+  ),
+  storage: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyStorageSpaceManager />
+    </Suspense>
+  ),
+  scheduler: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazySchedulerSettings />
+    </Suspense>
+  ),
+  about: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyAboutPage />
+    </Suspense>
+  ),
+  searchProviders: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazySearchProviderSettings />
+    </Suspense>
+  ),
+  localTools: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyLocalToolSettings />
+    </Suspense>
+  ),
+  mcpServers: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyMcpServerSettings />
+    </Suspense>
+  ),
+  tools: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyToolManager />
+    </Suspense>
+  ),
+  backup: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyBackupCenter />
+    </Suspense>
+  ),
+  workflow: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyWorkflowSettings />
+    </Suspense>
+  ),
+  appConfig: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazySettingsPanel />
+    </Suspense>
+  ),
+  skillsHub: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazySkillsPage />
+    </Suspense>
+  ),
+  plugins: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyPluginMarketplace />
+    </Suspense>
+  ),
+  knowledgeSettings: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyKnowledgeSettings />
+    </Suspense>
+  ),
+  dashboardPlugins: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyDashboardPluginsSettings />
+    </Suspense>
+  ),
+  notificationCenter: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyNotificationCenter trigger={<span />} />
+    </Suspense>
+  ),
+  webhooks: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyWebhookSettings />
+    </Suspense>
+  ),
+  messageChannels: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyMessageChannelSettings />
+    </Suspense>
+  ),
+  advanced: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyAdvancedSettings />
+    </Suspense>
+  ),
+  promptTemplates: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyPromptTemplatesSettings />
+    </Suspense>
+  ),
+  acp: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyAcpSettings />
+    </Suspense>
+  ),
+  evolution: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyEvolutionSettings />
+    </Suspense>
+  ),
+  imageGen: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyImageGenSettings />
+    </Suspense>
+  ),
+  theme: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyThemeManager />
+    </Suspense>
+  ),
+  cron: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <CronManagerWrapper />
+    </Suspense>
+  ),
 };
 
 /** CronManager 包装组件 — 通过 invoke 桥接后端定时任务 API */
@@ -176,12 +378,14 @@ function CronManagerWrapper() {
   );
 
   return (
-    <CronManager
-      jobs={jobs}
-      onAdd={handleAdd}
-      onDelete={handleDelete}
-      onToggle={handleToggle}
-    />
+    <Suspense fallback={<SectionFallback />}>
+      <LazyCronManager
+        jobs={jobs}
+        onAdd={handleAdd}
+        onDelete={handleDelete}
+        onToggle={handleToggle}
+      />
+    </Suspense>
   );
 }
 
@@ -297,19 +501,23 @@ export function SettingsPage() {
   const renderWorkflowContent = () => {
     if (workflowEditorOpen) {
       return (
-        <ReactFlowProvider>
-          <WorkflowEditor
-            templateId={editingTemplateId}
-            onClose={handleCloseEditor}
-          />
-        </ReactFlowProvider>
+        <Suspense fallback={<SectionFallback />}>
+          <LazyReactFlowProvider>
+            <LazyWorkflowEditor
+              templateId={editingTemplateId}
+              onClose={handleCloseEditor}
+            />
+          </LazyReactFlowProvider>
+        </Suspense>
       );
     }
     return (
-      <WorkflowSettings
-        onOpenEditor={(templateId?: string) => handleOpenEditor(templateId)}
-        onCreateNew={handleCreateNew}
-      />
+      <Suspense fallback={<SectionFallback />}>
+        <LazyWorkflowSettings
+          onOpenEditor={(templateId?: string) => handleOpenEditor(templateId)}
+          onCreateNew={handleCreateNew}
+        />
+      </Suspense>
     );
   };
 
