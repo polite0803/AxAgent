@@ -2893,6 +2893,6 @@ export async function handleCommand<T>(
 
     default:
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
-      return [] as unknown as T;
+      return undefined as T;
   }
 }
