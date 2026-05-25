@@ -138,7 +138,7 @@ export const ContentArea = memo(function ContentArea() {
   }, [skillPages]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
       <AppHeader />
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
         <Routes>
