@@ -734,6 +734,9 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
 
   // --- Render ---
 
+  // 必须在所有条件 return 之前调用，保持 hooks 数量恒定
+  const steps = useMemo(() => workflow ? toStepLike(workflow) : [], [workflow]);
+
   if (!workflowId) {
     return null;
   }
@@ -765,8 +768,6 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
   if (!workflow) {
     return null;
   }
-
-  const steps = useMemo(() => toStepLike(workflow), [workflow]);
 
   const workflowColor = getStatusColor(workflow.status);
   const doneCount = steps.filter((s) => isDone(s.status)).length;

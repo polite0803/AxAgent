@@ -38,11 +38,6 @@ export function BuddyWidget() {
   const setPosition = useBuddyStore((s) => s.setPosition);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
 
-  // 移动端下隐藏 BuddyWidget（避免遮挡发送按钮）
-  if (deviceLayout === "mobile") {
-    return null;
-  }
-
   const rarityLabels = useMemo(
     () => ({
       common: t("buddy.rarity.common"),
@@ -228,6 +223,11 @@ export function BuddyWidget() {
   const panelPosStyle = panelPosition
     ? { left: panelPosition.x, top: panelPosition.y }
     : {};
+
+  // 移动端下隐藏 BuddyWidget（避免遮挡发送按钮）
+  if (deviceLayout === "mobile") {
+    return null;
+  }
 
   // 隐藏时显示微型恢复按钮
   if (!visible) {

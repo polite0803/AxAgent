@@ -22,9 +22,6 @@ export function InteractiveTutorial() {
   const navigate = useNavigate();
   const deviceLayout = useUIStore((s) => s.deviceLayout);
 
-  // 移动端完全跳过教程（避免 performance 开销）
-  if (deviceLayout === "mobile") { return null; }
-
   const steps: TutorialStep[] = useMemo(
     () => [
       {
@@ -198,6 +195,11 @@ export function InteractiveTutorial() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [tutorialActive]);
+
+  // 移动端完全跳过教程（避免 performance 开销）
+  if (deviceLayout === "mobile") {
+    return null;
+  }
 
   if (!tutorialActive && tutorialCompleted) {
     return null;
