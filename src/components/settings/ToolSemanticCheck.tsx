@@ -76,7 +76,7 @@ export function ToolSemanticCheck() {
       setToolsLoading(true);
       try {
         const groups = await invoke<LocalToolGroupInfo[]>("list_local_tools");
-        const tools = groups.flatMap((g) => g.tools);
+        const tools = Array.isArray(groups) ? groups.flatMap((g) => g.tools) : [];
         setAllTools(tools);
       } catch (e) {
         message.error(String(e));

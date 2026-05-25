@@ -144,7 +144,7 @@ export function SchedulerSettings() {
   const loadCustomTasks = async () => {
     try {
       const tasks = await invoke<ScheduledTask[]>("list_scheduled_tasks");
-      setCustomTasks(tasks.filter((t) => t.task_type === "custom"));
+      setCustomTasks(Array.isArray(tasks) ? tasks.filter((t) => t.task_type === "custom") : []);
     } catch (e) {
       console.warn("Failed to load scheduled tasks:", e);
     }

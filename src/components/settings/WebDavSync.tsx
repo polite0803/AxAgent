@@ -53,7 +53,7 @@ export function WebDavSync() {
   const { message } = App.useApp();
   const { settings, saveSettings } = useSettingsStore();
 
-  const [config, setConfig] = useState<WebDavConfig>({
+  const [config, setConfig] = useState<WebDavConfig | null>({
     host: "",
     username: "",
     password: "",
@@ -83,7 +83,7 @@ export function WebDavSync() {
   const loadConfig = useCallback(async () => {
     try {
       const cfg = await invoke<WebDavConfig>("get_webdav_config");
-      setConfig(cfg);
+      setConfig(cfg && !Array.isArray(cfg) ? cfg : null);
     } catch {
       /* ignore */
     }
@@ -93,7 +93,7 @@ export function WebDavSync() {
     setLoading(true);
     try {
       const backups = await invoke<WebDavFileInfo[]>("webdav_list_backups");
-      setRemoteBackups(backups);
+      setRemoteBackups(Array.isArray(backups) ? backups : []);
     } catch (e) {
       message.error(String(e));
     } finally {
@@ -119,10 +119,10 @@ export function WebDavSync() {
   }, [loadConfig, loadSyncStatus]);
 
   useEffect(() => {
-    if (config.host) {
+    if (config?.host) {
       loadRemoteBackups();
     }
-  }, [config.host, loadRemoteBackups]);
+  }, [config?.host, loadRemoteBackups]);
 
   const handleSaveConfig = async () => {
     try {
@@ -294,7 +294,7 @@ export function WebDavSync() {
     },
   ];
 
-  const isConfigured = !!config.host;
+  const isConfigured = !!config?.host;
   const formattedLastSyncTime = formatSyncTime(syncStatus.lastSyncTime);
 
   return (
@@ -338,11 +338,11 @@ export function WebDavSync() {
             icon={<Settings2 size={16} />}
             onClick={() => {
               configForm.setFieldsValue({
-                host: config.host,
-                username: config.username,
-                password: config.password,
-                path: config.path,
-                acceptInvalidCerts: config.acceptInvalidCerts,
+                host: config?.host ?? "",
+                username: config?.username ?? "",
+                password: config?.password ?? "",
+                path: config?.path ?? "",
+                acceptInvalidCerts: config?.acceptInvalidCerts ?? false,
                 syncEnabled: settings?.webdav_sync_enabled || false,
                 syncIntervalMinutes: settings?.webdav_sync_interval_minutes || 60,
                 maxRemoteBackups: settings?.webdav_max_remote_backups || 10,
