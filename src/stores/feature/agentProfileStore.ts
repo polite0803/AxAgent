@@ -28,7 +28,7 @@ export const useAgentProfileStore = create<AgentProfileState>((set, get) => ({
   async loadProfiles(): Promise<void> {
     try {
       const rows: AgentProfile[] = await invoke("list_agent_profiles");
-      set({ profiles: rows, loaded: true });
+      set({ profiles: Array.isArray(rows) ? rows : [], loaded: true });
     } catch {
       set({ loaded: true });
     }

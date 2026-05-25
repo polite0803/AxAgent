@@ -90,7 +90,7 @@ export function AgentProfileManager() {
   const loadRoles = async () => {
     try {
       const roles: { id: string; name: string }[] = await invoke("list_agent_roles");
-      setRoleOptions(roles.map((r) => ({ value: r.id, label: r.name })));
+      setRoleOptions(Array.isArray(roles) ? roles.map((r) => ({ value: r.id, label: r.name })) : []);
     } catch {
       /* fallback */
     }
@@ -137,7 +137,7 @@ export function AgentProfileManager() {
       const experts: { id: string; name: string }[] = await invoke(
         "list_agency_experts",
       );
-      setExpertOptions(experts.map((e) => ({ value: e.id, label: e.name })));
+      setExpertOptions(Array.isArray(experts) ? experts.map((e) => ({ value: e.id, label: e.name })) : []);
     } catch {
       /* fallback */
     }
