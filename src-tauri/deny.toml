@@ -1,10 +1,14 @@
 [advisories]
 unmaintained = "workspace"
+ignore = [
+    "RUSTSEC-2025-0012", # backoff: 已有依赖，待 migrate 到 backon
+]
 
 [licenses]
 private = { ignore = true }
 allow = [
     "MIT",
+    "MIT-0",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
