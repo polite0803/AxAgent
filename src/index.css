@@ -1544,8 +1544,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   --radius: 6px;
   --radius-lg: 10px;
   --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-  /* 对话内容最大宽度 — 保证大屏可读性 */
-  --chat-max-w: 820px;
   /* 流体页面内边距 — 400px→10px, 600px→15px, 900px→22px, 1120px→28px */
   --content-px: clamp(10px, 2.5vw, 28px);
   --content-py: clamp(8px, 1.8vw, 20px);
@@ -1926,16 +1924,12 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   flex: 1;
   overflow-y: auto;
   padding: var(--content-py) var(--content-px) 0;
-  max-width: var(--chat-max-w);
-  margin: 0 auto;
   width: 100%;
 }
 .chat-input-area {
   padding: 10px var(--content-px) 14px;
   border-top: 1px solid var(--border-color);
   background: var(--color-bg, var(--color-bg-container));
-  max-width: var(--chat-max-w);
-  margin: 0 auto;
   width: 100%;
 }
 .chat-input-box {
