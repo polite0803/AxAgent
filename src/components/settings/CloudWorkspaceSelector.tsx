@@ -112,7 +112,7 @@ export function CloudWorkspaceSelector() {
         const result = await invoke<CloudProviderPresetDto[]>(
           "list_cloud_provider_presets",
         );
-        setPresets(result);
+        setPresets(Array.isArray(result) ? result : []);
       } catch (e) {
         console.error("Failed to load presets:", e);
       }
