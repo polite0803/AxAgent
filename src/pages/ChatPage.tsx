@@ -242,6 +242,8 @@ export function ChatPage() {
           width: sidebarCollapsed ? (isMobile ? 0 : 48) : (isMobile ? 280 : sidebarWidth),
           transition: dragging ? "none" : "width 0.2s",
           backgroundColor: token.colorBgContainer,
+          flexShrink: 0,
+          overflow: "hidden",
           ...(isMobile ? { position: "absolute", zIndex: 50, height: "100%" } : {}),
         }}
       >
