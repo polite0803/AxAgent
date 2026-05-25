@@ -66,7 +66,7 @@ const builtinNavItems: NavItem[] = [
   },
   {
     key: "gateway",
-    icon: <Icon icon="fluent:server-20-filled" size={17} />,
+    icon: <Icon icon="fluent:globe-20-filled" size={17} />,
     labelKey: "nav.gateway",
     path: "/gateway",
     isPlugin: false,
