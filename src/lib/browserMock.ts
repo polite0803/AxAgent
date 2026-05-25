@@ -438,6 +438,39 @@ const BUILT_IN_PROVIDERS = [
     created_at: 1700000000000,
     updated_at: 1700000000000,
   },
+  {
+    id: "builtin-nvidia",
+    name: "NVIDIA",
+    provider_type: "openai",
+    api_host: "https://integrate.api.nvidia.com/v1",
+    api_path: null,
+    enabled: true,
+    models: [
+      {
+        provider_id: "builtin-nvidia",
+        model_id: "meta/llama-4-maverick-17b-128e-instruct",
+        name: "Llama 4 Maverick",
+        capabilities: ["TextGeneration", "FunctionCalling"],
+        max_tokens: 128000,
+        enabled: true,
+        param_overrides: null,
+      },
+      {
+        provider_id: "builtin-nvidia",
+        model_id: "deepseek-ai/deepseek-v3",
+        name: "DeepSeek V3",
+        capabilities: ["TextGeneration", "Reasoning"],
+        max_tokens: 128000,
+        enabled: true,
+        param_overrides: null,
+      },
+    ],
+    keys: [],
+    proxy_config: null,
+    sort_order: 8,
+    created_at: 1700000000000,
+    updated_at: 1700000000000,
+  },
 ];
 
 function initProviders(): Record<string, unknown>[] {
