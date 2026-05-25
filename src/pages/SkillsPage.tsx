@@ -11,7 +11,7 @@ import { SkillDependencyCheck } from "@/components/skill/SkillDependencyCheck";
 import { SkillStatsPanel } from "@/components/skill/SkillStatsPanel";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { invoke } from "@/lib/invoke";
-import { useSkillStore } from "@/stores";
+import { useSkillStore, useUIStore } from "@/stores";
 import type { MarketplaceSkill, Skill } from "@/types";
 import { Claude } from "@lobehub/icons";
 import {
@@ -428,6 +428,8 @@ function MarketplaceCard({
 export function SkillsPage() {
   const { t } = useTranslation("translation");
   const { token } = theme.useToken();
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+  const isSmall = deviceLayout === "mobile" || deviceLayout === "tablet";
   const [messageApi, contextHolder] = message.useMessage();
   const {
     skills,
@@ -758,7 +760,15 @@ export function SkillsPage() {
   const mySkillsContent = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "0 4px", flexShrink: 0 }}>
-        <Space.Compact style={{ width: "100%", marginBottom: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: isSmall ? 4 : 0,
+            marginBottom: 8,
+            flexWrap: isSmall ? "wrap" : "nowrap",
+            width: "100%",
+          }}
+        >
           <Input
             id="skills-page-input-132"
             placeholder={t("skills.installUrlPlaceholder")}
@@ -804,7 +814,7 @@ export function SkillsPage() {
             onClick={() => setProposalPanelOpen(true)}
             title={t("skill.proposal.title")}
           />
-        </Space.Compact>
+        </div>
         <SkillDependencyCheck />
         <Tabs
           size="small"
