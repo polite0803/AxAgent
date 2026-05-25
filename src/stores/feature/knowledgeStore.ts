@@ -48,7 +48,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
     set({ loading: true });
     try {
       const bases = await invoke<KnowledgeBase[]>("list_knowledge_bases");
-      set({ bases, loading: false, error: null });
+      set({ bases: Array.isArray(bases) ? bases : [], loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
     }

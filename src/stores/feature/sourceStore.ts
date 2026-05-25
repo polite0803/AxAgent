@@ -71,7 +71,7 @@ export const useSourceStore = create<SourceState>((set, get) => ({
       const sources = await invoke<UnifiedSource[]>("list_all_sources", {
         containerTypes: containerTypes ?? null,
       });
-      set({ sources, loading: false });
+      set({ sources: Array.isArray(sources) ? sources : [], loading: false });
     } catch (e) {
       set({ error: String(e), loading: false });
     }

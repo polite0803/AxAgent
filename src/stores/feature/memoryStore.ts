@@ -49,7 +49,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       const namespaces = await invoke<MemoryNamespace[]>(
         "list_memory_namespaces",
       );
-      set({ namespaces, loading: false, error: null });
+      set({ namespaces: Array.isArray(namespaces) ? namespaces : [], loading: false, error: null });
     } catch (e) {
       set({ error: String(e), loading: false });
     }

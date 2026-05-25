@@ -117,7 +117,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     set({ loading: true, error: null });
     try {
       const wikis = await invoke<Wiki[]>("llm_wiki_list", {});
-      set({ wikis, loading: false });
+      set({ wikis: Array.isArray(wikis) ? wikis : [], loading: false });
     } catch (e) {
       set({ error: String(e), loading: false });
     }
