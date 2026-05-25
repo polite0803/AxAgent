@@ -178,11 +178,43 @@ pub async fn get_template_by_version(
     id: &str,
     version: i32,
 ) -> Result<Option<workflow_template::Model>> {
+    // 1. 先查主表（当前版本，快速路径）
     let template = workflow_template::Entity::find_by_id(id).one(db).await?;
-    match template {
-        Some(t) if t.version == version => Ok(Some(t)),
-        _ => Ok(None),
+    if let Some(ref t) = template
+        && t.version == version
+    {
+        return Ok(Some(t.clone()));
     }
+
+    // 2. 版本不匹配，查历史表 workflow_template_versions
+    use crate::entity::workflow_template_version;
+    let history = workflow_template_version::Entity::find()
+        .filter(workflow_template_version::Column::TemplateId.eq(id))
+        .filter(workflow_template_version::Column::Version.eq(version))
+        .one(db)
+        .await?;
+
+    Ok(history.map(|v| workflow_template::Model {
+        id: v.template_id,
+        name: v.name,
+        description: v.description,
+        icon: v.icon,
+        tags: v.tags,
+        version: v.version,
+        is_preset: v.is_preset,
+        is_editable: v.is_editable,
+        is_public: v.is_public,
+        trigger_config: v.trigger_config,
+        nodes: v.nodes,
+        edges: v.edges,
+        input_schema: v.input_schema,
+        output_schema: v.output_schema,
+        variables: v.variables,
+        error_config: v.error_config,
+        composite_source: None,
+        created_at: v.created_at,
+        updated_at: v.created_at,
+    }))
 }
 
 pub async fn get_workflow_by_composite_source(
