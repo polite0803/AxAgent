@@ -863,7 +863,8 @@
         "codePlaceholder": "XXXX-XXXX",
         "copyFailed": "فشل النسخ",
         "joinFailed": "فشل الانضمام",
-        "maxParticipants": "الحد الأقصى للمشاركين"
+        "maxParticipants": "الحد الأقصى للمشاركين",
+        "joinSuccess": "Joined successfully"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"

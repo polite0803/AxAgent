@@ -863,7 +863,8 @@
         "codePlaceholder": "XXXX-XXXX",
         "copyFailed": "コピー失敗",
         "joinFailed": "参加失敗",
-        "maxParticipants": "最大参加者数"
+        "maxParticipants": "最大参加者数",
+        "joinSuccess": "Joined successfully"
       },
       "sharedResources": "共有リソース",
       "title": "协作"

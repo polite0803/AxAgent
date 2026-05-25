@@ -863,7 +863,8 @@
         "codePlaceholder": "XXXX-XXXX",
         "copyFailed": "कॉपी विफल",
         "joinFailed": "शामिल होना विफल",
-        "maxParticipants": "अधिकतम प्रतिभागी"
+        "maxParticipants": "अधिकतम प्रतिभागी",
+        "joinSuccess": "Joined successfully"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"

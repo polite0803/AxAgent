@@ -863,7 +863,8 @@
         "codePlaceholder": "XXXX-XXXX",
         "copyFailed": "Ошибка копирования",
         "joinFailed": "Ошибка присоединения",
-        "maxParticipants": "Макс. участников"
+        "maxParticipants": "Макс. участников",
+        "joinSuccess": "Joined successfully"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"

@@ -946,7 +946,8 @@
         "joinSession": "Join Session",
         "copyFailed": "Copy failed",
         "joinFailed": "Join failed",
-        "maxParticipants": "Max Participants"
+        "maxParticipants": "Max Participants",
+        "joinSuccess": "Joined successfully"
       }
     },
     "conversationNotFound": "Conversation not found",

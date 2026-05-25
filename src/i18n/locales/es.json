@@ -863,7 +863,8 @@
         "codePlaceholder": "XXXX-XXXX",
         "copyFailed": "Copia fallida",
         "joinFailed": "Unión fallida",
-        "maxParticipants": "Máx. participantes"
+        "maxParticipants": "Máx. participantes",
+        "joinSuccess": "Joined successfully"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"

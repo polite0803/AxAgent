@@ -872,7 +872,8 @@
         "joinSession": "加入会话",
         "copyFailed": "复制失败",
         "joinFailed": "加入失败",
-        "maxParticipants": "最大参与者数"
+        "maxParticipants": "最大参与者数",
+        "joinSuccess": "加入成功"
       }
     },
     "conversationNotFound": "对话未找到",

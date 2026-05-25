@@ -863,7 +863,8 @@
         "codePlaceholder": "XXXX-XXXX",
         "copyFailed": "복사 실패",
         "joinFailed": "참가 실패",
-        "maxParticipants": "최대 참가자 수"
+        "maxParticipants": "최대 참가자 수",
+        "joinSuccess": "Joined successfully"
       },
       "sharedResources": "Shared Resources",
       "title": "Collaboration"
