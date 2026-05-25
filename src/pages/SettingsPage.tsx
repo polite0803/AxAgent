@@ -8,7 +8,7 @@ import { Button, message, Result, Spin, theme } from "antd";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-/* 按需 lazy-load 各设置 section，避免一次性加载 30+ 组件阻塞首屏 */
+/* Lazy-load settings sections on demand to avoid blocking first paint with 30+ eager imports. */
 const LazySkillsPage = lazy(() => import("@/pages/SkillsPage").then((m) => ({ default: m.SkillsPage })));
 const LazyWorkflowEditor = lazy(() => import("@/components/workflow").then((m) => ({ default: m.WorkflowEditor })));
 const LazyReactFlowProvider = lazy(() => import("reactflow").then((m) => ({ default: m.ReactFlowProvider })));
