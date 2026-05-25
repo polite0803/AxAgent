@@ -62,9 +62,15 @@ function McpServerList({
   const renderServerItem = (s: McpServer) => {
     const isSelected = selectedId === s.id;
     const isBuiltin = s.source === "builtin";
-    const displayName = isBuiltin
-      ? t(BUILTIN_DISPLAY_NAME_KEYS[s.name] ?? s.name, s.name)
-      : s.name;
+    // 优先 alias（友好名称），降级 name
+    const displayName = s.alias || s.name;
+    // 描述优先，其次连接信息，最后占位
+    const subText = s.description
+      || (s.transport === "stdio" && s.command
+        ? [s.command, ...(s.argsJson ? JSON.parse(s.argsJson) as string[] : [])].join(" ")
+        : undefined)
+      || (s.transport !== "stdio" && s.endpoint ? s.endpoint : undefined)
+      || (isBuiltin ? t("settings.mcpServers.builtinServer") : t("settings.mcpServers.notConfigured"));
 
     return (
       <div
@@ -96,49 +102,73 @@ function McpServerList({
         <span style={{ marginRight: 8, flexShrink: 0, display: "inline-flex" }}>
           <McpServerIcon server={s} size={isBuiltin ? 16 : 24} />
         </span>
-        <div className="min-w-0 flex-1 flex items-center gap-2">
-          <span style={{ color: isSelected ? token.colorPrimary : undefined }}>
-            {displayName}
-          </span>
-          {!isBuiltin && (
-            <Tag
-              color={s.transport === "stdio"
-                ? "blue"
-                : s.transport === "sse"
-                ? "orange"
-                : "green"}
-              style={{
-                margin: 0,
-                fontSize: 12,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3,
-              }}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-sm font-medium truncate"
+              style={{ color: isSelected ? token.colorPrimary : undefined }}
             >
-              {s.transport === "sse"
-                ? <Radio size={11} />
-                : s.transport === "http"
-                ? <Globe size={11} />
-                : <Terminal size={11} />}
-              {s.transport.toUpperCase()}
-            </Tag>
-          )}
-          {/* 连接状态指示器 */}
-          <span
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: (s as { enabled?: boolean }).enabled !== false
-                ? "#52c41a"
-                : "#d9d9d9",
-              flexShrink: 0,
-            }}
-            title={(s as { enabled?: boolean }).enabled !== false
-              ? t("mcp.enabled")
-              : t("mcp.disabled")}
-          />
+              {displayName}
+            </span>
+            {!isBuiltin && (
+              <Tag
+                color={s.transport === "stdio"
+                  ? "blue"
+                  : s.transport === "sse"
+                  ? "orange"
+                  : "green"}
+                style={{
+                  margin: 0,
+                  fontSize: 11,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                  flexShrink: 0,
+                }}
+              >
+                {s.transport === "sse"
+                  ? <Radio size={11} />
+                  : s.transport === "http"
+                  ? <Globe size={11} />
+                  : <Terminal size={11} />}
+                {s.transport.toUpperCase()}
+              </Tag>
+            )}
+            {/* 连接状态指示器 */}
+            <span
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: s.enabled ? "#52c41a" : "#d9d9d9",
+                flexShrink: 0,
+              }}
+              title={s.enabled ? t("mcp.enabled") : t("mcp.disabled")}
+            />
+            {(s as { toolsCount?: number }).toolsCount != null && (
+              <Tag
+                color="default"
+                style={{
+                  margin: 0,
+                  fontSize: 11,
+                  padding: "0 6px",
+                  flexShrink: 0,
+                }}
+              >
+                {t("settings.mcpServers.toolCount", {
+                  count: (s as { toolsCount?: number }).toolsCount,
+                })}
+              </Tag>
+            )}
+          </div>
+          {/* 副标题：优先描述，其次连接信息 */}
+          <div
+            className="text-xs truncate mt-0.5"
+            style={{ color: token.colorTextTertiary, lineHeight: "18px" }}
+          >
+            {subText}
+          </div>
         </div>
         <Switch
           id="mcp-server-settings-switch-92"
