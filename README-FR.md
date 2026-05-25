@@ -59,6 +59,9 @@
 - **Appel de fonctions** — Appels de fonctions structurés sur tous les fournisseurs pris en charge
 - **API Responses OpenAI** — Prise en charge du transport au format OpenAI Responses
 - **API Realtime** — Push d'événements WebSocket compatible avec l'API Realtime OpenAI
+- **Génération d'images IA** — DALL-E 3 et Flux (Replicate), préréglages de taille multiples (1:1/16:9/9:16/4:3), prompts négatifs
+- **Routage intelligent de modèles** — Routage automatique par type de tâche (revue de code/résumé/traduction), règles de routage personnalisées
+- **Appel vocal** — Conversation vocale en temps réel via l'API Realtime OpenAI, basculement d'état connexion/parole/écoute
 
 ### 🔐 Système d'agents IA
 
@@ -84,6 +87,17 @@ Le système d'agents est construit sur une architecture sophistiquée avec les c
 - **Chaîne de pensée** — Visualisation du raisonnement décisionnel de l'agent, décomposition étape par étape
 - **Mode proactif** — L'agent peut proposer des suggestions et exécuter des actions de manière proactive
 - **Gestion des objectifs** — Maintien et suivi des objectifs d'exécution et du contexte de l'agent
+- **Panneau du pool d'agents** — Visualisation en temps réel de l'état des sous-agents/Workers/étapes de flux de travail
+- **Panneau de réflexion d'agent** — Notation de qualité post-tâche, analyse d'efficacité, patterns d'erreurs, suggestions d'amélioration
+- **Sélecteur d'experts** — Import/export/personnalisation des rôles d'experts, filtrage par catégorie, préréglages intégrés
+- **Arborescence hiérarchique d'agents** — Visualisation de la hiérarchie et de la topologie de collaboration des agents
+- **Classificateur d'intention** — Identification automatique du type d'intention des entrées utilisateur
+- **Gestion d'état de croyance** — Maintien de l'état de compréhension du contexte de l'agent
+- **Évaluateur d'objectifs** — Évaluation de l'accomplissement et de la qualité des objectifs de tâche
+- **Gestion de fenêtre de contexte** — Gestion intelligente de la fenêtre de contexte, optimisation de l'utilisation des tokens
+- **Mémoire de projet** — Persistance des connaissances au niveau projet entre les sessions
+- **Gestion de base de connaissances** — Opérations CRUD de base de connaissances
+- **Système de notes** — Stockage et récupération de notes structurées au sein des agents
 
 ### 👥 Collaboration multi-agents
 
@@ -97,12 +111,15 @@ Le système d'agents est construit sur une architecture sophistiquée avec les c
 - **Système Buddy** — Agents partenaires configurables avec définition d'espèces et d'attributs
 - **Mémoire partagée** — Espace mémoire partagé entre agents avec statistiques et requêtes
 - **Cron d'équipe** — Planification de tâches cron au niveau de l'équipe
+- **Panneau de collaboration** — Gestion de sessions de collaboration en temps réel, partage par code d'invitation, rôles des participants (Owner/Editor/Viewer)
+- **Partage de session** — Lien de partage en un clic, configuration des permissions d'accès terminal/fichier/modèle
 
 ### ⭐ Système de compétences
 
 - **Marché des compétences** — Marché intégré pour parcourir et installer des compétences contribuées par la communauté
 - **Création de compétences** — Création automatique de compétences à partir de propositions, avec éditeur Markdown
 - **Évolution des compétences** — Analyse et amélioration automatiques pilotées par l'IA des compétences existantes basées sur les retours d'exécution
+- **Panneau d'évolution des compétences** — Visualisation des générations d'évolution, meilleure/moyenne fitness, état de convergence
 - **Correspondance des compétences** — Correspondance sémantique, recommandation de compétences pertinentes au contexte de conversation
 - **Décomposition des compétences** — Décomposition automatique des tâches complexes en compétences atomiques exécutables (assistée par LLM/multi-tours/validation par flux de travail)
 - **Outils générés** — Génération et enregistrement automatiques par l'IA de nouveaux outils pour étendre les capacités de l'agent
@@ -133,6 +150,7 @@ Le moteur de flux de travail implémente un système d'orchestration de tâches 
 
 - **Base de connaissances (RAG)** — Support multi-bases de connaissances, téléchargement de documents, analyse automatique, découpage et indexation vectorielle
 - **Recherche hybride** — Combinaison de recherche par similarité vectorielle et de classement BM25 en texte intégral
+- **Self-RAG** — Génération augmentée par auto-récupération, détermination intelligente de la nécessité de récupération et de la pertinence des résultats
 - **Reranking** — Reranking par cross-encoder pour améliorer la précision de récupération
 - **Pipeline de rappel à trois niveaux** — Mécanisme de rappel multi-niveau avec index AST + recherche vectorielle + FTS5
 - **Graphe de connaissances** — Visualisation des relations entité-connaissance (entités, attributs, relations, flux, interfaces)
@@ -178,6 +196,7 @@ Le moteur de flux de travail implémente un système d'orchestration de tâches 
 - **Automatisation de navigateur** — Contrôle de navigateur via CDP (navigation, captures d'écran, clics, remplissage, extraction de texte, etc.)
 - **Automatisation UI** — Identification et contrôle d'éléments UI multiplateforme
 - **Outils Git** — Opérations Git avec détection de branches et sensibilité aux conflits
+- **Panneau de commit Git** — Statistiques diff Git visuelles, messages de commit générés par l'IA, staging et commit en un clic
 - **Recommandation d'outils** — Moteur de recommandation intelligent d'outils basé sur le contexte
 - **Orchestration d'outils** — Coordination et exécution multi-outils avec sortie en streaming
 - **Statistiques d'outils** — Statistiques de fréquence d'utilisation et de performance des outils
@@ -192,12 +211,20 @@ Le moteur de flux de travail implémente un système d'orchestration de tâches 
 - **Inspecteur de session** — Vue arborescente de la structure de session, navigation rapide
 - **Panneau de citations** — Suivi et affichage des citations sources avec notation de crédibilité
 - **Rendu d'infographies** — Prise en charge de la visualisation d'infographies
+- **Interpréteur de graphiques** — Analyse et visualisation de données graphiques par l'IA (barres/lignes/camembert/dispersion/aire), insights automatiques
+- **Visionneuse Diff** — Comparaison de versions de conversation, Accepter/Rejeter par fichier, détection automatique de langue
+- **Barre de classification de contexte** — Affichage segmenté de l'utilisation des tokens de contexte par catégorie
+- **Graphe de contexte** — Visualisation ReactFlow des relations de contexte
+- **Suggestion de commandes** — Suggestion automatique de commandes pendant la saisie
+- **Gestionnaire de citations** — Suivi/classification des sources de citation avec notation de crédibilité
+- **Badge de crédibilité** — Visualisation de crédibilité à cinq étoiles
 
 ### 🛡️ Données et sécurité
 
 - **Chiffrement AES-256** — Clés API et données sensibles chiffrées avec AES-256-GCM
 - **Stockage isolé** — État de l'application dans `~/.axagent/`, fichiers utilisateur dans `~/Documents/axagent/`
 - **Sauvegarde automatique** — Sauvegardes planifiées vers un répertoire local ou un stockage WebDAV
+- **Espace de travail cloud** — Synchronisation de stockage cloud S3 et WebDAV, détection/résolution de conflits, synchronisation bidirectionnelle
 - **Restauration de sauvegarde** — Restauration en un clic depuis les sauvegardes historiques
 - **Options d'export** — Captures PNG, Markdown, texte brut, JSON
 - **Gestion du stockage** — Affichage visuel de l'utilisation du disque et outils de nettoyage
@@ -206,6 +233,7 @@ Le moteur de flux de travail implémente un système d'orchestration de tâches 
 
 ### 🖥️ Expérience bureau
 
+- **Mise en page responsive** — Auto-adaptation trois niveaux desktop/tablette/mobile (points de rupture 600px/900px), basculement en temps réel au redimensionnement
 - **Moteur de thèmes** — Thèmes sombre/clair, suivi du système ou préférence manuelle
 - **Langue d'interface** — 11 langues : chinois simplifié, chinois traditionnel, anglais, japonais, coréen, français, allemand, espagnol, russe, hindi, arabe
 - **Barre d'état système** — Minimisation dans la barre d'état sans interruption des services en arrière-plan
@@ -231,6 +259,7 @@ Le moteur de flux de travail implémente un système d'orchestration de tâches 
 - **Suggestions proactives** — Invites contextuelles basées sur le contenu de conversation et les modèles utilisateur
 - **Prédiction de contexte** — Prédiction des prochaines actions de l'utilisateur et préchargement des ressources pertinentes
 - **Intégration onirique** — Intégration automatique en arrière-plan des mémoires et patterns, optimisation des connaissances à long terme
+- **Indicateur d'état onirique** — Affichage en temps réel de l'état et des résultats de l'intégration onirique
 - **Récupération d'erreurs** — Classification automatique des erreurs, analyse des causes racines et suggestions de récupération
 - **Outils de développement** — Trace, Span, visualisation de timeline pour le débogage et l'analyse de performance
 - **Système de benchmark** — Évaluation des performances SWE-bench / Terminal-bench avec scorecards
@@ -261,7 +290,7 @@ Le moteur de flux de travail implémente un système d'orchestration de tâches 
 
 - **Android natif** — Builds APK/AAB, support arm64-v8a / armeabi-v7a / x86_64
 - **iOS natif** — Builds IPA, support arm64
-- **Mise en page adaptative** — Auto-adaptation trois niveaux desktop/tablette/téléphone
+- **Mise en page adaptative** — Auto-adaptation trois niveaux desktop/tablette/téléphone (points de rupture CSS 600px/900px, basculement en temps réel au redimensionnement de fenêtre)
 - **Navigation mobile** — Navigation Drawer coulissante + barre de navigation inférieure + FAB flash
 - **Adaptation zone sûre** — Adaptation CSS env() barre d'état/barre de navigation Android
 - **Optimisation CSP** — Liste blanche de protocole CSP Android WebView

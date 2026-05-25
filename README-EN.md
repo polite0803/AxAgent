@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>Cross-Platform AI Desktop Client | Multi-Agent Collaboration | Local-First</strong>
+  <strong>Cross-Platform AI Desktop/Mobile Client | Multi-Agent Collaboration | Local-First</strong>
 </p>
 
 <p align="center">
@@ -59,6 +59,9 @@ AxAgent v2.0 is a comprehensive cross-platform AI desktop/mobile application tha
 - **Function Calling** — Structured function calling across all supported providers
 - **OpenAI Responses API** — Support for OpenAI Responses format streaming
 - **Realtime API** — WebSocket event push compatible with OpenAI Realtime API
+- **AI Image Generation** — DALL-E 3 and Flux (Replicate) support, multiple size presets (1:1/16:9/9:16/4:3), negative prompts
+- **Smart Model Routing** — Auto-route to different models by task type (code review/summarization/translation), custom routing rules
+- **Voice Call** — Real-time voice conversation via OpenAI Realtime API, connect/speaking/listening state switching
 
 ### 🔐 AI Agent System
 
@@ -84,6 +87,17 @@ The agent system is built on a sophisticated architecture featuring:
 - **Thought Chain** — Reasoning visualization for agent decision-making with step-by-step breakdown
 - **Proactive Mode** — Agent can proactively offer suggestions and execute actions
 - **Purpose Management** — Maintain and track agent execution purpose and context
+- **Agent Pool Panel** — Visualize sub-agent/Worker/workflow step real-time status with expandable details
+- **Agent Reflection Panel** — Post-task quality scoring, efficiency analysis, error patterns and improvement suggestions
+- **Expert Selector** — Import/export/customize expert roles, category filtering, built-in presets and Agency experts
+- **Agent Hierarchy Tree** — Visualize hierarchical relationships and collaboration topology between agents
+- **Intent Classifier** — Automatically identify user input intent type for optimized routing and response strategy
+- **Belief State Management** — Maintain agent's understanding state of current context
+- **Goal Evaluator** — Assess task goal completion and quality
+- **Context Window Management** — Intelligently manage conversation context window, optimize token usage
+- **Project Memory** — Cross-session project-level knowledge persistence and retrieval
+- **Knowledge Base Management** — Knowledge base CRUD operations
+- **Note System** — Structured note storage and retrieval within agents
 
 ### 👥 Multi-Agent Collaboration
 
@@ -97,12 +111,15 @@ The agent system is built on a sophisticated architecture featuring:
 - **Buddy System** — Configurable agent buddies with species and attribute definitions
 - **Shared Memory** — Cross-agent shared memory space with statistics and queries
 - **Team Cron Registry** — Team-level scheduled task coordination
+- **Collaboration Panel** — Real-time collaboration session management, invite code sharing, participant roles (Owner/Editor/Viewer), permission control
+- **Session Sharing** — One-click share link generation, terminal/file/model access permission configuration
 
 ### ⭐ Skills System
 
 - **Skills Marketplace** — Built-in marketplace for browsing and installing community-contributed skills
 - **Skill Creation** — Auto-create skills from proposals with Markdown editor
 - **Skill Evolution** — AI-powered automatic analysis and improvement of existing skills based on execution feedback
+- **Skill Evolution Panel** — Visualize evolution generation, best/average fitness, convergence status
 - **Skill Matching** — Semantic matching to recommend relevant skills for conversation contexts
 - **Skill Decomposition** — Automatic breakdown of complex tasks into executable atomic skills (LLM-assisted/multi-turn/workflow validation)
 - **Generated Tools** — AI auto-generates and registers new tools to expand agent capabilities
@@ -133,6 +150,7 @@ The workflow engine implements a DAG-based task orchestration system:
 
 - **Knowledge Base (RAG)** — Multi-knowledgebase support with document upload, automatic parsing, chunking, and vector indexing
 - **Hybrid Search** — Combines vector similarity search with BM25 full-text ranking
+- **Self-RAG** — Self-retrieval augmented generation, intelligently determine retrieval necessity and result relevance
 - **Reranking** — Cross-encoder reranking for improved retrieval precision
 - **Three-Level Recall Pipeline** — Multi-level recall mechanism with AST index + vector search + FTS5
 - **Knowledge Graph** — Entity relationship visualization of knowledge connections (entities, attributes, relations, flows, interfaces)
@@ -178,6 +196,7 @@ The workflow engine implements a DAG-based task orchestration system:
 - **Browser Automation** — Integrated browser control via CDP (navigation, screenshots, clicks, form filling, text extraction, etc.)
 - **UI Automation** — Cross-platform UI element identification and control
 - **Git Tools** — Git operations with branch detection and conflict awareness
+- **Git Commit Panel** — Visual Git diff statistics, AI-generated commit messages, one-click staging and commit
 - **Tool Recommendation** — Context-aware intelligent tool recommendation engine
 - **Tool Orchestration** — Multi-tool coordinated execution with streaming output
 - **Tool Stats** — Tool usage frequency and performance statistics
@@ -192,12 +211,20 @@ The workflow engine implements a DAG-based task orchestration system:
 - **Session Inspector** — Tree view of session structure for quick navigation
 - **Citation Panel** — Track and display source citations with credibility scoring
 - **Infographic Rendering** — Support for infographic visualization display
+- **Chart Interpreter** — AI-powered chart data analysis and visualization, bar/line/pie/scatter/area charts, auto-generated insights and statistics
+- **Diff Viewer** — Conversation version comparison, per-file Accept/Reject, automatic language detection
+- **Context Classification Bar** — Segmented display of context token usage by category (messages/system prompt/knowledge/memory/tools/skills)
+- **Context Graph** — ReactFlow visualization of conversation context relationships (conversation/model/knowledge/memory/MCP/search/skill nodes)
+- **Command Suggest** — Auto-suggest available commands during input
+- **Citation Manager** — Track and classify citation sources (Web/academic/Wikipedia/GitHub/docs/news/blog/forum), credibility scoring
+- **Credibility Badge** — Five-star rating visualization of source credibility
 
 ### 🛡️ Data & Security
 
 - **AES-256 Encryption** — API keys and sensitive data encrypted with AES-256-GCM
 - **Isolated Storage** — Application state in `~/.axagent/`, user files in `~/Documents/axagent/`
 - **Auto Backup** — Scheduled backups to local directories or WebDAV storage
+- **Cloud Workspace** — S3 and WebDAV cloud storage sync, conflict detection and resolution, bidirectional sync
 - **Backup Restore** — One-click restore from historical backups
 - **Export Options** — PNG screenshots, Markdown, plain text, JSON formats
 - **Storage Management** — Visual disk usage display with cleanup tools
@@ -206,6 +233,7 @@ The workflow engine implements a DAG-based task orchestration system:
 
 ### 🖥️ Desktop Experience
 
+- **Responsive Layout** — Desktop/tablet/mobile three-tier auto-adaptation (600px/900px breakpoints), real-time window resize switching
 - **Theme Engine** — Dark/light themes with system-follow or manual preference
 - **Interface Languages** — 11 languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Spanish, Russian, Hindi, Arabic
 - **System Tray** — Minimize to tray without interrupting background services
@@ -231,6 +259,7 @@ The workflow engine implements a DAG-based task orchestration system:
 - **Proactive Suggestions** — Context-aware nudges based on conversation content and user patterns
 - **Context Prediction** — Predict user's next action and prefetch relevant resources
 - **Dream Consolidation** — Background auto-consolidation of memories and patterns for long-term knowledge optimization
+- **Dream Status Indicator** — Real-time display of background Dream consolidation status and results (memory count/pattern count)
 - **Error Recovery** — Automatic error classification, root cause analysis, and recovery suggestions
 - **DevTools** — Trace, span, timeline visualization for debugging and performance analysis
 - **Benchmark System** — SWE-bench / Terminal-bench task performance evaluation and metrics with score cards
@@ -261,7 +290,7 @@ The workflow engine implements a DAG-based task orchestration system:
 
 - **Android Native** — APK/AAB builds, supporting arm64-v8a / armeabi-v7a / x86_64
 - **iOS Native** — IPA builds, supporting arm64
-- **Adaptive Layout** — Desktop/tablet/phone three-tier auto-adaptation
+- **Adaptive Layout** — Desktop/tablet/mobile three-tier auto-adaptation (600px/900px CSS breakpoints, real-time window resize switching)
 - **Mobile Navigation** — Drawer slide-out navigation + bottom nav bar + flash floating action button
 - **Safe Area Adaptation** — Android system status bar/navigation bar CSS env() adaptation
 - **CSP Optimization** — Android WebView CSP protocol whitelist

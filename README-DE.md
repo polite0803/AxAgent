@@ -59,6 +59,9 @@
 - **Funktionsaufrufe** — Strukturierte Funktionsaufrufe über alle unterstützten Anbieter
 - **OpenAI Responses API** — Unterstützung für das OpenAI Responses-Format-Transport
 - **Realtime API** — WebSocket-Ereignis-Push kompatibel mit der OpenAI Realtime API
+- **KI-Bildgenerierung** — DALL-E 3 und Flux (Replicate), mehrere Größenvorlagen (1:1/16:9/9:16/4:3), Negative Prompts
+- **Smarts Modell-Routing** — Automatisches Routing nach Aufgabentyp (Code-Review/Zusammenfassung/Übersetzung), benutzerdefinierte Routing-Regeln
+- **Sprachanruf** — Echtzeit-Sprachkonversation über OpenAI Realtime API, Verbinden/Sprechen/Zuhören-Zustandswechsel
 
 ### 🔐 AI-Agenten-System
 
@@ -84,6 +87,17 @@ Das Agentensystem basiert auf einer anspruchsvollen Architektur mit folgenden Ei
 - **Gedankenkette** — Visualisierung der Agenten-Entscheidungsfindung, schrittweise Zerlegung
 - **Proaktiver Modus** — Agenten können proaktiv Vorschläge machen und Aktionen ausführen
 - **Zweckverwaltung** — Pflege und Verfolgung der Ausführungszwecke und des Kontexts des Agenten
+- **Agenten-Pool-Panel** — Echtzeit-Statusvisualisierung von Sub-Agenten/Worker/Workflow-Schritten
+- **Agenten-Reflexions-Panel** — Qualitätsbewertung nach Aufgaben, Effizienzanalyse, Fehlermuster, Verbesserungsvorschläge
+- **Experten-Auswahl** — Import/Export/Anpassung von Expertenrollen, Kategoriefilter, integrierte Voreinstellungen
+- **Agenten-Hierarchiebaum** — Visualisierung der Agentenhierarchie und Kollaborationstopologie
+- **Intent-Klassifikator** — Automatische Identifikation des Eingabe-Intent-Typs des Benutzers
+- **Belief-State-Verwaltung** — Aufrechterhaltung des Kontextverständniszustands des Agenten
+- **Ziel-Evaluator** — Bewertung der Zielerreichung und Qualität von Aufgaben
+- **Kontextfenster-Verwaltung** — Intelligente Verwaltung des Kontextfensters, Optimierung der Token-Nutzung
+- **Projektspeicher** — Projektübergreifende Wissenspersistenz über Sitzungen hinweg
+- **Wissensbasis-Verwaltung** — Wissensbasis-CRUD-Operationen
+- **Notizsystem** — Strukturierte Notizspeicherung und -abfrage innerhalb von Agenten
 
 ### 👥 Multi-Agenten-Kollaboration
 
@@ -97,12 +111,15 @@ Das Agentensystem basiert auf einer anspruchsvollen Architektur mit folgenden Ei
 - **Buddy-System** — Konfigurierbare Agenten-Partner mit Spezies- und Attributdefinition
 - **Gemeinsamer Speicher** — Agenten-übergreifender gemeinsamer Speicherplatz mit Statistiken und Abfragen
 - **Team-Cron** — Teamweite Cron-Aufgabenplanung
+- **Kollaborations-Panel** — Echtzeit-Kollaborationssitzungsverwaltung, Einladungscode-Freigabe, Teilnehmerrollen (Owner/Editor/Viewer)
+- **Sitzungsfreigabe** — Ein-Klick-Freigabelink, Terminal/Datei/Modell-Zugriffsberechtigungskonfiguration
 
 ### ⭐ Skill-System
 
 - **Skill-Marktplatz** — Integrierter Marktplatz zum Durchsuchen und Installieren von Community-Skills
 - **Skill-Erstellung** — Automatische Skill-Erstellung aus Vorschlägen mit Markdown-Editor
 - **Skill-Evolution** — KI-gesteuerte automatische Analyse und Verbesserung bestehender Skills basierend auf Ausführungsfeedback
+- **Skill-Evolutions-Panel** — Visualisierung der Evolutionsgeneration, beste/durchschnittliche Fitness, Konvergenzstatus
 - **Skill-Matching** — Semantische Übereinstimmung, Empfehlung relevanter Skills zum Gesprächskontext
 - **Skill-Zerlegung** — Automatische Zerlegung komplexer Aufgaben in ausführbare atomare Skills (LLM-unterstützt/Multi-Runde/Workflow-Validierung)
 - **Generierte Werkzeuge** — KI-gesteuerte automatische Generierung und Registrierung neuer Werkzeuge zur Erweiterung der Agenten-Fähigkeiten
@@ -133,6 +150,7 @@ Die Workflow-Engine implementiert ein DAG-basiertes Aufgaben-Orchestrierungssyst
 
 - **Wissensbasis (RAG)** — Multi-Wissensbasis-Unterstützung, Dokument-Upload, automatisches Parsen, Chunking und Vektorindexierung
 - **Hybride Suche** — Kombination aus Vektorähnlichkeitssuche und BM25-Volltext-Ranking
+- **Self-RAG** — Self-Retrieval-Augmented Generation, intelligente Bestimmung der Abrufnotwendigkeit und Ergebnisrelevanz
 - **Reranking** — Cross-Encoder-Reranking zur Verbesserung der Abrufgenauigkeit
 - **Dreistufige Recall-Pipeline** — Mehrstufiger Abrufmechanismus mit AST-Index + Vektorsuche + FTS5
 - **Wissensgraph** — Wissensentitäts-Beziehungsvisualisierung (Entitäten, Attribute, Beziehungen, Flüsse, Schnittstellen)
@@ -178,6 +196,7 @@ Die Workflow-Engine implementiert ein DAG-basiertes Aufgaben-Orchestrierungssyst
 - **Browser-Automatisierung** — Browsersteuerung über CDP-Integration (Navigation, Screenshots, Klicks, Formularausfüllung, Textextraktion usw.)
 - **UI-Automatisierung** — Plattformübergreifende UI-Element-Identifikation und -Steuerung
 - **Git-Werkzeuge** — Git-Operationen mit Branch-Erkennung und Konfliktbewusstsein
+- **Git-Commit-Panel** — Visuelle Git-Diff-Statistiken, KI-generierte Commit-Nachrichten, Ein-Klick-Staging und -Commit
 - **Werkzeug-Empfehlung** — Kontextbasiertes intelligentes Werkzeug-Empfehlungssystem
 - **Werkzeug-Orchestrierung** — Multi-Werkzeug-Koordinationsausführung mit Streaming-Ausgabe
 - **Werkzeug-Statistiken** — Werkzeug-Nutzungshäufigkeit und Leistungsstatistiken
@@ -192,12 +211,20 @@ Die Workflow-Engine implementiert ein DAG-basiertes Aufgaben-Orchestrierungssyst
 - **Sitzungs-Inspektor** — Baumansicht der Sitzungsstruktur, schnelle Navigation
 - **Zitations-Panel** — Verfolgung und Anzeige von Quellenzitationen mit Glaubwürdigkeitsbewertung
 - **Infografik-Rendering** — Unterstützung für Infografik-Visualisierung
+- **Diagramm-Interpreter** — KI-Diagrammdatenanalyse und -visualisierung (Balken/Linie/Kreis/Streue/Fläche), automatische Insights
+- **Diff-Viewer** — Gesprächsversionsvergleich, Dateiweises Akzeptieren/Ablehnen, automatische Spracherkennung
+- **Kontext-Klassifizierungsleiste** — Segmentierte Kontext-Token-Nutzungsanzeige nach Kategorie
+- **Kontext-Graph** — ReactFlow-Visualisierung von Kontextbeziehungen
+- **Befehlsvorschlag** — Automatische Befehlsvorschläge während der Eingabe
+- **Zitations-Manager** — Verfolgung/Klassifizierung von Zitationsquellen mit Glaubwürdigkeitsbewertung
+- **Glaubwürdigkeits-Badge** — Fünf-Sterne-Glaubwürdigkeitsvisualisierung
 
 ### 🛡️ Daten und Sicherheit
 
 - **AES-256-Verschlüsselung** — API-Schlüssel und sensible Daten mit AES-256-GCM verschlüsselt
 - **Isolierte Speicherung** — Anwendungsstatus in `~/.axagent/`, Benutzerdateien in `~/Documents/axagent/`
 - **Automatisches Backup** — Geplante Backups in lokale Verzeichnisse oder WebDAV-Speicher
+- **Cloud-Arbeitsbereich** — S3- und WebDAV-Cloud-Speichersynchronisation, Konflikterkennung/-lösung, bidirektionale Synchronisation
 - **Backup-Wiederherstellung** — Ein-Klick-Wiederherstellung aus historischen Backups
 - **Export-Optionen** — PNG-Screenshots, Markdown, Klartext, JSON
 - **Speicherverwaltung** — Visuelle Plattennutzungsanzeige und Bereinigungstools
@@ -206,6 +233,7 @@ Die Workflow-Engine implementiert ein DAG-basiertes Aufgaben-Orchestrierungssyst
 
 ### 🖥️ Desktop-Erfahrung
 
+- **Responsives Layout** — Desktop/Tablet/Mobil Drei-Stufen-Auto-Anpassung (600px/900px Breakpoints), Echtzeit-Größenänderungswechsel
 - **Themen-Engine** — Dunkle/helle Themen, Systemfolge oder manuelle Präferenz
 - **Oberflächensprache** — 11 Sprachen: Vereinfachtes Chinesisch, Traditionelles Chinesisch, Englisch, Japanisch, Koreanisch, Französisch, Deutsch, Spanisch, Russisch, Hindi, Arabisch
 - **Systemtray** — Minimierung in den Systemtray ohne Unterbrechung von Hintergrunddiensten
@@ -231,6 +259,7 @@ Die Workflow-Engine implementiert ein DAG-basiertes Aufgaben-Orchestrierungssyst
 - **Proaktive Vorschläge** — Kontextbewusste Hinweise basierend auf Gesprächsinhalt und Benutzermustern
 - **Kontextvorhersage** — Vorhersage der nächsten Benutzeraktion und Vorabladen relevanter Ressourcen
 - **Traum-Integration** — Automatische Hintergrund-Integration von Speicher und Mustern, Optimierung von Langzeitwissen
+- **Traum-Statusindikator** — Echtzeit-Anzeige des Traum-Integrationsstatus und -ergebnisses
 - **Fehlerwiederherstellung** — Automatische Fehlerklassifizierung, Ursachenanalyse und Wiederherstellungsvorschläge
 - **Entwicklerwerkzeuge** — Trace, Span, Timeline-Visualisierung für Debugging und Performance-Analyse
 - **Benchmark-System** — SWE-bench / Terminal-bench Leistungsbewertung und Metriken mit Scorecards
@@ -261,7 +290,7 @@ Die Workflow-Engine implementiert ein DAG-basiertes Aufgaben-Orchestrierungssyst
 
 - **Android Nativ** — APK/AAB-Builds, Unterstützung für arm64-v8a / armeabi-v7a / x86_64
 - **iOS Nativ** — IPA-Builds, Unterstützung für arm64
-- **Adaptives Layout** — Drei-Stufen-Auto-Anpassung Desktop/Tablet/Telefon
+- **Adaptives Layout** — Drei-Stufen-Auto-Anpassung Desktop/Tablet/Telefon (600px/900px CSS-Breakpoints, Echtzeit-Fenstergrößenänderungswechsel)
 - **Mobile Navigation** — Drawer-Slide-Navigation + untere Navigationsleiste + Flash-FAB
 - **Safe-Area-Anpassung** — Android-System-Statusleiste/Navigationsleiste CSS env()-Anpassung
 - **CSP-Optimierung** — Android WebView CSP-Protokoll-Whitelist
