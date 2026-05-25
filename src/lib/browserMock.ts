@@ -2866,6 +2866,10 @@ export async function handleCommand<T>(
       } as T;
     }
 
+    // ── Prompt Templates (mock) ─────────────────────────────────────
+    case "list_prompt_templates":
+      return [] as T;
+
     // ── PTY Terminal (mock) ──────────────────────────────────────────
     case "pty_create_session":
       return `pty-mock-${Date.now()}` as T;

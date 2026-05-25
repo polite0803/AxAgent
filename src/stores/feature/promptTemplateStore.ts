@@ -62,7 +62,7 @@ export const usePromptTemplateStore = create<PromptTemplateState>(
         const templates = await invoke<PromptTemplate[]>(
           "list_prompt_templates",
         );
-        set({ templates, loading: false, error: null });
+        set({ templates: Array.isArray(templates) ? templates : [], loading: false, error: null });
       } catch (e) {
         set({ error: String(e), loading: false });
       }
