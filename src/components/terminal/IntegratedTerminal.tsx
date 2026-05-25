@@ -243,13 +243,14 @@ export function IntegratedTerminal({
 
   return (
     <div
+      className={isMaximized ? "term-maximized" : undefined}
       style={{
         display: "flex",
         flexDirection: "column",
         flex: 1,
         width: "100%",
         border: "1px solid #333",
-        borderRadius: 8,
+        borderRadius: isMaximized ? 0 : 8,
         overflow: "hidden",
         background: "#1e1e2e",
       }}
@@ -410,7 +411,7 @@ export function IntegratedTerminal({
             >
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={<span style={{ color: "#6c7086" }}>No terminal sessions</span>}
+                description={<span style={{ color: "#6c7086" }}>{t("terminal.noSessions")}</span>}
               />
               <Button
                 size="small"
@@ -423,7 +424,7 @@ export function IntegratedTerminal({
                   color: "#cdd6f4",
                 }}
               >
-                New Terminal
+                {t("terminal.newTerminal")}
               </Button>
             </div>
           )
@@ -468,13 +469,13 @@ export function IntegratedTerminal({
                 ? (
                   <span style={{ color: "#f38ba8" }}>
                     <AlertTriangle size={10} style={{ marginRight: 4 }} />
-                    {activeAnalysis.errors.length} error(s)
+                    {t("terminal.errorsCount", { count: activeAnalysis.errors.length })}
                   </span>
                 )
                 : (
                   <span style={{ color: "#a6e3a1" }}>
                     <CheckCircle size={10} style={{ marginRight: 4 }} />
-                    OK
+                    {t("terminal.ok")}
                   </span>
                 )}
             </span>

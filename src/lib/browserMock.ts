@@ -2866,6 +2866,17 @@ export async function handleCommand<T>(
       } as T;
     }
 
+    // ── PTY Terminal (mock) ──────────────────────────────────────────
+    case "pty_create_session":
+      return `pty-mock-${Date.now()}` as T;
+    case "pty_write":
+    case "pty_resize":
+    case "pty_kill_session":
+    case "pty_remove_session":
+    case "pty_analyze_output":
+    case "pty_clear_output":
+      return null as T;
+
     default:
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       return undefined as T;

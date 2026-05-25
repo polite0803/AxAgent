@@ -3261,7 +3261,12 @@
     "docker": "Docker",
     "ssh": "SSH",
     "sessions": "{{count}} 个会话",
-    "configureBackends": "配置后端..."
+    "configureBackends": "配置后端...",
+    "noSessions": "暂无终端会话",
+    "errorsCount": "{{count}} 个错误",
+    "ok": "正常",
+    "dockerConnectPending": "Docker 连接功能开发中",
+    "sshConnectPending": "SSH 连接功能开发中"
   },
   "search": {
     "resultPrefix": "以下是联网搜索结果，回答问题前请参考：\n\n",

@@ -2824,6 +2824,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .term-statusbar { display: flex; align-items: center; padding: 4px 10px; background: oklch(14% 0.006 55); border-top: 1px solid oklch(22% 0.008 55); font-size: 10.5px; color: oklch(55% 0.005 70); gap: 12px; flex-shrink: 0; }
 .term-statusbar .ts-left { display: flex; align-items: center; gap: 10px; flex: 1; }
 .term-statusbar .ts-right { display: flex; align-items: center; gap: 10px; }
+.term-maximized {
+  position: fixed !important;
+  inset: 0;
+  z-index: 500;
+}
 .ts-item { display: flex; align-items: center; gap: 4px; }
 .ts-item svg { width: 12px; height: 12px; }
 .ts-item .ts-dot { width: 5px; height: 5px; border-radius: 50%; }

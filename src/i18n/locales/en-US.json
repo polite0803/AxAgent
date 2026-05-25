@@ -4449,7 +4449,12 @@
     "docker": "Docker",
     "ssh": "SSH",
     "sessions": "{{count}} sessions",
-    "configureBackends": "Configure Backends..."
+    "configureBackends": "Configure Backends...",
+    "noSessions": "No terminal sessions",
+    "errorsCount": "{{count}} error(s)",
+    "ok": "OK",
+    "dockerConnectPending": "Docker connect pending",
+    "sshConnectPending": "SSH connect pending"
   },
   "search": {
     "resultPrefix": "Below are web search results related to the question, please refer to them when answering:\n\n",
