@@ -22,10 +22,10 @@ use crate::work_engine::prompt_template::{
     CompiledPrompt, TemplateSegment, compile_prompt, render_prompt,
 };
 
-// 缓存类型
-type ProviderCache =
+// 缓存类型（pub(crate) 供 WorkEngine 引用）
+pub(crate) type ProviderCache =
     Option<(axagent_core::types::ProviderConfig, axagent_core::types::ProviderKey, String)>;
-type ProfileCache = HashMap<String, axagent_core::entity::agent_profiles::Model>;
+pub(crate) type ProfileCache = HashMap<String, axagent_core::entity::agent_profiles::Model>;
 
 pub struct AgentExecutor {
     db: Arc<DatabaseConnection>,
@@ -204,7 +204,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
         let system_prompt = render_prompt(&compiled, &context.variables).map_err(|e| {
             NodeError::exec_failed(
-                error_code::AGENT_PROFILE_NOT_FOUND,
+                error_code::VARIABLE_NOT_FOUND,
                 format!("Prompt rendering failed: {e}"),
             )
         })?;
@@ -302,6 +302,8 @@ impl NodeExecutorTrait for AgentExecutor {
 
 impl AgentExecutor {
     /// 解析 provider + key + model，优先用缓存。
+    /// 注意：当 profile 指定了 suggested_provider_id 时不做缓存（专用 provider），
+    /// 仅对"无 profile"或"profile 无 provider 偏好"的分辨结果做缓存。
     async fn resolve_provider(
         &self,
         profile: Option<&axagent_core::entity::agent_profiles::Model>,
@@ -309,8 +311,11 @@ impl AgentExecutor {
         (axagent_core::types::ProviderConfig, axagent_core::types::ProviderKey, String),
         NodeError,
     > {
-        // 检查缓存
-        {
+        // 仅当无 profile 指定 provider 时使用缓存
+        let has_profile_override = profile
+            .and_then(|p| p.suggested_provider_id.as_ref())
+            .is_some();
+        if !has_profile_override {
             let cache = self.default_provider_cache.lock().await;
             if let Some(ref cached) = *cache {
                 return Ok(cached.clone());
@@ -365,8 +370,8 @@ impl AgentExecutor {
                 .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))
         }?;
 
-        // 写入缓存
-        {
+        // 仅将"默认 provider"结果写入缓存（profile 指定的 provider 不缓存）
+        if !has_profile_override {
             let mut cache = self.default_provider_cache.lock().await;
             *cache = Some(result.clone());
         }

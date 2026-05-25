@@ -16,6 +16,7 @@ mod validation_executor;
 mod vector_retrieve_executor;
 
 pub use agent_executor::AgentExecutor;
+pub(crate) use agent_executor::{ProfileCache, ProviderCache};
 pub use code_executor::CodeExecutor;
 pub use condition_executor::ConditionExecutor;
 pub use delay_executor::DelayExecutor;

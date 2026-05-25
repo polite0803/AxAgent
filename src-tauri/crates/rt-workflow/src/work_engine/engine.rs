@@ -22,7 +22,8 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
 use super::executors::{
-    AgentExecutor, LlmExecutor, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
+    AgentExecutor, LlmExecutor, ProfileCache, ProviderCache, SubWorkflowCallback, ToolCallback,
+    VectorRetrieveCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
@@ -153,6 +154,9 @@ pub struct WorkEngine {
     tool_callback: Arc<Mutex<Option<ToolCallback>>>,
     subworkflow_callback: Arc<Mutex<Option<SubWorkflowCallback>>>,
     vector_retrieve_callback: Arc<Mutex<Option<VectorRetrieveCallback>>>,
+    /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
+    agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
+    agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
 }
 
 impl WorkEngine {
@@ -189,9 +193,17 @@ impl WorkEngine {
 
 impl WorkEngine {
     pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
+        let agent_provider_cache = Arc::new(tokio::sync::Mutex::new(None));
+        let agent_profile_cache = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
+
         let mut dispatcher = NodeDispatcher::new();
         dispatcher.register(LlmExecutor::new(db.clone(), master_key));
-        dispatcher.register(AgentExecutor::new(db.clone(), master_key));
+        dispatcher.register(AgentExecutor::with_shared_caches(
+            db.clone(),
+            master_key,
+            agent_provider_cache.clone(),
+            agent_profile_cache.clone(),
+        ));
         Self {
             db,
             executions: Arc::new(Mutex::new(HashMap::new())),
@@ -202,6 +214,8 @@ impl WorkEngine {
             tool_callback: Arc::new(Mutex::new(None)),
             subworkflow_callback: Arc::new(Mutex::new(None)),
             vector_retrieve_callback: Arc::new(Mutex::new(None)),
+            agent_provider_cache,
+            agent_profile_cache,
         }
     }
 
@@ -548,6 +562,12 @@ impl WorkEngine {
             if let Some(workflow) = workflows.get_mut(workflow_id) {
                 workflow.status = WorkflowStatus::Running;
             }
+        }
+
+        // 清空 Agent executor 缓存（每次执行使用最新数据）
+        {
+            *self.agent_provider_cache.lock().await = None;
+            self.agent_profile_cache.lock().await.clear();
         }
 
         // 懒编译兜底：若工作流从 DB 加载（非 create_workflow 新建），编译模板
