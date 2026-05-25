@@ -93,9 +93,6 @@ interface SidebarSection {
   items: NavItem[];
 }
 
-const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 44;
-
 const NAV_SHORTCUT_MAP: Partial<Record<string, ShortcutAction>> = {
   gateway: "toggleGateway",
 };
@@ -379,19 +376,7 @@ export function Sidebar() {
   }, [skillNavItems]);
 
   return (
-    <div
-      className="ax-sidebar"
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "stretch",
-        width: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
-        padding: sidebarCollapsed ? "4px 2px 4px" : "12px 8px 12px",
-        overflow: "hidden",
-        transition: "width 0.2s ease",
-      }}
-    >
+    <>
       {/* Collapse toggle */}
       <button
         type="button"
@@ -404,45 +389,36 @@ export function Sidebar() {
         {sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
       </button>
 
-      <nav
-        style={{
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}
-      >
-        {sections.map((section) => (
-          <div key={section.key} style={{ marginBottom: 4 }}>
-            {!sidebarCollapsed && (
-              <div className="ax-sidebar-section-header">
-                {t(section.labelKey)}
-              </div>
-            )}
-            {section.items.map((item) => {
-              const label = item.isPlugin ? item.labelKey : t(item.labelKey);
-              const tooltipText = item.isPlugin
-                ? `${label} (${item.pluginName})`
-                : label;
-              return (
-                <Tooltip
-                  key={item.key}
-                  title={sidebarCollapsed ? tooltipText : ""}
-                  placement="right"
-                >
-                  <NavItemButton
-                    item={item}
-                    activePage={activePage}
-                    sidebarCollapsed={sidebarCollapsed}
-                    settings={settings}
-                    onNavigate={navigate}
-                  />
-                </Tooltip>
-              );
-            })}
-          </div>
-        ))}
-      </nav>
+      {sections.map((section) => (
+        <div key={section.key}>
+          {!sidebarCollapsed && (
+            <div className="ax-sidebar-section-header">
+              {t(section.labelKey)}
+            </div>
+          )}
+          {section.items.map((item) => {
+            const label = item.isPlugin ? item.labelKey : t(item.labelKey);
+            const tooltipText = item.isPlugin
+              ? `${label} (${item.pluginName})`
+              : label;
+            return (
+              <Tooltip
+                key={item.key}
+                title={sidebarCollapsed ? tooltipText : ""}
+                placement="right"
+              >
+                <NavItemButton
+                  item={item}
+                  activePage={activePage}
+                  sidebarCollapsed={sidebarCollapsed}
+                  settings={settings}
+                  onNavigate={navigate}
+                />
+              </Tooltip>
+            );
+          })}
+        </div>
+      ))}
 
       <div className="flex-1" />
 
@@ -506,6 +482,6 @@ export function Sidebar() {
         open={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
       />
-    </div>
+    </>
   );
 }
