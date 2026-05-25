@@ -51,6 +51,7 @@ impl RetryPolicy {
         let mut builder = ExponentialBuilder::default()
             .with_min_delay(self.base_delay)
             .with_max_delay(self.max_delay)
+            .without_max_times()
             .with_factor(if self.exponential_backoff { 2.0 } else { 1.0 });
         if self.jitter {
             builder = builder.with_jitter();
@@ -315,7 +316,11 @@ mod tests {
         for _ in 0..100 {
             let delay = policy.next_delay(0);
             let millis = delay.as_millis() as f64;
-            assert!((900.0..=1100.0).contains(&millis));
+            // backon jitter: delay + delay * random(0..1) → [1s, 2s)
+            assert!(
+                (1000.0..2000.0).contains(&millis),
+                "delay {delay:?} out of expected range [1s, 2s)"
+            );
         }
     }
 
