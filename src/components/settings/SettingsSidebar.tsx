@@ -1,13 +1,4 @@
-import { Icon } from "@/components/common/Icon";
-import { Tooltip } from "@/components/layout/Tooltip";
-import { SettingsMenu } from "@/components/settings/SettingsMenu";
-import type { SettingsMenuItem } from "@/components/settings/SettingsMenu";
-import { SETTINGS_ICON_COLORS } from "@/lib/iconColors";
-import { resolveIconComponent } from "@/lib/skillIcons";
-import { useSkillExtensionStore, useUIStore } from "@/stores";
-import type { SettingsSection } from "@/types";
 import {
-  ArrowLeft,
   Bell,
   BookOpen,
   Bot,
@@ -34,47 +25,50 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Timer,
-  User,
   Wrench,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { resolveIconComponent } from "@/lib/skillIcons";
+import { useSkillExtensionStore, useUIStore } from "@/stores";
+import type { SettingsSection } from "@/types";
+
+// 菜单图标 — 不设 color, 由 CSS .st-item / .st-item.active 通过 currentColor 控制
 const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
-  providers: <Cloud size={16} color={SETTINGS_ICON_COLORS.Cloud} />,
-  conversationSettings: <MessageSquare size={16} color={SETTINGS_ICON_COLORS.MessageSquare} />,
-  defaultModel: <Bot size={16} color={SETTINGS_ICON_COLORS.Bot} />,
-  general: <Settings size={16} color={SETTINGS_ICON_COLORS.Settings} />,
-  display: <Palette size={16} color={SETTINGS_ICON_COLORS.Palette} />,
-  proxy: <Globe size={16} color={SETTINGS_ICON_COLORS.Globe} />,
-  shortcuts: <Zap size={16} color={SETTINGS_ICON_COLORS.Zap} />,
-  data: <Database size={16} color={SETTINGS_ICON_COLORS.Database} />,
-  storage: <HardDrive size={16} color={SETTINGS_ICON_COLORS.HardDrive} />,
-  about: <Info size={16} color={SETTINGS_ICON_COLORS.Info} />,
-  searchProviders: <Search size={16} color={SETTINGS_ICON_COLORS.Search} />,
-  tools: <Wrench size={16} color={SETTINGS_ICON_COLORS.Wrench} />,
-  scheduler: <Clock size={16} color={SETTINGS_ICON_COLORS.Clock} />,
-  backup: <CloudUpload size={16} color={SETTINGS_ICON_COLORS.CloudUpload} />,
-  workflow: <GitBranch size={16} color={SETTINGS_ICON_COLORS.Workflow} />,
-  userProfile: <User size={16} color={SETTINGS_ICON_COLORS.User} />,
-  acp: <Network size={16} color={SETTINGS_ICON_COLORS.Globe} />,
-  skillsHub: <ShoppingBag size={16} color={SETTINGS_ICON_COLORS.ShoppingBag} />,
-  plugins: <Puzzle size={16} color={SETTINGS_ICON_COLORS.Puzzle} />,
-  knowledgeSettings: <BookOpen size={16} color={SETTINGS_ICON_COLORS.BookOpen} />,
-  dashboardPlugins: <LayoutDashboard size={16} color={SETTINGS_ICON_COLORS.LayoutDashboard} />,
-  notificationCenter: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
-  webhooks: <Bell size={16} color={SETTINGS_ICON_COLORS.Bell} />,
-  messageChannels: <Send size={16} color={SETTINGS_ICON_COLORS.Send} />,
-  advanced: <SlidersHorizontal size={16} color={SETTINGS_ICON_COLORS.Settings} />,
-  promptTemplates: <FileText size={16} color={SETTINGS_ICON_COLORS.FileText} />,
-  appConfig: <Bot size={16} color={SETTINGS_ICON_COLORS.Bot} />,
-  evolution: <Dna size={16} color={SETTINGS_ICON_COLORS.Palette} />,
-  cloudWorkspace: <Cloud size={16} color={SETTINGS_ICON_COLORS.Cloud} />,
-  theme: <PaintBucket size={16} color={SETTINGS_ICON_COLORS.Palette} />,
-  imageGen: <Image size={16} color={SETTINGS_ICON_COLORS.Palette} />,
-  cron: <Timer size={16} color={SETTINGS_ICON_COLORS.Clock} />,
+  providers: <Cloud size={14} />,
+  conversationSettings: <MessageSquare size={14} />,
+  defaultModel: <Bot size={14} />,
+  general: <Settings size={14} />,
+  display: <Palette size={14} />,
+  proxy: <Globe size={14} />,
+  shortcuts: <Zap size={14} />,
+  data: <Database size={14} />,
+  storage: <HardDrive size={14} />,
+  about: <Info size={14} />,
+  searchProviders: <Search size={14} />,
+  tools: <Wrench size={14} />,
+  scheduler: <Clock size={14} />,
+  backup: <CloudUpload size={14} />,
+  workflow: <GitBranch size={14} />,
+  acp: <Network size={14} />,
+  skillsHub: <ShoppingBag size={14} />,
+  plugins: <Puzzle size={14} />,
+  knowledgeSettings: <BookOpen size={14} />,
+  dashboardPlugins: <LayoutDashboard size={14} />,
+  notificationCenter: <Bell size={14} />,
+  webhooks: <Bell size={14} />,
+  messageChannels: <Send size={14} />,
+  advanced: <SlidersHorizontal size={14} />,
+  promptTemplates: <FileText size={14} />,
+  appConfig: <Bot size={14} />,
+  evolution: <Dna size={14} />,
+  cloudWorkspace: <Cloud size={14} />,
+  theme: <PaintBucket size={14} />,
+  imageGen: <Image size={14} />,
+  cron: <Timer size={14} />,
 };
 
 const TAB_GROUPS: Record<string, SettingsSection[]> = {
@@ -109,49 +103,6 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
   system: ["advanced", "evolution", "about"],
 };
 
-const TAB_ICONS: Record<string, React.ReactNode> = {
-  model: <Icon icon="fluent:brain-circuit-20-filled" size={20} color="#1677ff" />,
-  appearance: <Icon icon="fluent:eye-20-filled" size={20} color="#52c41a" />,
-  extensions: <Icon icon="fluent:puzzle-piece-20-filled" size={20} color="#fa8c16" />,
-  network: <Icon icon="fluent:globe-20-filled" size={20} color="#13c2c2" />,
-  data: <Icon icon="fluent:server-20-filled" size={20} color="#722ed1" />,
-  system: <Icon icon="fluent:settings-20-filled" size={20} color="#8c8c8c" />,
-};
-
-function useDraggableWidth(initial: number, min: number, max: number) {
-  const [width, setWidth] = useState(initial);
-  const dragging = useRef(false);
-  const startRef = useRef({ startX: 0, startWidth: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragging.current) { return; }
-      const dx = e.clientX - startRef.current.startX;
-      setWidth(Math.max(min, Math.min(max, startRef.current.startWidth + dx)));
-    };
-    const handleMouseUp = () => {
-      dragging.current = false;
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [min, max]);
-
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      dragging.current = true;
-      startRef.current = { startX: e.clientX, startWidth: width };
-    },
-    [width],
-  );
-
-  return { width, onMouseDown };
-}
-
 export function SettingsSidebar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -159,121 +110,133 @@ export function SettingsSidebar() {
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
-  const { width: tabBarWidth, onMouseDown: onTabBarResize } = useDraggableWidth(72, 48, 200);
   const isMobile = deviceLayout === "mobile";
-  const isTablet = deviceLayout === "tablet";
 
-  const sectionToTab = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const [tab, sections] of Object.entries(TAB_GROUPS)) {
-      for (const section of sections) {
-        map.set(section, tab);
-      }
-    }
-    return map;
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const toggleGroup = useCallback((key: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) { next.delete(key); }
+      else { next.add(key); }
+      return next;
+    });
   }, []);
-
-  const [activeTab, setActiveTab] = useState(() => sectionToTab.get(settingsSection) ?? "model");
-
-  useEffect(() => {
-    const tab = sectionToTab.get(settingsSection);
-    if (tab) { setActiveTab(tab); }
-  }, [settingsSection, sectionToTab]);
-
-  const handleTabChange = (key: string) => {
-    setActiveTab(key);
-    const firstSection = TAB_GROUPS[key]?.[0];
-    if (firstSection) { setSettingsSection(firstSection); }
-  };
 
   const skillItems = useMemo(() => {
     return skillSections.map((sec) => {
       const IconComp = sec.icon ? resolveIconComponent(sec.icon) : Puzzle;
       return {
         key: `skill:${sec.skillName}:${sec.id}` as string,
-        icon: <IconComp size={16} />,
+        icon: <IconComp size={14} />,
         label: sec.title,
       };
     });
   }, [skillSections]);
 
-  // 构建每个 tab 的菜单项 (纯数据, 不包含 React 节点)
-  const tabMenus = useMemo(() => {
-    const result: Record<string, SettingsMenuItem[]> = {};
+  const groupConfigs = useMemo(() => {
+    const groups = [];
     for (const [key, sections] of Object.entries(TAB_GROUPS)) {
-      const builtin: SettingsMenuItem[] = sections.map((sec) => ({
+      const items: Array<
+        { key: string; icon: React.ReactNode; label: string }
+      > = sections.map((sec) => ({
         key: sec,
         icon: MENU_ICONS[sec],
         label: t([`settings.${sec}.title`, `settings.${sec}`]),
       }));
-      result[key] = key === "extensions" ? [...builtin, ...skillItems] : builtin;
+      if (key === "extensions") {
+        items.push(...skillItems);
+      }
+      groups.push({
+        key,
+        label: t(
+          `settings.tab${key.charAt(0).toUpperCase() + key.slice(1)}`,
+        ),
+        items,
+      });
     }
-    return result;
+    return groups;
   }, [t, skillItems]);
-
-  const handleMenuClick = ({ key }: { key: string }) => {
-    if (key.startsWith("skill:")) {
-      setSettingsSection(key as SettingsSection);
-    } else {
-      setSettingsSection(key as SettingsSection);
-    }
-  };
-
-  const tabKeys = Object.keys(TAB_GROUPS);
 
   return (
     <div className="h-full flex flex-col" data-testid="settings-sidebar">
-      {/* Back button */}
       <button
         className="settings-back-btn"
         onClick={() => navigate("/")}
       >
-        <ArrowLeft size={16} />
+        {/* ArrowLeft as inline SVG to avoid extra import */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
         <span>{t("common.back")}</span>
         {!isMobile && <kbd className="settings-back-kbd">Esc</kbd>}
       </button>
 
-      <div className="flex-1 pt-1 settings-tab-area">
-        {/* Tab buttons sidebar */}
-        <div
-          className="settings-tab-buttons"
-          style={{ width: isMobile ? "auto" : tabBarWidth }}
-        >
-          {tabKeys.map((key) => {
-            const tabLabel = t(
-              `settings.tab${key.charAt(0).toUpperCase() + key.slice(1)}`,
-            );
-            return (
-              <Tooltip key={key} title={tabLabel} placement="right">
-                <button
-                  className={`settings-tab-btn${activeTab === key ? " active" : ""}`}
-                  onClick={() => handleTabChange(key)}
-                >
-                  {TAB_ICONS[key]}
-                  {tabBarWidth > 120 && <span className="settings-tab-btn-label">{tabLabel}</span>}
-                </button>
-              </Tooltip>
-            );
-          })}
-        </div>
-
-        {/* Resize handle */}
-        {!isMobile && !isTablet && (
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {groupConfigs.map((group) => (
           <div
-            role="separator"
-            className="settings-resize-handle"
-            onMouseDown={onTabBarResize}
-          />
-        )}
-
-        {/* Menu panel */}
-        <div className="settings-menu-panel">
-          <SettingsMenu
-            items={tabMenus[activeTab] ?? []}
-            selectedKeys={[settingsSection]}
-            onClick={handleMenuClick}
-          />
-        </div>
+            key={group.key}
+            className={`st-group${collapsedGroups.has(group.key) ? " collapsed" : ""}`}
+          >
+            <div
+              className="st-group-header"
+              onClick={() => toggleGroup(group.key)}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  fill="currentColor"
+                  fillOpacity=".12"
+                />
+              </svg>
+              <span>{group.label}</span>
+              <svg
+                className="arrow"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+            <div className="st-items">
+              {group.items.map((item) => (
+                <div
+                  key={item.key}
+                  className={`st-item${settingsSection === item.key ? " active" : ""}`}
+                  onClick={() => setSettingsSection(item.key as SettingsSection)}
+                >
+                  {item.icon}
+                  <span className="st-item-text">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

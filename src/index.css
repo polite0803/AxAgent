@@ -2167,21 +2167,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   overflow-y: auto;
   flex-shrink: 0;
 }
-.settings-back {
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-text-secondary);
-  font-size: 12.5px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border-color);
-  transition: all 0.12s;
-  flex-shrink: 0;
-}
-.settings-back:hover { color: var(--color-text); background: color-mix(in srgb, var(--accent-deco) 4%, transparent); }
-.settings-back svg { width: 15px; height: 15px; }
-.st-group { border-bottom: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent); }
+.st-group { border-bottom: 1px solid var(--border-light); }
 .st-group-header {
   display: flex;
   align-items: center;
@@ -2189,13 +2175,14 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   padding: 8px 14px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--muted);
   cursor: pointer;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   transition: all 0.12s;
 }
-.st-group-header:hover { color: var(--color-text); }
+.st-group-header:hover { color: var(--fg); }
+.st-group-header svg { width: 14px; height: 14px; flex-shrink: 0; }
 .st-group-header .arrow {
   width: 12px;
   height: 12px;
@@ -2213,16 +2200,12 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   padding: 6px 10px;
   border-radius: var(--radius);
   font-size: 12.5px;
-  color: var(--color-text-secondary);
+  color: var(--muted);
   cursor: pointer;
   transition: all 0.1s;
 }
-.st-item:hover { background: color-mix(in srgb, var(--accent-deco) 4%, transparent); color: var(--color-text); }
-.st-item.active {
-  background: color-mix(in srgb, var(--accent-deco) 12%, transparent);
-  color: var(--color-primary);
-  font-weight: 500;
-}
+.st-item:hover { background: var(--accent-dim); color: var(--fg); }
+.st-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 .st-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
 .st-item.active svg { opacity: 1; }
 
@@ -3082,45 +3065,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   letter-spacing: 0.05em;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ── SettingsMenu (自定义, 替代 antd Menu) ────────────────────────
-   ═══════════════════════════════════════════════════════════════ */
-.settings-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px;
-}
-.settings-menu-group { margin-bottom: 2px; }
-.settings-menu-group-label {
-  padding: 8px 10px 4px;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.settings-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.12s;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-}
-.settings-menu-item:hover { background: var(--accent-bg); color: var(--fg); }
-.settings-menu-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
-.settings-menu-item-icon { width: 18px; height: 18px; display: grid; place-items: center; flex-shrink: 0; }
-.settings-menu-item-label { flex: 1; }
-
-/* Settings 标签页按钮区域 */
+/* Settings 返回按钮与键盘提示 */
 .settings-back-btn {
   display: flex;
   align-items: center;
@@ -3146,58 +3091,6 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   padding: 1px 6px;
   margin-left: 4px;
   line-height: 16px;
-}
-.settings-tab-area { display: flex; overflow: hidden; }
-.settings-tab-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 4px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  border-right: 1px solid var(--border);
-}
-.settings-tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: var(--radius);
-  border: none;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.12s;
-  white-space: nowrap;
-  width: 100%;
-}
-.settings-tab-btn:hover { background: var(--accent-bg); color: var(--fg); }
-.settings-tab-btn.active { background: var(--accent-soft); color: var(--accent); }
-.settings-tab-btn-label { font-size: 13px; }
-.settings-resize-handle {
-  width: 4px;
-  cursor: col-resize;
-  flex-shrink: 0;
-  background: transparent;
-  transition: background-color 0.15s;
-}
-.settings-resize-handle:hover { background: var(--accent); }
-.settings-menu-panel { flex: 1; overflow-y: auto; min-width: 0; }
-
-/* Mobile settings layout */
-@media (max-width: 600px) {
-  .settings-tab-area { flex-direction: column; }
-  .settings-tab-buttons {
-    flex-direction: row;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding: 4px 6px;
-    gap: 2px;
-    overflow-x: auto;
-  }
-  .settings-tab-btn { padding: 6px 10px; width: auto; }
-  .settings-tab-btn-label { display: none; }
-  .settings-menu-panel { max-height: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
