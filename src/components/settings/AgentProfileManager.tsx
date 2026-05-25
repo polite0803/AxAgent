@@ -1,4 +1,5 @@
 import { invoke } from "@/lib/invoke";
+import { useUIStore } from "@/stores";
 import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import type {
   AgentBehaviorMode,
@@ -69,6 +70,8 @@ const emptyProfile = (): CreateAgentProfileInput => ({
 export function AgentProfileManager() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
+  const isSmall = deviceLayout === "mobile" || deviceLayout === "tablet";
   const [profiles, setProfiles] = useState<AgentProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -272,12 +275,14 @@ export function AgentProfileManager() {
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: 16,
+          flexWrap: "wrap",
+          gap: 8,
         }}
       >
         <Text strong style={{ fontSize: 13, color: token.colorTextSecondary }}>
           {t("chat.workflow.agentProfileTitle")}
         </Text>
-        <Space>
+        <Space wrap>
           <Input
             id="agent-profile-manager-input-31"
             size="small"
@@ -285,7 +290,7 @@ export function AgentProfileManager() {
             placeholder={t("chat.workflow.agentProfileSearch")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 180 }}
+            style={{ width: isSmall ? 120 : 180 }}
             allowClear
           />
           <Button
@@ -339,7 +344,7 @@ export function AgentProfileManager() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                  gridTemplateColumns: isSmall ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))",
                   gap: 10,
                 }}
               >
