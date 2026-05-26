@@ -2866,11 +2866,26 @@ export async function handleCommand<T>(
       } as T;
     }
 
-    // ── Agent Profiles (mock) ──────────────────────────────────────
+    // ── Agent Profiles / Roles / Experts (mock) ────────────────────
     case "list_agent_profiles":
-    case "list_agent_roles":
-    case "list_agency_experts":
       return [] as T;
+    case "list_agent_roles":
+      return [
+        { id: "coordinator", name: "Coordinator" },
+        { id: "researcher", name: "Researcher" },
+        { id: "developer", name: "Developer" },
+        { id: "reviewer", name: "Reviewer" },
+        { id: "browser", name: "Browser" },
+        { id: "code-explorer", name: "Code Explorer" },
+        { id: "quality-assurance", name: "QA" },
+        { id: "general", name: "General" },
+      ] as unknown as T;
+    case "list_agency_experts":
+      return [
+        { id: "general-assistant", name: "通用助手" },
+        { id: "code-reviewer", name: "代码审查" },
+        { id: "senior-developer", name: "高级开发" },
+      ] as unknown as T;
 
     // ── Dashboard Plugins (mock) ────────────────────────────────────
     case "dashboard_list_plugins":
