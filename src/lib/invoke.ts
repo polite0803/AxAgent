@@ -207,9 +207,19 @@ export function getInvokeMetrics(): InvokeMetricsSnapshot {
   const totalCalls = Array.from(_invokeCounts.values()).reduce((s, c) => s + c.total, 0);
   const totalFailed = Array.from(_invokeCounts.values()).reduce((s, c) => s + c.failed, 0);
 
+  const recentErrors: Array<{ command: string; error?: string; timestamp: number }> = [];
+  for (const records of _invokeDurations.values()) {
+    for (const r of records) {
+      if (!r.success) {
+        recentErrors.push({ command: r.command, error: r.error, timestamp: r.timestamp });
+      }
+    }
+  }
+  recentErrors.sort((a, b) => b.timestamp - a.timestamp);
+
   return {
     byCommand,
-    recentErrors: [],
+    recentErrors,
     totalCalls,
     totalFailed,
   };
