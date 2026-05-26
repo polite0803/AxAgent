@@ -178,25 +178,21 @@ impl NodeExecutorTrait for AgentExecutor {
         // 4b. AgentRole system_prompt（岗位）+ Expert system_prompt（技能）
         if let Some(ref p) = profile {
             // 解析 Role 的提示词
-            if let Some(ref role_name) = p.agent_role {
-                if let Some(resolved) = crate::AgentRole::resolve(self.db.as_ref(), role_name).await
-                {
-                    if !resolved.system_prompt.is_empty() {
-                        all_segments.extend(compile_prompt(&resolved.system_prompt).segments);
-                    }
-                }
+            if let Some(ref role_name) = p.agent_role
+                && let Some(resolved) = crate::AgentRole::resolve(self.db.as_ref(), role_name).await
+                && !resolved.system_prompt.is_empty()
+            {
+                all_segments.extend(compile_prompt(&resolved.system_prompt).segments);
             }
             // 解析 Expert 的提示词
-            if let Some(ref expert_id) = p.expert_id {
-                if let Ok(Some(expert)) =
+            if let Some(ref expert_id) = p.expert_id
+                && let Ok(Some(expert)) =
                     axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
                         .one(self.db.as_ref())
                         .await
-                {
-                    if !expert.system_prompt.is_empty() {
-                        all_segments.extend(compile_prompt(&expert.system_prompt).segments);
-                    }
-                }
+                && !expert.system_prompt.is_empty()
+            {
+                all_segments.extend(compile_prompt(&expert.system_prompt).segments);
             }
         }
 
