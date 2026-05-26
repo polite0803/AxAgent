@@ -2592,9 +2592,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   .theme-card-preview { height: 72px; }
 }
 @media (max-width: 600px) {
-  .settings-content { padding: 14px; overflow-x: hidden; max-width: 100vw; }
-  .settings-layout { overflow-x: hidden; }
-  .set-card { padding: 14px 16px; max-width: 100%; }
+  .settings-content { padding: 14px; }
+  .set-card { padding: 14px 16px; }
   .set-input, .set-select { width: 100%; }
   .set-card-row { flex-wrap: wrap; gap: 6px; }
   .settings-sidebar { max-height: 160px; }
