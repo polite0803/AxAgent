@@ -145,18 +145,18 @@ impl ActionExecutor {
                 return Err(format!("工具 '{tool_name}' 路径访问被拒绝: {violations}"));
             }
         }
-        if tool_name == "Bash" || tool_name == "bash" {
-            if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
-                let result = sandbox.check_command(cmd);
-                if !result.allowed {
-                    let violations: String = result
-                        .violations
-                        .iter()
-                        .map(|v| v.message.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    return Err(format!("Bash 命令被拒绝: {violations}"));
-                }
+        if (tool_name == "Bash" || tool_name == "bash")
+            && let Some(cmd) = input.get("command").and_then(|v| v.as_str())
+        {
+            let result = sandbox.check_command(cmd);
+            if !result.allowed {
+                let violations: String = result
+                    .violations
+                    .iter()
+                    .map(|v| v.message.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return Err(format!("Bash 命令被拒绝: {violations}"));
             }
         }
         Ok(())
