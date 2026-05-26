@@ -118,10 +118,12 @@ function sleep(ms: number): Promise<void> {
 const _invokeDurations = new Map<string, number[]>();
 const MAX_INVOKE_COUNTS = 200;
 const MAX_DURATIONS_PER_CMD = 200;
+const MAX_RECENT_ERRORS = 50;
 const _invokeCounts = new Map<
   string,
   { total: number; failed: number; totalDurationMs: number }
 >();
+const _recentErrors: Array<{ command: string; error?: string; timestamp: number }> = [];
 
 export interface InvokeMetricsSnapshot {
   byCommand: Array<{
@@ -142,7 +144,7 @@ function recordInvocation(
   cmd: string,
   durationMs: number,
   success: boolean,
-  _errorMsg?: string,
+  errorMsg?: string,
 ) {
   const durations = _invokeDurations.get(cmd) || [];
   durations.push(durationMs);
@@ -160,6 +162,10 @@ function recordInvocation(
   stats.totalDurationMs += durationMs;
   if (!success) {
     stats.failed++;
+    _recentErrors.push({ command: cmd, error: errorMsg, timestamp: Date.now() });
+    if (_recentErrors.length > MAX_RECENT_ERRORS) {
+      _recentErrors.shift();
+    }
   }
   _invokeCounts.set(cmd, stats);
   if (_invokeCounts.size > MAX_INVOKE_COUNTS) {
@@ -175,6 +181,7 @@ function recordInvocation(
 export function clearInvokeHistory() {
   _invokeDurations.clear();
   _invokeCounts.clear();
+  _recentErrors.length = 0;
 }
 
 function percentile(sorted: number[], pct: number): number {
@@ -209,7 +216,7 @@ export function getInvokeMetrics(): InvokeMetricsSnapshot {
 
   return {
     byCommand,
-    recentErrors: [],
+    recentErrors: [..._recentErrors],
     totalCalls,
     totalFailed,
   };
