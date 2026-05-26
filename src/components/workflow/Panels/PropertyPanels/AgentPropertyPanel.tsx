@@ -1,6 +1,5 @@
 import { ExpertSelector } from "@/components/chat/ExpertSelector";
 import { ModelSelect } from "@/components/shared/ModelSelect";
-import { invoke } from "@/lib/invoke";
 import { useAgentProfileStore, useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { CreateAgentProfileInput } from "@/types";
@@ -54,17 +53,15 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
   const { providers, fetchProviders } = useProviderStore();
 
-  // 加载全局角色列表和 AgentProfile 数据
+  // 加载 AgentProfile 数据，角色列表从 expertStore 读取（同源）
+  const getAllRoles = useExpertStore((s) => s.getAllRoles);
   useEffect(() => {
     if (!agentProfilesLoaded) {
       loadAgentProfiles();
     }
-    invoke<AgentRoleRow[]>("list_agent_roles")
-      .then((roles) => {
-        setGlobalRoles(roles);
-      })
-      .catch((e) => console.error("[AgentPropertyPanel] Failed to load agent roles:", e));
-  }, [agentProfilesLoaded, loadAgentProfiles]);
+    const roles = getAllRoles();
+    setGlobalRoles(roles.map((r) => ({ id: r.id, name: r.name })));
+  }, [agentProfilesLoaded, loadAgentProfiles, getAllRoles]);
 
   // 从已选 profile 中恢复角色选择（独立 effect，确保 selectedExpert 就绪后同步）
   useEffect(() => {
