@@ -125,7 +125,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [reactFlowEdges, setREdges, onEdgesChange] = useEdgesState([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
   const hasAutoLaidOutRef = React.useRef(false);
+  const autoLayoutTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
+  const edgesRef = React.useRef(edges);
+  edgesRef.current = edges;
   // 拖拽时的位置批处理：RAF 合并多次像素级位置变更，只写最后一次到 store
   const pendingPositionsRef = React.useRef<Map<string, { x: number; y: number }>>(new Map());
   const posRafRef = React.useRef<number | null>(null);
@@ -309,7 +312,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         && nodes.every((n) => n.position.x < 50 && n.position.y < 50)
       ) {
         hasAutoLaidOutRef.current = true;
-        setTimeout(() => {
+        autoLayoutTimerRef.current = setTimeout(() => {
           const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
             flowNodes,
             flowEdges,
@@ -321,6 +324,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }, 100);
       }
+      return () => {
+        if (autoLayoutTimerRef.current) {
+          clearTimeout(autoLayoutTimerRef.current);
+          autoLayoutTimerRef.current = null;
+        }
+      };
     }
   }, [currentTemplate, nodes, edges, validationResult]);
 
@@ -332,8 +341,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         message.warning(t("workflow.selfLoopNotAllowed"));
         return;
       }
-      // 禁止重复边
-      const exists = edges.some(
+      // 禁止重复边（通过 ref 读取避免 onConnect 依赖 edges 频繁重建）
+      const exists = edgesRef.current.some(
         (e) =>
           e.source === params.source
           && e.target === params.target
@@ -368,7 +377,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       };
       storeAddEdge(newEdge);
     },
-    [storeAddEdge, edges],
+    [storeAddEdge],
   );
 
   const onNodeClick = useCallback(

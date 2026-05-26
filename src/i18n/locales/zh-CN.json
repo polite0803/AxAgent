@@ -3792,6 +3792,8 @@
       "currentCanvasState": "当前画布状态：",
       "canvasStatus": "{{nodes}} 个节点，{{edges}} 条边",
       "replaceCanvasWarning": "生成的工作流将替换当前画布内容",
+      "replaceConfirmTitle": "确认替换",
+      "replaceConfirmContent": "当前画布有 {{nodes}} 个节点和 {{edges}} 条连线，生成将全部替换。确定继续？",
       "tabOptimizePrompt": "优化提示词",
       "enterAgentPrompt": "输入要优化的智能体提示词",
       "optimizePlaceholder": "粘贴你的提示词...",

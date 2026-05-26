@@ -1,7 +1,7 @@
 import { useWorkflowEditorStore } from "@/stores";
 import { Input, Tabs, Tag } from "antd";
 import { FileText, Search } from "lucide-react";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type DragPayload, setDragPayload } from "../dndState";
 import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
@@ -14,6 +14,16 @@ export const LeftPanel: React.FC = () => {
   const dragRef = useRef<DragPayload | null>(null);
   const ghostRef = useRef<HTMLDivElement | null>(null);
   const isDraggingRef = useRef(false);
+
+  // 卸载时清理拖拽残留（幽灵元素 + 全局事件）
+  useEffect(() => () => {
+    if (ghostRef.current) {
+      ghostRef.current.remove();
+      ghostRef.current = null;
+    }
+    isDraggingRef.current = false;
+    dragRef.current = null;
+  }, []);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent, nodeType: string, nodeLabel: string) => {

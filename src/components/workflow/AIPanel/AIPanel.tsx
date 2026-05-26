@@ -34,6 +34,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   onGenerateWorkflow,
   onOptimizePrompt,
   onRecommendNodes,
+  onClose,
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -64,6 +65,21 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       message.warning(t("workflow.aiPanel.enterWorkflowDesc"));
       return;
     }
+    // 画布已有节点时弹出确认
+    if (nodes.length > 0 || edges.length > 0) {
+      const { Modal: AntModal } = await import("antd");
+      const confirmed = await new Promise<boolean>((resolve) => {
+        AntModal.confirm({
+          title: t("workflow.aiPanel.replaceConfirmTitle"),
+          content: t("workflow.aiPanel.replaceConfirmContent", { nodes: nodes.length, edges: edges.length }),
+          okText: t("common.confirm"),
+          cancelText: t("common.cancel"),
+          onOk: () => resolve(true),
+          onCancel: () => resolve(false),
+        });
+      });
+      if (!confirmed) { return; }
+    }
     setIsGenerating(true);
     try {
       const result = await onGenerateWorkflow(generatePrompt);
@@ -74,6 +90,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         message.success(t("workflow.aiPanel.workflowGenerated"));
       }
     } catch (error) {
+      console.error("[AIPanel] generate failed:", error);
       message.error(t("workflow.aiPanel.generationFailed"));
     } finally {
       setIsGenerating(false);
@@ -94,6 +111,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         message.success(t("workflow.aiPanel.promptOptimized"));
       }
     } catch (error) {
+      console.error("[AIPanel] optimize failed:", error);
       message.error(t("workflow.aiPanel.optimizationFailed"));
     } finally {
       setIsOptimizing(false);
@@ -114,6 +132,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         message.success(t("workflow.aiPanel.recommendationGenerated"));
       }
     } catch (error) {
+      console.error("[AIPanel] recommend failed:", error);
       message.error(t("workflow.aiPanel.recommendationFailed"));
     } finally {
       setIsRecommending(false);
@@ -542,6 +561,11 @@ export const AIPanel: React.FC<AIPanelProps> = ({
             {t("workflow.aiPanel.aiAssistant")}
           </span>
         </div>
+        {onClose && (
+          <Button type="text" size="small" onClick={onClose} style={{ color: token.colorTextTertiary }}>
+            ✕
+          </Button>
+        )}
       </div>
 
       <div style={{ flex: 1, overflow: "auto", padding: "0 16px" }}>
