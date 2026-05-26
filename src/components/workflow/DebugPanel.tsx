@@ -180,7 +180,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
 
   const nodeColumns: ColumnsType<NodeExecution> = [
     {
-      title: "Node",
+      title: t("workflow.debug.columnNode"),
       dataIndex: "nodeName",
       key: "nodeName",
       render: (name: string, record) => (
@@ -192,7 +192,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
       ),
     },
     {
-      title: "Duration",
+      title: t("workflow.debug.columnDuration"),
       key: "duration",
       render: (_, record) => (
         <Text type="secondary">
@@ -201,13 +201,13 @@ export function DebugPanel({ trace }: DebugPanelProps) {
       ),
     },
     {
-      title: "Retries",
+      title: t("workflow.debug.columnRetries"),
       dataIndex: "retryCount",
       key: "retryCount",
       render: (count) => count > 0 ? <Tag color="orange">{count}</Tag> : <Text type="secondary">-</Text>,
     },
     {
-      title: "Status",
+      title: t("workflow.debug.columnStatus"),
       dataIndex: "status",
       key: "status",
       render: (status) => (
@@ -237,7 +237,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
           <Space>
             <BugOutlined />
             <Title level={5} className="m-0">
-              Debug Panel
+              {t("workflow.debug.title")}
             </Title>
             <Badge
               status={trace.status === "completed"
@@ -264,7 +264,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
           </Space>
         </div>
         <Text type="secondary" className="text-sm">
-          Execution: {trace.id} | Workflow: {trace.workflowName} | Trigger: {trace.triggerType}
+          {t("workflow.debug.executionLabel", { id: trace.id, name: trace.workflowName, trigger: trace.triggerType })}
         </Text>
       </div>
 
@@ -334,7 +334,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
         {showVariables && (
           <Card size="small" className="mb-4">
             <Title level={5} className="mb-3">
-              Variable Snapshots
+              {t("workflow.debug.variableSnapshots")}
             </Title>
             <Timeline
               items={trace.variableSnapshots.map((snapshot, index) => ({
@@ -359,7 +359,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
         {showPerformance && (
           <Card size="small">
             <Title level={5} className="mb-3">
-              Performance Analysis
+              {t("workflow.debug.performanceAnalysis")}
             </Title>
             <div className="space-y-3">
               <div>
@@ -416,28 +416,28 @@ export function DebugPanel({ trace }: DebugPanelProps) {
               return (
                 <div className="space-y-3">
                   <div>
-                    <Text type="secondary">Node:</Text>
+                    <Text type="secondary">{t("workflow.debug.labelNode")}:</Text>
                     <Text strong>{node.nodeName}</Text>
                   </div>
                   <div>
-                    <Text type="secondary">Type:</Text>
+                    <Text type="secondary">{t("workflow.debug.labelType")}:</Text>
                     <Tag>{node.nodeType}</Tag>
                   </div>
                   {node.error && (
                     <div>
-                      <Text type="secondary">Error:</Text>
+                      <Text type="secondary">{t("workflow.debug.labelError")}:</Text>
                       <Text type="danger">{node.error}</Text>
                     </div>
                   )}
                   <div>
-                    <Text type="secondary">Input:</Text>
+                    <Text type="secondary">{t("workflow.debug.labelInput")}:</Text>
                     <pre className="text-xs bg-zinc-50 p-2 rounded mt-1">
                       {JSON.stringify(node.input, null, 2)}
                     </pre>
                   </div>
                   {node.output && (
                     <div>
-                      <Text type="secondary">Output:</Text>
+                      <Text type="secondary">{t("workflow.debug.labelOutput")}:</Text>
                       <pre className="text-xs bg-zinc-50 p-2 rounded mt-1">
                         {JSON.stringify(node.output, null, 2)}
                       </pre>

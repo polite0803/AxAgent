@@ -1007,7 +1007,7 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
     case "vectorRetrieve":
       return { query: "", knowledge_base_id: "", top_k: 5, output_var: "" };
     case "end":
-      return { output_var: "" };
+      return {};
     case "validation":
       return { assertions: [], on_fail: "stop" as const, max_retries: 0 };
     default:

@@ -1,3 +1,4 @@
+import type { ToolDef } from "@/components/workflow/types";
 import { AGENT_ROLE_META } from "@/types";
 import { Badge, Tag } from "antd";
 import React, { memo } from "react";
@@ -21,7 +22,7 @@ interface AgentNodeData {
   /** 从 AgentProfile 解析的显示名称 */
   agentRoleDisplayName?: string;
   systemPrompt?: string;
-  tools?: string[];
+  tools?: (ToolDef | string)[];
   contextSources?: string[];
   outputMode?: string;
   model?: string;
