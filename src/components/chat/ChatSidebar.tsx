@@ -637,7 +637,7 @@ export function ChatSidebar({
           <Avatar
             size={20}
             icon={<Link2 size={12} />}
-            style={{ backgroundColor: "#e6f7ff", color: "#1890ff" }}
+            style={{ backgroundColor: token.colorPrimaryBg, color: token.colorPrimary }}
           />
         );
       } else if (conv.model_id) {
