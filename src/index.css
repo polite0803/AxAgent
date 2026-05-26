@@ -892,15 +892,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   color: rgba(255, 255, 255, 0.85) !important;
 }
 
-/* ── Table 防止极端窄列导致单字母换行 ──────── */
-.ant-table-wrapper .ant-table {
-  table-layout: fixed !important;
-}
+/* ── Table 表头不换行 ──────── */
 .ant-table-thead > tr > th {
   white-space: nowrap;
-}
-.ant-table-tbody > tr > td {
-  overflow: hidden;
 }
 
 /* ── Sidebar nav item (expanded mode) ─────────────── */
