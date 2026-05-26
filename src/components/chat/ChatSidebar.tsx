@@ -1799,7 +1799,7 @@ export function ChatSidebar({
           borderBottom: "1px solid var(--border-color)",
         }}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap" style={{ flex: 1, minWidth: 0 }}>
           {showArchived
             ? (
               archivedMultiSelect
@@ -1886,7 +1886,15 @@ export function ChatSidebar({
                     type="text"
                     size="small"
                     onClick={() => setAdvancedSearchVisible(true)}
-                    style={{ color: token.colorTextSecondary, fontSize: 12 }}
+                    style={{
+                      color: token.colorTextSecondary,
+                      fontSize: 12,
+                      maxWidth: 96,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      display: "inline-block",
+                    }}
                   >
                     {t("chat.searchPastSessions")}
                   </Button>
@@ -1938,7 +1946,7 @@ export function ChatSidebar({
               </>
             )}
         </div>
-        <div>
+        <div style={{ flexShrink: 0 }}>
           {showArchived
             ? (
               archivedMultiSelect
