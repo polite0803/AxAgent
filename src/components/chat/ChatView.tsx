@@ -601,7 +601,6 @@ function ChatViewInner({
             <ChatViewWelcome
               loading={loading}
               activeConversationId={activeConversationId}
-              onPromptClick={actions.handlePromptClick}
             />
           )
           : (
