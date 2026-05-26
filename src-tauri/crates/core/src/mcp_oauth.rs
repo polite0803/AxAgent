@@ -10,7 +10,9 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
-use tracing::info;
+use tracing::{info, warn};
+
+use crate::crypto::{decrypt_key, encrypt_key};
 use urlencoding;
 
 /// 持久化的 MCP OAuth 凭据
@@ -87,14 +89,67 @@ impl McpOAuthStore {
 
     fn default_store_path() -> PathBuf {
         let home = dirs::home_dir().unwrap_or_default();
-        home.join(".axagent").join("mcp_oauth_credentials.json")
+        home.join(".axagent").join("mcp_oauth_credentials.enc")
     }
 
     fn load_from_disk(path: &PathBuf) -> HashMap<String, McpOAuthCredentials> {
-        fs::read_to_string(path)
-            .ok()
-            .and_then(|content| serde_json::from_str(&content).ok())
-            .unwrap_or_default()
+        let encrypted = fs::read(path).ok().unwrap_or_default();
+        if encrypted.is_empty() {
+            let legacy_path = {
+                let home = dirs::home_dir().unwrap_or_default();
+                home.join(".axagent").join("mcp_oauth_credentials.json")
+            };
+            if legacy_path.exists() && legacy_path != *path {
+                if let Ok(content) = fs::read_to_string(&legacy_path) {
+                    if let Ok(creds) =
+                        serde_json::from_str::<HashMap<String, McpOAuthCredentials>>(&content)
+                    {
+                        warn!(
+                            "[McpOAuth] 检测到旧版明文凭据文件，将在首次持久化时自动迁移为加密格式"
+                        );
+                        return creds;
+                    }
+                }
+            }
+            return HashMap::new();
+        }
+        let master_key = Self::get_master_key();
+        let encrypted_str = String::from_utf8_lossy(&encrypted);
+        let decrypted = match decrypt_key(&encrypted_str, &master_key) {
+            Ok(d) => d,
+            Err(e) => {
+                warn!("[McpOAuth] 凭据解密失败，将使用空存储: {e}");
+                return HashMap::new();
+            },
+        };
+        serde_json::from_str(&decrypted).unwrap_or_default()
+    }
+
+    fn get_master_key() -> [u8; 32] {
+        let home = dirs::home_dir().unwrap_or_default();
+        let key_path = home.join(".axagent").join(".oauth_key");
+        if key_path.exists() {
+            if let Ok(key_bytes) = fs::read(&key_path) {
+                if key_bytes.len() == 32 {
+                    let mut key = [0u8; 32];
+                    key.copy_from_slice(&key_bytes);
+                    return key;
+                }
+            }
+        }
+        let key = crate::crypto::generate_master_key();
+        if let Some(parent) = key_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        if fs::write(&key_path, key).is_err() {
+            warn!("[McpOAuth] OAuth 密钥文件写入失败，凭据可能无法在下次启动时恢复");
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&key_path, fs::Permissions::from_mode(0o600));
+        }
+        key
     }
 
     async fn persist(&self) {
@@ -103,7 +158,15 @@ impl McpOAuthStore {
             let _ = fs::create_dir_all(parent);
         }
         if let Ok(json) = serde_json::to_string_pretty(&*creds) {
-            let _ = fs::write(&self.store_path, json);
+            let master_key = Self::get_master_key();
+            match encrypt_key(&json, &master_key) {
+                Ok(encrypted) => {
+                    let _ = fs::write(&self.store_path, encrypted.as_bytes());
+                },
+                Err(e) => {
+                    warn!("[McpOAuth] 凭据加密持久化失败: {e}");
+                },
+            }
         }
     }
 

@@ -51,7 +51,9 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     seed_builtin_providers(&conn).await?;
 
     // 数据迁移：预设 MCP 服务器、硬编码路径 → 模板变量、旧版本地工具键
-    let _ = crate::repo::mcp_server::ensure_preset_servers(&conn).await;
+    if let Err(e) = crate::repo::mcp_server::ensure_preset_servers(&conn).await {
+        tracing::warn!("[DB] MCP 预设服务器迁移失败: {e}");
+    }
     crate::path_vars::migrate_hardcoded_paths(&conn).await;
     crate::repo::local_tool::migrate_legacy_keys(&conn).await;
 

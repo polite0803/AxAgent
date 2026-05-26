@@ -413,6 +413,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           id="agent-property-panel-input-textarea-76"
           value={config.system_prompt || ""}
           onChange={(e) => handleConfigChange("system_prompt", e.target.value)}
+          readOnly={!!config.agentProfileId}
+          disabled={!!config.agentProfileId}
           rows={4}
           size="small"
           placeholder={t("workflow.props.systemPromptPlaceholder")}

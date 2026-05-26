@@ -22,7 +22,11 @@ export class ArtifactRenderer {
 
   renderReact(_code: string, container: HTMLElement): void {
     console.warn("[ArtifactRenderer] renderReact not fully implemented");
-    container.innerHTML = `<div style="padding:16px;background:#f5f5f5;">React preview not available</div>`;
+    const div = document.createElement("div");
+    div.style.padding = "16px";
+    div.style.background = "#f5f5f5";
+    div.textContent = "React preview not available";
+    container.appendChild(div);
   }
 
   renderMermaid(code: string, container: HTMLElement): void {

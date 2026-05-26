@@ -56,7 +56,9 @@ impl Tool for GlobTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let pattern = input["pattern"].as_str().unwrap();
+        let pattern = input["pattern"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("Glob", "缺少 pattern 参数"))?;
         let limit = input.get("limit").and_then(|v| v.as_u64()).unwrap_or(100) as usize;
         let search_path = input["path"].as_str().unwrap_or(&ctx.working_dir);
 

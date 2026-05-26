@@ -123,9 +123,9 @@ interface InvokeRecord {
   error?: string;
 }
 
-const _invokeHistory: InvokeRecord[] = [];
-const MAX_INVOKE_HISTORY = 500;
+const _invokeDurations = new Map<string, number[]>();
 const MAX_INVOKE_COUNTS = 200;
+const MAX_DURATIONS_PER_CMD = 200;
 const _invokeCounts = new Map<
   string,
   { total: number; failed: number; totalDurationMs: number }
@@ -141,7 +141,7 @@ export interface InvokeMetricsSnapshot {
     p95Ms: number;
     p99Ms: number;
   }>;
-  recentErrors: InvokeRecord[];
+  recentErrors: Array<{ command: string; error?: string; timestamp: number }>;
   totalCalls: number;
   totalFailed: number;
 }
@@ -150,19 +150,14 @@ function recordInvocation(
   cmd: string,
   durationMs: number,
   success: boolean,
-  errorMsg?: string,
+  _errorMsg?: string,
 ) {
-  const entry: InvokeRecord = {
-    command: cmd,
-    durationMs,
-    success,
-    timestamp: Date.now(),
-    error: errorMsg,
-  };
-  _invokeHistory.push(entry);
-  if (_invokeHistory.length > MAX_INVOKE_HISTORY) {
-    _invokeHistory.shift();
+  const durations = _invokeDurations.get(cmd) || [];
+  durations.push(durationMs);
+  if (durations.length > MAX_DURATIONS_PER_CMD) {
+    durations.shift();
   }
+  _invokeDurations.set(cmd, durations);
 
   const stats = _invokeCounts.get(cmd) || {
     total: 0,
@@ -179,13 +174,14 @@ function recordInvocation(
     const oldestKey = _invokeCounts.keys().next().value;
     if (oldestKey !== undefined) {
       _invokeCounts.delete(oldestKey);
+      _invokeDurations.delete(oldestKey);
     }
   }
 }
 
 // 清空 invoke 历史记录和统计计数器
 export function clearInvokeHistory() {
-  _invokeHistory.length = 0;
+  _invokeDurations.clear();
   _invokeCounts.clear();
 }
 
@@ -203,9 +199,7 @@ function percentile(sorted: number[], pct: number): number {
 export function getInvokeMetrics(): InvokeMetricsSnapshot {
   const byCommand = Array.from(_invokeCounts.entries())
     .map(([command, stats]) => {
-      const durations = _invokeHistory
-        .flatMap((r) => (r.command === command ? [r.durationMs] : []))
-        .sort((a, b) => a - b);
+      const durations = (_invokeDurations.get(command) || []).slice().sort((a, b) => a - b);
       return {
         command,
         total: stats.total,
@@ -218,11 +212,14 @@ export function getInvokeMetrics(): InvokeMetricsSnapshot {
     })
     .sort((a, b) => b.total - a.total);
 
+  const totalCalls = Array.from(_invokeCounts.values()).reduce((s, c) => s + c.total, 0);
+  const totalFailed = Array.from(_invokeCounts.values()).reduce((s, c) => s + c.failed, 0);
+
   return {
     byCommand,
-    recentErrors: _invokeHistory.filter((r) => !r.success).slice(-20),
-    totalCalls: _invokeHistory.length,
-    totalFailed: _invokeHistory.filter((r) => !r.success).length,
+    recentErrors: [],
+    totalCalls,
+    totalFailed,
   };
 }
 
@@ -419,7 +416,6 @@ async function withTimeout<T>(
     return fn();
   }
 
-  // Create an AbortController-compatible timeout
   let timer: ReturnType<typeof setTimeout> | undefined;
   let timedOut = false;
 
@@ -429,7 +425,8 @@ async function withTimeout<T>(
       reject(
         new Error(
           `Command "${cmdName}" timed out after ${(timeoutMs / 1000).toFixed(1)}s. `
-            + `The operation may still be running in the backend. You can try again later.`,
+            + `The operation may still be running in the backend. `
+            + `Consider using a longer timeout or checking backend logs.`,
         ),
       );
     }, timeoutMs);
@@ -439,7 +436,6 @@ async function withTimeout<T>(
     const result = await Promise.race([fn(), timeoutPromise]);
     return result;
   } catch (e) {
-    // Transform IPC connection errors into user-friendly messages
     const msg = String(e).toLowerCase();
     if (
       !timedOut

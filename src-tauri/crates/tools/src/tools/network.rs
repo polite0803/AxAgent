@@ -696,9 +696,9 @@ impl Tool for RssReaderTool {
             body.contains("xmlns=\"http://www.w3.org/2005/Atom\"") || body.contains("<feed");
 
         let entries = if is_atom {
-            parse_atom_feed(&body, limit)
+            parse_atom_feed(&body, limit)?
         } else {
-            parse_rss_feed(&body, limit)
+            parse_rss_feed(&body, limit)?
         };
 
         if entries.is_empty() {
@@ -725,9 +725,13 @@ impl Tool for RssReaderTool {
     }
 }
 
-fn parse_rss_feed(xml: &str, limit: usize) -> Vec<(String, String, String, String)> {
+fn parse_rss_feed(
+    xml: &str,
+    limit: usize,
+) -> Result<Vec<(String, String, String, String)>, ToolError> {
     let mut entries = Vec::new();
-    let item_re = regex::Regex::new(r"(?s)<item>(.*?)</item>").unwrap();
+    let item_re = regex::Regex::new(r"(?s)<item>(.*?)</item>")
+        .map_err(|e| ToolError::invalid_input(format!("正则表达式无效: {}", e)))?;
     for cap in item_re.captures_iter(xml).take(limit) {
         let item = &cap[1];
         let title = extract_xml_tag(item, "title").unwrap_or_default();
@@ -737,19 +741,23 @@ fn parse_rss_feed(xml: &str, limit: usize) -> Vec<(String, String, String, Strin
             .or_else(|| extract_xml_cdata(item, "description"))
             .unwrap_or_default();
         if !title.is_empty() {
-            entries.push((strip_html(&title), link, date, strip_html(&desc)));
+            entries.push((strip_html(&title)?, link, date, strip_html(&desc)?));
         }
     }
-    entries
+    Ok(entries)
 }
 
-fn parse_atom_feed(xml: &str, limit: usize) -> Vec<(String, String, String, String)> {
+fn parse_atom_feed(
+    xml: &str,
+    limit: usize,
+) -> Result<Vec<(String, String, String, String)>, ToolError> {
     let mut entries = Vec::new();
-    let entry_re = regex::Regex::new(r"(?s)<entry>(.*?)</entry>").unwrap();
+    let entry_re = regex::Regex::new(r"(?s)<entry>(.*?)</entry>")
+        .map_err(|e| ToolError::invalid_input(format!("正则表达式无效: {}", e)))?;
     for cap in entry_re.captures_iter(xml).take(limit) {
         let item = &cap[1];
         let title = extract_xml_tag(item, "title").unwrap_or_default();
-        let link = extract_atom_link(item);
+        let link = extract_atom_link(item)?;
         let date = extract_xml_tag(item, "updated")
             .or_else(|| extract_xml_tag(item, "published"))
             .unwrap_or_default();
@@ -757,10 +765,10 @@ fn parse_atom_feed(xml: &str, limit: usize) -> Vec<(String, String, String, Stri
             .or_else(|| extract_xml_tag(item, "content"))
             .unwrap_or_default();
         if !title.is_empty() {
-            entries.push((strip_html(&title), link, date, strip_html(&desc)));
+            entries.push((strip_html(&title)?, link, date, strip_html(&desc)?));
         }
     }
-    entries
+    Ok(entries)
 }
 
 fn extract_xml_tag(xml: &str, tag: &str) -> Option<String> {
@@ -777,15 +785,18 @@ fn extract_xml_cdata(xml: &str, tag: &str) -> Option<String> {
         .and_then(|re| re.captures(xml).map(|c| c[1].to_string()))
 }
 
-fn extract_atom_link(xml: &str) -> String {
-    let re = regex::Regex::new(r#"<link[^>]*href="([^"]*)"[^>]*/>"#).unwrap();
-    re.captures(xml)
+fn extract_atom_link(xml: &str) -> Result<String, ToolError> {
+    let re = regex::Regex::new(r#"<link[^>]*href="([^"]*)"[^>]*/>"#)
+        .map_err(|e| ToolError::invalid_input(format!("正则表达式无效: {}", e)))?;
+    Ok(re
+        .captures(xml)
         .map(|c| c[1].to_string())
-        .unwrap_or_default()
+        .unwrap_or_default())
 }
 
-fn strip_html(text: &str) -> String {
-    let re = regex::Regex::new(r"<[^>]+>").unwrap();
+fn strip_html(text: &str) -> Result<String, ToolError> {
+    let re = regex::Regex::new(r"<[^>]+>")
+        .map_err(|e| ToolError::invalid_input(format!("正则表达式无效: {}", e)))?;
     let decoded = text
         .replace("&amp;", "&")
         .replace("&lt;", "<")
@@ -793,7 +804,7 @@ fn strip_html(text: &str) -> String {
         .replace("&quot;", "\"")
         .replace("&apos;", "'")
         .replace("&#39;", "'");
-    re.replace_all(&decoded, "").trim().to_string()
+    Ok(re.replace_all(&decoded, "").trim().to_string())
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

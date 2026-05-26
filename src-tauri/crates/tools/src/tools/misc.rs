@@ -43,6 +43,12 @@ impl Tool for RemoteFileUploadTool {
         if !Path::new(local_path).exists() {
             return Ok(ToolResult::error(format!("文件未找到: {}", local_path)));
         }
+        if remote_name.contains("..") || remote_name.contains(std::path::MAIN_SEPARATOR) {
+            return Err(ToolError::permission_denied(
+                "RemoteFileUpload",
+                "remote_name 包含非法路径字符",
+            ));
+        }
 
         let content =
             std::fs::read(local_path).map_err(|e| ToolError::execution_failed(e.to_string()))?;
@@ -57,7 +63,22 @@ impl Tool for RemoteFileUploadTool {
 
         let remote_dir = Path::new("remote");
         std::fs::create_dir_all(remote_dir).ok();
-        std::fs::write(remote_dir.join(&dest_name), &content)
+        let dest_path = remote_dir.join(&dest_name);
+        if dest_path.exists() {
+            let canonical_remote = remote_dir
+                .canonicalize()
+                .unwrap_or_else(|_| remote_dir.to_path_buf());
+            let canonical_dest = dest_path
+                .canonicalize()
+                .unwrap_or_else(|_| dest_path.clone());
+            if !canonical_dest.starts_with(&canonical_remote) {
+                return Err(ToolError::permission_denied(
+                    "RemoteFileUpload",
+                    "路径遍历攻击已阻止：目标路径超出远程存储目录",
+                ));
+            }
+        }
+        std::fs::write(&dest_path, &content)
             .map_err(|e| ToolError::execution_failed(e.to_string()))?;
 
         Ok(ToolResult::success(format!("已上传: {} -> remote/{}", local_path, dest_name)))
@@ -137,9 +158,26 @@ impl Tool for RemoteFileDeleteTool {
         if name.is_empty() {
             return Ok(ToolResult::error("Error: remote_name 是必需的"));
         }
-        let path = Path::new("remote").join(name);
+        if name.contains("..") || name.contains(std::path::MAIN_SEPARATOR) || name.contains('/') {
+            return Err(ToolError::permission_denied(
+                "RemoteFileDelete",
+                "remote_name 包含非法路径字符",
+            ));
+        }
+        let remote_dir = Path::new("remote");
+        let path = remote_dir.join(name);
         if !path.exists() {
             return Ok(ToolResult::error(format!("文件未找到: {}", name)));
+        }
+        let canonical_remote = remote_dir
+            .canonicalize()
+            .unwrap_or_else(|_| remote_dir.to_path_buf());
+        let canonical_path = path.canonicalize().unwrap_or_else(|_| path.clone());
+        if !canonical_path.starts_with(&canonical_remote) {
+            return Err(ToolError::permission_denied(
+                "RemoteFileDelete",
+                "路径遍历攻击已阻止：文件路径超出远程存储目录",
+            ));
         }
         std::fs::remove_file(&path)
             .map_err(|e| ToolError::execution_failed(format!("删除失败: {}", e)))?;
@@ -219,7 +257,19 @@ impl Tool for CacheClearTool {
         let mut removed = 0u64;
         if let Ok(entries) = std::fs::read_dir(cache_dir) {
             for e in entries.filter_map(|e| e.ok()) {
-                if e.path().is_file() && std::fs::remove_file(e.path()).is_ok() {
+                let path = e.path();
+                if !path.is_file() {
+                    continue;
+                }
+                let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+                let should_remove = match scope {
+                    "embeddings" => {
+                        file_name.starts_with("emb_") || file_name.starts_with("embedding_")
+                    },
+                    "search" => file_name.starts_with("search_") || file_name.starts_with("idx_"),
+                    _ => true,
+                };
+                if should_remove && std::fs::remove_file(&path).is_ok() {
                     removed += 1;
                 }
             }

@@ -204,7 +204,13 @@ export function buildHtmlTranscript(
           return `<pre><code class="language-${lang || "text"}">${escapedCode}</code></pre>`;
         })
         // 行内代码
-        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/`([^`]+)`/g, (_m, code: string) => {
+          const escapedCode = code
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          return `<code>${escapedCode}</code>`;
+        })
         // 换行转 <br>
         .replace(/\n/g, "<br>");
 

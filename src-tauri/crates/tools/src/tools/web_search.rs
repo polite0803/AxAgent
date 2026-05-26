@@ -62,7 +62,9 @@ impl Tool for WebSearchTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let query = input["query"].as_str().unwrap();
+        let query = input["query"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("WebSearch", "缺少 query 参数"))?;
         let start = Instant::now();
 
         // 从 ToolContext.extra 读取搜索配置，fallback 到 DDG

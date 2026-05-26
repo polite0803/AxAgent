@@ -74,19 +74,37 @@ const ARGON2_MEMORY_COST: u32 = 65536; // 64 MB
 const ARGON2_TIME_COST: u32 = 3;
 const ARGON2_PARALLELISM: u32 = 4;
 
-/// 使用 Argon2id 从内置常量派生备份加密密钥。
-/// 虽然密码学上仍属于"无用户密码"，但 Argon2id 的内存/时间成本使暴力破解显著困难。
+/// 使用 Argon2id 从机器特征 + 内置常量派生备份加密密钥。
+/// 结合机器唯一标识使密钥与当前设备绑定，即使源码泄露也无法在其他机器上解密。
 fn derive_backup_key_v2(salt: &[u8]) -> Result<[u8; 32]> {
     let mut key = [0u8; 32];
     let params = Params::new(ARGON2_MEMORY_COST, ARGON2_TIME_COST, ARGON2_PARALLELISM, Some(32))
         .map_err(|e| AxAgentError::Crypto(format!("Argon2 参数无效: {e}")))?;
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
-    // 组合密码短语与域分离标签
-    let password = b"axagent-backup-key-v2:axagent-backup-encryption-v2";
+    let machine_id = get_machine_fingerprint();
+    let mut password = Vec::with_capacity(
+        b"axagent-backup-key-v2:".len() + machine_id.len() + b":axagent-backup-encryption-v2".len(),
+    );
+    password.extend_from_slice(b"axagent-backup-key-v2:");
+    password.extend_from_slice(machine_id.as_bytes());
+    password.extend_from_slice(b":axagent-backup-encryption-v2");
     argon2
-        .hash_password_into(password, salt, &mut key)
+        .hash_password_into(&password, salt, &mut key)
         .map_err(|e| AxAgentError::Crypto(format!("Argon2 密钥派生失败: {e}")))?;
     Ok(key)
+}
+
+fn get_machine_fingerprint() -> String {
+    let hostname = std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .or_else(|_| std::env::var("NAME"))
+        .unwrap_or_else(|_| "unknown".to_string());
+    let username = std::env::var("USER")
+        .or_else(|_| std::env::var("USERNAME"))
+        .unwrap_or_else(|_| "unknown".to_string());
+    let os_info = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
+    let raw = format!("{}:{}:{}", hostname, username, os_info);
+    sha256_hash(&raw)
 }
 
 pub fn encrypt_backup_key(key_data: &[u8]) -> Result<Vec<u8>> {
@@ -144,8 +162,10 @@ pub fn decrypt_backup_key(enc_data: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// Legacy decrypt for v1 backups (SHA256 KDF, fixed salt).
-/// 仅用于兼容旧备份文件，新备份使用 v2 (Argon2id)。
+/// ⚠️ 已弃用：v1 使用弱 KDF（无盐 SHA256），将在未来版本中移除。
+/// 请尽快迁移到 v2 格式（Argon2id + 随机盐 + 机器指纹）。
 fn decrypt_backup_key_v1(enc_data: &[u8]) -> Result<Vec<u8>> {
+    tracing::warn!("正在使用已弃用的 v1 备份密钥解密（弱 KDF），请尽快重新加密为 v2 格式");
     let (nonce_bytes, ciphertext) = enc_data.split_at(NONCE_SIZE);
     let nonce = Nonce::from_slice(nonce_bytes);
 

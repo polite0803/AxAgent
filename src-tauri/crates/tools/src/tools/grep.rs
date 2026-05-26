@@ -5,6 +5,8 @@ use async_trait::async_trait;
 use serde_json::Value;
 use std::process::Command;
 
+const GREP_MAX_REGEX_SIZE: usize = 1024;
+
 pub struct GrepTool;
 
 #[async_trait]
@@ -58,7 +60,15 @@ impl Tool for GrepTool {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let pattern = input["pattern"].as_str().unwrap();
+        let pattern = input["pattern"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("Grep", "缺少 pattern 参数"))?;
+        if pattern.len() > GREP_MAX_REGEX_SIZE {
+            return Err(ToolError::invalid_input_for(
+                "Grep",
+                format!("正则表达式过长（最大 {} 字符）", GREP_MAX_REGEX_SIZE),
+            ));
+        }
         let search_path = input["path"].as_str().unwrap_or(&ctx.working_dir);
         let case_insensitive = input
             .get("case_insensitive")
@@ -168,9 +178,12 @@ fn fallback_search(
     let re = if case_insensitive {
         regex::RegexBuilder::new(pattern)
             .case_insensitive(true)
+            .size_limit(1_000_000)
             .build()
     } else {
-        regex::Regex::new(pattern)
+        regex::RegexBuilder::new(pattern)
+            .size_limit(1_000_000)
+            .build()
     }
     .map_err(|e| ToolError::invalid_input(format!("正则表达式无效: {}", e)))?;
 

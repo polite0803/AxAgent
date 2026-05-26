@@ -53,6 +53,9 @@ export function useVoiceChat({
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shouldReconnectRef = useRef(false);
+  const stateRef = useRef<VoiceSessionState>("Idle");
+  stateRef.current = state;
+  const connectWebSocketRef = useRef<() => void>(() => {});
 
   const cleanup = useCallback((keepReconnecting = false) => {
     if (rafRef.current !== null) {
@@ -140,7 +143,7 @@ export function useVoiceChat({
   }, []);
 
   const start = useCallback(async () => {
-    if (state !== "Idle") {
+    if (stateRef.current !== "Idle") {
       return;
     }
     setState("Connecting");
@@ -182,7 +185,7 @@ export function useVoiceChat({
       workletRef.current = worklet;
       source.connect(worklet);
 
-      connectWebSocket();
+      connectWebSocketRef.current();
     } catch (err) {
       const errMsg = err instanceof DOMException && err.name === "NotAllowedError"
         ? t("voice.micPermissionDenied")
@@ -191,12 +194,11 @@ export function useVoiceChat({
       cleanup();
       setState("Idle");
     }
-  }, [state, port, host, config, isMuted, cleanup, runVAD, message, t]);
+  }, [config, cleanup, message, t]);
 
   // ── WebSocket 连接与重连 ──
 
   const connectWebSocket = useCallback(() => {
-    // 清理旧连接
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -224,7 +226,6 @@ export function useVoiceChat({
     }
 
     ws.onmessage = (_e: MessageEvent) => {
-      // 服务端音频回放在此处理
     };
 
     ws.onerror = () => {
@@ -232,7 +233,6 @@ export function useVoiceChat({
     };
 
     ws.onclose = (event) => {
-      // 正常关闭（1000）或用户主动断开则不重连
       if (!shouldReconnectRef.current || event.code === 1000) {
         cleanup();
         setState("Idle");
@@ -250,7 +250,6 @@ export function useVoiceChat({
       reconnectAttemptsRef.current = attempts + 1;
       setState("Connecting");
 
-      // 指数退避延迟
       const delay = Math.min(
         RECONNECT_BASE_DELAY_MS * Math.pow(2, attempts),
         RECONNECT_MAX_DELAY_MS,
@@ -262,10 +261,12 @@ export function useVoiceChat({
 
       reconnectTimerRef.current = setTimeout(() => {
         reconnectTimerRef.current = null;
-        connectWebSocket();
+        connectWebSocketRef.current();
       }, delay);
     };
-  }, [host, port, config, isMuted, cleanup, setState, runVAD, message, t]);
+  }, [host, port, config, cleanup, runVAD, message, t]);
+
+  connectWebSocketRef.current = connectWebSocket;
 
   const stop = useCallback(() => {
     if (state === "Idle" || state === "Disconnecting") {

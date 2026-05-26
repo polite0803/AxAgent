@@ -10,6 +10,7 @@ use crate::permissions::classifier::HeuristicClassifier;
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
+use std::io::Read;
 use std::process::Command;
 
 const DEFAULT_TIMEOUT_SECS: u64 = 120;
@@ -190,7 +191,6 @@ impl Tool for BashTool {
             .spawn()
             .map_err(|e| ToolError::execution_failed_for("Bash", format!("启动命令失败: {}", e)))?;
 
-        // 超时控制
         let start = std::time::Instant::now();
         let deadline = start + std::time::Duration::from_secs(timeout_secs);
 
@@ -198,16 +198,30 @@ impl Tool for BashTool {
             match child.try_wait() {
                 Ok(Some(status)) => {
                     let elapsed = start.elapsed();
-                    let output = child.wait_with_output().map_err(|e| {
-                        ToolError::execution_failed_for("Bash", format!("读取输出失败: {}", e))
-                    })?;
+                    let stdout_buf = child.stdout.take();
+                    let stderr_buf = child.stderr.take();
 
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    let stdout_content = if let Some(mut out) = stdout_buf {
+                        let mut buf = Vec::new();
+                        let _ = out.read_to_end(&mut buf);
+                        String::from_utf8_lossy(&buf).to_string()
+                    } else {
+                        String::new()
+                    };
+
+                    let stderr_content = if let Some(mut err) = stderr_buf {
+                        let mut buf = Vec::new();
+                        let _ = err.read_to_end(&mut buf);
+                        String::from_utf8_lossy(&buf).to_string()
+                    } else {
+                        String::new()
+                    };
+
+                    let stdout = stdout_content;
+                    let stderr = stderr_content;
 
                     let mut result = String::new();
 
-                    // 输出限制
                     let stdout_display = if stdout.len() > MAX_OUTPUT_BYTES {
                         format!(
                             "{}\n\n[stdout 已截断，显示 {total}/{total} 字节]",
@@ -243,15 +257,15 @@ impl Tool for BashTool {
                 },
                 Ok(None) => {
                     if std::time::Instant::now() > deadline {
-                        // 超时，杀掉进程
                         let _ = child.kill();
+                        let _ = child.wait();
                         return Err(ToolError {
                             error_code: "tool.Bash.timeout".into(),
                             message: format!("命令执行超时（{} 秒）", timeout_secs),
                             kind: crate::ToolErrorKind::Timeout,
                         });
                     }
-                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    std::thread::sleep(std::time::Duration::from_millis(50));
                 },
                 Err(e) => {
                     return Err(ToolError::execution_failed_for(

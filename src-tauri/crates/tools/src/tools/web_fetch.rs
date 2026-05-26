@@ -105,7 +105,9 @@ impl Tool for WebFetchTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let url = input["url"].as_str().unwrap();
+        let url = input["url"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("WebFetch", "缺少 url 参数"))?;
         let prompt = input["prompt"].as_str().unwrap_or("").to_string();
         let render_js = input
             .get("render_js")
@@ -434,8 +436,8 @@ fn decode_body(raw: &[u8], content_type: &str) -> String {
 fn extract_charset(content_type: &str) -> Option<String> {
     for part in content_type.split(';') {
         let part = part.trim();
-        if part.starts_with("charset=") {
-            let charset = part.strip_prefix("charset=").unwrap().trim();
+        if let Some(charset_raw) = part.strip_prefix("charset=") {
+            let charset = charset_raw.trim();
             let charset = charset.trim_matches('"').trim_matches('\'');
             if !charset.is_empty() {
                 return Some(charset.to_string());

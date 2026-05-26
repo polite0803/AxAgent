@@ -65,7 +65,9 @@ impl Tool for DatabaseQueryTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let sql = input["sql"].as_str().unwrap();
+        let sql = input["sql"]
+            .as_str()
+            .ok_or_else(|| ToolError::invalid_input_for("DatabaseQuery", "缺少 sql 参数"))?;
         let trimmed = sql.trim().to_uppercase();
         let allowed = ["SELECT", "EXPLAIN", "DESCRIBE", "SHOW", "PRAGMA", "WITH"];
         if !allowed.iter().any(|p| trimmed.starts_with(p)) {

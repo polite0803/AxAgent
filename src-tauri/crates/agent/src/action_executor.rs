@@ -103,6 +103,10 @@ impl ActionExecutor {
     ) -> Result<ActionResult, ActionError> {
         let (_server_name, local_name) = parse_full_tool_name(tool_name);
 
+        if let Err(e) = Self::sandbox_check(local_name, &input) {
+            return Err(ActionError::ToolExecution(format!("沙箱安全检查未通过: {e}")));
+        }
+
         let args = if let Some(obj) = input.as_object() {
             serde_json::to_value(obj.clone()).unwrap_or(input.clone())
         } else {
@@ -125,6 +129,37 @@ impl ActionExecutor {
                 Err(e) => Err(ActionError::ToolExecution(e.to_string())),
             }
         }
+    }
+
+    fn sandbox_check(tool_name: &str, input: &Value) -> Result<(), String> {
+        let sandbox = axagent_tools::sandbox::SecuritySandbox::with_default_config();
+        if let Some(path_str) = input.get("path").and_then(|v| v.as_str()) {
+            let result = sandbox.check_path_access(std::path::Path::new(path_str));
+            if !result.allowed {
+                let violations: String = result
+                    .violations
+                    .iter()
+                    .map(|v| v.message.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return Err(format!("工具 '{tool_name}' 路径访问被拒绝: {violations}"));
+            }
+        }
+        if tool_name == "Bash" || tool_name == "bash" {
+            if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
+                let result = sandbox.check_command(cmd);
+                if !result.allowed {
+                    let violations: String = result
+                        .violations
+                        .iter()
+                        .map(|v| v.message.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    return Err(format!("Bash 命令被拒绝: {violations}"));
+                }
+            }
+        }
+        Ok(())
     }
 }
 

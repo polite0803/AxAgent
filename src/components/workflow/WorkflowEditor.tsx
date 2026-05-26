@@ -14,7 +14,7 @@ import {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { autoLayoutWorkflow } from "@/lib/workflowLayout";
-import { useWorkflowEditorStore } from "@/stores";
+import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
@@ -268,7 +268,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                   if (profileId) {
                     const profile = useExpertStore
                       .getState()
-                      .getRoleById(profileId);
+                      .getRoleById(profileId)
+                      ?? useAgentProfileStore
+                        .getState()
+                        .getProfileById(profileId);
                     if (profile) {
                       return {
                         agentRole: profile.agentRole || undefined,

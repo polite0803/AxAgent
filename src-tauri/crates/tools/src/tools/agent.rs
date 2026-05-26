@@ -176,7 +176,7 @@ pub fn list_agents() -> Vec<AgentDefinition> {
 pub fn find_agent(agent_type: &str) -> Option<AgentDefinition> {
     AGENT_REGISTRY
         .read()
-        .unwrap()
+        .unwrap_or_else(|e| e.into_inner())
         .iter()
         .find(|a| a.agent_type == agent_type)
         .cloned()

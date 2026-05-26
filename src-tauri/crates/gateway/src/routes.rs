@@ -92,6 +92,7 @@ pub fn create_router(state: GatewayAppState) -> Router {
         )
         .route("/api/reviews/{review_id}", patch(update_review))
         .route("/api/reviews/{review_id}", delete(delete_review))
+        .route("/health/detailed", get(detailed_health_check))
         .layer(middleware::from_fn_with_state(
             state.db.clone(),
             auth_middleware,
@@ -100,7 +101,6 @@ pub fn create_router(state: GatewayAppState) -> Router {
     // Public routes (auth handled internally for realtime)
     let public = Router::new()
         .route("/health", get(health_check))
-        .route("/health/detailed", get(detailed_health_check))
         .route("/v1/realtime", get(realtime_handler))
         .route("/metrics", get(metrics_handler))
         .layer(middleware::from_fn(rate_limit_middleware));

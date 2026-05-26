@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, State},
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::{
         IntoResponse, Json,
         sse::{Event, KeepAlive, Sse},
@@ -21,6 +21,28 @@ use axagent_providers::{ProviderAdapter, ProviderRequestContext, resolve_base_ur
 use crate::auth::AuthenticatedKey;
 use crate::server::GatewayAppState;
 
+macro_rules! record_log {
+    ($db:expr, $key:expr, $method:expr, $path:expr, $provider_id:expr, $status:expr, $elapsed:expr, $prompt:expr, $completion:expr, $error:expr) => {
+        let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            $db,
+            &$key.id,
+            &$key.name,
+            $method,
+            $path,
+            None,
+            Some($provider_id),
+            $status,
+            $elapsed,
+            $prompt,
+            $completion,
+            $error,
+        )
+        .await
+        .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
+        .ok();
+    };
+}
+
 /// GET /health — unauthenticated health check
 pub async fn health_check() -> impl IntoResponse {
     Json(json!({ "status": "ok" }))
@@ -29,12 +51,9 @@ pub async fn health_check() -> impl IntoResponse {
 /// GET /health/detailed — detailed health check with system info (requires authentication)
 pub async fn detailed_health_check(
     State(state): State<GatewayAppState>,
-    headers: HeaderMap,
+    Extension(auth): Extension<AuthenticatedKey>,
 ) -> axum::response::Response {
-    let auth_header = headers.get(http::header::AUTHORIZATION);
-    if auth_header.is_none() {
-        return StatusCode::UNAUTHORIZED.into_response();
-    }
+    let AuthenticatedKey(_gateway_key) = auth;
 
     let db_status = match axagent_core::repo::provider::list_providers(&state.db).await {
         Ok(_) => "connected",

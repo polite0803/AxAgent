@@ -24,8 +24,6 @@ export interface PyodideInterface {
 }
 
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/";
-// TODO: Set SRI hash for the Pyodide script to prevent supply-chain attacks
-const PYODIDE_SRI = "";
 const PYTHON_EXECUTION_TIMEOUT_MS = 30_000;
 
 class CodeExecutor {
@@ -51,9 +49,6 @@ class CodeExecutor {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement("script");
           script.src = `${PYODIDE_CDN}pyodide.js`;
-          if (PYODIDE_SRI) {
-            script.integrity = PYODIDE_SRI;
-          }
           script.crossOrigin = "anonymous";
           script.onload = () => resolve();
           script.onerror = () => reject(new Error("Failed to load Pyodide script"));
@@ -128,8 +123,9 @@ import sys, json, base64
 from io import StringIO
 sys.stdout = StringIO()
 sys.stderr = StringIO()
+_code = base64.b64decode("${encodedCode}")
 try:
-    exec(base64.b64decode("${encodedCode}").decode("utf-8"))
+    exec(_code)
 finally:
     _stdout = sys.stdout.getvalue()
     _stderr = sys.stderr.getvalue()

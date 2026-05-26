@@ -56,7 +56,7 @@ ${css}
 <body>
 ${html}
 <script>
-try { ${js} } catch(e) { document.body.innerHTML += '<pre style="color:red">Error: ' + e.message + '</pre>'; }
+try { ${js} } catch(e) { var _pre = document.createElement('pre'); _pre.style.color = 'red'; _pre.textContent = 'Error: ' + e.message; document.body.appendChild(_pre); }
 </script>
 </body>
 </html>`;
