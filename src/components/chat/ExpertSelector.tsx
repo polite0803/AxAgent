@@ -2,8 +2,8 @@ import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_KEYS } from "@/types";
 import type { AgentProfile, ExpertCategory } from "@/types";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { App, Button, Card, Input, Modal, Popconfirm, Popover, Select, Space, Tag, Typography } from "antd";
-import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Info, Pencil, Plus, Trash2 } from "lucide-react";
+import { App, Button, Card, Input, Modal, Popconfirm, Select, Space, Tag, Typography } from "antd";
+import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -59,7 +59,6 @@ export function ExpertSelector({
     description: "",
     category: "general",
     icon: "🤖",
-    systemPrompt: "",
     source: "custom",
     tags: [],
   });
@@ -273,7 +272,7 @@ export function ExpertSelector({
     setEditingExpert(role);
     setEditName(role.name);
     setEditDesc(role.description ?? "");
-    setEditPrompt(role.systemPrompt || "");
+    setEditPrompt(""); // systemPrompt 已从 AgentProfile 移除，编辑时显示为空
     setEditCategory(role.category as ExpertCategory);
   };
 
@@ -287,7 +286,6 @@ export function ExpertSelector({
         await updateAgencyExpert(editingExpert.id, {
           name: editName,
           description: editDesc,
-          system_prompt: editPrompt,
           category: editCategory,
         });
       } else if (editingExpert.source === "custom") {
@@ -295,7 +293,6 @@ export function ExpertSelector({
           ...editingExpert,
           name: editName,
           description: editDesc,
-          systemPrompt: editPrompt,
           category: editCategory,
         });
       }
@@ -742,7 +739,8 @@ export function ExpertSelector({
                                   {tag}
                                 </Tag>
                               ))}
-                              {role.systemPrompt && (
+                              {
+                                /*
                                 <Popover
                                   title={`${role.icon} ${role.name} - ${t("expertSelector.capabilityDetail")}`}
                                   content={
@@ -778,7 +776,8 @@ export function ExpertSelector({
                                     <Info size={10} style={{ marginRight: 2 }} /> {t("expertSelector.detail")}
                                   </Tag>
                                 </Popover>
-                              )}
+                              )} */
+                              }
                             </div>
                           </div>
                         </div>
@@ -899,7 +898,6 @@ export function ExpertSelector({
             description: newRole.description || "",
             category: newRole.category || "general",
             icon: newRole.icon || "🤖",
-            systemPrompt: newRole.systemPrompt || "",
             source: "custom",
             agentRole: null,
             tags: newRole.tags || [],
@@ -927,7 +925,6 @@ export function ExpertSelector({
             description: "",
             category: "general",
             icon: "🤖",
-            systemPrompt: "",
             source: "custom",
             tags: [],
           } as Partial<AgentProfile>);
@@ -1015,26 +1012,6 @@ export function ExpertSelector({
                 value: k,
                 label: t("expertCategory." + k),
               }))}
-            />
-          </div>
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 12,
-                color: "#999",
-                marginBottom: 4,
-              }}
-            >
-              {t("expertSelector.prompt")}
-            </label>
-            <Input.TextArea
-              id="expert-selector-input-textarea-20"
-              value={newRole.systemPrompt}
-              onChange={(e) => setNewRole((r) => ({ ...r, systemPrompt: e.target.value }))}
-              rows={8}
-              size="small"
-              placeholder={t("expertSelector.promptPlaceholder")}
             />
           </div>
         </div>

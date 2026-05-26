@@ -52,7 +52,6 @@ pub async fn create_agent_profile(
         input.description.as_deref(),
         input.category.as_deref().unwrap_or("general"),
         input.icon.as_deref().unwrap_or("🤖"),
-        input.system_prompt.as_deref().unwrap_or(""),
         input.agent_role.as_deref(),
         input.source.as_deref().unwrap_or("custom"),
         &tags,
@@ -65,6 +64,7 @@ pub async fn create_agent_profile(
         &input.recommended_tools.unwrap_or_default(),
         &input.disallowed_tools.unwrap_or_default(),
         &input.recommended_workflows.unwrap_or_default(),
+        None, // expert_id is set via import or manual binding
     )
     .await
     .map_err(|e| e.to_string())
@@ -85,7 +85,6 @@ pub async fn update_agent_profile(
         input.description.as_ref().map(|d| d.as_deref()),
         input.category.as_deref(),
         input.icon.as_deref(),
-        input.system_prompt.as_deref(),
         input.agent_role.as_ref().map(|r| r.as_deref()),
         input.tags.as_deref(),
         input.is_enabled,
@@ -122,7 +121,7 @@ pub async fn import_agent_profiles_from_agency(
         .map_err(|e| e.to_string())?;
 
     for row in rows {
-        let agent_profile_id = format!("agency-{}", row.id);
+        let agent_profile_id = row.id.clone();
         let tags = vec![row.source_dir.clone(), row.category.clone()];
         let rec_tools = row
             .recommended_tools
@@ -142,7 +141,6 @@ pub async fn import_agent_profiles_from_agency(
             row.description.as_deref(),
             &row.category,
             "🤖",
-            &row.system_prompt,
             None, // agent_role 未在 agency_experts 中定义，留空
             "agency",
             &tags,
@@ -155,6 +153,7 @@ pub async fn import_agent_profiles_from_agency(
             &rec_tools,
             &[],
             &rec_wf,
+            Some(&row.id), // 关联 Expert，运行时拼接其 system_prompt
         )
         .await
         {
@@ -164,4 +163,57 @@ pub async fn import_agent_profiles_from_agency(
     }
 
     Ok(ImportAgentProfilesResult { count, errors })
+}
+
+/// 确保 AgentProfile 在 DB 中存在（选择 Expert/Role 时自动调用）
+/// 如果已有同 ID profile 则跳过，否则创建最小 profile（仅绑定 expert_id）
+#[tauri::command]
+pub async fn ensure_agent_profile(
+    app_state: State<'_, AppState>,
+    id: String,
+    name: String,
+    expert_id: Option<String>,
+    agent_role: Option<String>,
+) -> Result<String, String> {
+    let db = &app_state.sea_db;
+
+    // 已存在则直接返回
+    if axagent_core::repo::agent_profile::get_agent_profile(db, &id)
+        .await
+        .is_ok()
+    {
+        return Ok(id);
+    }
+
+    // 创建最小 profile
+    axagent_core::repo::agent_profile::create_agent_profile(
+        db,
+        &id,
+        &name,
+        None,
+        "general",
+        "🤖",
+        agent_role.as_deref(),
+        "agency",
+        &[],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // 如果有 expert_id，设置绑定
+    if let Some(ref eid) = expert_id {
+        use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+        if let Some(row) = axagent_core::entity::agent_profiles::Entity::find_by_id(&id)
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?
+        {
+            let mut am: axagent_core::entity::agent_profiles::ActiveModel = row.into();
+            am.expert_id = Set(Some(eid.clone()));
+            am.updated_at = Set(axagent_core::utils::now_ts());
+            am.update(db).await.map_err(|e| e.to_string())?;
+        }
+    }
+
+    Ok(id)
 }

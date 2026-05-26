@@ -20,6 +20,7 @@ pub mod computer_control;
 pub mod constants;
 pub mod crypto;
 pub mod db;
+pub mod ddl;
 #[allow(clippy::unwrap_used)]
 pub mod disk_cache;
 pub mod document_parser;

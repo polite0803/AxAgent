@@ -164,20 +164,20 @@ function getFileIcon(category: FileTypeCategory) {
 // In-memory draft cache: persists input text per-conversation across component unmounts
 const _draftCache = new Map<string, string>();
 
-export function AgentRoleSelect({
+export function AgentProfileSelect({
   value,
   onChange,
 }: {
   value: string;
-  onChange: (roleName: string) => void;
+  onChange: (profileId: string) => void;
 }) {
   const { t } = useTranslation();
-  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    invoke<{ id: string; name: string }[]>("list_agent_roles")
-      .then(setRoles)
-      .catch((e) => console.error("[AgentRoleSelect] Failed to load roles:", e));
+    invoke<{ id: string; name: string }[]>("list_agent_profiles")
+      .then(setProfiles)
+      .catch((e) => console.error("[AgentProfileSelect] Failed to load profiles:", e));
   }, []);
 
   return (
@@ -187,7 +187,7 @@ export function AgentRoleSelect({
       value={value || undefined}
       onChange={(v) => onChange(v)}
       placeholder={t("chat.workflow.agentProfileRole")}
-      options={roles.map((r) => ({ value: r.id, label: r.name }))}
+      options={profiles.map((p) => ({ value: p.id, label: p.name }))}
       allowClear
     />
   );
@@ -967,10 +967,17 @@ export function InputArea() {
         return;
       }
 
+      // 确保 AgentProfile 在 DB 中存在
+      invoke("ensure_agent_profile", {
+        id: roleId,
+        name: role.name,
+        expertId: role.source === "agency" ? roleId : (role.expertId ?? null),
+        agentRole: role.agentRole ?? null,
+      }).catch(() => {/* profile 可能已存在 */});
+
       await createConversation(role.name, model.model_id, provider.id, {
         mode: "agent",
-        expert_role_id: roleId,
-        system_prompt: role.systemPrompt || undefined,
+        agent_profile_id: roleId,
       });
     },
     [createConversation, providers, messageApi, t],
@@ -2517,12 +2524,13 @@ export function InputArea() {
                   0,
                   textareaRef.current.selectionStart,
                 );
-                setShowSuggest(
-                  textBefore.endsWith("/")
-                    || textBefore.endsWith("@")
-                    || /\/\w*$/.test(textBefore)
-                    || /@\w*$/.test(textBefore),
-                );
+                // 仅行首或空格后触发 / 和 @，且后面至少跟了 1 个非空白符（过滤裸符号和 URL）
+                const atLineStart = textBefore === ""
+                  || textBefore.endsWith(" ")
+                  || textBefore.endsWith("\n");
+                const hasActiveSlash = atLineStart && /\/\S{1,}$/.test(textBefore);
+                const hasActiveAt = atLineStart && /@\S{1,}$/.test(textBefore);
+                setShowSuggest(hasActiveSlash || hasActiveAt);
               }
             }}
             onClick={() => {

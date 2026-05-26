@@ -37,7 +37,6 @@ pub struct Model {
     pub work_strategy: Option<String>,
     pub scenario: Option<String>,
     pub enabled_skill_ids: String,
-    pub expert_role_id: Option<String>,
     pub agent_profile_id: Option<String>,
     pub workflow_template_id: Option<String>,
     pub session_type: String,

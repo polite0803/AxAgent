@@ -68,9 +68,8 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             ));
             std::process::exit(1);
         });
-    let _ = rt.block_on(axagent_core::repo::mcp_server::ensure_preset_servers(&sea_db));
-    rt.block_on(axagent_core::path_vars::migrate_hardcoded_paths(&sea_db));
-    rt.block_on(axagent_core::repo::local_tool::migrate_legacy_keys(&sea_db));
+    // ensure_preset_servers / migrate_hardcoded_paths / migrate_legacy_keys
+    // 已合并到 axagent_core::db::create_pool() 中，无需在此重复调用
 
     let app_settings = rt
         .block_on(axagent_core::repo::settings::get_settings(&sea_db))

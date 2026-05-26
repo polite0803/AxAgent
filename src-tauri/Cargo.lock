@@ -850,7 +850,6 @@ dependencies = [
  "anyhow",
  "argon2",
  "async-trait",
- "axagent-migration",
  "base64 0.22.1",
  "candle-core",
  "candle-nn",
@@ -928,6 +927,7 @@ dependencies = [
 name = "axagent-migration"
 version = "2.3.0"
 dependencies = [
+ "axagent-core",
  "sea-orm",
  "sea-orm-migration",
  "tokio",

@@ -153,7 +153,6 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         description: expert.description ?? undefined,
         category: expert.category,
         icon: expert.icon,
-        systemPrompt: "",
         agentRole: roleId,
         source: "custom",
         tags: expert.tags,

@@ -3,7 +3,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { CONV_ICON_KEY, type ConvIcon, type ConvIconType } from "@/lib/convIcon";
 import { useConversationStore, useSettingsStore } from "@/stores";
-import { useExpertStore } from "@/stores/feature/expertStore";
+import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import { ModelIcon } from "@lobehub/icons";
 import { Button, Card, Input, Modal, Slider, Tag, theme } from "antd";
 import type { MenuProps } from "antd";
@@ -214,16 +214,16 @@ export function ConversationSettingsModal({
         {/* System Prompt */}
         <div style={{ marginBottom: 16 }}>
           <div style={labelStyle}>{t("settings.systemPromptLabel")}</div>
-          {conversation.expert_role_id && (
+          {conversation.agent_profile_id && (
             <div style={{ marginBottom: 6 }}>
               <Tag color="blue" style={{ fontSize: 12 }}>
                 {(() => {
-                  const role = useExpertStore
+                  const profile = useAgentProfileStore
                     .getState()
-                    .getRoleById(conversation.expert_role_id!);
-                  return role
-                    ? `${role.icon} ${role.name}`
-                    : conversation.expert_role_id;
+                    .getProfileById(conversation.agent_profile_id!);
+                  return profile
+                    ? `${profile.icon} ${profile.name}`
+                    : conversation.agent_profile_id;
                 })()}
               </Tag>
               <span

@@ -9,7 +9,6 @@ interface AgentProfileState {
   loadProfiles(): Promise<void>;
   getAllProfiles(): AgentProfile[];
   getProfileById(id: string): AgentProfile | undefined;
-  getSystemPrompt(id: string): string | undefined;
 
   importFromAgency(): Promise<{ count: number; errors: string[] }>;
 
@@ -40,10 +39,6 @@ export const useAgentProfileStore = create<AgentProfileState>((set, get) => ({
 
   getProfileById(id: string): AgentProfile | undefined {
     return get().profiles.find((p) => p.id === id);
-  },
-
-  getSystemPrompt(id: string): string | undefined {
-    return get().getProfileById(id)?.systemPrompt || undefined;
   },
 
   async importFromAgency(): Promise<{ count: number; errors: string[] }> {

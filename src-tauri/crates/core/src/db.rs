@@ -45,10 +45,15 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
         .await?;
 
     // Run schema initialization
-    axagent_migration::run_initialization(&conn).await?;
+    crate::ddl::run_initialization(&conn).await?;
 
     // Seed built-in providers
     seed_builtin_providers(&conn).await?;
+
+    // 数据迁移：预设 MCP 服务器、硬编码路径 → 模板变量、旧版本地工具键
+    crate::repo::mcp_server::ensure_preset_servers(&conn).await;
+    crate::path_vars::migrate_hardcoded_paths(&conn).await;
+    crate::repo::local_tool::migrate_legacy_keys(&conn).await;
 
     // 注意：预设模板不再在启动时自动播种。
     // 工作流模板按需导入，通过前端工作流管理页面的"从预设导入"按钮触发 seed_preset_templates Tauri 命令。
@@ -415,6 +420,6 @@ pub async fn create_test_pool() -> Result<DbHandle> {
     let conn = Database::connect(opt).await?;
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;"))
         .await?;
-    axagent_migration::run_initialization(&conn).await?;
+    crate::ddl::run_initialization(&conn).await?;
     Ok(DbHandle { conn })
 }

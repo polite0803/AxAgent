@@ -1,8 +1,8 @@
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
-use opentelemetry_sdk::metrics::SdkMeterProvider;
-use opentelemetry_sdk::trace::TracerProvider as SdkTracerProvider;
+use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use std::sync::Arc;
 
 pub struct OtelConfig {
@@ -38,10 +38,12 @@ impl OtelProviders {
             });
         }
 
-        let resource = Resource::new(vec![
-            KeyValue::new("service.name", config.service_name.clone()),
-            KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
-        ]);
+        let resource = Resource::builder()
+            .with_attributes([
+                KeyValue::new("service.name", config.service_name.clone()),
+                KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
+            ])
+            .build();
 
         let span_exporter = opentelemetry_otlp::SpanExporter::builder()
             .with_http()
@@ -50,7 +52,7 @@ impl OtelProviders {
             .map_err(|e| format!("Failed to build OTLP span exporter: {}", e))?;
 
         let tracer_provider = SdkTracerProvider::builder()
-            .with_batch_exporter(span_exporter, opentelemetry_sdk::runtime::Tokio)
+            .with_batch_exporter(span_exporter)
             .with_resource(resource.clone())
             .build();
 
@@ -60,11 +62,7 @@ impl OtelProviders {
             .build()
             .map_err(|e| format!("Failed to build OTLP metric exporter: {}", e))?;
 
-        let reader = opentelemetry_sdk::metrics::PeriodicReader::builder(
-            metric_exporter,
-            opentelemetry_sdk::runtime::Tokio,
-        )
-        .build();
+        let reader = PeriodicReader::builder(metric_exporter).build();
 
         let meter_provider = SdkMeterProvider::builder()
             .with_reader(reader)

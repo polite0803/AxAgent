@@ -1,20 +1,20 @@
 import { Tooltip } from "@/components/layout/Tooltip";
-import { useExpertStore } from "@/stores/feature/expertStore";
+import { useAgentProfileStore } from "@/stores/feature/agentProfileStore";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface ExpertBadgeProps {
-  expertRoleId: string | null;
+  agentProfileId: string | null;
   onClick: () => void;
 }
 
-export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
-  const getRoleById = useExpertStore((s) => s.getRoleById);
+export function ExpertBadge({ agentProfileId, onClick }: ExpertBadgeProps) {
+  const getProfileById = useAgentProfileStore((s) => s.getProfileById);
   const { t } = useTranslation();
 
-  const role = expertRoleId ? getRoleById(expertRoleId) : null;
+  const profile = agentProfileId ? getProfileById(agentProfileId) : null;
 
-  if (!role) {
+  if (!profile) {
     return (
       <Tooltip title={t("expertBadge.selectExpert")}>
         <button
@@ -33,7 +33,7 @@ export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
             transition: "box-shadow 0.15s, transform 0.15s",
           }}
         >
-          <span>{"\uD83E\uDD16"}</span>
+          <span>{"🤖"}</span>
           <span>{t("expertBadge.generalAssistant")}</span>
           <ChevronDown size={12} />
         </button>
@@ -42,7 +42,7 @@ export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
   }
 
   return (
-    <Tooltip title={role.description}>
+    <Tooltip title={profile.description || ""}>
       <button
         onClick={onClick}
         style={{
@@ -59,8 +59,8 @@ export function ExpertBadge({ expertRoleId, onClick }: ExpertBadgeProps) {
           transition: "box-shadow 0.15s, transform 0.15s",
         }}
       >
-        <span>{role.icon}</span>
-        <span>{role.name}</span>
+        <span>{profile.icon}</span>
+        <span>{profile.name}</span>
         <ChevronDown size={12} />
       </button>
     </Tooltip>

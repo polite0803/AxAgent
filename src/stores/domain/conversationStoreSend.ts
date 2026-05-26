@@ -1137,7 +1137,6 @@ export function createSendMethods(
               input: content,
               providerId,
               model_id,
-              expertRoleId: conversation.expert_role_id ?? undefined,
               agentProfileId: conversation.agent_profile_id ?? undefined,
               systemPrompt: conversation.system_prompt ?? undefined,
               searchProviderId: searchProviderId ?? undefined,

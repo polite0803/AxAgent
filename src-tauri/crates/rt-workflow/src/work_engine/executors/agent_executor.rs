@@ -168,19 +168,38 @@ impl NodeExecutorTrait for AgentExecutor {
             },
         };
 
-        // 4. 构建 prompt：profile 为基础 + 行内追加（合并模式）
+        // 4. 构建 prompt：Role + Expert + 行内追加（运行时拼接，不预缓存）
         let role_desc = resolve_role(&an.config, profile.as_ref());
         let mut all_segments: Vec<TemplateSegment> = Vec::new();
 
         // 4a. 角色前缀
         all_segments.push(TemplateSegment::Static(format!("你是 {role_desc}。\n")));
 
-        // 4b. Profile system_prompt 作为基础
-        if let Some(ref p) = profile
-            && !p.system_prompt.is_empty()
-        {
-            let profile_compiled = compile_prompt(&p.system_prompt);
-            all_segments.extend(profile_compiled.segments);
+        // 4b. AgentRole system_prompt（岗位）+ Expert system_prompt（技能）
+        if let Some(ref p) = profile {
+            // 解析 Role 的提示词
+            if let Some(ref role_name) = p.agent_role {
+                if let Some(resolved) =
+                    crate::AgentRole::resolve(self.db.as_ref(), role_name)
+                        .await
+                {
+                    if !resolved.system_prompt.is_empty() {
+                        all_segments.extend(compile_prompt(&resolved.system_prompt).segments);
+                    }
+                }
+            }
+            // 解析 Expert 的提示词
+            if let Some(ref expert_id) = p.expert_id {
+                if let Ok(Some(expert)) =
+                    axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
+                        .one(self.db.as_ref())
+                        .await
+                {
+                    if !expert.system_prompt.is_empty() {
+                        all_segments.extend(compile_prompt(&expert.system_prompt).segments);
+                    }
+                }
+            }
         }
 
         // 4c. 行内 system_prompt 追加（从 pre-compiled 缓存取或现场编译）

@@ -883,6 +883,7 @@ pub fn run() {
             commands::agent_profile::update_agent_profile,
             commands::agent_profile::delete_agent_profile,
             commands::agent_profile::import_agent_profiles_from_agency,
+            commands::agent_profile::ensure_agent_profile,
             commands::agent_role::list_agent_roles,
             commands::agent_role::import_agent_roles,
             commands::agent_role::delete_agent_role,

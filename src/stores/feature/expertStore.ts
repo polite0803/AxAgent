@@ -122,7 +122,6 @@ function agencyRowToRole(row: AgencyExpertRow): AgentProfile {
     description: row.description,
     category: row.category as ExpertCategory,
     icon: CATEGORY_ICONS[row.category] ?? "🤖",
-    systemPrompt: row.system_prompt,
     source: "agency",
     agentRole: null,
     tags,
@@ -246,8 +245,8 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
     if (!roleId) {
       return null;
     }
-    const role = get().getRoleById(roleId);
-    return role?.systemPrompt || null;
+    // systemPrompt 已从 AgentProfile 移除，运行时从 Role+Expert 拼接
+    return null;
   },
 
   getCategoryLabel: (roleId: string | null) => {

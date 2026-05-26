@@ -10,8 +10,6 @@ pub struct Model {
     pub description: Option<String>,
     pub category: String,
     pub icon: String,
-    #[sea_orm(column_name = "system_prompt")]
-    pub system_prompt: String,
     #[sea_orm(column_name = "agent_role")]
     pub agent_role: Option<String>,
     pub source: String,

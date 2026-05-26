@@ -42,7 +42,6 @@ pub fn conversation_from_entity(m: conversations::Model) -> Conversation {
         scenario: m.scenario,
         workspace_dir: None,
         enabled_skill_ids: parse_string_list(&m.enabled_skill_ids),
-        expert_role_id: m.expert_role_id,
         agent_profile_id: m.agent_profile_id,
         workflow_template_id: m.workflow_template_id,
         session_type: m.session_type,
@@ -239,9 +238,6 @@ pub async fn update_conversation(
     if let Some(enabled_wiki_ids) = input.enabled_wiki_ids {
         am.enabled_wiki_ids = Set(stringify_string_list(&enabled_wiki_ids));
     }
-    if let Some(expert_role_id) = input.expert_role_id {
-        am.expert_role_id = Set(expert_role_id);
-    }
     if let Some(agent_profile_id) = input.agent_profile_id {
         am.agent_profile_id = Set(agent_profile_id);
     }
@@ -345,7 +341,6 @@ pub async fn archive_to_knowledge_base(
     let conv_title = conv.title.clone();
     let conv_mode = conv.mode.clone();
     let conv_session_type = conv.session_type.clone();
-    let conv_expert_role_id = conv.expert_role_id.clone();
     let conv_provider_id = conv.provider_id.clone();
     let conv_model_id = conv.model_id.clone();
     let conv_message_count = conv.message_count;
@@ -432,7 +427,6 @@ pub async fn archive_to_knowledge_base(
     let entity_props = serde_json::json!({
         "mode": conv_mode,
         "sessionType": conv_session_type,
-        "expertRoleId": conv_expert_role_id,
         "messageCount": conv_message_count,
         "providerId": conv_provider_id,
         "modelId": conv_model_id,
@@ -874,7 +868,6 @@ pub async fn branch_conversation(
         parent_conversation_id: Set(parent_id),
         research_mode: Set(source.research_mode),
         enabled_skill_ids: Set(source.enabled_skill_ids.clone()),
-        expert_role_id: Set(source.expert_role_id.clone()),
         agent_profile_id: Set(source.agent_profile_id.clone()),
         workflow_template_id: Set(source.workflow_template_id.clone()),
         session_type: Set(source.session_type.clone()),

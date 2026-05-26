@@ -157,8 +157,6 @@ export interface Conversation {
   scenario?: string | null;
   workspace_dir?: string | null;
   enabled_skill_ids: string[];
-  /** @deprecated 使用 agent_profile_id (AgentProfile.id) 替代 */
-  expert_role_id?: string | null;
   /** Agent profile identifier, references AgentProfile.id */
   agent_profile_id?: string | null;
   /** Workflow template ID bound to this conversation */
@@ -300,7 +298,6 @@ export interface UpdateConversationInput {
   work_strategy?: "direct" | "plan" | null;
   scenario?: string | null;
   enabled_skill_ids?: string[];
-  expert_role_id?: string | null;
   agent_profile_id?: string | null;
   workflow_template_id?: string | null;
   session_type?: "conversation" | "workflow";

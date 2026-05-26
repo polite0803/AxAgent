@@ -21,7 +21,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useAgentProfileStore, useConversationStore } from "@/stores";
+import { useConversationStore } from "@/stores";
 import type { ConversationStats } from "@/types";
 
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
@@ -29,7 +29,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
 import { ExpertBadge } from "./ExpertBadge";
 import { GatewaySessionBadge } from "./GatewaySessionBadge";
-import { AgentRoleSelect } from "./InputArea";
+import { AgentProfileSelect } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 import { WorkflowBadge } from "./WorkflowBadge";
 
@@ -398,7 +398,6 @@ export function ChatViewToolbar({
                     void updateConversation(activeConversation.id, {
                       session_type: "workflow",
                       workflow_template_id: workflowId || templateId,
-                      expert_role_id: null,
                       agent_profile_id: null,
                     });
                   }
@@ -435,18 +434,14 @@ export function ChatViewToolbar({
               && activeConversation?.session_type !== "workflow" && (
               <>
                 <ExpertBadge
-                  expertRoleId={activeConversation.expert_role_id ?? null}
+                  agentProfileId={activeConversation.agent_profile_id ?? null}
                   onClick={() => setExpertOpen(true)}
                 />
-                <AgentRoleSelect
+                <AgentProfileSelect
                   value={activeConversation.agent_profile_id ?? ""}
                   onChange={(profileId) => {
-                    const profile = useAgentProfileStore
-                      .getState()
-                      .getProfileById(profileId);
                     updateConversation(activeConversation.id, {
                       agent_profile_id: profileId || null,
-                      system_prompt: profile?.systemPrompt || undefined,
                       session_type: "conversation",
                       workflow_template_id: null,
                     });

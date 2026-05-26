@@ -43,7 +43,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
-const { TextArea } = Input;
+const {} = Input;
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   general: <Bot size={14} />,
@@ -61,7 +61,6 @@ const emptyProfile = (): CreateAgentProfileInput => ({
   description: "",
   category: "general",
   icon: "🤖",
-  systemPrompt: "",
   agentRole: "executor",
   source: "custom",
   tags: [],
@@ -199,7 +198,6 @@ export function AgentProfileManager() {
       description: p.description ?? "",
       category: p.category,
       icon: p.icon,
-      systemPrompt: p.systemPrompt,
       agentRole: p.agentRole ?? "",
       source: p.source,
       tags: p.tags ?? [],
@@ -572,17 +570,6 @@ export function AgentProfileManager() {
               size="small"
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            />
-          </div>
-          <div style={{ gridColumn: "span 2" }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {t("chat.workflow.agentProfileSystemPrompt")}
-            </Text>
-            <TextArea
-              size="small"
-              rows={4}
-              value={form.systemPrompt}
-              onChange={(e) => setForm((prev) => ({ ...prev, systemPrompt: e.target.value }))}
             />
           </div>
           <div style={{ gridColumn: "span 2" }}>

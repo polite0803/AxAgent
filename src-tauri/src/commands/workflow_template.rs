@@ -749,7 +749,6 @@ async fn ensure_agent_profile(
             description: Set(Some(expert_prompt.to_string())),
             category: Set("general".to_string()),
             icon: Set("🤖".to_string()),
-            system_prompt: Set(expert_prompt.to_string()),
             agent_role: Set(Some(agent_role.to_string())),
             source: Set("imported".to_string()),
             sort_order: Set(0),

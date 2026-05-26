@@ -429,13 +429,8 @@ pub struct AgentQueryRequest {
     /// When set, only tools matching the role's `default_tools()` are exposed
     /// to the LLM, and the role's system prompt is prepended.
     pub role: Option<String>,
-    /// Expert role ID from the agency_experts table. When set, the expert's
-    /// system_prompt takes precedence over the request-level system_prompt.
-    #[serde(rename = "expertRoleId")]
-    pub expert_role_id: Option<String>,
-    /// Agent profile ID from the agent_profiles table. When set, the profile
-    /// provides system_prompt, agent_role, and tool recommendations in a
-    /// unified way. Takes precedence over expert_role_id.
+    /// Agent profile ID from the agent_profiles table. AgentProfile 是 Expert（技能）
+    /// 和 AgentRole（岗位）的统一组装体，是 Agent 的唯一入口。
     #[serde(rename = "agentProfileId")]
     pub agent_profile_id: Option<String>,
 }
@@ -588,10 +583,10 @@ pub async fn agent_query(
     let conversation_scenario = conversation.scenario.clone();
     let enabled_skill_ids = conversation.enabled_skill_ids.clone();
 
-    // AgentProfile = AgentRole + Expert + ProfileOverride (three-layer assembly)
+    // AgentProfile = AgentRole + Expert（两两组装，运行时拼接提示词）
+    // 不再持久化预合并的 system_prompt，修改 Expert/Role 后自动生效
     let mut role_system_prompt: Option<String> = None;
     let mut expert_system_prompt: Option<String> = None;
-    let mut profile_override_prompt: Option<String> = None;
     let mut effective_agent_role: Option<axagent_runtime::agent_roles::AgentRole> = None;
     let mut profile_recommended_tools: Vec<String> = Vec::new();
     let mut profile_disallowed_tools: Vec<String> = Vec::new();
@@ -601,7 +596,7 @@ pub async fn agent_query(
             axagent_core::repo::agent_profile::get_agent_profile(&app_state.sea_db, profile_id)
                 .await
         {
-            // Layer 1: AgentRole system_prompt
+            // Layer 1: AgentRole system_prompt（岗位）
             if let Some(ref role_name) = profile.agent_role {
                 if let Some(resolved) =
                     axagent_runtime::agent_roles::AgentRole::resolve(&app_state.sea_db, role_name)
@@ -615,7 +610,7 @@ pub async fn agent_query(
                 }
             }
 
-            // Layer 2: Expert domain knowledge
+            // Layer 2: Expert domain knowledge（技能）
             if let Some(ref expert_id) = profile.expert_id {
                 if let Ok(Some(expert)) =
                     axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
@@ -626,44 +621,42 @@ pub async fn agent_query(
                     if !expert.system_prompt.is_empty() {
                         expert_system_prompt = Some(expert.system_prompt);
                     }
+                    // 合并 Expert 的推荐工具
+                    if let Some(ref tools_json) = expert.recommended_tools {
+                        if let Ok(tools) = serde_json::from_str::<Vec<String>>(tools_json) {
+                            profile_recommended_tools.extend(tools);
+                        }
+                    }
                 }
             }
 
-            // Layer 3: Profile override / customization
-            if !profile.system_prompt.is_empty() {
-                profile_override_prompt = Some(profile.system_prompt);
-            }
-
-            profile_recommended_tools = profile.recommended_tools;
+            // 合并 Profile 自身推荐/禁用工具
+            profile_recommended_tools.extend(profile.recommended_tools);
             profile_disallowed_tools = profile.disallowed_tools;
         }
     }
 
-    // 选一条最优提示词（不是三层拼接），节约 token
-    // 优先级：ProfileOverride > Expert > Role
-    let effective_system_prompt: Option<String> = [
-        profile_override_prompt.as_deref(),
-        expert_system_prompt.as_deref(),
-        role_system_prompt.as_deref(),
-    ]
-    .into_iter()
-    .find_map(|p| p.filter(|s| !s.is_empty()))
-    .map(|s| s.to_string());
-
-    // 三层都为空时降级到 deprecated 路径或请求中携带的 system_prompt
-    let effective_system_prompt = if let Some(p) = effective_system_prompt {
-        Some(p)
-    } else if let Some(ref expert_id) = request.expert_role_id {
-        match axagent_core::entity::agency_experts::Entity::find_by_id(expert_id)
-            .one(&app_state.sea_db)
-            .await
-        {
-            Ok(Some(expert)) if !expert.system_prompt.is_empty() => Some(expert.system_prompt),
-            _ => request.system_prompt.clone(),
+    // 提示词拼接：Role → Expert（两部分动态拼接，不在 DB 中预缓存）
+    let mut prompt_parts: Vec<&str> = Vec::new();
+    if let Some(ref s) = role_system_prompt {
+        if !s.is_empty() {
+            prompt_parts.push(s.as_str());
         }
+    }
+    if let Some(ref s) = expert_system_prompt {
+        if !s.is_empty() {
+            prompt_parts.push(s.as_str());
+        }
+    }
+    let effective_system_prompt: Option<String> = if prompt_parts.is_empty() {
+        None
     } else {
-        request.system_prompt.clone()
+        Some(prompt_parts.join("\n\n"))
     };
+
+    // AgentProfile 未产生有效提示词时，降级到请求中携带的 system_prompt
+    let effective_system_prompt = effective_system_prompt
+        .or_else(|| request.system_prompt.clone());
 
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point

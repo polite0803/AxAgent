@@ -14,7 +14,6 @@ export interface AgentProfile {
   descKey?: string;
   category: ExpertCategory;
   icon: string;
-  systemPrompt: string;
   /** AgentRole 类型字符串, null 表示自动推断 */
   agentRole: string | null;
   source: "builtin" | "agency" | "custom";
@@ -43,7 +42,6 @@ export interface CreateAgentProfileInput {
   description?: string;
   category?: ExpertCategory;
   icon?: string;
-  systemPrompt?: string;
   agentRole?: string;
   source?: "builtin" | "agency" | "custom";
   tags?: string[];
@@ -64,7 +62,6 @@ export interface UpdateAgentProfileInput {
   description?: string | null;
   category?: ExpertCategory;
   icon?: string;
-  systemPrompt?: string;
   agentRole?: string | null;
   tags?: string[];
   isEnabled?: boolean;
@@ -103,7 +100,7 @@ export function agentProfileToExpertRole(
     description: profile.description ?? "",
     category: profile.category,
     icon: profile.icon,
-    systemPrompt: profile.systemPrompt,
+    systemPrompt: "", // AgentProfile 不再预缓存 prompt，运行时从 Role+Expert 拼接
     source: profile.source,
     tags: profile.tags,
     suggestedProviderId: profile.suggestedProviderId,

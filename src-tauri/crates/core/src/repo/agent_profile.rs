@@ -19,7 +19,6 @@ fn profile_from_entity(m: agent_profiles::Model) -> AgentProfile {
         description: m.description,
         category: m.category,
         icon: m.icon,
-        system_prompt: m.system_prompt,
         agent_role: m.agent_role,
         source: m.source,
         tags: parse_json_arr(&m.tags),
@@ -74,15 +73,6 @@ pub async fn get_agent_profile(db: &DatabaseConnection, id: &str) -> Result<Agen
     Ok(profile_from_entity(row))
 }
 
-pub async fn get_agent_profile_system_prompt(db: &DatabaseConnection, id: &str) -> Result<String> {
-    let row = agent_profiles::Entity::find_by_id(id)
-        .one(db)
-        .await?
-        .ok_or_else(|| AxAgentError::NotFound(format!("AgentProfile {}", id)))?;
-
-    Ok(row.system_prompt)
-}
-
 #[allow(clippy::too_many_arguments)]
 pub async fn create_agent_profile(
     db: &DatabaseConnection,
@@ -91,7 +81,6 @@ pub async fn create_agent_profile(
     description: Option<&str>,
     category: &str,
     icon: &str,
-    system_prompt: &str,
     agent_role: Option<&str>,
     source: &str,
     tags: &[String],
@@ -103,7 +92,6 @@ pub async fn create_agent_profile(
         description: Set(description.map(|s| s.to_string())),
         category: Set(category.to_string()),
         icon: Set(icon.to_string()),
-        system_prompt: Set(system_prompt.to_string()),
         agent_role: Set(agent_role.map(|s| s.to_string())),
         source: Set(source.to_string()),
         tags: Set(if tags.is_empty() {
@@ -132,7 +120,6 @@ pub async fn upsert_agent_profile(
     description: Option<&str>,
     category: &str,
     icon: &str,
-    system_prompt: &str,
     agent_role: Option<&str>,
     source: &str,
     tags: &[String],
@@ -145,6 +132,7 @@ pub async fn upsert_agent_profile(
     recommended_tools: &[String],
     disallowed_tools: &[String],
     recommended_workflows: &[String],
+    expert_id: Option<&str>,
 ) -> Result<AgentProfile> {
     let now = now_ts();
 
@@ -154,7 +142,6 @@ pub async fn upsert_agent_profile(
         description: Set(description.map(|s| s.to_string())),
         category: Set(category.to_string()),
         icon: Set(icon.to_string()),
-        system_prompt: Set(system_prompt.to_string()),
         agent_role: Set(agent_role.map(|s| s.to_string())),
         source: Set(source.to_string()),
         tags: Set(if tags.is_empty() {
@@ -185,7 +172,7 @@ pub async fn upsert_agent_profile(
         }),
         sort_order: Set(0),
         is_enabled: Set(1),
-        expert_id: Set(None),
+        expert_id: Set(expert_id.map(|s| s.to_string())),
         created_at: Set(now),
         updated_at: Set(now),
     };
@@ -197,7 +184,6 @@ pub async fn upsert_agent_profile(
                 .update_column(agent_profiles::Column::Description)
                 .update_column(agent_profiles::Column::Category)
                 .update_column(agent_profiles::Column::Icon)
-                .update_column(agent_profiles::Column::SystemPrompt)
                 .update_column(agent_profiles::Column::AgentRole)
                 .update_column(agent_profiles::Column::Tags)
                 .update_column(agent_profiles::Column::SuggestedProviderId)
@@ -209,6 +195,7 @@ pub async fn upsert_agent_profile(
                 .update_column(agent_profiles::Column::RecommendedTools)
                 .update_column(agent_profiles::Column::DisallowedTools)
                 .update_column(agent_profiles::Column::RecommendedWorkflows)
+                .update_column(agent_profiles::Column::ExpertId)
                 .update_column(agent_profiles::Column::UpdatedAt)
                 .to_owned(),
         )
@@ -226,7 +213,6 @@ pub async fn update_agent_profile(
     description: Option<Option<&str>>,
     category: Option<&str>,
     icon: Option<&str>,
-    system_prompt: Option<&str>,
     agent_role: Option<Option<&str>>,
     tags: Option<&[String]>,
     is_enabled: Option<bool>,
@@ -250,9 +236,6 @@ pub async fn update_agent_profile(
     }
     if let Some(v) = icon {
         am.icon = Set(v.to_string());
-    }
-    if let Some(v) = system_prompt {
-        am.system_prompt = Set(v.to_string());
     }
     if let Some(v) = agent_role {
         am.agent_role = Set(v.map(|s| s.to_string()));

@@ -36,7 +36,6 @@ pdf-extract = "0.7"
 zip = "2"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sysinfo = "0.38"
-axagent-migration = { path = "../migration" }
 quick_cache = "0.4"
 image = { workspace = true }
 which = "7"

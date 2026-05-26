@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
-import { logIpcError } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { estimateTokens } from "@/lib/tokenEstimator";
 import {
   setupAgentEventListeners,
@@ -821,7 +821,7 @@ function ChatViewInner({
       <ExpertSelector
         open={actions.expertOpen}
         onClose={() => actions.setExpertOpen(false)}
-        selectedRoleId={activeConversation?.expert_role_id ?? null}
+        selectedRoleId={activeConversation?.agent_profile_id ?? null}
         onSelect={(roleId) => {
           if (!activeConversationId) {
             return;
@@ -832,9 +832,16 @@ function ChatViewInner({
             return;
           }
 
+          // 确保 AgentProfile 在 DB 中存在
+          invoke("ensure_agent_profile", {
+            id: roleId,
+            name: role.name,
+            expertId: role.source === "agency" ? roleId : (role.expertId ?? null),
+            agentRole: role.agentRole ?? null,
+          }).catch(() => {/* profile 可能已存在，忽略错误 */});
+
           updateConversation(activeConversationId, {
-            expert_role_id: roleId,
-            system_prompt: role.systemPrompt || undefined,
+            agent_profile_id: roleId,
             session_type: "conversation",
             workflow_template_id: null,
           });

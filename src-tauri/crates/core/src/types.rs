@@ -255,7 +255,6 @@ pub struct Conversation {
     pub scenario: Option<String>,
     pub workspace_dir: Option<String>,
     pub enabled_skill_ids: Vec<String>,
-    pub expert_role_id: Option<String>,
     pub agent_profile_id: Option<String>,
     pub workflow_template_id: Option<String>,
     pub session_type: String,
@@ -460,8 +459,6 @@ pub struct UpdateConversationInput {
     pub work_strategy: Option<Option<String>>,
     pub scenario: Option<String>,
     pub enabled_skill_ids: Option<Vec<String>>,
-    #[serde(default, deserialize_with = "deserialize_double_option")]
-    pub expert_role_id: Option<Option<String>>,
     #[serde(default, deserialize_with = "deserialize_double_option")]
     pub agent_profile_id: Option<Option<String>>,
     #[serde(default, deserialize_with = "deserialize_double_option")]
@@ -2457,7 +2454,6 @@ pub struct AgentProfile {
     pub description: Option<String>,
     pub category: String,
     pub icon: String,
-    pub system_prompt: String,
     pub agent_role: Option<String>,
     pub source: String,
     pub tags: Vec<String>,
@@ -2484,7 +2480,6 @@ pub struct CreateAgentProfileInput {
     pub description: Option<String>,
     pub category: Option<String>,
     pub icon: Option<String>,
-    pub system_prompt: Option<String>,
     pub agent_role: Option<String>,
     pub source: Option<String>,
     pub tags: Option<Vec<String>>,
@@ -2602,7 +2597,6 @@ pub struct UpdateAgentProfileInput {
     pub description: Option<Option<String>>,
     pub category: Option<String>,
     pub icon: Option<String>,
-    pub system_prompt: Option<String>,
     pub agent_role: Option<Option<String>>,
     pub tags: Option<Vec<String>>,
     pub is_enabled: Option<bool>,
