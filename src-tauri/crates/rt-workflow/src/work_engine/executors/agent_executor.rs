@@ -179,9 +179,7 @@ impl NodeExecutorTrait for AgentExecutor {
         if let Some(ref p) = profile {
             // 解析 Role 的提示词
             if let Some(ref role_name) = p.agent_role {
-                if let Some(resolved) =
-                    crate::AgentRole::resolve(self.db.as_ref(), role_name)
-                        .await
+                if let Some(resolved) = crate::AgentRole::resolve(self.db.as_ref(), role_name).await
                 {
                     if !resolved.system_prompt.is_empty() {
                         all_segments.extend(compile_prompt(&resolved.system_prompt).segments);
@@ -526,10 +524,7 @@ impl AgentExecutor {
                         format!("Provider query failed: {e}"),
                     )
                 })?;
-            if let Some(sp) = all
-                .into_iter()
-                .find(|pr| pr.id == target_id && pr.enabled)
-            {
+            if let Some(sp) = all.into_iter().find(|pr| pr.id == target_id && pr.enabled) {
                 let key = sp.keys.iter().find(|k| k.enabled).cloned().ok_or_else(|| {
                     NodeError::exec_failed(
                         error_code::AGENT_PROFILE_NOT_FOUND,
@@ -541,13 +536,12 @@ impl AgentExecutor {
                     .iter()
                     .find(|m| m.enabled)
                     .map(|m| m.model_id.clone());
-                let model =
-                    sm.ok_or_else(|| {
-                        NodeError::exec_failed(
-                            error_code::AGENT_PROFILE_NOT_FOUND,
-                            "指定的 provider 无可用模型".to_string(),
-                        )
-                    })?;
+                let model = sm.ok_or_else(|| {
+                    NodeError::exec_failed(
+                        error_code::AGENT_PROFILE_NOT_FOUND,
+                        "指定的 provider 无可用模型".to_string(),
+                    )
+                })?;
                 Ok::<_, NodeError>((sp, key, model))
             } else {
                 axagent_core::repo::provider::resolve_default_provider(&self.db)

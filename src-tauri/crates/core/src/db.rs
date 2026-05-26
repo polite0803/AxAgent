@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection,
-    DbBackend, EntityTrait, QueryFilter, Statement, Set,
+    DbBackend, EntityTrait, QueryFilter, Set, Statement,
 };
 use tracing::info;
 

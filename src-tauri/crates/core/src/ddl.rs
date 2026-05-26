@@ -702,4 +702,3 @@ pub async fn run_initialization(db: &impl ConnectionTrait) -> Result<(), DbErr> 
 
     Ok(())
 }
-

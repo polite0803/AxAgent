@@ -655,8 +655,7 @@ pub async fn agent_query(
     };
 
     // AgentProfile 未产生有效提示词时，降级到请求中携带的 system_prompt
-    let effective_system_prompt = effective_system_prompt
-        .or_else(|| request.system_prompt.clone());
+    let effective_system_prompt = effective_system_prompt.or_else(|| request.system_prompt.clone());
 
     // Pre-generate a placeholder assistant message ID for streaming events.
     // The actual DB message is created after the turn completes, at which point
