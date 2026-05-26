@@ -47,11 +47,40 @@ impl NodeExecutorTrait for LlmExecutor {
             ));
         };
 
-        // 解析 provider + key。模型优先级：context.__workflow_model__ > 系统默认
-        let (prov, key, default_model) =
+        // 解析 provider + key。
+        // 优先级：context.__workflow_provider_id__ > 系统默认
+        // 模型优先级：context.__workflow_model__ > 系统默认
+        let session_provider_id = context
+            .variables
+            .get("__workflow_provider_id__")
+            .and_then(|v| v.as_str());
+        let (prov, key, default_model) = if let Some(pid) = session_provider_id {
+            let p = axagent_core::repo::provider::get_provider(&self.db, pid)
+                .await
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::PROVIDER_QUERY_FAILED,
+                        format!("Provider query failed: {e}"),
+                    )
+                })?;
+            let model = p
+                .models
+                .iter()
+                .find(|m| m.enabled)
+                .map(|m| m.model_id.clone())
+                .unwrap_or_default();
+            let key = p.keys.iter().find(|k| k.enabled).cloned().ok_or_else(|| {
+                NodeError::exec_failed(
+                    error_code::PROVIDER_QUERY_FAILED,
+                    "指定的 provider 无可用 key".to_string(),
+                )
+            })?;
+            (p, key, model)
+        } else {
             axagent_core::repo::provider::resolve_default_provider(&self.db)
                 .await
-                .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?;
+                .map_err(|e| NodeError::exec_failed(error_code::PROVIDER_QUERY_FAILED, e))?
+        };
         let session_model = context
             .variables
             .get("__workflow_model__")

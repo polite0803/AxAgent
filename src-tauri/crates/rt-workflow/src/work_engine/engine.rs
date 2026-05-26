@@ -46,6 +46,8 @@ pub struct RunOptions {
     pub step_timeout: Duration,
     /// 调用方指定的模型 ID（来自会话/用户设置），执行器优先使用
     pub model_id: Option<String>,
+    /// 调用方指定的 provider ID（来自会话/用户设置），执行器优先使用
+    pub provider_id: Option<String>,
     /// 步骤进度回调（用于向前端推送实时进度事件）
     pub progress_callback: Option<ProgressCallback>,
     /// 工作流输入参数（替代默认的 `{}`，会经过 input_schema 校验）
@@ -80,6 +82,7 @@ impl std::fmt::Debug for RunOptions {
             .field("max_concurrent", &self.max_concurrent)
             .field("step_timeout", &self.step_timeout)
             .field("model_id", &self.model_id)
+            .field("provider_id", &self.provider_id)
             .field("progress_callback", &self.progress_callback.is_some())
             .field("input", &self.input)
             .field("input_schema", &self.input_schema.is_some())
@@ -95,6 +98,7 @@ impl Default for RunOptions {
             max_concurrent: 3,
             step_timeout: Duration::from_secs(300),
             model_id: None,
+            provider_id: None,
             progress_callback: None,
             input: None,
             input_schema: None,
@@ -118,6 +122,10 @@ impl RunOptions {
     }
     pub fn with_model(mut self, model_id: String) -> Self {
         self.model_id = Some(model_id);
+        self
+    }
+    pub fn with_provider(mut self, provider_id: String) -> Self {
+        self.provider_id = Some(provider_id);
         self
     }
     pub fn with_progress_callback(mut self, cb: ProgressCallback) -> Self {
@@ -590,9 +598,12 @@ impl WorkEngine {
             .input
             .clone()
             .unwrap_or_else(|| serde_json::json!({}));
-        // 将 model_id 写入上下文，供执行器读取
+        // 将 model_id / provider_id 写入上下文，供执行器读取
         if let Some(ref model_id) = options.model_id {
             input["__workflow_model__"] = serde_json::Value::String(model_id.clone());
+        }
+        if let Some(ref provider_id) = options.provider_id {
+            input["__workflow_provider_id__"] = serde_json::Value::String(provider_id.clone());
         }
 
         // 若配置了 input_schema，校验输入参数
@@ -607,13 +618,22 @@ impl WorkEngine {
             .await
             .map_err(|e| WorkflowError::SerializationError(e.to_string()))?;
 
-        // 将调用方指定的 model_id 写入变量区，供 Agent/LlmExecutor 读取
+        // 将调用方指定的 model_id / provider_id 写入变量区，供 Agent/LlmExecutor 读取
         if let Some(ref model_id) = options.model_id {
             let mut executions = self.executions.lock().await;
             if let Some(state) = executions.get_mut(&execution_id) {
                 state.variables.insert(
                     "__workflow_model__".to_string(),
                     serde_json::Value::String(model_id.clone()),
+                );
+            }
+        }
+        if let Some(ref provider_id) = options.provider_id {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(&execution_id) {
+                state.variables.insert(
+                    "__workflow_provider_id__".to_string(),
+                    serde_json::Value::String(provider_id.clone()),
                 );
             }
         }
@@ -1382,7 +1402,7 @@ fn validate_input(input: &serde_json::Value, schema: &JsonSchema) -> Result<(), 
         .map_err(|e| vec![format!("Schema compile error: {e}")])?;
     let mut errors: Vec<String> = Vec::new();
     for err in validator.iter_errors(input) {
-        errors.push(format!("{}: {}", err.instance_path, err));
+        errors.push(format!("{}: {}", err.instance_path(), err));
     }
     if errors.is_empty() {
         Ok(())

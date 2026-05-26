@@ -1,5 +1,7 @@
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
 import { invoke } from "@/lib/invoke";
+import { useConversationStore } from "@/stores";
+import { useSettingsStore } from "@/stores/feature/settingsStore";
 import { Card, Input, Modal, Spin, Tag } from "antd";
 import { ArrowRight, LayoutTemplate, MessageCircle } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -88,6 +90,18 @@ export const WorkflowTemplateSelector: React.FC<
   const [creatingWorkflow, setCreatingWorkflow] = useState<string | null>(null);
   const [allTemplates, setAllTemplates] = useState<WorkflowTemplate[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // 获取当前会话/provider/模型，供工作流执行使用
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const conversations = useConversationStore((s) => s.conversations);
+  const settings = useSettingsStore((s) => s.settings);
+  const activeConversation = activeConversationId
+    ? conversations.find((c) => c.id === activeConversationId)
+    : null;
+  const effectiveProviderId = activeConversation?.provider_id
+    || settings?.default_provider_id;
+  const effectiveModelId = activeConversation?.model_id
+    || settings?.default_model_id;
 
   // 从后端加载模板列表（与设置页「我的工作流」同一数据源）
   const loadTemplates = useCallback(async () => {
@@ -196,6 +210,8 @@ export const WorkflowTemplateSelector: React.FC<
         try {
           await invoke("workflow_execute", {
             workflowId: result.workflowId,
+            modelId: effectiveModelId || null,
+            providerId: effectiveProviderId || null,
             variables: template.variables || null,
           });
         } catch (execErr) {

@@ -126,7 +126,7 @@ impl ModelDownloader {
         }
     }
 
-    /// 从 HuggingFace Hub 下载模型文件
+    /// 从 HuggingFace Hub 下载模型文件（通过直链下载，无需 hf-hub）
     #[cfg(not(target_os = "android"))]
     async fn download_from_hf(
         &self,
@@ -134,50 +134,8 @@ impl ModelDownloader {
         filename: &str,
         expected_sha256: &str,
     ) -> Result<PathBuf> {
-        tokio::fs::create_dir_all(&self.cache_dir)
-            .await
-            .map_err(|e| {
-                crate::error::AxAgentError::ModelDownload(format!(
-                    "Failed to create cache dir: {}",
-                    e
-                ))
-            })?;
-
-        let cache_dir = self.cache_dir.clone();
-        let repo_id = repo.to_string();
-        let fname = filename.to_string();
-        let path = tokio::task::spawn_blocking(move || {
-            let api = hf_hub::api::sync::Api::new().map_err(|e| {
-                crate::error::AxAgentError::ModelDownload(format!("hf-hub API error: {}", e))
-            })?;
-            let repo = api.model(repo_id);
-            repo.get(&fname).map_err(|e| {
-                crate::error::AxAgentError::ModelDownload(format!("HF download failed: {}", e))
-            })
-        })
-        .await
-        .map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("spawn_blocking error: {}", e))
-        })??;
-
-        let dest = cache_dir.join(filename);
-        tokio::fs::copy(&path, &dest).await.map_err(|e| {
-            crate::error::AxAgentError::ModelDownload(format!("Copy to cache: {}", e))
-        })?;
-
-        if !expected_sha256.is_empty() {
-            let actual = Self::sha256_file(&dest)?;
-            if actual != expected_sha256 {
-                tokio::fs::remove_file(&dest).await.ok();
-                return Err(crate::error::AxAgentError::ModelIntegrity {
-                    expected: expected_sha256.to_string(),
-                    actual,
-                });
-            }
-        }
-
-        tracing::info!(filename = %filename, "Downloaded from HuggingFace Hub");
-        Ok(dest)
+        let url = format!("https://huggingface.co/{repo}/resolve/main/{filename}");
+        self.download_direct(filename, &url, expected_sha256).await
     }
 
     #[cfg(target_os = "android")]

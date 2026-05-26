@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use sea_orm::{
-    ColumnTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend,
-    EntityTrait, QueryFilter, Statement,
+    ActiveModelTrait, ColumnTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection,
+    DbBackend, EntityTrait, QueryFilter, Statement, Set,
 };
 use tracing::info;
 
@@ -10,6 +10,7 @@ use crate::entity::providers;
 use crate::error::Result;
 use crate::repo::provider;
 use crate::types::*;
+use crate::utils::now_ts;
 
 pub struct DbHandle {
     pub conn: DatabaseConnection,
@@ -247,7 +248,7 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             builtin_id: "glm",
             name: "GLM",
             provider_type: ProviderType::OpenAI,
-            api_host: "https://open.bigmodel.cn/api/paas",
+            api_host: "https://open.bigmodel.cn/api/paas/v4",
             models: vec![
                 ("glm-4-plus", "GLM-4 Plus", vec![TextChat, FunctionCalling], Some(128000)),
                 ("glm-4-flash", "GLM-4 Flash", vec![TextChat, FunctionCalling], Some(128000)),
@@ -258,7 +259,7 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
             builtin_id: "minimax",
             name: "MiniMax",
             provider_type: ProviderType::OpenAI,
-            api_host: "https://api.minimaxi.com",
+            api_host: "https://api.minimax.io",
             models: vec![
                 (
                     "MiniMax-M1",
@@ -334,7 +335,25 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
             .one(db)
             .await?;
 
-        if existing.is_some() {
+        if let Some(existing_prov) = existing {
+            // Update api_host for existing built-in providers if it has a known-broken value
+            let old_hosts: &[(&str, &str)] = &[
+                ("https://api.minimaxi.com", "https://api.minimax.io"),
+                ("https://open.bigmodel.cn/api/paas", "https://open.bigmodel.cn/api/paas/v4"),
+            ];
+            for (old_host, new_host) in old_hosts {
+                if existing_prov.api_host == *old_host {
+                    let mut active: providers::ActiveModel = existing_prov.into();
+                    active.api_host = Set(new_host.to_string());
+                    active.updated_at = Set(now_ts());
+                    active.update(db).await?;
+                    info!(
+                        "Updated api_host for builtin provider '{}': {} -> {}",
+                        bp.builtin_id, old_host, new_host
+                    );
+                    break;
+                }
+            }
             continue;
         }
 

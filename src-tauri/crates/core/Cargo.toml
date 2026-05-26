@@ -51,8 +51,8 @@ rmcp = { version = "1.2", features = ["client", "transport-child-process", "tran
 candle-core = "0.8"
 candle-transformers = "0.8"
 candle-nn = "0.8"
-tokenizers = "0.21"
-hf-hub = "0.4"
+tokenizers = "0.23"
+
 enigo = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
