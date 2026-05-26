@@ -2583,7 +2583,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
    ── Settings 响应式 ──────────────────────────────────────────
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .settings-layout { flex-direction: column; }
+  .settings-layout { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
   .settings-sidebar { width: 100%; min-width: 0; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
   .settings-content { padding: 20px; }
   .provider-grid { grid-template-columns: 1fr; }
