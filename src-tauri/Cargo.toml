@@ -87,7 +87,7 @@ uuid = { workspace = true }
 sea-orm = { workspace = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 async-trait = "0.1"
 futures = "0.3"
 base64 = "0.22"
