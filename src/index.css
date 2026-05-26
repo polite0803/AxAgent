@@ -3038,10 +3038,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
    ═══════════════════════════════════════════════════════════════ */
 .dropdown-trigger { position: relative; display: inline-flex; }
 .dropdown-panel {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 200;
+  /* position / top / left / z-index 由 DropdownMenu 通过 Portal + useLayoutEffect 动态计算内联设置 */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
