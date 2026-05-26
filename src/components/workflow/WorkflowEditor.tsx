@@ -124,7 +124,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [reactFlowNodes, setRNodes, onNodesChange] = useNodesState([]);
   const [reactFlowEdges, setREdges, onEdgesChange] = useEdgesState([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
+  const hasAutoLaidOutRef = React.useRef(false);
   const clipboardRef = React.useRef<WorkflowNode[]>([]);
+  // 拖拽时的位置批处理：RAF 合并多次像素级位置变更，只写最后一次到 store
+  const pendingPositionsRef = React.useRef<Map<string, { x: number; y: number }>>(new Map());
+  const posRafRef = React.useRef<number | null>(null);
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
@@ -145,6 +149,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   } = useWorkflowEditorStore();
 
   useEffect(() => {
+    hasAutoLaidOutRef.current = false;
     if (templateId) {
       loadTemplate(templateId);
     } else {
@@ -287,6 +292,26 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }));
       setREdges(flowEdges);
       setIsInitialized(true);
+
+      // 首次加载时若节点全部堆叠在原点附近（未布局过），自动排列
+      if (
+        !hasAutoLaidOutRef.current
+        && nodes.length >= 2
+        && nodes.every((n) => n.position.x < 50 && n.position.y < 50)
+      ) {
+        hasAutoLaidOutRef.current = true;
+        setTimeout(() => {
+          const { nodes: layouted, edges: layoutedE } = autoLayoutWorkflow(
+            flowNodes,
+            flowEdges,
+          );
+          setRNodes(layouted);
+          setREdges(layoutedE);
+          for (const ln of layouted) {
+            updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
+          }
+        }, 100);
+      }
     }
   }, [currentTemplate, nodes, edges, validationResult]);
 
@@ -393,7 +418,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           y: e.clientY,
         });
 
-        const id = `node-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const id = `node-${crypto.randomUUID()}`;
         const actualNodeType = NODE_TYPE_MAP[payload.type]
           ? payload.type
           : "base";
@@ -440,7 +465,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   }, [reactFlowInstance, setRNodes]);
 
   const handleSave = useCallback(async () => {
-    if (!currentTemplate) {
+    if (!currentTemplate || isSaving) {
       return;
     }
 
@@ -481,7 +506,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     };
 
     if (currentTemplate.id) {
-      await updateTemplate(currentTemplate.id, input);
+      const ok = await updateTemplate(currentTemplate.id, input);
+      if (ok) {
+        message.success(t("workflow.saved"));
+      }
     } else {
       const newId = await createTemplate(input);
       if (newId) {
@@ -501,6 +529,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     isDecompositionTemplate,
     saveSkillWorkflowFromLlm,
     loadTemplate,
+    isSaving,
   ]);
 
   useEffect(() => {
@@ -575,7 +604,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         const offset = { x: 50, y: 50 };
 
         clipboardRef.current.forEach((node) => {
-          const id = `node-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+          const id = `node-${crypto.randomUUID()}`;
           const newNode: WorkflowNode = {
             ...node,
             id,
@@ -628,9 +657,17 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
       changes.forEach((change: any) => {
         if (change.type === "position" && change.position && currentTemplate) {
-          const nodeId = change.id;
-          const position = change.position;
-          updateNode(nodeId, { position } as Partial<WorkflowNode>);
+          // RAF 批处理：同一次拖拽中只保留最终位置
+          pendingPositionsRef.current.set(change.id, change.position);
+          if (posRafRef.current == null) {
+            posRafRef.current = requestAnimationFrame(() => {
+              pendingPositionsRef.current.forEach((pos, nodeId) => {
+                updateNode(nodeId, { position: pos } as Partial<WorkflowNode>);
+              });
+              pendingPositionsRef.current.clear();
+              posRafRef.current = null;
+            });
+          }
         }
         if (change.type === "remove" && change.id) {
           deleteNode(change.id);
@@ -919,11 +956,12 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
       return { type: "manual", config: {} };
     case "agent":
       return {
-        system_prompt: "",
+        systemPrompt: "",
         tools: [],
-        context_sources: [],
-        output_var: "",
-        output_mode: "text",
+        contextSources: [],
+        agentProfileId: undefined,
+        outputMode: "text",
+        model: undefined,
       };
     case "llm":
       return { model: "", prompt: "", temperature: 0.7, max_tokens: 2048 };

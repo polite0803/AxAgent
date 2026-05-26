@@ -41,6 +41,11 @@ type HistoryEntry = {
   description?: string;
   icon: string;
   tags: string[];
+  input_schema?: JsonSchema;
+  output_schema?: JsonSchema;
+  variables?: Variable[];
+  error_config?: ErrorConfig;
+  trigger_config?: TriggerConfig;
 };
 
 interface WorkflowEditorState {
@@ -245,6 +250,11 @@ const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
   description: state.currentTemplate?.description,
   icon: state.currentTemplate?.icon || "Bot",
   tags: state.currentTemplate?.tags || [],
+  input_schema: state.currentTemplate?.input_schema,
+  output_schema: state.currentTemplate?.output_schema,
+  variables: state.currentTemplate?.variables,
+  error_config: state.currentTemplate?.error_config,
+  trigger_config: state.currentTemplate?.trigger_config,
 });
 
 export const useWorkflowEditorStore = create<WorkflowEditorState>()(
@@ -286,6 +296,16 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = previous.description;
           state.currentTemplate.icon = previous.icon;
           state.currentTemplate.tags = previous.tags;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.input_schema = previous.input_schema as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.output_schema = previous.output_schema as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.variables = previous.variables as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.error_config = previous.error_config as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.trigger_config = previous.trigger_config as any;
         }
         state.past = state.past.slice(0, -1);
         state.isDirty = true;
@@ -308,6 +328,16 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = next.description;
           state.currentTemplate.icon = next.icon;
           state.currentTemplate.tags = next.tags;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.input_schema = next.input_schema as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.output_schema = next.output_schema as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.variables = next.variables as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.error_config = next.error_config as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          state.currentTemplate.trigger_config = next.trigger_config as any;
         }
         state.future = state.future.slice(0, -1);
         state.isDirty = true;
@@ -397,7 +427,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
       try {
         await invoke<boolean>("update_workflow_template", { id, input });
-        await Promise.all([get().loadTemplates(), get().loadTemplate(id)]);
+        // 仅刷新侧栏模板列表，不重新加载当前模板（避免覆盖本地编辑中的位置/配置）
+        await get().loadTemplates();
         set((state) => {
           state.isSaving = false;
           state.isDirty = false;
@@ -629,10 +660,22 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }
         const index = state.nodes.findIndex((n) => n.id === nodeId);
         if (index !== -1) {
-          state.nodes[index] = {
-            ...state.nodes[index],
+          const existing = state.nodes[index];
+          // 深合并嵌套对象（config / position / retry），避免浅合并覆盖未传入的字段
+          const merged = {
+            ...existing,
             ...updates,
+            position: updates.position
+              ? { ...existing.position, ...updates.position }
+              : existing.position,
+            config: updates.config
+              ? { ...(existing as any).config, ...(updates as any).config }
+              : (existing as any).config,
+            retry: (updates as any).retry
+              ? { ...(existing as any).retry, ...(updates as any).retry }
+              : (existing as any).retry,
           } as WorkflowNode;
+          state.nodes[index] = merged;
           state.isDirty = true;
         }
       });
