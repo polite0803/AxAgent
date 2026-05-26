@@ -1,4 +1,5 @@
-import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactElement, type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface DropdownItem {
   key: string;
@@ -82,6 +83,8 @@ export function DropdownMenu(
 ) {
   const [internalOpen, setInternalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -95,16 +98,97 @@ export function DropdownMenu(
 
   const isClickTrigger = !trigger || trigger.includes("click");
 
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current || !panelRef.current) { return; }
+    const tr = containerRef.current.getBoundingClientRect();
+    const ph = panelRef.current.offsetHeight;
+    const pw = panelRef.current.offsetWidth;
+    let top = tr.bottom + 4;
+    let left = tr.right - pw;
+    if (top + ph > window.innerHeight - 8) { top = tr.top - ph - 4; }
+    if (top < 8) { top = 8; }
+    if (left < 8) { left = 8; }
+    if (left + pw > window.innerWidth - 8) { left = window.innerWidth - pw - 8; }
+    setPanelStyle({ position: "fixed", top, left, zIndex: 9999 });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) { return; }
+    const raf = requestAnimationFrame(updatePosition);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
+
   useEffect(() => {
     if (!open) { return; }
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        close();
-      }
+      const t = e.target as Node;
+      if (!containerRef.current?.contains(t) && !panelRef.current?.contains(t)) { close(); }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open, close]);
+
+  const panel = open && (
+    <div ref={panelRef} className="dropdown-panel" role="menu" style={panelStyle}>
+      {items.map((item) => {
+        if (item.divider) { return <div key={item.key} className="dropdown-divider" />; }
+        if (item.type === "group" && item.children) {
+          return (
+            <div key={item.key} className="dropdown-group">
+              {item.label && <div className="dropdown-group-label">{item.label}</div>}
+              {item.children.map((child) =>
+                child.divider
+                  ? <div key={child.key} className="dropdown-divider" />
+                  : (
+                    <button
+                      key={child.key}
+                      className={`dropdown-item${child.danger ? " dropdown-item-danger" : ""}${
+                        child.disabled ? " dropdown-item-disabled" : ""
+                      }`}
+                      role="menuitem"
+                      disabled={child.disabled}
+                      onClick={() => {
+                        child.onClick?.();
+                        close();
+                      }}
+                    >
+                      {child.icon && <span className="dropdown-item-icon">{child.icon}</span>}
+                      <span className="dropdown-item-label">{child.label}</span>
+                    </button>
+                  )
+              )}
+            </div>
+          );
+        }
+        if (item.children) { return <DropdownSubmenu key={item.key} item={item} close={close} />; }
+        return (
+          <button
+            key={item.key}
+            className={`dropdown-item${item.danger ? " dropdown-item-danger" : ""}${
+              item.disabled ? " dropdown-item-disabled" : ""
+            }`}
+            role="menuitem"
+            disabled={item.disabled}
+            onClick={() => {
+              if (!item.disabled) {
+                item.onClick?.();
+                close();
+              }
+            }}
+          >
+            {item.icon && <span className="dropdown-item-icon">{item.icon}</span>}
+            <span className="dropdown-item-label">{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div
@@ -122,61 +206,7 @@ export function DropdownMenu(
       }}
     >
       {children}
-      {open && (
-        <div className="dropdown-panel" role="menu">
-          {items.map((item) => {
-            if (item.divider) { return <div key={item.key} className="dropdown-divider" />; }
-            if (item.type === "group" && item.children) {
-              return (
-                <div key={item.key} className="dropdown-group">
-                  {item.label && <div className="dropdown-group-label">{item.label}</div>}
-                  {item.children.map((child) =>
-                    child.divider
-                      ? <div key={child.key} className="dropdown-divider" />
-                      : (
-                        <button
-                          key={child.key}
-                          className={`dropdown-item${child.danger ? " dropdown-item-danger" : ""}${
-                            child.disabled ? " dropdown-item-disabled" : ""
-                          }`}
-                          role="menuitem"
-                          disabled={child.disabled}
-                          onClick={() => {
-                            child.onClick?.();
-                            close();
-                          }}
-                        >
-                          {child.icon && <span className="dropdown-item-icon">{child.icon}</span>}
-                          <span className="dropdown-item-label">{child.label}</span>
-                        </button>
-                      )
-                  )}
-                </div>
-              );
-            }
-            if (item.children) { return <DropdownSubmenu key={item.key} item={item} close={close} />; }
-            return (
-              <button
-                key={item.key}
-                className={`dropdown-item${item.danger ? " dropdown-item-danger" : ""}${
-                  item.disabled ? " dropdown-item-disabled" : ""
-                }`}
-                role="menuitem"
-                disabled={item.disabled}
-                onClick={() => {
-                  if (!item.disabled) {
-                    item.onClick?.();
-                    close();
-                  }
-                }}
-              >
-                {item.icon && <span className="dropdown-item-icon">{item.icon}</span>}
-                <span className="dropdown-item-label">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {panel && createPortal(panel, document.body)}
     </div>
   );
 }

@@ -153,7 +153,7 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-start justify-between">
+        <div style={{ ...rowStyle, display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 8 }}>
           <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {THEME_PRESETS.map((preset) => {
