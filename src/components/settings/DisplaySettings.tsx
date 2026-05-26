@@ -153,9 +153,9 @@ export function DisplaySettings() {
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
-        <div style={rowStyle} className="flex items-start justify-between">
-          <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div style={rowStyle} className="set-card-row">
+          <span style={{ paddingTop: 4, marginBottom: 4 }}>{t("settings.themePreset")}</span>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {THEME_PRESETS.map((preset) => {
               const isActive = (settings.theme_preset || "deep-dusk") === preset.key;
               return (
