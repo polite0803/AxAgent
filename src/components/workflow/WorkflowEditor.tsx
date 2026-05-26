@@ -674,8 +674,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     );
     setRNodes(layoutedNodes);
     setREdges(layoutedEdges);
+
+    // 将布局后的位置回写到 store，确保保存/同步时不会用旧位置覆盖
+    for (const ln of layoutedNodes) {
+      updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
+    }
+
     message.success(t("workflow.autoLayout"));
-  }, [reactFlowNodes, reactFlowEdges, setRNodes, setREdges, t]);
+  }, [reactFlowNodes, reactFlowEdges, setRNodes, setREdges, updateNode, t]);
 
   const handleClose = useCallback(() => {
     if (isDirty) {
