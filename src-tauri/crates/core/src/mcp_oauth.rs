@@ -99,17 +99,14 @@ impl McpOAuthStore {
                 let home = dirs::home_dir().unwrap_or_default();
                 home.join(".axagent").join("mcp_oauth_credentials.json")
             };
-            if legacy_path.exists() && legacy_path != *path {
-                if let Ok(content) = fs::read_to_string(&legacy_path) {
-                    if let Ok(creds) =
-                        serde_json::from_str::<HashMap<String, McpOAuthCredentials>>(&content)
-                    {
-                        warn!(
-                            "[McpOAuth] 检测到旧版明文凭据文件，将在首次持久化时自动迁移为加密格式"
-                        );
-                        return creds;
-                    }
-                }
+            if legacy_path.exists()
+                && legacy_path != *path
+                && let Ok(content) = fs::read_to_string(&legacy_path)
+                && let Ok(creds) =
+                    serde_json::from_str::<HashMap<String, McpOAuthCredentials>>(&content)
+            {
+                warn!("[McpOAuth] 检测到旧版明文凭据文件，将在首次持久化时自动迁移为加密格式");
+                return creds;
             }
             return HashMap::new();
         }
@@ -128,14 +125,13 @@ impl McpOAuthStore {
     fn get_master_key() -> [u8; 32] {
         let home = dirs::home_dir().unwrap_or_default();
         let key_path = home.join(".axagent").join(".oauth_key");
-        if key_path.exists() {
-            if let Ok(key_bytes) = fs::read(&key_path) {
-                if key_bytes.len() == 32 {
-                    let mut key = [0u8; 32];
-                    key.copy_from_slice(&key_bytes);
-                    return key;
-                }
-            }
+        if key_path.exists()
+            && let Ok(key_bytes) = fs::read(&key_path)
+            && key_bytes.len() == 32
+        {
+            let mut key = [0u8; 32];
+            key.copy_from_slice(&key_bytes);
+            return key;
         }
         let key = crate::crypto::generate_master_key();
         if let Some(parent) = key_path.parent() {
