@@ -23,7 +23,7 @@ import {
 } from "./PropertyPanels";
 
 interface RightPanelProps {
-  selectedNode: WorkflowNode | null;
+  selectedNodeId: string | null;
   selectedEdge: WorkflowEdge | null;
 }
 
@@ -443,7 +443,7 @@ function TemplateSettings({
 }
 
 export const RightPanel: React.FC<RightPanelProps> = React.memo(
-  ({ selectedNode, selectedEdge }) => {
+  ({ selectedNodeId, selectedEdge }) => {
     const { t } = useTranslation();
     const deleteNode = useWorkflowEditorStore((state) => state.deleteNode);
     const deleteEdge = useWorkflowEditorStore((state) => state.deleteEdge);
@@ -451,6 +451,15 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
     const currentTemplate = useWorkflowEditorStore(
       (state) => state.currentTemplate,
     );
+    // 从 store 按 ID 查找节点（避免父组件 useMemo 产生的引用抖动）
+    const selectedNode = useWorkflowEditorStore(
+      (state) => (selectedNodeId ? state.nodes.find((n) => n.id === selectedNodeId) ?? null : null),
+    );
+    // Edge label 本地状态（debounce：仅 onBlur 写 store）
+    const [localEdgeLabel, setLocalEdgeLabel] = React.useState("");
+    React.useEffect(() => {
+      setLocalEdgeLabel(selectedEdge?.label || "");
+    }, [selectedEdge?.id, selectedEdge?.label]);
 
     const handleUpdateNode = (updates: Partial<WorkflowNode>) => {
       if (selectedNode) {
@@ -601,11 +610,15 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
             </label>
             <Input
               id="right-panel-input-124"
-              value={selectedEdge.label || ""}
-              onChange={(e) =>
-                useWorkflowEditorStore
-                  .getState()
-                  .updateEdge(selectedEdge.id, { label: e.target.value })}
+              value={localEdgeLabel}
+              onChange={(e) => setLocalEdgeLabel(e.target.value)}
+              onBlur={() => {
+                if (localEdgeLabel !== (selectedEdge?.label || "")) {
+                  useWorkflowEditorStore
+                    .getState()
+                    .updateEdge(selectedEdge!.id, { label: localEdgeLabel || undefined });
+                }
+              }}
               size="small"
               placeholder={t("workflow.rightPanel.edgeLabelPlaceholder")}
             />

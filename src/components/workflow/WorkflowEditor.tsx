@@ -133,8 +133,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(
+    () => localStorage.getItem("workflowEditor.leftPanelCollapsed") === "true",
+  );
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(
+    () => localStorage.getItem("workflowEditor.rightPanelCollapsed") === "true",
+  );
 
   const {
     isDecompositionTemplate,
@@ -162,7 +166,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       return;
     }
 
-    const timer = setTimeout(async () => {
+    autoSaveTimerRef.current = setTimeout(async () => {
       const input = {
         name: currentTemplate?.name || "Unnamed Workflow",
         description: currentTemplate?.description,
@@ -187,7 +191,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
     }, 5000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null as unknown as NodeJS.Timeout;
+      }
+    };
   }, [
     isDirty,
     nodes,
@@ -317,34 +326,49 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   const onConnect = useCallback(
     (params: Connection) => {
-      if (params.source && params.target) {
-        // Determine edge type based on sourceHandle
-        let edgeType: WorkflowEdge["edge_type"] = "direct";
-        const sourceHandle = params.sourceHandle;
-        if (sourceHandle === "true") {
-          edgeType = "conditionTrue";
-        } else if (sourceHandle === "false") {
-          edgeType = "conditionFalse";
-        } else if (sourceHandle === "loopBack") {
-          edgeType = "loopBack";
-        } else if (sourceHandle?.startsWith("branch-")) {
-          edgeType = "parallelBranch";
-        } else if (sourceHandle === "fail") {
-          edgeType = "error";
-        }
-
-        const newEdge: WorkflowEdge = {
-          id: `edge-${Date.now()}`,
-          source: params.source,
-          sourceHandle: sourceHandle ?? undefined,
-          target: params.target,
-          targetHandle: params.targetHandle ?? undefined,
-          edge_type: edgeType,
-        };
-        storeAddEdge(newEdge);
+      if (!params.source || !params.target) { return; }
+      // 禁止自循环
+      if (params.source === params.target) {
+        message.warning(t("workflow.selfLoopNotAllowed"));
+        return;
       }
+      // 禁止重复边
+      const exists = edges.some(
+        (e) =>
+          e.source === params.source
+          && e.target === params.target
+          && (e.sourceHandle ?? undefined) === (params.sourceHandle ?? undefined),
+      );
+      if (exists) {
+        message.warning(t("workflow.edgeAlreadyExists"));
+        return;
+      }
+      // Determine edge type based on sourceHandle
+      let edgeType: WorkflowEdge["edge_type"] = "direct";
+      const sourceHandle = params.sourceHandle;
+      if (sourceHandle === "true") {
+        edgeType = "conditionTrue";
+      } else if (sourceHandle === "false") {
+        edgeType = "conditionFalse";
+      } else if (sourceHandle === "loopBack") {
+        edgeType = "loopBack";
+      } else if (sourceHandle?.startsWith("branch-")) {
+        edgeType = "parallelBranch";
+      } else if (sourceHandle === "fail") {
+        edgeType = "error";
+      }
+
+      const newEdge: WorkflowEdge = {
+        id: `edge-${crypto.randomUUID()}`,
+        source: params.source,
+        sourceHandle: sourceHandle ?? undefined,
+        target: params.target,
+        targetHandle: params.targetHandle ?? undefined,
+        edge_type: edgeType,
+      };
+      storeAddEdge(newEdge);
     },
-    [storeAddEdge],
+    [storeAddEdge, edges],
   );
 
   const onNodeClick = useCallback(
@@ -532,124 +556,99 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     isSaving,
   ]);
 
+  // 用 ref 保存频繁变化的值，避免键盘事件监听器每次渲染重建
+  const keyRef = React.useRef({
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    selectedNodeId,
+    deleteNode,
+    nodes,
+    addNode,
+    setSelectedNode,
+    clipboardRef,
+  });
+  keyRef.current = {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    selectedNodeId,
+    deleteNode,
+    nodes,
+    addNode,
+    setSelectedNode,
+    clipboardRef,
+  };
+  const handleSaveRef = React.useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const r = keyRef.current;
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      const isEditing = (e.target as HTMLElement).tagName === "INPUT"
+        || (e.target as HTMLElement).tagName === "TEXTAREA"
+        || (e.target as HTMLElement).isContentEditable;
 
       if (isCtrlOrCmd && e.key === "s") {
         e.preventDefault();
-        handleSave();
+        handleSaveRef.current();
         return;
       }
-
       if (isCtrlOrCmd && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        if (canUndo()) {
-          undo();
-        } else {
-          message.info(t("workflow.noUndoAvailable"));
-        }
+        r.canUndo() ? r.undo() : message.info(t("workflow.noUndoAvailable"));
         return;
       }
-
-      if (isCtrlOrCmd && e.key === "z" && e.shiftKey) {
+      if ((isCtrlOrCmd && e.key === "z" && e.shiftKey) || (isCtrlOrCmd && e.key === "y")) {
         e.preventDefault();
-        if (canRedo()) {
-          redo();
-        } else {
-          message.info(t("workflow.noRedoAvailable"));
-        }
+        r.canRedo() ? r.redo() : message.info(t("workflow.noRedoAvailable"));
         return;
       }
-
-      if (isCtrlOrCmd && e.key === "y") {
+      if ((e.key === "Delete" || e.key === "Backspace") && r.selectedNodeId) {
+        if (isEditing) { return; }
         e.preventDefault();
-        if (canRedo()) {
-          redo();
-        } else {
-          message.info(t("workflow.noRedoAvailable"));
-        }
+        r.deleteNode(r.selectedNodeId);
+        r.setSelectedNode(null);
         return;
       }
-
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
-        const target = e.target as HTMLElement;
-        if (
-          target.tagName === "INPUT"
-          || target.tagName === "TEXTAREA"
-          || target.isContentEditable
-        ) {
-          return;
-        }
-        e.preventDefault();
-        deleteNode(selectedNodeId);
-        setSelectedNode(null);
-        return;
-      }
-
-      if (isCtrlOrCmd && e.key === "c" && selectedNodeId) {
-        const nodeToCopy = nodes.find((n) => n.id === selectedNodeId);
+      if (isCtrlOrCmd && e.key === "c" && r.selectedNodeId) {
+        const nodeToCopy = r.nodes.find((n) => n.id === r.selectedNodeId);
         if (nodeToCopy) {
-          clipboardRef.current = [nodeToCopy];
+          r.clipboardRef.current = [nodeToCopy];
           message.success(t("workflow.nodeCopied"));
         }
         return;
       }
-
-      if (isCtrlOrCmd && e.key === "v") {
-        if (clipboardRef.current.length === 0) {
-          return;
-        }
-        const newNodes: WorkflowNode[] = [];
+      if (isCtrlOrCmd && e.key === "v" && !isEditing) {
+        if (r.clipboardRef.current.length === 0) { return; }
         const offset = { x: 50, y: 50 };
-
-        clipboardRef.current.forEach((node) => {
-          const id = `node-${crypto.randomUUID()}`;
-          const newNode: WorkflowNode = {
+        r.clipboardRef.current.forEach((node) => {
+          r.addNode({
             ...node,
-            id,
-            position: {
-              x: node.position.x + offset.x,
-              y: node.position.y + offset.y,
-            },
-          };
-          newNodes.push(newNode);
-          addNode(newNode);
+            id: `node-${crypto.randomUUID()}`,
+            position: { x: node.position.x + offset.x, y: node.position.y + offset.y },
+          });
         });
-        if (newNodes.length > 0) {
-          message.success(
-            t("workflow.nodesPasted", { count: newNodes.length }),
-          );
-        }
+        message.success(t("workflow.nodesPasted", { count: r.clipboardRef.current.length }));
         return;
       }
-
-      if (isCtrlOrCmd && e.key === "a") {
-        const target = e.target as HTMLElement;
-        if (
-          target.tagName === "INPUT"
-          || target.tagName === "TEXTAREA"
-          || target.isContentEditable
-        ) {
-          return;
-        }
+      // Ctrl+A: 仅拦截画布全选，输入框内放行
+      if (isCtrlOrCmd && e.key === "a" && !isEditing) {
         e.preventDefault();
-        return;
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    undo,
-    redo,
-    selectedNodeId,
-    deleteNode,
-    setSelectedNode,
-    nodes,
-    addNode,
-    handleSave,
-  ]);
+  }, [t]);
+
+  // 卸载时清理 auto-save timeout
+  const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
+  }, []);
 
   const handleNodesChange = useCallback(
     (changes: any) => {
@@ -736,13 +735,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
   }, [isDirty, t, onClose]);
 
-  const selectedNode = useMemo(() => {
-    if (!selectedNodeId) {
-      return null;
-    }
-    return nodes.find((n) => n.id === selectedNodeId) || null;
-  }, [selectedNodeId, nodes]);
-
   const selectedEdge = useMemo(() => {
     if (!selectedEdgeId) {
       return null;
@@ -783,8 +775,18 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         onClose={handleClose}
         onToggleAIPanel={() => setAiPanelVisible(!aiPanelVisible)}
         onToggleDebugPanel={() => setDebugPanelVisible(!debugPanelVisible)}
-        onToggleLeftPanel={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
-        onToggleRightPanel={() => setRightPanelCollapsed(!rightPanelCollapsed)}
+        onToggleLeftPanel={() =>
+          setLeftPanelCollapsed((v) => {
+            const next = !v;
+            localStorage.setItem("workflowEditor.leftPanelCollapsed", String(next));
+            return next;
+          })}
+        onToggleRightPanel={() =>
+          setRightPanelCollapsed((v) => {
+            const next = !v;
+            localStorage.setItem("workflowEditor.rightPanelCollapsed", String(next));
+            return next;
+          })}
         leftPanelCollapsed={leftPanelCollapsed}
         rightPanelCollapsed={rightPanelCollapsed}
         onOpenImportExport={() => setImportExportModalVisible(true)}
@@ -865,7 +867,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             )}
         </div>
 
-        {!rightPanelCollapsed && <RightPanel selectedNode={selectedNode} selectedEdge={selectedEdge} />}
+        {!rightPanelCollapsed && <RightPanel selectedNodeId={selectedNodeId} selectedEdge={selectedEdge} />}
       </div>
 
       {aiPanelVisible && (

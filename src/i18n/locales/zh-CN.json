@@ -4243,6 +4243,8 @@
     "autoLayoutTooltip": "自动优化节点排列，使工作流结构清晰可读",
     "noUndoAvailable": "无可撤销操作",
     "noRedoAvailable": "无可重做操作",
+    "selfLoopNotAllowed": "不允许节点连接自身",
+    "edgeAlreadyExists": "该连线已存在",
     "nodeDropFailed": "节点放置失败",
     "knowledgeSettings": {
       "title": "知识库"
