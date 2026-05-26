@@ -42,26 +42,36 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
   const [creatingProfile, setCreatingProfile] = useState(false);
 
   const getExpert = useExpertStore((s) => s.getRoleById);
+  // useExpertStore 和 useAgentProfileStore 是两个独立数据源，需要合并查找
+  const getProfileById = useAgentProfileStore((s) => s.getProfileById);
+  const agentProfilesLoaded = useAgentProfileStore((s) => s.loaded);
+  const loadAgentProfiles = useAgentProfileStore((s) => s.loadProfiles);
   const selectedExpert = config.agentProfileId
-    ? getExpert(config.agentProfileId)
+    ? (getExpert(config.agentProfileId) ?? getProfileById(config.agentProfileId))
     : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
   const { providers, fetchProviders } = useProviderStore();
 
-  // 加载全局角色列表
+  // 加载全局角色列表和 AgentProfile 数据
   useEffect(() => {
+    if (!agentProfilesLoaded) {
+      loadAgentProfiles();
+    }
     invoke<AgentRoleRow[]>("list_agent_roles")
       .then((roles) => {
         setGlobalRoles(roles);
-        // 从已选 profile 中恢复角色选择
-        if (selectedExpert?.agentRole) {
-          setSelectedRoleId(selectedExpert.agentRole);
-        }
       })
       .catch((e) => console.error("[AgentPropertyPanel] Failed to load agent roles:", e));
-  }, []);
+  }, [agentProfilesLoaded, loadAgentProfiles]);
+
+  // 从已选 profile 中恢复角色选择（独立 effect，确保 selectedExpert 就绪后同步）
+  useEffect(() => {
+    if (selectedExpert?.agentRole) {
+      setSelectedRoleId(selectedExpert.agentRole);
+    }
+  }, [selectedExpert?.agentRole]);
 
   useEffect(() => {
     if (toolGroups.length === 0) {
