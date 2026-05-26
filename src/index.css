@@ -878,6 +878,20 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.3);
 }
 
+/* ── 暗色模式侧栏/工具栏图标可见性 ──────── */
+:root[data-theme="dark"] .ax-chat-sidebar .ant-btn-text:not(.ant-btn-dangerous) {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+:root[data-theme="dark"] .ax-chat-sidebar .ant-btn-text:not(.ant-btn-dangerous):hover {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+:root[data-theme="dark"] .ant-btn-text.ant-btn-color-default {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+:root[data-theme="dark"] .ant-btn-text.ant-btn-color-default:hover {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
 /* ── Table 防止极端窄列导致单字母换行 ──────── */
 .ant-table-wrapper .ant-table {
   table-layout: fixed !important;
