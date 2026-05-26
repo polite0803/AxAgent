@@ -22,14 +22,14 @@ use crate::auth::AuthenticatedKey;
 use crate::server::GatewayAppState;
 
 macro_rules! record_log {
-    ($db:expr, $key:expr, $method:expr, $path:expr, $provider_id:expr, $status:expr, $elapsed:expr, $prompt:expr, $completion:expr, $error:expr) => {
+    ($db:expr, $key:expr, $method:expr, $path:expr, $model_id:expr, $provider_id:expr, $status:expr, $elapsed:expr, $prompt:expr, $completion:expr, $error:expr) => {
         let _ = axagent_core::repo::gateway_request_log::record_request_log(
             $db,
             &$key.id,
             &$key.name,
             $method,
             $path,
-            None,
+            $model_id,
             Some($provider_id),
             $status,
             $elapsed,
@@ -171,23 +171,19 @@ pub async fn get_response(
     match adapter.get_response(&ctx, &response_id).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/v1/responses/{}", response_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -199,23 +195,19 @@ pub async fn get_response(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/v1/responses/{}", response_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get response: {}", e))
         },
@@ -306,45 +298,37 @@ pub async fn delete_response(
     match adapter.delete_response(&ctx, &response_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "DELETE",
                 &format!("/v1/responses/{}", response_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             Json(json!({ "deleted": true, "id": response_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "DELETE",
                 &format!("/v1/responses/{}", response_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete response: {}", e))
         },
@@ -374,23 +358,19 @@ pub async fn list_jobs(
     match adapter.list_jobs(&ctx).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 "/api/jobs",
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -402,23 +382,19 @@ pub async fn list_jobs(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 "/api/jobs",
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list jobs: {}", e))
         },
@@ -452,23 +428,19 @@ pub async fn create_job(
     match adapter.create_job(&ctx, &job_data_str).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 "/api/jobs",
                 None,
-                Some(&provider.id),
+                &provider.id,
                 201,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::CREATED)
@@ -480,23 +452,19 @@ pub async fn create_job(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 "/api/jobs",
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to create job: {}", e))
         },
@@ -527,23 +495,19 @@ pub async fn get_job(
     match adapter.get_job(&ctx, &job_id).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -555,23 +519,19 @@ pub async fn get_job(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job: {}", e))
         },
@@ -606,23 +566,19 @@ pub async fn update_job(
     match adapter.update_job(&ctx, &job_id, &job_data_str).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "PATCH",
                 &format!("/api/jobs/{}", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -634,23 +590,19 @@ pub async fn update_job(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "PATCH",
                 &format!("/api/jobs/{}", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to update job: {}", e))
         },
@@ -681,45 +633,37 @@ pub async fn delete_job(
     match adapter.delete_job(&ctx, &job_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "DELETE",
                 &format!("/api/jobs/{}", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             Json(json!({ "deleted": true, "id": job_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "DELETE",
                 &format!("/api/jobs/{}", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to delete job: {}", e))
         },
@@ -750,45 +694,37 @@ pub async fn pause_job(
     match adapter.pause_job(&ctx, &job_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/pause", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             Json(json!({ "paused": true, "id": job_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/pause", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to pause job: {}", e))
         },
@@ -819,45 +755,37 @@ pub async fn resume_job(
     match adapter.resume_job(&ctx, &job_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/resume", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             Json(json!({ "resumed": true, "id": job_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/resume", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to resume job: {}", e))
         },
@@ -888,45 +816,37 @@ pub async fn trigger_job(
     match adapter.trigger_job(&ctx, &job_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/run", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             Json(json!({ "triggered": true, "id": job_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/run", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger job: {}", e))
         },
@@ -957,23 +877,19 @@ pub async fn list_runs(
     match adapter.list_runs(&ctx, &job_id).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -985,23 +901,19 @@ pub async fn list_runs(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to list runs: {}", e))
         },
     }
@@ -1035,23 +947,19 @@ pub async fn trigger_run(
     match adapter.trigger_run(&ctx, &job_id, Some(&params_str)).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 201,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::CREATED)
@@ -1063,23 +971,19 @@ pub async fn trigger_run(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to trigger run: {}", e))
         },
     }
@@ -1109,23 +1013,19 @@ pub async fn get_run(
     match adapter.get_run(&ctx, &job_id, &run_id).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1137,23 +1037,19 @@ pub async fn get_run(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run: {}", e))
         },
     }
@@ -1183,44 +1079,36 @@ pub async fn cancel_run(
     match adapter.cancel_run(&ctx, &job_id, &run_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             Json(json!({ "cancelled": true, "job_id": job_id, "run_id": run_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/cancel", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to cancel run: {}", e))
         },
     }
@@ -1250,23 +1138,19 @@ pub async fn get_run_logs(
     match adapter.get_run_logs(&ctx, &job_id, &run_id).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1278,23 +1162,19 @@ pub async fn get_run_logs(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/runs/{}/logs", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get run logs: {}", e))
         },
     }
@@ -1324,23 +1204,19 @@ pub async fn retry_run(
     match adapter.retry_run(&ctx, &job_id, &run_id).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1352,23 +1228,19 @@ pub async fn retry_run(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/runs/{}/retry", job_id, run_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to retry run: {}", e))
         },
     }
@@ -1398,23 +1270,19 @@ pub async fn get_job_schedule(
     match adapter.get_job_schedule(&ctx, &job_id).await {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/schedule", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1426,23 +1294,19 @@ pub async fn get_job_schedule(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "GET",
                 &format!("/api/jobs/{}/schedule", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to get job schedule: {}", e))
         },
     }
@@ -1479,23 +1343,19 @@ pub async fn update_job_schedule(
     {
         Ok(response_body) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "PUT",
                 &format!("/api/jobs/{}/schedule", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             axum::response::Response::builder()
                 .status(StatusCode::OK)
@@ -1507,23 +1367,19 @@ pub async fn update_job_schedule(
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "PUT",
                 &format!("/api/jobs/{}/schedule", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(
                 StatusCode::BAD_GATEWAY,
                 &format!("Failed to update job schedule: {}", e),
@@ -1556,44 +1412,36 @@ pub async fn enable_job(
     match adapter.enable_job(&ctx, &job_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/enable", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             Json(json!({ "enabled": true, "id": job_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/enable", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to enable job: {}", e))
         },
     }
@@ -1623,44 +1471,36 @@ pub async fn disable_job(
     match adapter.disable_job(&ctx, &job_id).await {
         Ok(_) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/disable", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 200,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             Json(json!({ "disabled": true, "id": job_id })).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 &format!("/api/jobs/{}/disable", job_id),
                 None,
-                Some(&provider.id),
+                &provider.id,
                 500,
                 elapsed,
                 0,
                 0,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
             error_response(StatusCode::BAD_GATEWAY, &format!("Failed to disable job: {}", e))
         },
     }
@@ -1879,45 +1719,37 @@ async fn handle_non_stream(
             .await;
 
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 "/v1/chat/completions",
                 Some(model_id),
-                Some(provider_id),
+                provider_id,
                 200,
                 elapsed,
                 response.usage.prompt_tokens as i64,
                 response.usage.completion_tokens as i64,
-                None,
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                None
+            );
 
             Json(build_non_stream_response_body(&response)).into_response()
         },
         Err(e) => {
             let elapsed = start_time.elapsed().as_millis() as i32;
-            let _ = axagent_core::repo::gateway_request_log::record_request_log(
+            record_log!(
                 &state.db,
-                &gateway_key.id,
-                &gateway_key.name,
+                gateway_key,
                 "POST",
                 "/v1/chat/completions",
                 Some(model_id),
-                Some(provider_id),
+                provider_id,
                 502,
                 elapsed,
                 0,
                 0,
-                Some(&e.to_string()),
-            )
-            .await
-            .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-            .ok();
+                Some(&e.to_string())
+            );
 
             error_response(StatusCode::BAD_GATEWAY, &e.to_string())
         },
@@ -1940,8 +1772,7 @@ async fn handle_stream(
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(32);
     let db = state.db.clone();
-    let key_id = gateway_key.id.clone();
-    let key_name = gateway_key.name.clone();
+    let key = gateway_key.clone();
     let prov_id = provider_id.to_string();
     let mod_id = model_id.to_string();
 
@@ -1993,7 +1824,7 @@ async fn handle_stream(
         // Record usage
         let _ = axagent_core::repo::gateway::record_usage(
             &db,
-            &key_id,
+            &key.id,
             &prov_id,
             Some(&mod_id),
             total_prompt as u64,
@@ -2003,23 +1834,19 @@ async fn handle_stream(
 
         let elapsed = start_time.elapsed().as_millis() as i32;
         let status_code = if stream_error.is_some() { 502 } else { 200 };
-        let _ = axagent_core::repo::gateway_request_log::record_request_log(
+        record_log!(
             &db,
-            &key_id,
-            &key_name,
+            key,
             "POST",
             "/v1/chat/completions",
             Some(&mod_id),
-            Some(&prov_id),
+            &prov_id,
             status_code,
             elapsed,
             total_prompt as i64,
             total_completion as i64,
-            stream_error.as_deref(),
-        )
-        .await
-        .map_err(|e| tracing::warn!(%e, "Failed to record request log"))
-        .ok();
+            stream_error.as_deref()
+        );
     });
 
     let sse_stream = ReceiverStream::new(rx);

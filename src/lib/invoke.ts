@@ -115,14 +115,6 @@ function sleep(ms: number): Promise<void> {
 
 // ─── Invocation monitoring / metrics ───
 
-interface InvokeRecord {
-  command: string;
-  durationMs: number;
-  success: boolean;
-  timestamp: number;
-  error?: string;
-}
-
 const _invokeDurations = new Map<string, number[]>();
 const MAX_INVOKE_COUNTS = 200;
 const MAX_DURATIONS_PER_CMD = 200;
