@@ -871,30 +871,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   background-color: rgba(0, 0, 0, 0.25) !important;
 }
 :root[data-theme="dark"] .ant-switch:not(.ant-switch-checked) {
-  background-color: rgba(255, 255, 255, 0.25) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-:root[data-theme="dark"] .ant-switch.ant-switch-checked {
-  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.3);
-}
-
-/* ── 暗色模式侧栏/工具栏图标可见性 ──────── */
-:root[data-theme="dark"] .ax-chat-sidebar .ant-btn-text:not(.ant-btn-dangerous) {
-  color: rgba(255, 255, 255, 0.75) !important;
-}
-:root[data-theme="dark"] .ax-chat-sidebar .ant-btn-text:not(.ant-btn-dangerous):hover {
-  color: rgba(255, 255, 255, 0.95) !important;
-}
-:root[data-theme="dark"] .ant-btn-text.ant-btn-color-default {
-  color: rgba(255, 255, 255, 0.65) !important;
-}
-:root[data-theme="dark"] .ant-btn-text.ant-btn-color-default:hover {
-  color: rgba(255, 255, 255, 0.85) !important;
-}
-
-/* ── Table 表头不换行 ──────── */
-.ant-table-thead > tr > th {
-  white-space: nowrap;
+  background-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 /* ── Sidebar nav item (expanded mode) ─────────────── */
@@ -2577,7 +2554,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
    ── Settings 响应式 ──────────────────────────────────────────
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .settings-layout { flex-direction: column; overflow-y: auto; }
+  .settings-layout { flex-direction: column; }
   .settings-sidebar { width: 100%; min-width: 0; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
   .settings-content { padding: 20px; }
   .provider-grid { grid-template-columns: 1fr; }
@@ -3061,7 +3038,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
    ═══════════════════════════════════════════════════════════════ */
 .dropdown-trigger { position: relative; display: inline-flex; }
 .dropdown-panel {
-  /* position / top / left / z-index 由 DropdownMenu 通过 Portal + useLayoutEffect 动态计算内联设置 */
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
