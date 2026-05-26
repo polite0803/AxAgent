@@ -878,6 +878,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.3);
 }
 
+/* ── Table 表头不换行 ──────── */
+.ant-table-thead > tr > th {
+  white-space: nowrap;
+}
+
 /* ── Sidebar nav item (expanded mode) ─────────────── */
 .nav-item-expanded {
   display: flex;

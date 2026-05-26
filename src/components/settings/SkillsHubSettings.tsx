@@ -121,6 +121,7 @@ export function SkillsHubSettings() {
       dataIndex: "author",
       key: "author",
       width: 120,
+      ellipsis: true,
     },
     {
       title: t("settings.skillsHub.downloads"),

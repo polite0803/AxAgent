@@ -194,6 +194,7 @@ export function BackupCenter() {
       dataIndex: "sourceAppVersion",
       key: "sourceAppVersion",
       width: 80,
+      ellipsis: true,
       render: (val: string) => <Text type="secondary">v{val}</Text>,
     },
     {
