@@ -637,7 +637,7 @@ export function ChatSidebar({
           <Avatar
             size={20}
             icon={<Link2 size={12} />}
-            style={{ backgroundColor: token.colorPrimaryBg, color: token.colorPrimary }}
+            style={{ backgroundColor: "#e6f7ff", color: "#1890ff" }}
           />
         );
       } else if (conv.model_id) {
@@ -1799,7 +1799,7 @@ export function ChatSidebar({
           borderBottom: "1px solid var(--border-color)",
         }}
       >
-        <div className="flex items-center gap-1 flex-wrap" style={{ flex: 1, minWidth: 0 }}>
+        <div className="flex items-center gap-1">
           {showArchived
             ? (
               archivedMultiSelect
@@ -1886,15 +1886,7 @@ export function ChatSidebar({
                     type="text"
                     size="small"
                     onClick={() => setAdvancedSearchVisible(true)}
-                    style={{
-                      color: token.colorTextSecondary,
-                      fontSize: 12,
-                      maxWidth: 96,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      display: "inline-block",
-                    }}
+                    style={{ color: token.colorTextSecondary, fontSize: 12 }}
                   >
                     {t("chat.searchPastSessions")}
                   </Button>
@@ -1946,7 +1938,7 @@ export function ChatSidebar({
               </>
             )}
         </div>
-        <div style={{ flexShrink: 0 }}>
+        <div>
           {showArchived
             ? (
               archivedMultiSelect
