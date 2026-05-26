@@ -387,7 +387,7 @@ export function PromptTemplatesSettings() {
         onOk={handleSave}
         onCancel={() => setIsEditorOpen(false)}
         width={700}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" className="mt-4">
           <Form.Item

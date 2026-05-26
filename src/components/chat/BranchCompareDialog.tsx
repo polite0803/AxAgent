@@ -86,7 +86,7 @@ export function BranchCompareDialog({
       styles={{
         body: { padding: "16px 24px", height: "70vh", overflow: "auto" },
       }}
-      destroyOnClose
+      destroyOnHidden
     >
       <Space style={{ marginBottom: 16, width: "100%" }} size={12}>
         <div style={{ flex: 1 }}>

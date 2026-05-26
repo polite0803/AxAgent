@@ -166,7 +166,7 @@ export function ComputerControlPanel() {
       </Space>
 
       {screenshot && (
-        <Card size="small" bodyStyle={{ padding: 0 }}>
+        <Card size="small" styles={{ body: { padding: 0 } }}>
           <div style={{ position: "relative", cursor: "crosshair" }}>
             <img
               ref={imgRef}

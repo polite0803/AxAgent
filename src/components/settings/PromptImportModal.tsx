@@ -161,7 +161,7 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
       onCancel={onClose}
       footer={null}
       width={640}
-      destroyOnClose
+      destroyOnHidden
     >
       {contextHolder}
       <Tabs

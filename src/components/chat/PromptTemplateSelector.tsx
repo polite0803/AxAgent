@@ -170,7 +170,7 @@ export function PromptTemplateSelector({
         okText={t("common.confirm")}
         cancelText={t("common.cancel")}
         width={640}
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedTemplate && (
           <div className="py-2">

@@ -181,7 +181,7 @@ export function BrowserAutomationPanel() {
       </Card>
 
       {screenshot && (
-        <Card size="small" bodyStyle={{ padding: 0 }}>
+        <Card size="small" styles={{ body: { padding: 0 } }}>
           <img
             src={screenshot}
             alt="browser screenshot"

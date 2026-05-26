@@ -138,7 +138,7 @@ export function FilePermissionDialog({
       onCancel={handleClose}
       footer={null}
       width={500}
-      destroyOnClose
+      destroyOnHidden
       maskClosable={!loading}
     >
       {!result

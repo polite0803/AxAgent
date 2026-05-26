@@ -195,7 +195,7 @@ export function SessionShareDialog({
       onCancel={onClose}
       footer={null}
       width={480}
-      destroyOnClose
+      destroyOnHidden
     >
       <Card size="small" className="session-share-dialog">
         <div className="flex items-center gap-2 mb-4">
