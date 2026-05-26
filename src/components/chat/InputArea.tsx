@@ -2465,7 +2465,7 @@ export function InputArea() {
           </div>
         )}
 
-        {/* Textarea with command suggest */}
+        {/* Textarea with command suggest + send button */}
         <div className="chat-input-box">
           <CommandSuggest
             value={value}
@@ -2531,6 +2531,52 @@ export function InputArea() {
               }
             }}
           />
+          {/* 发送/停止按钮内嵌在输入框右侧 */}
+          {streaming
+            ? (
+              <Button
+                shape="circle"
+                size="small"
+                danger
+                data-testid="stop-generation-btn"
+                icon={<Square size={14} />}
+                onClick={handleCancel}
+                style={{ flexShrink: 0, alignSelf: "flex-end" }}
+              />
+            )
+            : (
+              <Button
+                type="primary"
+                shape="circle"
+                size="small"
+                data-testid="send-btn"
+                aria-label={t("chat.sendMessage")}
+                icon={<ArrowUp size={16} />}
+                onClick={handleSend}
+                disabled={!value.trim()
+                  || streaming
+                  || (activeConversation?.session_type === "workflow"
+                    && activeConversation?.workflow_status === "completed")}
+                title={activeConversation?.session_type === "workflow"
+                    && activeConversation?.workflow_status === "completed"
+                  ? t("chat.workflow.sessionCompletedHint")
+                  : undefined}
+                style={{
+                  flexShrink: 0,
+                  alignSelf: "flex-end",
+                  width: 36,
+                  height: 36,
+                }}
+                className={value.trim()
+                    && !streaming
+                    && !(
+                      activeConversation?.session_type === "workflow"
+                      && activeConversation?.workflow_status === "completed"
+                    )
+                  ? "ax-glow-shadow"
+                  : ""}
+              />
+            )}
         </div>
 
         {/* Bottom action bar */}
@@ -2949,44 +2995,6 @@ export function InputArea() {
           </div>
           <div className="flex items-center gap-2">
             <SkillToolbar position="right" />
-            {streaming
-              ? (
-                <Button
-                  shape="circle"
-                  size="small"
-                  danger
-                  data-testid="stop-generation-btn"
-                  icon={<Square size={14} />}
-                  onClick={handleCancel}
-                />
-              )
-              : (
-                <Button
-                  type="primary"
-                  shape="circle"
-                  size="small"
-                  data-testid="send-btn"
-                  aria-label={t("chat.sendMessage")}
-                  icon={<ArrowUp size={14} />}
-                  onClick={handleSend}
-                  disabled={!value.trim()
-                    || streaming
-                    || (activeConversation?.session_type === "workflow"
-                      && activeConversation?.workflow_status === "completed")}
-                  title={activeConversation?.session_type === "workflow"
-                      && activeConversation?.workflow_status === "completed"
-                    ? t("chat.workflow.sessionCompletedHint")
-                    : undefined}
-                  className={value.trim()
-                      && !streaming
-                      && !(
-                        activeConversation?.session_type === "workflow"
-                        && activeConversation?.workflow_status === "completed"
-                      )
-                    ? "ax-glow-shadow"
-                    : ""}
-                />
-              )}
           </div>
         </div>
       </div>
