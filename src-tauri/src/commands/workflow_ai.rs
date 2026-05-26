@@ -138,7 +138,6 @@ fn parse_llm_response(
             "agent" => {
                 let agent_config: AgentNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(AgentNodeConfig {
-                        role: Some(AgentRole::Researcher),
                         system_prompt: format!(
                             "You are an AI assistant. {}",
                             llm_node.description.clone().unwrap_or_default()
@@ -151,7 +150,6 @@ fn parse_llm_response(
                         tools: vec![],
                         context_sources: vec![],
                         agent_profile_id: None,
-                        agent_role_override: None,
                         max_tool_rounds: None,
                     });
                 WorkflowNode::Agent(AgentNode {
@@ -252,7 +250,6 @@ fn parse_llm_response(
             _ => WorkflowNode::Agent(AgentNode {
                 base,
                 config: AgentNodeConfig {
-                    role: Some(AgentRole::Researcher),
                     system_prompt: llm_node.description.clone().unwrap_or_default(),
                     model: Some("gpt-4".to_string()),
                     temperature: Some(0.7),
@@ -262,7 +259,6 @@ fn parse_llm_response(
                     tools: vec![],
                     context_sources: vec![],
                     agent_profile_id: None,
-                    agent_role_override: None,
                     max_tool_rounds: None,
                 },
             }),

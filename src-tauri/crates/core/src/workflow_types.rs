@@ -196,8 +196,6 @@ pub enum OutputMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentNodeConfig {
-    #[serde(default)]
-    pub role: Option<AgentRole>,
     pub system_prompt: String,
     pub context_sources: Vec<String>,
     pub output_var: String,
@@ -208,9 +206,8 @@ pub struct AgentNodeConfig {
     #[serde(deserialize_with = "deserialize_tool_defs")]
     pub tools: Vec<ToolDef>,
     pub output_mode: OutputMode,
+    /// AgentProfile ID — 唯一标识角色的方式，不再使用旧 role/agent_role_override
     pub agent_profile_id: Option<String>,
-    #[serde(default)]
-    pub agent_role_override: Option<String>,
     /// Agent 多轮工具调用最大轮数，默认 1（不配置则仅单轮）
     #[serde(default)]
     pub max_tool_rounds: Option<u32>,
@@ -864,7 +861,6 @@ impl WorkflowMigrator {
                     Some(WorkflowNode::Agent(AgentNode {
                         base: tool_node.base.clone(),
                         config: AgentNodeConfig {
-                            role: Some(AgentRole::Executor),
                             system_prompt: String::new(),
                             context_sources: Vec::new(),
                             output_var: tool_node.config.output_var.clone(),
@@ -878,7 +874,6 @@ impl WorkflowMigrator {
                             }],
                             output_mode: OutputMode::Text,
                             agent_profile_id: None,
-                            agent_role_override: None,
                             max_tool_rounds: None,
                         },
                     }))
@@ -895,7 +890,6 @@ impl WorkflowMigrator {
                     Some(WorkflowNode::Agent(AgentNode {
                         base: code_node.base.clone(),
                         config: AgentNodeConfig {
-                            role: Some(AgentRole::Executor),
                             system_prompt: String::new(),
                             context_sources: Vec::new(),
                             output_var: code_node.config.output_var.clone(),
@@ -905,7 +899,6 @@ impl WorkflowMigrator {
                             tools: Vec::new(),
                             output_mode: OutputMode::Text,
                             agent_profile_id: None,
-                            agent_role_override: None,
                             max_tool_rounds: None,
                         },
                     }))

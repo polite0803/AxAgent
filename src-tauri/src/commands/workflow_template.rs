@@ -724,7 +724,7 @@ async fn ensure_agent_role(db: &DatabaseConnection, role_name: &str) -> Result<(
     Ok(())
 }
 
-/// 确保 AgentProfile 在 DB 中存在，如果不存在则创建并关联 Expert
+/// 从 n8n 导入时创建 Expert（技能）+ AgentRole（岗位）+ AgentProfile（组装体）
 async fn ensure_agent_profile(
     db: &DatabaseConnection,
     profile_id: &str,
@@ -733,20 +733,51 @@ async fn ensure_agent_profile(
     expert_id: &str,
     expert_prompt: &str,
 ) -> Result<(), String> {
-    use axagent_core::entity::agent_profiles;
+    use axagent_core::entity::{agency_experts, agent_profiles};
+    use sea_orm::Set;
 
-    let exists = agent_profiles::Entity::find_by_id(profile_id)
+    let now = chrono::Utc::now().timestamp_millis();
+
+    // 1. 确保 Expert（技能）存在
+    let expert_exists = agency_experts::Entity::find_by_id(expert_id)
         .one(db)
         .await
         .map_err(|e| e.to_string())?
         .is_some();
+    if !expert_exists {
+        let expert_am = agency_experts::ActiveModel {
+            id: Set(expert_id.to_string()),
+            name: Set(profile_name.to_string()),
+            description: Set(Some(format!("Auto-created from n8n import: {}", profile_name))),
+            category: Set("general".to_string()),
+            system_prompt: Set(expert_prompt.to_string()),
+            color: Set(None),
+            source_dir: Set("n8n-import".to_string()),
+            is_enabled: Set(1),
+            imported_at: Set(now),
+            recommended_workflows: Set(None),
+            recommended_tools: Set(None),
+        };
+        agency_experts::Entity::insert(expert_am)
+            .exec(db)
+            .await
+            .map_err(|e| format!("Failed to create Expert {}: {}", expert_id, e))?;
+    }
 
-    if !exists {
-        let now = chrono::Utc::now().timestamp_millis();
-        let am = agent_profiles::ActiveModel {
+    // 2. 确保 AgentRole（岗位）存在
+    ensure_agent_role(db, agent_role).await?;
+
+    // 3. 确保 AgentProfile（组装体）存在并绑定 Expert
+    let profile_exists = agent_profiles::Entity::find_by_id(profile_id)
+        .one(db)
+        .await
+        .map_err(|e| e.to_string())?
+        .is_some();
+    if !profile_exists {
+        let profile_am = agent_profiles::ActiveModel {
             id: Set(profile_id.to_string()),
             name: Set(profile_name.to_string()),
-            description: Set(Some(expert_prompt.to_string())),
+            description: Set(Some(format!("{} + {}", profile_name, agent_role))),
             category: Set("general".to_string()),
             icon: Set("🤖".to_string()),
             agent_role: Set(Some(agent_role.to_string())),
@@ -758,7 +789,7 @@ async fn ensure_agent_profile(
             updated_at: Set(now),
             ..Default::default()
         };
-        agent_profiles::Entity::insert(am)
+        agent_profiles::Entity::insert(profile_am)
             .exec(db)
             .await
             .map_err(|e| format!("Failed to create AgentProfile {}: {}", profile_id, e))?;
@@ -1064,7 +1095,6 @@ async fn convert_n8n_to_axagent(
         let agent_node = WorkflowNode::Agent(AgentNode {
             base,
             config: AgentNodeConfig {
-                role: Some(AgentRole::try_from_str(agent_role).unwrap_or(AgentRole::Executor)),
                 system_prompt: String::new(),
                 context_sources: Vec::new(),
                 output_var: format!("{}_output", node_id),
@@ -1074,7 +1104,6 @@ async fn convert_n8n_to_axagent(
                 tools: Vec::new(),
                 output_mode: OutputMode::Text,
                 agent_profile_id: Some(agent_profile_id.to_string()),
-                agent_role_override: None,
                 max_tool_rounds: None,
             },
         });

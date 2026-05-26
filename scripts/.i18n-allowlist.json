@@ -633,6 +633,12 @@
       "lines": "23",
       "reason": "硬编码中文字符串",
       "phase": 3
+    },
+    {
+      "file": "src/pages/QuickBarPage.tsx",
+      "lines": "1489",
+      "reason": "开发者注释",
+      "phase": 3
     }
   ]
 }

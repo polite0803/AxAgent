@@ -771,19 +771,9 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
         enabled: true,
     };
 
-    let agent_role = match step.role {
-        "researcher" => AgentRole::Researcher,
-        "planner" => AgentRole::Planner,
-        "developer" => AgentRole::Developer,
-        "reviewer" => AgentRole::Reviewer,
-        "synthesizer" => AgentRole::Synthesizer,
-        _ => AgentRole::Executor,
-    };
-
     WorkflowNode::Agent(AgentNode {
         base,
         config: AgentNodeConfig {
-            role: Some(agent_role),
             system_prompt: format!("You are a {} agent. Your goal: {}", step.role, step.goal),
             context_sources: vec![],
             output_var: format!("{}_result", step.id),
@@ -793,7 +783,6 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
             tools: vec![],
             output_mode: OutputMode::Json,
             agent_profile_id: None,
-            agent_role_override: None,
             max_tool_rounds: None,
         },
     })

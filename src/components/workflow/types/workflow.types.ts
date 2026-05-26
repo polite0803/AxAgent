@@ -81,12 +81,8 @@ export interface ToolDef {
 }
 
 export interface AgentNodeConfig {
-  /** 全局 AgentProfile ID，角色和专家信息统一由此获取 */
+  /** AgentProfile ID — 唯一标识角色/专家/模型的入口 */
   agentProfileId?: string;
-  /** @deprecated 旧字段，仅用于向后兼容。新代码通过 agentProfileId → AgentProfile 获取角色 */
-  role?: string;
-  /** @deprecated 旧字段，仅用于向后兼容。通过 AgentProfile 中的 agentRole 即可 */
-  agentRoleOverride?: string;
   system_prompt: string;
   context_sources: string[];
   output_var: string;

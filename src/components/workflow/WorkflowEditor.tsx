@@ -277,11 +277,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                       };
                     }
                   }
-                  // 向后兼容：旧数据只有 role 字段
-                  const legacyRole = (node as AgentNodeType).config.role;
-                  if (legacyRole) {
-                    return { agentRole: legacyRole };
-                  }
                   return {};
                 })(),
               }
@@ -1054,6 +1049,8 @@ function createWorkflowNode(
           output_var: "",
           tools: [],
           output_mode: "text",
+          agentProfileId: undefined,
+          max_tool_rounds: undefined,
         },
       };
     case "llm":
@@ -1150,6 +1147,8 @@ function createWorkflowNode(
           output_var: "",
           tools: [],
           output_mode: "text",
+          agentProfileId: undefined,
+          max_tool_rounds: undefined,
         },
       };
   }

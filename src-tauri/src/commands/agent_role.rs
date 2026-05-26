@@ -90,6 +90,28 @@ pub async fn import_agent_roles(
     })
 }
 
+/// 快速更新 AgentRole 的 system_prompt
+#[tauri::command]
+pub async fn update_agent_role(
+    app_state: State<'_, AppState>,
+    id: String,
+    system_prompt: String,
+) -> Result<(), String> {
+    use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+    let row = axagent_core::entity::agent_roles::Entity::find_by_id(&id)
+        .one(&app_state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Role {} not found", id))?;
+    let mut am: axagent_core::entity::agent_roles::ActiveModel = row.into();
+    am.system_prompt = Set(system_prompt);
+    am.updated_at = Set(axagent_core::utils::now_ts());
+    am.update(&app_state.sea_db)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// 删除导入的 AgentRole（builtin 不可删除）
 #[tauri::command]
 pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Result<(), String> {

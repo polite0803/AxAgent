@@ -887,6 +887,7 @@ pub fn run() {
             commands::agent_role::list_agent_roles,
             commands::agent_role::import_agent_roles,
             commands::agent_role::delete_agent_role,
+            commands::agent_role::update_agent_role,
             // App config
             commands::app_config::get_app_config,
             commands::app_config::save_app_config,

@@ -1,9 +1,10 @@
 import { ExpertSelector } from "@/components/chat/ExpertSelector";
 import { ModelSelect } from "@/components/shared/ModelSelect";
+import { invoke } from "@/lib/invoke";
 import { useAgentProfileStore, useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { CreateAgentProfileInput } from "@/types";
-import { Button, Divider, Input, InputNumber, message, Select, Tag } from "antd";
+import { Button, Divider, Input, InputNumber, message, Modal, Select, Tag } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AgentNode, OutputMode, WorkflowNode } from "../../types";
@@ -39,6 +40,88 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
   const [globalRoles, setGlobalRoles] = useState<AgentRoleRow[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [creatingProfile, setCreatingProfile] = useState(false);
+
+  // 快捷编辑 Expert/Role 提示词
+  const [promptEditor, setPromptEditor] = useState<{
+    open: boolean;
+    type: "expert" | "role";
+    id: string;
+    name: string;
+    prompt: string;
+    saving: boolean;
+  }>({ open: false, type: "expert", id: "", name: "", prompt: "", saving: false });
+
+  const openExpertPromptEditor = async (expertId: string, expertName: string) => {
+    try {
+      const experts: { id: string; system_prompt: string }[] = await invoke("list_agency_experts");
+      const expert = experts.find((e) => e.id === expertId);
+      setPromptEditor({
+        open: true,
+        type: "expert",
+        id: expertId,
+        name: expertName,
+        prompt: expert?.system_prompt || "",
+        saving: false,
+      });
+    } catch {
+      setPromptEditor({
+        open: true,
+        type: "expert",
+        id: expertId,
+        name: expertName,
+        prompt: "",
+        saving: false,
+      });
+    }
+  };
+
+  const openRolePromptEditor = async (roleId: string, roleName: string) => {
+    try {
+      const roles: { id: string; system_prompt: string }[] = await invoke("list_agent_roles");
+      const role = roles.find((r) => r.id === roleId);
+      setPromptEditor({
+        open: true,
+        type: "role",
+        id: roleId,
+        name: roleName,
+        prompt: role?.system_prompt || "",
+        saving: false,
+      });
+    } catch {
+      setPromptEditor({
+        open: true,
+        type: "role",
+        id: roleId,
+        name: roleName,
+        prompt: "",
+        saving: false,
+      });
+    }
+  };
+
+  const savePrompt = async () => {
+    setPromptEditor((prev) => ({ ...prev, saving: true }));
+    try {
+      if (promptEditor.type === "expert") {
+        await invoke("update_agency_expert", {
+          request: {
+            id: promptEditor.id,
+            system_prompt: promptEditor.prompt,
+          },
+        });
+      } else {
+        await invoke("update_agent_role", {
+          id: promptEditor.id,
+          system_prompt: promptEditor.prompt,
+        });
+      }
+      message.success(t("workflow.props.promptSaved"));
+      setPromptEditor((prev) => ({ ...prev, open: false, saving: false }));
+    } catch (e) {
+      message.error(t("workflow.props.promptSaveFailed", { error: String(e) }));
+      setPromptEditor((prev) => ({ ...prev, saving: false }));
+    }
+  };
 
   const getExpert = useExpertStore((s) => s.getRoleById);
   // useExpertStore 和 useAgentProfileStore 是两个独立数据源，需要合并查找
@@ -246,12 +329,27 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  const expertId = selectedExpert.expertId || config.agentProfileId;
+                  if (expertId) {
+                    openExpertPromptEditor(expertId, selectedExpert.name);
+                  }
                 }}
               >
                 {selectedExpert.icon} {selectedExpert.name}
               </Tag>
               {selectedExpert.agentRole && (
-                <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
+                <Tag
+                  color="blue"
+                  style={{ margin: 0, fontSize: 12, cursor: "pointer" }}
+                  onClick={() =>
+                    openRolePromptEditor(
+                      selectedExpert.agentRole!,
+                      selectedExpert.agentRole!,
+                    )}
+                >
                   {t("workflow.props.roleTag", {
                     role: selectedExpert.agentRole,
                   })}
@@ -534,6 +632,27 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           onDelete={onDelete}
         />
       </div>
+
+      {/* 快捷编辑 Expert/Role 提示词 */}
+      <Modal
+        title={promptEditor.type === "expert"
+          ? t("workflow.props.editExpertPrompt", { name: promptEditor.name })
+          : t("workflow.props.editRolePrompt", { name: promptEditor.name })}
+        open={promptEditor.open}
+        onOk={savePrompt}
+        onCancel={() => setPromptEditor((prev) => ({ ...prev, open: false }))}
+        confirmLoading={promptEditor.saving}
+        okText={t("common.save")}
+        cancelText={t("common.cancel")}
+        width={600}
+      >
+        <Input.TextArea
+          value={promptEditor.prompt}
+          onChange={(e) => setPromptEditor((prev) => ({ ...prev, prompt: e.target.value }))}
+          rows={12}
+          style={{ fontFamily: "monospace", fontSize: 13 }}
+        />
+      </Modal>
     </div>
   );
 };

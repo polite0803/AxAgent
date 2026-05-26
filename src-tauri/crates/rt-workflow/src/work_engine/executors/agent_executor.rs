@@ -566,21 +566,15 @@ impl AgentExecutor {
 
 // ── 自由函数 ──
 
-/// 解析角色描述：优先 agent_role_override → profile.agent_role → config.role → "executor"
+/// 解析角色描述：从 AgentProfile 获取，无 Profile 时默认 "executor"
 fn resolve_role(
-    config: &axagent_core::workflow_types::AgentNodeConfig,
+    _config: &axagent_core::workflow_types::AgentNodeConfig,
     profile: Option<&axagent_core::entity::agent_profiles::Model>,
 ) -> String {
-    if let Some(ref ov) = config.agent_role_override {
-        return ov.clone();
-    }
     if let Some(p) = profile
         && let Some(ref role) = p.agent_role
     {
         return role.clone();
-    }
-    if let Some(ref role) = config.role {
-        return format!("{:?}", role);
     }
     "executor".to_string()
 }
