@@ -1,14 +1,37 @@
 import "@testing-library/jest-dom";
 
-// jsdom 环境初始化/清理阶段的 window 兜底（防止 react-dom 清理时报 ReferenceError）
-if (typeof window === "undefined") {
-  // @ts-expect-error - vitest jsdom 环境兜底，提供最小 window stub
-  globalThis.window = globalThis;
-}
-// 防御 jsdom 环境被销毁后 scheduler 仍尝试访问 window 的情况
-if (typeof document === "undefined") {
-  // @ts-expect-error - jsdom 清理后兜底
-  globalThis.document = { createElement: () => ({}), documentElement: {} };
+// jsdom 销毁后 react-dom scheduler 异步回调仍可能访问 window/document，
+// 用 getter 防御 ReferenceError（不可删除的兜底值）
+{
+  const g = globalThis as Record<string, unknown>;
+  const fallbackDoc = {
+    createElement: () => ({}),
+    documentElement: {},
+    body: {},
+    head: {},
+  };
+  let _win: unknown = g.window;
+  let _doc: unknown = g.document;
+  Object.defineProperty(g, "window", {
+    get() {
+      return _win ?? g;
+    },
+    set(v) {
+      _win = v;
+    },
+    configurable: true,
+    enumerable: true,
+  });
+  Object.defineProperty(g, "document", {
+    get() {
+      return _doc ?? fallbackDoc;
+    },
+    set(v) {
+      _doc = v;
+    },
+    configurable: true,
+    enumerable: true,
+  });
 }
 
 if (typeof window !== "undefined" && !window.matchMedia) {
