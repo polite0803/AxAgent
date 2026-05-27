@@ -428,13 +428,29 @@ pub async fn build_llm_bridge_from_db(
     db: &sea_orm::DatabaseConnection,
     master_key: &[u8; 32],
 ) -> Option<ProviderLlmBridge> {
+    build_llm_bridge_from_db_with(db, master_key, None, None).await
+}
+
+pub async fn build_llm_bridge_from_db_with(
+    db: &sea_orm::DatabaseConnection,
+    master_key: &[u8; 32],
+    preferred_provider_id: Option<&str>,
+    preferred_model_id: Option<&str>,
+) -> Option<ProviderLlmBridge> {
     use axagent_core::repo::provider;
     use axagent_providers::resolve_base_url_for_type;
 
     let providers = provider::list_providers(db).await.ok()?;
-    let prov = providers
-        .into_iter()
-        .find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))?;
+
+    let prov = if let Some(pid) = preferred_provider_id {
+        providers
+            .into_iter()
+            .find(|p| p.id == pid && p.enabled && p.keys.iter().any(|k| k.enabled))?
+    } else {
+        providers
+            .into_iter()
+            .find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))?
+    };
 
     let key = prov.keys.iter().find(|k| k.enabled)?;
     let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, master_key).ok()?;
@@ -481,11 +497,14 @@ pub async fn build_llm_bridge_from_db(
         store_response: None,
     };
 
-    let model = prov
-        .models
-        .first()
-        .map(|m| m.model_id.clone())
-        .unwrap_or_else(|| "default".to_string());
+    let model = if let Some(mid) = preferred_model_id {
+        mid.to_string()
+    } else {
+        prov.models
+            .first()
+            .map(|m| m.model_id.clone())
+            .unwrap_or_else(|| "default".to_string())
+    };
 
     Some(ProviderLlmBridge::new(adapter, ctx, model))
 }

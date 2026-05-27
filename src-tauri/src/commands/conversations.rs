@@ -2033,6 +2033,7 @@ fn spawn_stream_task(
         };
 
         const MAX_TOOL_ITERATIONS: usize = 10;
+        const MAX_CONSECUTIVE_TOOL_ERRORS: usize = 3;
         let mut chat_messages = chat_messages;
         let mut iteration = 0;
         let mut total_content = String::new();
@@ -2042,6 +2043,7 @@ fn spawn_stream_task(
         let mut last_stream_error: Option<String> = None;
         let mut final_tokens_per_second: Option<f64> = None;
         let mut final_first_token_latency_ms: Option<i64> = None;
+        let mut consecutive_tool_errors: usize = 0;
 
         // Early create: persist a placeholder message so it survives crash/refresh
         // Skip if the caller already created the placeholder before spawning.
@@ -2271,6 +2273,19 @@ fn spawn_stream_task(
                 let (result_content, is_error) =
                     execute_tool_call(&db, tc, &mcp_server_ids, &master_key).await;
                 let _duration_ms = start.elapsed().as_millis() as i64;
+
+                if is_error {
+                    consecutive_tool_errors += 1;
+                    if consecutive_tool_errors >= MAX_CONSECUTIVE_TOOL_ERRORS {
+                        tracing::warn!(
+                            "[spawn_stream_task] {} consecutive tool errors, stopping tool loop",
+                            consecutive_tool_errors
+                        );
+                        break;
+                    }
+                } else {
+                    consecutive_tool_errors = 0;
+                }
 
                 // Update execution record
                 if let Ok(ref exec) = exec {

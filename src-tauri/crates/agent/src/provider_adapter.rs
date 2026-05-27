@@ -220,12 +220,18 @@ impl AxAgentApiClient {
                         if let ContentBlock::ToolResult {
                             tool_use_id,
                             output,
+                            is_error,
                             ..
                         } = block
                         {
+                            let content = if *is_error {
+                                format!("Error: {}", output)
+                            } else {
+                                output.clone()
+                            };
                             result.push(ChatMessage {
                                 role: "tool".to_string(),
-                                content: ChatContent::Text(output.clone()),
+                                content: ChatContent::Text(content),
                                 tool_calls: None,
                                 tool_call_id: Some(tool_use_id.clone()),
                                 thinking: None,
@@ -358,8 +364,8 @@ impl AxAgentApiClient {
         RuntimeTokenUsage {
             input_tokens: usage.prompt_tokens,
             output_tokens: usage.completion_tokens,
-            cache_creation_input_tokens: 0,
-            cache_read_input_tokens: 0,
+            cache_creation_input_tokens: usage.cache_creation_tokens.unwrap_or(0),
+            cache_read_input_tokens: usage.cache_read_tokens.unwrap_or(0),
         }
     }
 }

@@ -304,13 +304,36 @@ impl LlmDrivenReasoningProvider {
             store: None,
         };
 
-        let response = self
-            .adapter
-            .chat(&self.ctx, request)
-            .await
-            .map_err(|e| ReActError::LlmReasoningError(e.to_string()))?;
+        const MAX_RETRIES: usize = 2;
+        let mut last_error: Option<String> = None;
 
-        Ok(response.content)
+        for attempt in 0..=MAX_RETRIES {
+            match self.adapter.chat(&self.ctx, request.clone()).await {
+                Ok(response) => return Ok(response.content),
+                Err(e) => {
+                    let err_str = e.to_string();
+                    let is_retryable = err_str.contains("timeout")
+                        || err_str.contains("connection")
+                        || err_str.contains("reset")
+                        || err_str.contains("429")
+                        || err_str.contains("503")
+                        || err_str.contains("502")
+                        || err_str.contains("rate limit");
+
+                    if !is_retryable || attempt >= MAX_RETRIES {
+                        return Err(ReActError::LlmReasoningError(err_str));
+                    }
+
+                    last_error = Some(err_str);
+                    let delay = std::time::Duration::from_millis(500 * 2u64.pow(attempt as u32));
+                    tokio::time::sleep(delay).await;
+                },
+            }
+        }
+
+        Err(ReActError::LlmReasoningError(
+            last_error.unwrap_or_else(|| "LLM call failed after retries".to_string()),
+        ))
     }
 
     fn parse_action_from_response(&self, response: &str) -> Option<Action> {

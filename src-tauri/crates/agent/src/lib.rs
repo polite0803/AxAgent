@@ -158,7 +158,7 @@ pub use axagent_tools::{ToolContext, ToolError, ToolExecutionRecorder, ToolResul
 // McpRegistry 已删除 — 直接使用 axagent_tools::registry::UnifiedToolRegistry
 
 pub use axagent_runtime_core::AgentExecutionProgressSnapshot;
-pub use llm_bridge::{ProviderLlmBridge, build_llm_bridge_from_db};
+pub use llm_bridge::{ProviderLlmBridge, build_llm_bridge_from_db, build_llm_bridge_from_db_with};
 pub use metrics::{
     MetricType, MetricValue, MetricsCollector, StructuredLogEntry, TimedGuard, TimingStats,
     log_with_fields, record_timing_async,
