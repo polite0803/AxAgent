@@ -3450,3 +3450,13 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   box-shadow: 0 8px 32px rgba(0,0,0,0.35);
   animation: dropdownIn 0.1s ease;
 }
+
+/* ── 模型/服务商列表单行截断（overflow-hidden 容器内的文本子元素） ──────── */
+.overflow-hidden > span,
+.overflow-hidden > .ant-typography {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
