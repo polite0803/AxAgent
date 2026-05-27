@@ -1684,32 +1684,35 @@ pub async fn agent_query(
     // Drain steer queue and inject instructions into the prompt
     let augmented_input = {
         let mut queue = steer_queue().lock().await;
-        if queue.is_empty() {
-            request.input.clone()
+        if let Some(instructions) = queue.remove(&conversation_id) {
+            if instructions.is_empty() {
+                request.input.clone()
+            } else {
+                info!(
+                    "[agent_query] Injecting {} steer instruction(s) for conversationId={}",
+                    instructions.len(),
+                    conversation_id
+                );
+                emit_status(
+                    &app,
+                    &conversation_id,
+                    "steer_applied",
+                    &format!("已应用 {} 条引导指令", instructions.len()),
+                    Some(agent_status_err::STEER_APPLIED),
+                );
+                format!(
+                    "{}\n[系统提示：用户发送了以下引导指令，请在后续操作中遵循这些指引]\n{}",
+                    request.input,
+                    instructions
+                        .iter()
+                        .enumerate()
+                        .map(|(i, instr)| format!("{}. {}", i + 1, instr))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                )
+            }
         } else {
-            let instructions: Vec<String> = queue.drain(..).collect();
-            info!(
-                "[agent_query] Injecting {} steer instruction(s): {:?}",
-                instructions.len(),
-                instructions
-            );
-            emit_status(
-                &app,
-                &conversation_id,
-                "steer_applied",
-                &format!("已应用 {} 条引导指令", instructions.len()),
-                Some(agent_status_err::STEER_APPLIED),
-            );
-            format!(
-                "{}\n[系统提示：用户发送了以下引导指令，请在后续操作中遵循这些指引]\n{}",
-                request.input,
-                instructions
-                    .iter()
-                    .enumerate()
-                    .map(|(i, instr)| format!("{}. {}", i + 1, instr))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            )
+            request.input.clone()
         }
     };
 
@@ -4502,16 +4505,18 @@ pub fn classify_route(request: ClassifyRouteRequest) -> crate::smart_router::Rou
 }
 
 /// 前端 SteerInput 推送方向指令。暂存供 agent_query 注入。
-static STEER_QUEUE: std::sync::OnceLock<tokio::sync::Mutex<Vec<String>>> =
-    std::sync::OnceLock::new();
+static STEER_QUEUE: std::sync::OnceLock<
+    tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>,
+> = std::sync::OnceLock::new();
 
-fn steer_queue() -> &'static tokio::sync::Mutex<Vec<String>> {
-    STEER_QUEUE.get_or_init(|| tokio::sync::Mutex::new(Vec::new()))
+fn steer_queue() -> &'static tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>> {
+    STEER_QUEUE.get_or_init(|| tokio::sync::Mutex::new(std::collections::HashMap::new()))
 }
 
 #[tauri::command]
 pub async fn agent_steer(
     _state: tauri::State<'_, AppState>,
+    conversation_id: String,
     instruction: String,
 ) -> Result<(), String> {
     if instruction.len() > 10_000 {
@@ -4520,7 +4525,16 @@ pub async fn agent_steer(
             "instruction too long (max 10KB)",
         ));
     }
-    tracing::debug!("[agent_steer] instruction queued ({} bytes)", instruction.len());
-    steer_queue().lock().await.push(instruction);
+    tracing::debug!(
+        "[agent_steer] instruction queued for conversationId={} ({} bytes)",
+        conversation_id,
+        instruction.len()
+    );
+    steer_queue()
+        .lock()
+        .await
+        .entry(conversation_id)
+        .or_default()
+        .push(instruction);
     Ok(())
 }

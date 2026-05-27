@@ -1102,6 +1102,7 @@ async fn convert_n8n_to_axagent(
                 temperature: None,
                 max_tokens: None,
                 tools: Vec::new(),
+                exposed_tools: vec![],
                 output_mode: OutputMode::Text,
                 agent_profile_id: Some(agent_profile_id.to_string()),
                 max_tool_rounds: None,

@@ -780,7 +780,7 @@ function ChatViewInner({
 
       {activeConversation?.mode === "agent"
         && activeConversationId
-        && streaming && <SteerInput />}
+        && streaming && <SteerInput conversationId={activeConversationId} />}
 
       <div className="relative">
         {scroll.showScrollToBottom && (

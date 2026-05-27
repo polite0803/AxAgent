@@ -3,7 +3,11 @@ import { Button, Input, message } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-export function SteerInput() {
+interface SteerInputProps {
+  conversationId: string;
+}
+
+export function SteerInput({ conversationId }: SteerInputProps) {
   const { t } = useTranslation();
   const [instruction, setInstruction] = useState("");
   const [sending, setSending] = useState(false);
@@ -14,7 +18,7 @@ export function SteerInput() {
     }
     setSending(true);
     try {
-      await invoke("agent_steer", { instruction });
+      await invoke("agent_steer", { conversationId, instruction });
       setInstruction("");
       message.success(t("chat.steerSent") || "Steer instruction sent");
     } catch (e) {

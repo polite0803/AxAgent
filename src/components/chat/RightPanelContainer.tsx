@@ -353,7 +353,7 @@ export function RightPanelContainer({
         labelKey: "chatRightPanel.steer",
         category: "extra",
         shouldRender: true,
-        render: () => <SteerInput />,
+        render: () => <SteerInput conversationId={conversationId} />,
       },
       {
         key: "gateway",
