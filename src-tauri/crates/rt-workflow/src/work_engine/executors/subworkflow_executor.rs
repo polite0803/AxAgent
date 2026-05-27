@@ -162,8 +162,11 @@ impl SubWorkflowExecutor {
         node: &SubWorkflowNode,
         input: HashMap<String, Value>,
     ) -> Result<Value, NodeError> {
-        let cb_guard = self.callback.lock().await;
-        if let Some(ref cb) = *cb_guard {
+        let cb = {
+            let cb_guard = self.callback.lock().await;
+            cb_guard.clone()
+        };
+        if let Some(cb) = cb {
             cb(node.config.sub_workflow_id.clone(), input)
                 .await
                 .map_err(|e| {

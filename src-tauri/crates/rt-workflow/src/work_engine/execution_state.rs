@@ -72,6 +72,9 @@ pub struct ExecutionState {
     /// 编译后的 prompt 模板（node_id -> CompiledPrompt），引擎注入，不序列化
     #[serde(skip, default)]
     pub compiled_prompts: Option<HashMap<String, CompiledPrompt>>,
+    /// 取消令牌（引擎注入，不序列化）
+    #[serde(skip, default)]
+    pub cancel_token: Option<tokio_util::sync::CancellationToken>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -97,6 +100,7 @@ impl ExecutionState {
             current_node_id: None,
             callbacks: None,
             compiled_prompts: None,
+            cancel_token: None,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,

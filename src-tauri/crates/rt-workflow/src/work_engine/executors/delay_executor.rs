@@ -1,4 +1,4 @@
-//! 延迟执行器 —— 根据 DelayNodeConfig 等待指定时长。
+//! 延迟执行器 —— 根据 DelayNodeConfig 等待指定时长，支持取消检查。
 
 use async_trait::async_trait;
 use axagent_core::workflow_types::WorkflowNode;
@@ -29,7 +29,7 @@ impl NodeExecutorTrait for DelayExecutor {
     async fn execute(
         &self,
         node: &WorkflowNode,
-        _context: &ExecutionState,
+        context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::Delay(delay_node) = node else {
             return Err(NodeError::type_mismatch(
@@ -39,7 +39,24 @@ impl NodeExecutorTrait for DelayExecutor {
         };
 
         let seconds = delay_node.config.seconds;
-        tokio::time::sleep(std::time::Duration::from_secs(seconds)).await;
+        let cancel_token = context.cancel_token.clone();
+        let sleep_future = tokio::time::sleep(std::time::Duration::from_secs(seconds));
+
+        tokio::select! {
+            _ = sleep_future => {},
+            _ = async {
+                if let Some(token) = cancel_token.as_ref() {
+                    token.cancelled().await;
+                } else {
+                    std::future::pending::<()>().await;
+                }
+            } => {
+                return Err(NodeError::exec_failed(
+                    "CANCELLED",
+                    "Delay node cancelled".to_string(),
+                ));
+            },
+        }
 
         Ok(NodeOutput {
             output: serde_json::json!({

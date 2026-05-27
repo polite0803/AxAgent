@@ -431,15 +431,16 @@ impl NodeExecutorTrait for AgentExecutor {
 
                 let tool_result = execute_tool(context, &tc.function.name, args.clone()).await;
 
-                let result_str = match &tool_result {
-                    Ok(v) => serde_json::to_string(v).unwrap_or_else(|_| format!("{v}")),
-                    Err(e) => e.clone(),
+                let (result_str, is_error) = match &tool_result {
+                    Ok(v) => (serde_json::to_string(v).unwrap_or_else(|_| format!("{v}")), false),
+                    Err(e) => (format!("Error: {e}"), true),
                 };
 
                 tool_calls_made.push(serde_json::json!({
                     "tool": &tc.function.name,
                     "arguments": args,
                     "result": result_str,
+                    "is_error": is_error,
                 }));
 
                 // 追加 tool 角色消息

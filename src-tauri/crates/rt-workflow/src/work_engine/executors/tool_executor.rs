@@ -93,13 +93,13 @@ impl NodeExecutorTrait for ToolExecutor {
                     )
                 })?
         } else {
-            serde_json::json!({
-                "status": "tool_not_configured",
-                "tool_name": tool_name,
-                "resolved_arguments": resolved_args,
-                "message": "工具未注册，请通过 WorkEngine::register_tool_handler() 注册",
-                "node_id": node.base_id(),
-            })
+            return Err(NodeError::exec_failed(
+                error_code::TOOL_CALL_FAILED,
+                format!(
+                    "工具 '{}' 未注册，请通过 WorkEngine::register_tool_handler() 注册",
+                    tool_name
+                ),
+            ));
         };
 
         Ok(NodeOutput {
