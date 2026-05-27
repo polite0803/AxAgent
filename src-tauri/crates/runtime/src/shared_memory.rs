@@ -149,7 +149,7 @@ impl SharedMemoryPool {
         self.entries
             .get(&full_key)
             .cloned()
-            .ok_or_else(|| MemoryError::NotFound(full_key))
+            .ok_or(MemoryError::NotFound(full_key))
     }
 
     pub fn get(
@@ -163,7 +163,7 @@ impl SharedMemoryPool {
         let entry = self
             .entries
             .get(&full_key)
-            .ok_or_else(|| MemoryError::NotFound(full_key.clone()))?;
+            .ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         if entry.is_expired() {
             return Err(MemoryError::Expired(full_key));
@@ -267,7 +267,7 @@ impl SharedMemoryPool {
         let entry = self
             .entries
             .get_mut(&full_key)
-            .ok_or_else(|| MemoryError::NotFound(full_key.clone()))?;
+            .ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         entry.readers.insert(agent_id.to_string());
 
@@ -285,7 +285,7 @@ impl SharedMemoryPool {
         let entry = self
             .entries
             .get_mut(&full_key)
-            .ok_or_else(|| MemoryError::NotFound(full_key.clone()))?;
+            .ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         entry.writers.insert(agent_id.to_string());
 
@@ -305,7 +305,7 @@ impl SharedMemoryPool {
         let entry = self
             .entries
             .get_mut(&full_key)
-            .ok_or_else(|| MemoryError::NotFound(full_key.clone()))?;
+            .ok_or(MemoryError::NotFound(full_key.clone()))?;
 
         // Check write permission if writers set is non-empty
         if !entry.writers.is_empty() {
