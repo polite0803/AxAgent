@@ -3460,3 +3460,16 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   flex-shrink: 1;
   min-width: 0;
 }
+.overflow-hidden > span:hover,
+.overflow-hidden > .ant-typography:hover {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-all;
+  background: var(--color-bg-elevated, var(--ant-color-bg-elevated));
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
