@@ -591,7 +591,10 @@ export function createEventMethods(
       }
       // Tell the backend to cancel the stream — fire and forget
       const streamState = useStreamStore.getState();
-      const conversationId = streamState.streamingConversationId ?? get().activeConversationId;
+      const activeConvId = get().activeConversationId;
+      const conversationId = (activeConvId && activeConvId in streamState.activeStreams)
+        ? activeConvId
+        : streamState.streamingConversationId;
       if (conversationId && isTauri()) {
         invoke("cancel_stream", { conversationId }).catch((e: unknown) => {
           console.warn("[IPC]", e);

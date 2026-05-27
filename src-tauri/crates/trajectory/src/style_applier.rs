@@ -7,6 +7,10 @@ use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 
+/// 不可能匹配的 fallback 正则，用于替换创建失败的 case
+static FALLBACK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\b$").expect("fallback regex is valid"));
+
 static SINGLE_LINE_COMMENT_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"//[^\n]*").expect("SINGLE_LINE_COMMENT_RE is valid"));
 static MULTI_LINE_COMMENT_RE: LazyLock<Regex> =
@@ -350,7 +354,7 @@ impl StyleApplier {
                 let re = RegexBuilder::new(&format!(r"\b{}\b", formal))
                     .size_limit(1_000_000)
                     .build()
-                    .unwrap_or_else(|_| Regex::new(r"^\b$").expect("fallback regex is valid"));
+                    .unwrap_or_else(|_| FALLBACK_RE.clone());
                 result = re.replace_all(&result, informal).to_string();
             }
             result
@@ -367,7 +371,7 @@ impl StyleApplier {
                 let re = RegexBuilder::new(&format!(r"\b{}\b", informal))
                     .size_limit(1_000_000)
                     .build()
-                    .unwrap_or_else(|_| Regex::new(r"^\b$").expect("fallback regex is valid"));
+                    .unwrap_or_else(|_| FALLBACK_RE.clone());
                 result = re.replace_all(&result, formal).to_string();
             }
             result
