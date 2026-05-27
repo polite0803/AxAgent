@@ -2730,7 +2730,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 />
               </div>
               <div
-                className="flex gap-2 overflow-hidden"
+                className="flex gap-2 flex-wrap"
                 style={{
                   opacity: batchCapabilitiesEnabled ? 1 : 0.4,
                   pointerEvents: batchCapabilitiesEnabled ? "auto" : "none",
