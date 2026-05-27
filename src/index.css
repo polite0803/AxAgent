@@ -3452,8 +3452,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 
 /* ── 模型/服务商列表单行截断 ──────── */
-.overflow-hidden > span:not(.ant-tag),
-.overflow-hidden > .ant-typography,
+.ax-truncate {
+  overflow: hidden;
+}
+.ax-truncate > span:not(.ant-tag),
+.ax-truncate > .ant-typography,
 .provider-detail-card .flex-1 > .flex > span:first-child,
 .provider-detail-card .flex-1 > .flex > .ant-typography:first-child {
   overflow: hidden;
@@ -3462,8 +3465,8 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   flex-shrink: 1;
   min-width: 0;
 }
-.overflow-hidden > span:not(.ant-tag):hover,
-.overflow-hidden > .ant-typography:hover,
+.ax-truncate > span:not(.ant-tag):hover,
+.ax-truncate > .ant-typography:hover,
 .provider-detail-card .flex-1 > .flex > span:first-child:hover,
 .provider-detail-card .flex-1 > .flex > .ant-typography:first-child:hover {
   overflow: visible;

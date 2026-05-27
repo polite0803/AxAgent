@@ -336,7 +336,7 @@ export function ChatViewToolbar({
                 </div>
               )
               : (
-                <div className="overflow-hidden" style={{ flex: "1 1 auto", minWidth: 0 }}>
+                <div className="ax-truncate" style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <Typography.Text
                     className="cursor-pointer select-none"
                     onClick={handleTitleClick}

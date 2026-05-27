@@ -174,7 +174,7 @@ function ModelItemCard({
     >
       {multiSelect && <Checkbox checked={isActive} style={{ pointerEvents: "none" }} />}
       <ModelIcon model={model_id} size={20} type="avatar" />
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-1 min-w-0 ax-truncate">
         <div className="flex items-center gap-1">
           {showProviderTag && providerName && (
             <Tag
