@@ -198,12 +198,11 @@ async fn read_image(path: &str) -> Result<ToolResult, ToolError> {
 
 async fn read_pdf(path: &str) -> Result<ToolResult, ToolError> {
     let path_owned = path.to_string();
-    let text = tokio::task::spawn_blocking(move || {
-        pdf_extract::extract_text(&path_owned).map(|t| t)
-    })
-    .await
-    .map_err(|e| ToolError::execution_failed(format!("PDF 读取任务失败: {}", e)))?
-    .map_err(|e| ToolError::execution_failed(format!("PDF 读取失败: {}", e)))?;
+    let text =
+        tokio::task::spawn_blocking(move || pdf_extract::extract_text(&path_owned).map(|t| t))
+            .await
+            .map_err(|e| ToolError::execution_failed(format!("PDF 读取任务失败: {}", e)))?
+            .map_err(|e| ToolError::execution_failed(format!("PDF 读取失败: {}", e)))?;
 
     if text.len() > 200_000 {
         Ok(ToolResult::truncated(text, 200_000))

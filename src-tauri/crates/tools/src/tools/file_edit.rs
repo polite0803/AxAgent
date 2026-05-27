@@ -1,13 +1,9 @@
-//! FileEditTool - 文件编辑工具
-//!
-//! 基于搜索替换的精确文件编辑，支持 replace_all 批量替换。
-
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
 
-const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024;
 
 pub struct FileEditTool;
 
@@ -66,7 +62,6 @@ impl Tool for FileEditTool {
             return Err(ToolError::invalid_input_for("FileEdit", "file_path 必须是绝对路径"));
         }
 
-        // 硬门禁：路径遍历检测（独立于 check_permissions 的软弹窗）
         if path.contains("..") || path.starts_with('~') {
             return Err(ToolError::permission_denied(
                 "FileEdit",
@@ -89,7 +84,10 @@ impl Tool for FileEditTool {
             return Err(ToolError::invalid_input("old_string 和 new_string 相同，无需编辑"));
         }
 
-        let file_size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+        let file_size = tokio::fs::metadata(path)
+            .await
+            .map(|m| m.len())
+            .unwrap_or(0);
         if file_size > MAX_FILE_SIZE {
             return Err(ToolError::invalid_input_for(
                 "FileEdit",
@@ -142,28 +140,25 @@ impl Tool for FileEditTool {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
-        let original = std::fs::read_to_string(file_path).map_err(|e| {
+        let original = tokio::fs::read_to_string(file_path).await.map_err(|e| {
             ToolError::execution_failed_for("FileEdit", format!("读取文件失败: {}", e))
         })?;
 
-        // 查找匹配次数
         let matches = original.matches(old_string).count();
 
         if matches == 0 {
-            // 尝试规范化引号后重新匹配
             let normalized_old = normalize_quotes(old_string);
             if normalized_old != old_string {
                 let matches_norm = original.matches(&normalized_old).count();
                 if matches_norm == 0 {
                     return Err(ToolError::invalid_input_for("FileEdit", "在文件中未找到 old_string。请确认 old_string 与文件内容完全一致（包括空格和缩进）。\n已尝试引号规范化。".to_string()));
                 }
-                // 使用规范化后的字符串
                 let new_content = if replace_all {
                     original.replace(&normalized_old, new_string)
                 } else {
                     original.replacen(&normalized_old, new_string, 1)
                 };
-                return write_and_diff(file_path, &original, &new_content, matches_norm);
+                return write_and_diff(file_path, &original, &new_content, matches_norm).await;
             }
             return Err(ToolError::invalid_input(
                 "在文件中未找到 old_string。请确认 old_string 与文件内容完全一致（包括空格和缩进）。",
@@ -186,7 +181,7 @@ impl Tool for FileEditTool {
             original.replacen(old_string, new_string, 1)
         };
 
-        write_and_diff(file_path, &original, &new_content, matches)
+        write_and_diff(file_path, &original, &new_content, matches).await
     }
 }
 
@@ -195,19 +190,19 @@ fn normalize_quotes(s: &str) -> String {
         .replace(['\u{201c}', '\u{201d}'], "\"")
 }
 
-fn write_and_diff(
+async fn write_and_diff(
     file_path: &str,
     original: &str,
     new: &str,
     match_count: usize,
 ) -> Result<ToolResult, ToolError> {
-    std::fs::write(file_path, new)
+    tokio::fs::write(file_path, new)
+        .await
         .map_err(|e| ToolError::execution_failed_for("FileEdit", format!("写入文件失败: {}", e)))?;
 
     let mut output = format!("✅ 已编辑文件: {}\n", file_path);
     output.push_str(&format!("替换了 {} 处匹配\n\n", match_count));
 
-    // 生成 diff
     output.push_str("## 变更对比\n```diff\n");
     for diff in diff::lines(original, new) {
         match diff {

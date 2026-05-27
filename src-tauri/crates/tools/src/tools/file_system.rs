@@ -274,7 +274,7 @@ impl Tool for FileExistsTool {
         }
 
         let exists = match validate_and_resolve_path(path, ctx) {
-            Ok(resolved) => Path::new(&resolved.to_string_lossy().to_string()).exists(),
+            Ok(resolved) => tokio::fs::metadata(&resolved).await.is_ok(),
             Err(_) => false,
         };
 

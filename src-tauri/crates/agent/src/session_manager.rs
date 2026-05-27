@@ -292,10 +292,7 @@ impl SessionManager {
                         .as_millis() as u64;
                     drop(conv_index);
                     drop(sessions);
-                    self.session_last_access
-                        .lock()
-                        .await
-                        .insert(sid, now);
+                    self.session_last_access.lock().await.insert(sid, now);
                     return Ok(cloned);
                 }
             }
