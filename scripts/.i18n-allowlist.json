@@ -1,7 +1,7 @@
 {
   "version": "1",
-  "generated": "2026-05-18",
-  "total_entries": 105,
+  "generated": "2026-05-27",
+  "total_entries": 108,
   "total_files": 104,
   "entries": [
     {
@@ -639,6 +639,16 @@
       "lines": "1489",
       "reason": "开发者注释",
       "phase": 3
+    },
+    {
+      "file": "src/components/chat/ChatView.tsx",
+      "lines": "282,302",
+      "reason": "内容分析关键词，非 UI 字符串"
+    },
+    {
+      "file": "src/components/chat/StructuredThinking.tsx",
+      "lines": "53,84,112,141",
+      "reason": "LLM 响应分析关键词，非 UI 字符串"
     }
   ]
 }
