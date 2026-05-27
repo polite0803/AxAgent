@@ -2371,7 +2371,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 <div className="font-medium mb-1.5" style={{ fontSize: 13 }}>
                   {t("settings.modelType.title")}
                 </div>
-                <div className="flex gap-2 overflow-hidden">
+                <div className="flex gap-2 flex-wrap">
                   {(Object.keys(MODEL_TYPE_CONFIG) as ModelType[]).map(
                     (type_) => (
                       <Tag
@@ -2410,7 +2410,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     >
                       {t("settings.modelAbilities")}
                     </div>
-                    <div className="flex gap-2 overflow-hidden">
+                    <div className="flex gap-2 flex-wrap">
                       {getEditableCapabilities(editModelType).map((cap) => {
                         const selected = editCapabilities.includes(cap);
                         return (
