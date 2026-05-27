@@ -3,12 +3,13 @@ import { BenchmarkReportView } from "@/components/benchmark/BenchmarkReportView"
 import { BenchmarkSelector } from "@/components/benchmark/BenchmarkSelector";
 import { TaskList } from "@/components/benchmark/TaskList";
 import { useEvaluatorStore } from "@/stores/devtools/evaluatorStore";
-import { Button, Card, message, Spin, Tabs } from "antd";
+import { Button, Card, message, Spin, Tabs, theme } from "antd";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export function BenchmarkRunner() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const {
     selectedBenchmark,
     currentResult,
@@ -95,7 +96,7 @@ export function BenchmarkRunner() {
       )}
 
       {!currentResult && !isLoading && (
-        <div className="text-center text-zinc-400 py-20">
+        <div className="text-center py-20" style={{ color: token.colorTextTertiary }}>
           {t("benchmark.empty")}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { Divider, Input, InputNumber, Select } from "antd";
+import { Divider, Input, InputNumber, Select, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { DelayNode, WorkflowNode } from "../../types";
@@ -22,6 +22,7 @@ function DelayConfig({
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   switch (config.delay_type as string) {
     case "seconds":
@@ -30,7 +31,7 @@ function DelayConfig({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -46,7 +47,7 @@ function DelayConfig({
             size="small"
             style={{ width: "100%" }}
           />
-          <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 4 }}>
             {((config.seconds as number) || 5) >= 60
               ? `≈ ${Math.floor(((config.seconds as number) || 5) / 60)} ${t("workflow.props.minutes")}`
               : `${(config.seconds as number) || 5} ${t("workflow.props.seconds")}`}
@@ -60,7 +61,7 @@ function DelayConfig({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -85,7 +86,7 @@ function DelayConfig({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -110,7 +111,7 @@ function DelayConfig({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -124,7 +125,7 @@ function DelayConfig({
             size="small"
             placeholder={t("workflow.props.delayUntilPlaceholder")}
           />
-          <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 4 }}>
             {t("workflow.props.delayUntilHint")}
           </div>
         </div>
@@ -141,6 +142,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const delayNode = node as DelayNode;
   const config = delayNode.config || {
     delay_type: "seconds",
@@ -157,7 +159,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -180,10 +182,10 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({
 
       <DelayConfig config={config} handleConfigChange={handleConfigChange} />
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

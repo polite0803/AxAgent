@@ -1,5 +1,5 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Input, Tabs, Tag } from "antd";
+import { Input, Tabs, Tag, theme } from "antd";
 import { FileText, Search } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
 
 export const LeftPanel: React.FC = () => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [search, setSearch] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
   const { templates, loadTemplate } = useWorkflowEditorStore();
@@ -15,7 +16,6 @@ export const LeftPanel: React.FC = () => {
   const ghostRef = useRef<HTMLDivElement | null>(null);
   const isDraggingRef = useRef(false);
 
-  // 卸载时清理拖拽残留（幽灵元素 + 全局事件）
   useEffect(() => () => {
     if (ghostRef.current) {
       ghostRef.current.remove();
@@ -38,15 +38,14 @@ export const LeftPanel: React.FC = () => {
       setDragPayload(payload);
       isDraggingRef.current = true;
 
-      // Create a ghost element that follows the cursor
       const ghost = document.createElement("div");
       ghost.textContent = nodeLabel;
       ghost.style.position = "fixed";
       ghost.style.pointerEvents = "none";
       ghost.style.zIndex = "99999";
       ghost.style.padding = "6px 12px";
-      ghost.style.background = "#333";
-      ghost.style.color = "#fff";
+      ghost.style.background = token.colorBorderSecondary;
+      ghost.style.color = token.colorText;
       ghost.style.borderRadius = "4px";
       ghost.style.fontSize = "12px";
       ghost.style.whiteSpace = "nowrap";
@@ -77,7 +76,7 @@ export const LeftPanel: React.FC = () => {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     },
-    [],
+    [token],
   );
 
   const filteredNodeTypes = Object.entries(NODE_TYPE_MAP).filter(
@@ -115,8 +114,8 @@ export const LeftPanel: React.FC = () => {
     <div
       style={{
         width: 280,
-        background: "#252525",
-        borderRight: "1px solid #333",
+        background: token.colorBgContainer,
+        borderRight: `1px solid ${token.colorBorderSecondary}`,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -140,7 +139,7 @@ export const LeftPanel: React.FC = () => {
               >
                 <Input
                   id="left-panel-input-74"
-                  prefix={<Search size={14} style={{ color: "#666" }} />}
+                  prefix={<Search size={14} style={{ color: token.colorTextTertiary }} />}
                   placeholder={t("workflow.leftPanel.searchNodes")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -154,7 +153,7 @@ export const LeftPanel: React.FC = () => {
                       <div
                         style={{
                           fontSize: 12,
-                          color: "#666",
+                          color: token.colorTextTertiary,
                           textTransform: "uppercase",
                           marginBottom: 6,
                           paddingLeft: 4,
@@ -186,13 +185,13 @@ export const LeftPanel: React.FC = () => {
                             }}
                             style={{
                               padding: "8px 6px",
-                              background: "#1a1a1a",
+                              background: token.colorBgElevated,
                               border: `1px solid ${info.color}40`,
                               borderRadius: 6,
                               cursor: "grab",
                               textAlign: "center",
                               fontSize: 12,
-                              color: "#ccc",
+                              color: token.colorTextTertiary,
                               transition: "box-shadow 0.2s, transform 0.2s",
                               userSelect: "none",
                             }}
@@ -202,7 +201,7 @@ export const LeftPanel: React.FC = () => {
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.borderColor = `${info.color}40`;
-                              e.currentTarget.style.background = "#1a1a1a";
+                              e.currentTarget.style.background = token.colorBgElevated;
                             }}
                           >
                             <div style={{ fontSize: 16, marginBottom: 4 }}>
@@ -233,7 +232,7 @@ export const LeftPanel: React.FC = () => {
               <div style={{ padding: "8px" }}>
                 <Input
                   id="left-panel-input-75"
-                  prefix={<Search size={14} style={{ color: "#666" }} />}
+                  prefix={<Search size={14} style={{ color: token.colorTextTertiary }} />}
                   placeholder={t("workflow.leftPanel.searchTemplates")}
                   value={templateSearch}
                   onChange={(e) => setTemplateSearch(e.target.value)}
@@ -257,13 +256,13 @@ export const LeftPanel: React.FC = () => {
                       style={{
                         padding: 10,
                         marginBottom: 6,
-                        background: "#1a1a1a",
+                        background: token.colorBgElevated,
                         borderRadius: 6,
                         cursor: "pointer",
                         border: "1px solid transparent",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "#1890ff40";
+                        e.currentTarget.style.borderColor = `${token.colorPrimary}40`;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor = "transparent";
@@ -276,8 +275,8 @@ export const LeftPanel: React.FC = () => {
                           gap: 8,
                         }}
                       >
-                        <FileText size={14} style={{ color: "#1890ff" }} />
-                        <span style={{ color: "#ccc", fontSize: 12 }}>
+                        <FileText size={14} style={{ color: token.colorPrimary }} />
+                        <span style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                           {template.name}
                         </span>
                         {template.is_preset && (
@@ -289,7 +288,7 @@ export const LeftPanel: React.FC = () => {
                       {template.description && (
                         <div
                           style={{
-                            color: "#666",
+                            color: token.colorTextTertiary,
                             fontSize: 12,
                             marginTop: 4,
                             marginLeft: 22,

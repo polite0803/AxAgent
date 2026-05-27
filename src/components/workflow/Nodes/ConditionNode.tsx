@@ -1,7 +1,10 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+
+const ORANGE_BASE = "#fa8c16";
+const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
 interface ConditionNodeData {
   id: string;
@@ -12,12 +15,11 @@ interface ConditionNodeData {
   nodeType: string;
   enabled: boolean;
   conditions?: Array<{
-    var_path: string;
+    field: string;
     operator: string;
-    value: unknown;
+    value: string;
   }>;
-  logicalOp?: "and" | "or";
-  validationState?: "error" | "warning";
+  logicOperator?: "and" | "or";
 }
 
 const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
@@ -25,56 +27,10 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#fa8c16";
+  const { token } = theme.useToken();
+  const color = ORANGE_VAR;
   const conditions = data.conditions || [];
-  const logicalOp = data.logicalOp || "and";
-
-  const getBorderColor = () => {
-    if (data.validationState === "error") {
-      return "#ff4d4f";
-    }
-    if (data.validationState === "warning") {
-      return "#faad14";
-    }
-    if (selected) {
-      return "#1890ff";
-    }
-    return color;
-  };
-
-  const borderColor = getBorderColor();
-
-  const getOperatorLabel = (op: string): string => {
-    const labels: Record<string, string> = {
-      eq: "=",
-      ne: "≠",
-      gt: ">",
-      lt: "<",
-      gte: "≥",
-      lte: "≤",
-      contains: t("workflow.conditionNode.opContains"),
-      notContains: t("workflow.conditionNode.opNotContains"),
-      startsWith: t("workflow.conditionNode.opStartsWith"),
-      endsWith: t("workflow.conditionNode.opEndsWith"),
-      regexMatch: t("workflow.conditionNode.opRegexMatch"),
-      isEmpty: t("workflow.conditionNode.opIsEmpty"),
-      isNotEmpty: t("workflow.conditionNode.opIsNotEmpty"),
-    };
-    return labels[op] || op;
-  };
-
-  const formatValue = (value: unknown): string => {
-    if (value === null || value === undefined) {
-      return "";
-    }
-    if (typeof value === "string") {
-      return value.length > 10 ? `${value.slice(0, 10)}...` : value;
-    }
-    if (typeof value === "number") {
-      return String(value);
-    }
-    return JSON.stringify(value).slice(0, 10);
-  };
+  const logicOperator = data.logicOperator || "and";
 
   return (
     <div
@@ -87,22 +43,22 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${borderColor}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
-          boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
+          boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
           transition: "box-shadow 0.2s, transform 0.2s",
         }}
       >
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${ORANGE_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${ORANGE_BASE}15`,
           }}
         >
           <span style={{ fontSize: 14 }}>🔀</span>
@@ -115,27 +71,29 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
           >
             {t("workflow.conditionNode.title")}
           </span>
-          <Tag
-            style={{
-              margin: 0,
-              fontSize: 9,
-              padding: "0 4px",
-              background: `${color}30`,
-              border: "none",
-              color: "#fff",
-            }}
-          >
-            {logicalOp.toUpperCase()}
-          </Tag>
+          {conditions.length > 0 && (
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: `${ORANGE_BASE}30`,
+                border: "none",
+                color: token.colorText,
+              }}
+            >
+              {conditions.length}
+            </Tag>
+          )}
         </div>
 
         <div style={{ padding: "10px 12px" }}>
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
-              marginBottom: 8,
+              marginBottom: 6,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -147,75 +105,52 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
           {conditions.length > 0
             ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {conditions.slice(0, 3).map((condition, _index) => (
+                {conditions.slice(0, 3).map((condition, index) => (
                   <div
-                    key={`${condition.var_path}-${condition.operator}-${String(condition.value)}`}
+                    key={index}
                     style={{
-                      fontSize: 12,
-                      color: "#aaa",
-                      padding: "4px 6px",
-                      background: "#252525",
-                      borderRadius: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
+                      fontSize: 10,
+                      color: token.colorTextQuaternary,
+                      padding: "2px 4px",
+                      background: token.colorBgContainer,
+                      borderRadius: 3,
                       overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <span
-                      style={{
-                        color: "#888",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        flex: 1,
-                      }}
-                    >
-                      {condition.var_path || t("workflow.conditionNode.notSet")}
-                    </span>
-                    <span style={{ color: color, fontWeight: 500 }}>
-                      {getOperatorLabel(condition.operator)}
-                    </span>
-                    <span
-                      style={{
-                        color: "#52c41a",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: 60,
-                      }}
-                    >
-                      {formatValue(condition.value)}
-                    </span>
+                    {condition.field} {condition.operator} {condition.value}
                   </div>
                 ))}
                 {conditions.length > 3 && (
                   <div
                     style={{
-                      fontSize: 9,
-                      color: "#666",
-                      textAlign: "center",
+                      fontSize: 10,
+                      color: token.colorTextTertiary,
                     }}
                   >
-                    {t("workflow.conditionNode.moreConditions", {
-                      count: conditions.length - 3,
-                    })}
+                    +{conditions.length - 3} {t("workflow.conditionNode.more")}
                   </div>
                 )}
+                <div
+                  style={{
+                    fontSize: 9,
+                    color: token.colorTextTertiary,
+                    marginTop: 2,
+                  }}
+                >
+                  {logicOperator.toUpperCase()}
+                </div>
               </div>
             )
             : (
               <div
                 style={{
                   fontSize: 12,
-                  color: "#666",
-                  textAlign: "center",
-                  padding: 8,
-                  background: "#252525",
-                  borderRadius: 4,
+                  color: token.colorTextQuaternary,
                 }}
               >
-                {t("workflow.conditionNode.clickToEdit")}
+                {t("workflow.conditionNode.noConditions")}
               </div>
             )}
         </div>
@@ -237,7 +172,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
         position={Position.Bottom}
         id="true"
         style={{
-          background: "#52c41a",
+          background: token.colorSuccess,
           border: "none",
           width: 8,
           height: 8,
@@ -250,7 +185,7 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
         position={Position.Bottom}
         id="false"
         style={{
-          background: "#ff4d4f",
+          background: token.colorError,
           border: "none",
           width: 8,
           height: 8,
@@ -260,17 +195,29 @@ const ConditionNodeComponent: React.FC<NodeProps<ConditionNodeData>> = ({
 
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-around",
-          marginTop: 4,
+          position: "absolute",
+          bottom: -18,
+          left: "25%",
+          transform: "translateX(-50%)",
+          fontSize: 9,
+          color: token.colorSuccess,
+          fontWeight: 600,
         }}
       >
-        <Tag color="green" style={{ margin: 0, fontSize: 9 }}>
-          {t("workflow.conditionNode.true")}
-        </Tag>
-        <Tag color="red" style={{ margin: 0, fontSize: 9 }}>
-          {t("workflow.conditionNode.false")}
-        </Tag>
+        ✓
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: -18,
+          left: "75%",
+          transform: "translateX(-50%)",
+          fontSize: 9,
+          color: token.colorError,
+          fontWeight: 600,
+        }}
+      >
+        ✗
       </div>
     </div>
   );

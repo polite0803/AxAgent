@@ -1,4 +1,5 @@
 import { useNudgeStore } from "@/stores";
+import { theme } from "antd";
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +17,7 @@ interface EvolutionSidebarProps {
 
 export function EvolutionSidebar({ onClose }: EvolutionSidebarProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const insightCount = useNudgeStore((s) => s.insights.length);
   const pendingNudges = useNudgeStore((s) => s.pendingNudges);
   const closedLoopNudges = useNudgeStore((s) => s.closedLoopNudges);
@@ -48,7 +50,7 @@ export function EvolutionSidebar({ onClose }: EvolutionSidebarProps) {
             </span>
           )}
           {nudgeCount > 0 && (
-            <span className="text-[10px] text-orange-500/80">
+            <span className="text-[10px]" style={{ color: token.colorWarning }}>
               {nudgeCount} {t("nudge.learningSuggestions").toLowerCase()}
             </span>
           )}

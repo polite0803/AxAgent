@@ -1,9 +1,12 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-export interface ValidationNodeData {
+const PURPLE_BASE = "#722ed1";
+const PURPLE_VAR = `var(--purple, ${PURPLE_BASE})`;
+
+interface ValidationNodeData {
   id: string;
   type: string;
   title: string;
@@ -11,16 +14,13 @@ export interface ValidationNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  assertions: Assertion[];
-  onFail: "stop" | "retry" | "continue";
-  maxRetries: number;
-}
-
-export interface Assertion {
-  type: "equals" | "contains" | "matches" | "exists" | "custom";
-  expected?: string;
-  actual?: string;
-  expression?: string;
+  validationType?: "schema" | "rules" | "custom";
+  rules?: Array<{
+    field: string;
+    rule: string;
+    message?: string;
+  }>;
+  failAction?: "error" | "warning" | "skip";
 }
 
 const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({
@@ -28,37 +28,38 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#722ed1";
-  const assertions = data.assertions || [];
-  const onFail = data.onFail || "stop";
-  const maxRetries = data.maxRetries || 0;
+  const { token } = theme.useToken();
+  const color = PURPLE_VAR;
+  const validationType = data.validationType || "rules";
+  const rules = data.rules || [];
+  const failAction = data.failAction || "error";
 
-  const getOnFailLabel = (): string => {
-    switch (onFail) {
-      case "stop":
-        return t("workflow.validationNode.stop");
-      case "retry":
-        return t("workflow.validationNode.retry", { count: maxRetries });
-      case "continue":
-        return t("workflow.validationNode.continue");
+  const getFailActionColor = (action: string): string => {
+    switch (action) {
+      case "error":
+        return token.colorError;
+      case "warning":
+        return token.colorWarning;
+      case "skip":
+        return token.colorSuccess;
       default:
-        return onFail;
+        return token.colorTextTertiary;
     }
   };
 
   return (
     <div
       style={{
-        minWidth: 160,
-        maxWidth: 220,
+        minWidth: 200,
+        maxWidth: 240,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -68,14 +69,14 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${PURPLE_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${PURPLE_BASE}15`,
           }}
         >
-          <span style={{ fontSize: 14 }}>✓</span>
+          <span style={{ fontSize: 14 }}>✅</span>
           <span
             style={{
               fontSize: 12,
@@ -91,7 +92,7 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -102,30 +103,47 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({
             {data.title}
           </div>
 
-          <Tag
-            style={{
-              margin: 0,
-              fontSize: 12,
-              padding: "4px 8px",
-              background: `${color}20`,
-              border: `1px solid ${color}50`,
-              color: color,
-              fontWeight: 500,
-            }}
-          >
-            {t("workflow.validationNode.assertionCount", {
-              count: assertions.length,
-            })}
-          </Tag>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: `${PURPLE_BASE}20`,
+                border: `1px solid ${PURPLE_BASE}50`,
+                color: PURPLE_VAR,
+              }}
+            >
+              {validationType.toUpperCase()}
+            </Tag>
 
-          <div
-            style={{
-              marginTop: 6,
-              fontSize: 12,
-              color: "#888",
-            }}
-          >
-            {t("workflow.validationNode.failStrategy")} {getOnFailLabel()}
+            {rules.length > 0 && (
+              <Tag
+                style={{
+                  margin: 0,
+                  fontSize: 9,
+                  padding: "0 4px",
+                  background: token.colorBgContainer,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  color: token.colorTextQuaternary,
+                }}
+              >
+                {rules.length} {t("workflow.validationNode.rules")}
+              </Tag>
+            )}
+
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: `${getFailActionColor(failAction)}20`,
+                border: `1px solid ${getFailActionColor(failAction)}50`,
+                color: getFailActionColor(failAction),
+              }}
+            >
+              {failAction.toUpperCase()}
+            </Tag>
           </div>
         </div>
       </div>
@@ -144,26 +162,55 @@ const ValidationNodeComponent: React.FC<NodeProps<ValidationNodeData>> = ({
       <Handle
         type="source"
         position={Position.Bottom}
+        id="valid"
         style={{
-          background: "#52c41a",
+          background: token.colorSuccess,
           border: "none",
           width: 8,
           height: 8,
+          left: "30%",
         }}
       />
 
       <Handle
         type="source"
         position={Position.Bottom}
-        id="fail"
+        id="invalid"
         style={{
-          left: "30%",
-          background: "#ff4d4f",
+          background: token.colorError,
           border: "none",
           width: 8,
           height: 8,
+          left: "70%",
         }}
       />
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: -18,
+          left: "25%",
+          transform: "translateX(-50%)",
+          fontSize: 9,
+          color: token.colorSuccess,
+          fontWeight: 600,
+        }}
+      >
+        ✓
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: -18,
+          left: "75%",
+          transform: "translateX(-50%)",
+          fontSize: 9,
+          color: token.colorError,
+          fontWeight: 600,
+        }}
+      >
+        ✗
+      </div>
     </div>
   );
 };

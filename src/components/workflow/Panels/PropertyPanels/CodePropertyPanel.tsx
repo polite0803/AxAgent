@@ -1,4 +1,4 @@
-import { Divider, Input, Select } from "antd";
+import { Divider, Input, Select, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { CodeNode, WorkflowNode } from "../../types";
@@ -31,6 +31,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const codeNode = node as CodeNode;
   const config = codeNode.config || {
     language: "javascript",
@@ -75,7 +76,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -96,13 +97,13 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
         >
           {t("workflow.props.code")}
-          <span style={{ color: "#666", fontWeight: 400, marginLeft: 4 }}>
+          <span style={{ color: token.colorTextTertiary, fontWeight: 400, marginLeft: 4 }}>
             {t("workflow.props.codeInputOutputHint")}
           </span>
         </label>
@@ -115,7 +116,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
           style={{
             fontFamily: "Monaco, Consolas, monospace",
             fontSize: 12,
-            background: "#1a1a1a",
+            background: token.colorBgContainer,
           }}
           placeholder={t("workflow.props.codePlaceholder")}
         />
@@ -125,7 +126,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -141,10 +142,10 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         />
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

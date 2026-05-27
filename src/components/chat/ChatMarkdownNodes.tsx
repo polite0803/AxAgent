@@ -850,7 +850,7 @@ function ChatD2BlockNode({
       style={shellStyle}
     >
       <div
-        className="d2-block-header flex justify-between items-center px-4 py-1.5 border-b border-zinc-400/5"
+        className="d2-block-header flex justify-between items-center px-4 py-1.5 border-b"
         style={headerStyle}
       >
         <div className="flex items-center gap-x-2">
@@ -992,13 +992,22 @@ function getInlineToolIcon(toolName: string): React.ReactNode {
   return entry ? entry[1] : <Zap size={14} />;
 }
 
-const toolCallStatusColors: Record<string, string> = {
-  queued: "#faad14",
-  running: "#1890ff",
-  success: "#52c41a",
-  failed: "#ff4d4f",
-  cancelled: "#8c8c8c",
-};
+function getToolCallStatusColor(status: string, token: import("antd").GlobalToken): string {
+  switch (status) {
+    case "queued":
+      return token.colorWarning;
+    case "running":
+      return token.colorPrimary;
+    case "success":
+      return token.colorSuccess;
+    case "failed":
+      return token.colorError;
+    case "cancelled":
+      return token.colorTextTertiary;
+    default:
+      return token.colorTextSecondary;
+  }
+}
 
 function ToolCallNode(
   props: NodeComponentProps<{
@@ -1019,7 +1028,7 @@ function ToolCallNode(
 
   const tc = toolCalls[execId];
   const status = tc?.executionStatus ?? "success";
-  const statusColor = toolCallStatusColors[status] || token.colorTextSecondary;
+  const statusColor = getToolCallStatusColor(status, token);
   const isLoading = status === "queued" || status === "running";
   const hasDetails = tc && (tc.input || tc.output);
 

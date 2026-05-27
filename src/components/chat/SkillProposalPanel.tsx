@@ -1,6 +1,6 @@
 import { useSkillStore } from "@/stores";
 import type { SkillProposal } from "@/types";
-import { Button, Card, Empty, message, Modal, Space, Spin, Tag, Typography } from "antd";
+import { Button, Card, Empty, message, Modal, Space, Spin, Tag, theme, Typography } from "antd";
 import { Check, Lightbulb, Sparkles, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,6 +20,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
   onDismiss,
   t,
 }) => {
+  const { token } = theme.useToken();
   const confidencePercent = Math.round(proposal.confidence * 100);
 
   const getConfidenceColor = () => {
@@ -60,7 +61,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
       >
         <div style={{ flex: 1 }}>
           <Space align="center" style={{ marginBottom: 8 }}>
-            <Sparkles size={16} style={{ color: "#faad14" }} />
+            <Sparkles size={16} style={{ color: token.colorWarning }} />
             <Text strong style={{ fontSize: 15 }}>
               {proposal.suggested_name}
             </Text>
@@ -75,12 +76,12 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
           </Paragraph>
 
           <details style={{ fontSize: 12 }}>
-            <summary style={{ cursor: "pointer", color: "#1890ff" }}>
+            <summary style={{ cursor: "pointer", color: token.colorPrimary }}>
               {t("skill.proposal.viewContent")}
             </summary>
             <pre
               style={{
-                background: "#f5f5f5",
+                background: token.colorFillQuaternary,
                 padding: 12,
                 borderRadius: 4,
                 marginTop: 8,
@@ -134,6 +135,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [loading, setLoading] = useState(false);
   const { loadSkillProposals, createSkillFromProposal } = useSkillStore();
   const [localProposals, setLocalProposals] = useState<SkillProposal[]>([]);
@@ -173,7 +175,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
     <Modal
       title={
         <Space>
-          <Lightbulb size={18} style={{ color: "#faad14" }} />
+          <Lightbulb size={18} style={{ color: token.colorWarning }} />
           <span>{t("skill.proposal.title")}</span>
           {localProposals.length > 0 && <Tag color="blue">{localProposals.length}</Tag>}
         </Space>
@@ -193,7 +195,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
         : localProposals.length === 0
         ? (
           <Empty
-            image={<Sparkles size={48} style={{ color: "#d9d9d9" }} />}
+            image={<Sparkles size={48} style={{ color: token.colorTextQuaternary }} />}
             description={
               <Text type="secondary">
                 {t(

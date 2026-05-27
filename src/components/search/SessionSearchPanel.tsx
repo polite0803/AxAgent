@@ -1,6 +1,20 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { SavedFilter, SearchResult, useSearchStore } from "@/stores/feature/searchStore";
-import { Button, Card, Checkbox, Empty, Input, List, Modal, Popconfirm, Select, Space, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Empty,
+  Input,
+  List,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
 import { Clock, FileText, Filter, History, Regex, Search as SearchIcon, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,6 +33,7 @@ export function SessionSearchPanel({
   onSelectResult,
 }: SessionSearchPanelProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const {
     query,
     results,
@@ -121,7 +136,7 @@ export function SessionSearchPanel({
       style={{
         padding: "12px 16px",
         cursor: "pointer",
-        borderLeft: result.score > 2 ? "3px solid #a6e3a1" : "none",
+        borderLeft: result.score > 2 ? `3px solid ${token.colorSuccess}` : "none",
       }}
       onClick={() => onSelectResult?.(result)}
     >
@@ -389,11 +404,12 @@ function Alert({
   message: string;
   style?: React.CSSProperties;
 }) {
+  const { token } = theme.useToken();
   const colors = {
-    error: { bg: "#f38ba820", border: "#f38ba8" },
-    info: { bg: "#89b4fa20", border: "#89b4fa" },
-    success: { bg: "#a6e3a120", border: "#a6e3a1" },
-    warning: { bg: "#f9e2af20", border: "#f9e2af" },
+    error: { bg: token.colorErrorBg, border: token.colorError },
+    info: { bg: token.colorPrimaryBg, border: token.colorPrimary },
+    success: { bg: token.colorSuccessBg, border: token.colorSuccess },
+    warning: { bg: token.colorWarningBg, border: token.colorWarning },
   };
 
   return (

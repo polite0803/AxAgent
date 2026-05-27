@@ -106,16 +106,18 @@ function poolItemToEvent(item: AgentPoolItem): TimelineEvent {
 
 // ── Status colors and icons ──────────────────────────────────────────────
 
-const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
-  pending: { color: "#d9d9d9", icon: <Clock size={12} /> },
-  running: {
-    color: "#1890ff",
-    icon: <SyncOutlined spin style={{ fontSize: 12 }} />,
-  },
-  completed: { color: "#52c41a", icon: <CheckCircle2 size={12} /> },
-  failed: { color: "#ff4d4f", icon: <AlertTriangle size={12} /> },
-  cancelled: { color: "#8c8c8c", icon: <AlertTriangle size={12} /> },
-};
+function getStatusConfig(token: Record<string, any>) {
+  return {
+    pending: { color: token.colorTextQuaternary, icon: <Clock size={12} /> },
+    running: {
+      color: token.colorPrimary,
+      icon: <SyncOutlined spin style={{ fontSize: 12 }} />,
+    },
+    completed: { color: token.colorSuccess, icon: <CheckCircle2 size={12} /> },
+    failed: { color: token.colorError, icon: <AlertTriangle size={12} /> },
+    cancelled: { color: "#8c8c8c", icon: <AlertTriangle size={12} /> },
+  } as Record<string, { color: string; icon: React.ReactNode }>;
+}
 
 const typeIcons: Record<TimelineEventType, React.ReactNode> = {
   plan: <ListChecks size={14} />,
@@ -252,6 +254,7 @@ export const ExecutionTimeline = React.memo(function ExecutionTimeline({
     );
   }
 
+  const statusConfig = getStatusConfig(token);
   const timelineItems: TimelineItemProps[] = events.map((evt) => {
     const sc = statusConfig[evt.status] || statusConfig.pending;
     const tc = typeColors[evt.type];
@@ -262,7 +265,7 @@ export const ExecutionTimeline = React.memo(function ExecutionTimeline({
     return {
       key: evt.id,
       color: sc.color,
-      dot: evt.status === "running" ? <SyncOutlined spin style={{ fontSize: 14, color: "#1890ff" }} /> : (
+      dot: evt.status === "running" ? <SyncOutlined spin style={{ fontSize: 14, color: token.colorPrimary }} /> : (
         <span
           style={{
             display: "inline-flex",

@@ -1,3 +1,4 @@
+import { theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
@@ -18,7 +19,8 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#ff4d4f";
+  const { token } = theme.useToken();
+  const color = token.colorError;
 
   return (
     <div
@@ -31,8 +33,8 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -55,6 +57,8 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({
               fontSize: 12,
               color: color,
               fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
             }}
           >
             {t("workflow.endNode.title")}
@@ -65,9 +69,9 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
-              marginBottom: 6,
+              marginBottom: 4,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -80,10 +84,7 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({
             <div
               style={{
                 fontSize: 12,
-                color: "#888",
-                padding: "4px 6px",
-                background: "#252525",
-                borderRadius: 4,
+                color: token.colorTextTertiary,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -109,14 +110,14 @@ const EndNodeComponent: React.FC<NodeProps<EndNodeData>> = ({
       <div
         style={{
           position: "absolute",
-          top: -10,
+          bottom: -10,
           left: "50%",
           transform: "translateX(-50%)",
           width: 0,
           height: 0,
           borderLeft: "6px solid transparent",
           borderRight: "6px solid transparent",
-          borderBottom: `8px solid ${color}`,
+          borderTop: `8px solid ${color}`,
         }}
       />
     </div>

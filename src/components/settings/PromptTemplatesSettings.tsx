@@ -19,7 +19,7 @@ import {
   StarFilled,
   StarOutlined,
 } from "@ant-design/icons";
-import { Button, Empty, Form, Input, List, message, Modal, Select, Space, Spin, Tag, Typography } from "antd";
+import { Button, Empty, Form, Input, List, message, Modal, Select, Space, Spin, Tag, theme, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PromptImportModal } from "./PromptImportModal";
@@ -40,6 +40,7 @@ function extractCategories(templates: PromptTemplate[]): string[] {
 
 export function PromptTemplatesSettings() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [messageApi, contextHolder] = message.useMessage();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
@@ -301,7 +302,7 @@ export function PromptTemplatesSettings() {
                     key="fav"
                     type="text"
                     size="small"
-                    icon={tmpl.isFavorite ? <StarFilled style={{ color: "#faad14" }} /> : <StarOutlined />}
+                    icon={tmpl.isFavorite ? <StarFilled style={{ color: token.colorWarning }} /> : <StarOutlined />}
                     onClick={() => toggleFavorite(tmpl.id)}
                   />,
                   <Button

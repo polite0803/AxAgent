@@ -141,7 +141,7 @@ function McpServerList({
                 width: 8,
                 height: 8,
                 borderRadius: "50%",
-                background: s.enabled ? "#52c41a" : "#d9d9d9",
+                background: s.enabled ? token.colorSuccess : token.colorTextQuaternary,
                 flexShrink: 0,
               }}
               title={s.enabled ? t("mcp.enabled") : t("mcp.disabled")}
@@ -696,6 +696,7 @@ function McpServerDetail({
 
 export function McpServerSettings() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const {
     servers,
     loadServers,
@@ -1032,7 +1033,7 @@ export function McpServerSettings() {
                   />
                   {importError && (
                     <div
-                      style={{ color: "#d32029", fontSize: 12, marginTop: 4 }}
+                      style={{ color: token.colorError, fontSize: 12, marginTop: 4 }}
                     >
                       {importError}
                     </div>
@@ -1060,7 +1061,7 @@ export function McpServerSettings() {
                     : (
                       <div>
                         <div
-                          style={{ marginBottom: 8, fontSize: 12, color: "#666" }}
+                          style={{ marginBottom: 8, fontSize: 12, color: token.colorTextTertiary }}
                         >
                           {t("settings.mcpServers.discoveredCount", {
                             count: discoveredServers.length,
@@ -1074,16 +1075,16 @@ export function McpServerSettings() {
                               justifyContent: "space-between",
                               alignItems: "center",
                               padding: "8px 0",
-                              borderBottom: "1px solid #f0f0f0",
+                              borderBottom: `1px solid ${token.colorBorderSecondary}`,
                             }}
                           >
                             <div>
                               <div style={{ fontWeight: 500 }}>{s.name}</div>
-                              <div style={{ fontSize: 12, color: "#666" }}>
+                              <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
                                 {s.packageName}
                               </div>
                               {s.description && (
-                                <div style={{ fontSize: 12, color: "#999" }}>
+                                <div style={{ fontSize: 12, color: token.colorTextQuaternary }}>
                                   {s.description}
                                 </div>
                               )}

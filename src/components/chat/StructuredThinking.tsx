@@ -1,5 +1,6 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { theme } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import { Brain, CheckCircle2, ChevronDown, ChevronRight, ListChecks, Play, Search } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -256,19 +257,21 @@ const phaseIcons: Record<ThinkingPhase, React.ReactNode> = {
   verification: <CheckCircle2 size={14} />,
 };
 
-const phaseColors: Record<
+function getPhaseColors(token: GlobalToken): Record<
   ThinkingPhase,
   { bg: string; border: string; text: string }
-> = {
-  analysis: { bg: "rgba(24,144,255,0.06)", border: "#1890ff", text: "#1890ff" },
-  planning: { bg: "rgba(250,173,20,0.06)", border: "#faad14", text: "#d48806" },
-  execution: { bg: "rgba(82,196,26,0.06)", border: "#52c41a", text: "#389e0d" },
-  verification: {
-    bg: "rgba(114,46,209,0.06)",
-    border: "#722ed1",
-    text: "#722ed1",
-  },
-};
+> {
+  return {
+    analysis: { bg: token.colorPrimaryBg, border: token.colorPrimary, text: token.colorPrimary },
+    planning: { bg: token.colorWarningBg, border: token.colorWarning, text: token.colorWarning },
+    execution: { bg: token.colorSuccessBg, border: token.colorSuccess, text: token.colorSuccess },
+    verification: {
+      bg: "rgba(114,46,209,0.06)",
+      border: "#722ed1",
+      text: "#722ed1",
+    },
+  };
+}
 
 // ── Component ────────────────────────────────────────────────────────────
 
@@ -382,7 +385,7 @@ export const StructuredThinking = React.memo(function StructuredThinking({
       {expanded && (
         <div style={{ padding: "8px 12px" }}>
           {blocks.map((block, idx) => {
-            const colors = phaseColors[block.phase];
+            const colors = getPhaseColors(token)[block.phase];
             const isBlockExpanded = expandedBlocks.has(idx) || blocks.length === 1;
             return (
               <div

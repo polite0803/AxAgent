@@ -1,4 +1,4 @@
-import { Input, Select, Switch } from "antd";
+import { Input, Select, Switch, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { TriggerNode, TriggerType, WorkflowNode } from "../../types";
@@ -22,13 +22,14 @@ function TriggerConfig({
   handleConfigChange: (key: string, value: unknown) => void;
 }) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   switch (triggerConfig.type) {
     case "schedule":
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <label style={{ color: "#666", fontSize: 12 }}>
+            <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.cronExpression")}
             </label>
             <Input
@@ -40,7 +41,7 @@ function TriggerConfig({
             />
           </div>
           <div>
-            <label style={{ color: "#666", fontSize: 12 }}>
+            <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.timezone")}
             </label>
             <Select
@@ -67,7 +68,7 @@ function TriggerConfig({
               justifyContent: "space-between",
             }}
           >
-            <label style={{ color: "#666", fontSize: 12 }}>
+            <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.enabled")}
             </label>
             <Switch
@@ -83,7 +84,7 @@ function TriggerConfig({
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <label style={{ color: "#666", fontSize: 12 }}>
+            <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.webhookPath")}
             </label>
             <Input
@@ -95,7 +96,7 @@ function TriggerConfig({
             />
           </div>
           <div>
-            <label style={{ color: "#666", fontSize: 12 }}>
+            <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.httpMethod")}
             </label>
             <Select
@@ -112,7 +113,7 @@ function TriggerConfig({
             />
           </div>
           <div>
-            <label style={{ color: "#666", fontSize: 12 }}>
+            <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.authType")}
             </label>
             <Select
@@ -135,7 +136,7 @@ function TriggerConfig({
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div>
-            <label style={{ color: "#666", fontSize: 12 }}>
+            <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.eventType")}
             </label>
             <Input
@@ -150,7 +151,7 @@ function TriggerConfig({
 
     default:
       return (
-        <div style={{ color: "#666", fontSize: 12, padding: "8px 0" }}>
+        <div style={{ color: token.colorTextTertiary, fontSize: 12, padding: "8px 0" }}>
           {t("workflow.props.manualNoConfig")}
         </div>
       );
@@ -163,6 +164,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const triggerNode = node as TriggerNode;
   const triggerConfig = triggerNode.config || {
     type: "manual" as TriggerType,
@@ -209,7 +211,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -234,7 +236,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -248,7 +250,7 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({
       </div>
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

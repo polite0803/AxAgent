@@ -1,6 +1,6 @@
 import type { Note } from "@/types";
 import { PlusOutlined } from "@ant-design/icons";
-import { Button, Spin } from "antd";
+import { Button, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 
 interface WikiSidebarProps {
@@ -19,6 +19,7 @@ export function WikiSidebar({
   onCreateNote,
 }: WikiSidebarProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   return (
     <div
@@ -52,11 +53,22 @@ export function WikiSidebar({
                       onSelectNote(note.id);
                     }
                   }}
-                  className={`p-2 rounded cursor-pointer mb-1 transition-colors ${
-                    selectedNoteId === note.id
-                      ? "bg-black/10"
-                      : "hover:bg-black/5"
-                  }`}
+                  className={`p-2 rounded cursor-pointer mb-1 transition-colors`}
+                  style={{
+                    backgroundColor: selectedNoteId === note.id
+                      ? token.colorFillContent
+                      : undefined,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedNoteId !== note.id) {
+                      e.currentTarget.style.backgroundColor = token.colorFillQuaternary;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedNoteId !== note.id) {
+                      e.currentTarget.style.backgroundColor = "";
+                    }
+                  }}
                 >
                   <div className="font-medium text-sm truncate">{note.title}</div>
                   <div
@@ -67,12 +79,18 @@ export function WikiSidebar({
                   </div>
                   <div className="flex gap-1 mt-1">
                     {note.author === "llm" && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600">
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded"
+                        style={{ backgroundColor: token.colorPrimaryBg, color: token.colorPrimary }}
+                      >
                         LLM
                       </span>
                     )}
                     {note.pageType && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-600">
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded"
+                        style={{ backgroundColor: token.colorSuccessBg, color: token.colorSuccess }}
+                      >
                         {note.pageType}
                       </span>
                     )}

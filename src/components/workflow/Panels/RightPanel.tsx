@@ -1,5 +1,5 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Divider, Input, message, Select, Tabs } from "antd";
+import { Button, Divider, Input, message, Select, Tabs, theme } from "antd";
 import { Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -27,10 +27,6 @@ interface RightPanelProps {
   selectedEdge: WorkflowEdge | null;
 }
 
-/**
- * Extracted component for rendering the property panel based on node type.
- * Fixes react-doctor/no-render-in-render by moving renderPropertyPanel() out of renderNodeProperties.
- */
 function NodePropertyPanel({
   selectedNode,
   onUpdate,
@@ -165,17 +161,13 @@ function NodePropertyPanel({
       );
     default:
       return (
-        <div style={{ color: "#666", textAlign: "center", padding: 20 }}>
+        <div style={{ color: "inherit", textAlign: "center", padding: 20, opacity: 0.45 }}>
           {t("workflow.rightPanel.unsupportedNodeType")}
         </div>
       );
   }
 }
 
-/**
- * Extracted component for rendering template settings.
- * Fixes react-doctor/no-render-in-render by moving renderTemplateSettings() out of RightPanel.
- */
 function TemplateSettings({
   currentTemplate,
 }: {
@@ -189,6 +181,7 @@ function TemplateSettings({
   } | null;
 }) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   if (!currentTemplate) {
     return null;
@@ -200,7 +193,7 @@ function TemplateSettings({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -221,7 +214,7 @@ function TemplateSettings({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -244,7 +237,7 @@ function TemplateSettings({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -270,13 +263,13 @@ function TemplateSettings({
         />
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div>
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -307,7 +300,6 @@ function TemplateSettings({
         />
       </div>
 
-      {/* Input Schema 编辑器 */}
       <div>
         <div
           style={{
@@ -317,7 +309,7 @@ function TemplateSettings({
             marginBottom: 4,
           }}
         >
-          <label style={{ color: "#999", fontSize: 12 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.rightPanel.inputSchema")}
           </label>
           <Button
@@ -358,8 +350,8 @@ function TemplateSettings({
           <pre
             style={{
               fontSize: 10,
-              color: "#888",
-              background: "#1a1a2e",
+              color: token.colorTextTertiary,
+              background: token.colorBgContainer,
               padding: 8,
               borderRadius: 4,
               maxHeight: 120,
@@ -373,7 +365,6 @@ function TemplateSettings({
         )}
       </div>
 
-      {/* Output Schema 编辑器 */}
       <div>
         <div
           style={{
@@ -383,7 +374,7 @@ function TemplateSettings({
             marginBottom: 4,
           }}
         >
-          <label style={{ color: "#999", fontSize: 12 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.rightPanel.outputSchema")}
           </label>
           <Button
@@ -424,8 +415,8 @@ function TemplateSettings({
           <pre
             style={{
               fontSize: 10,
-              color: "#888",
-              background: "#1a1a2e",
+              color: token.colorTextTertiary,
+              background: token.colorBgContainer,
               padding: 8,
               borderRadius: 4,
               maxHeight: 120,
@@ -445,17 +436,16 @@ function TemplateSettings({
 export const RightPanel: React.FC<RightPanelProps> = React.memo(
   ({ selectedNodeId, selectedEdge }) => {
     const { t } = useTranslation();
+    const { token } = theme.useToken();
     const deleteNode = useWorkflowEditorStore((state) => state.deleteNode);
     const deleteEdge = useWorkflowEditorStore((state) => state.deleteEdge);
     const updateNode = useWorkflowEditorStore((state) => state.updateNode);
     const currentTemplate = useWorkflowEditorStore(
       (state) => state.currentTemplate,
     );
-    // 从 store 按 ID 查找节点（避免父组件 useMemo 产生的引用抖动）
     const selectedNode = useWorkflowEditorStore(
       (state) => (selectedNodeId ? state.nodes.find((n) => n.id === selectedNodeId) ?? null : null),
     );
-    // Edge label 本地状态（debounce：仅 onBlur 写 store）
     const [localEdgeLabel, setLocalEdgeLabel] = React.useState("");
     React.useEffect(() => {
       setLocalEdgeLabel(selectedEdge?.label || "");
@@ -476,7 +466,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
     const renderNodeProperties = () => {
       if (!selectedNode) {
         return (
-          <div style={{ padding: 20, textAlign: "center", color: "#666" }}>
+          <div style={{ padding: 20, textAlign: "center", color: token.colorTextTertiary }}>
             {t("workflow.rightPanel.selectNodeToEdit")}
           </div>
         );
@@ -484,7 +474,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
 
       const nodeTypeInfo = NODE_TYPE_MAP[selectedNode.type] || {
         labelKey: "",
-        color: "#999",
+        color: token.colorTextTertiary,
       };
 
       return (
@@ -499,7 +489,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
             >
               <span
                 style={{
-                  color: "#999",
+                  color: token.colorTextTertiary,
                   fontSize: 12,
                   textTransform: "uppercase",
                 }}
@@ -523,7 +513,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
             </div>
           </div>
 
-          <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+          <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
           <NodePropertyPanel
             selectedNode={selectedNode}
@@ -537,7 +527,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
     const renderEdgeProperties = () => {
       if (!selectedEdge) {
         return (
-          <div style={{ padding: 20, textAlign: "center", color: "#666" }}>
+          <div style={{ padding: 20, textAlign: "center", color: token.colorTextTertiary }}>
             {t("workflow.rightPanel.selectEdgeToEdit")}
           </div>
         );
@@ -549,7 +539,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 4,
               }}
@@ -601,7 +591,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 4,
               }}
@@ -624,7 +614,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
             />
           </div>
 
-          <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+          <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
           <Button
             type="text"
@@ -643,8 +633,8 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
       <div
         style={{
           width: 320,
-          background: "#252525",
-          borderLeft: "1px solid #333",
+          background: token.colorBgContainer,
+          borderLeft: `1px solid ${token.colorBorderSecondary}`,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -675,7 +665,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
                         style={{
                           padding: 20,
                           textAlign: "center",
-                          color: "#666",
+                          color: token.colorTextTertiary,
                         }}
                       >
                         {t("workflow.rightPanel.selectNodeOrEdge")}

@@ -49,46 +49,48 @@ interface ContextGraphEdge {
 
 // ── Custom React Flow Node ───────────────────────────────────────────────
 
-const nodeTypeStyles: Record<
+function getNodeTypeStyles(token: GlobalToken): Record<
   ContextNodeType,
   { icon: React.ReactNode; bg: string; border: string }
-> = {
-  conversation: {
-    icon: <GitBranch size={12} />,
-    bg: "rgba(24,144,255,0.08)",
-    border: "#1890ff",
-  },
-  model: {
-    icon: <Zap size={12} />,
-    bg: "rgba(114,46,209,0.08)",
-    border: "#722ed1",
-  },
-  knowledge: {
-    icon: <BookOpen size={12} />,
-    bg: "rgba(82,196,26,0.08)",
-    border: "#52c41a",
-  },
-  memory: {
-    icon: <Brain size={12} />,
-    bg: "rgba(250,140,22,0.08)",
-    border: "#fa8c16",
-  },
-  mcp: {
-    icon: <Wrench size={12} />,
-    bg: "rgba(19,194,194,0.08)",
-    border: "#13c2c2",
-  },
-  search: {
-    icon: <Search size={12} />,
-    bg: "rgba(47,84,235,0.08)",
-    border: "#2f54eb",
-  },
-  skill: {
-    icon: <Puzzle size={12} />,
-    bg: "rgba(235,47,150,0.08)",
-    border: "#eb2f96",
-  },
-};
+> {
+  return {
+    conversation: {
+      icon: <GitBranch size={12} />,
+      bg: token.colorPrimaryBg,
+      border: token.colorPrimary,
+    },
+    model: {
+      icon: <Zap size={12} />,
+      bg: "rgba(114,46,209,0.08)",
+      border: "#722ed1",
+    },
+    knowledge: {
+      icon: <BookOpen size={12} />,
+      bg: token.colorSuccessBg,
+      border: token.colorSuccess,
+    },
+    memory: {
+      icon: <Brain size={12} />,
+      bg: token.colorWarningBg,
+      border: token.colorWarning,
+    },
+    mcp: {
+      icon: <Wrench size={12} />,
+      bg: "rgba(19,194,194,0.08)",
+      border: "#13c2c2",
+    },
+    search: {
+      icon: <Search size={12} />,
+      bg: token.colorPrimaryBg,
+      border: token.colorPrimary,
+    },
+    skill: {
+      icon: <Puzzle size={12} />,
+      bg: "rgba(235,47,150,0.08)",
+      border: "#eb2f96",
+    },
+  };
+}
 
 function ContextNode({
   data,
@@ -96,6 +98,7 @@ function ContextNode({
   data: { label: string; detail?: string; nodeType: ContextNodeType };
 }) {
   const { token } = theme.useToken();
+  const nodeTypeStyles = getNodeTypeStyles(token);
   const style = nodeTypeStyles[data.nodeType] || nodeTypeStyles.conversation;
 
   return (
@@ -229,6 +232,7 @@ export const ContextGraphPanel = React.memo(function ContextGraphPanel({
 }: ContextGraphPanelProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const nodeTypeStyles = getNodeTypeStyles(token);
 
   const [collapsed, setCollapsed] = useState(true);
   // 选中的图例类型（用于筛选图谱展示），null = 全部显示
@@ -715,6 +719,7 @@ function GraphCanvas({
   onEdgesChange,
   token,
 }: GraphCanvasProps) {
+  const nodeTypeStyles = getNodeTypeStyles(token);
   return (
     <ReactFlow
       nodes={nodes}

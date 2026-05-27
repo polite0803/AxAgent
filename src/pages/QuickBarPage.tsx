@@ -85,7 +85,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "ai",
     needsBody: true,
     needsModel: true,
-    color: "#1677ff",
+    color: "var(--color-primary, #1677ff)",
   },
   {
     key: "agent",
@@ -95,7 +95,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "ai",
     needsBody: true,
     needsModel: true,
-    color: "#722ed1",
+    color: "var(--purple, #722ed1)",
   },
   {
     key: "new",
@@ -105,7 +105,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "ai",
     needsBody: false,
     needsModel: false,
-    color: "#1677ff",
+    color: "var(--color-primary, #1677ff)",
   },
   {
     key: "continue",
@@ -115,7 +115,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "ai",
     needsBody: false,
     needsModel: false,
-    color: "#1677ff",
+    color: "var(--color-primary, #1677ff)",
   },
   {
     key: "search",
@@ -125,7 +125,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "knowledge",
     needsBody: true,
     needsModel: false,
-    color: "#52c41a",
+    color: "var(--color-status-success, #52c41a)",
   },
   {
     key: "wiki",
@@ -135,7 +135,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "knowledge",
     needsBody: true,
     needsModel: false,
-    color: "#52c41a",
+    color: "var(--color-status-success, #52c41a)",
   },
   {
     key: "memory",
@@ -145,7 +145,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "knowledge",
     needsBody: true,
     needsModel: false,
-    color: "#52c41a",
+    color: "var(--color-status-success, #52c41a)",
   },
   {
     key: "files",
@@ -155,7 +155,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "knowledge",
     needsBody: true,
     needsModel: false,
-    color: "#52c41a",
+    color: "var(--color-status-success, #52c41a)",
   },
   {
     key: "url",
@@ -165,7 +165,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "web",
     needsBody: true,
     needsModel: true,
-    color: "#fa8c16",
+    color: "var(--color-status-warning, #fa8c16)",
   },
   {
     key: "summarize",
@@ -175,7 +175,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "web",
     needsBody: true,
     needsModel: true,
-    color: "#fa8c16",
+    color: "var(--color-status-warning, #fa8c16)",
   },
   {
     key: "translate",
@@ -185,7 +185,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "web",
     needsBody: true,
     needsModel: true,
-    color: "#fa8c16",
+    color: "var(--color-status-warning, #fa8c16)",
   },
   {
     key: "calc",
@@ -195,7 +195,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "tools",
     needsBody: true,
     needsModel: false,
-    color: "#eb2f96",
+    color: "var(--magenta, #eb2f96)",
   },
   {
     key: "code",
@@ -205,7 +205,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "tools",
     needsBody: true,
     needsModel: false,
-    color: "#eb2f96",
+    color: "var(--magenta, #eb2f96)",
   },
   {
     key: "model",
@@ -215,7 +215,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "tools",
     needsBody: false,
     needsModel: false,
-    color: "#eb2f96",
+    color: "var(--magenta, #eb2f96)",
   },
   {
     key: "settings",
@@ -225,7 +225,7 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "system",
     needsBody: false,
     needsModel: false,
-    color: "#8c8c8c",
+    color: "var(--muted, #8c8c8c)",
   },
   {
     key: "gateway",
@@ -235,23 +235,23 @@ const COMMAND_DEFS: (Omit<CommandDef, "labelKey" | "descKey"> & {
     category: "system",
     needsBody: false,
     needsModel: false,
-    color: "#8c8c8c",
+    color: "var(--muted, #8c8c8c)",
   },
 ];
 
 const CATEGORY_GROUPS: CategoryDef[] = [
-  { key: "ai", labelKey: "quickbar.category.ai", borderColor: "#1677ff" },
+  { key: "ai", labelKey: "quickbar.category.ai", borderColor: "var(--color-primary, #1677ff)" },
   {
     key: "knowledge",
     labelKey: "quickbar.category.knowledge",
-    borderColor: "#52c41a",
+    borderColor: "var(--color-status-success, #52c41a)",
   },
-  { key: "web", labelKey: "quickbar.category.web", borderColor: "#fa8c16" },
-  { key: "tools", labelKey: "quickbar.category.tools", borderColor: "#eb2f96" },
+  { key: "web", labelKey: "quickbar.category.web", borderColor: "var(--color-status-warning, #fa8c16)" },
+  { key: "tools", labelKey: "quickbar.category.tools", borderColor: "var(--magenta, #eb2f96)" },
   {
     key: "system",
     labelKey: "quickbar.category.system",
-    borderColor: "#8c8c8c",
+    borderColor: "var(--muted, #8c8c8c)",
   },
 ];
 
@@ -396,7 +396,7 @@ function TileGrid({
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = cmd.color;
-                    e.currentTarget.style.backgroundColor = `${cmd.color}10`;
+                    e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${cmd.color} 10%, transparent)`;
                     e.currentTarget.style.transform = "translateY(-1px)";
                   }}
                   onMouseLeave={(e) => {
@@ -531,7 +531,7 @@ function CommandMode({
               fontSize: 12,
               fontWeight: 600,
               padding: "1px 6px",
-              backgroundColor: `${activeCmdDef.color}15`,
+              backgroundColor: `color-mix(in srgb, ${activeCmdDef.color} 15%, transparent)`,
               color: activeCmdDef.color,
               borderRadius: 4,
               flexShrink: 0,

@@ -1,5 +1,18 @@
 import { invoke } from "@/lib/invoke";
-import { Alert, Button, Descriptions, Divider, Input, message, Modal, Select, Tabs, Typography, Upload } from "antd";
+import {
+  Alert,
+  Button,
+  Descriptions,
+  Divider,
+  Input,
+  message,
+  Modal,
+  Select,
+  Tabs,
+  theme,
+  Typography,
+  Upload,
+} from "antd";
 import type { UploadProps } from "antd";
 import { Check, Copy, Download, FolderOpen, Upload as UploadIcon } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -56,6 +69,7 @@ function BatchImportN8n({
   onImportComplete?: () => void;
 }) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [importing, setImporting] = useState(false);
   const [progressText, setProgressText] = useState<string>("");
   const [result, setResult] = useState<
@@ -121,7 +135,7 @@ function BatchImportN8n({
         {t("workflow.importExport.selectN8nDir")}
       </Button>
       {importing && progressText && (
-        <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>
+        <div style={{ marginTop: 8, color: token.colorTextTertiary, fontSize: 12 }}>
           {progressText}
         </div>
       )}
@@ -149,7 +163,7 @@ function BatchImportN8n({
                       <div
                         key={`${e.slice(0, 20)}-${i}`}
                         style={{
-                          color: "#595959",
+                          color: token.colorTextSecondary,
                           fontSize: 12,
                           marginBottom: 2,
                         }}
@@ -185,6 +199,7 @@ function BatchImportFolder({
   onImportComplete?: () => void;
 }) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [importing, setImporting] = useState(false);
   const [progressText, setProgressText] = useState<string>("");
   const [result, setResult] = useState<
@@ -245,7 +260,7 @@ function BatchImportFolder({
         {t("workflow.importExport.selectFolder")}
       </Button>
       {importing && progressText && (
-        <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>
+        <div style={{ marginTop: 8, color: token.colorTextTertiary, fontSize: 12 }}>
           {progressText}
         </div>
       )}
@@ -270,7 +285,7 @@ function BatchImportFolder({
                     <div
                       key={`${e.slice(0, 20)}-${i}`}
                       style={{
-                        color: "#595959",
+                        color: token.colorTextSecondary,
                         fontSize: 12,
                         marginBottom: 2,
                       }}
@@ -279,7 +294,7 @@ function BatchImportFolder({
                     </div>
                   ))}
                   {result.errors.length > 10 && (
-                    <div style={{ color: "#999", fontSize: 12 }}>
+                    <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                       {t("workflow.importExport.moreErrors", {
                         count: result.errors.length - 10,
                       })}
@@ -317,6 +332,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   templates,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [activeTab, setActiveTab] = useState("export");
   const [exportId, setExportId] = useState("");
   const [exportResult, setExportResult] = useState<string | null>(null);
@@ -446,7 +462,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 8,
               }}
@@ -489,7 +505,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                 <label
                   style={{
                     display: "block",
-                    color: "#999",
+                    color: token.colorTextTertiary,
                     fontSize: 12,
                     marginBottom: 8,
                   }}
@@ -505,7 +521,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                     style={{
                       fontFamily: "Monaco, Consolas, monospace",
                       fontSize: 12,
-                      background: "#1a1a1a",
+                      background: token.colorBgElevated,
                     }}
                   />
                   <Button
@@ -534,7 +550,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 8,
               }}
@@ -547,10 +563,10 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               showUploadList={false}
               style={{ marginBottom: 16 }}
             >
-              <p style={{ color: "#666", margin: "16px 0" }}>
+              <p style={{ color: token.colorTextTertiary, margin: "16px 0" }}>
                 <UploadIcon
                   size={24}
-                  color="#666"
+                  color={token.colorTextTertiary}
                   style={{ marginBottom: 8 }}
                 />
                 <br />
@@ -565,7 +581,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 8,
               }}
@@ -581,7 +597,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               style={{
                 fontFamily: "Monaco, Consolas, monospace",
                 fontSize: 12,
-                background: "#1a1a1a",
+                background: token.colorBgElevated,
               }}
             />
           </div>
@@ -640,7 +656,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
             />
           )}
 
-          <p style={{ color: "#666", fontSize: 12, marginTop: 12 }}>
+          <p style={{ color: token.colorTextTertiary, fontSize: 12, marginTop: 12 }}>
             {t("workflow.importExport.importHint")}
           </p>
 

@@ -1,5 +1,5 @@
 import { useLocalToolStore } from "@/stores";
-import { Button, Divider, Input, Select } from "antd";
+import { Button, Divider, Input, Select, theme } from "antd";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ToolNode, WorkflowNode } from "../../types";
@@ -17,6 +17,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const toolNode = node as ToolNode;
   const config = toolNode.config || {
     tool_name: "",
@@ -93,7 +94,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -120,7 +121,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
             marginBottom: 4,
           }}
         >
-          <label style={{ color: "#999", fontSize: 12 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.props.inputMapping")}
           </label>
           <Button type="link" size="small" onClick={handleAddInputMapping}>
@@ -141,7 +142,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
                 disabled
                 style={{ width: 80, fontSize: 12 }}
               />
-              <span style={{ color: "#666", fontSize: 12 }}>←</span>
+              <span style={{ color: token.colorTextTertiary, fontSize: 12 }}>←</span>
               <Input
                 id="tool-property-panel-input-111"
                 value={String(value)}
@@ -164,7 +165,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
           {Object.keys(config.input_mapping || {}).length === 0 && (
             <div
               style={{
-                color: "#666",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 textAlign: "center",
                 padding: 8,
@@ -180,7 +181,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -195,10 +196,10 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
         />
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

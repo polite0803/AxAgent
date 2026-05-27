@@ -126,16 +126,16 @@ function formatDuration(ms: number): string {
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
-function getStatusIcon(status: NodeExecution["status"]) {
+function getStatusIcon(status: NodeExecution["status"], token: ReturnType<typeof theme.useToken>["token"]) {
   switch (status) {
     case "completed":
-      return <CheckCircleOutlined className="text-green-500" />;
+      return <CheckCircleOutlined style={{ color: token.colorSuccess }} />;
     case "failed":
-      return <CloseCircleOutlined className="text-red-500" />;
+      return <CloseCircleOutlined style={{ color: token.colorError }} />;
     case "running":
-      return <LoadingOutlined className="text-blue-500" />;
+      return <LoadingOutlined style={{ color: token.colorPrimary }} />;
     case "skipped":
-      return <PauseCircleOutlined className="text-zinc-400" />;
+      return <PauseCircleOutlined style={{ color: token.colorTextQuaternary }} />;
   }
 }
 
@@ -185,7 +185,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
       key: "nodeName",
       render: (name: string, record) => (
         <Space>
-          {getStatusIcon(record.status)}
+          {getStatusIcon(record.status, token)}
           <Text strong={selectedNode === record.nodeId}>{name}</Text>
           <Tag>{record.nodeType}</Tag>
         </Space>
@@ -285,7 +285,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
               <Statistic
                 title={t("workflow.debug.successful")}
                 value={metrics.successfulNodes}
-                valueStyle={{ color: "#3f8600" }}
+                valueStyle={{ color: token.colorSuccess }}
                 prefix={<CheckCircleOutlined />}
               />
             </Card>
@@ -295,7 +295,7 @@ export function DebugPanel({ trace }: DebugPanelProps) {
               <Statistic
                 title={t("workflow.debug.failed")}
                 value={metrics.failedNodes}
-                valueStyle={{ color: "#cf1322" }}
+                valueStyle={{ color: token.colorError }}
                 prefix={<CloseCircleOutlined />}
               />
             </Card>
@@ -346,7 +346,10 @@ export function DebugPanel({ trace }: DebugPanelProps) {
                     <Text type="secondary" className="text-xs">
                       {new Date(snapshot.timestamp).toLocaleTimeString()}
                     </Text>
-                    <pre className="text-xs bg-zinc-50 p-2 rounded mt-1 overflow-x-auto">
+                    <pre
+                      className="text-xs p-2 rounded mt-1 overflow-x-auto"
+                      style={{ background: token.colorFillQuaternary }}
+                    >
                       {JSON.stringify(snapshot.variables, null, 2)}
                     </pre>
                   </div>
@@ -431,14 +434,14 @@ export function DebugPanel({ trace }: DebugPanelProps) {
                   )}
                   <div>
                     <Text type="secondary">{t("workflow.debug.labelInput")}:</Text>
-                    <pre className="text-xs bg-zinc-50 p-2 rounded mt-1">
+                    <pre className="text-xs p-2 rounded mt-1" style={{ background: token.colorFillQuaternary }}>
                       {JSON.stringify(node.input, null, 2)}
                     </pre>
                   </div>
                   {node.output && (
                     <div>
                       <Text type="secondary">{t("workflow.debug.labelOutput")}:</Text>
-                      <pre className="text-xs bg-zinc-50 p-2 rounded mt-1">
+                      <pre className="text-xs p-2 rounded mt-1" style={{ background: token.colorFillQuaternary }}>
                         {JSON.stringify(node.output, null, 2)}
                       </pre>
                     </div>

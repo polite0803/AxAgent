@@ -4,7 +4,7 @@ import { invoke } from "@/lib/invoke";
 import { useAgentProfileStore, useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { CreateAgentProfileInput } from "@/types";
-import { Button, Divider, Input, InputNumber, message, Modal, Select, Tag } from "antd";
+import { Button, Divider, Input, InputNumber, message, Modal, Select, Tag, theme } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AgentNode, OutputMode, ToolDef, WorkflowNode } from "../../types";
@@ -27,6 +27,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
     system_prompt: "",
@@ -294,7 +295,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -323,7 +324,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -426,7 +427,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -449,7 +450,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -470,7 +471,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -492,7 +493,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -516,7 +517,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -540,7 +541,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -556,13 +557,13 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         />
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div>
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -618,7 +619,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                   onClick={() => toggleToolExpand(toolDef.name)}
                   style={{
                     padding: "6px 10px",
-                    background: "#1a1a2e",
+                    background: token.colorBgContainer,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
@@ -626,19 +627,19 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                     userSelect: "none",
                   }}
                 >
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#ccc" }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: token.colorTextQuaternary }}>
                     🛠 {toolDef.name}
                   </span>
-                  <span style={{ fontSize: 10, color: "#666" }}>
+                  <span style={{ fontSize: 10, color: token.colorTextTertiary }}>
                     {expanded ? "▼" : "▶"}
                   </span>
                 </div>
                 {expanded && (
-                  <div style={{ padding: "8px 10px", background: "#0d0d1a" }}>
+                  <div style={{ padding: "8px 10px", background: token.colorBgContainer }}>
                     <label
                       style={{
                         display: "block",
-                        color: "#999",
+                        color: token.colorTextTertiary,
                         fontSize: 11,
                         marginBottom: 2,
                       }}
@@ -656,7 +657,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                     <label
                       style={{
                         display: "block",
-                        color: "#999",
+                        color: token.colorTextTertiary,
                         fontSize: 11,
                         marginBottom: 2,
                       }}
@@ -703,7 +704,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 4,
               }}
@@ -727,7 +728,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                 return { value: name, label: name };
               })}
             />
-            <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: token.colorTextTertiary, marginTop: 2 }}>
               {t("workflow.props.exposedToolsHint")}
             </div>
           </div>
@@ -736,7 +737,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 4,
               }}
@@ -753,7 +754,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
               size="small"
               style={{ width: "100%" }}
             />
-            <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: token.colorTextTertiary, marginTop: 2 }}>
               {t("workflow.props.maxToolRoundsHint")}
             </div>
           </div>
@@ -764,7 +765,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -785,7 +786,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       </div>
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

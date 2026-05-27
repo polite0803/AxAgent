@@ -240,13 +240,13 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                             {step.status === "completed"
                               ? (
                                 <CheckCircleFilled
-                                  style={{ color: "#52c41a", fontSize: 10 }}
+                                  style={{ color: token.colorSuccess, fontSize: 10 }}
                                 />
                               )
                               : step.status === "error"
                               ? (
                                 <CloseCircleFilled
-                                  style={{ color: "#ff4d4f", fontSize: 10 }}
+                                  style={{ color: token.colorError, fontSize: 10 }}
                                 />
                               )
                               : (

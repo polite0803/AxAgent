@@ -1,5 +1,5 @@
 import { useKnowledgeStore } from "@/stores";
-import { Divider, Input, InputNumber, Select } from "antd";
+import { Divider, Input, InputNumber, Select, theme } from "antd";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { VectorRetrieveNode, WorkflowNode } from "../../types";
@@ -15,6 +15,7 @@ export const VectorRetrievePropertyPanel: React.FC<
   VectorRetrievePropertyPanelProps
 > = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const vectorRetrieveNode = node as VectorRetrieveNode;
   const config = vectorRetrieveNode.config || {
     query: "",
@@ -47,7 +48,7 @@ export const VectorRetrievePropertyPanel: React.FC<
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -68,7 +69,7 @@ export const VectorRetrievePropertyPanel: React.FC<
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -92,7 +93,7 @@ export const VectorRetrievePropertyPanel: React.FC<
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -113,7 +114,7 @@ export const VectorRetrievePropertyPanel: React.FC<
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -144,7 +145,7 @@ export const VectorRetrievePropertyPanel: React.FC<
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -160,10 +161,10 @@ export const VectorRetrievePropertyPanel: React.FC<
         />
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

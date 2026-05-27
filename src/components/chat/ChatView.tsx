@@ -110,7 +110,10 @@ function ChatViewInner({
   const toggleArchive = useConversationStore((s) => s.toggleArchive);
   const loadOlderMessages = useConversationStore((s) => s.loadOlderMessages);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
-  const cacheStore = useCacheStore();
+  const cacheValid = useCacheStore((s) => s.cacheValid);
+  const hasPendingChanges = useCacheStore((s) => s.hasPendingChanges);
+  const tokensSaved = useCacheStore((s) => s.tokensSaved);
+  const cacheHits = useCacheStore((s) => s.cacheHits);
   const fetchCacheState = useCacheStore((s) => s.fetchCacheState);
 
   const activeConversation = conversations.find(
@@ -374,6 +377,7 @@ function ChatViewInner({
   const currentAgentStatus = useAgentStore((s) =>
     activeConversationId ? s.agentStatus[activeConversationId] : undefined
   );
+  const workflowMatchSuggestion = useAgentStore((s) => s.workflowMatchSuggestion);
 
   const bubbleListRef = useRef<any>(null);
   const messageAreaRef = useRef<HTMLDivElement | null>(null);
@@ -460,7 +464,7 @@ function ChatViewInner({
         key: "messages",
         labelKey: "chat.context.messages",
         tokens: tokenUsed,
-        color: "#1677ff",
+        color: token.colorPrimary,
       },
     ];
 
@@ -470,7 +474,7 @@ function ChatViewInner({
         key: "system_prompt",
         labelKey: "chat.context.systemPrompt",
         tokens: estimateTokens(systemPrompt),
-        color: "#52c41a",
+        color: token.colorSuccess,
       });
     }
 
@@ -480,7 +484,7 @@ function ChatViewInner({
         key: "knowledge",
         labelKey: "chat.context.knowledge",
         tokens: knowledgeCount * 500,
-        color: "#fa8c16",
+        color: "var(--orange, #fa8c16)",
       });
     }
 
@@ -490,7 +494,7 @@ function ChatViewInner({
         key: "memory",
         labelKey: "chat.context.memory",
         tokens: memoryCount * 200,
-        color: "#eb2f96",
+        color: "var(--magenta, #eb2f96)",
       });
     }
 
@@ -499,7 +503,7 @@ function ChatViewInner({
         key: "tools",
         labelKey: "chat.context.tools",
         tokens: actions.toolCount * 200,
-        color: "#722ed1",
+        color: "var(--purple, #722ed1)",
       });
     }
 
@@ -509,12 +513,12 @@ function ChatViewInner({
         key: "skills",
         labelKey: "chat.context.skills",
         tokens: skillCount * 300,
-        color: "#13c2c2",
+        color: "var(--cyan, #13c2c2)",
       });
     }
 
     return segments;
-  }, [tokenUsed, activeConversation, actions.toolCount]);
+  }, [tokenUsed, activeConversation, actions.toolCount, token.colorPrimary, token.colorSuccess]);
 
   return (
     <div className="ax-cyber-grid flex flex-col h-full min-h-0">
@@ -574,10 +578,10 @@ function ChatViewInner({
       <AgentStatsPanel />
 
       <CacheIndicator
-        cacheValid={cacheStore.cacheValid}
-        hasPendingChanges={cacheStore.hasPendingChanges}
-        tokensSaved={cacheStore.tokensSaved}
-        cacheHits={cacheStore.cacheHits}
+        cacheValid={cacheValid}
+        hasPendingChanges={hasPendingChanges}
+        tokensSaved={tokensSaved}
+        cacheHits={cacheHits}
       />
 
       <div
@@ -670,16 +674,17 @@ function ChatViewInner({
                   const roleFn = msgState.roles[item.role as keyof typeof msgState.roles];
                   if (!roleFn) { return null; }
                   const rendered = roleFn(item);
+                  const variantClass = rendered.variant ? `bubble-${rendered.variant}` : "";
                   return (
                     <div
                       key={item.key}
-                      className={rendered.className || `msg-row ${rendered.placement === "end" ? "user" : "assistant"}`}
+                      className={rendered.className ?? `msg-row ${rendered.placement === "end" ? "user" : "assistant"}`}
                       style={rendered.style}
                     >
                       {rendered.avatar && <div className="msg-avatar">{rendered.avatar}</div>}
                       <div className="msg-body">
                         {rendered.header && <div className="msg-header">{rendered.header}</div>}
-                        <div className="msg-content">
+                        <div className={`msg-content ${variantClass}`}>
                           {rendered.loading
                             ? <Spin />
                             : rendered.contentRender
@@ -705,36 +710,29 @@ function ChatViewInner({
                   }}
                 />
               )}
-              {(() => {
-                const suggestion = useAgentStore.getState().workflowMatchSuggestion;
-                if (
-                  suggestion
-                  && suggestion.conversationId === activeConversation?.id
-                  && activeConversation?.mode === "agent"
-                ) {
-                  return (
-                    <WorkflowSuggestionCard
-                      match={{
-                        templateId: suggestion.templateId,
-                        templateName: suggestion.templateName,
-                        similarity: suggestion.similarity,
-                      }}
-                      onSwitch={(templateId) => {
-                        void updateConversation(activeConversation.id, {
-                          session_type: "workflow",
-                          workflow_template_id: templateId,
-                        });
-                        fetchConversation();
-                        useAgentStore.getState().setWorkflowMatchSuggestion(null);
-                      }}
-                      onDismiss={() => {
-                        useAgentStore.getState().setWorkflowMatchSuggestion(null);
-                      }}
-                    />
-                  );
-                }
-                return null;
-              })()}
+              {workflowMatchSuggestion
+                && workflowMatchSuggestion.conversationId === activeConversation?.id
+                && activeConversation?.mode === "agent"
+                && (
+                  <WorkflowSuggestionCard
+                    match={{
+                      templateId: workflowMatchSuggestion.templateId,
+                      templateName: workflowMatchSuggestion.templateName,
+                      similarity: workflowMatchSuggestion.similarity,
+                    }}
+                    onSwitch={(templateId) => {
+                      void updateConversation(activeConversation.id, {
+                        session_type: "workflow",
+                        workflow_template_id: templateId,
+                      });
+                      fetchConversation();
+                      useAgentStore.getState().setWorkflowMatchSuggestion(null);
+                    }}
+                    onDismiss={() => {
+                      useAgentStore.getState().setWorkflowMatchSuggestion(null);
+                    }}
+                  />
+                )}
               <ChatScrollIndicator />
               <MinimapScrollProvider
                 scrollTo={scroll.minimapScrollTo}
@@ -765,22 +763,16 @@ function ChatViewInner({
       <ProactivePanelsSection context={buildChatContext()} />
 
       {activeConversation?.mode === "agent" && activeConversationId && (
-        <AgentProgressBar conversationId={activeConversationId} />
+        <div className="flex flex-col" style={{ gap: 2 }}>
+          <AgentProgressBar conversationId={activeConversationId} />
+          <WorkflowProgressPanel conversationId={activeConversationId} />
+          <PlanCardWrapper conversationId={activeConversationId} />
+          <QuickCommandBar />
+          {streaming && <SteerInput conversationId={activeConversationId} />}
+        </div>
       )}
 
-      {activeConversation?.mode === "agent" && activeConversationId && (
-        <WorkflowProgressPanel conversationId={activeConversationId} />
-      )}
-
-      {activeConversation?.mode === "agent" && activeConversationId && (
-        <PlanCardWrapper conversationId={activeConversationId} />
-      )}
-
-      {activeConversation?.mode === "agent" && <QuickCommandBar />}
-
-      {activeConversation?.mode === "agent"
-        && activeConversationId
-        && streaming && <SteerInput conversationId={activeConversationId} />}
+      {activeConversation?.mode !== "agent" && <QuickCommandBar />}
 
       <div className="relative">
         {scroll.showScrollToBottom && (

@@ -1,5 +1,9 @@
+import { theme } from "antd";
 import React from "react";
 import { EdgeLabelRenderer, type EdgeProps, getBezierPath } from "reactflow";
+
+const ORANGE_BASE = "#fa8c16";
+const PURPLE_BASE = "#722ed1";
 
 interface BaseEdgeData {
   edgeType: string;
@@ -17,6 +21,8 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
   selected,
   label,
 }) => {
+  const { token } = theme.useToken();
+
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -26,8 +32,26 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
     targetPosition,
   });
 
-  const edgeColor = selected ? "#1890ff" : "#555";
+  const edgeColor = selected ? token.colorPrimary : token.colorBorderSecondary;
   const isAnimated = data?.edgeType === "loopBack";
+
+  const getMarkerColor = (edgeType?: string): string => {
+    switch (edgeType) {
+      case "conditionTrue":
+        return token.colorSuccess;
+      case "conditionFalse":
+      case "error":
+        return token.colorError;
+      case "loopBack":
+        return `var(--orange, ${ORANGE_BASE})`;
+      case "parallelBranch":
+        return `var(--purple, ${PURPLE_BASE})`;
+      case "merge":
+        return token.colorPrimary;
+      default:
+        return edgeColor;
+    }
+  };
 
   return (
     <>
@@ -70,11 +94,11 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               fontSize: 12,
-              color: "#999",
-              background: "#1a1a1a",
+              color: token.colorTextTertiary,
+              background: token.colorBgElevated,
               padding: "2px 6px",
               borderRadius: 4,
-              border: "1px solid #333",
+              border: `1px solid ${token.colorBorderSecondary}`,
               pointerEvents: "all",
             }}
           >
@@ -92,7 +116,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={edgeColor} />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("default")} />
         </marker>
         <marker
           id="arrow-direct"
@@ -103,7 +127,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={edgeColor} />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("direct")} />
         </marker>
         <marker
           id="arrow-conditionTrue"
@@ -114,7 +138,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#52c41a" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("conditionTrue")} />
         </marker>
         <marker
           id="arrow-conditionFalse"
@@ -125,7 +149,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff4d4f" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("conditionFalse")} />
         </marker>
         <marker
           id="arrow-loopBack"
@@ -136,7 +160,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#fa8c16" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("loopBack")} />
         </marker>
         <marker
           id="arrow-error"
@@ -147,7 +171,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff4d4f" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("error")} />
         </marker>
         <marker
           id="arrow-parallelBranch"
@@ -158,7 +182,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#722ed1" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("parallelBranch")} />
         </marker>
         <marker
           id="arrow-merge"
@@ -169,7 +193,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#1890ff" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={getMarkerColor("merge")} />
         </marker>
       </defs>
     </>

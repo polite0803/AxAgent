@@ -66,8 +66,19 @@ export function useChatViewScroll({
     lastUserScrollIntentAtRef.current = Date.now();
   }, []);
 
+  const scrollToBottomImmediate = useCallback((behavior: ScrollBehavior = "auto") => {
+    const el = scrollBoxRef.current ?? bubbleListRef.current;
+    if (!el) { return; }
+    if (CHAT_SCROLL_IS_REVERSED) {
+      el.scrollTo({ top: 0, behavior });
+    } else {
+      el.scrollTo({ top: el.scrollHeight, behavior });
+    }
+  }, []);
+
   useLayoutEffect(() => {
-    scrollBoxRef.current = (bubbleListRef.current?.scrollBoxNativeElement as HTMLElement) ?? null;
+    const el = bubbleListRef.current;
+    scrollBoxRef.current = (el?.scrollBoxNativeElement as HTMLElement) ?? el ?? null;
     scrollContentRef.current = (scrollBoxRef.current?.firstElementChild as HTMLElement | null) ?? null;
   });
 
@@ -209,7 +220,7 @@ export function useChatViewScroll({
           hadRecentUserScrollIntent,
         )
       ) {
-        bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "auto" });
+        scrollToBottomImmediate("auto");
         setShowScrollToBottom(false);
         return;
       }
@@ -234,10 +245,10 @@ export function useChatViewScroll({
   );
 
   const handleScrollToBottom = useCallback(() => {
-    bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "smooth" });
+    scrollToBottomImmediate("smooth");
     setShowScrollToBottom(false);
     setStickToBottom(true);
-  }, []);
+  }, [scrollToBottomImmediate]);
 
   useEffect(() => {
     const scrollBox = scrollBoxRef.current;
@@ -279,7 +290,7 @@ export function useChatViewScroll({
           stickToBottomRef.current,
         )
       ) {
-        bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "auto" });
+        scrollToBottomImmediate("auto");
         setShowScrollToBottom(false);
         return;
       }
@@ -315,7 +326,7 @@ export function useChatViewScroll({
   useEffect(() => {
     if (streaming && !prevStreamingRef.current) {
       streamingTimerRef.current = setTimeout(() => {
-        bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "smooth" });
+        scrollToBottomImmediate("smooth");
         // React 18 自动批处理两个独立 setState（均在 setTimeout 回调内）
         setShowScrollToBottom(false);
         setStickToBottom(true);
@@ -332,7 +343,7 @@ export function useChatViewScroll({
   useEffect(() => {
     const rafId = window.requestAnimationFrame(() => {
       if (stickToBottom) {
-        bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "auto" });
+        scrollToBottomImmediate("auto");
         setShowScrollToBottom(false);
         return;
       }
@@ -353,7 +364,7 @@ export function useChatViewScroll({
     let frame2 = 0;
     frame1 = window.requestAnimationFrame(() => {
       frame2 = window.requestAnimationFrame(() => {
-        bubbleListRef.current?.scrollTo({ top: "bottom", behavior: "auto" });
+        scrollToBottomImmediate("auto");
         pendingScrollConversationIdRef.current = null;
       });
     });

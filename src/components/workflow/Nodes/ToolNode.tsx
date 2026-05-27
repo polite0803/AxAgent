@@ -1,4 +1,4 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
@@ -21,7 +21,8 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#52c41a";
+  const { token } = theme.useToken();
+  const color = token.colorSuccess;
   const toolName = data.toolName || t("workflow.toolNode.notSelected");
   const inputMapping = data.inputMapping || {};
   const outputVar = data.outputVar;
@@ -39,8 +40,8 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -73,7 +74,7 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -108,9 +109,9 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({
                   margin: 0,
                   fontSize: 9,
                   padding: "0 4px",
-                  background: "#252525",
-                  border: "1px solid #444",
-                  color: "#aaa",
+                  background: token.colorBgContainer,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  color: token.colorTextQuaternary,
                 }}
               >
                 📥 {t("workflow.toolNode.inputCount", { count: inputCount })}
@@ -123,9 +124,9 @@ const ToolNodeComponent: React.FC<NodeProps<ToolNodeData>> = ({
                   margin: 0,
                   fontSize: 9,
                   padding: "0 4px",
-                  background: "#1890ff20",
-                  border: "1px solid #1890ff50",
-                  color: "#1890ff",
+                  background: `${token.colorPrimary}20`,
+                  border: `1px solid ${token.colorPrimary}50`,
+                  color: token.colorPrimary,
                 }}
               >
                 📤 {outputVar}

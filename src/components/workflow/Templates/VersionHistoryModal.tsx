@@ -1,5 +1,5 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, List, message, Modal, Spin, Tag } from "antd";
+import { Button, List, message, Modal, Spin, Tag, theme } from "antd";
 import { History, RotateCcw } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   const [loadingVersions, setLoadingVersions] = useState(false);
   const { loadTemplateVersions, loadTemplateByVersion } = useWorkflowEditorStore();
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   useEffect(() => {
     if (visible && template?.id) {
@@ -138,7 +139,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0,0,0,0.5)",
+            background: token.colorBgMask,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

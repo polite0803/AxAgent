@@ -2,12 +2,13 @@ import { DatasetManager } from "@/components/fine-tune/DatasetManager";
 import { LoRAConfig } from "@/components/fine-tune/LoRAConfig";
 import { TrainingJobList } from "@/components/fine-tune/TrainingJobList";
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
-import { Tabs } from "antd";
+import { Tabs, theme } from "antd";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export function FineTunePage() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const fetchDatasets = useFineTuneStore((s) => s.fetchDatasets);
   const fetchTrainingJobs = useFineTuneStore((s) => s.fetchTrainingJobs);
   const fetchBaseModels = useFineTuneStore((s) => s.fetchBaseModels);
@@ -61,13 +62,13 @@ export function FineTunePage() {
           <span>
             {t("fineTune.stats.total")}: <b>{stats.total_jobs}</b>
           </span>
-          <span style={{ color: "#52c41a" }}>
+          <span style={{ color: token.colorSuccess }}>
             {t("fineTune.stats.completed")}: <b>{stats.completed_jobs}</b>
           </span>
-          <span style={{ color: "#1890ff" }}>
+          <span style={{ color: token.colorPrimary }}>
             {t("fineTune.stats.running")}: <b>{stats.running_jobs}</b>
           </span>
-          <span style={{ color: "#ff4d4f" }}>
+          <span style={{ color: token.colorError }}>
             {t("fineTune.stats.failed")}: <b>{stats.failed_jobs}</b>
           </span>
         </div>

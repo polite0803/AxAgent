@@ -100,15 +100,20 @@ export function RightPanelContainer({
   );
   const isAgent = convMode === "agent";
   const settings = useSettingsStore((s) => s.settings);
-  const panelData = useRightPanelStore();
+  const panelChartData = useRightPanelStore((s) => s.chartData);
+  const panelChartRawAnalysis = useRightPanelStore((s) => s.chartRawAnalysis);
+  const panelSnapshotElements = useRightPanelStore((s) => s.snapshotElements);
+  const panelSnapshotDescription = useRightPanelStore((s) => s.snapshotDescription);
+  const panelResearchSources = useRightPanelStore((s) => s.researchSources);
+  const panelReport = useRightPanelStore((s) => s.report);
+  const panelSetChartResult = useRightPanelStore((s) => s.setChartResult);
+  const panelSetReport = useRightPanelStore((s) => s.setReport);
   const isDarkMode = useResolvedDarkMode(settings.theme_mode);
 
-  // 缓存状态 — 只取所需字段
-  const cacheState = useCacheStore();
-  const cacheValid = cacheState.cacheValid;
-  const hasPendingChanges = cacheState.hasPendingChanges;
-  const tokensSaved = cacheState.tokensSaved;
-  const cacheHits = cacheState.cacheHits;
+  const cacheValid = useCacheStore((s) => s.cacheValid);
+  const hasPendingChanges = useCacheStore((s) => s.hasPendingChanges);
+  const tokensSaved = useCacheStore((s) => s.tokensSaved);
+  const cacheHits = useCacheStore((s) => s.cacheHits);
 
   const codeThemes = useMemo(
     () => getChatCodeThemes(settings.code_theme, settings.code_theme_light),
@@ -257,11 +262,11 @@ export function RightPanelContainer({
         icon: <FileText size={ICON} />,
         labelKey: "chatRightPanel.report",
         category: "extra",
-        shouldRender: !!panelData.report,
+        shouldRender: !!panelReport,
         render: () => (
           <ReportViewer
-            report={panelData.report}
-            onReset={() => panelData.setReport(null)}
+            report={panelReport}
+            onReset={() => panelSetReport(null)}
           />
         ),
       },
@@ -294,11 +299,11 @@ export function RightPanelContainer({
         icon: <BarChart3 size={ICON} />,
         labelKey: "chatRightPanel.chart",
         category: "extra",
-        shouldRender: !!panelData.chartData,
+        shouldRender: !!panelChartData,
         render: () => (
           <ChartInterpreter
-            chartData={panelData.chartData}
-            rawAnalysis={panelData.chartRawAnalysis}
+            chartData={panelChartData}
+            rawAnalysis={panelChartRawAnalysis}
           />
         ),
       },
@@ -307,11 +312,11 @@ export function RightPanelContainer({
         icon: <Camera size={ICON} />,
         labelKey: "chatRightPanel.snapshot",
         category: "extra",
-        shouldRender: panelData.snapshotElements.length > 0,
+        shouldRender: panelSnapshotElements.length > 0,
         render: () => (
           <UISnapshotViewer
-            elements={panelData.snapshotElements}
-            rawDescription={panelData.snapshotDescription}
+            elements={panelSnapshotElements}
+            rawDescription={panelSnapshotDescription}
           />
         ),
       },
@@ -399,8 +404,8 @@ export function RightPanelContainer({
         icon: <Search size={ICON} />,
         labelKey: "chatRightPanel.researchSources",
         category: "extra",
-        shouldRender: panelData.researchSources.length > 0,
-        render: () => <ResearchSources sources={panelData.researchSources} />,
+        shouldRender: panelResearchSources.length > 0,
+        render: () => <ResearchSources sources={panelResearchSources} />,
       },
       {
         key: "sessionShare",
@@ -440,10 +445,10 @@ export function RightPanelContainer({
     hasPendingChanges,
     tokensSaved,
     cacheHits,
-    panelData.report,
-    panelData.chartData,
-    panelData.snapshotElements,
-    panelData.researchSources,
+    panelReport,
+    panelChartData,
+    panelSnapshotElements,
+    panelResearchSources,
   ]);
 
   // 过滤出可见面板
@@ -487,8 +492,9 @@ export function RightPanelContainer({
           <button
             className="titlebar-btn"
             onClick={() => {
-              panelData.setChartResult(null, "");
-              panelData.setReport(null);
+              panelSetChartResult(null, "");
+              panelSetReport(null);
+              onToggleCompact();
             }}
             title={t("chatRightPanel.close")}
           >

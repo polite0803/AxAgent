@@ -1,7 +1,10 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+
+const ORANGE_BASE = "#fa8c16";
+const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
 interface LoopNodeData {
   id: string;
@@ -11,11 +14,10 @@ interface LoopNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  loopType?: "forEach" | "while" | "doWhile" | "until";
+  loopType?: "count" | "condition" | "forEach";
   maxIterations?: number;
-  continueOnError?: boolean;
-  bodySteps?: string[];
-  itemsVar?: string;
+  loopCondition?: string;
+  collectionVar?: string;
 }
 
 const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
@@ -23,49 +25,40 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#fa8c16";
-  const loopType = data.loopType || "forEach";
-  const maxIterations = data.maxIterations || 100;
-  const bodySteps = data.bodySteps || [];
+  const { token } = theme.useToken();
+  const color = ORANGE_VAR;
+  const loopType = data.loopType || "count";
 
-  const getLoopTypeIcon = (type: string): string => {
-    switch (type) {
+  const getLoopDescription = (): string => {
+    switch (loopType) {
+      case "count":
+        return data.maxIterations
+          ? `${data.maxIterations}x`
+          : t("workflow.loopNode.notConfigured");
+      case "condition":
+        return data.loopCondition || t("workflow.loopNode.notConfigured");
       case "forEach":
-        return "🔁";
-      case "while":
-        return "⏳";
-      case "doWhile":
-        return "↻";
-      case "until":
-        return "🔚";
+        return data.collectionVar
+          ? `∈ ${data.collectionVar}`
+          : t("workflow.loopNode.notConfigured");
       default:
-        return "🔁";
+        return t("workflow.loopNode.notConfigured");
     }
-  };
-
-  const getLoopTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      forEach: t("workflow.loopNode.forEach"),
-      while: t("workflow.loopNode.while"),
-      doWhile: t("workflow.loopNode.doWhile"),
-      until: t("workflow.loopNode.until"),
-    };
-    return labels[type] || type;
   };
 
   return (
     <div
       style={{
-        minWidth: 200,
-        maxWidth: 240,
+        minWidth: 180,
+        maxWidth: 220,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -75,14 +68,14 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${ORANGE_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${ORANGE_BASE}15`,
           }}
         >
-          <span style={{ fontSize: 14 }}>{getLoopTypeIcon(loopType)}</span>
+          <span style={{ fontSize: 14 }}>🔁</span>
           <span
             style={{
               fontSize: 12,
@@ -90,7 +83,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
               fontWeight: 600,
             }}
           >
-            {t("workflow.loopNode.title")} · {getLoopTypeLabel(loopType)}
+            {t("workflow.loopNode.title")}
           </span>
         </div>
 
@@ -98,7 +91,7 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -109,67 +102,31 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
             {data.title}
           </div>
 
-          {data.itemsVar && (
-            <div
-              style={{
-                fontSize: 12,
-                color: "#888",
-                marginBottom: 6,
-                padding: "4px 6px",
-                background: "#252525",
-                borderRadius: 4,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              📋 {data.itemsVar}
-            </div>
-          )}
-
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             <Tag
               style={{
                 margin: 0,
                 fontSize: 9,
                 padding: "0 4px",
-                background: "#252525",
-                border: "1px solid #444",
-                color: "#aaa",
+                background: `${ORANGE_BASE}20`,
+                border: `1px solid ${ORANGE_BASE}50`,
+                color: ORANGE_VAR,
               }}
             >
-              {t("workflow.loopNode.maxIterations", { count: maxIterations })}
+              {loopType.toUpperCase()}
             </Tag>
-
-            {data.continueOnError && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: "#fa8c1620",
-                  border: "1px solid #fa8c1650",
-                  color: "#fa8c16",
-                }}
-              >
-                {t("workflow.loopNode.continueOnError")}
-              </Tag>
-            )}
-
-            {bodySteps.length > 0 && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: "#1890ff20",
-                  border: "1px solid #1890ff50",
-                  color: "#1890ff",
-                }}
-              >
-                📝 {t("workflow.loopNode.steps", { count: bodySteps.length })}
-              </Tag>
-            )}
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: token.colorBgContainer,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                color: token.colorTextQuaternary,
+              }}
+            >
+              {getLoopDescription()}
+            </Tag>
           </div>
         </div>
       </div>
@@ -188,41 +145,55 @@ const LoopNodeComponent: React.FC<NodeProps<LoopNodeData>> = ({
       <Handle
         type="source"
         position={Position.Bottom}
-        id="loop-end"
+        id="loop"
         style={{
-          background: color,
+          background: token.colorSuccess,
           border: "none",
           width: 8,
           height: 8,
+          left: "30%",
         }}
       />
 
       <Handle
         type="source"
-        position={Position.Right}
-        id="loop-body"
+        position={Position.Bottom}
+        id="done"
         style={{
-          background: "#52c41a",
+          background: token.colorTextTertiary,
           border: "none",
-          width: 6,
-          height: 6,
-          top: "50%",
+          width: 8,
+          height: 8,
+          left: "70%",
         }}
       />
 
       <div
         style={{
           position: "absolute",
-          left: -10,
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: 0,
-          height: 0,
-          borderTop: "6px solid transparent",
-          borderBottom: "6px solid transparent",
-          borderRight: `8px solid ${color}`,
+          bottom: -18,
+          left: "25%",
+          transform: "translateX(-50%)",
+          fontSize: 9,
+          color: token.colorSuccess,
+          fontWeight: 600,
         }}
-      />
+      >
+        ↻
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: -18,
+          left: "75%",
+          transform: "translateX(-50%)",
+          fontSize: 9,
+          color: token.colorTextTertiary,
+          fontWeight: 600,
+        }}
+      >
+        →
+      </div>
     </div>
   );
 };

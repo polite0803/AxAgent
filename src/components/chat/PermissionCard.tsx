@@ -1,6 +1,7 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useAgentStore } from "@/stores";
 import { Button, Card, Modal, Space, Tag, theme, Typography } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import {
   AlertTriangle,
   ChevronDown,
@@ -30,38 +31,31 @@ interface PermissionCardProps {
   riskLevel?: RiskLevel;
 }
 
-const RISK_CONFIG: Record<
-  RiskLevel,
-  {
-    color: string;
-    icon: React.ReactNode;
-    label: string;
-    tooltip: string;
-    bgColor: string;
-  }
-> = {
-  read_only: {
-    color: "blue",
-    icon: <Eye size={14} />,
-    label: "Read Only",
-    tooltip: "This operation only reads data and cannot modify anything",
-    bgColor: "rgba(0, 120, 250, 0.1)",
-  },
-  write: {
-    color: "orange",
-    icon: <Pencil size={14} />,
-    label: "Write",
-    tooltip: "This operation may create or modify files in your workspace",
-    bgColor: "rgba(250, 173, 20, 0.1)",
-  },
-  execute: {
-    color: "red",
-    icon: <Terminal size={14} />,
-    label: "Execute",
-    tooltip: "This operation executes commands that may have system-wide effects",
-    bgColor: "rgba(255, 77, 79, 0.1)",
-  },
-};
+function getRiskConfig(token: GlobalToken) {
+  return {
+    read_only: {
+      color: "blue",
+      icon: <Eye size={14} />,
+      label: "Read Only",
+      tooltip: "This operation only reads data and cannot modify anything",
+      bgColor: token.colorPrimaryBg,
+    },
+    write: {
+      color: "orange",
+      icon: <Pencil size={14} />,
+      label: "Write",
+      tooltip: "This operation may create or modify files in your workspace",
+      bgColor: token.colorWarningBg,
+    },
+    execute: {
+      color: "red",
+      icon: <Terminal size={14} />,
+      label: "Execute",
+      tooltip: "This operation executes commands that may have system-wide effects",
+      bgColor: token.colorErrorBg,
+    },
+  } as const;
+}
 
 function generateOperationSummary(
   toolName: string,
@@ -181,7 +175,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
-  const riskCfg = RISK_CONFIG[riskLevel];
+  const riskCfg = getRiskConfig(token)[riskLevel];
   const operationSummary = useMemo(
     () => generateOperationSummary(toolName, input),
     [toolName, input],

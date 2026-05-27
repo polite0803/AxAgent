@@ -1,3 +1,4 @@
+import { theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
@@ -19,20 +20,21 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const typeInfo = NODE_TYPE_MAP[data.nodeType] || {
     labelKey: "",
-    color: "#999",
+    color: token.colorTextTertiary,
   };
 
   const getBorderColor = () => {
     if (data.validationState === "error") {
-      return "#ff4d4f";
+      return token.colorError;
     }
     if (data.validationState === "warning") {
-      return "#faad14";
+      return token.colorWarning;
     }
     if (selected) {
-      return "#1890ff";
+      return token.colorPrimary;
     }
     return data.color;
   };
@@ -50,7 +52,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
     >
       <div
         style={{
-          background: "#252525",
+          background: token.colorBgContainer,
           border: `2px solid ${borderColor}`,
           borderRadius: 8,
           padding: 0,
@@ -83,7 +85,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: data.description ? 4 : 0,
               overflow: "hidden",
@@ -97,7 +99,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
             <div
               style={{
                 fontSize: 12,
-                color: "#666",
+                color: token.colorTextTertiary,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",

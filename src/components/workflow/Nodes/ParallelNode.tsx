@@ -1,7 +1,10 @@
-import { Badge, Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+
+const ORANGE_BASE = "#fa8c16";
+const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
 interface ParallelNodeData {
   id: string;
@@ -11,12 +14,8 @@ interface ParallelNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  branches?: Array<{
-    id: string;
-    title: string;
-    steps: string[];
-  }>;
-  waitForAll?: boolean;
+  branches?: number;
+  waitStrategy?: "all" | "any" | "race";
 }
 
 const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
@@ -24,23 +23,37 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#fa8c16";
-  const branches = data.branches || [];
-  const waitForAll = data.waitForAll ?? true;
+  const { token } = theme.useToken();
+  const color = ORANGE_VAR;
+  const branches = data.branches || 2;
+  const waitStrategy = data.waitStrategy || "all";
+
+  const getWaitStrategyLabel = (strategy: string): string => {
+    switch (strategy) {
+      case "all":
+        return t("workflow.parallelNode.waitAll");
+      case "any":
+        return t("workflow.parallelNode.waitAny");
+      case "race":
+        return t("workflow.parallelNode.race");
+      default:
+        return strategy;
+    }
+  };
 
   return (
     <div
       style={{
-        minWidth: 220,
-        maxWidth: 280,
+        minWidth: 180,
+        maxWidth: 220,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -50,11 +63,11 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${ORANGE_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${ORANGE_BASE}15`,
           }}
         >
           <span style={{ fontSize: 14 }}>⚡</span>
@@ -67,29 +80,15 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
           >
             {t("workflow.parallelNode.title")}
           </span>
-          <Tag
-            style={{
-              margin: 0,
-              fontSize: 9,
-              padding: "0 4px",
-              background: `${color}30`,
-              border: "none",
-              color: "#fff",
-            }}
-          >
-            {waitForAll
-              ? t("workflow.parallelNode.waitForAll")
-              : t("workflow.parallelNode.anyComplete")}
-          </Tag>
         </div>
 
         <div style={{ padding: "10px 12px" }}>
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
-              marginBottom: 8,
+              marginBottom: 6,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -98,78 +97,32 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
             {data.title}
           </div>
 
-          {branches.length > 0
-            ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {branches.slice(0, 4).map((branch, index) => (
-                  <div
-                    key={branch.id || index}
-                    style={{
-                      fontSize: 12,
-                      color: "#aaa",
-                      padding: "4px 8px",
-                      background: "#252525",
-                      borderRadius: 4,
-                      borderLeft: `3px solid ${color}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <span
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        flex: 1,
-                      }}
-                    >
-                      {branch.title
-                        || t("workflow.parallelNode.branch", { index: index + 1 })}
-                    </span>
-                    {branch.steps && (
-                      <Badge
-                        count={branch.steps.length}
-                        size="small"
-                        style={{
-                          backgroundColor: color,
-                          fontSize: 8,
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
-                {branches.length > 4 && (
-                  <div
-                    style={{
-                      fontSize: 9,
-                      color: "#666",
-                      textAlign: "center",
-                    }}
-                  >
-                    +
-                    {t("workflow.parallelNode.moreBranches", {
-                      count: branches.length - 4,
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-            : (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "#666",
-                  textAlign: "center",
-                  padding: 8,
-                  background: "#252525",
-                  borderRadius: 4,
-                }}
-              >
-                {t("workflow.parallelNode.clickToAdd")}
-              </div>
-            )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: `${ORANGE_BASE}20`,
+                border: `1px solid ${ORANGE_BASE}50`,
+                color: ORANGE_VAR,
+              }}
+            >
+              {branches} {t("workflow.parallelNode.branches")}
+            </Tag>
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: token.colorBgContainer,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                color: token.colorTextTertiary,
+              }}
+            >
+              {getWaitStrategyLabel(waitStrategy)}
+            </Tag>
+          </div>
         </div>
       </div>
 
@@ -184,49 +137,16 @@ const ParallelNodeComponent: React.FC<NodeProps<ParallelNodeData>> = ({
         }}
       />
 
-      <div
+      <Handle
+        type="source"
+        position={Position.Bottom}
         style={{
-          display: "flex",
-          justifyContent: "center",
-          gap: 4,
-          marginTop: 4,
+          background: color,
+          border: "none",
+          width: 8,
+          height: 8,
         }}
-      >
-        {branches.length > 0
-          ? (
-            /* static visualization handles, safe to use index as key */
-            branches.slice(0, 5).map((_, index) => (
-              <Handle
-                key={`branch-${index}`}
-                type="source"
-                position={Position.Bottom}
-                id={`branch-${index}`}
-                style={{
-                  background: color,
-                  border: "none",
-                  width: 6,
-                  height: 6,
-                  position: "relative",
-                  left: "auto",
-                  right: "auto",
-                  top: "auto",
-                }}
-              />
-            ))
-          )
-          : (
-            <Handle
-              type="source"
-              position={Position.Bottom}
-              style={{
-                background: color,
-                border: "none",
-                width: 8,
-                height: 8,
-              }}
-            />
-          )}
-      </div>
+      />
     </div>
   );
 };

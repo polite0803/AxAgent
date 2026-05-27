@@ -1,3 +1,4 @@
+import { theme } from "antd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { type Node, useReactFlow } from "reactflow";
 
@@ -21,6 +22,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({
 }) => {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [lines, setLines] = useState<AlignmentLine[]>([]);
+  const { token } = theme.useToken();
   const draggedNodeRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -240,7 +242,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({
             height="16"
             patternUnits="userSpaceOnUse"
           >
-            <circle cx="1" cy="1" r="0.5" fill="#333" />
+            <circle cx="1" cy="1" r="0.5" fill={token.colorBorderSecondary} />
           </pattern>
         </defs>
 
@@ -254,7 +256,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({
                 y1={line.start}
                 x2={line.position}
                 y2={line.end}
-                stroke="#1890ff"
+                stroke={token.colorPrimary}
                 strokeWidth={1}
                 strokeDasharray="4,4"
                 opacity={0.8}
@@ -267,7 +269,7 @@ export const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({
                 y1={line.position}
                 x2={line.end}
                 y2={line.position}
-                stroke="#1890ff"
+                stroke={token.colorPrimary}
                 strokeWidth={1}
                 strokeDasharray="4,4"
                 opacity={0.8}

@@ -516,7 +516,7 @@ export function WikiDetailPanel({
   );
 }
 
-function highlightWikilink(snippet: string, linkText: string) {
+function highlightWikilink(snippet: string, linkText: string, token: ReturnType<typeof theme.useToken>["token"]) {
   const linkPattern = `[[${linkText}]]`;
   const parts = snippet.split(linkPattern);
   if (parts.length === 1) {
@@ -533,7 +533,7 @@ function highlightWikilink(snippet: string, linkText: string) {
             <Text
               strong
               style={{
-                backgroundColor: "rgba(22,119,255,0.12)",
+                backgroundColor: `${token.colorPrimary}1F`,
                 borderRadius: 3,
                 padding: "0 2px",
               }}
@@ -600,7 +600,7 @@ function BacklinkList({
                   style={{ color: token.colorTextSecondary }}
                   ellipsis={{ rows: 2, expandable: false }}
                 >
-                  {highlightWikilink(snippet, currentNoteTitle)}
+                  {highlightWikilink(snippet, currentNoteTitle, token)}
                 </Typography.Paragraph>
               ))}
             </div>

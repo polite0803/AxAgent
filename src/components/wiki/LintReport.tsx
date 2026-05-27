@@ -9,7 +9,7 @@ import {
   ReloadOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Empty, message, Modal, Progress, Select, Space, Table, Tag, Typography } from "antd";
+import { Button, Card, Empty, message, Modal, Progress, Select, Space, Table, Tag, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -21,6 +21,7 @@ interface LintReportProps {
 
 export function LintReport({ wikiId }: LintReportProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const { lintNote, updateLintScore } = useLlmWikiStore();
   const { notes } = useWikiStore();
   const [lintResults, setLintResults] = useState<LintResult[]>([]);
@@ -73,11 +74,11 @@ export function LintReport({ wikiId }: LintReportProps) {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case "Error":
-        return <WarningOutlined style={{ color: "#ff4d4f" }} />;
+        return <WarningOutlined style={{ color: token.colorError }} />;
       case "Warning":
-        return <WarningOutlined style={{ color: "#faad14" }} />;
+        return <WarningOutlined style={{ color: token.colorWarning }} />;
       case "Info":
-        return <InfoCircleOutlined style={{ color: "#1890ff" }} />;
+        return <InfoCircleOutlined style={{ color: token.colorPrimary }} />;
       default:
         return null;
     }
@@ -112,7 +113,7 @@ export function LintReport({ wikiId }: LintReportProps) {
       key: "score",
       width: 120,
       render: (score: number) => {
-        const color = score >= 80 ? "#52c41a" : score >= 60 ? "#faad14" : "#ff4d4f";
+        const color = score >= 80 ? token.colorSuccess : score >= 60 ? token.colorWarning : token.colorError;
         return (
           <Progress
             percent={score}
@@ -220,7 +221,7 @@ export function LintReport({ wikiId }: LintReportProps) {
         </Space>
 
         <div style={{ marginBottom: 16 }}>
-          <Space split={<span style={{ color: "#d9d9d9" }}>|</span>}>
+          <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>}>
             <Text>
               {t("wiki.lint.totalNotes")}: <strong>{lintResults.length}</strong>
             </Text>
@@ -272,10 +273,10 @@ export function LintReport({ wikiId }: LintReportProps) {
                   size="small"
                   style={{ width: 100 }}
                   strokeColor={currentResult.score >= 80
-                    ? "#52c41a"
+                    ? token.colorSuccess
                     : currentResult.score >= 60
-                    ? "#faad14"
-                    : "#ff4d4f"}
+                    ? token.colorWarning
+                    : token.colorError}
                 />
               </Space>
             </Card>

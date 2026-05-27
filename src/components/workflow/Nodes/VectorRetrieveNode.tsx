@@ -1,7 +1,10 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+
+const MAGENTA_BASE = "#eb2f96";
+const MAGENTA_VAR = `var(--magenta, ${MAGENTA_BASE})`;
 
 interface VectorRetrieveNodeData {
   id: string;
@@ -11,23 +14,23 @@ interface VectorRetrieveNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  query?: string;
   knowledgeBaseId?: string;
+  knowledgeBaseName?: string;
   topK?: number;
   similarityThreshold?: number;
   outputVar?: string;
 }
 
-const VectorRetrieveNodeComponent: React.FC<
-  NodeProps<VectorRetrieveNodeData>
-> = ({ data, selected }) => {
+const VectorRetrieveNodeComponent: React.FC<NodeProps<VectorRetrieveNodeData>> = ({
+  data,
+  selected,
+}) => {
   const { t } = useTranslation();
-  const color = "#eb2f96";
-  const query = data.query || "";
-  const knowledgeBaseId = data.knowledgeBaseId || t("workflow.vectorRetrieveNode.notSelected");
+  const { token } = theme.useToken();
+  const color = MAGENTA_VAR;
+  const knowledgeBaseName = data.knowledgeBaseName;
   const topK = data.topK || 5;
-  const similarityThreshold = data.similarityThreshold;
-  const outputVar = data.outputVar;
+  const similarityThreshold = data.similarityThreshold || 0.7;
 
   return (
     <div
@@ -40,8 +43,8 @@ const VectorRetrieveNodeComponent: React.FC<
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -51,11 +54,11 @@ const VectorRetrieveNodeComponent: React.FC<
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${MAGENTA_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${MAGENTA_BASE}15`,
           }}
         >
           <span style={{ fontSize: 14 }}>🔍</span>
@@ -74,7 +77,7 @@ const VectorRetrieveNodeComponent: React.FC<
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -85,39 +88,24 @@ const VectorRetrieveNodeComponent: React.FC<
             {data.title}
           </div>
 
-          {query && (
+          {knowledgeBaseName && (
             <div
               style={{
-                fontSize: 9,
-                color: "#888",
+                fontSize: 12,
+                color: color,
                 marginBottom: 6,
                 padding: "4px 6px",
-                background: "#252525",
+                background: `${MAGENTA_BASE}15`,
                 borderRadius: 4,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                fontWeight: 500,
               }}
             >
-              💬 {query.slice(0, 40)}...
+              📚 {knowledgeBaseName}
             </div>
           )}
-
-          <div
-            style={{
-              fontSize: 12,
-              color: color,
-              marginBottom: 6,
-              padding: "4px 6px",
-              background: `${color}15`,
-              borderRadius: 4,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            📚 {knowledgeBaseId}
-          </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             <Tag
@@ -125,41 +113,39 @@ const VectorRetrieveNodeComponent: React.FC<
                 margin: 0,
                 fontSize: 9,
                 padding: "0 4px",
-                background: "#252525",
-                border: "1px solid #444",
-                color: "#aaa",
+                background: token.colorBgContainer,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                color: token.colorTextQuaternary,
               }}
             >
-              Top-K: {topK}
+              Top {topK}
             </Tag>
 
-            {similarityThreshold !== undefined && (
-              <Tag
-                style={{
-                  margin: 0,
-                  fontSize: 9,
-                  padding: "0 4px",
-                  background: "#252525",
-                  border: "1px solid #444",
-                  color: "#aaa",
-                }}
-              >
-                {t("workflow.vectorRetrieveNode.threshold")} {(similarityThreshold * 100).toFixed(0)}%
-              </Tag>
-            )}
+            <Tag
+              style={{
+                margin: 0,
+                fontSize: 9,
+                padding: "0 4px",
+                background: token.colorBgContainer,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                color: token.colorTextQuaternary,
+              }}
+            >
+              ≥{(similarityThreshold * 100).toFixed(0)}%
+            </Tag>
 
-            {outputVar && (
+            {data.outputVar && (
               <Tag
                 style={{
                   margin: 0,
                   fontSize: 9,
                   padding: "0 4px",
-                  background: "#1890ff20",
-                  border: "1px solid #1890ff50",
-                  color: "#1890ff",
+                  background: `${token.colorPrimary}20`,
+                  border: `1px solid ${token.colorPrimary}50`,
+                  color: token.colorPrimary,
                 }}
               >
-                📤 {outputVar}
+                📤 {data.outputVar}
               </Tag>
             )}
           </div>

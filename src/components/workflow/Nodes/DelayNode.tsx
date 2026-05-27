@@ -1,7 +1,10 @@
-import { Tag } from "antd";
+import { theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+
+const ORANGE_BASE = "#fa8c16";
+const ORANGE_VAR = `var(--orange, ${ORANGE_BASE})`;
 
 interface DelayNodeData {
   id: string;
@@ -11,9 +14,10 @@ interface DelayNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  delayType?: string;
-  seconds?: number;
-  until?: string;
+  delayType?: "fixed" | "random" | "cron";
+  delayMs?: number;
+  delayMinMs?: number;
+  delayMaxMs?: number;
 }
 
 const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({
@@ -21,40 +25,51 @@ const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#fa8c16";
-  const delayType = data.delayType || "seconds";
-  const seconds = data.seconds || 5;
+  const { token } = theme.useToken();
+  const color = ORANGE_VAR;
+  const delayType = data.delayType || "fixed";
 
-  const formatDelay = (): string => {
-    if (delayType === "seconds") {
-      if (seconds >= 60) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return remainingSeconds > 0
-          ? `${minutes}${t("workflow.delayNode.minute")}${remainingSeconds}${t("workflow.delayNode.second")}`
-          : `${minutes}${t("workflow.delayNode.minutes")}`;
-      }
-      return `${seconds}${t("workflow.delayNode.second")}`;
+  const formatDelay = (ms: number): string => {
+    if (ms < 1000) {
+      return `${ms}ms`;
     }
-    if (delayType === "until" && data.until) {
-      return `${t("workflow.delayNode.until")} ${data.until}`;
+    if (ms < 60000) {
+      return `${(ms / 1000).toFixed(1)}s`;
     }
-    return `${seconds}${t("workflow.delayNode.second")}`;
+    if (ms < 3600000) {
+      return `${(ms / 60000).toFixed(1)}min`;
+    }
+    return `${(ms / 3600000).toFixed(1)}h`;
+  };
+
+  const getDelayDescription = (): string => {
+    switch (delayType) {
+      case "fixed":
+        return data.delayMs ? formatDelay(data.delayMs) : t("workflow.delayNode.notConfigured");
+      case "random":
+        return data.delayMinMs && data.delayMaxMs
+          ? `${formatDelay(data.delayMinMs)} ~ ${formatDelay(data.delayMaxMs)}`
+          : t("workflow.delayNode.notConfigured");
+      case "cron":
+        return "Cron";
+      default:
+        return t("workflow.delayNode.notConfigured");
+    }
   };
 
   return (
     <div
       style={{
-        minWidth: 140,
-        maxWidth: 180,
+        minWidth: 160,
+        maxWidth: 200,
         opacity: data.enabled ? 1 : 0.5,
         filter: data.enabled ? "none" : "grayscale(100%)",
       }}
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -64,11 +79,11 @@ const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${ORANGE_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${ORANGE_BASE}15`,
           }}
         >
           <span style={{ fontSize: 14 }}>⏱️</span>
@@ -87,7 +102,7 @@ const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -98,19 +113,17 @@ const DelayNodeComponent: React.FC<NodeProps<DelayNodeData>> = ({
             {data.title}
           </div>
 
-          <Tag
+          <div
             style={{
-              margin: 0,
               fontSize: 12,
-              padding: "4px 8px",
-              background: `${color}20`,
-              border: `1px solid ${color}50`,
-              color: color,
-              fontWeight: 500,
+              color: token.colorTextTertiary,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
-            ⏳ {formatDelay()}
-          </Tag>
+            {getDelayDescription()}
+          </div>
         </div>
       </div>
 

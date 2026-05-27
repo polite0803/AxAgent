@@ -1,6 +1,6 @@
 import { useGatewayStore } from "@/stores";
 import type { GatewayRequestLog } from "@/types";
-import { Button, Empty, Modal, Popconfirm, Table, Tag } from "antd";
+import { Button, Empty, Modal, Popconfirm, Table, Tag, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { formatTokenCount } from "./tokenFormat";
 
 export function GatewayDiagnostics() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const {
     requestLogs,
     requestLogsLoading,
@@ -126,7 +127,7 @@ export function GatewayDiagnostics() {
                 border: "none",
                 padding: 0,
                 background: "transparent",
-                color: "#ff4d4f",
+                color: token.colorError,
                 width: "100%",
                 textAlign: "left",
                 cursor: "pointer",
@@ -203,7 +204,7 @@ export function GatewayDiagnostics() {
           style={{
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
-            color: "#ff4d4f",
+            color: token.colorError,
           }}
         >
           {selectedErrorMessage}

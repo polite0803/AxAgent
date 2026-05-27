@@ -1,4 +1,4 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
@@ -21,7 +21,8 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#52c41a";
+  const { token } = theme.useToken();
+  const color = token.colorSuccess;
   const language = data.language || "javascript";
   const code = data.code || "";
   const outputVar = data.outputVar;
@@ -73,7 +74,7 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
       shell: "#89e051",
       powershell: "#5391fe",
     };
-    return colors[lang.toLowerCase()] || "#888";
+    return colors[lang.toLowerCase()] || token.colorTextTertiary;
   };
 
   const lineCount = code.split("\n").length;
@@ -89,8 +90,8 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -125,7 +126,7 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
                 padding: "0 4px",
                 background: `${color}30`,
                 border: "none",
-                color: "#fff",
+                color: token.colorText,
               }}
             >
               {t("workflow.codeNode.lineCount", { count: lineCount })}
@@ -137,7 +138,7 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -152,11 +153,11 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
             <div
               style={{
                 fontSize: 9,
-                color: "#666",
+                color: token.colorTextTertiary,
                 fontFamily: "monospace",
                 marginBottom: 6,
                 padding: "4px 6px",
-                background: "#252525",
+                background: token.colorBgContainer,
                 borderRadius: 4,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -173,9 +174,9 @@ const CodeNodeComponent: React.FC<NodeProps<CodeNodeData>> = ({
                 margin: 0,
                 fontSize: 9,
                 padding: "0 4px",
-                background: "#1890ff20",
-                border: "1px solid #1890ff50",
-                color: "#1890ff",
+                background: `${token.colorPrimary}20`,
+                border: `1px solid ${token.colorPrimary}50`,
+                color: token.colorPrimary,
               }}
             >
               📤 {outputVar}

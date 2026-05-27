@@ -96,7 +96,7 @@ export function ImageGenPanel({
           marginBottom: 4,
         }}
       >
-        <Sparkles size={18} style={{ color: "#722ed1" }} />
+        <Sparkles size={18} style={{ color: "var(--purple, #722ed1)" }} />
         <Typography.Text strong>{t("imageGen.title")}</Typography.Text>
       </div>
 

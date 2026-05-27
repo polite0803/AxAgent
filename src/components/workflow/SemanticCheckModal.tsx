@@ -1,6 +1,6 @@
 import type { NodeSkillMatch, SkillMatchResult, SkillReplacementAction } from "@/components/workflow/types";
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Descriptions, message, Modal, Space, Tag } from "antd";
+import { Button, Descriptions, message, Modal, Space, Tag, theme } from "antd";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -22,6 +22,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
   onApplyReplacement,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const { clearSemanticCheckResult } = useWorkflowEditorStore();
   const [selectedActions, setSelectedActions] = useState<
     Record<string, { skillId: string; action: SkillReplacementAction }>
@@ -90,11 +91,11 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
       <div
         key={match.existing_skill.id}
         style={{
-          border: "1px solid #d9d9d9",
+          border: `1px solid ${token.colorBorderSecondary}`,
           borderRadius: 8,
           padding: 16,
           marginBottom: 12,
-          backgroundColor: "#fafafa",
+          backgroundColor: token.colorFillQuaternary,
         }}
       >
         <Space
@@ -161,7 +162,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
       ]}
     >
       <div style={{ maxHeight: 500, overflowY: "auto" }}>
-        <p style={{ marginBottom: 16, color: "#666" }}>
+        <p style={{ marginBottom: 16, color: token.colorTextTertiary }}>
           {t("workflow.semanticCheckDescription")}
         </p>
         {matches.map((nodeMatch) => renderNodeMatches(nodeMatch))}

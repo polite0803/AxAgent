@@ -1,6 +1,6 @@
 import type { ToolDef } from "@/components/workflow/types";
 import { AGENT_ROLE_META } from "@/types";
-import { Badge, Tag } from "antd";
+import { Badge, Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
@@ -13,13 +13,9 @@ interface AgentNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  /** AgentProfile ID（统一标识） */
   agentProfileId?: string;
-  /** 从 AgentProfile 解析的角色名 */
   agentRole?: string;
-  /** 从 AgentProfile 解析的图标 */
   agentRoleIcon?: string;
-  /** 从 AgentProfile 解析的显示名称 */
   agentRoleDisplayName?: string;
   systemPrompt?: string;
   tools?: (ToolDef | string)[];
@@ -29,22 +25,26 @@ interface AgentNodeData {
   validationState?: "error" | "warning";
 }
 
+const CYAN_BASE = "#13c2c2";
+const CYAN_VAR = `var(--cyan, ${CYAN_BASE})`;
+
 const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
   data,
   selected,
 }) => {
   const { t } = useTranslation();
-  const color = "#1890ff";
+  const { token } = theme.useToken();
+  const color = token.colorPrimary;
 
   const getBorderColor = () => {
     if (data.validationState === "error") {
-      return "#ff4d4f";
+      return token.colorError;
     }
     if (data.validationState === "warning") {
-      return "#faad14";
+      return token.colorWarning;
     }
     if (selected) {
-      return "#1890ff";
+      return token.colorPrimary;
     }
     return color;
   };
@@ -67,12 +67,10 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
   const tools = data.tools || [];
   const contextSources = data.contextSources || [];
 
-  // 从 AgentProfile 获取图标，降级到 AGENT_ROLE_META，最后用默认图标
   const displayIcon = data.agentRoleIcon
     || (data.agentRole ? AGENT_ROLE_META[data.agentRole]?.icon : null)
     || "🤖";
 
-  // 从 AgentProfile 获取名称，降级到 agentRole 的 i18n 标签
   const displayName = data.agentRoleDisplayName
     || (data.agentRole
       ? t(AGENT_ROLE_META[data.agentRole]?.labelKey ?? "", data.agentRole)
@@ -90,7 +88,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
     >
       <div
         style={{
-          background: "#1e1e1e",
+          background: token.colorBgElevated,
           border: `2px solid ${borderColor}`,
           borderRadius: 8,
           overflow: "hidden",
@@ -126,7 +124,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
                 padding: "0 4px",
                 background: `${color}30`,
                 border: "none",
-                color: "#fff",
+                color: token.colorText,
               }}
             >
               {data.model.length > 12
@@ -140,7 +138,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -155,7 +153,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
             <div
               style={{
                 fontSize: 12,
-                color: "#888",
+                color: token.colorTextTertiary,
                 marginBottom: 8,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -174,7 +172,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
                 count={tools.length}
                 size="small"
                 style={{
-                  backgroundColor: "#52c41a",
+                  backgroundColor: token.colorSuccess,
                   fontSize: 9,
                 }}
               >
@@ -183,9 +181,9 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
                     margin: 0,
                     fontSize: 9,
                     padding: "0 4px",
-                    background: "#52c41a20",
-                    border: "1px solid #52c41a50",
-                    color: "#52c41a",
+                    background: `${token.colorSuccess}20`,
+                    border: `1px solid ${token.colorSuccess}50`,
+                    color: token.colorSuccess,
                   }}
                 >
                   {t("workflow.agentNode.tools")}
@@ -198,7 +196,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
                 count={contextSources.length}
                 size="small"
                 style={{
-                  backgroundColor: "#13c2c2",
+                  backgroundColor: CYAN_VAR,
                   fontSize: 9,
                 }}
               >
@@ -207,9 +205,9 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
                     margin: 0,
                     fontSize: 9,
                     padding: "0 4px",
-                    background: "#13c2c220",
-                    border: "1px solid #13c2c250",
-                    color: "#13c2c2",
+                    background: `${CYAN_BASE}20`,
+                    border: `1px solid ${CYAN_BASE}50`,
+                    color: CYAN_VAR,
                   }}
                 >
                   {t("workflow.agentNode.context")}
@@ -224,7 +222,7 @@ const AgentNodeComponent: React.FC<NodeProps<AgentNodeData>> = ({
                   fontSize: 9,
                   padding: "0 4px",
                   background: `${color}20`,
-                  border: "1px solid ${color}50",
+                  border: `1px solid ${color}50`,
                   color: color,
                 }}
               >

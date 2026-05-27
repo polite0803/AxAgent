@@ -8,7 +8,7 @@ import {
   SearchOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import { Alert, Button, Card, Divider, Input, List, Space, Tag, Typography } from "antd";
+import { Alert, Button, Card, Divider, Input, List, Space, Tag, theme, Typography } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CredibilityBadge } from "./CredibilityBadge";
@@ -67,6 +67,7 @@ interface ResearchPanelProps {
 
 export function ResearchPanel({ className }: ResearchPanelProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [topic, setTopic] = useState("");
   const [isResearching, setIsResearching] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -442,7 +443,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
                   <List.Item>
                     <Space>
                       <CheckCircleOutlined
-                        style={{ color: item.inReport ? "#52c41a" : "#d9d9d9" }}
+                        style={{ color: item.inReport ? token.colorSuccess : token.colorTextQuaternary }}
                       />
                       <Text>{item.sourceTitle}</Text>
                       <Tag>{getSourceTypeName(item.sourceType, t)}</Tag>
@@ -471,7 +472,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
             <Button onClick={resetResearch}>{t("research.startNew")}</Button>
           </div>
 
-          <Card className="report-preview" style={{ background: "#fafafa" }}>
+          <Card className="report-preview" style={{ background: token.colorFillQuaternary }}>
             <pre
               style={{
                 whiteSpace: "pre-wrap",

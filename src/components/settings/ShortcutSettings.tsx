@@ -183,10 +183,12 @@ export function ShortcutSettings() {
         </div>
         {settings.global_shortcuts_enabled
           && globalShortcutStatus.failed.length > 0 && (
-          <div style={{ marginTop: 6, fontSize: 12, color: "#d32029" }}>
+          <div style={{ marginTop: 6, fontSize: 12, color: token.colorError }}>
             {t("settings.globalShortcutRegisterFailedList", {
               shortcuts: globalShortcutStatus.failed
-                .map((item) => item.shortcut)
+                .map((item) =>
+                  item.shortcut
+                )
                 .join(" / "),
             })}
           </div>
@@ -215,9 +217,9 @@ export function ShortcutSettings() {
                   style={{
                     marginBottom: 6,
                     color: item.level === "error"
-                      ? "#d32029"
+                      ? token.colorError
                       : item.level === "warn"
-                      ? "#d89614"
+                      ? token.colorWarning
                       : "inherit",
                     lineHeight: 1.4,
                     userSelect: "text",
@@ -304,7 +306,7 @@ export function ShortcutSettings() {
                           apps: externalConflict,
                         })}
                       >
-                        <AlertTriangle size={16} color="#d89614" />
+                        <AlertTriangle size={16} color={token.colorWarning} />
                       </Tooltip>
                     )}
                     {failedReason && !externalConflict && (
@@ -313,7 +315,7 @@ export function ShortcutSettings() {
                           reason: failedReason,
                         })}
                       >
-                        <AlertTriangle size={16} color="#d89614" />
+                        <AlertTriangle size={16} color={token.colorWarning} />
                       </Tooltip>
                     )}
                     <Input
@@ -351,7 +353,7 @@ export function ShortcutSettings() {
                         marginTop: -6,
                         marginBottom: 8,
                         fontSize: 12,
-                        color: "#d32029",
+                        color: token.colorError,
                       }}
                     >
                       {t("settings.shortcutConflictWith", {
@@ -372,7 +374,7 @@ export function ShortcutSettings() {
           })}
           {Object.keys(conflictMap).length > 0
             ? (
-              <div style={{ fontSize: 12, color: "#d32029", marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: token.colorError, marginTop: 4 }}>
                 {t("settings.shortcutConflictHint")}
               </div>
             )

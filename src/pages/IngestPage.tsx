@@ -8,7 +8,7 @@ import {
   LeftOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Card, message, Select, Space, Spin, Table, Tabs, Tag, Typography } from "antd";
+import { Button, Card, message, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -17,6 +17,7 @@ const { Title, Text } = Typography;
 
 export function IngestPage() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const navigate = useNavigate();
   const { wikiId: wikiIdFromUrl } = useParams<{ wikiId: string }>();
 
@@ -142,7 +143,14 @@ export function IngestPage() {
   return (
     <div className="h-full flex flex-col" style={{ overflow: "hidden" }}>
       {error && (
-        <div className="mx-4 mt-3 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+        <div
+          className="mx-4 mt-3 p-3 text-sm rounded border"
+          style={{
+            color: token.colorError,
+            backgroundColor: token.colorErrorBg,
+            borderColor: token.colorErrorBorder,
+          }}
+        >
           {error}
         </div>
       )}

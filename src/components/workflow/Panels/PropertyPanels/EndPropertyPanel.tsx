@@ -1,4 +1,4 @@
-import { Divider, Input } from "antd";
+import { Divider, Input, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { EndNode, WorkflowNode } from "../../types";
@@ -16,6 +16,7 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const endNode = node as EndNode;
   const config = endNode.config || {};
 
@@ -29,7 +30,7 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -43,15 +44,15 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({
           size="small"
           placeholder={t("workflow.props.outputVarWorkflow")}
         />
-        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 4 }}>
           {t("workflow.props.finalOutputHint")}
         </div>
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

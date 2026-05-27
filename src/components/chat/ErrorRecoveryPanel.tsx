@@ -1,5 +1,5 @@
 import { Tooltip } from "@/components/layout/Tooltip";
-import { Alert, Button, Card, Progress, Statistic, Timeline, Typography } from "antd";
+import { Alert, Button, Card, Progress, Statistic, theme, Timeline, Typography } from "antd";
 import {
   AlertCircle,
   AlertTriangle,
@@ -162,6 +162,7 @@ export function ErrorRecoveryPanel({
   initialResult = null,
 }: ErrorRecoveryPanelProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [isRecovering, setIsRecovering] = useState(initialIsRecovering);
   const [attempts, setAttempts] = useState<RecoveryAttempt[]>(initialAttempts);
   const [result, setResult] = useState<RecoveryResult | null>(initialResult);
@@ -319,7 +320,7 @@ export function ErrorRecoveryPanel({
               title={t("errorRecovery.status")}
               value={result.success ? "Success" : "Failed"}
               valueStyle={{
-                color: result.success ? "#3f8600" : "#cf1322",
+                color: result.success ? token.colorSuccessActive : token.colorErrorActive,
               }}
               prefix={result.success ? <CheckCircle size={16} /> : <XCircle size={16} />}
             />
@@ -365,7 +366,7 @@ export function ErrorRecoveryPanel({
             type="circle"
             percent={Math.min(currentAttempt * 20, 100)}
             size={40}
-            strokeColor={result?.success ? "#3f8600" : "#1890ff"}
+            strokeColor={result?.success ? token.colorSuccessActive : token.colorPrimary}
           />
         </div>
       )}

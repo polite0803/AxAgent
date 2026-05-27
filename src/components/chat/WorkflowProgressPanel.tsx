@@ -1,5 +1,6 @@
 import { invoke } from "@/lib/invoke";
-import { Button, message, Spin } from "antd";
+import { Button, message, Spin, theme } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import {
   AlertTriangle,
   CheckCircle,
@@ -192,24 +193,24 @@ function getWorkflowIdFromStorage(conversationId: string): string | null {
 // Status utilities
 // ---------------------------------------------------------------------------
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string, token: GlobalToken) => {
   switch (status) {
     case "pending":
     case "created":
-      return "#8c8c8c";
+      return token.colorTextTertiary;
     case "running":
-      return "#1890ff";
+      return token.colorPrimary;
     case "completed":
-      return "#52c41a";
+      return token.colorSuccess;
     case "failed":
-      return "#ff4d4f";
+      return token.colorError;
     case "skipped":
     case "partially_completed":
-      return "#faad14";
+      return token.colorWarning;
     case "cancelled":
-      return "#8c8c8c";
+      return token.colorTextTertiary;
     default:
-      return "#8c8c8c";
+      return token.colorTextTertiary;
   }
 };
 
@@ -228,7 +229,7 @@ interface WorkflowDagNodeData {
   status: StepLike["status"];
 }
 
-function computeDagLayout(steps: StepLike[]): {
+function computeDagLayout(steps: StepLike[], token: GlobalToken): {
   nodes: Node<WorkflowDagNodeData>[];
   edges: Edge[];
 } {
@@ -307,7 +308,7 @@ function computeDagLayout(steps: StepLike[]): {
           target: step.id,
           animated: step.status === "running",
           style: {
-            stroke: step.status === "failed" ? "#ff4d4f" : "#b1b1b7",
+            stroke: step.status === "failed" ? token.colorError : token.colorBorder,
             strokeWidth: 1.5,
           },
         });
@@ -324,7 +325,8 @@ function computeDagLayout(steps: StepLike[]): {
 
 const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(
   ({ data, selected }) => {
-    const color = getStatusColor(data.status);
+    const { token } = theme.useToken();
+    const color = getStatusColor(data.status, token);
     const isRunning = data.status === "running";
     const isFailed = data.status === "failed";
 
@@ -333,7 +335,7 @@ const WorkflowDagNode: React.FC<NodeProps<WorkflowDagNodeData>> = memo(
         className="rounded-md border px-2 py-1.5 bg-white dark:bg-zinc-800 shadow-sm"
         style={{
           width: NODE_WIDTH,
-          borderColor: selected ? "#1890ff" : color,
+          borderColor: selected ? token.colorPrimary : color,
           borderWidth: selected ? 2 : 1,
           opacity: data.status === "skipped" ? 0.65 : 1,
         }}
@@ -387,8 +389,9 @@ const nodeTypes = { workflowStep: WorkflowDagNode };
 
 const WorkflowDagView: React.FC<{ steps: StepLike[] }> = memo(
   ({ steps }) => {
+    const { token } = theme.useToken();
     const { fitView } = useReactFlow();
-    const { nodes, edges } = useMemo(() => computeDagLayout(steps), [steps]);
+    const { nodes, edges } = useMemo(() => computeDagLayout(steps, token), [steps, token]);
 
     useEffect(() => {
       if (nodes.length > 0) {
@@ -420,7 +423,7 @@ const WorkflowDagView: React.FC<{ steps: StepLike[] }> = memo(
         proOptions={{ hideAttribution: true }}
         style={{ background: "transparent" }}
       >
-        <Background color="#e5e5e5" gap={16} size={0.5} />
+        <Background color={token.colorBorderSecondary} gap={16} size={0.5} />
       </ReactFlow>
     );
   },
@@ -443,7 +446,8 @@ const StepRow = memo(function StepRow({
   onToggle,
 }: StepRowProps) {
   const { t } = useTranslation();
-  const color = getStatusColor(step.status);
+  const { token } = theme.useToken();
+  const color = getStatusColor(step.status, token);
 
   const StatusIcon = useMemo(() => {
     switch (step.status) {
@@ -566,6 +570,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
   conversationId,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   const [workflow, setWorkflow] = useState<WorkflowData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -771,7 +776,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
     return null;
   }
 
-  const workflowColor = getStatusColor(workflow.status);
+  const workflowColor = getStatusColor(workflow.status, token);
   const doneCount = steps.filter((s) => isDone(s.status)).length;
   const totalCount = steps.length;
   const progressPct = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;

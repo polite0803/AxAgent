@@ -1,6 +1,7 @@
 import { useAgentStore } from "@/stores";
 import type { PermissionRequestEvent } from "@/types";
-import { Button, Modal, Space, Tag, Typography } from "antd";
+import { Button, Modal, Space, Tag, theme, Typography } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import { CheckCircle, Eye, Info, Pencil, Shield, ShieldCheck, ShieldX, Terminal } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,29 +10,28 @@ const { Text, Paragraph } = Typography;
 
 type RiskLevel = "read_only" | "write" | "execute";
 
-const RISK_CONFIG: Record<
-  RiskLevel,
-  { color: string; icon: React.ReactNode; labelKey: string; bgColor: string }
-> = {
-  read_only: {
-    color: "blue",
-    icon: <Eye size={14} />,
-    labelKey: "permission.readonly",
-    bgColor: "rgba(0, 120, 250, 0.1)",
-  },
-  write: {
-    color: "orange",
-    icon: <Pencil size={14} />,
-    labelKey: "permission.write",
-    bgColor: "rgba(250, 173, 20, 0.1)",
-  },
-  execute: {
-    color: "red",
-    icon: <Terminal size={14} />,
-    labelKey: "permission.execute",
-    bgColor: "rgba(255, 77, 79, 0.1)",
-  },
-};
+function getRiskConfig(token: GlobalToken) {
+  return {
+    read_only: {
+      color: "blue",
+      icon: <Eye size={14} />,
+      labelKey: "permission.readonly",
+      bgColor: token.colorPrimaryBg,
+    },
+    write: {
+      color: "orange",
+      icon: <Pencil size={14} />,
+      labelKey: "permission.write",
+      bgColor: token.colorWarningBg,
+    },
+    execute: {
+      color: "red",
+      icon: <Terminal size={14} />,
+      labelKey: "permission.execute",
+      bgColor: token.colorErrorBg,
+    },
+  } as const;
+}
 
 /**
  * 从工具名称和输入参数生成操作摘要
@@ -115,6 +115,7 @@ function generateOperationSummary(
  */
 export const PermissionModal: React.FC = () => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const pendingPermissions = useAgentStore((s) => s.pendingPermissions);
   const approveToolUse = useAgentStore((s) => s.approveToolUse);
 
@@ -147,7 +148,7 @@ export const PermissionModal: React.FC = () => {
     | [null, null] = currentEntry ?? [null, null];
 
   const riskLevel: RiskLevel = permissionRequest?.riskLevel ?? "read_only";
-  const riskCfg = RISK_CONFIG[riskLevel];
+  const riskCfg = getRiskConfig(token)[riskLevel];
 
   const operationSummary = useMemo(() => {
     if (!permissionRequest) {

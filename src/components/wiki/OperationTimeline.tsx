@@ -7,7 +7,7 @@ import {
   SyncOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Badge, Card, Empty, Space, Tag, Timeline, Typography } from "antd";
+import { Badge, Card, Empty, Space, Tag, theme, Timeline, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -97,6 +97,7 @@ const formatDate = (timestamp: number) => {
 
 export function OperationTimeline({ operations }: OperationTimelineProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   if (operations.length === 0) {
     return (
@@ -136,7 +137,7 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
                 </Text>
               </Space>
 
-              <Space split={<span style={{ color: "#d9d9d9" }}>|</span>}>
+              <Space split={<span style={{ color: token.colorTextQuaternary }}>|</span>}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("wiki.operation.status")}:
                   <Tag
@@ -162,7 +163,7 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
               )}
 
               {op.detailsJson && (
-                <div style={{ fontSize: 12, color: "#8c8c8c" }}>
+                <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
                   {Object.entries(op.detailsJson)
                     .slice(0, 3)
                     .map(([key, value]) => (

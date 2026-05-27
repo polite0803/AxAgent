@@ -1,3 +1,4 @@
+import { theme } from "antd";
 import { memo, useCallback, useEffect, useRef } from "react";
 
 interface ReactPreviewProps {
@@ -12,6 +13,7 @@ export const ReactPreview = memo(function ReactPreview({
   onError,
 }: ReactPreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { token } = theme.useToken();
 
   const buildSrcDoc = useCallback(() => {
     return `<!DOCTYPE html>
@@ -97,7 +99,7 @@ try {
         width: "100%",
         height: "100%",
         border: "none",
-        background: "#fff",
+        background: token.colorBgContainer,
         borderRadius: 8,
       }}
     />

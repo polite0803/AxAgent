@@ -216,7 +216,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         },
         {
           key: "delete",
-          icon: <Trash2 size={14} style={{ color: "#ff4d4f" }} />,
+          icon: <Trash2 size={14} style={{ color: token.colorError }} />,
           label: t("workflow.templateList.delete"),
           onClick: () => {
             setTemplateToDelete(template);
@@ -444,7 +444,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             name: templateToDelete?.name,
           })}
         </p>
-        <p style={{ color: "#ff4d4f", fontSize: 12 }}>
+        <p style={{ color: token.colorError, fontSize: 12 }}>
           {t("workflow.templateList.irreversible")}
         </p>
       </Modal>

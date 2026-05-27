@@ -1,7 +1,10 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Handle, type NodeProps, Position } from "reactflow";
+
+const PURPLE_BASE = "#722ed1";
+const PURPLE_VAR = `var(--purple, ${PURPLE_BASE})`;
 
 interface TriggerNodeData {
   id: string;
@@ -22,8 +25,9 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({
   selected,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const triggerType = data.triggerConfig?.type || "manual";
-  const color = "#722ed1";
+  const color = PURPLE_VAR;
 
   const getTriggerIcon = (type: string): string => {
     switch (type) {
@@ -73,8 +77,8 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -84,11 +88,11 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${PURPLE_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${PURPLE_BASE}15`,
           }}
         >
           <span style={{ fontSize: 14 }}>{getTriggerIcon(triggerType)}</span>
@@ -109,7 +113,7 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -135,7 +139,7 @@ const TriggerNodeComponent: React.FC<NodeProps<TriggerNodeData>> = ({
             <span
               style={{
                 fontSize: 12,
-                color: "#888",
+                color: token.colorTextTertiary,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",

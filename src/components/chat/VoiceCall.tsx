@@ -42,7 +42,7 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
       case "Connected":
         return (
           <div className="flex flex-col items-center gap-4">
-            <Mic size={48} style={{ color: "#52c41a" }} />
+            <Mic size={48} style={{ color: token.colorSuccess }} />
             <Typography.Text style={{ color: textColor, fontSize: 18 }}>
               {t("voice.connected")}
             </Typography.Text>
@@ -73,7 +73,7 @@ function StatusDisplay({ state }: { state: VoiceSessionState }) {
           <div className="flex flex-col items-center gap-4">
             <Volume2
               size={48}
-              style={{ color: "#1677ff" }}
+              style={{ color: token.colorPrimary }}
               className="animate-pulse"
             />
             <Typography.Text style={{ color: textColor, fontSize: 18 }}>
@@ -141,7 +141,7 @@ export function VoiceCall({
   return (
     <div
       className="fixed inset-0 z-[1000] flex flex-col items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.85)" }}
+      style={{ background: controlToken.colorBgMask }}
     >
       {/* Status display */}
       <div className="flex-1 flex items-center justify-center">
@@ -158,7 +158,7 @@ export function VoiceCall({
           style={{
             width: 56,
             height: 56,
-            background: isMuted ? "#ff4d4f" : "rgba(255,255,255,0.2)",
+            background: isMuted ? controlToken.colorError : controlToken.colorFillTertiary,
             border: "none",
             color: btnTextColor,
           }}
@@ -172,7 +172,7 @@ export function VoiceCall({
           style={{
             width: 72,
             height: 72,
-            background: "#ff4d4f",
+            background: controlToken.colorError,
             border: "none",
             color: btnTextColor,
             fontSize: 24,

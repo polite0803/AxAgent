@@ -350,7 +350,7 @@ export function ChatPage() {
             position: "absolute",
             inset: 0,
             zIndex: 39,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: token.colorBgMask,
             transition: "opacity 0.2s",
           }}
         />
@@ -405,7 +405,7 @@ export function ChatPage() {
             bottom: isSmallScreen ? 0 : undefined,
             zIndex: isSmallScreen ? 40 : undefined,
             boxShadow: isSmallScreen && !rightPanelCollapsed
-              ? "-4px 0 16px rgba(0,0,0,0.15)"
+              ? `-4px 0 16px ${token.colorBgMask}`
               : "none",
           }}
         >
@@ -419,9 +419,9 @@ export function ChatPage() {
             style={{
               position: "absolute",
               top: 8,
-              right: rightPanelCollapsed ? "50%" : 8,
+              right: rightPanelCollapsed ? undefined : 8,
               left: rightPanelCollapsed ? "50%" : undefined,
-              transform: rightPanelCollapsed ? "translateX(50%)" : "none",
+              transform: rightPanelCollapsed ? "translateX(-50%)" : "none",
               zIndex: 5,
               width: 28,
               height: 28,
@@ -439,20 +439,22 @@ export function ChatPage() {
             {rightPanelCollapsed ? <ChevronRight size={14} /> : <PanelRight size={14} />}
           </button>
           {/* 始终渲染右侧面板，由 compactMode 控制内部展示 */}
-          {rightPanelContent || (
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: token.colorTextQuaternary,
-                fontSize: 12,
-              }}
-            >
-              {t("chatPage.loading")}
-            </div>
-          )}
+          {!rightPanelCollapsed
+            ? (rightPanelContent || (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: token.colorTextQuaternary,
+                  fontSize: 12,
+                }}
+              >
+                {t("chatPage.loading")}
+              </div>
+            ))
+            : null}
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ import {
   Select,
   Switch,
   Tag,
+  theme,
   TimePicker,
   Typography,
 } from "antd";
@@ -108,6 +109,7 @@ interface TaskTemplate {
 
 export function SchedulerSettings() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const { message } = App.useApp();
   const inTauri = isTauri();
   const settings = useSettingsStore((s) => s.settings);
@@ -921,7 +923,7 @@ export function SchedulerSettings() {
                     {historyMap[task.id]?.length === 0
                       ? (
                         <div
-                          style={{ fontSize: 12, color: "#888", padding: "4px 0" }}
+                          style={{ fontSize: 12, color: token.colorTextTertiary, padding: "4px 0" }}
                         >
                           {t("scheduler.noRecords")}
                         </div>
@@ -946,7 +948,7 @@ export function SchedulerSettings() {
                                 borderBottom: "1px solid var(--color-border)",
                                 backgroundColor: rec.success
                                   ? undefined
-                                  : "#fff2f0",
+                                  : token.colorErrorBg,
                               }}
                             >
                               <Tag
@@ -967,12 +969,12 @@ export function SchedulerSettings() {
                               >
                                 {rec.output || rec.error || "-"}
                               </span>
-                              <span style={{ color: "#888", whiteSpace: "nowrap" }}>
+                              <span style={{ color: token.colorTextTertiary, whiteSpace: "nowrap" }}>
                                 {rec.duration_ms}ms
                               </span>
                               <span
                                 style={{
-                                  color: "#bbb",
+                                  color: token.colorTextQuaternary,
                                   whiteSpace: "nowrap",
                                   fontSize: 10,
                                 }}
@@ -1017,7 +1019,7 @@ export function SchedulerSettings() {
               </label>
 
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: token.colorTextTertiary, marginBottom: 6 }}>
                   {t("settings.scheduler.reportTemplates")}
                 </div>
                 <div

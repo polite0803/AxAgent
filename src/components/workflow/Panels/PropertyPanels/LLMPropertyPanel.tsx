@@ -1,7 +1,7 @@
 import { ModelSelect } from "@/components/shared/ModelSelect";
 import { usePromptTemplateStore, useProviderStore } from "@/stores";
 import type { PromptTemplate } from "@/types";
-import { Button, Input, InputNumber, message, Modal } from "antd";
+import { Button, Input, InputNumber, message, Modal, theme } from "antd";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LLMNode, WorkflowNode } from "../../types";
@@ -19,6 +19,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [messageApi, contextHolder] = message.useMessage();
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
@@ -100,7 +101,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -120,7 +121,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -150,7 +151,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -167,7 +168,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
             size="small"
             style={{ width: "100%" }}
           />
-          <div style={{ fontSize: 9, color: "#666", marginTop: 2 }}>
+          <div style={{ fontSize: 9, color: token.colorTextTertiary, marginTop: 2 }}>
             {t("workflow.props.temperatureHint")}
           </div>
         </div>
@@ -175,7 +176,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -196,7 +197,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
       </div>
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}
@@ -251,7 +252,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
                       : {},
                   ).length === 0
                 && (
-                  <p style={{ color: "#f59e0b", fontSize: 12 }}>
+                  <p style={{ color: token.colorWarning, fontSize: 12 }}>
                     {t("promptTemplates.hasVariables", {
                       variables: parseVariables(selectedTemplate.content).join(
                         ", ",
@@ -265,7 +266,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
             <div style={{ maxHeight: 400, overflowY: "auto" }}>
               {activeTemplates.length === 0
                 ? (
-                  <div style={{ textAlign: "center", padding: 24, color: "#999" }}>
+                  <div style={{ textAlign: "center", padding: 24, color: token.colorTextTertiary }}>
                     {t("promptTemplates.noTemplates")}
                   </div>
                 )
@@ -288,7 +289,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
                       }}
                     >
                       <div style={{ fontWeight: 500 }}>{template.name}</div>
-                      <div style={{ fontSize: 12, color: "#999" }}>
+                      <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
                         {template.description
                           || template.content.slice(0, 60) + "..."}
                       </div>

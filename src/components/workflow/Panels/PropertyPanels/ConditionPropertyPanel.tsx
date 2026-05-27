@@ -1,4 +1,4 @@
-import { Button, Divider, Input, Select, Switch } from "antd";
+import { Button, Divider, Input, Select, Switch, theme } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const conditionNode = node as ConditionNode;
   const config = conditionNode.config || {
     conditions: [],
@@ -92,7 +93,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -113,7 +114,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
 
       {/* LLM 动态路由开关 */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label style={{ color: "#999", fontSize: 12 }}>
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
           {t("workflow.props.llmRouting")}
         </label>
         <Switch
@@ -124,7 +125,15 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
       </div>
 
       {config.judge_by_llm && (
-        <div style={{ fontSize: 11, color: "#faad14", padding: "4px 8px", background: "#faad1410", borderRadius: 4 }}>
+        <div
+          style={{
+            fontSize: 11,
+            color: token.colorWarning,
+            padding: "4px 8px",
+            background: token.colorWarningBg,
+            borderRadius: 4,
+          }}
+        >
           {t("workflow.props.llmRoutingHint")}
         </div>
       )}
@@ -138,7 +147,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
             marginBottom: 8,
           }}
         >
-          <label style={{ color: "#999", fontSize: 12 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.props.conditions")} ({config.conditions.length})
           </label>
           <Button
@@ -157,7 +166,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
               key={`${condition.var_path}-${condition.operator}-${String(condition.value)}-${index}`}
               style={{
                 padding: 8,
-                background: "#1e1e1e",
+                background: token.colorBgElevated,
                 borderRadius: 6,
                 border: "1px solid #333",
               }}
@@ -216,7 +225,7 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
           {config.conditions.length === 0 && (
             <div
               style={{
-                color: "#666",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 textAlign: "center",
                 padding: 16,
@@ -228,10 +237,10 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
         </div>
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

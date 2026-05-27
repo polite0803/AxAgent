@@ -2,7 +2,7 @@
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import { BellOutlined } from "@ant-design/icons";
-import { Badge, Empty, Typography } from "antd";
+import { Badge, Empty, theme, Typography } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -41,6 +41,7 @@ export function NotificationBell() {
   const [, setTick] = useState(0);
   const [open, setOpen] = useState(false);
   const { t, i18n } = useTranslation();
+  const { token } = theme.useToken();
 
   // 订阅全局通知变化
   const refresh = useCallback(() => setTick((n) => n + 1), []);
@@ -74,10 +75,10 @@ export function NotificationBell() {
             style={{
               fontSize: 12,
               color: n.type === "error"
-                ? "#ff4d4f"
+                ? token.colorError
                 : n.type === "warning"
-                ? "#faad14"
-                : "#52c41a",
+                ? token.colorWarning
+                : token.colorSuccess,
             }}
           >
             {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.message}

@@ -841,7 +841,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 <Controls />
                 <MiniMap
                   nodeColor={(node: Node<BaseNodeData>) => node.data?.color || token.colorTextQuaternary}
-                  maskColor="rgba(0, 0, 0, 0.8)"
+                  maskColor={token.colorBgMask}
                 />
                 {nodes.length === 0 && (
                   <Panel
@@ -928,7 +928,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             bottom: 60,
             left: "50%",
             transform: "translateX(-50%)",
-            color: "red",
+            color: token.colorError,
           }}
         >
           {error}

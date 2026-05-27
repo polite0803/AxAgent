@@ -1,31 +1,37 @@
 import { useUIStore } from "@/stores";
 import { type BuddyAttributes, useBuddyStore } from "@/stores/feature/buddyStore";
 import { CloseOutlined, EyeInvisibleOutlined, EyeOutlined, RobotOutlined } from "@ant-design/icons";
-import { Button, Card, Progress, Tag, Typography } from "antd";
+import { Button, Card, Progress, Tag, theme, Typography } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BuddyMessageBubble } from "./BuddyMessage";
 
 const { Text } = Typography;
 
-const rarityColors: Record<string, string> = {
-  common: "#8c8c8c",
-  uncommon: "#52c41a",
-  rare: "#1890ff",
-  epic: "#722ed1",
-  legendary: "#faad14",
-};
+function getRarityColors(token: GlobalToken): Record<string, string> {
+  return {
+    common: token.colorTextTertiary,
+    uncommon: token.colorSuccess,
+    rare: token.colorPrimary,
+    epic: "var(--purple, #722ed1)",
+    legendary: token.colorWarning,
+  };
+}
 
-const attrColors: Record<keyof BuddyAttributes, string> = {
-  debugging: "#1890ff",
-  patience: "#52c41a",
-  chaos: "#fa541c",
-  wisdom: "#722ed1",
-  snark: "#eb2f96",
-};
+function getAttrColors(token: GlobalToken): Record<keyof BuddyAttributes, string> {
+  return {
+    debugging: token.colorPrimary,
+    patience: token.colorSuccess,
+    chaos: "var(--orange, #fa541c)",
+    wisdom: "var(--purple, #722ed1)",
+    snark: "var(--magenta, #eb2f96)",
+  };
+}
 
 export function BuddyWidget() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const activeBuddy = useBuddyStore((s) => s.activeBuddy);
   const showPanel = useBuddyStore((s) => s.showPanel);
   const messages = useBuddyStore((s) => s.messages);
@@ -355,12 +361,12 @@ export function BuddyWidget() {
                 </Text>
                 <div>
                   <Tag
-                    color={rarityColors[buddy.rarity]}
+                    color={getRarityColors(token)[buddy.rarity]}
                     style={{ fontSize: 12, lineHeight: "18px", margin: 0 }}
                   >
                     {rarityLabels[buddy.rarity]}
                   </Tag>
-                  <Text style={{ fontSize: 12, color: "#999", marginLeft: 6 }}>
+                  <Text style={{ fontSize: 12, color: token.colorTextTertiary, marginLeft: 6 }}>
                     Lv.{buddy.level}
                   </Text>
                 </div>
@@ -407,14 +413,14 @@ export function BuddyWidget() {
                 <Progress
                   percent={buddy.attributes[key] * 10}
                   size="small"
-                  strokeColor={attrColors[key]}
+                  strokeColor={getAttrColors(token)[key]}
                   showInfo={false}
                   style={{ flex: 1, margin: 0 }}
                 />
                 <Text
                   style={{
                     fontSize: 12,
-                    color: "#999",
+                    color: token.colorTextTertiary,
                     width: 20,
                     textAlign: "right",
                   }}
@@ -433,7 +439,7 @@ export function BuddyWidget() {
             <Progress
               percent={Math.round((buddy.xp / (100 + buddy.level * 50)) * 100)}
               size="small"
-              strokeColor="#faad14"
+              strokeColor={token.colorWarning}
               format={() => `${buddy.xp} XP`}
               style={{ margin: 0 }}
             />
@@ -492,8 +498,8 @@ export function BuddyWidget() {
               position: "absolute",
               top: -4,
               right: -4,
-              background: "#faad14",
-              color: "#fff",
+              background: token.colorWarning,
+              color: token.colorTextLightSolid,
               fontSize: 10,
               fontWeight: 700,
               width: 20,
@@ -502,7 +508,7 @@ export function BuddyWidget() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: "2px solid #fff",
+              border: `2px solid ${token.colorBgContainer}`,
             }}
           >
             {buddy.level}
@@ -534,7 +540,7 @@ export function BuddyWidget() {
             {lastMessage && (
               <>
                 {": "}
-                <Text style={{ fontSize: 12, color: "#999" }}>
+                <Text style={{ fontSize: 12, color: token.colorTextTertiary }}>
                   "{lastMessage.text.slice(0, 20)}
                   {lastMessage.text.length > 20 ? "..." : ""}"
                 </Text>

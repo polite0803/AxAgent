@@ -90,12 +90,14 @@ export interface GraphViewProps {
   communities?: Map<string, number>;
 }
 
-const nodeColors: Record<GraphNodeType, string> = {
-  note: "#1890ff",
-  concept: "#52c41a",
-  entity: "#fa8c16",
-  source: "#eb2f96",
-};
+type TokenType = ReturnType<typeof theme.useToken>["token"];
+
+const getNodeColorMap = (token: TokenType): Record<GraphNodeType, string> => ({
+  note: token.colorPrimary,
+  concept: token.colorSuccess,
+  entity: "var(--orange, #fa8c16)",
+  source: "var(--magenta, #eb2f96)",
+});
 
 const communityPalette = [
   "#4C72B0",
@@ -112,7 +114,7 @@ const communityPalette = [
   "#7AA153",
 ];
 
-const edgeTypeStyles: Record<
+const getEdgeTypeStylesMap = (token: TokenType): Record<
   GraphEdgeType,
   {
     stroke: string;
@@ -120,38 +122,38 @@ const edgeTypeStyles: Record<
     dashArray: string | undefined;
     animated: boolean;
   }
-> = {
+> => ({
   link: {
-    stroke: "#d9d9d9",
+    stroke: token.colorBorderSecondary,
     strokeWidth: 1,
     dashArray: undefined,
     animated: false,
   },
   backlink: {
-    stroke: "#1890ff",
+    stroke: token.colorPrimary,
     strokeWidth: 2,
     dashArray: undefined,
     animated: true,
   },
   reference: {
-    stroke: "#52c41a",
+    stroke: token.colorSuccess,
     strokeWidth: 1.5,
     dashArray: "8,4",
     animated: false,
   },
   derived_from: {
-    stroke: "#fa8c16",
+    stroke: "var(--orange, #fa8c16)",
     strokeWidth: 1.5,
     dashArray: "2,4",
     animated: false,
   },
   contradicts: {
-    stroke: "#ff4d4f",
+    stroke: token.colorError,
     strokeWidth: 2,
     dashArray: "4,4",
     animated: false,
   },
-};
+});
 
 const edgeTypeLabels: Record<GraphEdgeType, string> = {
   link: "wiki.graph.edgeType.link",
@@ -164,11 +166,15 @@ const edgeTypeLabels: Record<GraphEdgeType, string> = {
 function getNodeColor(
   node: GraphNode,
   communities?: Map<string, number>,
+  token?: TokenType,
 ): string {
   if (communities && communities.has(node.id)) {
     const communityId = communities.get(node.id)!;
     return communityPalette[communityId % communityPalette.length];
   }
+  const nodeColors = token
+    ? getNodeColorMap(token)
+    : { note: "#1890ff", concept: "#52c41a", entity: "#fa8c16", source: "#eb2f96" };
   return nodeColors[node.type] || nodeColors.note;
 }
 
@@ -284,6 +290,7 @@ function WikiEdgeComponent({
   });
 
   const edgeType = data?.edgeType || "link";
+  const edgeTypeStyles = getEdgeTypeStylesMap(token);
   const style = edgeTypeStyles[edgeType];
   const isSelected = !!selected;
 
@@ -302,7 +309,7 @@ function WikiEdgeComponent({
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        stroke={isSelected ? "#1890ff" : style.stroke}
+        stroke={isSelected ? token.colorPrimary : style.stroke}
         strokeWidth={isSelected ? style.strokeWidth + 0.5 : style.strokeWidth}
         fill="none"
         strokeDasharray={style.dashArray}
@@ -365,6 +372,7 @@ const CustomNode = ({
   selected: boolean;
 }) => {
   const { token } = theme.useToken();
+  const nodeColors = getNodeColorMap(token);
   const nodeColor = data.color || nodeColors[data.type] || nodeColors.note;
   const isHighlighted = data.isHighlighted !== false;
   const isSelected = data.isSelected || selected;
@@ -535,6 +543,8 @@ function GraphViewInner({
 }: GraphViewProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
+  const nodeColors = getNodeColorMap(token);
+  const edgeTypeStyles = getEdgeTypeStylesMap(token);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(
@@ -684,7 +694,7 @@ function GraphViewInner({
             onHover: onNodeHover,
             isHighlighted: !hasHighlights || (highlightedNodeIds?.has(node.id) ?? true),
             isSelected: selectedNodeId === node.id,
-            color: getNodeColor(node, communities),
+            color: getNodeColor(node, communities, token),
             isExpanded: expandedNodeIds.has(node.id),
             entranceVisible: entranceComplete,
           },
@@ -700,6 +710,7 @@ function GraphViewInner({
       communities,
       expandedNodeIds,
       entranceComplete,
+      token,
     ],
   );
 
@@ -727,7 +738,7 @@ function GraphViewInner({
           animated: edge.type === "backlink",
         };
       }),
-    [filteredEdges, hasHighlights, highlightedNodeIds],
+    [filteredEdges, hasHighlights, highlightedNodeIds, edgeTypeStyles],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -875,7 +886,7 @@ function GraphViewInner({
             nodeColor={(n) => {
               const graphNode = data.nodes.find((gn) => gn.id === n.id);
               return graphNode
-                ? getNodeColor(graphNode, communities)
+                ? getNodeColor(graphNode, communities, token)
                 : nodeColors.note;
             }}
             maskColor={`${token.colorBgContainer}aa`}

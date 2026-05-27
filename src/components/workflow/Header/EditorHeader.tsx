@@ -127,7 +127,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         />
       )}
 
-      <Bot size={20} style={{ color: "#1890ff" }} />
+      <Bot size={20} style={{ color: token.colorPrimary }} />
 
       {isEditing
         ? (
@@ -334,7 +334,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<PanelLeft size={18} />}
                   onClick={onToggleLeftPanel}
-                  style={{ color: !leftPanelCollapsed ? "#1890ff" : token.colorTextSecondary }}
+                  style={{ color: !leftPanelCollapsed ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
             )}
@@ -344,7 +344,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<PanelRight size={18} />}
                   onClick={onToggleRightPanel}
-                  style={{ color: !rightPanelCollapsed ? "#1890ff" : token.colorTextSecondary }}
+                  style={{ color: !rightPanelCollapsed ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
             )}
@@ -355,7 +355,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   data-testid="workflow-ai-panel-btn"
                   icon={<Sparkles size={18} />}
                   onClick={onToggleAIPanel}
-                  style={{ color: aiPanelVisible ? "#1890ff" : token.colorTextSecondary }}
+                  style={{ color: aiPanelVisible ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
             )}
@@ -365,7 +365,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   type="text"
                   icon={<Bug size={18} />}
                   onClick={onToggleDebugPanel}
-                  style={{ color: debugPanelVisible ? "#1890ff" : token.colorTextSecondary }}
+                  style={{ color: debugPanelVisible ? token.colorPrimary : token.colorTextSecondary }}
                 />
               </Tooltip>
             )}

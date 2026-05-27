@@ -1,6 +1,6 @@
 import type { Citation } from "@/types";
 import { CheckCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined } from "@ant-design/icons";
-import { Button, Card, Divider, Select, Space, Tabs, Tag, Typography } from "antd";
+import { Button, Card, Divider, Select, Space, Tabs, Tag, theme, Typography } from "antd";
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,6 +33,7 @@ export function ReportViewer({
   onReset,
 }: ReportViewerProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const getSourceTypeName = (sourceType: string): string =>
     t(`report.sourceType.${sourceType.toLowerCase()}`, sourceType);
   const [selectedFormat, setSelectedFormat] = useState<ReportFormat>("markdown");
@@ -134,7 +135,7 @@ export function ReportViewer({
         fontFamily: "inherit",
         fontSize: "14px",
         lineHeight: 1.6,
-        background: "#fafafa",
+        background: token.colorFillQuaternary,
         padding: "16px",
         borderRadius: "8px",
         maxHeight: "500px",
@@ -149,7 +150,7 @@ export function ReportViewer({
     return (
       <div
         style={{
-          background: "#fff",
+          background: token.colorBgContainer,
           padding: "16px",
           borderRadius: "8px",
           border: "1px solid #f0f0f0",

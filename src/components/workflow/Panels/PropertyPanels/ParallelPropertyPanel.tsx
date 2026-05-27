@@ -1,5 +1,5 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Button, Divider, Input, Select, Switch, Tag } from "antd";
+import { Button, Divider, Input, Select, Switch, Tag, theme } from "antd";
 import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const parallelNode = node as ParallelNode;
   const config = parallelNode.config || {
     branches: [],
@@ -93,7 +94,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
           justifyContent: "space-between",
         }}
       >
-        <label style={{ color: "#999", fontSize: 12 }}>
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
           {t("workflow.props.waitForAllBranches")}
         </label>
         <Switch
@@ -108,7 +109,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
             })}
         />
       </div>
-      <div style={{ color: "#666", fontSize: 12 }}>
+      <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
         {config.wait_for_all
           ? t("workflow.props.waitForAllHint")
           : t("workflow.props.waitForAnyHint")}
@@ -118,7 +119,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -150,7 +151,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
             marginBottom: 8,
           }}
         >
-          <label style={{ color: "#999", fontSize: 12 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.props.branches")}
           </label>
           <Button
@@ -171,7 +172,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
                 key={branch.id || index}
                 style={{
                   padding: 8,
-                  background: "#1e1e1e",
+                  background: token.colorBgElevated,
                   borderRadius: 6,
                   border: "1px solid #333",
                 }}
@@ -184,7 +185,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
                     marginBottom: 8,
                   }}
                 >
-                  <GripVertical size={12} color="#666" />
+                  <GripVertical size={12} color={token.colorTextTertiary} />
                   <Input
                     id="parallel-property-panel-input-106"
                     value={branch.title}
@@ -210,7 +211,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
                     paddingLeft: 20,
                   }}
                 >
-                  <label style={{ fontSize: 12, color: "#888" }}>
+                  <label style={{ fontSize: 12, color: token.colorTextTertiary }}>
                     {t("workflow.props.steps")}
                   </label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -220,9 +221,9 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
                         closable
                         onClose={() => handleRemoveStepFromBranch(index, stepId)}
                         style={{
-                          background: "#2a2a2a",
+                          background: token.colorFillQuaternary,
                           border: "1px solid #444",
-                          color: "#ddd",
+                          color: token.colorTextQuaternary,
                         }}
                         closeIcon={<X size={10} />}
                       >
@@ -230,7 +231,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
                       </Tag>
                     ))}
                     {branch.steps.length === 0 && (
-                      <span style={{ fontSize: 12, color: "#666" }}>
+                      <span style={{ fontSize: 12, color: token.colorTextTertiary }}>
                         {t("workflow.props.noSteps")}
                       </span>
                     )}
@@ -255,7 +256,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
           {config.branches.length === 0 && (
             <div
               style={{
-                color: "#666",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 textAlign: "center",
                 padding: 16,
@@ -267,10 +268,10 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
         </div>
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

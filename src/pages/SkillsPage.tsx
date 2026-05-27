@@ -305,6 +305,7 @@ function MarketplaceCard({
   t: TFunction;
   source: string;
 }) {
+  const { token: cardToken } = theme.useToken();
   const githubUrl = `https://github.com/${skill.repo}`;
 
   return (
@@ -344,7 +345,7 @@ function MarketplaceCard({
                     gap: 2,
                   }}
                 >
-                  <Star size={12} style={{ color: "#faad14" }} /> {skill.stars.toLocaleString()}
+                  <Star size={12} style={{ color: cardToken.colorWarning }} /> {skill.stars.toLocaleString()}
                 </Text>
               )
               : (
@@ -1059,7 +1060,7 @@ export function SkillsPage() {
                                 size="small"
                                 checked={allEnabled}
                                 style={someEnabled && !allEnabled
-                                  ? { backgroundColor: "#faad14" }
+                                  ? { backgroundColor: token.colorWarning }
                                   : undefined}
                                 onChange={(checked) => {
                                   handleGroupToggle(groupSkills, checked);

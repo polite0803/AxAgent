@@ -1,4 +1,4 @@
-import { Divider, Input, InputNumber, Select, Switch } from "antd";
+import { Divider, Input, InputNumber, Select, Switch, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowNode } from "../../types";
@@ -14,13 +14,14 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
   onUpdate,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -39,7 +40,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -62,7 +63,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
           justifyContent: "space-between",
         }}
       >
-        <label style={{ color: "#999", fontSize: 12 }}>
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
           {t("workflow.props.enabled")}
         </label>
         <Switch
@@ -72,13 +73,13 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
         />
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div>
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -100,7 +101,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
             }}
           >
             <div>
-              <label style={{ color: "#666", fontSize: 12 }}>
+              <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                 {t("workflow.props.maxRetries")}
               </label>
               <InputNumber
@@ -117,7 +118,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 12 }}>
+              <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                 {t("workflow.props.backoffStrategy")}
               </label>
               <Select
@@ -136,7 +137,7 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
               />
             </div>
             <div>
-              <label style={{ color: "#666", fontSize: 12 }}>
+              <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                 {t("workflow.props.baseDelayMs")}
               </label>
               <InputNumber
@@ -156,13 +157,13 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
         )}
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div>
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}

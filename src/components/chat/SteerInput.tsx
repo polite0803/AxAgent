@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import { Button, Input, message } from "antd";
+import { Button, Input, message, theme } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,6 +9,7 @@ interface SteerInputProps {
 
 export function SteerInput({ conversationId }: SteerInputProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [instruction, setInstruction] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -29,7 +30,13 @@ export function SteerInput({ conversationId }: SteerInputProps) {
   };
 
   return (
-    <div className="flex gap-2 items-center p-2 border-t border-amber-200 bg-amber-50">
+    <div
+      className="flex gap-2 items-center p-2"
+      style={{
+        borderTop: `1px solid ${token.colorBorderSecondary}`,
+        backgroundColor: token.colorFillAlter,
+      }}
+    >
       <Input
         id="steer-input-input-32"
         size="small"
@@ -50,7 +57,6 @@ export function SteerInput({ conversationId }: SteerInputProps) {
         loading={sending}
         disabled={!instruction.trim()}
         onClick={handleSteer}
-        style={{ backgroundColor: "#d97706", borderColor: "#d97706" }}
       >
         {t("chat.steer")}
       </Button>

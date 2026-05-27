@@ -357,7 +357,7 @@ function MultiModelDisplayInner({
                     backgroundColor: isActive
                       ? token.colorPrimary
                       : "transparent",
-                    color: isActive ? "#fff" : token.colorTextSecondary,
+                    color: isActive ? token.colorTextLightSolid : token.colorTextSecondary,
                     border: isActive
                       ? "none"
                       : `1px solid ${token.colorBorder}`,

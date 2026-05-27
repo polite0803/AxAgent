@@ -1,6 +1,6 @@
 import { invoke } from "@/lib/invoke";
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Card, Popconfirm, Spin, Statistic, Table, Tag } from "antd";
+import { Button, Card, Popconfirm, Spin, Statistic, Table, Tag, theme } from "antd";
 import { Activity, BarChart3, Clock, Server } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,6 +28,7 @@ interface RequestLog {
 
 export function GatewayMonitor() {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const [metrics, setMetrics] = useState<GatewayMetrics | null>(null);
   const [logs, setLogs] = useState<RequestLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -210,7 +211,7 @@ export function GatewayMonitor() {
                   title={t("gatewayMonitor.errorCount")}
                   value={metrics.error_count}
                   valueStyle={{
-                    color: metrics.error_count > 0 ? "#ff4d4f" : undefined,
+                    color: metrics.error_count > 0 ? token.colorError : undefined,
                   }}
                 />
               </Card>

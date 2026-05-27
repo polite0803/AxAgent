@@ -1,5 +1,5 @@
 import { useWorkflowEditorStore } from "@/stores";
-import { Divider, Input, InputNumber, Select, Switch, Tag } from "antd";
+import { Divider, Input, InputNumber, Select, Switch, Tag, theme } from "antd";
 import { X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const loopNode = node as LoopNode;
   const config = loopNode.config || {
     loop_type: "forEach" as LoopType,
@@ -62,7 +63,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -89,7 +90,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 4,
               }}
@@ -108,7 +109,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
             <label
               style={{
                 display: "block",
-                color: "#999",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 marginBottom: 4,
               }}
@@ -131,7 +132,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -154,7 +155,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -176,7 +177,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -201,7 +202,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           justifyContent: "space-between",
         }}
       >
-        <label style={{ color: "#999", fontSize: 12 }}>
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
           {t("workflow.props.continueOnError")}
         </label>
         <Switch
@@ -215,7 +216,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -231,9 +232,9 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
               closable
               onClose={() => handleRemoveStep(stepId)}
               style={{
-                background: "#2a2a2a",
+                background: token.colorFillQuaternary,
                 border: "1px solid #444",
-                color: "#ddd",
+                color: token.colorTextQuaternary,
               }}
               closeIcon={<X size={10} />}
             >
@@ -241,7 +242,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
             </Tag>
           ))}
           {config.body_steps.length === 0 && (
-            <div style={{ color: "#666", fontSize: 12 }}>
+            <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.noLoopSteps")}
             </div>
           )}
@@ -253,7 +254,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -273,10 +274,10 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         </div>
       )}
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

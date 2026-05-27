@@ -8,6 +8,7 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 import { Button, Progress, Tag, theme } from "antd";
+import type { GlobalToken } from "antd/es/theme/interface";
 import { AlertTriangle, ClipboardList, Play, RotateCcw, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,41 +17,43 @@ import { Tooltip } from "@/components/layout/Tooltip";
 
 // ── Status Icons ──────────────────────────────────────────────────────
 
-const statusConfig: Record<
+function getStatusConfig(token: GlobalToken): Record<
   PlanStepStatus,
   { icon: React.ReactNode; color: string; labelKey: string }
-> = {
-  pending: {
-    icon: <span className="plan-step-dot" style={{ background: "#d9d9d9" }} />,
-    color: "#8c8c8c",
-    labelKey: "plan.status.pending",
-  },
-  approved: {
-    icon: <CheckCircleFilled style={{ color: "#52c41a", fontSize: 14 }} />,
-    color: "#52c41a",
-    labelKey: "plan.status.approved",
-  },
-  rejected: {
-    icon: <CloseCircleFilled style={{ color: "#ff4d4f", fontSize: 14 }} />,
-    color: "#ff4d4f",
-    labelKey: "plan.status.rejected",
-  },
-  running: {
-    icon: <LoadingOutlined style={{ color: "#1890ff", fontSize: 14 }} />,
-    color: "#1890ff",
-    labelKey: "plan.status.running",
-  },
-  completed: {
-    icon: <CheckCircleFilled style={{ color: "#52c41a", fontSize: 14 }} />,
-    color: "#52c41a",
-    labelKey: "plan.status.completed",
-  },
-  error: {
-    icon: <CloseCircleFilled style={{ color: "#ff4d4f", fontSize: 14 }} />,
-    color: "#ff4d4f",
-    labelKey: "plan.status.error",
-  },
-};
+> {
+  return {
+    pending: {
+      icon: <span className="plan-step-dot" style={{ background: token.colorFillSecondary }} />,
+      color: token.colorTextTertiary,
+      labelKey: "plan.status.pending",
+    },
+    approved: {
+      icon: <CheckCircleFilled style={{ color: token.colorSuccess, fontSize: 14 }} />,
+      color: token.colorSuccess,
+      labelKey: "plan.status.approved",
+    },
+    rejected: {
+      icon: <CloseCircleFilled style={{ color: token.colorError, fontSize: 14 }} />,
+      color: token.colorError,
+      labelKey: "plan.status.rejected",
+    },
+    running: {
+      icon: <LoadingOutlined style={{ color: token.colorPrimary, fontSize: 14 }} />,
+      color: token.colorPrimary,
+      labelKey: "plan.status.running",
+    },
+    completed: {
+      icon: <CheckCircleFilled style={{ color: token.colorSuccess, fontSize: 14 }} />,
+      color: token.colorSuccess,
+      labelKey: "plan.status.completed",
+    },
+    error: {
+      icon: <CloseCircleFilled style={{ color: token.colorError, fontSize: 14 }} />,
+      color: token.colorError,
+      labelKey: "plan.status.error",
+    },
+  };
+}
 
 // ── Progress calculation ──────────────────────────────────────────────
 
@@ -260,7 +263,7 @@ export function PlanCard({
       {/* Steps List */}
       <div className="plan-card-steps" style={{ padding: "4px 0" }}>
         {localSteps.map((step, index) => {
-          const config = statusConfig[step.status];
+          const config = getStatusConfig(token)[step.status];
           const isExpanded = expandedSteps.has(step.id);
 
           return (
@@ -320,9 +323,9 @@ export function PlanCard({
                     ? "#fff"
                     : config.color,
                   backgroundColor: step.status === "completed"
-                    ? "#52c41a"
+                    ? token.colorSuccess
                     : step.status === "running"
-                    ? "#1890ff"
+                    ? token.colorPrimary
                     : "transparent",
                   border: step.status === "pending" || step.status === "approved"
                     ? `2px solid ${config.color}`
@@ -394,8 +397,10 @@ export function PlanCard({
                       marginTop: 6,
                       padding: "6px 10px",
                       borderRadius: 4,
-                      backgroundColor: step.status === "error" ? "#fff2f0" : "#f6ffed",
-                      border: `1px solid ${step.status === "error" ? "#ffccc7" : "#b7eb8f"}`,
+                      backgroundColor: step.status === "error" ? token.colorErrorBg : token.colorSuccessBg,
+                      border: `1px solid ${
+                        step.status === "error" ? token.colorErrorBorder : token.colorSuccessBorder
+                      }`,
                       fontSize: 12,
                       color: token.colorTextSecondary,
                       lineHeight: 1.4,
@@ -415,7 +420,7 @@ export function PlanCard({
                       size="small"
                       icon={
                         <CheckCircleFilled
-                          style={{ color: "#52c41a", fontSize: 16 }}
+                          style={{ color: token.colorSuccess, fontSize: 16 }}
                         />
                       }
                       onClick={(e) => {
@@ -432,7 +437,7 @@ export function PlanCard({
                       size="small"
                       icon={
                         <CloseCircleFilled
-                          style={{ color: "#ff4d4f", fontSize: 16 }}
+                          style={{ color: token.colorError, fontSize: 16 }}
                         />
                       }
                       onClick={(e) => {

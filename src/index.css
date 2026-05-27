@@ -2074,6 +2074,128 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 }
 .msg-content pre code { background: none; padding: 0; color: var(--color-text); }
 
+.msg-content.bubble-outlined {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+}
+.msg-content.bubble-shadow {
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.04);
+}
+.msg-content.bubble-filled {
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-container));
+}
+.msg-content.bubble-borderless {
+  padding: 4px 0;
+}
+
+.msg-row.user {
+  flex-direction: row-reverse;
+}
+.msg-row.user .msg-content {
+  width: auto;
+  max-width: 100%;
+  margin-inline-start: auto;
+}
+.msg-row,
+.msg-body {
+  min-width: 0;
+  max-width: 100%;
+}
+.msg-row.assistant .msg-body {
+  width: 100%;
+}
+.msg-content {
+  overflow: hidden;
+  min-width: 0;
+}
+.msg-content .markstream-react {
+  overflow: hidden;
+  min-width: 0;
+}
+.msg-content .think-block,
+.msg-content .think-body,
+.msg-content .think-header {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.msg-content .code-block-node,
+.msg-content .code-block-container {
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+.msg-header {
+  margin-bottom: 4px;
+}
+.msg-footer {
+  margin-block-start: 4px;
+}
+.context-clear-bubble.msg-row {
+  width: 100%;
+  padding-inline-end: 0 !important;
+  padding-inline-start: 0 !important;
+}
+.bubble-compact .msg-row {
+  margin-bottom: 4px;
+}
+.bubble-compact .msg-content {
+  padding: 6px 10px;
+}
+.bubble-minimal .msg-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 4px 0;
+}
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.msg-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-size: 12px;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.msg-action-btn:hover {
+  background: color-mix(in srgb, var(--accent-deco) 8%, transparent);
+  color: var(--color-primary);
+}
+.msg-action-label {
+  font-size: 11px;
+}
+.msg-action-custom {
+  display: inline-flex;
+  align-items: center;
+}
+.chat-input-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
 /* ── 右面板 (详情/Agent 面板) ── */
 .right-panel {
   width: 0;

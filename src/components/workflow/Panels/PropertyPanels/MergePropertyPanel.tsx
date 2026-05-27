@@ -1,4 +1,4 @@
-import { Divider, Select } from "antd";
+import { Divider, Select, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { MergeNode, WorkflowNode } from "../../types";
@@ -16,6 +16,7 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const mergeNode = node as MergeNode;
   const config = mergeNode.config || {
     merge_type: "all",
@@ -32,7 +33,7 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -56,22 +57,22 @@ export const MergePropertyPanel: React.FC<MergePropertyPanelProps> = ({
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
         >
           {t("workflow.props.inputCount")} ({config.inputs?.length || 0})
         </label>
-        <div style={{ color: "#666", fontSize: 12 }}>
+        <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
           {t("workflow.props.connectInputsHint")}
         </div>
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

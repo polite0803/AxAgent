@@ -1,6 +1,9 @@
-import { Tag } from "antd";
+import { Tag, theme } from "antd";
 import React, { memo } from "react";
 import { Handle, type NodeProps, Position } from "reactflow";
+
+const CYAN_BASE = "#13c2c2";
+const CYAN_VAR = `var(--cyan, ${CYAN_BASE})`;
 
 interface LLMNodeData {
   id: string;
@@ -21,7 +24,8 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
   data,
   selected,
 }) => {
-  const color = "#13c2c2";
+  const { token } = theme.useToken();
+  const color = CYAN_VAR;
 
   const getModelIcon = (model: string): string => {
     if (!model) {
@@ -80,8 +84,8 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
     >
       <div
         style={{
-          background: "#1e1e1e",
-          border: `2px solid ${selected ? "#1890ff" : color}`,
+          background: token.colorBgElevated,
+          border: `2px solid ${selected ? token.colorPrimary : color}`,
           borderRadius: 8,
           overflow: "hidden",
           boxShadow: selected ? `0 0 0 2px ${color}40` : "none",
@@ -91,11 +95,11 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
         <div
           style={{
             padding: "8px 12px",
-            borderBottom: `1px solid ${color}30`,
+            borderBottom: `1px solid ${CYAN_BASE}30`,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: `${color}15`,
+            background: `${CYAN_BASE}15`,
           }}
         >
           <span style={{ fontSize: 14 }}>{getModelIcon(data.model || "")}</span>
@@ -114,9 +118,9 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
                 margin: 0,
                 fontSize: 9,
                 padding: "0 4px",
-                background: `${color}30`,
+                background: `${CYAN_BASE}30`,
                 border: "none",
-                color: "#fff",
+                color: token.colorText,
               }}
             >
               {data.model.length > 15
@@ -130,7 +134,7 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
           <div
             style={{
               fontSize: 13,
-              color: "#fff",
+              color: token.colorText,
               fontWeight: 500,
               marginBottom: 6,
               overflow: "hidden",
@@ -145,10 +149,10 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
             <div
               style={{
                 fontSize: 12,
-                color: "#888",
+                color: token.colorTextTertiary,
                 marginBottom: 8,
                 padding: 6,
-                background: "#2a2a2a",
+                background: token.colorFillQuaternary,
                 borderRadius: 4,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -166,9 +170,9 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
                   margin: 0,
                   fontSize: 9,
                   padding: "0 4px",
-                  background: "#2a2a2a",
-                  border: "1px solid #444",
-                  color: "#aaa",
+                  background: token.colorFillQuaternary,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  color: token.colorTextQuaternary,
                 }}
               >
                 🌡️ {formatTemperature(data.temperature)}
@@ -181,9 +185,9 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
                   margin: 0,
                   fontSize: 9,
                   padding: "0 4px",
-                  background: "#2a2a2a",
-                  border: "1px solid #444",
-                  color: "#aaa",
+                  background: token.colorFillQuaternary,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  color: token.colorTextQuaternary,
                 }}
               >
                 📏 {formatMaxTokens(data.maxTokens)}
@@ -196,9 +200,9 @@ const LLMNodeComponent: React.FC<NodeProps<LLMNodeData>> = ({
                   margin: 0,
                   fontSize: 9,
                   padding: "0 4px",
-                  background: "#52c41a20",
-                  border: "1px solid #52c41a50",
-                  color: "#52c41a",
+                  background: `${token.colorSuccess}20`,
+                  border: `1px solid ${token.colorSuccess}50`,
+                  color: token.colorSuccess,
                 }}
               >
                 🔧 {data.tools.length}

@@ -142,7 +142,7 @@ export function TeammatePanel({
               <div
                 key={tm.id}
                 className="rounded border p-2"
-                style={{ borderColor: "#e8e8e8" }}
+                style={{ borderColor: token.colorBorderSecondary }}
               >
                 {/* 头部：状态 + 名称 */}
                 <div className="mb-1 flex items-center gap-2">
@@ -163,12 +163,15 @@ export function TeammatePanel({
 
                 {/* 消息列表 */}
                 {tm.messages && tm.messages.length > 0 && (
-                  <div className="mt-1 max-h-40 overflow-y-auto rounded bg-zinc-50 p-1">
+                  <div
+                    className="mt-1 max-h-40 overflow-y-auto rounded p-1"
+                    style={{ backgroundColor: token.colorFillQuaternary }}
+                  >
                     {tm.messages.map((msg, i) => (
                       <div
                         key={`${msg.workerId}-${msg.timestamp || i}`}
-                        className="border-b border-zinc-100 py-0.5"
-                        style={{ fontSize: 12, lineHeight: "18px" }}
+                        className="border-b py-0.5"
+                        style={{ fontSize: 12, lineHeight: "18px", borderColor: token.colorBorderSecondary }}
                       >
                         {formatMessage(msg)}
                       </div>

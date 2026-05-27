@@ -9,15 +9,15 @@ import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
-const typeColorMap: Record<string, string> = {
-  note: "#1890ff",
-  concept: "#52c41a",
-  entity: "#fa8c16",
-  source: "#eb2f96",
-};
+const getTypeColorMap = (token: ReturnType<typeof theme.useToken>["token"]): Record<string, string> => ({
+  note: token.colorPrimary,
+  concept: token.colorSuccess,
+  entity: "var(--orange, #fa8c16)",
+  source: "var(--magenta, #eb2f96)",
+});
 
-function getTypeColor(type: string): string {
-  return typeColorMap[type] || "#888";
+function getTypeColor(type: string, token: ReturnType<typeof theme.useToken>["token"]): string {
+  return getTypeColorMap(token)[type] || token.colorTextTertiary;
 }
 
 interface WikiFilePanelProps {
@@ -365,7 +365,7 @@ export function WikiFilePanel({
               <div key={type} className="flex items-center gap-1 text-[10px]">
                 <span
                   className="size-2 rounded-full inline-block"
-                  style={{ backgroundColor: getTypeColor(type) }}
+                  style={{ backgroundColor: getTypeColor(type, token) }}
                 />
                 <span style={{ color: token.colorTextSecondary }}>
                   {type}: {count}

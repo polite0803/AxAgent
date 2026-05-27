@@ -1,6 +1,6 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
-import { Alert, Badge, Button, Card, Progress, Tag, Typography } from "antd";
+import { Alert, Badge, Button, Card, Progress, Tag, theme, Typography } from "antd";
 import { AlertTriangle, Brain, CheckCircle, Clock, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -82,7 +82,8 @@ function QualityScore({
   score: number;
   t: (key: string) => string;
 }) {
-  const color = score >= 7 ? "#52c41a" : score >= 4 ? "#faad14" : "#ff4d4f";
+  const { token } = theme.useToken();
+  const color = score >= 7 ? token.colorSuccess : score >= 4 ? token.colorWarning : token.colorError;
   const label = score >= 7
     ? t("reflection.excellent")
     : score >= 4
@@ -222,16 +223,17 @@ function QualityMetricsBreakdown({
   metrics: QualityMetricsData;
   t: (key: string) => string;
 }) {
+  const { token } = theme.useToken();
   const dimensions = [
     {
       key: "taskSuccessScore",
       value: metrics.task_success_score,
-      color: "#1890ff",
+      color: token.colorPrimary,
     },
     {
       key: "toolEfficiencyScore",
       value: metrics.tool_efficiency_score,
-      color: "#52c41a",
+      color: token.colorSuccess,
     },
     {
       key: "iterationEfficiencyScore",
@@ -241,7 +243,7 @@ function QualityMetricsBreakdown({
     {
       key: "timeEfficiencyScore",
       value: metrics.time_efficiency_score,
-      color: "#fa8c16",
+      color: token.colorWarning,
     },
     {
       key: "errorRecoveryScore",

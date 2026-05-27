@@ -1,5 +1,5 @@
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Input, Select } from "antd";
+import { Button, Input, Select, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ValidationNode, WorkflowNode } from "../../types";
@@ -15,6 +15,7 @@ export const ValidationPropertyPanel: React.FC<
   ValidationPropertyPanelProps
 > = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const validationNode = node as ValidationNode;
   const config = validationNode.config || {
     assertions: [],
@@ -62,7 +63,7 @@ export const ValidationPropertyPanel: React.FC<
             marginBottom: 4,
           }}
         >
-          <label style={{ color: "#999", fontSize: 12 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
             {t("workflow.props.assertions")}
           </label>
           <Button
@@ -81,7 +82,7 @@ export const ValidationPropertyPanel: React.FC<
           {(config.assertions || []).map((assertion, index) => (
             <div
               key={`assertion-${index}`}
-              style={{ background: "#252525", borderRadius: 4, padding: 8 }}
+              style={{ background: token.colorBgContainer, borderRadius: 4, padding: 8 }}
             >
               <div
                 style={{
@@ -106,7 +107,7 @@ export const ValidationPropertyPanel: React.FC<
                 />
                 <MinusCircleOutlined
                   onClick={() => handleRemoveAssertion(index)}
-                  style={{ color: "#ff4d4f", cursor: "pointer", fontSize: 12 }}
+                  style={{ color: token.colorError, cursor: "pointer", fontSize: 12 }}
                 />
               </div>
               {assertion.type !== "exists" && (
@@ -145,7 +146,7 @@ export const ValidationPropertyPanel: React.FC<
           {(config.assertions || []).length === 0 && (
             <div
               style={{
-                color: "#666",
+                color: token.colorTextTertiary,
                 fontSize: 12,
                 textAlign: "center",
                 padding: 8,
@@ -161,7 +162,7 @@ export const ValidationPropertyPanel: React.FC<
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -186,7 +187,7 @@ export const ValidationPropertyPanel: React.FC<
           <label
             style={{
               display: "block",
-              color: "#999",
+              color: token.colorTextTertiary,
               fontSize: 12,
               marginBottom: 4,
             }}
@@ -205,7 +206,7 @@ export const ValidationPropertyPanel: React.FC<
       )}
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

@@ -1,4 +1,4 @@
-import { Divider, Input, Select } from "antd";
+import { Divider, Input, Select, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { DocumentParserNode, WorkflowNode } from "../../types";
@@ -14,6 +14,7 @@ export const DocumentParserPropertyPanel: React.FC<
   DocumentParserPropertyPanelProps
 > = ({ node, onUpdate, onDelete }) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const documentParserNode = node as DocumentParserNode;
   const config = documentParserNode.config || {
     input_var: "",
@@ -41,7 +42,7 @@ export const DocumentParserPropertyPanel: React.FC<
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -61,7 +62,7 @@ export const DocumentParserPropertyPanel: React.FC<
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -81,7 +82,7 @@ export const DocumentParserPropertyPanel: React.FC<
         <label
           style={{
             display: "block",
-            color: "#999",
+            color: token.colorTextTertiary,
             fontSize: 12,
             marginBottom: 4,
           }}
@@ -97,10 +98,10 @@ export const DocumentParserPropertyPanel: React.FC<
         />
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#333" }} />
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
 
       <div
-        style={{ borderTop: "1px solid #333", paddingTop: 12, marginTop: 4 }}
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 4 }}
       >
         <BasePropertyPanel
           node={node}

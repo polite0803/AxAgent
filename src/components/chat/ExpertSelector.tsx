@@ -2,7 +2,7 @@ import { useExpertStore } from "@/stores/feature/expertStore";
 import { EXPERT_CATEGORY_KEYS } from "@/types";
 import type { AgentProfile, ExpertCategory } from "@/types";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { App, Button, Card, Input, Modal, Popconfirm, Select, Space, Tag, Typography } from "antd";
+import { App, Button, Card, Input, Modal, Popconfirm, Select, Space, Tag, theme, Typography } from "antd";
 import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,7 @@ export function ExpertSelector({
   onSelect,
   selectedRoleId,
 }: ExpertSelectorProps) {
+  const { token } = theme.useToken();
   const getAllRoles = useExpertStore((s) => s.getAllRoles);
   const importAgencyExperts = useExpertStore((s) => s.importAgencyExperts);
   const loadAgencyRoles = useExpertStore((s) => s.loadAgencyRoles);
@@ -809,7 +810,7 @@ export function ExpertSelector({
                 style={{
                   display: "block",
                   fontSize: 12,
-                  color: "#999",
+                  color: token.colorTextTertiary,
                   marginBottom: 4,
                 }}
               >
@@ -827,7 +828,7 @@ export function ExpertSelector({
                 style={{
                   display: "block",
                   fontSize: 12,
-                  color: "#999",
+                  color: token.colorTextTertiary,
                   marginBottom: 4,
                 }}
               >
@@ -845,7 +846,7 @@ export function ExpertSelector({
                 style={{
                   display: "block",
                   fontSize: 12,
-                  color: "#999",
+                  color: token.colorTextTertiary,
                   marginBottom: 4,
                 }}
               >
@@ -867,7 +868,7 @@ export function ExpertSelector({
                 style={{
                   display: "block",
                   fontSize: 12,
-                  color: "#999",
+                  color: token.colorTextTertiary,
                   marginBottom: 4,
                 }}
               >
@@ -941,7 +942,7 @@ export function ExpertSelector({
                 style={{
                   display: "block",
                   fontSize: 12,
-                  color: "#999",
+                  color: token.colorTextTertiary,
                   marginBottom: 4,
                 }}
               >
@@ -959,7 +960,7 @@ export function ExpertSelector({
                 style={{
                   display: "block",
                   fontSize: 12,
-                  color: "#999",
+                  color: token.colorTextTertiary,
                   marginBottom: 4,
                 }}
               >
@@ -979,7 +980,7 @@ export function ExpertSelector({
               style={{
                 display: "block",
                 fontSize: 12,
-                color: "#999",
+                color: token.colorTextTertiary,
                 marginBottom: 4,
               }}
             >
@@ -997,7 +998,7 @@ export function ExpertSelector({
               style={{
                 display: "block",
                 fontSize: 12,
-                color: "#999",
+                color: token.colorTextTertiary,
                 marginBottom: 4,
               }}
             >
