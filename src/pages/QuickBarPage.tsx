@@ -1051,16 +1051,16 @@ export function QuickBarPage() {
             assistantMessageId: string;
             text: string;
           }>("agent-stream-text", (event) => {
-            if (event.payload.conversationId !== streamConvId) return;
+            if (event.payload.conversationId !== streamConvId) { return; }
             text += event.payload.text;
             setResult(text);
           }),
           listen<{ conversationId: string }>("agent-done", (event) => {
-            if (event.payload.conversationId !== streamConvId) return;
+            if (event.payload.conversationId !== streamConvId) { return; }
             setLoading(false);
           }),
           listen<{ conversationId: string; message: string }>("agent-error", (event) => {
-            if (event.payload.conversationId !== streamConvId) return;
+            if (event.payload.conversationId !== streamConvId) { return; }
             setResult(
               `${t("quickbar.result.error")}: ${event.payload.message}`,
             );
