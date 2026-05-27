@@ -1069,34 +1069,34 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
     // ── 构建 tools：根据 n8n 节点类型生成 ToolDef ──
     let mut tools: Vec<ToolDef> = Vec::new();
 
-    let tool_category =
+    let (tool_name, tool_desc) =
         if node_type.contains("http") || node_type.contains("api") || node_type.contains("webhook")
         {
-            ("http_request", "发送 HTTP 请求并获取响应数据")
+            ("http_request", "发送 HTTP 请求并获取响应数据".to_string())
         } else if node_type.contains("database")
             || node_type.contains("sql")
             || node_type.contains("postgres")
         {
-            ("database_query", "执行数据库查询或操作")
+            ("database_query", "执行数据库查询或操作".to_string())
         } else if node_type.contains("email") {
-            ("send_email", "发送电子邮件")
+            ("send_email", "发送电子邮件".to_string())
         } else if node_type.contains("code") || node_type.contains("function") {
             let lang = node_type.rsplit('.').next().unwrap_or("javascript");
-            ("execute_code", &format!("执行 {lang} 代码"))
+            ("execute_code", format!("执行 {lang} 代码"))
         } else if node_type.contains("file")
             || node_type.contains("spreadsheet")
             || node_type.contains("csv")
         {
-            ("file_operation", "读写文件或电子表格")
+            ("file_operation", "读写文件或电子表格".to_string())
         } else {
-            ("process_data", "处理数据或执行业务逻辑")
+            ("process_data", "处理数据或执行业务逻辑".to_string())
         };
 
     tools.push(ToolDef {
-        name: format!("{}_{}", tool_category.0, node_id),
+        name: format!("{tool_name}_{node_id}"),
         description: Some(format!(
             "{tool_desc}。原始节点: {node_name} ({n8n_type})",
-            tool_desc = tool_category.1,
+            tool_desc = tool_desc,
             node_name = node_name,
             n8n_type = node_type.rsplit('.').next().unwrap_or(node_type)
         )),

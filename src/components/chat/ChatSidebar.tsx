@@ -148,9 +148,7 @@ export function ChatSidebar({
   const batchArchive = useConversationStore((s) => s.batchArchive);
   const knowledgeBases = useKnowledgeStore((s) => s.bases);
   const loadKnowledgeBases = useKnowledgeStore((s) => s.loadBases);
-  const streamingConversationId = useStreamStore(
-    (s) => s.streamingConversationId,
-  );
+  const activeStreams = useStreamStore((s) => s.activeStreams);
   const loadConversationWorkflowPreview = useWorkflowEditorStore(
     (s) => s.loadConversationWorkflowPreview,
   );
@@ -605,7 +603,7 @@ export function ChatSidebar({
 
   const buildIcon = useCallback(
     (conv: Conversation) => {
-      const isStreaming = streamingConversationId === conv.id;
+      const isStreaming = conv.id in activeStreams;
       const customIcon = getConvIcon(conv.id);
       let icon: React.ReactNode;
       if (customIcon) {
@@ -678,7 +676,7 @@ export function ChatSidebar({
       return icon;
     },
     [
-      streamingConversationId,
+      activeStreams,
       token.colorPrimary,
       token.colorPrimaryBg,
       token.colorBgContainer,

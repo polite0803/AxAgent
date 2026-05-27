@@ -1588,7 +1588,7 @@ pub async fn agent_query(
                 let formatted: String = instructions
                     .iter()
                     .enumerate()
-                    .map(|(i, inst)| format!("- [steer-{}] {}", i, inst))
+                    .map(|(i, inst)| format!("- [steer-{}] {}", i, inst.1.join(", ")))
                     .collect::<Vec<_>>()
                     .join("\n");
                 info!("[agent_query] Injecting {} steer instruction(s)", instructions.len());

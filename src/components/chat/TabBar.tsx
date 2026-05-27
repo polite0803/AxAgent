@@ -153,9 +153,7 @@ export function TabBar() {
 
   const conversations = useConversationStore((s) => s.conversations);
   const createConversation = useConversationStore((s) => s.createConversation);
-  const streamingConversationId = useStreamStore(
-    (s) => s.streamingConversationId,
-  );
+  const activeStreams = useStreamStore((s) => s.activeStreams);
   const providers = useProviderStore((s) => s.providers);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -220,7 +218,7 @@ export function TabBar() {
               onCloseOthers={handleCloseOthers}
               onCloseRight={handleCloseRight}
               model_id={conv?.model_id}
-              isStreaming={streamingConversationId === tab.conversationId}
+              isStreaming={tab.conversationId in activeStreams}
             />
           );
         })}
