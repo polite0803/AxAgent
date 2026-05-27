@@ -1,7 +1,7 @@
-import { create } from "zustand";
 import { useStreamStore } from "@/stores/domain/streamStore";
 import { useAgentStore } from "@/stores/feature/agentStore";
 import { useExecutionStore } from "@/stores/feature/executionStore";
+import { create } from "zustand";
 
 /** A single tab entry */
 export interface TabItem {
