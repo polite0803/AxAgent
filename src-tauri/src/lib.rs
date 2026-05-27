@@ -938,9 +938,9 @@ pub fn run() {
                 use objc2::rc::Retained;
                 use objc2::runtime::{AnyClass, AnyObject};
                 unsafe {
-                    let defaults_cls = AnyClass::get(c"NSUserDefaults").unwrap();
+                    let defaults_cls = AnyClass::get(c"NSUserDefaults").expect("NSUserDefaults class exists on macOS");
                     let defaults: Retained<AnyObject> = msg_send![defaults_cls, standardUserDefaults];
-                    let str_cls = AnyClass::get(c"NSString").unwrap();
+                    let str_cls = AnyClass::get(c"NSString").expect("NSString class exists on macOS");
                     let key: Retained<AnyObject> = msg_send![str_cls, stringWithUTF8String: c"AppleShowScrollBars".as_ptr()];
                     let value: Retained<AnyObject> = msg_send![str_cls, stringWithUTF8String: c"WhenScrolling".as_ptr()];
                     let _: () = msg_send![&*defaults, setObject: &*value, forKey: &*key];

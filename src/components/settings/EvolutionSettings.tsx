@@ -2,7 +2,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { invoke } from "@/lib/invoke";
 import { Badge, Button, Card, Col, Divider, Row, Spin, Statistic, Tag, theme, Typography } from "antd";
 import { Activity, Brain, Dna, FlaskConical, Lightbulb, RefreshCw, Shield, Sparkles, Wrench } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { pushNotification } from "../layout/NotificationBell";
 import { SettingsGroup } from "./SettingsGroup";
@@ -261,9 +261,12 @@ export function EvolutionSettings() {
     }
   }, [stats, t]);
 
+  const fetchStatsRef = useRef(fetchStats);
+  fetchStatsRef.current = fetchStats;
+
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 30000);
+    const interval = setInterval(() => fetchStatsRef.current(), 30000);
     return () => clearInterval(interval);
   }, []);
 

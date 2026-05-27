@@ -1380,6 +1380,14 @@ impl McpStdioProcess {
     }
 }
 
+impl Drop for McpStdioProcess {
+    fn drop(&mut self) {
+        if self.child.try_wait().ok().flatten().is_none() {
+            let _ = self.child.start_kill();
+        }
+    }
+}
+
 // DEPRECATED: 使用 axagent_core::mcp_client 替代
 pub fn spawn_mcp_stdio_process(bootstrap: &McpClientBootstrap) -> io::Result<McpStdioProcess> {
     match &bootstrap.transport {

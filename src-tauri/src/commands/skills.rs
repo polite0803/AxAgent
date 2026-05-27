@@ -487,6 +487,11 @@ async fn install_from_github(
     repo: &str,
     target_dir: &Path,
 ) -> Result<(String, String), String> {
+    if repo.contains('/') || repo.contains('\\') || repo.contains("..") {
+        return Err(
+            "Invalid repository name: must not contain path separators or traversal".to_string()
+        );
+    }
     let git_url = format!("https://github.com/{}/{}.git", owner, repo);
     let skill_target = target_dir.join(repo);
 
@@ -539,6 +544,11 @@ async fn install_from_github_zipball(
     repo: &str,
     target_dir: &Path,
 ) -> Result<(String, String), String> {
+    if repo.contains('/') || repo.contains('\\') || repo.contains("..") {
+        return Err(
+            "Invalid repository name: must not contain path separators or traversal".to_string()
+        );
+    }
     let url = format!("https://api.github.com/repos/{}/{}/zipball", owner, repo);
 
     let client = reqwest::Client::builder()
@@ -829,8 +839,36 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn validate_skill_name(name: &str) -> Result<(), String> {
+    if name.is_empty() {
+        return Err("Skill name must not be empty".to_string());
+    }
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return Err("Skill name must not contain path separators or traversal".to_string());
+    }
+    if name.len() >= 2 {
+        let b = name.as_bytes();
+        if b[0].is_ascii_alphabetic() && b[1] == b':' {
+            return Err("Skill name must not contain Windows drive letter".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn ensure_path_under_base(path: &Path, base: &Path) -> Result<(), String> {
+    if let Ok(canonical_path) = path.canonicalize() {
+        if let Ok(canonical_base) = base.canonicalize() {
+            if !canonical_path.starts_with(&canonical_base) {
+                return Err("Path traversal detected".to_string());
+            }
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn uninstall_skill(name: String) -> Result<(), String> {
+    validate_skill_name(&name)?;
     let home = home_dir();
     let search_dirs = [
         home.join(".axagent").join("skills"),
@@ -844,6 +882,7 @@ pub async fn uninstall_skill(name: String) -> Result<(), String> {
     for parent in &search_dirs {
         let skill_dir = parent.join(&name);
         if skill_dir.exists() && skill_dir.is_dir() {
+            ensure_path_under_base(&skill_dir, parent)?;
             std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
             return Ok(());
         }
@@ -854,7 +893,7 @@ pub async fn uninstall_skill(name: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn uninstall_skill_group(group: String) -> Result<(), String> {
-    // Search all skill roots for a directory matching the group name
+    validate_skill_name(&group)?;
     let home = home_dir();
     let search_dirs = [
         home.join(".axagent").join("skills"),
@@ -865,6 +904,7 @@ pub async fn uninstall_skill_group(group: String) -> Result<(), String> {
     for parent in &search_dirs {
         let group_dir = parent.join(&group);
         if group_dir.exists() && group_dir.is_dir() {
+            ensure_path_under_base(&group_dir, parent)?;
             std::fs::remove_dir_all(&group_dir).map_err(|e| e.to_string())?;
             return Ok(());
         }
@@ -1555,6 +1595,8 @@ pub async fn skill_create(
 ) -> Result<SkillCreateCheckResult, String> {
     let check = check_similar.unwrap_or(true);
 
+    validate_skill_name(&name)?;
+
     if check {
         let check_result =
             skill_check_similar(state.clone(), name.clone(), Some(description.clone())).await?;
@@ -1605,6 +1647,7 @@ pub async fn skill_upgrade_or_create(
     improvements: Option<String>,
     additional_scenarios: Option<Vec<String>>,
 ) -> Result<String, String> {
+    validate_skill_name(&name)?;
     if let Some(skill_id) = target_skill_id {
         let closed_loop = state.closed_loop_service.clone();
         let upgrade_proposal = axagent_trajectory::SkillUpgradeProposal {
@@ -1651,6 +1694,7 @@ pub async fn skill_set_manifest(
     name: String,
     manifest: serde_json::Value,
 ) -> Result<String, String> {
+    validate_skill_name(&name)?;
     let skill_dir = skills_dir().join(&name);
     if !skill_dir.exists() {
         return Err(format!("Skill '{}' not found", name));

@@ -80,7 +80,10 @@ fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
             anyhow::bail!("GDI BitBlt 失败: {result:?}");
         }
 
-        let buffer_size = (width * height * 4) as usize;
+        let buffer_size = (width as i64 * height as i64 * 4) as usize;
+        if buffer_size == 0 || buffer_size > 512 * 1024 * 1024 {
+            anyhow::bail!("Screen capture buffer size invalid or too large: {} bytes", buffer_size);
+        }
         let mut buffer = vec![0u8; buffer_size];
         let mut bmi = BITMAPINFO {
             bmiHeader: BITMAPINFOHEADER {

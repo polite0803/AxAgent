@@ -56,6 +56,35 @@ pub async fn webhook_create_subscription(
     events: Vec<String>,
     secret: Option<String>,
 ) -> Result<WebhookSubscriptionResponse, String> {
+    {
+        if !url.starts_with("https://") && !url.starts_with("http://") {
+            return Err("Webhook URL must use http or https scheme".to_string());
+        }
+        let after_scheme = url.split("://").nth(1).unwrap_or(&url);
+        let host_part = after_scheme.split('/').next().unwrap_or(after_scheme);
+        let host = host_part
+            .split(':')
+            .next()
+            .unwrap_or(host_part)
+            .to_lowercase();
+        if host == "localhost"
+            || host == "127.0.0.1"
+            || host == "::1"
+            || host.starts_with("169.254.")
+            || host.starts_with("10.")
+            || host.starts_with("192.168.")
+            || (host.starts_with("172.")
+                && host
+                    .split('.')
+                    .nth(1)
+                    .map_or(false, |o| o.parse::<u8>().map_or(false, |n| (16..=31).contains(&n))))
+            || host.starts_with("fc")
+            || host.starts_with("fd")
+            || host.starts_with("fe80:")
+        {
+            return Err("Webhook URL must not point to a private/reserved address".to_string());
+        }
+    }
     let manager = state.webhook_subscription_manager.as_ref().ok_or_else(|| {
         ErrorResponse::err_with_detail(
             platform_err::WEBHOOK_NOT_CONFIGURED,

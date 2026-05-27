@@ -287,6 +287,7 @@ impl PtySession {
                     .kill()
                     .map_err(|e| format!("Failed to kill PTY child: {}", e))?;
                 inner.status = PtySessionStatus::Exited;
+                drop(guard);
                 let mut s = self.status.write().await;
                 *s = PtySessionStatus::Exited;
                 Ok(())

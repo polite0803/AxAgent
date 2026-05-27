@@ -112,6 +112,9 @@ pub async fn webdav_restore(
     state: State<'_, AppState>,
     file_name: String,
 ) -> Result<(), String> {
+    if file_name.contains('/') || file_name.contains('\\') || file_name.contains("..") {
+        return Err("Backup file name must not contain path separators or traversal".to_string());
+    }
     let config = get_webdav_config_from_db(&state.sea_db, &state.master_key).await?;
     let settings = settings_repo::get_settings(&state.sea_db)
         .await

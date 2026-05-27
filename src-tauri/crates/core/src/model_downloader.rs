@@ -309,8 +309,25 @@ impl ModelDownloader {
 
     /// 移除缓存的模型文件
     pub fn remove_model(&self, filename: &str) -> Result<()> {
+        if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+            return Err(crate::error::AxAgentError::Validation(
+                "Filename must not contain path separators or traversal".to_string(),
+            ));
+        }
         let path = self.cache_dir.join(filename);
+        let canonical_base = self
+            .cache_dir
+            .canonicalize()
+            .map_err(crate::error::AxAgentError::Io)?;
         if path.exists() {
+            let canonical_path = path
+                .canonicalize()
+                .map_err(crate::error::AxAgentError::Io)?;
+            if !canonical_path.starts_with(&canonical_base) {
+                return Err(crate::error::AxAgentError::Validation(
+                    "Path traversal detected".to_string(),
+                ));
+            }
             std::fs::remove_file(&path).map_err(crate::error::AxAgentError::Io)?;
         }
         Ok(())

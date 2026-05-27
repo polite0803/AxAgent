@@ -1018,7 +1018,10 @@ fn start_text_grad_analysis(state: &AppState) {
                 }
 
                 if !trajectory.steps.is_empty() {
-                    let last_step = trajectory.steps.last().unwrap();
+                    let last_step = trajectory
+                        .steps
+                        .last()
+                        .expect("is_empty check guarantees Some");
                     let feedback = match trajectory.outcome {
                         axagent_trajectory::TrajectoryOutcome::Success => {
                             format!("Task succeeded: {}", topic)

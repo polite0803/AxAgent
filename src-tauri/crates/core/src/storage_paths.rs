@@ -100,6 +100,12 @@ pub fn validate_relative_path(path: &str) -> Result<(), String> {
     if path.contains("..") {
         return Err("path must not contain '..' traversal".to_string());
     }
+    if path.len() >= 2 {
+        let b = path.as_bytes();
+        if b[0].is_ascii_alphabetic() && b[1] == b':' {
+            return Err("path must not contain Windows drive letter".to_string());
+        }
+    }
     Ok(())
 }
 
