@@ -1497,7 +1497,6 @@ export function QuickBarPage() {
   const activeCmdDef = activeCommand ? getCommand(activeCommand) : null;
 
   /* ── Reusable styles ──────────────────────────────────────────────── */
-  /* 已提取到 QuickBarResult 组件中 */
 
   /* ── Main render ─────────────────────────────────────────────────── */
 
