@@ -336,15 +336,17 @@ export function ChatViewToolbar({
                 </div>
               )
               : (
-                <Typography.Text
-                  className="cursor-pointer select-none"
-                  onClick={handleTitleClick}
-                >
-                  {activeConversation.title}
-                  {isTitleGenerating
-                    ? <SyncOutlined spin className="ml-1 text-xs opacity-50" />
-                    : <Pencil size={12} className="ml-1 text-xs opacity-50" />}
-                </Typography.Text>
+                <div className="overflow-hidden" style={{ flex: "1 1 auto", minWidth: 0 }}>
+                  <Typography.Text
+                    className="cursor-pointer select-none"
+                    onClick={handleTitleClick}
+                  >
+                    {activeConversation.title}
+                    {isTitleGenerating
+                      ? <SyncOutlined spin className="ml-1 text-xs opacity-50" />
+                      : <Pencil size={12} className="ml-1 text-xs opacity-50" />}
+                  </Typography.Text>
+                </div>
               )}
 
             {activeConversation?.mode === "agent" && (
