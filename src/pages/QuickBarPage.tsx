@@ -1038,11 +1038,11 @@ export function QuickBarPage() {
   /* ── Stream lifecycle ────────────────────────────────────────────── */
 
   const startStream = useCallback(
-    async (op: () => Promise<void>) => {
+    async (op: () => Promise<string>) => {
       setLoading(true);
       setResult("");
       try {
-        await op();
+        const streamConvId = await op();
         let text = "";
         cleanupListeners();
         const [u1, u2, u3] = await Promise.all([
@@ -1051,11 +1051,16 @@ export function QuickBarPage() {
             assistantMessageId: string;
             text: string;
           }>("agent-stream-text", (event) => {
+            if (event.payload.conversationId !== streamConvId) return;
             text += event.payload.text;
             setResult(text);
           }),
-          listen("agent-done", () => setLoading(false)),
-          listen<{ message: string }>("agent-error", (event) => {
+          listen<{ conversationId: string }>("agent-done", (event) => {
+            if (event.payload.conversationId !== streamConvId) return;
+            setLoading(false);
+          }),
+          listen<{ conversationId: string; message: string }>("agent-error", (event) => {
+            if (event.payload.conversationId !== streamConvId) return;
             setResult(
               `${t("quickbar.result.error")}: ${event.payload.message}`,
             );
@@ -1082,6 +1087,7 @@ export function QuickBarPage() {
         providerId: activeProviderId,
         modelId: activeModelId,
       });
+      return cid;
     });
 
   const runAgent = (body: string) =>
@@ -1100,6 +1106,7 @@ export function QuickBarPage() {
         },
         0,
       );
+      return cid;
     });
 
   const runUrl = (url: string) =>
@@ -1118,6 +1125,7 @@ export function QuickBarPage() {
         },
         0,
       );
+      return cid;
     });
 
   const runSummarizeUrl = (url: string) =>
@@ -1136,6 +1144,7 @@ export function QuickBarPage() {
         },
         0,
       );
+      return cid;
     });
 
   const runTranslate = (text: string) =>
@@ -1154,6 +1163,7 @@ export function QuickBarPage() {
         },
         0,
       );
+      return cid;
     });
 
   const runSearch = async (body: string) => {

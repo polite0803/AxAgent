@@ -943,6 +943,206 @@ fn extract_goal_from_n8n(node: &serde_json::Value) -> String {
     format!("{} ({})", name, node_type.rsplit('.').next().unwrap_or(node_type))
 }
 
+/// 从 n8n 节点参数提取 AxAgent AgentNodeConfig 配置
+fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> AgentNodeConfig {
+    let node_type = n8n_node.get("type").and_then(|v| v.as_str()).unwrap_or("");
+    let node_name = n8n_node
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Unnamed");
+    let params = n8n_node.get("parameters");
+    let goal = extract_goal_from_n8n(n8n_node);
+
+    // ── 构建 system_prompt：n8n 节点参数 → 自然语言任务描述 ──
+    let mut prompt_parts: Vec<String> = Vec::new();
+    prompt_parts.push(format!("任务目标：{goal}"));
+
+    if let Some(p) = params {
+        // HTTP / API 节点
+        if node_type.contains("http") || node_type.contains("api") || node_type.contains("webhook")
+        {
+            let method = p.get("method").and_then(|v| v.as_str()).unwrap_or("GET");
+            let url = p.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            if !url.is_empty() {
+                prompt_parts.push(format!("调用方式：{method} {url}"));
+            }
+            if let Some(body) = p.get("body") {
+                if let Some(s) = body.as_str() {
+                    prompt_parts.push(format!("请求体参数：{s}"));
+                }
+            }
+            if let Some(headers) = p.get("headers") {
+                prompt_parts.push(format!("请求头：{headers}"));
+            }
+            if let Some(auth) = p.get("authentication") {
+                prompt_parts.push(format!("认证方式：{auth}"));
+            }
+        }
+        // 数据库节点
+        else if node_type.contains("database")
+            || node_type.contains("sql")
+            || node_type.contains("postgres")
+        {
+            let op = p
+                .get("operation")
+                .and_then(|v| v.as_str())
+                .unwrap_or("query");
+            prompt_parts.push(format!("操作类型：{op}"));
+            if let Some(query) = p.get("query").and_then(|v| v.as_str()) {
+                prompt_parts.push(format!("SQL 语句：{query}"));
+            }
+            if let Some(table) = p.get("table").and_then(|v| v.as_str()) {
+                prompt_parts.push(format!("目标表：{table}"));
+            }
+        }
+        // 邮件节点
+        else if node_type.contains("email") {
+            if let Some(subj) = p.get("subject").and_then(|v| v.as_str()) {
+                prompt_parts.push(format!("邮件主题：{subj}"));
+            }
+            if let Some(to) = p.get("toEmail").and_then(|v| v.as_str()) {
+                prompt_parts.push(format!("收件人：{to}"));
+            }
+            if let Some(text) = p.get("text").and_then(|v| v.as_str()) {
+                prompt_parts.push(format!("邮件内容：{text}"));
+            }
+        }
+        // 代码/函数节点
+        else if node_type.contains("code") || node_type.contains("function") {
+            let lang = node_type.rsplit('.').next().unwrap_or("javascript");
+            prompt_parts.push(format!("执行语言：{lang}"));
+            if let Some(code) = p.get("jsCode").or(p.get("code")).and_then(|v| v.as_str()) {
+                let code_preview = if code.len() > 500 {
+                    format!("{}…(截断)", &code[..500])
+                } else {
+                    code.to_string()
+                };
+                prompt_parts.push(format!("代码片段：\n```{lang}\n{code_preview}\n```"));
+            }
+        }
+        // AI / LLM 节点
+        else if node_type.contains("ai")
+            || node_type.contains("llm")
+            || node_type.contains("openai")
+            || node_type.contains("openAi")
+        {
+            if let Some(prompt) = p.get("prompt").or(p.get("text")).and_then(|v| v.as_str()) {
+                prompt_parts.push(format!("AI 提示词：{prompt}"));
+            }
+            if let Some(model) = p.get("model").and_then(|v| v.as_str()) {
+                prompt_parts.push(format!("使用模型：{model}"));
+            }
+        }
+        // 通用节点：提取所有参数
+        else {
+            prompt_parts
+                .push(format!("节点类型：{}", node_type.rsplit('.').next().unwrap_or(node_type)));
+            if let Some(obj) = p.as_object() {
+                let params_desc: Vec<String> = obj
+                    .iter()
+                    .filter_map(|(k, v)| {
+                        if k == "options" || k == "additionalFields" {
+                            None
+                        } else if let Some(s) = v.as_str() {
+                            Some(format!("  {k}: {s}"))
+                        } else {
+                            Some(format!("  {k}: {v}"))
+                        }
+                    })
+                    .collect();
+                if !params_desc.is_empty() {
+                    prompt_parts.push(format!("参数配置：\n{}", params_desc.join("\n")));
+                }
+            }
+        }
+    }
+
+    // 追加节点描述（n8n 节点的 notes）
+    if let Some(notes) = n8n_node.get("notes").and_then(|v| v.as_str()) {
+        if !notes.is_empty() {
+            prompt_parts.push(format!("备注说明：{notes}"));
+        }
+    }
+
+    let system_prompt = prompt_parts.join("\n\n");
+
+    // ── 构建 tools：根据 n8n 节点类型生成 ToolDef ──
+    let mut tools: Vec<ToolDef> = Vec::new();
+
+    let tool_category =
+        if node_type.contains("http") || node_type.contains("api") || node_type.contains("webhook")
+        {
+            ("http_request", "发送 HTTP 请求并获取响应数据")
+        } else if node_type.contains("database")
+            || node_type.contains("sql")
+            || node_type.contains("postgres")
+        {
+            ("database_query", "执行数据库查询或操作")
+        } else if node_type.contains("email") {
+            ("send_email", "发送电子邮件")
+        } else if node_type.contains("code") || node_type.contains("function") {
+            let lang = node_type.rsplit('.').next().unwrap_or("javascript");
+            ("execute_code", &format!("执行 {lang} 代码"))
+        } else if node_type.contains("file")
+            || node_type.contains("spreadsheet")
+            || node_type.contains("csv")
+        {
+            ("file_operation", "读写文件或电子表格")
+        } else {
+            ("process_data", "处理数据或执行业务逻辑")
+        };
+
+    tools.push(ToolDef {
+        name: format!("{}_{}", tool_category.0, node_id),
+        description: Some(format!(
+            "{tool_desc}。原始节点: {node_name} ({n8n_type})",
+            tool_desc = tool_category.1,
+            node_name = node_name,
+            n8n_type = node_type.rsplit('.').next().unwrap_or(node_type)
+        )),
+        parameters: None,
+    });
+
+    // ── 提取模型设置（如果 n8n AI 节点有） ──
+    let (model, temperature, max_tokens) = if let Some(p) = params {
+        let model = if node_type.contains("ai")
+            || node_type.contains("openai")
+            || node_type.contains("openAi")
+        {
+            p.get("model")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        } else {
+            None
+        };
+        let temperature = p
+            .get("temperature")
+            .and_then(|v| v.as_f64())
+            .map(|t| t as f32);
+        let max_tokens = p
+            .get("maxTokens")
+            .and_then(|v| v.as_u64())
+            .map(|t| t as u32);
+        (model, temperature, max_tokens)
+    } else {
+        (None, None, None)
+    };
+
+    AgentNodeConfig {
+        system_prompt,
+        context_sources: Vec::new(),
+        output_var: format!("{}_output", node_id),
+        model,
+        temperature,
+        max_tokens,
+        tools,
+        exposed_tools: vec![], // 向后兼容：空 = 暴露全部
+        output_mode: OutputMode::Text,
+        agent_profile_id: None, // 由调用方设置
+        max_tool_rounds: None,
+    }
+}
+
 /// 将 n8n JSON 转换为 AxAgent Workflow — 两阶段：先 DB 准备，再组装
 async fn convert_n8n_to_axagent(
     db: &DatabaseConnection,
@@ -1082,6 +1282,11 @@ async fn convert_n8n_to_axagent(
 
         let goal = extract_goal_from_n8n(n8n_node);
 
+        // 从 n8n 节点提取配置（system_prompt、tools、model 等）
+        let mut agent_config = extract_config_from_n8n(n8n_node, &node_id);
+        agent_config.agent_profile_id = Some(agent_profile_id.to_string());
+        agent_config.context_sources = Vec::new(); // 暂不自动关联上游节点
+
         let base = WorkflowNodeBase {
             id: node_id.clone(),
             title: node_name,
@@ -1094,19 +1299,7 @@ async fn convert_n8n_to_axagent(
 
         let agent_node = WorkflowNode::Agent(AgentNode {
             base,
-            config: AgentNodeConfig {
-                system_prompt: String::new(),
-                context_sources: Vec::new(),
-                output_var: format!("{}_output", node_id),
-                model: None,
-                temperature: None,
-                max_tokens: None,
-                tools: Vec::new(),
-                exposed_tools: vec![],
-                output_mode: OutputMode::Text,
-                agent_profile_id: Some(agent_profile_id.to_string()),
-                max_tool_rounds: None,
-            },
+            config: agent_config,
         });
 
         ax_nodes.push(agent_node);
