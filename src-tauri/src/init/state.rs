@@ -268,7 +268,9 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
         parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::ParallelExecutionService::new(10),
         )),
-        cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new()),
+        cron_job_store: Arc::new(
+            rt.block_on(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone()))),
+        ),
         platform_manager: platform_manager.clone(),
         platform_bridge: platform_bridge.clone(),
         user_profile: Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new())),

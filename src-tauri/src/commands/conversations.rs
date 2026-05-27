@@ -4474,7 +4474,7 @@ mod tests_conversation {
             parallel_execution_service: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::ParallelExecutionService::new(10),
             )),
-            cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new()),
+            cron_job_store: Arc::new(axagent_runtime_core::CronJobStore::new_ephemeral()),
             platform_manager: Arc::new(
                 axagent_runtime::message_gateway::platform_manager::PlatformManager::new(),
             ),

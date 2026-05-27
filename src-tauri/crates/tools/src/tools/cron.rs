@@ -21,7 +21,7 @@ fn cron_store() -> Arc<CronJobStore> {
     SHARED_CRON_STORE
         .get()
         .cloned()
-        .unwrap_or_else(|| Arc::new(CronJobStore::new()))
+        .unwrap_or_else(|| Arc::new(CronJobStore::new_ephemeral()))
 }
 
 pub struct CronCreateTool;
