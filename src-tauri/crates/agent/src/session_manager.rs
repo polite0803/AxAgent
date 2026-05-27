@@ -282,19 +282,19 @@ impl SessionManager {
         {
             let sessions = self.sessions.lock().await;
             let conv_index = self.conversation_index.lock().await;
-            if let Some(session_id) = conv_index.get(&conversation_id) {
-                if let Some(existing) = sessions.get(session_id) {
-                    let cloned = existing.clone();
-                    let sid = session_id.clone();
-                    let now = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64;
-                    drop(conv_index);
-                    drop(sessions);
-                    self.session_last_access.lock().await.insert(sid, now);
-                    return Ok(cloned);
-                }
+            if let Some(session_id) = conv_index.get(&conversation_id)
+                && let Some(existing) = sessions.get(session_id)
+            {
+                let cloned = existing.clone();
+                let sid = session_id.clone();
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64;
+                drop(conv_index);
+                drop(sessions);
+                self.session_last_access.lock().await.insert(sid, now);
+                return Ok(cloned);
             }
         }
 
@@ -365,29 +365,29 @@ impl SessionManager {
     pub async fn update_session_after_turn(&self, conversation_id: &str, updated_session: Session) {
         let mut sessions = self.sessions.lock().await;
         let conv_index = self.conversation_index.lock().await;
-        if let Some(session_id) = conv_index.get(conversation_id) {
-            if let Some(session) = sessions.get_mut(session_id) {
-                session.session_mut().messages = updated_session.messages;
-                session.session_mut().updated_at_ms = updated_session.updated_at_ms;
+        if let Some(session_id) = conv_index.get(conversation_id)
+            && let Some(session) = sessions.get_mut(session_id)
+        {
+            session.session_mut().messages = updated_session.messages;
+            session.session_mut().updated_at_ms = updated_session.updated_at_ms;
 
-                if let Some(axagent_session_id) = session.axagent_session_id() {
-                    let db = self.db.clone();
-                    let axagent_sid = axagent_session_id.to_string();
-                    let tokens_delta = 0;
+            if let Some(axagent_session_id) = session.axagent_session_id() {
+                let db = self.db.clone();
+                let axagent_sid = axagent_session_id.to_string();
+                let tokens_delta = 0;
 
-                    drop(conv_index);
-                    drop(sessions);
+                drop(conv_index);
+                drop(sessions);
 
-                    let _ = agent_session::update_agent_session_after_query(
-                        &db,
-                        &axagent_sid,
-                        "idle",
-                        None,
-                        tokens_delta,
-                        0.0,
-                    )
-                    .await;
-                }
+                let _ = agent_session::update_agent_session_after_query(
+                    &db,
+                    &axagent_sid,
+                    "idle",
+                    None,
+                    tokens_delta,
+                    0.0,
+                )
+                .await;
             }
         }
     }

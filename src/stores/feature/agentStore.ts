@@ -138,6 +138,7 @@ interface AgentStore {
 
   // Cleanup
   clearConversation: (conversationId: string) => void;
+  clearConversationUI: (conversationId: string) => void;
 
   // Pause / Resume
   pauseAgent: (conversationId: string) => Promise<void>;
@@ -177,6 +178,17 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       }
       return { agentPool: { ...s.agentPool, [item.conversationId]: pool } };
     });
+  },
+
+  clearConversationUI: (conversationId) => {
+    set((s) => ({
+      currentToolCall: s.currentToolCall?.conversationId === conversationId
+        ? null
+        : s.currentToolCall,
+      workflowMatchSuggestion: s.workflowMatchSuggestion?.conversationId === conversationId
+        ? null
+        : s.workflowMatchSuggestion,
+    }));
   },
 
   removePoolItem: (conversationId, itemId) => {

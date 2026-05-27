@@ -139,6 +139,7 @@ interface ExecutionStore {
 
   // === 清理 ===
   clearConversation: (conversationId: string) => void;
+  clearConversationUI: (conversationId: string) => void;
 }
 
 // ── 模块级追踪：最近一次的 assistantMessageId ──
@@ -713,7 +714,6 @@ export const useExecutionStore = create<ExecutionStore>()(
             const { [conversationId]: _a, ...restStatus } = s.agentStatus;
             const { [conversationId]: _pool, ...restPool } = s.agentPool;
             const { [conversationId]: _traj, ...restTraj } = s.trajectoriesByConversation;
-            // 清理模块级 messageId 追踪，防止内存泄漏
             delete _latestMessageIdByConv[conversationId];
             return {
               phases: restPhases,
@@ -727,6 +727,18 @@ export const useExecutionStore = create<ExecutionStore>()(
           },
           false,
           { type: "clear-conversation", conversationId },
+        );
+      },
+
+      clearConversationUI: (conversationId) => {
+        set(
+          (s) => ({
+            currentToolCall: s.currentToolCall?.conversationId === conversationId
+              ? null
+              : s.currentToolCall,
+          }),
+          false,
+          { type: "clear-conversation-ui", conversationId },
         );
       },
     }),

@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { useStreamStore } from "@/stores/domain/streamStore";
+import { useAgentStore } from "@/stores/feature/agentStore";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 
 /** A single tab entry */
 export interface TabItem {
@@ -38,6 +41,16 @@ interface TabState {
   closeTabsToRight: (tabId: string) => void;
 }
 
+/** Clean up domain/feature store state for the given conversation */
+function cleanupConversationState(conversationId: string) {
+  const { activeStreams } = useStreamStore.getState();
+  if (conversationId in activeStreams) {
+    useStreamStore.getState().cancelCurrentStream(conversationId);
+  }
+  useAgentStore.getState().clearConversation(conversationId);
+  useExecutionStore.getState().clearConversation(conversationId);
+}
+
 export const useTabStore = create<TabState>((set, get) => ({
   tabs: [],
   activeTabId: null,
@@ -68,7 +81,16 @@ export const useTabStore = create<TabState>((set, get) => ({
       return;
     }
 
+    const closedTab = tabs[idx];
     const nextTabs = tabs.filter((t) => t.id !== tabId);
+
+    // Only clean up conversation state if no other tabs reference the same conversation
+    const hasOtherTabsForConversation = nextTabs.some(
+      (t) => t.conversationId === closedTab.conversationId,
+    );
+    if (!hasOtherTabsForConversation) {
+      cleanupConversationState(closedTab.conversationId);
+    }
 
     // If we're closing the active tab, activate an adjacent one
     let nextActiveId = activeTabId;
@@ -142,6 +164,17 @@ export const useTabStore = create<TabState>((set, get) => ({
     if (!target) {
       return;
     }
+    const removedConvIds = new Set(
+      tabs
+        .filter((t) => t.id !== tabId)
+        .map((t) => t.conversationId),
+    );
+    const keptConvIds = new Set([target.conversationId]);
+    for (const convId of removedConvIds) {
+      if (!keptConvIds.has(convId)) {
+        cleanupConversationState(convId);
+      }
+    }
     set({ tabs: [target], activeTabId: tabId });
   },
 
@@ -150,6 +183,13 @@ export const useTabStore = create<TabState>((set, get) => ({
     const idx = tabs.findIndex((t) => t.id === tabId);
     if (idx === -1) {
       return;
+    }
+    const removed = tabs.slice(idx + 1);
+    const keptConvIds = new Set(tabs.slice(0, idx + 1).map((t) => t.conversationId));
+    for (const tab of removed) {
+      if (!keptConvIds.has(tab.conversationId)) {
+        cleanupConversationState(tab.conversationId);
+      }
     }
     set({ tabs: tabs.slice(0, idx + 1) });
   },

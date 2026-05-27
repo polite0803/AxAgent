@@ -479,11 +479,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         return;
       }
       if (prevId) {
-        if (isConvStreaming(useStreamStore.getState().activeStreams, prevId)) {
-          useStreamStore.getState().cancelCurrentStream(prevId);
+        const prevStreaming = isConvStreaming(useStreamStore.getState().activeStreams, prevId);
+        if (!prevStreaming) {
+          useAgentStore.getState().clearConversation(prevId);
+          useExecutionStore.getState().clearConversation(prevId);
+        } else {
+          useAgentStore.getState().clearConversationUI(prevId);
+          useExecutionStore.getState().clearConversationUI(prevId);
         }
-        useAgentStore.getState().clearConversation(prevId);
-        useExecutionStore.getState().clearConversation(prevId);
         usePlanStore.getState().clearActivePlan(prevId);
         useTrajectoryStore.getState().clearConversation(prevId);
       }
@@ -504,12 +507,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const requestSeq = _activeMessageLoadSeq;
 
     if (prevId && prevId !== id) {
-      // Cancel any active stream for the conversation being left
-      if (isConvStreaming(useStreamStore.getState().activeStreams, prevId)) {
-        useStreamStore.getState().cancelCurrentStream(prevId);
+      const prevStreaming = isConvStreaming(useStreamStore.getState().activeStreams, prevId);
+      if (!prevStreaming) {
+        useAgentStore.getState().clearConversation(prevId);
+        useExecutionStore.getState().clearConversation(prevId);
+      } else {
+        useAgentStore.getState().clearConversationUI(prevId);
+        useExecutionStore.getState().clearConversationUI(prevId);
       }
-      useAgentStore.getState().clearConversation(prevId);
-      useExecutionStore.getState().clearConversation(prevId);
       usePlanStore.getState().clearActivePlan(prevId);
       useTrajectoryStore.getState().clearConversation(prevId);
     }
