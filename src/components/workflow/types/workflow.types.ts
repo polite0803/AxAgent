@@ -91,6 +91,8 @@ export interface AgentNodeConfig {
   max_tokens?: number;
   /** 工具列表，支持旧格式 `string[]` 和新格式 `ToolDef[]` */
   tools: ToolDef[];
+  /** 暴露给 LLM 的工具名列表（tools 的子集）。空数组 = 暴露全部（向后兼容） */
+  exposed_tools: string[];
   output_mode: OutputMode;
   /** 工具调用最大轮数（默认 5，仅 tools 非空时生效） */
   max_tool_rounds?: number;

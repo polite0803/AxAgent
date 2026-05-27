@@ -205,6 +205,10 @@ pub struct AgentNodeConfig {
     /// 工具列表，支持向后兼容旧格式 `["name1", "name2"]`
     #[serde(deserialize_with = "deserialize_tool_defs")]
     pub tools: Vec<ToolDef>,
+    /// 暴露给 LLM 的工具名列表（tools 的子集）。为空时暴露全部（向后兼容）。
+    /// 固定工具（上游 ToolNode 结果已通过 context_sources 注入）不应暴露。
+    #[serde(default)]
+    pub exposed_tools: Vec<String>,
     pub output_mode: OutputMode,
     /// AgentProfile ID — 唯一标识角色的方式，不再使用旧 role/agent_role_override
     pub agent_profile_id: Option<String>,
@@ -872,6 +876,7 @@ impl WorkflowMigrator {
                                 description: None,
                                 parameters: None,
                             }],
+                            exposed_tools: vec![],
                             output_mode: OutputMode::Text,
                             agent_profile_id: None,
                             max_tool_rounds: None,
@@ -897,6 +902,7 @@ impl WorkflowMigrator {
                             temperature: None,
                             max_tokens: None,
                             tools: Vec::new(),
+                            exposed_tools: vec![],
                             output_mode: OutputMode::Text,
                             agent_profile_id: None,
                             max_tool_rounds: None,

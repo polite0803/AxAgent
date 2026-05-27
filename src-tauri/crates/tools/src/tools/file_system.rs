@@ -335,7 +335,8 @@ impl Tool for GetFileInfoTool {
             validate_and_resolve_path(path, ctx).map_err(ToolError::invalid_input)?;
 
         let path_str = resolved_path.to_string_lossy();
-        let meta = std::fs::metadata(&*path_str)
+        let meta = tokio::fs::metadata(&*path_str)
+            .await
             .map_err(|e| ToolError::execution_failed(format!("获取文件信息失败: {}", e)))?;
 
         let info = format!(

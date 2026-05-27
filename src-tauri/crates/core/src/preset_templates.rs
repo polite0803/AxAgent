@@ -781,6 +781,7 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
             temperature: None,
             max_tokens: None,
             tools: vec![],
+            exposed_tools: vec![],
             output_mode: OutputMode::Json,
             agent_profile_id: None,
             max_tool_rounds: None,

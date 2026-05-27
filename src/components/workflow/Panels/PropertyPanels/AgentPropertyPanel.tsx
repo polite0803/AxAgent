@@ -33,6 +33,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
     context_sources: [],
     output_var: "",
     tools: [],
+    exposed_tools: [],
     output_mode: "text" as OutputMode,
   };
 
@@ -696,31 +697,67 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       )}
 
       {(config.tools?.length ?? 0) > 0 && (
-        <div>
-          <label
-            style={{
-              display: "block",
-              color: "#999",
-              fontSize: 12,
-              marginBottom: 4,
-            }}
-          >
-            {t("workflow.props.maxToolRounds")}
-          </label>
-          <InputNumber
-            id="agent-property-panel-inputnumber-max-tool-rounds"
-            value={config.max_tool_rounds ?? 5}
-            onChange={(value) => handleConfigChange("max_tool_rounds", value ?? null)}
-            min={1}
-            max={50}
-            step={1}
-            size="small"
-            style={{ width: "100%" }}
-          />
-          <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
-            {t("workflow.props.maxToolRoundsHint")}
+        <>
+          {/* 暴露给 LLM 的工具选择 */}
+          <div style={{ marginBottom: 12 }}>
+            <label
+              style={{
+                display: "block",
+                color: "#999",
+                fontSize: 12,
+                marginBottom: 4,
+              }}
+            >
+              {t("workflow.props.exposedTools", {
+                count: config.exposed_tools?.length || config.tools?.length || 0,
+              })}
+            </label>
+            <Select
+              mode="multiple"
+              value={config.exposed_tools?.length
+                ? config.exposed_tools
+                : (config.tools || []).map((td) => typeof td === "string" ? td : td.name)}
+              onChange={(values: string[]) => handleConfigChange("exposed_tools", values)}
+              size="small"
+              style={{ width: "100%" }}
+              placeholder={t("workflow.props.exposedToolsPlaceholder")}
+              showSearch
+              options={(config.tools || []).map((td) => {
+                const name = typeof td === "string" ? td : td.name;
+                return { value: name, label: name };
+              })}
+            />
+            <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+              {t("workflow.props.exposedToolsHint")}
+            </div>
           </div>
-        </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                color: "#999",
+                fontSize: 12,
+                marginBottom: 4,
+              }}
+            >
+              {t("workflow.props.maxToolRounds")}
+            </label>
+            <InputNumber
+              id="agent-property-panel-inputnumber-max-tool-rounds"
+              value={config.max_tool_rounds ?? 5}
+              onChange={(value) => handleConfigChange("max_tool_rounds", value ?? null)}
+              min={1}
+              max={50}
+              step={1}
+              size="small"
+              style={{ width: "100%" }}
+            />
+            <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+              {t("workflow.props.maxToolRoundsHint")}
+            </div>
+          </div>
+        </>
       )}
 
       <div>

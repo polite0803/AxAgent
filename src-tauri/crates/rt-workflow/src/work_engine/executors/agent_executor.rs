@@ -285,13 +285,26 @@ impl NodeExecutorTrait for AgentExecutor {
         let model = session_model.unwrap_or(default_model);
         let model_for_output = model.clone();
 
-        // 构建工具定义（若配置了 tools）
-        let tools: Option<Vec<axagent_core::types::ChatTool>> = if an.config.tools.is_empty() {
+        // 构建暴露给 LLM 的工具定义
+        // exposed_tools 显式指定哪些工具名发给 LLM 自主调用
+        // 固定工具（上游 ToolNode 结果已注入 context_sources）不暴露
+        // 向后兼容：exposed_tools 为空时暴露全部工具
+        let exposed_list: Vec<&axagent_core::workflow_types::ToolDef> =
+            if an.config.exposed_tools.is_empty() {
+                an.config.tools.iter().collect()
+            } else {
+                an.config
+                    .tools
+                    .iter()
+                    .filter(|td| an.config.exposed_tools.contains(&td.name))
+                    .collect()
+            };
+
+        let tools: Option<Vec<axagent_core::types::ChatTool>> = if exposed_list.is_empty() {
             None
         } else {
             Some(
-                an.config
-                    .tools
+                exposed_list
                     .iter()
                     .map(|td| axagent_core::types::ChatTool {
                         r#type: "function".to_string(),
