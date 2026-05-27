@@ -77,7 +77,7 @@ pub async fn webhook_create_subscription(
                 && host
                     .split('.')
                     .nth(1)
-                    .map_or(false, |o| o.parse::<u8>().map_or(false, |n| (16..=31).contains(&n))))
+                    .is_some_and(|o| o.parse::<u8>().is_ok_and(|n| (16..=31).contains(&n))))
             || host.starts_with("fc")
             || host.starts_with("fd")
             || host.starts_with("fe80:")
