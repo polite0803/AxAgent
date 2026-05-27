@@ -60,7 +60,7 @@ impl WebhookServer {
             .with_state(Arc::new(self.state));
         tracing::info!(
             "Webhook server listening on port {}",
-            listener.local_addr().unwrap().port()
+            listener.local_addr().map(|a| a.port()).unwrap_or(0)
         );
         let shutdown_rx = self.shutdown_rx.take().expect("shutdown_rx already taken");
         axum::serve(listener, app)

@@ -110,7 +110,7 @@ impl WebDavClient {
         }
 
         {
-            let cache = self.mkdir_cache.lock().unwrap();
+            let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
             if cache.contains(path) {
                 return Ok(());
             }
@@ -127,7 +127,7 @@ impl WebDavClient {
             };
 
             {
-                let cache = self.mkdir_cache.lock().unwrap();
+                let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
                 if cache.contains(&current) {
                     continue;
                 }
@@ -155,7 +155,10 @@ impl WebDavClient {
                 },
             }
 
-            self.mkdir_cache.lock().unwrap().insert(current.clone());
+            self.mkdir_cache
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .insert(current.clone());
         }
         Ok(())
     }
@@ -173,7 +176,7 @@ impl WebDavClient {
             };
 
             {
-                let cache = self.mkdir_cache.lock().unwrap();
+                let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
                 if cache.contains(&full_parent) {
                     return Ok(());
                 }
@@ -190,7 +193,7 @@ impl WebDavClient {
                 };
 
                 {
-                    let cache = self.mkdir_cache.lock().unwrap();
+                    let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
                     if cache.contains(&current) {
                         continue;
                     }
@@ -218,7 +221,10 @@ impl WebDavClient {
                     },
                 }
 
-                self.mkdir_cache.lock().unwrap().insert(current.clone());
+                self.mkdir_cache
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .insert(current.clone());
             }
         }
         Ok(())

@@ -118,7 +118,11 @@ impl SessionSearchEngine {
             }
         }
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(query.limit);
         if query.offset > 0 {
             results = results.into_iter().skip(query.offset).collect();

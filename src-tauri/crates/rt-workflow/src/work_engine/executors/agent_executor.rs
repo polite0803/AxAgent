@@ -395,7 +395,7 @@ impl NodeExecutorTrait for AgentExecutor {
             }
 
             // 处理工具调用
-            let tc_list = tool_calls.as_ref().unwrap();
+            let tc_list = tool_calls.as_ref().expect("has_tool_calls ensures Some");
 
             // 构建 assistant 消息（含 tool_calls）
             let assistant_msg = ChatMessage {

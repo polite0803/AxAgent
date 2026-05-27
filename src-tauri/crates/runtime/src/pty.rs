@@ -153,7 +153,7 @@ impl PtySession {
                 let mut buf = buf.as_ref().clone();
                 loop {
                     let n = {
-                        let mut reader = reader.lock().unwrap();
+                        let mut reader = reader.lock().unwrap_or_else(|e| e.into_inner());
                         reader.read(&mut buf)
                     };
 

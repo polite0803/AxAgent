@@ -3,15 +3,18 @@ use crate::style_extractor::{
 };
 use crate::style_vectorizer::StyleVector;
 use regex::Regex;
+use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 
-static SINGLE_LINE_COMMENT_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"//[^\n]*").unwrap());
+static SINGLE_LINE_COMMENT_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"//[^\n]*").expect("SINGLE_LINE_COMMENT_RE is valid"));
 static MULTI_LINE_COMMENT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").unwrap());
-static HEADING_MARKUP_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^#+\s+").unwrap());
+    LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("MULTI_LINE_COMMENT_RE is valid"));
+static HEADING_MARKUP_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^#+\s+").expect("HEADING_MARKUP_RE is valid"));
 static BOLD_HEADERS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.+)$").unwrap());
+    LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.+)$").expect("BOLD_HEADERS_RE is valid"));
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeStyleTemplate {
@@ -344,7 +347,10 @@ impl StyleApplier {
 
             let mut result = content.to_string();
             for (formal, informal) in informal_replacements {
-                let re = Regex::new(&format!(r"\b{}\b", formal)).unwrap();
+                let re = RegexBuilder::new(&format!(r"\b{}\b", formal))
+                    .size_limit(1_000_000)
+                    .build()
+                    .unwrap_or_else(|_| Regex::new(r"^\b$").expect("fallback regex is valid"));
                 result = re.replace_all(&result, informal).to_string();
             }
             result
@@ -358,7 +364,10 @@ impl StyleApplier {
 
             let mut result = content.to_string();
             for (informal, formal) in formal_replacements {
-                let re = Regex::new(&format!(r"\b{}\b", informal)).unwrap();
+                let re = RegexBuilder::new(&format!(r"\b{}\b", informal))
+                    .size_limit(1_000_000)
+                    .build()
+                    .unwrap_or_else(|_| Regex::new(r"^\b$").expect("fallback regex is valid"));
                 result = re.replace_all(&result, formal).to_string();
             }
             result

@@ -37,19 +37,19 @@ impl PauseState {
     }
 
     pub fn pause(&self) {
-        let mut paused = self.is_paused.lock().unwrap();
+        let mut paused = self.is_paused.lock().unwrap_or_else(|e| e.into_inner());
         *paused = true;
         self.condvar.notify_all();
     }
 
     pub fn resume(&self) {
-        let mut paused = self.is_paused.lock().unwrap();
+        let mut paused = self.is_paused.lock().unwrap_or_else(|e| e.into_inner());
         *paused = false;
         self.condvar.notify_all();
     }
 
     pub fn wait_while_paused(&self, cancel_token: Option<&AtomicBool>) {
-        let mut paused = self.is_paused.lock().unwrap();
+        let mut paused = self.is_paused.lock().unwrap_or_else(|e| e.into_inner());
         while *paused {
             if let Some(token) = cancel_token
                 && token.load(Ordering::Relaxed)
@@ -75,7 +75,7 @@ impl PauseState {
     }
 
     pub fn is_paused(&self) -> bool {
-        *self.is_paused.lock().unwrap()
+        *self.is_paused.lock().unwrap_or_else(|e| e.into_inner())
     }
 }
 
@@ -1457,7 +1457,7 @@ impl StaticToolExecutor {
     ) -> Self {
         self.handlers
             .lock()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .insert(tool_name.into(), Box::new(handler));
         self
     }
@@ -1465,7 +1465,7 @@ impl StaticToolExecutor {
 
 impl ToolExecutor for StaticToolExecutor {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
-        let guard = self.handlers.lock().unwrap();
+        let guard = self.handlers.lock().unwrap_or_else(|e| e.into_inner());
         let handler = guard
             .get(tool_name)
             .ok_or_else(|| ToolError::new(format!("unknown tool: {tool_name}")))?;

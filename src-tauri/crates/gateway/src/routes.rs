@@ -27,9 +27,15 @@ use crate::server::GatewayAppState;
 pub fn create_router(state: GatewayAppState) -> Router {
     let cors = CorsLayer::new()
         .allow_origin([
-            "http://localhost:1419".parse().unwrap(),
-            "http://127.0.0.1:1419".parse().unwrap(),
-            "tauri://localhost".parse().unwrap(),
+            "http://localhost:1419"
+                .parse()
+                .expect("hardcoded localhost URL is valid"),
+            "http://127.0.0.1:1419"
+                .parse()
+                .expect("hardcoded 127.0.0.1 URL is valid"),
+            "tauri://localhost"
+                .parse()
+                .expect("hardcoded tauri URL is valid"),
         ])
         .allow_methods([
             http::Method::GET,

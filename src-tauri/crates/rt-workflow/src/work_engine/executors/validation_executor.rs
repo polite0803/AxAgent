@@ -64,7 +64,10 @@ impl NodeExecutorTrait for ValidationExecutor {
                         false
                     }
                 },
-                "not_null" => actual_value.is_some() && !actual_value.as_ref().unwrap().is_null(),
+                "not_null" => {
+                    actual_value.is_some()
+                        && !actual_value.as_ref().expect("is_some checked").is_null()
+                },
                 "non_empty" => actual_value.as_ref().is_some_and(|v| {
                     v.as_str().is_some_and(|s| !s.is_empty())
                         || v.as_array().is_some_and(|a| !a.is_empty())

@@ -331,9 +331,10 @@ pub async fn restore_json_backup(
 
         // Overwrite 策略：先清空表
         if matches!(strategy, crate::types::RestoreStrategy::Overwrite) {
+            let safe_name = table_name.replace('"', "").replace(';', "");
             txn.execute_raw(Statement::from_string(
                 DatabaseBackend::Sqlite,
-                format!("DELETE FROM \"{}\"", table_name),
+                format!("DELETE FROM \"{}\"", safe_name),
             ))
             .await
             .map_err(|e| AxAgentError::Gateway(format!("清空表 {} 失败: {}", table_name, e)))?;

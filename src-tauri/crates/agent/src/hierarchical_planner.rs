@@ -175,7 +175,7 @@ impl HierarchicalPlanner {
         });
         self.current_version = 0;
         self.current_plan = Some(plan);
-        self.current_plan.as_ref().unwrap()
+        self.current_plan.as_ref().expect("plan just set above")
     }
 
     pub fn get_plan(&self) -> Option<&Plan> {

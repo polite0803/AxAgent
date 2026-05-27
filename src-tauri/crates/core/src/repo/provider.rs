@@ -184,10 +184,10 @@ pub async fn update_provider(
     let enabled = input.enabled.unwrap_or(existing.enabled);
     let provider_type = input.provider_type.unwrap_or(existing.provider_type);
     let proxy_json = match input.proxy_config {
-        Some(ref pc) => Some(serde_json::to_string(pc).unwrap()),
+        Some(ref pc) => Some(serde_json::to_string(pc).unwrap_or_default()),
         None => existing
             .proxy_config
-            .map(|pc| serde_json::to_string(&pc).unwrap()),
+            .map(|pc| serde_json::to_string(&pc).unwrap_or_default()),
     };
 
     let row = providers::Entity::find_by_id(id)
@@ -534,7 +534,7 @@ pub async fn update_model_params(
     model_id: &str,
     overrides: ModelParamOverrides,
 ) -> Result<Model> {
-    let param_json = serde_json::to_string(&overrides).unwrap();
+    let param_json = serde_json::to_string(&overrides).unwrap_or_default();
 
     let row = models::Entity::find_by_id((provider_id.to_string(), model_id.to_string()))
         .one(db)

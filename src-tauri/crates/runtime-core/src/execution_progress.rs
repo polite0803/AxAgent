@@ -107,7 +107,7 @@ impl AgentExecutionProgress {
 
     /// 标记开始执行
     pub fn start(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.running = true;
         inner.phase = "init".into();
         inner.status_message = "正在初始化...".into();
@@ -115,20 +115,20 @@ impl AgentExecutionProgress {
 
     /// 设置当前阶段
     pub fn set_phase(&self, phase: &str, msg: &str) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.phase = phase.to_string();
         inner.status_message = msg.to_string();
     }
 
     /// 设置当前迭代
     pub fn set_iteration(&self, iter: usize) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.current_iteration = iter;
     }
 
     /// 标记工具执行开始
     pub fn begin_tool(&self, tool_name: &str, input: Option<&str>) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.current_tool = Some(tool_name.to_string());
         inner.tool_started_at = Some(Instant::now());
         inner.phase = "tool_exec".into();
@@ -158,7 +158,7 @@ impl AgentExecutionProgress {
 
     /// 标记工具执行完成
     pub fn end_tool(&self, is_error: bool, output: Option<&str>) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.executed_tool_count += 1;
         if is_error {
             inner.failed_tool_count += 1;
@@ -191,14 +191,14 @@ impl AgentExecutionProgress {
 
     /// 记录错误
     pub fn record_error(&self, error: &str) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.last_error = Some(error.to_string());
         inner.status_message = format!("错误: {}", error);
     }
 
     /// 标记完成
     pub fn finish(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.running = false;
         inner.phase = "done".into();
         inner.status_message = "Agent 执行完成".into();
@@ -206,7 +206,7 @@ impl AgentExecutionProgress {
 
     /// 标记失败
     pub fn fail(&self, error: &str) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.running = false;
         inner.phase = "error".into();
         inner.last_error = Some(error.to_string());
@@ -217,7 +217,7 @@ impl AgentExecutionProgress {
 
     /// 返回只读快照（用于序列化返回给前端）
     pub fn snapshot(&self) -> AgentExecutionProgressSnapshot {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         AgentExecutionProgressSnapshot {
             running: inner.running,
             phase: inner.phase.clone(),

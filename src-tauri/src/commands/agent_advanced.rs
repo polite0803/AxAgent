@@ -12,8 +12,8 @@ use tracing::info;
 fn now_epoch_secs() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 fn ensure_tot_session(sessions: &mut HashMap<String, TotSession>, session_id: &str) {
@@ -42,7 +42,9 @@ pub async fn tot_get_state(
     info!(session_id = %session_id, "tot_get_state invoked");
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions.get(&session_id).unwrap();
+    let session = sessions
+        .get(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
     serde_json::to_value(session).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -55,7 +57,9 @@ pub async fn tot_backtrack(
     info!(session_id = %session_id, node_id = %node_id, "tot_backtrack invoked");
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
     if session.nodes.contains_key(&node_id) {
         session.current_node_id = Some(node_id);
         Ok(())
@@ -82,7 +86,9 @@ pub async fn tot_explore(
     );
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let parent_depth = if let Some(n) = session.nodes.get(&node_id) {
         n.depth
@@ -211,7 +217,9 @@ pub async fn tot_score_node(
     );
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let node = session
         .nodes
@@ -276,7 +284,9 @@ pub async fn tot_traverse(
     );
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let root_id = match &session.root_node_id {
         Some(id) => id.clone(),
@@ -401,7 +411,9 @@ pub async fn tot_prune(
     );
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let prune_threshold = threshold.unwrap_or(session.pruning_threshold);
     session.pruning_threshold = prune_threshold;
@@ -464,7 +476,9 @@ pub async fn tot_get_best_path(
     info!(session_id = %session_id, "tot_get_best_path invoked");
     let mut sessions = app_state.tot_sessions.lock().await;
     ensure_tot_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let root_id = match &session.root_node_id {
         Some(id) => id.clone(),
@@ -531,7 +545,9 @@ pub async fn planner_replan(
     );
     let mut sessions = app_state.planner_sessions.lock().await;
     ensure_planner_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let previous_action_snapshot: Vec<PlannerAction> = session.actions.clone();
 
@@ -621,7 +637,9 @@ pub async fn planner_rollback(
     info!(session_id = %session_id, version = version, "planner_rollback invoked");
     let mut sessions = app_state.planner_sessions.lock().await;
     ensure_planner_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let target_version = session
         .versions
@@ -657,7 +675,9 @@ pub async fn planner_diff_versions(
     );
     let mut sessions = app_state.planner_sessions.lock().await;
     ensure_planner_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
     let from_snap = session
         .versions
@@ -694,7 +714,9 @@ pub async fn planner_get_history(
     info!(session_id = %session_id, "planner_get_history invoked");
     let mut sessions = app_state.planner_sessions.lock().await;
     ensure_planner_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
     serde_json::to_value(&session.actions).map_err(|e| format!("Serialization error: {}", e))
 }
 
@@ -706,7 +728,9 @@ pub async fn planner_get_versions(
     info!(session_id = %session_id, "planner_get_versions invoked");
     let mut sessions = app_state.planner_sessions.lock().await;
     ensure_planner_session(&mut sessions, &session_id);
-    let session = sessions.get_mut(&session_id).unwrap();
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
     serde_json::to_value(&session.versions).map_err(|e| format!("Serialization error: {}", e))
 }
 

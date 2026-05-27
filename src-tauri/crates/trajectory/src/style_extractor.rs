@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-static INDENT_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\s+)\S").unwrap());
+static INDENT_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(\s+)\S").expect("INDENT_REGEX is valid"));
 
 static IDENTIFIER_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     [
@@ -20,7 +21,7 @@ static IDENTIFIER_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
         r"\btype\s+(\w+)",
     ]
     .iter()
-    .map(|p| Regex::new(p).unwrap())
+    .map(|p| Regex::new(p).expect("identifier pattern is valid"))
     .collect()
 });
 
@@ -28,14 +29,19 @@ static FN_REGEXES: LazyLock<Vec<(Regex, &str)>> = LazyLock::new(|| {
     vec![
         (
             Regex::new(r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?")
-                .unwrap(),
+                .expect("rust fn regex is valid"),
             "rust",
         ),
         (
-            Regex::new(r"function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*(\w+))?").unwrap(),
+            Regex::new(r"function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*(\w+))?")
+                .expect("ts fn regex is valid"),
             "typescript",
         ),
-        (Regex::new(r"def\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?:").unwrap(), "python"),
+        (
+            Regex::new(r"def\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\w+))?:")
+                .expect("python fn regex is valid"),
+            "python",
+        ),
     ]
 });
 

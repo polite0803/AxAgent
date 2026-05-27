@@ -111,7 +111,12 @@ pub async fn get_gateway_metrics(db: &DatabaseConnection) -> Result<GatewayMetri
     let today_start = chrono::Utc::now()
         .date_naive()
         .and_hms_opt(0, 0, 0)
-        .unwrap()
+        .unwrap_or_else(|| {
+            chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+        })
         .and_utc()
         .timestamp();
 
@@ -266,7 +271,12 @@ pub async fn get_connected_programs(db: &DatabaseConnection) -> Result<Vec<Conne
     let today_start = chrono::Utc::now()
         .date_naive()
         .and_hms_opt(0, 0, 0)
-        .unwrap()
+        .unwrap_or_else(|| {
+            chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+        })
         .and_utc()
         .timestamp();
     let active_threshold = now_ts() - 300;

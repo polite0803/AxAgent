@@ -53,7 +53,9 @@ pub async fn test_mcp_server(
 
     if !server.enabled {
         let err = ErrorResponse::new(mcp_err::SERVER_NOT_ENABLED);
-        return Ok(serde_json::json!({"ok": false, "error": serde_json::to_string(&err).unwrap()}));
+        return Ok(
+            serde_json::json!({"ok": false, "error": serde_json::to_string(&err).unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))}),
+        );
     }
 
     // Builtin servers don't need real connection testing
@@ -95,7 +97,9 @@ pub async fn test_mcp_server(
                         serde_json::to_string(
                             &ErrorResponse::new(mcp_err::CONNECT_FAILED).with_detail(e.to_string()),
                         )
-                        .unwrap()
+                        .unwrap_or_else(|e| {
+                            format!("{{\"error\":\"serialization failed: {}\"}}", e)
+                        })
                     })?;
                 Ok::<_, String>(serde_json::json!({
                     "ok": true,
@@ -118,7 +122,9 @@ pub async fn test_mcp_server(
                                 &ErrorResponse::new(mcp_err::CONNECT_FAILED)
                                     .with_detail(e.to_string()),
                             )
-                            .unwrap()
+                            .unwrap_or_else(|e| {
+                                format!("{{\"error\":\"serialization failed: {}\"}}", e)
+                            })
                         })?
                 } else {
                     axagent_core::mcp_client::discover_tools_sse(endpoint)
@@ -128,7 +134,9 @@ pub async fn test_mcp_server(
                                 &ErrorResponse::new(mcp_err::CONNECT_FAILED)
                                     .with_detail(e.to_string()),
                             )
-                            .unwrap()
+                            .unwrap_or_else(|e| {
+                                format!("{{\"error\":\"serialization failed: {}\"}}", e)
+                            })
                         })?
                 };
                 Ok::<_, String>(serde_json::json!({
@@ -141,7 +149,7 @@ pub async fn test_mcp_server(
             other => Err(serde_json::to_string(
                 &ErrorResponse::new(mcp_err::TRANSPORT_UNSUPPORTED).with_detail(other),
             )
-            .unwrap()),
+            .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))),
         }
     })
     .await
@@ -150,7 +158,7 @@ pub async fn test_mcp_server(
             &ErrorResponse::new(mcp_err::TIMEOUT)
                 .with_detail(format!("连接测试超时（{} 秒）", TEST_TIMEOUT_SECS)),
         )
-        .unwrap()
+        .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
     })?
 }
 
@@ -305,7 +313,7 @@ async fn discover_mcp_tools_inner(
             &ErrorResponse::new(mcp_err::TOOL_DISCOVERY_TIMEOUT)
                 .with_detail(format!("工具发现超时（{} 秒）", timeout_secs)),
         )
-        .unwrap()
+        .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
     })?
     .map_err(|e| e.to_string())?;
 

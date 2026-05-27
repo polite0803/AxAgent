@@ -8,14 +8,15 @@ fn quickbar_url(app: &AppHandle) -> WebviewUrl {
     match app.config().build.dev_url.as_ref() {
         Some(dev_url) => {
             let base = dev_url.as_str().trim_end_matches('/');
+            let fallback_url = "http://localhost:1420/index.html?__route=quickbar";
             WebviewUrl::External(
                 format!("{}/index.html?__route=quickbar", base)
                     .parse()
                     .unwrap_or_else(|_| {
                         tracing::warn!("quickbar dev_url 格式无效，使用默认 URL");
-                        "http://localhost:1420/index.html?__route=quickbar"
+                        fallback_url
                             .parse()
-                            .unwrap()
+                            .expect("hardcoded fallback URL is valid")
                     }),
             )
         },

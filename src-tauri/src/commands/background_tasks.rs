@@ -20,7 +20,7 @@ fn validate_command(cmd: &str) -> Result<(), String> {
                 &ErrorResponse::new(task_err::DANGEROUS_COMMAND)
                     .with_detail(format!("命令包含危险字符 '{}', 已拒绝: {}", ch, cmd)),
             )
-            .unwrap());
+            .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e)));
         }
     }
     Ok(())
@@ -69,7 +69,10 @@ async fn append_output(db: &DatabaseConnection, task_id: &str, text: &str) -> Re
         .one(db)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND)).unwrap())?;
+        .ok_or_else(|| {
+            serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
+                .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
+        })?;
     let mut new_output = task.output.clone();
     new_output.push_str(text);
     if !text.ends_with('\n') {
@@ -93,7 +96,10 @@ async fn update_status(
         .one(db)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND)).unwrap())?;
+        .ok_or_else(|| {
+            serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
+                .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
+        })?;
     let mut am: background_tasks::ActiveModel = task.into();
     am.status = Set(status.to_string());
     am.updated_at = Set(now);
@@ -273,7 +279,10 @@ pub async fn get_background_task_output(
         .one(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND)).unwrap())?;
+        .ok_or_else(|| {
+            serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
+                .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
+        })?;
     Ok(task.into())
 }
 
@@ -286,7 +295,10 @@ pub async fn stop_background_task(
         .one(&state.sea_db)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND)).unwrap())?;
+        .ok_or_else(|| {
+            serde_json::to_string(&ErrorResponse::new(task_err::NOT_FOUND))
+                .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
+        })?;
     if task.status == "running" || task.status == "pending" {
         update_status(&state.sea_db, &task_id, "stopped", None).await?;
     }

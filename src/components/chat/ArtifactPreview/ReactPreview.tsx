@@ -51,7 +51,12 @@ try {
   var fn = new Function('React', 'ReactDOM', transformed.code);
   fn(React, ReactDOM);
 } catch(e) {
-  document.getElementById('root').innerHTML = '<pre style="color:red;padding:16px">' + e.message + '</pre>';
+  document.getElementById('root').innerHTML = '';
+  var _pre = document.createElement('pre');
+  _pre.style.color = 'red';
+  _pre.style.padding = '16px';
+  _pre.textContent = e.message;
+  document.getElementById('root').appendChild(_pre);
   var now2 = Date.now();
   if (now2 - _lastPostMessage >= 500) {
     _lastPostMessage = now2;

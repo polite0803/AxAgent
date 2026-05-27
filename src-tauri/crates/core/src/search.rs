@@ -10,12 +10,17 @@ use std::sync::LazyLock;
 
 use crate::error::{AxAgentError, Result};
 
-static DDG_TITLE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"class="result__a"[^>]*>(.*?)</a>"#).unwrap());
-static DDG_SNIPPET_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"class="result__snippet"(?:\s*[^>]*)?>(.*?)</"#).unwrap());
-static DDG_HREF_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"href="([^"]*)""#).unwrap());
-static DDG_TAG_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<[^>]+>").unwrap());
+static DDG_TITLE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"class="result__a"[^>]*>(.*?)</a>"#).expect("DDG_TITLE_RE regex is valid")
+});
+static DDG_SNIPPET_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"class="result__snippet"(?:\s*[^>]*)?>(.*?)</"#)
+        .expect("DDG_SNIPPET_RE regex is valid")
+});
+static DDG_HREF_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"href="([^"]*)""#).expect("DDG_HREF_RE regex is valid"));
+static DDG_TAG_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"<[^>]+>").expect("DDG_TAG_RE regex is valid"));
 
 /// SSRF protection: check if a URL points to a private/internal address
 pub fn is_safe_url(url_str: &str) -> bool {

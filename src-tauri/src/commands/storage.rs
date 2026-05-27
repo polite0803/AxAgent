@@ -38,9 +38,8 @@ pub async fn validate_documents_root(path: String) -> Result<ValidateResult, Str
     let target = PathBuf::from(&path);
 
     if !target.is_absolute() {
-        return Err(
-            serde_json::to_string(&ErrorResponse::new(storage_err::PATH_NOT_ABSOLUTE)).unwrap()
-        );
+        return Err(serde_json::to_string(&ErrorResponse::new(storage_err::PATH_NOT_ABSOLUTE))
+            .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e)));
     }
 
     let exists = target.exists();
@@ -52,7 +51,7 @@ pub async fn validate_documents_root(path: String) -> Result<ValidateResult, Str
                 &ErrorResponse::new(storage_err::CREATE_DIR_FAILED)
                     .with_detail(format!("无法创建目录: {e}")),
             )
-            .unwrap()
+            .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
         })?;
         true
     } else {
@@ -105,13 +104,12 @@ pub async fn change_documents_root(
             &ErrorResponse::new(storage_path_err::SAME_AS_CURRENT)
                 .with_detail("新目录与当前目录相同".to_string()),
         )
-        .unwrap());
+        .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e)));
     }
 
     if !new_root.is_absolute() {
-        return Err(
-            serde_json::to_string(&ErrorResponse::new(storage_err::PATH_NOT_ABSOLUTE)).unwrap()
-        );
+        return Err(serde_json::to_string(&ErrorResponse::new(storage_err::PATH_NOT_ABSOLUTE))
+            .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e)));
     }
 
     // Ensure the target directory and subdirs exist
@@ -121,7 +119,7 @@ pub async fn change_documents_root(
                 &ErrorResponse::new(storage_err::CREATE_DIR_FAILED)
                     .with_detail(format!("无法创建目录 {sub}: {e}")),
             )
-            .unwrap()
+            .unwrap_or_else(|e| format!("{{\"error\":\"serialization failed: {}\"}}", e))
         })?;
     }
 
