@@ -3451,9 +3451,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   animation: dropdownIn 0.1s ease;
 }
 
-/* ── 模型/服务商列表单行截断（overflow-hidden 容器内的文本子元素） ──────── */
+/* ── 模型/服务商列表单行截断 ──────── */
 .overflow-hidden > span,
-.overflow-hidden > .ant-typography {
+.overflow-hidden > .ant-typography,
+.provider-detail-card .flex-1 > .flex > span:first-child,
+.provider-detail-card .flex-1 > .flex > .ant-typography:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3461,7 +3463,9 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   min-width: 0;
 }
 .overflow-hidden > span:hover,
-.overflow-hidden > .ant-typography:hover {
+.overflow-hidden > .ant-typography:hover,
+.provider-detail-card .flex-1 > .flex > span:first-child:hover,
+.provider-detail-card .flex-1 > .flex > .ant-typography:first-child:hover {
   overflow: visible;
   white-space: normal;
   word-break: break-all;

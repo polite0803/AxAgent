@@ -1695,7 +1695,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     }}
                   >
                     <div
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-md min-w-0 overflow-hidden"
                       role="button"
                       tabIndex={0}
                       style={{
@@ -1840,7 +1840,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   }}
                 >
                   <div
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md min-w-0 overflow-hidden"
                     role={batchMode ? "button" : undefined}
                     tabIndex={batchMode ? 0 : undefined}
                     style={{
@@ -3203,7 +3203,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           }}
                         >
                           <div
-                            className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                            className="flex items-center gap-2 px-2 py-1.5 rounded-md min-w-0 overflow-hidden"
                             role="button"
                             tabIndex={0}
                             style={{
@@ -3300,7 +3300,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         }}
                       >
                         <div
-                          className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md min-w-0 overflow-hidden"
                           style={{ paddingLeft: 36 }}
                         >
                           <Checkbox
