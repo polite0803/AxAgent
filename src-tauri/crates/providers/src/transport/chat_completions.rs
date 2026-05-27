@@ -9,7 +9,24 @@ use super::{
 
 use axagent_core::constants::default_url;
 
-pub struct ChatCompletionsTransport;
+pub struct ChatCompletionsTransport {
+    client: reqwest::Client,
+}
+
+impl ChatCompletionsTransport {
+    pub fn new() -> Self {
+        Self {
+            client: crate::build_default_http_client()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+        }
+    }
+}
+
+impl Default for ChatCompletionsTransport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl ChatCompletionsTransport {
     fn build_body(&self, request: &TransportRequest) -> Value {
@@ -104,8 +121,7 @@ impl TransportProvider for ChatCompletionsTransport {
     ) -> anyhow::Result<TransportResponse> {
         let url = format!("{}/chat/completions", base_url.unwrap_or(default_url::OPENAI_BASE));
 
-        let client = reqwest::Client::new();
-        let resp = client
+        let resp = self.client
             .post(&url)
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&self.build_body(&request))
@@ -126,8 +142,7 @@ impl TransportProvider for ChatCompletionsTransport {
     > {
         let url = format!("{}/chat/completions", base_url.unwrap_or(default_url::OPENAI_BASE));
 
-        let client = reqwest::Client::new();
-        let response = client
+        let response = self.client
             .post(&url)
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&self.build_body(&request))

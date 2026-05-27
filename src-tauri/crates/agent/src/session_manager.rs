@@ -280,19 +280,23 @@ impl SessionManager {
         self.evict_stale_sessions().await;
 
         {
+            let sessions = self.sessions.lock().await;
             let conv_index = self.conversation_index.lock().await;
             if let Some(session_id) = conv_index.get(&conversation_id) {
-                let sessions = self.sessions.lock().await;
                 if let Some(existing) = sessions.get(session_id) {
+                    let cloned = existing.clone();
+                    let sid = session_id.clone();
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap_or_default()
                         .as_millis() as u64;
+                    drop(conv_index);
+                    drop(sessions);
                     self.session_last_access
                         .lock()
                         .await
-                        .insert(session_id.clone(), now);
-                    return Ok(existing.clone());
+                        .insert(sid, now);
+                    return Ok(cloned);
                 }
             }
         }
@@ -343,15 +347,16 @@ impl SessionManager {
 
         let mut sessions = self.sessions.lock().await;
         sessions.insert(session_id.clone(), session.clone());
+        drop(sessions);
 
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis() as u64;
-        self.session_last_access
-            .lock()
-            .await
-            .insert(session_id.clone(), now);
+        {
+            let mut last_access = self.session_last_access.lock().await;
+            last_access.insert(session_id.clone(), now);
+        }
 
         let mut conv_index = self.conversation_index.lock().await;
         conv_index.insert(conversation_id, session_id);
@@ -361,22 +366,20 @@ impl SessionManager {
 
     /// Update the session in memory after a turn completes, preserving conversation history.
     pub async fn update_session_after_turn(&self, conversation_id: &str, updated_session: Session) {
+        let mut sessions = self.sessions.lock().await;
         let conv_index = self.conversation_index.lock().await;
         if let Some(session_id) = conv_index.get(conversation_id) {
-            let mut sessions = self.sessions.lock().await;
             if let Some(session) = sessions.get_mut(session_id) {
                 session.session_mut().messages = updated_session.messages;
                 session.session_mut().updated_at_ms = updated_session.updated_at_ms;
 
-                // Update AxAgent's agent_sessions table
                 if let Some(axagent_session_id) = session.axagent_session_id() {
                     let db = self.db.clone();
                     let axagent_sid = axagent_session_id.to_string();
-                    // Use a rough token estimate from message count
-                    let tokens_delta = 0; // Will be updated by caller
+                    let tokens_delta = 0;
 
-                    drop(sessions);
                     drop(conv_index);
+                    drop(sessions);
 
                     let _ = agent_session::update_agent_session_after_query(
                         &db,
@@ -409,9 +412,6 @@ impl SessionManager {
         }
     }
 
-    /// Evict sessions that exceed the TTL or LRU limit.
-    /// Called automatically by `get_or_create_session`.
-    /// Lock order: conversation_index → sessions → session_last_access (consistent with other methods).
     async fn evict_stale_sessions(&self) {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -421,7 +421,6 @@ impl SessionManager {
         let ttl_cutoff = now.saturating_sub(SESSION_TTL_SECS);
         let ttl_cutoff_ms = ttl_cutoff * 1000;
 
-        // Find session_ids to evict: TTL expired (only need session_last_access)
         let mut to_evict = Vec::new();
         {
             let last_access = self.session_last_access.lock().await;
@@ -432,12 +431,10 @@ impl SessionManager {
             }
         }
 
-        // LRU eviction: if still over limit after TTL cleanup, evict oldest
         {
-            let last_access = self.session_last_access.lock().await;
             let sessions = self.sessions.lock().await;
             if sessions.len() > MAX_CACHED_SESSIONS {
-                // Collect all sessions with their access times, sort by oldest first
+                let last_access = self.session_last_access.lock().await;
                 let mut all_entries: Vec<(String, u64)> =
                     last_access.iter().map(|(id, &t)| (id.clone(), t)).collect();
                 all_entries.sort_by_key(|(_, t)| *t);
@@ -450,16 +447,14 @@ impl SessionManager {
             }
         }
 
-        // Perform eviction with consistent lock order: conversation_index → sessions → session_last_access
         if !to_evict.is_empty() {
             info!("[SessionManager] Evicting {} stale sessions", to_evict.len());
-            let mut conv_index = self.conversation_index.lock().await;
             let mut sessions = self.sessions.lock().await;
+            let mut conv_index = self.conversation_index.lock().await;
             let mut last_access = self.session_last_access.lock().await;
             for session_id in to_evict {
                 sessions.remove(&session_id);
                 last_access.remove(&session_id);
-                // Also remove from conversation_index (reverse lookup)
                 conv_index.retain(|_, v| v != &session_id);
             }
         }

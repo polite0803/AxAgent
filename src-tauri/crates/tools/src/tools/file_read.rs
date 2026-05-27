@@ -1,13 +1,8 @@
-//! FileReadTool - 文件读取工具
-//!
-//! 支持文本文件（行范围）、图片、PDF、IDocument 的读取。
-
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
 
-/// 设备文件黑名单
 const DEVICE_FILE_BLACKLIST: &[&str] = &[
     "/dev/zero",
     "/dev/random",
@@ -19,7 +14,6 @@ const DEVICE_FILE_BLACKLIST: &[&str] = &[
     "/dev/stderr",
 ];
 
-/// 大文件阈值（超过则不允许全量读取）
 const LARGE_FILE_THRESHOLD_MB: u64 = 50;
 
 pub struct FileReadTool;
@@ -68,7 +62,6 @@ impl Tool for FileReadTool {
             return Err(ToolError::invalid_input_for("FileRead", "file_path 必须是绝对路径"));
         }
 
-        // 设备文件检查
         for dev in DEVICE_FILE_BLACKLIST {
             if path.starts_with(dev) {
                 return Err(ToolError::permission_denied(
@@ -94,7 +87,6 @@ impl Tool for FileReadTool {
 
         let path = Path::new(file_path);
 
-        // 检查文件存在
         if !path.exists() {
             return Err(ToolError::invalid_input(format!("文件不存在: {}", file_path)));
         }
@@ -103,7 +95,6 @@ impl Tool for FileReadTool {
             return Err(ToolError::invalid_input(format!("不是文件: {}", file_path)));
         }
 
-        // 设备文件二次检查
         let path_str = file_path.to_lowercase();
         for dev in DEVICE_FILE_BLACKLIST {
             if path_str.contains(dev) {
@@ -114,8 +105,8 @@ impl Tool for FileReadTool {
             }
         }
 
-        // 大小检查
-        let metadata = std::fs::metadata(path)
+        let metadata = tokio::fs::metadata(path)
+            .await
             .map_err(|e| ToolError::execution_failed(format!("无法获取文件信息: {}", e)))?;
         if metadata.len() > LARGE_FILE_THRESHOLD_MB * 1024 * 1024 {
             return Err(ToolError::invalid_input(format!(
@@ -125,7 +116,6 @@ impl Tool for FileReadTool {
             )));
         }
 
-        // 根据扩展名判断文件类型
         let ext = path
             .extension()
             .and_then(|e| e.to_str())
@@ -133,23 +123,22 @@ impl Tool for FileReadTool {
             .to_lowercase();
 
         match ext.as_str() {
-            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" => read_image(file_path),
-            "pdf" => read_pdf(file_path),
-            "ipynb" => read_notebook(file_path),
-            _ => read_text(file_path, offset, limit),
+            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" => read_image(file_path).await,
+            "pdf" => read_pdf(file_path).await,
+            "ipynb" => read_notebook(file_path).await,
+            _ => read_text(file_path, offset, limit).await,
         }
     }
 }
 
-fn read_text(path: &str, offset: usize, limit: usize) -> Result<ToolResult, ToolError> {
-    // 检测编码（尝试 UTF-8，失败则尝试其他编码）
-    let content = match std::fs::read_to_string(path) {
+async fn read_text(path: &str, offset: usize, limit: usize) -> Result<ToolResult, ToolError> {
+    let content = match tokio::fs::read_to_string(path).await {
         Ok(c) => c,
         Err(_) => {
-            let bytes = std::fs::read(path)
+            let bytes = tokio::fs::read(path)
+                .await
                 .map_err(|e| ToolError::execution_failed(format!("读取失败: {}", e)))?;
 
-            // 简单处理：跳过非 UTF-8 字节
             String::from_utf8_lossy(&bytes).to_string()
         },
     };
@@ -186,9 +175,9 @@ fn read_text(path: &str, offset: usize, limit: usize) -> Result<ToolResult, Tool
     Ok(ToolResult::success(output))
 }
 
-fn read_image(path: &str) -> Result<ToolResult, ToolError> {
-    // 图片文件以 base64 编码返回
-    let bytes = std::fs::read(path)
+async fn read_image(path: &str) -> Result<ToolResult, ToolError> {
+    let bytes = tokio::fs::read(path)
+        .await
         .map_err(|e| ToolError::execution_failed(format!("读取图片失败: {}", e)))?;
 
     use base64::Engine;
@@ -207,23 +196,25 @@ fn read_image(path: &str) -> Result<ToolResult, ToolError> {
     )))
 }
 
-fn read_pdf(path: &str) -> Result<ToolResult, ToolError> {
-    // 使用 pdf-extract 或回退到原始文本提取
-    match pdf_extract::extract_text(path) {
-        Ok(text) => {
-            let text: String = text;
-            if text.len() > 200_000 {
-                Ok(ToolResult::truncated(text, 200_000))
-            } else {
-                Ok(ToolResult::success(text))
-            }
-        },
-        Err(e) => Err(ToolError::execution_failed(format!("PDF 读取失败: {}", e))),
+async fn read_pdf(path: &str) -> Result<ToolResult, ToolError> {
+    let path_owned = path.to_string();
+    let text = tokio::task::spawn_blocking(move || {
+        pdf_extract::extract_text(&path_owned).map(|t| t)
+    })
+    .await
+    .map_err(|e| ToolError::execution_failed(format!("PDF 读取任务失败: {}", e)))?
+    .map_err(|e| ToolError::execution_failed(format!("PDF 读取失败: {}", e)))?;
+
+    if text.len() > 200_000 {
+        Ok(ToolResult::truncated(text, 200_000))
+    } else {
+        Ok(ToolResult::success(text))
     }
 }
 
-fn read_notebook(path: &str) -> Result<ToolResult, ToolError> {
-    let content = std::fs::read_to_string(path)
+async fn read_notebook(path: &str) -> Result<ToolResult, ToolError> {
+    let content = tokio::fs::read_to_string(path)
+        .await
         .map_err(|e| ToolError::execution_failed(format!("读取 Notebook 失败: {}", e)))?;
 
     let nb: serde_json::Value = serde_json::from_str(&content)

@@ -1,13 +1,9 @@
-//! FileWriteTool - 文件写入工具
-//!
-//! 创建或覆盖文件，支持 diff 预览和 read-before-write 检查。
-
 use crate::{PermissionResult, Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::Path;
 
-const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024;
 
 pub struct FileWriteTool;
 
@@ -56,7 +52,6 @@ impl Tool for FileWriteTool {
             return Err(ToolError::invalid_input_for("FileWrite", "file_path 必须是绝对路径"));
         }
 
-        // 硬门禁：路径遍历检测（从 call() 前移到 validate()，确保验证层硬拒绝）
         if path.contains("..") || path.starts_with('~') {
             return Err(ToolError::invalid_input_for(
                 "FileWrite",
@@ -86,7 +81,6 @@ impl Tool for FileWriteTool {
     fn check_permissions(&self, input: &Value, _ctx: &ToolContext) -> PermissionResult {
         let path = input["file_path"].as_str().unwrap_or("");
 
-        // 禁止写入系统路径
         let dangerous_prefixes = [
             "/etc",
             "/boot",
@@ -110,7 +104,6 @@ impl Tool for FileWriteTool {
         if file_path.is_empty() {
             return Err(ToolError::invalid_input_for("FileWrite", "缺少 file_path 参数"));
         }
-        // 路径遍历已在 validate() 中硬拒绝
         let content = input["content"].as_str().unwrap_or("");
         if content.is_empty() && !input["content"].is_string() {
             return Err(ToolError::invalid_input_for("FileWrite", "缺少 content 参数"));
@@ -118,21 +111,21 @@ impl Tool for FileWriteTool {
 
         let path = Path::new(file_path);
 
-        // 创建父目录
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
+            tokio::fs::create_dir_all(parent)
+                .await
                 .map_err(|e| ToolError::execution_failed(format!("创建父目录失败: {}", e)))?;
         }
 
         let existed = path.exists();
         let old_content = if existed {
-            std::fs::read_to_string(path).ok()
+            tokio::fs::read_to_string(path).await.ok()
         } else {
             None
         };
 
-        // 写入文件
-        std::fs::write(path, content)
+        tokio::fs::write(path, content)
+            .await
             .map_err(|e| ToolError::execution_failed(format!("写入文件失败: {}", e)))?;
 
         let action = if existed { "更新" } else { "创建" };
@@ -143,7 +136,6 @@ impl Tool for FileWriteTool {
             && old.len() < 50_000
             && content.len() < 50_000
         {
-            // 生成简单 diff
             output.push_str("\n## 变更对比\n```diff\n");
             for diff in diff::lines(&old, content) {
                 match diff {

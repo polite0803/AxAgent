@@ -7,7 +7,7 @@ import type { CreateAgentProfileInput } from "@/types";
 import { Button, Divider, Input, InputNumber, message, Modal, Select, Tag } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AgentNode, OutputMode, WorkflowNode } from "../../types";
+import type { AgentNode, OutputMode, ToolDef, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
 interface AgentPropertyPanelProps {
@@ -50,6 +50,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
     prompt: string;
     saving: boolean;
   }>({ open: false, type: "expert", id: "", name: "", prompt: "", saving: false });
+
+  // 每个工具的参数编辑展开状态
+  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
 
   const openExpertPromptEditor = async (expertId: string, expertName: string) => {
     try {
@@ -208,6 +211,26 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
 
   const handleConfigChange = (key: string, value: unknown) => {
     onUpdate({ config: { ...config, [key]: value } });
+  };
+
+  // ── 单工具参数编辑 ──
+
+  const toggleToolExpand = (name: string) => {
+    setExpandedTools((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+  };
+
+  const updateToolDef = (idx: number, updated: ToolDef) => {
+    const newTools = [...(config.tools || [])];
+    newTools[idx] = updated;
+    handleConfigChange("tools", newTools);
   };
 
   // 角色+专家组合 → 创建或选择 AgentProfile
@@ -572,6 +595,105 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           options={toolOptions}
         />
       </div>
+
+      {/* 单工具参数编辑 */}
+      {config.tools?.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          {config.tools.map((td, idx) => {
+            if (typeof td === "string") { return null; }
+            const toolDef = td as ToolDef;
+            const expanded = expandedTools.has(toolDef.name);
+            return (
+              <div
+                key={toolDef.name}
+                style={{
+                  marginBottom: 6,
+                  border: "1px solid #333",
+                  borderRadius: 6,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  onClick={() => toggleToolExpand(toolDef.name)}
+                  style={{
+                    padding: "6px 10px",
+                    background: "#1a1a2e",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    userSelect: "none",
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "#ccc" }}>
+                    🛠 {toolDef.name}
+                  </span>
+                  <span style={{ fontSize: 10, color: "#666" }}>
+                    {expanded ? "▼" : "▶"}
+                  </span>
+                </div>
+                {expanded && (
+                  <div style={{ padding: "8px 10px", background: "#0d0d1a" }}>
+                    <label
+                      style={{
+                        display: "block",
+                        color: "#999",
+                        fontSize: 11,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {t("workflow.props.toolDescription")}
+                    </label>
+                    <Input
+                      id={`agent-tool-desc-${idx}`}
+                      value={toolDef.description || ""}
+                      onChange={(e) => updateToolDef(idx, { ...toolDef, description: e.target.value })}
+                      size="small"
+                      style={{ width: "100%", marginBottom: 8 }}
+                      placeholder={t("workflow.props.toolDescriptionPlaceholder")}
+                    />
+                    <label
+                      style={{
+                        display: "block",
+                        color: "#999",
+                        fontSize: 11,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {t("workflow.props.toolParameters")}
+                    </label>
+                    <Input.TextArea
+                      id={`agent-tool-params-${idx}`}
+                      value={toolDef.parameters
+                        ? JSON.stringify(toolDef.parameters, null, 2)
+                        : ""}
+                      onChange={(e) => {
+                        if (!e.target.value.trim()) {
+                          updateToolDef(idx, { ...toolDef, parameters: undefined });
+                          return;
+                        }
+                        try {
+                          const parsed = JSON.parse(e.target.value);
+                          updateToolDef(idx, { ...toolDef, parameters: parsed });
+                        } catch {
+                          // 键入非法 JSON 时保留旧值，避免覆盖
+                        }
+                      }}
+                      rows={4}
+                      style={{
+                        width: "100%",
+                        fontFamily: "monospace",
+                        fontSize: 11,
+                      }}
+                      placeholder={t("workflow.props.toolParametersPlaceholder")}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {(config.tools?.length ?? 0) > 0 && (
         <div>

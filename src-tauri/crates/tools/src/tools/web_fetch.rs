@@ -24,19 +24,28 @@ const MAX_RETRIES: u32 = 2;
 const RATE_LIMIT_INTERVAL_MS: u64 = 500;
 const DEFAULT_JS_RENDER_WAIT_MS: u64 = 2000;
 
-static RATE_LIMITER: parking_lot::Mutex<u64> = parking_lot::Mutex::new(0);
+use std::sync::atomic::{AtomicU64, Ordering};
 
-fn check_rate_limit() {
-    let mut last = RATE_LIMITER.lock();
+static LAST_FETCH_MS: AtomicU64 = AtomicU64::new(0);
+
+async fn check_rate_limit() {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64;
-    let elapsed = now.saturating_sub(*last);
+    let last = LAST_FETCH_MS.load(Ordering::Relaxed);
+    let elapsed = now.saturating_sub(last);
     if elapsed < RATE_LIMIT_INTERVAL_MS {
-        std::thread::sleep(std::time::Duration::from_millis(RATE_LIMIT_INTERVAL_MS - elapsed));
+        let wait = RATE_LIMIT_INTERVAL_MS - elapsed;
+        tokio::time::sleep(std::time::Duration::from_millis(wait)).await;
     }
-    *last = now;
+    LAST_FETCH_MS.store(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64,
+        Ordering::Relaxed,
+    );
 }
 
 pub struct WebFetchTool;
@@ -121,7 +130,7 @@ impl Tool for WebFetchTool {
         let start = Instant::now();
         let mut progress = Vec::new();
 
-        check_rate_limit();
+        check_rate_limit().await;
 
         // JS 渲染分支
         if render_js {
