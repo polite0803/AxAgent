@@ -1272,6 +1272,7 @@ export function QuickBarPage() {
         providerId: activeProviderId,
         modelId: activeModelId,
       });
+      return cid;
     });
 
   const runModelSwitch = (modelId: string) => {
