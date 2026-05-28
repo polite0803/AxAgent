@@ -264,7 +264,11 @@ impl SkillMatcher {
             }
         }
 
-        matches.sort_by(|a, b| b.match_score.partial_cmp(&a.match_score).unwrap());
+        matches.sort_by(|a, b| {
+            b.match_score
+                .partial_cmp(&a.match_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let best_match = matches.first().cloned();
         let complexity = estimate_complexity(user_input);

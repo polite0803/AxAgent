@@ -6420,6 +6420,7 @@
     }
   },
   "chatRightPanel": {
+    "title": "Asistente",
     "agent": "Agente",
     "hierarchy": "Jerarquía",
     "research": "Investigación",

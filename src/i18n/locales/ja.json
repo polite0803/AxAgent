@@ -6419,6 +6419,7 @@
     }
   },
   "chatRightPanel": {
+    "title": "アシスタント",
     "agent": "エージェント",
     "hierarchy": "階層",
     "research": "リサーチ",

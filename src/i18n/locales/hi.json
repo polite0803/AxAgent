@@ -6420,6 +6420,7 @@
     }
   },
   "chatRightPanel": {
+    "title": "सहायक",
     "agent": "एजेंट",
     "hierarchy": "पदानुक्रम",
     "research": "शोध",

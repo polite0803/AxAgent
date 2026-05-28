@@ -1,3 +1,4 @@
+import { logIpcError } from "@/lib/invoke";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
 import { App } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -78,9 +79,7 @@ export function useVoiceChat({
       streamRef.current = null;
     }
     if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-      audioCtxRef.current.close().catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
+      audioCtxRef.current.close().catch(logIpcError("VoiceChat.closeAudioCtx"));
       audioCtxRef.current = null;
     }
     if (wsRef.current) {
@@ -229,7 +228,7 @@ export function useVoiceChat({
     };
 
     ws.onerror = () => {
-      console.warn("[Voice] WebSocket 连接错误");
+      logIpcError("VoiceChat.wsError")("WebSocket connection error");
     };
 
     ws.onclose = (event) => {
@@ -255,8 +254,8 @@ export function useVoiceChat({
         RECONNECT_MAX_DELAY_MS,
       );
 
-      console.warn(
-        `[Voice] WebSocket 断开，${delay}ms 后第 ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS} 次重连...`,
+      logIpcError("VoiceChat.reconnect")(
+        `WebSocket disconnected, ${delay}ms before attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS}`,
       );
 
       reconnectTimerRef.current = setTimeout(() => {

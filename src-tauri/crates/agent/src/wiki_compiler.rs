@@ -555,8 +555,17 @@ impl WikiCompiler {
                     }
                     current_content = Vec::new();
                 }
-                current_title = Some(cap.get(1).unwrap().as_str().to_string());
-                titles_seen.push(current_title.clone().unwrap());
+                current_title = Some(
+                    cap.get(1)
+                        .expect("capture group 1 always exists for regex with (.+) group")
+                        .as_str()
+                        .to_string(),
+                );
+                titles_seen.push(
+                    current_title
+                        .clone()
+                        .expect("current_title was just set to Some"),
+                );
                 continue;
             }
             if current_title.is_some() {

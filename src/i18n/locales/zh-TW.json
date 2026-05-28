@@ -6419,6 +6419,7 @@
     }
   },
   "chatRightPanel": {
+    "title": "助手面板",
     "agent": "智能體",
     "hierarchy": "層級",
     "research": "調研",

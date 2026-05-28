@@ -145,10 +145,6 @@ export function createSendMethods(
       if (
         isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
       ) {
-        console.warn(
-          "[sendMessage] Ignoring duplicate send — stream already active for",
-          conversationId,
-        );
         return;
       }
 
@@ -342,7 +338,7 @@ export function createSendMethods(
           get().fetchMessages(conversationId);
         }
       } catch (e) {
-        console.error("[sendMessage] error:", e);
+        logIpcError("sendMessage")(e);
         const errMsg = String(e);
 
         // Determine whether this error is retryable (transient) vs permanent.
@@ -532,10 +528,6 @@ export function createSendMethods(
       if (
         isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
       ) {
-        console.warn(
-          "[sendAgentMessage] Ignoring duplicate send — stream already active for",
-          conversationId,
-        );
         return;
       }
 
@@ -1154,7 +1146,7 @@ export function createSendMethods(
           /* ignore cleanup errors */
         }
         const errMsg = String(e);
-        console.error("[sendAgentMessage] error:", errMsg);
+        logIpcError("sendAgentMessage")(errMsg);
 
         // Stale guard: user switched conversations while agent was running
         if (get().activeConversationId !== conversationId) {
@@ -1231,10 +1223,6 @@ export function createSendMethods(
       if (
         isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
       ) {
-        console.warn(
-          "[sendPlanMessage] Ignoring duplicate send — stream already active for",
-          conversationId,
-        );
         return;
       }
 
@@ -1352,7 +1340,7 @@ export function createSendMethods(
           })(),
         }));
         const errMsg = String(e);
-        console.error("[sendPlanMessage] error:", errMsg);
+        logIpcError("sendPlanMessage")(errMsg);
         set((s) => ({
           messages: s.messages.map((m) =>
             m.id === currentMsgId
@@ -1378,10 +1366,6 @@ export function createSendMethods(
       if (
         isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
       ) {
-        console.warn(
-          "[regenerateMessage] Ignoring duplicate send — stream already active for",
-          conversationId,
-        );
         return;
       }
 
@@ -1514,7 +1498,7 @@ export function createSendMethods(
           get().fetchMessages(conversationId);
         }
       } catch (e) {
-        console.error("[regenerateMessage] error:", e);
+        logIpcError("regenerateMessage")(e);
         const errMsg = String(e);
         const currentStreamingMessageId = getStreamingMessageId(
           useStreamStore.getState().activeStreams,
@@ -1662,7 +1646,7 @@ export function createSendMethods(
           get().fetchMessages(conversationId);
         }
       } catch (e) {
-        console.error("[regenerateWithModel] error:", e);
+        logIpcError("regenerateWithModel")(e);
         const errMsg = String(e);
         const currentStreamingMessageId = getStreamingMessageId(
           useStreamStore.getState().activeStreams,

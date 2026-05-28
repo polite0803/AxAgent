@@ -21,7 +21,6 @@ export class ArtifactRenderer {
   }
 
   renderReact(_code: string, container: HTMLElement): void {
-    console.warn("[ArtifactRenderer] renderReact not fully implemented");
     const div = document.createElement("div");
     div.style.padding = "16px";
     div.style.background = "#f5f5f5";
@@ -30,12 +29,10 @@ export class ArtifactRenderer {
   }
 
   renderMermaid(code: string, container: HTMLElement): void {
-    console.warn("[ArtifactRenderer] renderMermaid not fully implemented");
     container.textContent = code;
   }
 
   renderD2(code: string, container: HTMLElement): void {
-    console.warn("[ArtifactRenderer] renderD2 not fully implemented");
     container.textContent = code;
   }
 
@@ -56,6 +53,5 @@ export class ArtifactRenderer {
   }
 
   renderHtml(_params: { html: string; css?: string; js?: string }): void {
-    console.warn("[ArtifactRenderer] renderHtml not fully implemented");
   }
 }

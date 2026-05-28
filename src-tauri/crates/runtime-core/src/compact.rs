@@ -284,7 +284,7 @@ pub fn compact_session(session: &Session, config: CompactionConfig) -> Compactio
                 .enumerate()
                 .min_by_key(|(_, msg)| crate::message_importance::score_message(msg))
                 .map(|(offset, _)| offset)
-                .unwrap();
+                .expect("removable_range is non-empty, min_by_key always returns Some");
             removed.clear();
             kept.clear();
             for (offset, msg) in removable_range.iter().enumerate() {

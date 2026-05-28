@@ -129,7 +129,10 @@ impl PriorityScheduler {
                 break;
             }
 
-            let task = self.waiting_queue.pop().unwrap();
+            let task = self
+                .waiting_queue
+                .pop()
+                .expect("peek guaranteed the queue is non-empty");
             self.total_allocated += task.resource_weight;
             self.running_tasks
                 .push((task.clone(), task.resource_weight));

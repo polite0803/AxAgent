@@ -8,6 +8,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Qu
 #[cfg(test)]
 use crate::constants;
 use crate::entity::{messages, stored_files};
+use crate::error::{AxAgentError, Result};
 use crate::storage_paths::{build_relative_path, documents_root};
 
 /// Summary of what the migration did.
@@ -26,7 +27,7 @@ pub struct MigrationReport {
 pub async fn migrate_to_documents_root(
     db: &DatabaseConnection,
     legacy_files_dir: &Path,
-) -> Result<MigrationReport, String> {
+) -> Result<MigrationReport> {
     let target = documents_root();
     run_migration(db, legacy_files_dir, &target).await
 }
@@ -36,11 +37,11 @@ async fn run_migration(
     db: &DatabaseConnection,
     legacy_dir: &Path,
     target_root: &Path,
-) -> Result<MigrationReport, String> {
+) -> Result<MigrationReport> {
     // 1. Ensure target directories
     for sub in &["images", "files"] {
         std::fs::create_dir_all(target_root.join(sub))
-            .map_err(|e| format!("create target dir: {e}"))?;
+            .map_err(|e| AxAgentError::Internal(format!("create target dir: {}", e)))?;
     }
 
     let mut report = MigrationReport::default();
@@ -50,7 +51,7 @@ async fn run_migration(
     let rows = stored_files::Entity::find()
         .all(db)
         .await
-        .map_err(|e| format!("query stored_files: {e}"))?;
+        .map_err(|e| AxAgentError::Database(e))?;
 
     // 3. Process each stored file
     for row in rows {
@@ -75,10 +76,12 @@ async fn run_migration(
         // e. Copy if source exists, f. warn if missing
         if old_abs.exists() {
             if let Some(p) = new_abs.parent() {
-                std::fs::create_dir_all(p).map_err(|e| format!("mkdir: {e}"))?;
+                std::fs::create_dir_all(p)
+                    .map_err(|e| AxAgentError::Internal(format!("mkdir: {}", e)))?;
             }
-            std::fs::copy(&old_abs, &new_abs)
-                .map_err(|e| format!("copy {}: {e}", old_abs.display()))?;
+            std::fs::copy(&old_abs, &new_abs).map_err(|e| {
+                AxAgentError::Internal(format!("copy {}: {}", old_abs.display(), e))
+            })?;
             report.files_moved += 1;
         } else {
             tracing::warn!(path = %old_abs.display(), "source file missing during migration");
@@ -88,9 +91,7 @@ async fn run_migration(
         // Update DB record (even when source is missing, for consistency)
         let mut am: stored_files::ActiveModel = row.into();
         am.storage_path = Set(new_rel);
-        am.update(db)
-            .await
-            .map_err(|e| format!("update stored_files: {e}"))?;
+        am.update(db).await.map_err(|e| AxAgentError::Database(e))?;
         report.db_records_updated += 1;
     }
 
@@ -100,7 +101,7 @@ async fn run_migration(
         .filter(messages::Column::Attachments.ne(""))
         .all(db)
         .await
-        .map_err(|e| format!("query messages: {e}"))?;
+        .map_err(|e| AxAgentError::Database(e))?;
 
     for msg in msgs {
         let Ok(mut atts) = serde_json::from_str::<Vec<serde_json::Value>>(&msg.attachments) else {
@@ -144,13 +145,11 @@ async fn run_migration(
         }
 
         if changed {
-            let json =
-                serde_json::to_string(&atts).map_err(|e| format!("serialize attachments: {e}"))?;
+            let json = serde_json::to_string(&atts)
+                .map_err(|e| AxAgentError::Internal(format!("serialize attachments: {}", e)))?;
             let mut am: messages::ActiveModel = msg.into();
             am.attachments = Set(json);
-            am.update(db)
-                .await
-                .map_err(|e| format!("update message: {e}"))?;
+            am.update(db).await.map_err(|e| AxAgentError::Database(e))?;
             report.messages_updated += 1;
         }
     }

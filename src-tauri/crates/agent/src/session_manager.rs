@@ -253,17 +253,23 @@ impl SessionManager {
     }
 
     pub fn set_default_workspace_dir(&self, dir: Option<String>) {
-        let mut default_workspace_dir = self.default_workspace_dir.lock().unwrap();
+        let mut default_workspace_dir = self
+            .default_workspace_dir
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         *default_workspace_dir = dir;
     }
 
     pub fn set_app_handle(&self, app_handle: AppHandle) {
-        let mut handle = self.app_handle.lock().unwrap();
+        let mut handle = self.app_handle.lock().unwrap_or_else(|e| e.into_inner());
         *handle = Some(app_handle);
     }
 
     pub fn has_app_handle(&self) -> bool {
-        self.app_handle.lock().unwrap().is_some()
+        self.app_handle
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_some()
     }
 
     /// Returns the number of currently cached sessions.
@@ -310,7 +316,10 @@ impl SessionManager {
         let session_id = session.session().session_id.clone();
 
         let default_workspace_dir = {
-            let guard = self.default_workspace_dir.lock().unwrap();
+            let guard = self
+                .default_workspace_dir
+                .lock()
+                .map_err(|e| format!("Failed to lock default_workspace_dir: {}", e))?;
             guard.clone()
         };
 
@@ -623,7 +632,11 @@ impl SessionManager {
         let permission_policy = PermissionPolicy::new(permission_mode);
 
         // Get app handle for event emission
-        let app_handle = self.app_handle.lock().unwrap().clone();
+        let app_handle = self
+            .app_handle
+            .lock()
+            .map_err(|e| RuntimeError::new(format!("Failed to lock app_handle: {}", e)))?
+            .clone();
 
         // Create runtime with ToolRegistry and progress reporter
         let mut runtime = ConversationRuntime::new(
@@ -653,7 +666,9 @@ impl SessionManager {
         let progress = Arc::new(AgentExecutionProgress::new(max_iters));
         runtime = runtime.with_progress(progress.clone());
         {
-            let mut trackers = self.progress_trackers.write().unwrap();
+            let mut trackers = self.progress_trackers.write().map_err(|e| {
+                RuntimeError::new(format!("Failed to write-lock progress_trackers: {}", e))
+            })?;
             trackers.insert(conversation_id.clone(), progress.clone());
         }
 
@@ -723,7 +738,12 @@ impl SessionManager {
         // Clean up progress tracker — the frontend will get one final
         // snapshot via agent-done before this removal.
         {
-            let mut trackers = self.progress_trackers.write().unwrap();
+            let mut trackers = self.progress_trackers.write().map_err(|e| {
+                RuntimeError::new(format!(
+                    "Failed to write-lock progress_trackers for cleanup: {}",
+                    e
+                ))
+            })?;
             trackers.remove(&conversation_id);
         }
 
@@ -733,7 +753,10 @@ impl SessionManager {
     /// Get the execution progress tracker for a given conversation.
     /// Used by `agent_runtime_stats` IPC to return real-time progress to the frontend.
     pub fn get_progress(&self, conversation_id: &str) -> Option<Arc<AgentExecutionProgress>> {
-        let trackers = self.progress_trackers.read().unwrap();
+        let trackers = self
+            .progress_trackers
+            .read()
+            .unwrap_or_else(|e| e.into_inner());
         trackers.get(conversation_id).cloned()
     }
 }

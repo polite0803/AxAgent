@@ -1223,7 +1223,9 @@ fn extract_sse_json_response(buffer: &mut String) -> Option<Value> {
             break None;
         };
 
-        let abs_block_end = search_start + block_end.unwrap() + 2; // +2 for "\n\n"
+        let abs_block_end = search_start
+            + block_end.expect("block_end is Some: we would have broken out of the loop otherwise")
+            + 2;
 
         let mut event_type = None;
         let mut data_lines = Vec::new();

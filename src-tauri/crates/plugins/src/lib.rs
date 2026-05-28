@@ -2728,7 +2728,7 @@ fn materialize_source(
             let unique = MATERIALIZE_COUNTER.fetch_add(1, Ordering::Relaxed);
             let nanos = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .expect("system time is after UNIX epoch")
                 .as_nanos();
             let destination = temp_root.join(format!("plugin-{nanos}-{unique}"));
             let output = Command::new("git")
@@ -2767,7 +2767,7 @@ fn materialize_source(
                 })
             })
             .join()
-            .unwrap();
+            .map_err(|e| PluginError::CommandFailed(format!("install thread panicked: {:?}", e)))?;
             result.map_err(PluginError::CommandFailed)
         },
     }
@@ -2904,7 +2904,7 @@ fn sha256_hash(data: &[u8]) -> String {
     let hash = <sha2::Sha256 as sha2::Digest>::digest(data);
     let mut result = String::with_capacity(hash.len() * 2);
     for byte in hash {
-        write!(result, "{byte:02x}").unwrap();
+        write!(result, "{byte:02x}").expect("writing to String should never fail");
     }
     result
 }

@@ -132,7 +132,10 @@ impl SharedBlackboard {
                     vote_count: max_votes,
                 }
             } else {
-                let first = decisions.iter().min_by_key(|d| d.timestamp_ms).unwrap();
+                let first = decisions
+                    .iter()
+                    .min_by_key(|d| d.timestamp_ms)
+                    .expect("decisions is non-empty (len >= 2 checked above)");
                 ConflictResolution::TieBreak {
                     chosen: first.value.clone(),
                     reason: "平局，选择首个完成者的决策".to_string(),

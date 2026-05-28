@@ -28,7 +28,11 @@ pub fn detect_package_root(dest: &Path) -> Result<Option<PathBuf>, std::io::Erro
         .collect();
 
     if entries.len() == 1 {
-        let single_dir = entries.into_iter().next().unwrap().path();
+        let single_dir = entries
+            .into_iter()
+            .next()
+            .expect("entries.len() == 1 was checked above")
+            .path();
         if single_dir.join("plugin.json").exists()
             || single_dir.join(".claude-plugin").exists()
             || single_dir.join("SKILL.md").exists()

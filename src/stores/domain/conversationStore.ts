@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/lib/messageUtils";
 import { useProviderStore } from "@/stores/feature/providerStore";
 import type {
@@ -317,9 +317,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // Backup and clear agent SDK context (no-op if no agent session exists)
       await invoke("agent_backup_and_clear_sdk_context", {
         conversationId,
-      }).catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
+      }).catch(logIpcError("agent_backup_and_clear_sdk_context"));
     } catch {
       // If backend command doesn't exist yet, add optimistic local message
       const localMsg: Message = {
@@ -357,9 +355,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       if (conversationId) {
         await invoke("agent_restore_sdk_context_from_backup", {
           conversationId,
-        }).catch((e: unknown) => {
-          console.warn("[IPC]", e);
-        });
+        }).catch(logIpcError("agent_restore_sdk_context_from_backup"));
       }
     } catch (e) {
       set({ error: String(e) });
@@ -394,7 +390,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         loadingOlder: false,
       });
     } catch (e) {
-      console.error("Failed to clear messages:", e);
+      logIpcError("clearAllMessages")(e);
+      set({ error: String(e) });
     }
   },
 
@@ -446,7 +443,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         });
       }
     } catch (e) {
-      console.error("Failed to switch model:", e);
+      logIpcError("switchModel")(e);
+      set({ error: String(e) });
     }
   },
 
@@ -686,7 +684,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         );
       } catch (preferenceError) {
         // 非致命：对话已创建，偏好设置未应用，使用默认值
-        console.warn(`[createConversation] 偏好设置更新失败，使用默认值:`, preferenceError);
+        logIpcError("createConversation.preferenceUpdate")(preferenceError);
       }
       // Clean up the previous active conversation's stores before switching.
       // createConversation bypassed setActiveConversation, which would normally
@@ -1093,15 +1091,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       const errorMessage = String(e);
       if (errorMessage.includes("Not found: Conversation")) {
-        console.warn(
-          "Conversation no longer exists on backend, clearing active selection:",
-          conversationId,
-        );
         await get()
           .fetchConversations()
-          .catch((e: unknown) => {
-            console.warn("[IPC]", e);
-          });
+          .catch(logIpcError("fetchConversations.afterConversationNotFound"));
         const nextConversation = get().conversations[0] ?? get().archivedConversations[0] ?? null;
         if (nextConversation) {
           get().setActiveConversation(nextConversation.id);
@@ -1362,7 +1354,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           : null,
       }));
     } catch (e) {
-      console.error("Failed to update workspace snapshot:", e);
+      logIpcError("updateWorkspaceSnapshot")(e);
     }
   },
 

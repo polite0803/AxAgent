@@ -1,3 +1,4 @@
+import { logIpcError } from "@/lib/invoke";
 import { useAgentStore } from "@/stores";
 import type { PermissionRequestEvent } from "@/types";
 import { Button, Modal, Space, Tag, theme, Typography } from "antd";
@@ -187,11 +188,7 @@ export const PermissionModal: React.FC = () => {
           permissionRequest.toolName,
         );
       } catch (e) {
-        console.error(
-          "[PermissionModal]",
-          t("permissionModal.approveError"),
-          e,
-        );
+        logIpcError("PermissionModal.approveError")(e);
       } finally {
         setLoading(null);
         // 移动到下一个待审批项

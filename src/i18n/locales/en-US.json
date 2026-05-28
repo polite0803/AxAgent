@@ -6421,6 +6421,7 @@
     }
   },
   "chatRightPanel": {
+    "title": "Assistant Panel",
     "agent": "Agent",
     "hierarchy": "Hierarchy",
     "research": "Research",

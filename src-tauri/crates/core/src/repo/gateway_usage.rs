@@ -31,7 +31,7 @@ pub async fn get_metrics(db: &DatabaseConnection) -> Result<GatewayMetrics> {
     let today_start = chrono::Utc::now()
         .date_naive()
         .and_hms_opt(0, 0, 0)
-        .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap())
+        .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(1970, 1, 1).expect("1970-01-01 is a valid NaiveDate").and_hms_opt(0, 0, 0).expect("00:00:00 is a valid NaiveTime"))
         .and_utc()
         .timestamp();
 
@@ -187,7 +187,7 @@ pub async fn get_connected_programs(db: &DatabaseConnection) -> Result<Vec<Conne
     let today_start = chrono::Utc::now()
         .date_naive()
         .and_hms_opt(0, 0, 0)
-        .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap())
+        .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(1970, 1, 1).expect("1970-01-01 is a valid NaiveDate").and_hms_opt(0, 0, 0).expect("00:00:00 is a valid NaiveTime"))
         .and_utc()
         .timestamp();
     let active_threshold = now_ts() - 300; // active within last 5 minutes

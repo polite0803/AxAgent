@@ -57,14 +57,24 @@ fn parse_frontmatter(content: &str) -> Option<Frontmatter> {
                     if trimmed.is_empty() {
                         // 空行：如果是块的一部分（前面已收集了内容），继续收集
                         if !nested_lines.is_empty() {
-                            nested_lines.push(lines.next().unwrap().to_string());
+                            nested_lines.push(
+                                lines
+                                    .next()
+                                    .expect("peek() returned Some, so next() must also return Some")
+                                    .to_string(),
+                            );
                         } else {
                             // 还没有收集到内容，跳过空行
                             lines.next();
                         }
                     } else if next_line.starts_with(' ') || next_line.starts_with('\t') {
                         // 缩进行属于嵌套块
-                        nested_lines.push(lines.next().unwrap().to_string());
+                        nested_lines.push(
+                            lines
+                                .next()
+                                .expect("peek() returned Some, so next() must also return Some")
+                                .to_string(),
+                        );
                     } else {
                         // 非缩进行表示嵌套块结束
                         break;
@@ -147,7 +157,7 @@ fn parse_mcp_servers(block: &str) -> Vec<crate::agent_def_types::AgentMcpServerS
             }
             current_name = trimmed
                 .strip_prefix("- name:")
-                .unwrap()
+                .expect("prefix confirmed by starts_with check above")
                 .trim()
                 .trim_matches('"')
                 .to_string();
@@ -157,12 +167,15 @@ fn parse_mcp_servers(block: &str) -> Vec<crate::agent_def_types::AgentMcpServerS
         } else if trimmed.starts_with("command:") {
             current_command = trimmed
                 .strip_prefix("command:")
-                .unwrap()
+                .expect("prefix confirmed by starts_with check above")
                 .trim()
                 .trim_matches('"')
                 .to_string();
         } else if trimmed.starts_with("args:") {
-            let args_str = trimmed.strip_prefix("args:").unwrap().trim();
+            let args_str = trimmed
+                .strip_prefix("args:")
+                .expect("prefix confirmed by starts_with check above")
+                .trim();
             current_args = parse_yaml_array(args_str);
         }
     }

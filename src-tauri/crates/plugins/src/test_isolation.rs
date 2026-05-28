@@ -18,7 +18,7 @@ pub struct EnvLock {
 impl EnvLock {
     /// Acquire environment lock for test isolation
     pub fn lock() -> Self {
-        let guard = ENV_LOCK.lock().unwrap();
+        let guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let count = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
         let temp_home = std::env::temp_dir().join(format!("plugin-test-{count}"));
 

@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Card, Popconfirm, Spin, Statistic, Table, Tag, theme } from "antd";
 import { Activity, BarChart3, Clock, Server } from "lucide-react";
@@ -40,16 +40,12 @@ export function GatewayMonitor() {
     try {
       const [m, l] = await Promise.all([
         invoke<GatewayMetrics>("get_gateway_metrics").catch((e) => {
-          if (import.meta.env.DEV) {
-            console.warn("Failed to load gateway metrics:", e);
-          }
+          logIpcError("get_gateway_metrics")(e);
           return null;
         }),
         invoke<RequestLog[]>("list_gateway_request_logs", { limit: 50 }).catch(
           (e) => {
-            if (import.meta.env.DEV) {
-              console.warn("Failed to load gateway request logs:", e);
-            }
+            logIpcError("list_gateway_request_logs")(e);
             return [];
           },
         ),
@@ -58,7 +54,7 @@ export function GatewayMonitor() {
       setLogs(l);
     } catch (e) {
       const msg = t("gatewayMonitor.loadMetricsFailed", { error: String(e) });
-      console.warn(msg);
+      logIpcError("GatewayMonitor.loadData")(e);
       setError(msg);
     } finally {
       setLoading(false);
@@ -74,7 +70,7 @@ export function GatewayMonitor() {
       await invoke("clear_gateway_request_logs");
       setLogs([]);
     } catch (e) {
-      console.error(e);
+      logIpcError("GatewayMonitor.clearLogs")(e);
     }
   };
 

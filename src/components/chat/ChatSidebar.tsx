@@ -9,7 +9,7 @@ import {
   exportAsPNG,
   exportAsText,
 } from "@/lib/exportChat";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
 import {
@@ -1142,7 +1142,7 @@ export function ChatSidebar({
               messageApi.success(t("chat.exportSuccess"));
             }
           } catch (e) {
-            console.error("Export PNG failed:", e);
+            logIpcError("Export PNG")(e);
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -1165,7 +1165,7 @@ export function ChatSidebar({
               messageApi.success(t("chat.exportSuccess"));
             }
           } catch (e) {
-            console.error("Export MD failed:", e);
+            logIpcError("Export MD")(e);
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -1188,7 +1188,7 @@ export function ChatSidebar({
               messageApi.success(t("chat.exportSuccess"));
             }
           } catch (e) {
-            console.error("Export TXT failed:", e);
+            logIpcError("Export TXT")(e);
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -1211,7 +1211,7 @@ export function ChatSidebar({
               messageApi.success(t("chat.exportSuccess"));
             }
           } catch (e) {
-            console.error("Export JSON failed:", e);
+            logIpcError("Export JSON")(e);
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -1234,7 +1234,7 @@ export function ChatSidebar({
               messageApi.success(t("chat.exportSuccess"));
             }
           } catch (e) {
-            console.error("Export HTML failed:", e);
+            logIpcError("Export HTML")(e);
             messageApi.error(t("chat.exportFailed"));
           }
         },

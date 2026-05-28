@@ -199,9 +199,6 @@ export const useExecutionStore = create<ExecutionStore>()(
             }
             const allowed = PHASE_TRANSITIONS[from] || [];
             if (!allowed.includes(to)) {
-              console.warn(
-                `[executionStore] 非法阶段转换: ${from} → ${to} (conv: ${conversationId})`,
-              );
               return {};
             }
             return { phases: { ...s.phases, [conversationId]: to } };

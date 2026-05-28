@@ -1,6 +1,6 @@
 import { pushNotification } from "@/components/layout/NotificationBell";
 import i18n from "@/i18n";
-import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
+import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { useConversationStore, useStreamStore } from "@/stores";
 import { deriveLegacyStreamFields, getStreamingMessageId } from "@/stores/domain/streamStore";
 import type {
@@ -353,7 +353,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       }
       return session;
     } catch (e) {
-      console.error("[agentStore] fetchSession failed:", e);
+      logIpcError("agentStore.fetchSession")(e);
       return null;
     }
   },
@@ -368,7 +368,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         sessions: { ...s.sessions, [conversationId]: session },
       }));
     } catch (e) {
-      console.error("[agentStore] updateCwd failed:", e);
+      logIpcError("agentStore.updateCwd")(e);
     }
   },
 
@@ -382,7 +382,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         sessions: { ...s.sessions, [conversationId]: session },
       }));
     } catch (e) {
-      console.error("[agentStore] updatePermissionMode failed:", e);
+      logIpcError("agentStore.updatePermissionMode")(e);
     }
   },
 
@@ -398,7 +398,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       });
       get().handlePermissionResolved(toolUseId, decision);
     } catch (e) {
-      console.error("[agentStore] approveToolUse failed:", e);
+      logIpcError("agentStore.approveToolUse")(e);
     }
   },
 
@@ -570,7 +570,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       await new Promise((r) => setTimeout(r, 500));
       get().handleAskUserResolved(askId);
     } catch (e) {
-      console.error("[agentStore] respondAskUser failed:", e);
+      logIpcError("agentStore.respondAskUser")(e);
     }
   },
 
@@ -633,7 +633,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   handleError: (event) => {
-    console.error("[agentStore] Agent error:", event);
+    logIpcError("agentStore.handleError")(event);
     if (event.conversationId) {
       get().clearStatus(event.conversationId);
       get().expirePendingPermissions(event.conversationId);
@@ -736,7 +736,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   handleRateLimit: (event) => {
-    console.warn("[agentStore] Rate limited:", event.message);
     set((s) => ({
       rateLimitInfo: { ...s.rateLimitInfo, [event.conversationId]: event },
     }));
@@ -889,7 +888,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         toolCalls: { ...toolCalls, ...s.toolCalls },
       }));
     } catch (e) {
-      console.error("[agentStore] loadToolHistory failed:", e);
+      logIpcError("agentStore.loadToolHistory")(e);
     }
   },
 
@@ -978,7 +977,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         return { pausedConversations };
       });
     } catch (err) {
-      console.error("[agentStore] pauseAgent failed:", err);
+      logIpcError("agentStore.pauseAgent")(err);
     }
   },
 
@@ -991,7 +990,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         return { pausedConversations };
       });
     } catch (err) {
-      console.error("[agentStore] resumeAgent failed:", err);
+      logIpcError("agentStore.resumeAgent")(err);
     }
   },
 

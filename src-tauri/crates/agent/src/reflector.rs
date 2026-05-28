@@ -209,7 +209,10 @@ impl Reflector {
         reflection.error_patterns = errors;
         reflection.reusable_patterns = reusable;
 
-        let metrics_ref = reflection.quality_metrics.as_ref().unwrap();
+        let metrics_ref = reflection
+            .quality_metrics
+            .as_ref()
+            .expect("quality_metrics was set above");
         reflection.knowledge_suggestions = self.generate_knowledge_suggestions(record, metrics_ref);
         reflection.improvement_suggestions =
             self.generate_improvement_suggestions(record, &reflection);

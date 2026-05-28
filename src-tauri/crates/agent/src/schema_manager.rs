@@ -11,6 +11,7 @@ use sea_orm::{
 };
 
 use axagent_core::entity::{notes, wikis};
+use axagent_core::error::{AxAgentError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchemaVersion {
@@ -72,7 +73,7 @@ impl SchemaManager {
         }
     }
 
-    pub async fn get_current_schema(&self, wiki_id: &str) -> Result<String, String> {
+    pub async fn get_current_schema(&self, wiki_id: &str) -> Result<String> {
         {
             let cache = self.cache.read().await;
             if let Some(cached) = &*cache {
@@ -82,14 +83,13 @@ impl SchemaManager {
 
         let wiki = wikis::Entity::find_by_id(wiki_id)
             .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .await?
+            .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
 
         let schema_path = PathBuf::from(&wiki.root_path).join("SCHEMA.md");
         let content = fs::read_to_string(&schema_path)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AxAgentError::Io(e))?;
 
         {
             let mut cache = self.cache.write().await;
@@ -103,12 +103,11 @@ impl SchemaManager {
         &self,
         wiki_id: &str,
         required_version: &str,
-    ) -> Result<Compatibility, String> {
+    ) -> Result<Compatibility> {
         let wiki = wikis::Entity::find_by_id(wiki_id)
             .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .await?
+            .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
 
         let current = parse_version(&wiki.schema_version);
         let required = parse_version(required_version);
@@ -149,7 +148,7 @@ impl SchemaManager {
         wiki_id: &str,
         from_version: &str,
         to_version: &str,
-    ) -> Result<SchemaDiff, String> {
+    ) -> Result<SchemaDiff> {
         let from_template = self.parse_version_template(wiki_id, from_version).await?;
         let to_template = self.parse_version_template(wiki_id, to_version).await?;
 
@@ -217,7 +216,7 @@ impl SchemaManager {
         &self,
         wiki_id: &str,
         _version: &str,
-    ) -> Result<FrontmatterTemplate, String> {
+    ) -> Result<FrontmatterTemplate> {
         self.get_frontmatter_template(wiki_id).await
     }
 
@@ -226,7 +225,7 @@ impl SchemaManager {
         wiki_id: &str,
         from_version: &str,
         to_version: &str,
-    ) -> Result<i32, String> {
+    ) -> Result<i32> {
         let diff = self.diff_schemas(wiki_id, from_version, to_version).await?;
         let mut migrated = 0;
 
@@ -234,8 +233,7 @@ impl SchemaManager {
             .filter(notes::Column::VaultId.eq(wiki_id))
             .filter(notes::Column::IsDeleted.eq(0))
             .all(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         for note_model in db_notes {
             let mut note = axagent_core::repo::note::model_to_note(note_model.clone());
@@ -260,7 +258,9 @@ impl SchemaManager {
                 };
                 axagent_core::repo::note::update_note(self.db.as_ref(), &note.id, input)
                     .await
-                    .map_err(|e| format!("Failed to migrate page {}: {}", note.id, e))?;
+                    .map_err(|e| {
+                        AxAgentError::Internal(format!("Failed to migrate page {}: {}", note.id, e))
+                    })?;
                 migrated += 1;
             }
         }
@@ -268,16 +268,13 @@ impl SchemaManager {
         if migrated > 0 {
             let wiki_model = wikis::Entity::find_by_id(wiki_id)
                 .one(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+                .await?
+                .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
 
             let mut am = wiki_model.into_active_model();
             am.schema_version = Set(to_version.to_string());
             am.updated_at = Set(chrono::Utc::now().timestamp());
-            am.update(self.db.as_ref())
-                .await
-                .map_err(|e| e.to_string())?;
+            am.update(self.db.as_ref()).await?;
         }
 
         Ok(migrated)
@@ -287,7 +284,7 @@ impl SchemaManager {
         &self,
         wiki_id: &str,
         frontmatter: &serde_json::Map<String, serde_json::Value>,
-    ) -> Result<Vec<String>, String> {
+    ) -> Result<Vec<String>> {
         let template = self.get_frontmatter_template(wiki_id).await?;
         let mut errors = Vec::new();
 
@@ -321,7 +318,7 @@ impl SchemaManager {
         Ok(errors)
     }
 
-    async fn get_frontmatter_template(&self, wiki_id: &str) -> Result<FrontmatterTemplate, String> {
+    async fn get_frontmatter_template(&self, wiki_id: &str) -> Result<FrontmatterTemplate> {
         let schema = self.get_current_schema(wiki_id).await?;
         Ok(self.parse_template_from_schema(&schema))
     }
@@ -383,17 +380,16 @@ impl SchemaManager {
         wiki_id: &str,
         version: &str,
         description: Option<String>,
-    ) -> Result<SchemaVersion, String> {
+    ) -> Result<SchemaVersion> {
         let wiki = wikis::Entity::find_by_id(wiki_id)
             .one(self.db.as_ref())
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Wiki {} not found", wiki_id))?;
+            .await?
+            .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
 
         let schema_path = PathBuf::from(&wiki.root_path).join("SCHEMA.md");
         let content = fs::read_to_string(&schema_path)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AxAgentError::Io(e))?;
 
         let content_hash = format!("{:x}", md5::compute(&content));
 

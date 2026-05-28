@@ -810,7 +810,8 @@ impl SyncEngine {
             return Ok(result);
         }
 
-        let remote_manifest = remote_manifest.unwrap();
+        let remote_manifest = remote_manifest
+            .expect("remote_manifest is non-None: early return above handles the None case");
 
         // 3. Build index of remote files
         let remote_keys: std::collections::HashMap<&str, &str> = remote_manifest

@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 
 export interface ExecutionResult {
   stdout: string;
@@ -59,7 +59,7 @@ class CodeExecutor {
           indexURL: PYODIDE_CDN,
         });
       } catch (e) {
-        console.error("Failed to load Pyodide:", e);
+        logIpcError("CodeExecutor.loadPyodide")(e);
         this.pyodide = null;
         this.pyodideLoadFailed = true;
         this.pyodideLoading = null;

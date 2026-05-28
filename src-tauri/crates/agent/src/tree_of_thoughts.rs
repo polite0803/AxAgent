@@ -416,7 +416,7 @@ Respond with only a number between 0.0 and 1.0.",
                         .partial_cmp(&score_b)
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
-                .unwrap();
+                .expect("active_children is non-empty after is_empty check");
 
             current = (*best_child).clone();
             path.push(current.clone());

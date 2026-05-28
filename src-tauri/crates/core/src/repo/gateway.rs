@@ -113,9 +113,9 @@ pub async fn get_gateway_metrics(db: &DatabaseConnection) -> Result<GatewayMetri
         .and_hms_opt(0, 0, 0)
         .unwrap_or_else(|| {
             chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
-                .unwrap()
+                .expect("1970-01-01 is a valid NaiveDate")
                 .and_hms_opt(0, 0, 0)
-                .unwrap()
+                .expect("00:00:00 is a valid NaiveTime")
         })
         .and_utc()
         .timestamp();
@@ -273,9 +273,9 @@ pub async fn get_connected_programs(db: &DatabaseConnection) -> Result<Vec<Conne
         .and_hms_opt(0, 0, 0)
         .unwrap_or_else(|| {
             chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
-                .unwrap()
+                .expect("1970-01-01 is a valid NaiveDate")
                 .and_hms_opt(0, 0, 0)
-                .unwrap()
+                .expect("00:00:00 is a valid NaiveTime")
         })
         .and_utc()
         .timestamp();

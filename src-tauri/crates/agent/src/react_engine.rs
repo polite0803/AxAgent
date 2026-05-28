@@ -1168,7 +1168,12 @@ impl ReActEngine {
                 context.set_goal(reasoning);
                 self.extract_sub_goals(user_input, context);
 
-                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
+                self.emit(ThoughtEvent::StepCompleted(
+                    chain
+                        .latest_step()
+                        .expect("step just added via add_step")
+                        .clone(),
+                ));
 
                 Ok((ReasoningState::Thinking, true))
             },
@@ -1181,7 +1186,12 @@ impl ReActEngine {
                 let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
                 chain.add_step(step);
 
-                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
+                self.emit(ThoughtEvent::StepCompleted(
+                    chain
+                        .latest_step()
+                        .expect("step just added via add_step")
+                        .clone(),
+                ));
 
                 Ok((ReasoningState::Planning, true))
             },
@@ -1198,7 +1208,12 @@ impl ReActEngine {
                 let step = ThoughtStep::with_action(ReasoningState::Planning, reasoning, action);
                 chain.add_step(step);
 
-                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
+                self.emit(ThoughtEvent::StepCompleted(
+                    chain
+                        .latest_step()
+                        .expect("step just added via add_step")
+                        .clone(),
+                ));
 
                 Ok((ReasoningState::Acting, true))
             },
@@ -1263,7 +1278,9 @@ impl ReActEngine {
                     if verification.is_valid {
                         // 目标达成判定
                         if let Some(ref evaluator) = self.goal_evaluator {
-                            let mut guard = evaluator.lock().unwrap();
+                            let mut guard = evaluator
+                                .lock()
+                                .expect("goal evaluator mutex should not be poisoned");
                             let evaluation = guard.evaluate(chain, context);
                             if !evaluation.achieved {
                                 let reasoning = format!(
@@ -1295,7 +1312,12 @@ impl ReActEngine {
                 let step = ThoughtStep::new(ReasoningState::Reflecting, reflection);
                 chain.add_step(step);
 
-                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
+                self.emit(ThoughtEvent::StepCompleted(
+                    chain
+                        .latest_step()
+                        .expect("step just added via add_step")
+                        .clone(),
+                ));
 
                 self.adjust_strategy(context);
 
@@ -1340,7 +1362,12 @@ impl ReActEngine {
                     latest.result = Some(synthesis);
                 }
 
-                self.emit(ThoughtEvent::StepCompleted(chain.latest_step().unwrap().clone()));
+                self.emit(ThoughtEvent::StepCompleted(
+                    chain
+                        .latest_step()
+                        .expect("step just added via add_step")
+                        .clone(),
+                ));
 
                 Ok((ReasoningState::Finished, true))
             },

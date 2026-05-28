@@ -126,15 +126,24 @@ impl ClosedLoopService {
     }
 
     pub fn start(&self) {
-        *self.is_running.write().unwrap() = true;
+        *self.is_running.write().unwrap_or_else(|e| {
+            tracing::warn!("is_running lock poisoned, recovering: {}", e);
+            e.into_inner()
+        }) = true;
     }
 
     pub fn stop(&self) {
-        *self.is_running.write().unwrap() = false;
+        *self.is_running.write().unwrap_or_else(|e| {
+            tracing::warn!("is_running lock poisoned, recovering: {}", e);
+            e.into_inner()
+        }) = false;
     }
 
     pub fn is_running(&self) -> bool {
-        *self.is_running.read().unwrap()
+        *self.is_running.read().unwrap_or_else(|e| {
+            tracing::warn!("is_running lock poisoned, recovering: {}", e);
+            e.into_inner()
+        })
     }
 
     pub async fn tick(&self) -> Vec<PeriodicNudge> {
@@ -144,7 +153,10 @@ impl ClosedLoopService {
 
         let new_nudges = self.generate_nudges().await;
         {
-            let mut nudges = self.nudges.write().unwrap();
+            let mut nudges = self.nudges.write().unwrap_or_else(|e| {
+                tracing::warn!("nudges lock poisoned, recovering: {}", e);
+                e.into_inner()
+            });
             nudges.extend(new_nudges.clone());
             if nudges.len() > 50 {
                 *nudges = nudges[nudges.len() - 50..].to_vec();
@@ -273,11 +285,10 @@ impl ClosedLoopService {
         }
 
         let theme = self.detect_common_theme(&recent_trajectories);
-        if theme.is_none() {
-            return Ok(nudges);
-        }
-
-        let theme = theme.unwrap();
+        let theme = match theme {
+            Some(t) => t,
+            None => return Ok(nudges),
+        };
         let entities = self.collect_entities_from_trajectories(&recent_trajectories);
 
         if entities.len() < 2 {
@@ -1000,11 +1011,20 @@ impl ClosedLoopService {
     }
 
     pub fn get_nudges(&self) -> Vec<PeriodicNudge> {
-        self.nudges.read().unwrap().clone()
+        self.nudges
+            .read()
+            .unwrap_or_else(|e| {
+                tracing::warn!("nudges lock poisoned, recovering: {}", e);
+                e.into_inner()
+            })
+            .clone()
     }
 
     pub fn acknowledge_nudge(&self, id: &str) {
-        let mut nudges = self.nudges.write().unwrap();
+        let mut nudges = self.nudges.write().unwrap_or_else(|e| {
+            tracing::warn!("nudges lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         if let Some(nudge) = nudges.iter_mut().find(|n| n.id == id) {
             nudge.acknowledged = true;
         }

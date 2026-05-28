@@ -59,10 +59,10 @@ impl ApiServer {
             .allow_origin([
                 "http://localhost"
                     .parse::<axum::http::HeaderValue>()
-                    .unwrap(),
+                    .expect("hardcoded localhost header value is valid"),
                 "http://127.0.0.1"
                     .parse::<axum::http::HeaderValue>()
-                    .unwrap(),
+                    .expect("hardcoded 127.0.0.1 header value is valid"),
             ])
             .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
             .allow_headers([

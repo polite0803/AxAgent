@@ -484,7 +484,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         );
         useWorkflowEditorStore.getState().addNode(workflowNode);
       } catch (error) {
-        console.error("Failed to drop node:", error);
         message.error(t("workflow.nodeDropFailed", { error: String(error) }));
       } finally {
         clearDragPayload();

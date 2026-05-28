@@ -676,7 +676,7 @@ fn connect_gemini(
     }
     let security = obj
         .get_mut("security")
-        .unwrap()
+        .expect("security key just inserted above")
         .as_object_mut()
         .ok_or_else(|| AxAgentError::Gateway("security is not a JSON object".into()))?;
 
@@ -685,7 +685,7 @@ fn connect_gemini(
     }
     let auth = security
         .get_mut("auth")
-        .unwrap()
+        .expect("auth key just inserted above")
         .as_object_mut()
         .ok_or_else(|| AxAgentError::Gateway("security.auth is not a JSON object".into()))?;
 
@@ -716,7 +716,7 @@ fn connect_opencode(config_path: &Path, gateway_url: &str, api_key: &str) -> Res
 
     let provider = obj
         .get_mut("provider")
-        .unwrap()
+        .expect("provider key just inserted above")
         .as_object_mut()
         .ok_or_else(|| AxAgentError::Gateway("provider is not a JSON object".into()))?;
 

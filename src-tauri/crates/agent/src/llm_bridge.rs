@@ -12,11 +12,12 @@ use std::pin::Pin;
 use std::sync::{Arc, LazyLock};
 
 static SCORE_NUMBER_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"(-?\d+\.?\d*)").unwrap());
-static CODE_BLOCK_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"(?s)```(?:javascript|js)?\s*\n(.*?)```").unwrap());
+    LazyLock::new(|| regex::Regex::new(r"(-?\d+\.?\d*)").expect("hardcoded regex is valid"));
+static CODE_BLOCK_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"(?s)```(?:javascript|js)?\s*\n(.*?)```").expect("hardcoded regex is valid")
+});
 static JSON_OBJECT_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"(?s)\{.*\}").unwrap());
+    LazyLock::new(|| regex::Regex::new(r"(?s)\{.*\}").expect("hardcoded regex is valid"));
 
 #[derive(Clone)]
 pub struct ProviderLlmBridge {
@@ -194,7 +195,8 @@ impl LlmEvolutionProvider for ProviderLlmBridge {
                         Err(_) => {
                             let json_re = &*JSON_OBJECT_RE;
                             if let Some(cap) = json_re.captures(&text)
-                                && let Ok(resp) = serde_json::from_str::<LlmMutationResponse>(cap.get(0).unwrap().as_str()) {
+                                && let Some(m) = cap.get(0)
+                                && let Ok(resp) = serde_json::from_str::<LlmMutationResponse>(m.as_str()) {
                                     return Ok(resp);
                                 }
                             Ok(fallback)
@@ -380,7 +382,8 @@ impl PrmLlmProvider for ProviderLlmBridge {
                 Ok(text) => {
                     let json_re = &*JSON_OBJECT_RE;
                     if let Some(cap) = json_re.captures(&text)
-                        && let Ok(v) = serde_json::from_str::<serde_json::Value>(cap.get(0).unwrap().as_str()) {
+                        && let Some(m) = cap.get(0)
+                        && let Ok(v) = serde_json::from_str::<serde_json::Value>(m.as_str()) {
                             let correctness = v.get("correctness").and_then(|v| v.as_f64()).unwrap_or(0.5);
                             let coherence = v.get("coherence").and_then(|v| v.as_f64()).unwrap_or(0.5);
                             let completeness = v.get("completeness").and_then(|v| v.as_f64()).unwrap_or(0.5);

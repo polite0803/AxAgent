@@ -1,4 +1,4 @@
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useBackupStore, useSettingsStore } from "@/stores";
 import {
   App,
@@ -148,7 +148,7 @@ export function SchedulerSettings() {
       const tasks = await invoke<ScheduledTask[]>("list_scheduled_tasks");
       setCustomTasks(Array.isArray(tasks) ? tasks.filter((t) => t.task_type === "custom") : []);
     } catch (e) {
-      console.warn("Failed to load scheduled tasks:", e);
+      logIpcError("Failed to load scheduled tasks")(e);
     }
   };
 
@@ -159,7 +159,7 @@ export function SchedulerSettings() {
       );
       setTaskTemplates(templates);
     } catch (e) {
-      console.warn("Failed to load task templates:", e);
+      logIpcError("Failed to load task templates")(e);
     }
   };
 
@@ -195,7 +195,7 @@ export function SchedulerSettings() {
       try {
         await invoke("restart_webdav_sync");
       } catch (e) {
-        console.warn("Failed to restart WebDAV sync:", e);
+        logIpcError("Failed to restart WebDAV sync")(e);
       }
     }
     message.success(t("settings.scheduler.saved"));
@@ -207,7 +207,7 @@ export function SchedulerSettings() {
       try {
         await invoke("restart_webdav_sync");
       } catch (e) {
-        console.warn("Failed to restart WebDAV sync:", e);
+        logIpcError("Failed to restart WebDAV sync")(e);
       }
     }
     message.success(t("settings.scheduler.saved"));
@@ -492,7 +492,7 @@ export function SchedulerSettings() {
       setTaskModalOpen(false);
       await loadCustomTasks();
     } catch (e) {
-      console.error("Failed to save task:", e);
+      logIpcError("Failed to save task")(e);
       message.error(String(e));
     } finally {
       setLoading(false);
@@ -505,7 +505,8 @@ export function SchedulerSettings() {
       await loadCustomTasks();
       message.success(t("settings.scheduler.pauseTask") + " - OK");
     } catch (e) {
-      console.error("Failed to pause task:", e);
+      logIpcError("Failed to pause task")(e);
+      message.error(String(e));
     }
   };
 
@@ -515,7 +516,8 @@ export function SchedulerSettings() {
       await loadCustomTasks();
       message.success(t("settings.scheduler.resumeTask") + " - OK");
     } catch (e) {
-      console.error("Failed to resume task:", e);
+      logIpcError("Failed to resume task")(e);
+      message.error(String(e));
     }
   };
 
@@ -525,7 +527,8 @@ export function SchedulerSettings() {
       await loadCustomTasks();
       message.success(t("settings.scheduler.deleteTask") + " - OK");
     } catch (e) {
-      console.error("Failed to delete task:", e);
+      logIpcError("Failed to delete task")(e);
+      message.error(String(e));
     }
   };
 
@@ -558,7 +561,7 @@ export function SchedulerSettings() {
       setHistoryMap((prev) => ({ ...prev, [taskId]: records }));
       setExpandedHistory((prev) => ({ ...prev, [taskId]: true }));
     } catch (e) {
-      console.warn("Failed to load history:", e);
+      logIpcError("Failed to load history")(e);
     }
   };
 

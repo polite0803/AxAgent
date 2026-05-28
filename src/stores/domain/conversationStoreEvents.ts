@@ -335,7 +335,7 @@ export function createEventMethods(
           // Multi-model: treat error as stream completion for this model
           if (_isMultiModelActive) {
             decrementMultiModelTotalRemaining();
-            console.error(`[multi-model] stream error:`, errMsg);
+            logIpcError("multi-model.streamError")(errMsg);
             // Mark this model as done so ModelTags stops showing loading indicator.
             // Include error message in content so the user sees diagnostic info.
             set((s) => ({
@@ -439,7 +439,7 @@ export function createEventMethods(
               : null,
           });
           if (!generating && error) {
-            console.error("[title-gen] AI title generation failed:", error);
+            logIpcError("title-gen")(error);
             set({ error });
           }
         }),
@@ -596,16 +596,12 @@ export function createEventMethods(
         ? activeConvId
         : streamState.streamingConversationId;
       if (conversationId && isTauri()) {
-        invoke("cancel_stream", { conversationId }).catch((e: unknown) => {
-          console.warn("[IPC]", e);
-        });
+        invoke("cancel_stream", { conversationId }).catch(logIpcError("cancel_stream"));
         // Also cancel the agent if in agent mode
         const conv = get().conversations.find((c) => c.id === conversationId);
         if (conv?.mode === "agent") {
           invoke("agent_cancel", { request: { conversationId } }).catch(
-            (e: unknown) => {
-              console.warn("[IPC]", e);
-            },
+            logIpcError("agent_cancel"),
           );
         }
       }

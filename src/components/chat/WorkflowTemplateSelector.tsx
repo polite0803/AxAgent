@@ -1,5 +1,5 @@
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useConversationStore } from "@/stores";
 import { useSettingsStore } from "@/stores/feature/settingsStore";
 import { Card, Input, Modal, Spin, Tag } from "antd";
@@ -215,18 +215,12 @@ export const WorkflowTemplateSelector: React.FC<
             variables: template.variables || null,
           });
         } catch (execErr) {
-          console.error(
-            "[WorkflowTemplateSelector] Workflow created but execution failed:",
-            execErr,
-          );
+          logIpcError("WorkflowTemplateSelector.execute")(execErr);
         }
 
         onSelect(template, result.workflowId);
       } catch (e) {
-        console.error(
-          "[WorkflowTemplateSelector] Failed to create workflow:",
-          e,
-        );
+        logIpcError("WorkflowTemplateSelector.createWorkflow")(e);
         onSelect(template);
       } finally {
         setCreatingWorkflow(null);

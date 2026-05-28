@@ -726,7 +726,10 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             processed_at: chrono::Utc::now().timestamp(),
         });
 
-        let cache_dir = std::path::Path::new(&path).parent().unwrap().to_path_buf();
+        let cache_dir = std::path::Path::new(&path)
+            .parent()
+            .expect("cache_path always produces a path with a parent directory (~/axagent-notes/{wiki_id}/.cache/)")
+            .to_path_buf();
         fs::create_dir_all(&cache_dir)
             .await
             .map_err(|e| e.to_string())?;

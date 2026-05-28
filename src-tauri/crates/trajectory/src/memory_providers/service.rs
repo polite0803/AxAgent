@@ -885,7 +885,13 @@ impl MemoryService {
     }
 
     pub fn get_working_memory(&self) -> WorkingMemory {
-        self.working_memory.read().unwrap().clone()
+        self.working_memory
+            .read()
+            .unwrap_or_else(|e| {
+                tracing::warn!("Working memory lock poisoned, recovering: {}", e);
+                e.into_inner()
+            })
+            .clone()
     }
 
     pub fn get_all_entries_for_sync(&self) -> Vec<(String, String, String)> {

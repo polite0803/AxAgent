@@ -466,9 +466,15 @@ impl LintChecker {
 
                     content = link_re
                         .replace_all(&content, |caps: &regex::Captures| {
-                            let target = caps.get(1).unwrap().as_str();
+                            let target = caps
+                                .get(1)
+                                .expect("capture group 1 guaranteed by regex pattern")
+                                .as_str();
                             if valid_titles.contains(target) {
-                                caps.get(0).unwrap().as_str().to_string()
+                                caps.get(0)
+                                    .expect("full match group guaranteed by regex")
+                                    .as_str()
+                                    .to_string()
                             } else {
                                 format!("`{}` (broken link)", target)
                             }

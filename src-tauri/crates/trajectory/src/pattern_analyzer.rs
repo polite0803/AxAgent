@@ -291,7 +291,11 @@ impl PatternAnalyzer {
             }
         }
 
-        patterns.sort_by(|a, b| b.usage_frequency.partial_cmp(&a.usage_frequency).unwrap());
+        patterns.sort_by(|a, b| {
+            b.usage_frequency
+                .partial_cmp(&a.usage_frequency)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         patterns.truncate(10);
 
         patterns

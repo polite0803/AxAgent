@@ -164,7 +164,6 @@ export function ExpertSelector({
           }),
           8,
         );
-        console.warn("全部导入错误:", result.errors);
       }
       setShowImport(false);
     } catch (e) {

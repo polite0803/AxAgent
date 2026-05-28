@@ -611,7 +611,10 @@ pub async fn llm_wiki_get_schema(
     wiki_id: String,
 ) -> Result<String, String> {
     let manager = schema_manager::SchemaManager::new(Arc::new(state.sea_db.clone()));
-    manager.get_current_schema(&wiki_id).await
+    manager
+        .get_current_schema(&wiki_id)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Deserialize)]
@@ -630,6 +633,7 @@ pub async fn llm_wiki_validate_frontmatter(
     manager
         .validate_frontmatter(&input.wiki_id, &input.frontmatter)
         .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -643,6 +647,7 @@ pub async fn llm_wiki_create_schema_version(
     manager
         .create_schema_version(&wiki_id, &version, description)
         .await
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Deserialize)]

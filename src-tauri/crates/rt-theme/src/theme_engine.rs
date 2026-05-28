@@ -263,7 +263,10 @@ impl ThemeEngine {
 
         self.built_in_themes.insert(
             "catppuccin-mocha".to_string(),
-            self.built_in_themes.get("default").cloned().unwrap(),
+            self.built_in_themes
+                .get("default")
+                .cloned()
+                .expect("default theme was just inserted above"),
         );
 
         self.built_in_themes.insert(

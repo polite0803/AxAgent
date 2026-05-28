@@ -71,8 +71,9 @@ impl TerminalAnalyzer {
     pub fn new() -> Self {
         let error_patterns = Self::build_error_patterns();
 
-        let prompt_pattern =
-            Regex::new(r"(?m)^[^$]*[\$#>]\s*$").unwrap_or_else(|_| Regex::new(r"^$").unwrap());
+        let prompt_pattern = Regex::new(r"(?m)^[^$]*[\$#>]\s*$").unwrap_or_else(|_| {
+            Regex::new(r"^$").expect("hardcoded empty-match regex is always valid")
+        });
 
         Self {
             history: VecDeque::with_capacity(MAX_HISTORY_LINES),

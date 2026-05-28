@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { Button, message, Spin, theme } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";
 import {
@@ -681,10 +681,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
         if (workflowRef.current) {
           message.warning(msg);
         }
-        console.error(
-          "[WorkflowProgressPanel] Failed to fetch workflow status:",
-          e,
-        );
+        logIpcError("WorkflowProgressPanel.fetchStatus")(e);
       } finally {
         if (fetchIdRef.current === requestId) {
           setLoading(false);

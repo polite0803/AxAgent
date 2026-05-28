@@ -95,7 +95,7 @@ impl BuddyManager {
             level: 1,
         };
         self.buddy = Some(buddy);
-        self.buddy.as_ref().unwrap()
+        self.buddy.as_ref().expect("buddy was just assigned above")
     }
 
     /// 按物种 ID 召唤特定 Buddy
@@ -208,7 +208,7 @@ impl BuddyManager {
         use std::time::{SystemTime, UNIX_EPOCH};
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_nanos();
         let idx = (nanos as usize) % messages.len();
         messages[idx].clone()

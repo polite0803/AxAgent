@@ -1,6 +1,6 @@
 import { BUILTIN_EXPERT_PRESETS } from "@/data/expertPresets";
 import i18n from "@/i18n";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { AgentBehaviorMode, AgentProfile, ExpertCategory } from "@/types";
 import { message } from "antd";
 import { create } from "zustand";
@@ -301,7 +301,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       const roles = rows.map(agencyRowToRole);
       set({ agencyRoles: roles, agencyLoaded: true });
     } catch (e) {
-      console.error("[expertStore] loadAgencyRoles failed:", e);
+      logIpcError("expertStore.loadAgencyRoles")(e);
       message.error(i18n.t("expertStore.loadFailed", { error: String(e) }));
       set({ agencyLoaded: true });
     }
@@ -312,7 +312,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       await invoke("clear_agency_experts");
       set({ agencyRoles: [], agencyLoaded: false });
     } catch (e) {
-      console.error("[expertStore] clearAgencyExperts failed:", e);
+      logIpcError("expertStore.clearAgencyExperts")(e);
       message.error(i18n.t("expertStore.clearFailed", { error: String(e) }));
     }
   },
@@ -323,7 +323,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       const roles = get().agencyRoles.filter((r) => r.id !== id);
       set({ agencyRoles: roles });
     } catch (e) {
-      console.error("[expertStore] deleteAgencyExpert failed:", e);
+      logIpcError("expertStore.deleteAgencyExpert")(e);
       message.error(i18n.t("expertStore.deleteFailed", { error: String(e) }));
     }
   },
@@ -333,7 +333,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       await invoke("update_agency_expert", { request: { id, ...fields } });
       await get().loadAgencyRoles();
     } catch (e) {
-      console.error("[expertStore] updateAgencyExpert failed:", e);
+      logIpcError("expertStore.updateAgencyExpert")(e);
       message.error(i18n.t("expertStore.updateFailed", { error: String(e) }));
     }
   },
@@ -353,7 +353,7 @@ export const useExpertStore = create<ExpertState>((set, get) => ({
       }
       return agencyRowToRole(row);
     } catch (e) {
-      console.error("[expertStore] extractStructure failed:", e);
+      logIpcError("expertStore.extractStructure")(e);
       message.error(i18n.t("expertStore.extractFailed", { error: String(e) }));
       return null;
     }

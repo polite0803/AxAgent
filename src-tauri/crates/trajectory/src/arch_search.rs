@@ -624,7 +624,9 @@ impl<E: ArchitectureEvaluator, M: MetaAgentProvider> ArchitectureSearchEngine<E,
         for _ in 0..tournament_size.min(self.population.len()) {
             let idx = rng.gen_range(0..self.population.len());
             let candidate = &self.population[idx];
-            if best.is_none() || candidate.fitness > best.unwrap().fitness {
+            if best.is_none()
+                || candidate.fitness > best.expect("best is set after first iteration").fitness
+            {
                 best = Some(candidate);
             }
         }

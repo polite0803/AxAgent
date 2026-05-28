@@ -1,4 +1,5 @@
 import { Tooltip } from "@/components/layout/Tooltip";
+import { logIpcError } from "@/lib/invoke";
 import { useAgentStore } from "@/stores";
 import { Button, Card, Modal, Space, Tag, theme, Typography } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";
@@ -193,7 +194,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
     try {
       await approveToolUse(conversationId, toolUseId, decision, toolName);
     } catch (e) {
-      console.error("[PermissionCard] handleApprove failed:", e);
+      logIpcError("PermissionCard.handleApprove")(e);
     } finally {
       setLoading(null);
     }

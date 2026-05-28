@@ -223,7 +223,10 @@ impl AgentMailbox {
 
     /// Deliver a message to this mailbox. Returns false if the mailbox is full.
     pub fn deliver(&self, message: AgentMessage) -> bool {
-        let mut msgs = self.messages.write().unwrap();
+        let mut msgs = self.messages.write().unwrap_or_else(|e| {
+            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
+            e.into_inner()
+        });
         if msgs.len() >= self.capacity {
             return false;
         }
@@ -233,19 +236,28 @@ impl AgentMailbox {
 
     /// Receive (pop) the next message from this mailbox. O(1) with VecDeque.
     pub fn receive(&self) -> Option<AgentMessage> {
-        let mut msgs = self.messages.write().unwrap();
+        let mut msgs = self.messages.write().unwrap_or_else(|e| {
+            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
+            e.into_inner()
+        });
         msgs.pop_front()
     }
 
     /// Peek at all messages without consuming them.
     pub fn peek_all(&self) -> Vec<AgentMessage> {
-        let msgs = self.messages.read().unwrap();
+        let msgs = self.messages.read().unwrap_or_else(|e| {
+            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
+            e.into_inner()
+        });
         msgs.iter().cloned().collect()
     }
 
     /// Receive all messages of a specific kind.
     pub fn receive_by_kind(&self, kind: AgentMessageKind) -> Vec<AgentMessage> {
-        let mut msgs = self.messages.write().unwrap();
+        let mut msgs = self.messages.write().unwrap_or_else(|e| {
+            tracing::warn!("Mailbox lock poisoned for agent {}, recovering: {}", self.agent_id, e);
+            e.into_inner()
+        });
         let (matching, remaining): (Vec<_>, Vec<_>) = msgs.drain(..).partition(|m| m.kind == kind);
         *msgs = remaining.into_iter().collect();
         matching
@@ -253,11 +265,31 @@ impl AgentMailbox {
 
     /// Number of pending messages.
     pub fn len(&self) -> usize {
-        self.messages.read().unwrap().len()
+        self.messages
+            .read()
+            .unwrap_or_else(|e| {
+                tracing::warn!(
+                    "Mailbox lock poisoned for agent {}, recovering: {}",
+                    self.agent_id,
+                    e
+                );
+                e.into_inner()
+            })
+            .len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.messages.read().unwrap().is_empty()
+        self.messages
+            .read()
+            .unwrap_or_else(|e| {
+                tracing::warn!(
+                    "Mailbox lock poisoned for agent {}, recovering: {}",
+                    self.agent_id,
+                    e
+                );
+                e.into_inner()
+            })
+            .is_empty()
     }
 
     pub fn agent_id(&self) -> &str {
@@ -293,7 +325,10 @@ impl MessageBus {
 
     /// Register a new agent mailbox. Returns false if already registered.
     pub fn register(&self, agent_id: &str) -> bool {
-        let mut mbs = self.mailboxes.write().unwrap();
+        let mut mbs = self.mailboxes.write().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         if mbs.contains_key(agent_id) {
             return false;
         }
@@ -306,7 +341,10 @@ impl MessageBus {
 
     /// Register with a custom capacity.
     pub fn register_with_capacity(&self, agent_id: &str, capacity: usize) -> bool {
-        let mut mbs = self.mailboxes.write().unwrap();
+        let mut mbs = self.mailboxes.write().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         if mbs.contains_key(agent_id) {
             return false;
         }
@@ -316,7 +354,10 @@ impl MessageBus {
 
     /// Unregister an agent's mailbox.
     pub fn unregister(&self, agent_id: &str) {
-        let mut mbs = self.mailboxes.write().unwrap();
+        let mut mbs = self.mailboxes.write().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         mbs.remove(agent_id);
     }
 
@@ -324,7 +365,10 @@ impl MessageBus {
     /// Returns `Ok(())` if delivered, `Err` if the target mailbox is
     /// full or not registered.
     pub fn send(&self, message: AgentMessage) -> Result<(), AgentMessageError> {
-        let mbs = self.mailboxes.read().unwrap();
+        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         let mailbox = mbs
             .get(&message.to_agent)
             .ok_or_else(|| AgentMessageError::MailboxNotFound(message.to_agent.clone()))?;
@@ -337,13 +381,19 @@ impl MessageBus {
 
     /// Receive the next message for an agent.
     pub fn receive(&self, agent_id: &str) -> Option<AgentMessage> {
-        let mbs = self.mailboxes.read().unwrap();
+        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         mbs.get(agent_id).and_then(|mb| mb.receive())
     }
 
     /// Receive all messages of a specific kind for an agent.
     pub fn receive_by_kind(&self, agent_id: &str, kind: AgentMessageKind) -> Vec<AgentMessage> {
-        let mbs = self.mailboxes.read().unwrap();
+        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         mbs.get(agent_id)
             .map(|mb| mb.receive_by_kind(kind))
             .unwrap_or_default()
@@ -351,7 +401,10 @@ impl MessageBus {
 
     /// Peek at all pending messages for an agent (non-consuming).
     pub fn peek_all(&self, agent_id: &str) -> Vec<AgentMessage> {
-        let mbs = self.mailboxes.read().unwrap();
+        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         mbs.get(agent_id)
             .map(|mb| mb.peek_all())
             .unwrap_or_default()
@@ -359,13 +412,19 @@ impl MessageBus {
 
     /// Number of pending messages for an agent.
     pub fn pending_count(&self, agent_id: &str) -> usize {
-        let mbs = self.mailboxes.read().unwrap();
+        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         mbs.get(agent_id).map(|mb| mb.len()).unwrap_or(0)
     }
 
     /// List all registered agent IDs.
     pub fn registered_agents(&self) -> Vec<String> {
-        let mbs = self.mailboxes.read().unwrap();
+        let mbs = self.mailboxes.read().unwrap_or_else(|e| {
+            tracing::warn!("MessageBus lock poisoned, recovering: {}", e);
+            e.into_inner()
+        });
         mbs.keys().cloned().collect()
     }
 }

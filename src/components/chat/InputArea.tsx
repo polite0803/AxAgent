@@ -7,7 +7,7 @@ import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { SkillToolbar } from "@/components/skill/SkillToolbar";
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { findModelByIds, modelHasCapability, supportsReasoning } from "@/lib/modelCapabilities";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
@@ -177,7 +177,7 @@ export function AgentProfileSelect({
   useEffect(() => {
     invoke<{ id: string; name: string }[]>("list_agent_profiles")
       .then(setProfiles)
-      .catch((e) => console.error("[AgentProfileSelect] Failed to load profiles:", e));
+      .catch(logIpcError("AgentProfileSelect: load profiles"));
   }, []);
 
   return (
@@ -489,9 +489,7 @@ export function InputArea() {
             setAgentCwd(session.cwd || null);
           }
         })
-        .catch((e: unknown) => {
-          console.warn("[IPC]", e);
-        });
+        .catch(logIpcError("IPC: load agent session info"));
     }
   }, [currentMode, activeConversationId]);
 
@@ -1036,7 +1034,7 @@ export function InputArea() {
           });
           setAgentPermissionMode(mode);
         } catch (e) {
-          console.warn("Failed to update permission mode:", e);
+          logIpcError("Failed to update permission mode")(e);
         }
       };
 
@@ -1092,9 +1090,6 @@ export function InputArea() {
         return;
       }
       if (isSwitchingStrategyRef.current) {
-        if (import.meta.env.DEV) {
-          console.log("[WorkStrategy] Already switching, ignoring");
-        }
         return;
       }
       isSwitchingStrategyRef.current = true;
@@ -1104,7 +1099,7 @@ export function InputArea() {
           work_strategy: strategy,
         });
       } catch (e) {
-        console.warn("[WorkStrategy] Failed to update work strategy:", e);
+        logIpcError("WorkStrategy: update work strategy")(e);
         // Revert
         setWorkStrategy(
           (activeConversation.work_strategy as "direct" | "plan") || "direct",
@@ -1141,7 +1136,7 @@ export function InputArea() {
         setAgentCwd(selected);
       }
     } catch (e) {
-      console.warn("Failed to select working directory:", e);
+      logIpcError("Failed to select working directory")(e);
     }
   }, [activeConversationId, t]);
 
@@ -1531,9 +1526,6 @@ export function InputArea() {
   const handleModeSwitch = useCallback(
     async (mode: "chat" | "agent") => {
       if (isSwitchingModeRef.current) {
-        if (import.meta.env.DEV) {
-          console.log("[ModeSwitch] Already switching mode, ignoring");
-        }
         return;
       }
       isSwitchingModeRef.current = true;
@@ -1557,39 +1549,20 @@ export function InputArea() {
         // Prevent switching while the current conversation is streaming
         const { activeStreams } = useStreamStore.getState();
         if (activeConversation.id in activeStreams) {
-          if (import.meta.env.DEV) {
-            console.log(
-              "[ModeSwitch] Conversation is streaming, cannot switch mode",
-            );
-          }
           return;
-        }
-
-        if (import.meta.env.DEV) {
-          console.log("[ModeSwitch] Starting switch to:", mode);
-        }
-        if (import.meta.env.DEV) {
-          console.log("[ModeSwitch] Conversation ID:", activeConversation.id);
         }
 
         try {
           await updateConversation(activeConversation.id, { mode });
-          if (import.meta.env.DEV) {
-            console.log("[ModeSwitch] updateConversation succeeded");
-          }
         } catch (e) {
           const errorMsg = String(e);
           if (errorMsg.includes("Not found: Conversation")) {
-            console.warn(
-              "[ModeSwitch] Conversation no longer exists, refreshing conversation list",
-            );
+            logIpcError("ModeSwitch: conversation not found, refreshing")(e);
             messageApi.warning(t("chat.conversationNotFound"));
             await useConversationStore
               .getState()
               .fetchConversations()
-              .catch((e: unknown) => {
-                console.warn("[IPC]", e);
-              });
+              .catch(logIpcError("IPC: fetch conversations after not-found"));
             const { conversations } = useConversationStore.getState();
             if (conversations.length > 0) {
               useConversationStore
@@ -1599,15 +1572,12 @@ export function InputArea() {
               useConversationStore.getState().setActiveConversation(null);
             }
           } else {
-            console.error("[ModeSwitch] updateConversation failed:", e);
+            logIpcError("ModeSwitch: updateConversation failed")(e);
           }
           return;
         }
 
         if (mode === "agent") {
-          if (import.meta.env.DEV) {
-            console.log("[ModeSwitch] Initializing agent session...");
-          }
           // Clear multi-model companion models — not applicable in agent mode
           if (companionModels.length > 0) {
             setCompanionModels([]);
@@ -1624,16 +1594,7 @@ export function InputArea() {
               },
               10_000,
             );
-            if (import.meta.env.DEV) {
-              console.log(
-                "[ModeSwitch] agent_update_session returned:",
-                session,
-              );
-            }
             if (!session.cwd) {
-              if (import.meta.env.DEV) {
-                console.log("[ModeSwitch] No cwd, creating workspace...");
-              }
               // agent_ensure_workspace is a filesystem operation, give it 15s timeout
               // (default 5-min timeout is excessive and masks backend connection issues)
               const workspaceResult = await invoke<{ workspacePath: string }>(
@@ -1644,9 +1605,6 @@ export function InputArea() {
                 15_000,
               );
               const workspacePath = workspaceResult.workspacePath;
-              if (import.meta.env.DEV) {
-                console.log("[ModeSwitch] workspace created:", workspacePath);
-              }
               await invoke(
                 "agent_update_session",
                 {
@@ -1659,9 +1617,6 @@ export function InputArea() {
               );
               setAgentCwd(workspacePath);
             } else {
-              if (import.meta.env.DEV) {
-                console.log("[ModeSwitch] Using existing cwd:", session.cwd);
-              }
               setAgentCwd(session.cwd);
             }
           } catch (e) {
@@ -1672,7 +1627,7 @@ export function InputArea() {
               || errMsg.includes("fetch")
               || errMsg.includes("IPC")
               || errMsg.includes("backend");
-            console.warn("[ModeSwitch] Failed to init agent session:", e);
+            logIpcError("ModeSwitch: init agent session")(e);
 
             if (isTransient) {
               // Transient IPC error: backend may be temporarily unavailable.
@@ -1691,10 +1646,7 @@ export function InputArea() {
                   mode: "chat",
                 });
               } catch (rollbackErr) {
-                console.error(
-                  "[ModeSwitch] Failed to rollback mode:",
-                  rollbackErr,
-                );
+                logIpcError("ModeSwitch: rollback mode")(rollbackErr);
               }
               messageApi.error(t("chat.agentInitFailed"));
             }
@@ -1824,7 +1776,7 @@ export function InputArea() {
     } catch (e) {
       setValue((current) => current || trimmed);
       setAttachedFiles((current) => current.length > 0 ? current : submittedFiles);
-      console.error("[handleSend] error:", e);
+      logIpcError("handleSend")(e);
       messageApi.error(String(e));
       // Re-expand textarea after restoring content
       requestAnimationFrame(() => {
@@ -2044,11 +1996,7 @@ export function InputArea() {
                   const blob = new Blob([bytes], { type: mimeType });
                   return new globalThis.File([blob], fileName);
                 } catch (err) {
-                  console.error(
-                    "[drag-drop] Failed to read file:",
-                    filePath,
-                    err,
-                  );
+                  logIpcError("drag-drop: read file")(err);
                   return null;
                 }
               }),
@@ -2060,7 +2008,7 @@ export function InputArea() {
           }
         });
       } catch (error) {
-        console.warn("[InputArea] Failed to setup drag-drop:", error);
+        logIpcError("InputArea: setup drag-drop")(error);
       }
     })();
 
@@ -3003,7 +2951,7 @@ export function InputArea() {
                     const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
                     await revealItemInDir(agentCwd);
                   } catch (e) {
-                    console.warn("Failed to open directory:", e);
+                    logIpcError("open directory")(e);
                   }
                 }}
                 style={{ fontSize: 12, minWidth: "auto", padding: "0 4px" }}

@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { stripAxAgentTags } from "@/lib/chatMarkdown";
-import { isTauri } from "@/lib/invoke";
+import { isTauri, logIpcError } from "@/lib/invoke";
 import { formatExportAsync } from "@/lib/workers";
 import type { Message } from "@/types";
 
@@ -35,7 +35,7 @@ async function saveFile(
         await writeFile(filePath, content);
       }
     } catch (e) {
-      console.error("Failed to write file:", filePath, e);
+      logIpcError("exportChat.writeFile")(e);
       throw e;
     }
     return true;
