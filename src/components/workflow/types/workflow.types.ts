@@ -146,6 +146,10 @@ export interface ConditionNodeConfig {
   logical_op: LogicalOperator;
   /** 启用 LLM 动态路由：由 AI 判断走哪条分支（忽略 conditions 静态规则） */
   judge_by_llm?: boolean;
+  /** LLM 路由时的提示词（描述路由判断逻辑） */
+  routing_prompt?: string;
+  /** LLM 路由使用模型（为空则用系统默认） */
+  routing_model?: string;
 }
 
 export interface ConditionNode extends WorkflowNodeBase {

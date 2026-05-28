@@ -43,10 +43,37 @@ let provider = {
   updated_at: 0,
 };
 
+const zh: Record<string, string> = {
+  "settings.addModel": "添加模型",
+  "settings.addModelToGroup": "添加到当前分组",
+  "settings.model_id": "模型标识",
+  "settings.modelName": "模型名称",
+  "settings.modelGroup": "模型分组",
+  "settings.modelType.title": "模型类型",
+  "common.confirm": "确认",
+  "common.cancel": "取消",
+  "common.enabled": "已启用",
+  "common.disabled": "已禁用",
+  "common.noData": "暂无数据",
+  "common.copySuccess": "复制成功",
+  "common.collapseAll": "全部收起",
+  "common.expandAll": "全部展开",
+  "common.errorDetail": "错误详情",
+  "common.failed": "失败",
+  "error.saveFailed": "保存失败",
+  "error.loadFailed": "加载失败",
+  "error.unknown": "未知错误",
+  "error.keyValidationFailed": "密钥验证失败",
+};
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback ?? key,
-    i18n: { language: "en" },
+    t: (key: string, options?: Record<string, unknown>) => {
+      if (zh[key]) { return zh[key]; }
+      if (typeof options === "string") { return options; }
+      return key;
+    },
+    i18n: { language: "zh" },
   }),
 }));
 
@@ -55,6 +82,20 @@ vi.mock("@lobehub/icons", () => ({
   ModelIcon: () => <div>model-icon</div>,
   providerMappings: [],
   modelMappings: [],
+}));
+
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getTotalSize: () => count * 40,
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, i) => ({
+        index: i,
+        key: `virtual-${i}`,
+        start: i * 40,
+        size: 40,
+      })),
+    measureElement: () => {},
+  }),
 }));
 
 vi.mock("../IconPickerModal", () => ({
@@ -149,6 +190,7 @@ describe("ProviderDetail", () => {
     const dialog = await screen.findByRole("dialog");
     const inputs = within(dialog).getAllByRole("textbox");
     await userEvent.type(inputs[0], "gpt-5.4-think");
+    await userEvent.clear(inputs[1]);
     await userEvent.type(inputs[1], "GPT 5.4 Think");
 
     await userEvent.click(
@@ -180,7 +222,7 @@ describe("ProviderDetail", () => {
     );
 
     const dialog = await screen.findByRole("dialog");
-    const inputs = within(dialog).getAllByRole("textbox");
-    expect(inputs[2]).toHaveValue("gpt-5.4");
+    const comboboxes = within(dialog).getAllByRole("combobox");
+    expect(comboboxes[0]).toHaveValue("gpt-5.4");
   });
 });

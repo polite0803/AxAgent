@@ -132,7 +132,7 @@ vi.mock("@/stores", () => ({
       chatCommands: [],
       statusBarItems: [],
       handlers: {},
-      fetchSkills: vi.fn(),
+      fetchSkills: vi.fn().mockResolvedValue(undefined),
       getHandler: vi.fn().mockReturnValue(undefined),
       refreshSkill: vi.fn(),
     }),
@@ -140,6 +140,7 @@ vi.mock("@/stores", () => ({
     selector({
       completed: true,
       setCompleted: vi.fn(),
+      loadFromSettings: vi.fn(),
     }),
 }));
 
@@ -158,7 +159,79 @@ vi.mock("@/theme/shadcnTheme", () => ({
 vi.mock("@/lib/invoke", () => ({
   isTauri: () => false,
   invoke: vi.fn().mockResolvedValue(undefined),
+  checkIpcHealth: vi.fn().mockResolvedValue({ ok: true }),
+  listen: vi.fn().mockResolvedValue(() => {}),
+  logIpcError: vi.fn(),
 }));
+
+vi.mock("@/i18n", () => ({}));
+
+vi.mock("react-router-dom", () => ({
+  BrowserRouter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useLocation: () => ({ pathname: "/" }),
+  useNavigate: () => vi.fn(),
+}));
+
+vi.mock("@/components/chat/BuddyWidget", () => ({
+  BuddyWidget: () => null,
+}));
+
+vi.mock("@/components/chat/TabBar", () => ({
+  TabBar: () => null,
+}));
+
+vi.mock("@/components/help/HelpPanel", () => ({
+  HelpPanel: () => null,
+}));
+
+vi.mock("@/components/layout/GlobalCopyMenu", () => ({
+  GlobalCopyMenu: () => null,
+}));
+
+vi.mock("@/components/layout/GlobalErrorBoundary", () => ({
+  GlobalErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@/components/layout/GlobalStatusBar", () => ({
+  GlobalStatusBar: () => null,
+}));
+
+vi.mock("@/components/layout/ModuleErrorBoundary", () => ({
+  ModuleErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@/components/onboarding/InteractiveTutorial", () => ({
+  InteractiveTutorial: () => null,
+}));
+
+vi.mock("@/components/onboarding/WelcomeWizard", () => ({
+  WelcomeWizard: () => null,
+}));
+
+vi.mock("@/components/shared/ErrorBoundary", () => ({
+  PageErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@/components/skill/SkillPanels", () => ({
+  SkillPanels: () => null,
+}));
+
+vi.mock("@/hooks/useResponsive", () => ({
+  useResponsive: vi.fn(),
+}));
+
+vi.mock("@/hooks/useUpdateChecker", () => ({
+  useUpdateChecker: () => ({ checkForUpdate: vi.fn() }),
+}));
+
+vi.mock("@/hooks/useGlobalOverlayScrollbars", () => ({
+  useGlobalOverlayScrollbars: vi.fn(),
+}));
+
+vi.mock("@ant-design/icons", () =>
+  new Proxy({}, {
+    get: (_target, prop) => () => <span data-icon={String(prop)} />,
+  }));
 
 vi.mock("@/lib/preloadChatRenderers", () => ({
   preloadChatRenderers,

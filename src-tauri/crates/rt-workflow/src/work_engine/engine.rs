@@ -22,8 +22,8 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
 use super::executors::{
-    AgentExecutor, LlmExecutor, ProfileCache, ProviderCache, SubWorkflowCallback, ToolCallback,
-    VectorRetrieveCallback,
+    AgentExecutor, ConditionExecutor, LlmExecutor, ProfileCache, ProviderCache,
+    SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
@@ -260,6 +260,7 @@ impl WorkEngine {
             agent_provider_cache.clone(),
             agent_profile_cache.clone(),
         ));
+        dispatcher.register(ConditionExecutor::new(db.clone(), master_key));
         Self {
             db,
             executions: Arc::new(Mutex::new(HashMap::new())),

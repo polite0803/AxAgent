@@ -1234,6 +1234,8 @@ async fn convert_n8n_to_axagent(
                     conditions: Vec::new(),
                     logical_op: LogicalOperator::And,
                     judge_by_llm: None,
+                    routing_prompt: None,
+                    routing_model: None,
                 },
             });
             ax_nodes.push(condition_node);

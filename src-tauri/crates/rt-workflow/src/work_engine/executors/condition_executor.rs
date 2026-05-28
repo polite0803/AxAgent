@@ -1,22 +1,36 @@
 //! 条件执行器 —— 根据 ConditionNodeConfig 评估条件表达式。
+//!
+//! 支持两种评估模式：
+//!   1. 静态条件评估：按 conditions + logical_op 逐条比较
+//!   2. LLM 动态路由：调用 LLM 根据上下文判断走 true/false 分支
 
 use async_trait::async_trait;
 use axagent_core::workflow_types::{CompareOperator, LogicalOperator, WorkflowNode};
+use sea_orm::DatabaseConnection;
+use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use crate::work_engine::node_executor_trait::{
+    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+};
 
-pub struct ConditionExecutor;
+pub struct ConditionExecutor {
+    db: Arc<DatabaseConnection>,
+    master_key: [u8; 32],
+}
 
 impl ConditionExecutor {
-    pub fn new() -> Self {
-        Self
+    pub fn new(db: Arc<DatabaseConnection>, master_key: [u8; 32]) -> Self {
+        Self { db, master_key }
     }
 }
 
 impl Default for ConditionExecutor {
     fn default() -> Self {
-        Self::new()
+        Self {
+            db: Arc::new(DatabaseConnection::default()),
+            master_key: [0u8; 32],
+        }
     }
 }
 
@@ -38,19 +52,11 @@ impl NodeExecutorTrait for ConditionExecutor {
             ));
         };
 
-        // LLM 动态路由模式：由 AI 根据上下文判断走哪条分支
+        // LLM 动态路由模式：真正调用 LLM 判断分支
         if condition_node.config.judge_by_llm.unwrap_or(false) {
-            let branch = evaluate_llm_route(&condition_node.config, context);
-            return Ok(NodeOutput {
-                output: serde_json::json!({
-                    "status": "evaluated",
-                    "result": branch,
-                    "judge_mode": "llm_heuristic",
-                    "note": "LLM 动态路由使用启发式降级：有上下文数据走 true 分支",
-                    "node_id": node.base_id(),
-                }),
-                output_var: None,
-            });
+            return self
+                .execute_llm_route(&condition_node.config, context, node.base_id())
+                .await;
         }
 
         let mut results = Vec::new();
@@ -145,19 +151,217 @@ fn compare_values(a: &serde_json::Value, b: &serde_json::Value) -> std::cmp::Ord
     }
 }
 
-/// LLM 动态路由的启发式实现：基于上下文变量智能判断。
-///
-/// 优先级：
-///   1. 若有上下文变量（非 __ 前缀），走 true 分支（有数据 = 继续）
-///   2. 若配置了静态条件，降级为静态评估
-///   3. 无上下文且无条件，走 false 分支（保守处理）
-///
-/// 后续可替换为真正的 LLM 调用。
-fn evaluate_llm_route(
+// ── LLM 动态路由 ──────────────────────────────────────────
+
+impl ConditionExecutor {
+    /// 调用 LLM 判断走 true 还是 false 分支。
+    async fn execute_llm_route(
+        &self,
+        config: &axagent_core::workflow_types::ConditionNodeConfig,
+        context: &ExecutionState,
+        node_id: &str,
+    ) -> Result<NodeOutput, NodeError> {
+        // 1. 构建上下文摘要
+        let vars_summary: String = context
+            .variables
+            .iter()
+            .filter(|(k, _)| !k.starts_with("__"))
+            .map(|(k, v)| format!("  {k}: {v}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let routing_prompt = config
+            .routing_prompt
+            .as_deref()
+            .unwrap_or("根据上述上下文数据，判断是否满足分支条件，只回答 true 或 false。");
+
+        let prompt = format!(
+            "你是一个条件判断器。根据上下文数据判断是否走 true 分支。\n\n\
+             上下文数据：\n{vars_summary}\n\n\
+             判断规则：{routing_prompt}\n\n\
+             只回答 true 或 false，不要包含其他内容。"
+        );
+
+        // 2. 解析 provider
+        let target_model = config.routing_model.clone().or_else(|| {
+            context
+                .variables
+                .get("__workflow_model__")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        });
+
+        let target_provider_id = context
+            .variables
+            .get("__workflow_provider_id__")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        let result = if let Some(provider_id) = target_provider_id {
+            self.route_with_specific_provider(&provider_id, &prompt, target_model.as_deref())
+                .await
+        } else {
+            self.route_with_default_provider(&prompt, target_model.as_deref())
+                .await
+        };
+
+        match result {
+            Ok(branch) => Ok(NodeOutput {
+                output: serde_json::json!({
+                    "status": "evaluated",
+                    "result": branch,
+                    "judge_mode": "llm",
+                    "note": "LLM 动态路由判断",
+                    "node_id": node_id,
+                }),
+                output_var: None,
+            }),
+            Err(e) => {
+                // LLM 调用失败时降级为启发式
+                tracing::warn!("[ConditionExecutor] LLM 路由失败，降级为启发式: {e}");
+                let fallback = evaluate_llm_heuristic(config, context);
+                Ok(NodeOutput {
+                    output: serde_json::json!({
+                        "status": "evaluated",
+                        "result": fallback,
+                        "judge_mode": "heuristic_fallback",
+                        "note": format!("LLM 调用失败({e})，降级为启发式判断"),
+                        "node_id": node_id,
+                    }),
+                    output_var: None,
+                })
+            },
+        }
+    }
+
+    /// 使用指定 provider 调用 LLM 路由。
+    async fn route_with_specific_provider(
+        &self,
+        provider_id: &str,
+        prompt: &str,
+        model: Option<&str>,
+    ) -> Result<bool, String> {
+        let all = axagent_core::repo::provider::list_providers(&self.db)
+            .await
+            .map_err(|e| format!("查询 provider 失败: {e}"))?;
+        let prov = all
+            .iter()
+            .find(|p| p.id == provider_id && p.enabled)
+            .ok_or_else(|| format!("Provider '{provider_id}' 不可用"))?;
+        let key = prov
+            .keys
+            .iter()
+            .find(|k| k.enabled)
+            .cloned()
+            .ok_or_else(|| "无可用 API key".to_string())?;
+        let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
+            .map_err(|e| format!("解密 key 失败: {e}"))?;
+        let default_model = prov
+            .models
+            .iter()
+            .find(|m| m.enabled)
+            .map(|m| m.model_id.clone())
+            .ok_or_else(|| "无可用模型".to_string())?;
+        let model = model.unwrap_or(&default_model);
+
+        self.call_llm_and_parse(&prov, &api_key, model, prompt)
+            .await
+    }
+
+    /// 使用系统默认 provider 调用 LLM 路由。
+    async fn route_with_default_provider(
+        &self,
+        prompt: &str,
+        model: Option<&str>,
+    ) -> Result<bool, String> {
+        let (prov, key, default_model) =
+            axagent_core::repo::provider::resolve_default_provider(&self.db)
+                .await
+                .map_err(|e| format!("无可用默认 provider: {e}"))?;
+        let api_key = axagent_core::crypto::decrypt_key(&key.key_encrypted, &self.master_key)
+            .map_err(|e| format!("解密 key 失败: {e}"))?;
+        let model = model.unwrap_or(&default_model);
+
+        self.call_llm_and_parse(&prov, &api_key, model, prompt)
+            .await
+    }
+
+    /// 调用 LLM 并解析 true/false 响应。
+    async fn call_llm_and_parse(
+        &self,
+        prov: &axagent_core::types::ProviderConfig,
+        api_key: &str,
+        model: &str,
+        prompt: &str,
+    ) -> Result<bool, String> {
+        use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ProviderType};
+        use axagent_providers::{ProviderAdapter, resolve_base_url_for_type};
+
+        let adapter: Arc<dyn ProviderAdapter> = match prov.provider_type {
+            ProviderType::OpenAI => Arc::new(axagent_providers::openai::OpenAIAdapter::new()),
+            ProviderType::Anthropic => {
+                Arc::new(axagent_providers::anthropic::AnthropicAdapter::new())
+            },
+            ProviderType::Gemini => Arc::new(axagent_providers::gemini::GeminiAdapter::new()),
+            ProviderType::Ollama => Arc::new(axagent_providers::ollama::OllamaAdapter::new()),
+            _ => return Err(format!("不支持的 provider 类型: {:?}", prov.provider_type)),
+        };
+
+        let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
+        let req_ctx = axagent_providers::ProviderRequestContext {
+            provider_id: prov.id.clone(),
+            api_key: api_key.to_string(),
+            key_id: String::new(),
+            base_url: Some(base_url),
+            api_path: None,
+            proxy_config: None,
+            custom_headers: None,
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        };
+
+        let request = ChatRequest {
+            model: model.to_string(),
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(prompt.to_string()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            }],
+            stream: false,
+            temperature: Some(0.0),
+            max_tokens: Some(10),
+            top_p: None,
+            tools: None,
+            thinking_budget: None,
+            use_max_completion_tokens: None,
+            thinking_param_style: None,
+            api_mode: None,
+            instructions: None,
+            conversation: None,
+            previous_response_id: None,
+            store: None,
+        };
+
+        let response = adapter
+            .chat(&req_ctx, request)
+            .await
+            .map_err(|e| format!("LLM 调用失败: {e}"))?;
+
+        let text = response.content.trim().to_lowercase();
+
+        Ok(text.contains("true") && !text.contains("false"))
+    }
+}
+
+/// 启发式降级判断：有上下文数据走 true，否则走 false。
+fn evaluate_llm_heuristic(
     config: &axagent_core::workflow_types::ConditionNodeConfig,
     context: &ExecutionState,
 ) -> bool {
-    // 优先：基于上下文判断（LLM 路由的核心语义）
     let meaningful_vars = context
         .variables
         .iter()
@@ -166,8 +370,6 @@ fn evaluate_llm_route(
     if meaningful_vars > 0 {
         return true;
     }
-
-    // 降级：无上下文但有静态条件时，按静态评估
     if !config.conditions.is_empty() {
         let mut results = Vec::new();
         for c in &config.conditions {
@@ -179,8 +381,6 @@ fn evaluate_llm_route(
             LogicalOperator::Or => results.iter().any(|&r| r),
         };
     }
-
-    // 最终保守：无数据也无条件，走 false
     false
 }
 

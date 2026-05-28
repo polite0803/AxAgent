@@ -3,6 +3,7 @@
 //! 现在注册了全部 15 种节点类型的执行器，未匹配的类型降级到 FallbackExecutor。
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use axagent_core::workflow_types::WorkflowNode;
 
@@ -33,7 +34,10 @@ impl NodeDispatcher {
         dispatcher.register(TriggerExecutor::new());
         dispatcher.register(AgentExecutor::default());
         dispatcher.register(LlmExecutor::default());
-        dispatcher.register(ConditionExecutor::new());
+        dispatcher.register(ConditionExecutor::new(
+            Arc::new(sea_orm::DatabaseConnection::default()),
+            [0u8; 32],
+        ));
         dispatcher.register(ParallelExecutor::new());
         dispatcher.register(LoopExecutor::new());
         dispatcher.register(MergeExecutor::new());

@@ -125,17 +125,46 @@ export const ConditionPropertyPanel: React.FC<ConditionPropertyPanelProps> = ({
       </div>
 
       {config.judge_by_llm && (
-        <div
-          style={{
-            fontSize: 11,
-            color: token.colorWarning,
-            padding: "4px 8px",
-            background: token.colorWarningBg,
-            borderRadius: 4,
-          }}
-        >
-          {t("workflow.props.llmRoutingHint")}
-        </div>
+        <>
+          <Divider style={{ margin: "6px 0", borderColor: "#333" }} />
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+              {t("workflow.props.routingPrompt")}
+            </label>
+            <Input.TextArea
+              value={config.routing_prompt ?? ""}
+              onChange={(e) =>
+                onUpdate({
+                  config: {
+                    ...config,
+                    routing_prompt: e.target.value || undefined,
+                  },
+                })}
+              rows={3}
+              size="small"
+              style={{ width: "100%" }}
+              placeholder={t("workflow.props.routingPromptPlaceholder")}
+            />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+              {t("workflow.props.routingModel")}
+            </label>
+            <Input
+              value={config.routing_model ?? ""}
+              onChange={(e) =>
+                onUpdate({
+                  config: {
+                    ...config,
+                    routing_model: e.target.value || undefined,
+                  },
+                })}
+              size="small"
+              style={{ width: "100%" }}
+              placeholder={t("workflow.props.routingModelPlaceholder")}
+            />
+          </div>
+        </>
       )}
 
       <div>

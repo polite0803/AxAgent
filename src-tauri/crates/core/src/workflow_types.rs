@@ -294,6 +294,12 @@ pub struct ConditionNodeConfig {
     /// 启用 LLM 动态路由：由 AI 判断走哪条分支（忽略 conditions 静态规则）
     #[serde(default)]
     pub judge_by_llm: Option<bool>,
+    /// LLM 路由时的提示词（描述路由判断逻辑）
+    #[serde(default)]
+    pub routing_prompt: Option<String>,
+    /// LLM 路由使用模型（为空则用系统默认）
+    #[serde(default)]
+    pub routing_model: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

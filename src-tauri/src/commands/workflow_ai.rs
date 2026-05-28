@@ -182,6 +182,8 @@ fn parse_llm_response(
                     conditions: vec![],
                     logical_op: LogicalOperator::And,
                     judge_by_llm: None,
+                    routing_prompt: None,
+                    routing_model: None,
                 });
                 WorkflowNode::Condition(ConditionNode {
                     base,

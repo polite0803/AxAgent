@@ -1571,6 +1571,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   type="text"
                   size="small"
                   icon={<Plus size={14} />}
+                  aria-label={t("settings.addModel")}
                   onClick={() => handleOpenAddModel()}
                 />
               </Tooltip>
@@ -1761,6 +1762,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                               size="small"
                               type="text"
                               icon={<Plus size={14} />}
+                              aria-label={t("settings.addModelToGroup")}
                               onClick={() => handleOpenAddModel(group)}
                             />
                           </Tooltip>
