@@ -7,6 +7,7 @@
  * @module sdk/rpcBridge
  */
 
+import { logIpcError } from "@/lib/invoke";
 import { isStoreReadCovered, isStoreWriteCovered, isWildcardMatch } from "@/lib/skillPermissions";
 import type { HostToSkillMessage, SkillHostApi, SkillHostStore, SkillHostUi, SkillToHostMessage } from "./types";
 
@@ -77,11 +78,9 @@ export function createHostRpcBridge(
     }
 
     if (msg.type === "skill:ready") {
-      if (import.meta.env.DEV) {
-        console.log("[HostRpcBridge] Skill sandbox is ready");
-      }
+      // no-op in production; DEV-only logging removed
     } else if (msg.type === "skill:error") {
-      console.error("[HostRpcBridge] Skill error:", msg.error);
+      logIpcError("HostRpcBridge skill error")(msg.error);
     }
   }
 
@@ -98,7 +97,7 @@ export function createHostRpcBridge(
       try {
         contentWindow.postMessage(message, resolvedOrigin);
       } catch (e) {
-        console.error("[HostRpcBridge] Failed to send message:", e);
+        logIpcError("HostRpcBridge send message failed")(e);
       }
     },
 

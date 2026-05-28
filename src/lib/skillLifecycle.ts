@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { SkillCommandAction, SkillLifecycleHooks, SkillManifest, SkillPermissions } from "@/types";
 import { getActionRouter } from "./actionRouter";
 
@@ -51,9 +51,7 @@ async function executeHooks(
   const router = getActionRouter();
   await Promise.all(
     actions.map((action) =>
-      router.execute(action, { skillName, permissions }).catch((e) => {
-        console.error(`[Lifecycle] Hook execution failed for ${skillName}:`, e);
-      })
+      router.execute(action, { skillName, permissions }).catch(logIpcError(`Lifecycle hook failed for ${skillName}`))
     ),
   );
 }

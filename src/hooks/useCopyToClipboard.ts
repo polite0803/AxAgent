@@ -1,3 +1,4 @@
+import { logIpcError } from "@/lib/invoke";
 import { writeText as tauriWriteText } from "@tauri-apps/plugin-clipboard-manager";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -31,7 +32,7 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
         timeoutRef.current = setTimeout(() => setCopiedValue(null), timeout);
         return true;
       } catch (e) {
-        console.error("[useCopyToClipboard] writeToClipboard failed:", e);
+        logIpcError("useCopyToClipboard write failed")(e);
         return false;
       }
     },

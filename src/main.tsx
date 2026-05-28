@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { AppRoot } from "./App";
 import "./index.css";
+import { logIpcError } from "./lib/invoke";
 import { initStoreRegistry } from "./lib/storeRegistry";
 import { ensureHotReloadRegistered } from "./stores/feature/skillExtensionStore";
 
