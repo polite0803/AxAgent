@@ -196,7 +196,7 @@ function mergeExtensions(skills: Skill[]) {
     }
     const skillsAtPosition = toolbarPositionMap.get(position)!;
     if (skillsAtPosition.size > 0 && !skillsAtPosition.has(skillName)) {
-      const existingSkills = [...skillsAtPosition].join(", ");
+      // 位置冲突检测：记录已有技能
     }
     skillsAtPosition.add(skillName);
   }
@@ -207,7 +207,7 @@ function mergeExtensions(skills: Skill[]) {
     }
     const skillsAtRoute = pageRouteMap.get(routeId)!;
     if (skillsAtRoute.size > 0 && !skillsAtRoute.has(skillName)) {
-      const existingSkills = [...skillsAtRoute].join(", ");
+      // 路由冲突检测：记录已有技能
     }
     skillsAtRoute.add(skillName);
   }

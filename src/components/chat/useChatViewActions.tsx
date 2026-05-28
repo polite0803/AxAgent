@@ -567,8 +567,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export HTML (no thinking) failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },

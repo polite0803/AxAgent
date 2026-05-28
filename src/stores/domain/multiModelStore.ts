@@ -295,7 +295,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           model_id: originalModelId,
         });
       } catch (e) {
-        console.error("[sendMultiModelMessage] failed to restore model:", e);
+        logIpcError("sendMultiModelMessage: failed to restore model")(e);
       }
     }
 
@@ -335,18 +335,14 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
             conversation_id: conversationId,
             parent_message_id: parentId,
             message_id: targetMessageId,
-          }).catch((e: unknown) => {
-            console.warn("[IPC]", e);
-          });
+          }).catch(logIpcError("switch_message_version"));
         }
       } else if (parentId && userSelectedMessageId) {
         await invoke("switch_message_version", {
           conversation_id: conversationId,
           parent_message_id: parentId,
           message_id: userSelectedMessageId,
-        }).catch((e: unknown) => {
-          console.warn("[IPC]", e);
-        });
+        }).catch(logIpcError("switch_message_version"));
       }
 
       await convStore.fetchMessages(conversationId);

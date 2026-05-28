@@ -1,4 +1,4 @@
-import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
+import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import type {
   AgentDoneEvent,
   AgentPoolItem,

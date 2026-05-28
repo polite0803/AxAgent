@@ -382,8 +382,6 @@ function AppRoot() {
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const init = async () => {
-      const t0 = performance.now();
-
       if (isTauri()) {
         const health = await checkIpcHealth();
         if (!health.ok) {
