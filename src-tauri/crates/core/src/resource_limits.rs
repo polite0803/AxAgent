@@ -162,7 +162,12 @@ impl ResourceLimits {
             tracing::warn!("Failed to configure Windows Job Object");
         }
 
+        // SAFETY: GetCurrentProcess always returns a valid pseudo-handle
+        // per Windows documentation; no parameters, cannot fail.
         let current = unsafe { windows_sys::Win32::System::Threading::GetCurrentProcess() };
+        // SAFETY: handle is a valid Job Object handle (null-checked above);
+        // current is a valid process pseudo-handle from GetCurrentProcess;
+        // failure is handled gracefully (ret == 0 logged but not fatal).
         let ret = unsafe { AssignProcessToJobObject(handle as HANDLE, current) };
         if ret == 0 {
             tracing::warn!("Failed to assign process to Job Object");
