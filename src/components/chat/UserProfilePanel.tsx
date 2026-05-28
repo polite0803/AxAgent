@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -58,7 +58,7 @@ export function UserProfilePanel() {
       setNewPrefValue("");
       fetchProfile();
     } catch (e) {
-      console.warn("[profile] set preference failed:", e);
+      logIpcError("set preference failed")(e);
     }
   };
 

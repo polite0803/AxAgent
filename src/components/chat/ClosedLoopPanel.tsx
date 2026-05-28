@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -44,7 +44,7 @@ export function ClosedLoopPanel() {
           setError(false);
         }
       } catch (e) {
-        console.warn("[closedLoop] Failed to fetch status:", e);
+        logIpcError("Failed to fetch closed loop status")(e);
         if (mountedRef.current) {
           setError(true);
         }

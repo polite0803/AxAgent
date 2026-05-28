@@ -184,8 +184,8 @@ export function GlobalCopyMenu() {
         input.setSelectionRange(start, end);
         document.execCommand("insertText", false, text);
       }
-    } catch (err) {
-      console.error("Paste failed:", err);
+    } catch {
+      // paste may fail silently
     }
     setMenuPos(null);
   }, []);

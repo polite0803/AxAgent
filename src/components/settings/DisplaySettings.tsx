@@ -1,6 +1,6 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { formatThemeName, SHIKI_DARK_THEMES, SHIKI_LIGHT_THEMES } from "@/constants/codeThemes";
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { ColorPicker, Divider, Segmented, Slider } from "antd";
@@ -100,9 +100,7 @@ export function DisplaySettings() {
     }
     invoke<string[]>("list_system_fonts")
       .then(setSystemFonts)
-      .catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
+      .catch(logIpcError("list_system_fonts"));
   }, []);
 
   const rowStyle = { padding: "4px 0" };

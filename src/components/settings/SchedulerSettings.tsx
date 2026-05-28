@@ -83,6 +83,7 @@ interface ScheduledTask {
   schedule_config: ScheduleConfig;
   created_at: string;
   updated_at: string;
+  workflowId?: string | null;
 }
 
 interface TaskFormData {
@@ -100,11 +101,13 @@ interface TaskFormData {
 }
 
 interface TaskTemplate {
+  templateType?: string;
   template_type: string;
   name: string;
   description: string;
-  schedule_config: ScheduleConfig;
+  schedule_config?: ScheduleConfig;
   workflow_id: string | null;
+  default_schedule?: string;
 }
 
 export function SchedulerSettings() {
@@ -381,6 +384,7 @@ export function SchedulerSettings() {
         return t("settings.scheduler.dailyDesc");
       case "weekly":
         const dayNames = (config.weekdays || [])
+          .filter((w): w is Weekday => !!w)
           .map((w) => t(`settings.scheduler.${w}`))
           .join(", ");
         return t("settings.scheduler.weeklyDesc", { days: dayNames || "-" });
@@ -420,6 +424,7 @@ export function SchedulerSettings() {
     form.setFieldsValue({
       name: task.name,
       description: task.description,
+      workflow_id: task.workflowId,
       ...parsedConfig,
     });
     setTaskModalOpen(true);
@@ -432,7 +437,7 @@ export function SchedulerSettings() {
     if (template) {
       setSelectedTemplate(templateType);
       const config = template.schedule_config;
-      const timeRanges = config.time_ranges?.map((tr: TimeRange) => ({
+      const timeRanges = config?.time_ranges?.map((tr: TimeRange) => ({
         start: dayjs().hour(tr.start_hour).minute(tr.start_minute),
         end: dayjs().hour(tr.end_hour).minute(tr.end_minute),
       })) || [
@@ -444,15 +449,15 @@ export function SchedulerSettings() {
         description: template.description,
         template_type: template.template_type,
         workflow_id: template.workflow_id,
-        schedule_type: config.schedule_type,
-        weekdays: config.weekdays || [],
+        schedule_type: config?.schedule_type || "daily",
+        weekdays: config?.weekdays || [],
         time_ranges: timeRanges,
-        interval_hours: config.interval_seconds
+        interval_hours: config?.interval_seconds
           ? config.interval_seconds / 3600
           : 24,
-        exclude_holidays: config.exclude_holidays,
-        exclude_custom_dates: config.exclude_custom_dates || [],
-        month_day: config.month_day,
+        exclude_holidays: config?.exclude_holidays ?? false,
+        exclude_custom_dates: config?.exclude_custom_dates || [],
+        month_day: config?.month_day ?? null,
       });
     }
   };
@@ -1076,9 +1081,9 @@ export function SchedulerSettings() {
                               color: "var(--color-text-secondary)",
                             }}
                           >
-                            {t(
-                              `settings.scheduler.${template.template_type}Desc`,
-                            ) || template.description}
+                            {(template.template_type
+                              ? t(`settings.scheduler.${template.template_type}Desc`)
+                              : null) || template.description}
                           </div>
                         </div>,
                       ]
@@ -1148,9 +1153,9 @@ export function SchedulerSettings() {
                               color: "var(--color-text-secondary)",
                             }}
                           >
-                            {t(
-                              `settings.scheduler.${template.template_type}Desc`,
-                            ) || template.description}
+                            {(template.template_type
+                              ? t(`settings.scheduler.${template.template_type}Desc`)
+                              : null) || template.description}
                           </div>
                         </div>,
                       ]

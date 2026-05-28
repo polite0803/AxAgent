@@ -1,5 +1,5 @@
 import { ImportExportModal } from "@/components/workflow/Templates/ImportExportModal";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { MarketplaceStats, reviewApi, ReviewResponse } from "@/lib/reviewApi";
 import { DownloadOutlined, DownloadOutlined as DLOutlined, StarOutlined, UploadOutlined } from "@ant-design/icons";
 import {
@@ -201,7 +201,7 @@ export function WorkflowMarketplace() {
       setMyReview(myReviewData);
       setStats(statsData);
     } catch (error) {
-      console.error("Failed to load reviews:", error);
+      logIpcError("Failed to load reviews")(error);
     } finally {
       setLoadingReviews(false);
     }

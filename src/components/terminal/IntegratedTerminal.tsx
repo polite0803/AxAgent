@@ -3,6 +3,7 @@ import { usePathCompleter } from "@/components/terminal/PathCompleter";
 import { useSlashCompleter } from "@/components/terminal/SlashCompleter";
 import { useXtermEnhancement } from "@/components/terminal/XtermEnhancement";
 import type { XtermEnhancementOptions } from "@/components/terminal/XtermEnhancement";
+import { logIpcError } from "@/lib/invoke";
 import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminalStore";
 import { Badge, Button, Empty, Select } from "antd";
 import { AlertTriangle, CheckCircle, Maximize2, Minimize2, Plus, RefreshCw, Terminal, Trash2, X } from "lucide-react";
@@ -129,7 +130,7 @@ export function IntegratedTerminal({
         }
       });
     } catch (e) {
-      console.error("Failed to initialize xterm:", e);
+      logIpcError("初始化 xterm")(e);
     }
   }, [activeSessionId, resizeSession, writeToSession]);
 
@@ -193,7 +194,7 @@ export function IntegratedTerminal({
         cwd: defaultCwd,
       });
     } catch (e) {
-      console.error("Failed to create terminal session:", e);
+      logIpcError("创建终端会话")(e);
     }
   };
 
@@ -218,7 +219,7 @@ export function IntegratedTerminal({
     try {
       await analyzeOutput(activeSessionId);
     } catch (e) {
-      console.error("Failed to analyze output:", e);
+      logIpcError("分析终端输出")(e);
     }
   };
 

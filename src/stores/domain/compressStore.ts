@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { ConversationSummary, MessagePage } from "@/types";
 import { create } from "zustand";
 import { useConversationStore } from "./conversationStore";
@@ -40,7 +40,7 @@ export const useCompressStore = create<CompressState>((set) => ({
       set({ compressing: false });
     } catch (e) {
       set({ compressing: false });
-      console.error("Failed to compress context:", e);
+      logIpcError("Failed to compress context")(e);
       throw e;
     }
   },
@@ -52,7 +52,7 @@ export const useCompressStore = create<CompressState>((set) => ({
         { conversationId },
       );
     } catch (e) {
-      console.error("Failed to get compression summary:", e);
+      logIpcError("Failed to get compression summary")(e);
       return null;
     }
   },
@@ -77,7 +77,7 @@ export const useCompressStore = create<CompressState>((set) => ({
         oldestLoadedMessageId: page.messages.length > 0 ? page.messages[0].id : null,
       });
     } catch (e) {
-      console.error("Failed to delete compression:", e);
+      logIpcError("Failed to delete compression")(e);
       throw e;
     }
   },

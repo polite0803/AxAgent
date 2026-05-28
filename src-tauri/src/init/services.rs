@@ -1109,25 +1109,57 @@ fn start_cron_scheduler(state: &AppState) {
     }
 
     let work_engine = state.work_engine.clone();
+    let cron_store = state.cron_job_store.clone();
     let mut executor = CronExecutor::new();
     executor.set_handler(move |job| {
         if let Some(ref wf_id) = job.workflow_id {
             let engine = work_engine.clone();
+            let store = cron_store.clone();
             let wf_id = wf_id.clone();
+            let job_id = job.id.clone();
             let job_name = job.name.clone();
+            let recurring = job.recurring;
             tokio::task::spawn(async move {
+                let started = axagent_runtime_core::cron_job::now_millis();
                 let opts = axagent_runtime::work_engine::RunOptions::default();
-                match engine.run_workflow(&wf_id, opts).await {
+                let result = match engine.run_workflow(&wf_id, opts).await {
                     Ok(workflow) => {
                         tracing::info!(
                             "[CronScheduler] 工作流任务 '{}' 完成: {:?}",
                             job_name,
                             workflow.status
                         );
+                        axagent_runtime_core::TaskRunResult {
+                            success: true,
+                            output: Some(format!("{:?}", workflow.status)),
+                            error: None,
+                            duration_ms: (axagent_runtime_core::cron_job::now_millis() - started)
+                                as u64,
+                            executed_at: started,
+                        }
                     },
                     Err(e) => {
-                        tracing::error!("[CronScheduler] 工作流任务 '{}' 失败: {:?}", job_name, e);
+                        let err_msg = format!("{:?}", e);
+                        tracing::error!(
+                            "[CronScheduler] 工作流任务 '{}' 失败: {err_msg}",
+                            job_name
+                        );
+                        axagent_runtime_core::TaskRunResult {
+                            success: false,
+                            output: None,
+                            error: Some(err_msg),
+                            duration_ms: (axagent_runtime_core::cron_job::now_millis() - started)
+                                as u64,
+                            executed_at: started,
+                        }
                     },
+                };
+                store.record_run(&job_id, result).await;
+                // 非循环任务执行后禁用
+                if !recurring {
+                    let _ = store
+                        .set_status(&job_id, axagent_runtime_core::CronJobStatus::Disabled)
+                        .await;
                 }
             });
         } else {

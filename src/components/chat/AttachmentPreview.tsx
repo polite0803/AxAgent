@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { Attachment } from "@/types";
 
 export const ATTACHMENT_IMG_STYLE: React.CSSProperties = {
@@ -97,7 +97,7 @@ export function AttachmentPreview({
             onCancel: () => {
               invoke("reveal_attachment_file", {
                 filePath: att.file_path,
-              }).catch((e: unknown) => console.warn("[IPC]", e));
+              }).catch(logIpcError("reveal_attachment_file"));
             },
           });
         })
@@ -146,7 +146,7 @@ export function AttachmentPreview({
   const handleOpen = () => {
     if (att.file_path) {
       invoke("open_attachment_file", { filePath: att.file_path }).catch(
-        (e: unknown) => console.warn("[IPC]", e),
+        logIpcError("open_attachment_file"),
       );
     }
   };
@@ -154,7 +154,7 @@ export function AttachmentPreview({
   const handleReveal = () => {
     if (att.file_path) {
       invoke("reveal_attachment_file", { filePath: att.file_path }).catch(
-        (e: unknown) => console.warn("[IPC]", e),
+        logIpcError("reveal_attachment_file"),
       );
     }
   };

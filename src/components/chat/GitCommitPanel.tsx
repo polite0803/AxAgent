@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { Button, Card, Divider, Empty, Input, message, Space, Tag, Typography } from "antd";
 import { Check, FileText, GitBranch, GitCommit, Loader2, Minus, Plus, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -300,7 +300,7 @@ export function GitBranchPanel({
       });
       setPrDescription(prDesc);
     } catch (e) {
-      console.error("Failed to load branch diff:", e);
+      logIpcError("Failed to load branch diff")(e);
     }
     setLoading(false);
   };

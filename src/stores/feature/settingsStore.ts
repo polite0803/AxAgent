@@ -206,9 +206,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   saveSettings: async (partial) => {
     if (!get()._loaded) {
-      console.warn(
-        "[settingsStore] saveSettings skipped: settings not loaded yet",
-      );
       return;
     }
     set((s) => ({ settings: { ...s.settings, ...partial }, error: null }));

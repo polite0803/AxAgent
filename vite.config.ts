@@ -194,11 +194,6 @@ export default defineConfig(async () => ({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     // TODO: 这些测试需要修复 CI 兼容性问题后重新启用
     // 已知问题：mock 依赖缺失、异步竞态导致 CI 环境偶发失败
-    exclude: [
-      "src/components/settings/__tests__/ProviderDetail.test.tsx",
-      "src/pages/__tests__/ChatPage.test.tsx",
-      "src/__tests__/App.d2.test.tsx",
-      "src/components/workflow/__tests__/workflowComponents.test.tsx",
-    ],
+    exclude: [],
   },
 }));

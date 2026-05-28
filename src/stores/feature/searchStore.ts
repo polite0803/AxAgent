@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { CreateSearchProviderInput, SearchProvider, UpdateSearchProviderInput } from "@/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -176,7 +176,8 @@ export const useSearchStore = create<SearchState>()(
           );
           set({ providers });
         } catch (e) {
-          console.error("Failed to load search providers:", e);
+          logIpcError("Failed to load search providers")(e);
+          set({ error: String(e) });
         }
       },
 

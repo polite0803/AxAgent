@@ -1,5 +1,5 @@
 // 消息续写状态管理
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useConversationStore } from "@/stores";
 import { create } from "zustand";
 
@@ -46,14 +46,13 @@ export const useContinuationStore = create<ContinuationStore>((set) => ({
         },
       }));
     } catch (e) {
-      console.error("[continuationStore] 加载可续写消息失败:", e);
+      logIpcError("continuationStore: 加载可续写消息失败")(e);
     }
   },
 
   startContinue: async (conversationId, messageId, branch) => {
     // 临时占位消息（temp- 前缀）不存在于数据库中，无法续写
     if (messageId.startsWith("temp-")) {
-      console.warn("[continuationStore] 不能续写临时消息:", messageId);
       return;
     }
     set((s) => ({ continuing: { ...s.continuing, [messageId]: true } }));
@@ -63,7 +62,7 @@ export const useContinuationStore = create<ContinuationStore>((set) => ({
       const convStore = useConversationStore.getState();
       await convStore.regenerateMessage(messageId);
     } catch (e) {
-      console.error("[continuationStore] 续写失败:", e);
+      logIpcError("continuationStore: 续写失败")(e);
     } finally {
       set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
     }

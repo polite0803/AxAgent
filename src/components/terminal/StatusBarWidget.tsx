@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { Clock, Cpu, GitBranch, Hash, MemoryStick, Wifi, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -99,7 +99,7 @@ export function StatusBarWidget({
           ...systemInfo,
         }));
       } catch (e) {
-        console.error("Failed to fetch status:", e);
+        logIpcError("获取终端状态")(e);
       }
     };
 

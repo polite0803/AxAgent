@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -41,7 +41,7 @@ export function PatternPanel() {
           setError(false);
         }
       } catch (e) {
-        console.warn("[pattern] Failed to fetch patterns:", e);
+        logIpcError("Failed to fetch patterns")(e);
         if (mountedRef.current) {
           setError(true);
         }

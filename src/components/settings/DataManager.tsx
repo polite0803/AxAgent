@@ -1,4 +1,4 @@
-import { isTauri } from "@/lib/invoke";
+import { isTauri, logIpcError } from "@/lib/invoke";
 import { useConversationStore, useSettingsStore } from "@/stores";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { App, Button, Divider, Popconfirm, Typography } from "antd";
@@ -47,7 +47,7 @@ export function DataManager() {
         message.success(t("settings.exportSuccess"));
       }
     } catch (e) {
-      console.error("Export failed:", e);
+      logIpcError("导出数据")(e);
       message.error(t("error.unknown"));
     }
   };
@@ -99,7 +99,7 @@ export function DataManager() {
 
       message.success(t("settings.importSuccess"));
     } catch (e) {
-      console.error("Import failed:", e);
+      logIpcError("导入数据")(e);
       message.error(t("error.unknown"));
     }
   };
@@ -112,7 +112,7 @@ export function DataManager() {
       );
       message.success(t("settings.clearSuccess"));
     } catch (e) {
-      console.error("Clear failed:", e);
+      logIpcError("清除数据")(e);
       message.error(t("error.unknown"));
     }
   };

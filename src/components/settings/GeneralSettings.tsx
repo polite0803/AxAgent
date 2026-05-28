@@ -1,5 +1,5 @@
 import { LANG_OPTIONS } from "@/lib/constants";
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useSettingsStore } from "@/stores";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button, Divider, Switch, Typography } from "antd";
@@ -69,7 +69,7 @@ export function GeneralSettings() {
                     await disable();
                   }
                 } catch (e) {
-                  console.warn("Autostart toggle failed:", e);
+                  logIpcError("自启动切换")(e);
                 }
               }
             }}
@@ -94,9 +94,7 @@ export function GeneralSettings() {
               saveSettings({ always_on_top: checked });
               if (inTauri) {
                 invoke("set_always_on_top", { enabled: checked }).catch(
-                  (e: unknown) => {
-                    console.warn("[IPC]", e);
-                  },
+                  logIpcError("set_always_on_top"),
                 );
               }
             }}
@@ -126,9 +124,7 @@ export function GeneralSettings() {
               saveSettings({ minimize_to_tray: checked });
               if (inTauri) {
                 invoke("set_close_to_tray", { enabled: checked }).catch(
-                  (e: unknown) => {
-                    console.warn("[IPC]", e);
-                  },
+                  logIpcError("set_close_to_tray"),
                 );
               }
             }}

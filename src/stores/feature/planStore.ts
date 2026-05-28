@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
+import { invoke, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import type {
   Plan,
   PlanExecuteRequest,
@@ -197,7 +197,10 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         };
       });
     } catch (e) {
-      console.error("[planStore] rejectPlan failed:", e);
+      logIpcError("planStore: rejectPlan failed")(e);
+      set((s) => ({
+        errors: { ...s.errors, [conversationId]: String(e) },
+      }));
       message.error(i18n.t("planStore.rejectFailed", { error: String(e) }));
     }
   },
@@ -234,7 +237,10 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         }));
       }
     } catch (e) {
-      console.error("[planStore] modifyStep failed:", e);
+      logIpcError("planStore: modifyStep failed")(e);
+      set((s) => ({
+        errors: { ...s.errors, [conversationId]: String(e) },
+      }));
       message.error(i18n.t("planStore.modifyStepFailed", { error: String(e) }));
     }
   },
@@ -269,7 +275,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }));
       message.success(i18n.t("planStore.planRestored"));
     } catch (e) {
-      console.error("[planStore] resumePlan failed:", e);
+      logIpcError("planStore: resumePlan failed")(e);
       set((s) => ({ loading: { ...s.loading, [conversationId]: false } }));
       message.error(i18n.t("planStore.resumeFailed", { error: String(e) }));
     }
@@ -296,7 +302,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         };
       });
     } catch (e) {
-      console.error("[planStore] cancelPlan failed:", e);
+      logIpcError("planStore: cancelPlan failed")(e);
       message.error(i18n.t("planStore.cancelFailed", { error: String(e) }));
     }
   },
@@ -310,7 +316,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         planHistory: { ...s.planHistory, [conversationId]: plans },
       }));
     } catch (e) {
-      console.error("[planStore] loadPlanHistory failed:", e);
+      logIpcError("planStore: loadPlanHistory failed")(e);
       message.error(
         i18n.t("planStore.loadHistoryFailed", { error: String(e) }),
       );
@@ -337,9 +343,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
           planHistory: { ...s.planHistory, [conversationId]: plans },
         }));
       }
-    } catch (e) {
-      // Silently ignore — plan loading is best-effort on startup
-      console.debug("[planStore] loadActivePlan skipped:", e);
+    } catch {
     }
   },
 

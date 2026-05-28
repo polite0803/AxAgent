@@ -1,5 +1,5 @@
 import { Tooltip } from "@/components/layout/Tooltip";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { LintIssue, LintResult } from "@/types";
 import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, WarningOutlined } from "@ant-design/icons";
 import { Badge, Button, Card, Empty, List, Progress, Space, Spin, Tag, Typography } from "antd";
@@ -74,7 +74,7 @@ export function QualityScore({
         });
       }
     } catch (e) {
-      console.error("Failed to load quality score:", e);
+      logIpcError("Failed to load quality score")(e);
     }
     setLoading(false);
     setRefreshing(false);

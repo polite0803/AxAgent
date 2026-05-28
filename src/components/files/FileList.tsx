@@ -1,6 +1,6 @@
 /** FileList renders file rows in an antd Table with built-in multi-column sorting. */
 
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { FileCategory, FileRow } from "@/types";
 import { Button, Empty, Image, Popconfirm, Table, Tag, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -50,7 +50,7 @@ function useThumbnailSrc(
         }
       })
       .catch((e: unknown) => {
-        console.warn("[IPC]", e);
+        logIpcError("FileList listener")(e);
       });
     return () => {
       cancelled = true;

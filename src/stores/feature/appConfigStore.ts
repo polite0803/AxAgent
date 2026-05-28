@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { SystemPermissionMode } from "@/types";
 import { create } from "zustand";
 
@@ -65,9 +65,7 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
     set((state) => {
       const newValue = !state.features[name];
       if (name === "proactiveMode") {
-        invoke("proactive_set_enabled", { enabled: newValue }).catch((e) =>
-          console.warn("[appConfigStore] 同步 proactive 状态失败:", e)
-        );
+        invoke("proactive_set_enabled", { enabled: newValue }).catch(logIpcError("proactive_set_enabled"));
       }
       return {
         features: { ...state.features, [name]: newValue },
@@ -92,7 +90,7 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
         set({ loading: false });
       }
     } catch (e) {
-      console.warn("[appConfigStore] 加载配置失败:", e);
+      logIpcError("appConfigStore: 加载配置失败")(e);
       set({ loading: false, error: String(e) });
     }
   },
@@ -109,7 +107,7 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
         },
       });
     } catch (e) {
-      console.warn("[appConfigStore] 保存配置失败:", e);
+      logIpcError("appConfigStore: 保存配置失败")(e);
       set({ error: String(e) });
     }
   },

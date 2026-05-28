@@ -56,19 +56,8 @@ impl CronScheduler {
 
                     if should_run_now(&job.schedule, &last_check, &now) {
                         tracing::info!("Cron: running job '{}' ({})", job.name, job.id);
+                        // 异步执行，结果由 executor handler 写回 store
                         executor.execute(job.clone()).await;
-                        store
-                            .record_run(
-                                &job.id,
-                                axagent_runtime_core::TaskRunResult {
-                                    success: true,
-                                    output: None,
-                                    error: None,
-                                    duration_ms: 0,
-                                    executed_at: axagent_runtime_core::cron_job::now_millis(),
-                                },
-                            )
-                            .await;
                     }
                 }
 

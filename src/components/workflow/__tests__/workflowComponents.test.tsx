@@ -7,6 +7,7 @@ vi.mock("@/lib/invoke", () => ({
   invoke: invokeMock,
   listen: () => vi.fn(),
   isTauri: () => false,
+  logIpcError: vi.fn(() => vi.fn()),
 }));
 
 vi.mock("react-i18next", () => ({

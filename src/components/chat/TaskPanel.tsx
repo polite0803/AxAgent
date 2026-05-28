@@ -1,4 +1,4 @@
-import { invoke, listen } from "@/lib/invoke";
+import { invoke, listen, logIpcError } from "@/lib/invoke";
 import { Badge, Button, Empty, message, Popconfirm, Spin, Tag, Typography } from "antd";
 import { Circle, LoaderCircle, StopCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -69,7 +69,7 @@ export function TaskPanel() {
       const result = await invoke<BackgroundTask[]>("list_background_tasks");
       setTasks(result);
     } catch (e) {
-      console.error("Failed to fetch tasks:", e);
+      logIpcError("Failed to fetch tasks")(e);
     }
   }, []);
 

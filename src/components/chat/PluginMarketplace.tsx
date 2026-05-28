@@ -54,10 +54,10 @@ export function PluginMarketplace() {
   const fetchPlugins = async () => {
     setLoading(true);
     try {
-      const { invoke } = await import("@/lib/invoke");
+      const { invoke, logIpcError } = await import("@/lib/invoke");
       const data = await invoke<PluginSummary[]>("plugin_list").catch((e) => {
         if (import.meta.env.DEV) {
-          console.warn("Failed to fetch plugins:", e);
+          logIpcError("Failed to fetch plugins")(e);
         }
         return [];
       });

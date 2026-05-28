@@ -659,7 +659,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
               schedulePrefetchCleanup(resourceId);
             })
             .catch((e: unknown) => {
-              console.warn("[IPC]", e);
+              logIpcError("list_providers")(e);
               schedulePrefetchCleanup(resourceId);
             });
           break;

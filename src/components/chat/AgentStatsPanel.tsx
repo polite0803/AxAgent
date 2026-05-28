@@ -136,9 +136,7 @@ export const AgentStatsPanel: React.FC = () => {
           setStats(s);
         }
       })
-      .catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
+      .catch(logIpcError("agent_session_stats"));
 
     return () => {
       cancelled = true;

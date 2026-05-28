@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useAppConfigStore } from "@/stores/feature/appConfigStore";
 import type { FeatureFlags } from "@/stores/feature/appConfigStore";
 import type { SubAgent } from "@/types";
@@ -441,7 +441,7 @@ function AgentsTab() {
       }));
       setAgents(list);
     } catch (e) {
-      console.warn("获取 Agent 列表失败:", e);
+      logIpcError("获取 Agent 列表")(e);
       setAgents([]);
     } finally {
       setLoading(false);

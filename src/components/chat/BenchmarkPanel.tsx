@@ -54,13 +54,11 @@ export function BenchmarkPanel() {
 
   const fetchSuites = async () => {
     try {
-      const { invoke } = await import("@/lib/invoke");
+      const { invoke, logIpcError } = await import("@/lib/invoke");
       const data = await invoke<BenchSuiteInfo[]>(
         "benchmark_list_suites",
       ).catch((e) => {
-        if (import.meta.env.DEV) {
-          console.warn("Failed to fetch benchmark suites:", e);
-        }
+        logIpcError("Failed to fetch benchmark suites")(e);
         return [];
       });
       setSuites(data);

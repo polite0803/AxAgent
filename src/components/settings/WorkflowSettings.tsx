@@ -33,9 +33,6 @@ export function WorkflowSettings({
     if (onCreateNew) {
       onCreateNew();
     } else {
-      if (import.meta.env.DEV) {
-        console.log("Create new template");
-      }
       if (onOpenEditor) {
         onOpenEditor();
       }

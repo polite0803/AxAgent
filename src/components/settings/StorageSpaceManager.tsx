@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { open } from "@tauri-apps/plugin-dialog";
 import { App, Button, List, Space, Spin, Typography } from "antd";
 import { CloudUpload, FileText, FolderEdit, FolderOpen, Image, RotateCcw } from "lucide-react";
@@ -62,7 +62,7 @@ export function StorageSpaceManager() {
       const data = await invoke<StorageInventory>("get_storage_inventory");
       setInventory(data && !Array.isArray(data) ? data : null);
     } catch (e) {
-      console.error("Failed to load storage inventory:", e);
+      logIpcError("get_storage_inventory")(e);
     } finally {
       setLoading(false);
     }

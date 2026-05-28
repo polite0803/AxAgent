@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { CapacityInfo, SyncQueueItem } from "@/types";
 import {
   CheckCircleOutlined,
@@ -70,7 +70,7 @@ export function SyncStatus({
       setQueueItems(queue || []);
       setCapacityInfo(capacity);
     } catch (e) {
-      console.error("Failed to load sync status:", e);
+      logIpcError("Failed to load sync status")(e);
     }
     setLoading(false);
     setRefreshing(false);

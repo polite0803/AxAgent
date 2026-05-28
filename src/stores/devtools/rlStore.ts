@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { create } from "zustand";
 
 export interface RLPolicy {
@@ -183,7 +183,7 @@ export const useRLStore = create<{
         reward,
       });
     } catch (error) {
-      console.error("Failed to record experience:", error);
+      logIpcError("Failed to record experience")(error);
     }
   },
 

@@ -9,8 +9,9 @@ const saveSettings = vi.fn();
 const conversationState = {
   conversations: [] as Array<{ id: string }>,
   fetchConversations,
-  activeConversationId: null,
+  activeConversationId: null as string | null,
   messages: [],
+  setActiveConversation: vi.fn(),
 };
 
 const providerState = {
@@ -19,16 +20,25 @@ const providerState = {
 };
 
 const settingsState = {
-  settings: {},
+  settings: {} as Record<string, unknown>,
   saveSettings,
 };
 
 const tabState = {
-  tabs: [],
-  activeTabId: null,
+  tabs: [] as Array<{ id: string; conversationId: string; title: string }>,
+  activeTabId: null as string | null,
   openTab: vi.fn(),
+  closeTab: vi.fn(),
   updateTabTitle: vi.fn(),
   setActiveTab: vi.fn(),
+};
+
+const rightPanelState = {
+  setPredictionContext: vi.fn(),
+};
+
+const uiState = {
+  deviceLayout: "desktop" as string,
 };
 
 vi.mock("antd", () => ({
@@ -37,6 +47,10 @@ vi.mock("antd", () => ({
     Text: ({ children }: any) => children,
     Paragraph: ({ children }: any) => children,
   },
+  Input: Object.assign(
+    (props: any) => <input {...props} />,
+    { TextArea: (props: any) => <textarea {...props} />, Search: (props: any) => <input {...props} /> },
+  ),
   theme: {
     useToken: () => ({
       token: {
@@ -44,7 +58,10 @@ vi.mock("antd", () => ({
         colorBgElevated: "#222",
         colorFillQuaternary: "#333",
         colorTextSecondary: "#aaa",
+        colorTextQuaternary: "#bbb",
         colorPrimary: "#1890ff",
+        colorBorderSecondary: "#444",
+        colorBgMask: "rgba(0,0,0,0.5)",
       },
     }),
   },
@@ -67,6 +84,8 @@ vi.mock("@/stores", () => ({
   useProviderStore: (selector: (state: typeof providerState) => unknown) => selector(providerState),
   useSettingsStore: (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
   useTabStore: (selector: (state: typeof tabState) => unknown) => selector(tabState),
+  useRightPanelStore: (selector: (state: typeof rightPanelState) => unknown) => selector(rightPanelState),
+  useUIStore: (selector: (state: typeof uiState) => unknown) => selector(uiState),
 }));
 
 vi.mock("@/components/chat/ChatSidebar", () => ({
@@ -87,6 +106,14 @@ vi.mock("@/components/chat/AgentExecutionPanel", () => ({
 
 vi.mock("@/components/chat/ScrollToMessageContext", () => ({
   ScrollToMessageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@/components/chat/RightPanelContainer", () => ({
+  RightPanelContainer: () => <div data-testid="right-panel-container">right-panel</div>,
+}));
+
+vi.mock("@/components/skill/SkillChatCommands", () => ({
+  useSkillChatCommands: () => [],
 }));
 
 describe("ChatPage", () => {

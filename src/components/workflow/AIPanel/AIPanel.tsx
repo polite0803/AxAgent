@@ -1,3 +1,4 @@
+import { logIpcError } from "@/lib/invoke";
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Card, Empty, Input, message, Tabs, Tag, theme } from "antd";
 import { Lightbulb, MessageSquare, Plus, Sparkles, Wand2 } from "lucide-react";
@@ -90,7 +91,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         message.success(t("workflow.aiPanel.workflowGenerated"));
       }
     } catch (error) {
-      console.error("[AIPanel] generate failed:", error);
+      logIpcError("AI 生成工作流")(error);
       message.error(t("workflow.aiPanel.generationFailed"));
     } finally {
       setIsGenerating(false);
@@ -111,7 +112,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         message.success(t("workflow.aiPanel.promptOptimized"));
       }
     } catch (error) {
-      console.error("[AIPanel] optimize failed:", error);
+      logIpcError("AI 优化提示词")(error);
       message.error(t("workflow.aiPanel.optimizationFailed"));
     } finally {
       setIsOptimizing(false);
@@ -132,7 +133,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         message.success(t("workflow.aiPanel.recommendationGenerated"));
       }
     } catch (error) {
-      console.error("[AIPanel] recommend failed:", error);
+      logIpcError("AI 推荐节点")(error);
       message.error(t("workflow.aiPanel.recommendationFailed"));
     } finally {
       setIsRecommending(false);

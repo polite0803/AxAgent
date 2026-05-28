@@ -164,6 +164,12 @@ vi.mock("@/lib/preloadChatRenderers", () => ({
   preloadChatRenderers,
 }));
 
+vi.mock("@lobehub/ui", () => ({}));
+
+vi.mock("@lobehub/icons", () => ({
+  Icon: () => null,
+}));
+
 vi.mock("@terrastruct/d2", () => ({}));
 
 vi.mock("markstream-react", () => ({
@@ -193,8 +199,8 @@ describe("AppRoot D2 setup", () => {
       () => {
         expect(enableD2).toHaveBeenCalledTimes(1);
       },
-      { timeout: 30000 },
+      { timeout: 5000 },
     );
     expect(preloadChatRenderers).toHaveBeenCalledTimes(1);
-  }, 35000);
+  }, 10000);
 });

@@ -23,6 +23,8 @@ pub struct ScheduledTaskDto {
     pub config: TaskConfigDto,
     pub created_at: String,
     pub updated_at: String,
+    #[serde(rename = "workflowId")]
+    pub workflow_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,6 +96,7 @@ fn cron_to_dto(job: &CronJob) -> ScheduledTaskDto {
         updated_at: chrono::DateTime::from_timestamp_millis(job.updated_at)
             .map(|dt| dt.to_rfc3339())
             .unwrap_or_default(),
+        workflow_id: job.workflow_id.clone(),
     }
 }
 
@@ -176,6 +179,7 @@ pub async fn update_scheduled_task(
                 job.schedule = cron.clone();
             }
             job.task_type = Some(task.task_type.clone());
+            job.workflow_id = task.workflow_id.clone();
             job.config = TaskConfig {
                 timeout_seconds: task.config.timeout_seconds,
                 retry_on_failure: task.config.retry_on_failure,
@@ -255,14 +259,31 @@ pub async fn execute_scheduled_task(
 }
 
 #[tauri::command]
-pub async fn get_scheduled_task_templates() -> Result<Vec<serde_json::Value>, String> {
-    Ok(vec![
-        serde_json::json!({"id":"daily_summary","name":"每日摘要","description":"每日定时生成工作摘要","task_type":"daily_summary","default_schedule":"0 9 * * *"}),
-        serde_json::json!({"id":"backup","name":"自动备份","description":"定时备份数据库","task_type":"backup","default_schedule":"0 2 * * *"}),
-        serde_json::json!({"id":"cleanup","name":"清理任务","description":"定时清理过期数据","task_type":"cleanup","default_schedule":"0 3 * * 0"}),
-        serde_json::json!({"id":"health_check","name":"健康检查","description":"定时执行系统健康检查","task_type":"health_check","default_schedule":"0 */6 * * *"}),
-        serde_json::json!({"id":"custom","name":"自定义任务","description":"自定义 cron 定时任务","task_type":"custom","default_schedule":"0 9 * * *"}),
-    ])
+pub async fn get_scheduled_task_templates(
+    state: State<'_, AppState>,
+) -> Result<Vec<serde_json::Value>, String> {
+    use axagent_core::entity::workflow_template;
+    use sea_orm::EntityTrait;
+
+    let mut templates: Vec<serde_json::Value> = vec![
+        serde_json::json!({"templateType":"custom","name":"自定义任务","description":"自定义 cron 定时任务","template_type":"custom","default_schedule":"0 9 * * *"}),
+    ];
+
+    // 查询所有已持久化的工作流模板
+    if let Ok(wf_templates) = workflow_template::Entity::find().all(&state.sea_db).await {
+        for wt in wf_templates {
+            templates.push(serde_json::json!({
+                "templateType": wt.id,
+                "name": wt.name,
+                "description": wt.description.unwrap_or_default(),
+                "template_type": "workflow",
+                "workflow_id": wt.id,
+                "default_schedule": "0 9 * * *",
+            }));
+        }
+    }
+
+    Ok(templates)
 }
 
 #[tauri::command]

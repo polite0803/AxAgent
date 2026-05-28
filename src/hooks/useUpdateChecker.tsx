@@ -1,4 +1,4 @@
-import { isTauri } from "@/lib/invoke";
+import { isTauri, logIpcError } from "@/lib/invoke";
 import { App, Button, Progress } from "antd";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -127,7 +127,7 @@ export function useUpdateChecker() {
               progressModal.destroy();
               if (!cancelled) {
                 message.error(t("settings.updateFailed"));
-                console.error("Update install failed:", e);
+                logIpcError("安装更新")(e);
               }
             }
           },
@@ -137,7 +137,7 @@ export function useUpdateChecker() {
         if (!silent) {
           message.error(t("settings.checkUpdateFailed"));
         }
-        console.error("Update check failed:", e);
+        logIpcError("检查更新")(e);
         return false;
       }
     },

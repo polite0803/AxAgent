@@ -1,5 +1,5 @@
 import { PasteButton } from "@/components/common/PasteButton";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import {
   Alert,
   Button,
@@ -114,7 +114,7 @@ export function CloudWorkspaceSelector() {
         );
         setPresets(Array.isArray(result) ? result : []);
       } catch (e) {
-        console.error("Failed to load presets:", e);
+        logIpcError("list_cloud_provider_presets")(e);
       }
     };
     loadPresets();

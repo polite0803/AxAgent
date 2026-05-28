@@ -46,18 +46,23 @@ let provider = {
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string) => fallback ?? key,
+    i18n: { language: "en" },
   }),
 }));
 
 vi.mock("@lobehub/icons", () => ({
   ProviderIcon: () => <div>provider-icon</div>,
   ModelIcon: () => <div>model-icon</div>,
+  providerMappings: [],
+  modelMappings: [],
 }));
 
 vi.mock("../IconPickerModal", () => ({
   IconPickerModal: () => null,
   default: () => null,
 }));
+
+const setSelectedProviderId = vi.fn();
 
 vi.mock("@/stores", () => ({
   useProviderStore: (selector: (state: Record<string, unknown>) => unknown) =>
@@ -74,6 +79,15 @@ vi.mock("@/stores", () => ({
       updateModelParams,
       fetchRemoteModels,
       saveModels,
+    }),
+  useUIStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      setSelectedProviderId,
+    }),
+  useSettingsStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      settings: { theme_mode: "light" },
+      saveSettings: vi.fn(),
     }),
 }));
 

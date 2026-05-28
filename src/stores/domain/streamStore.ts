@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { invoke, isTauri, type UnlistenFn } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { Conversation, Message } from "@/types";
 import { create } from "zustand";
@@ -45,14 +45,6 @@ export function startStreamWatchdog() {
     }
 
     for (const convId of stuckConversationIds) {
-      console.warn(
-        `[StreamWatchdog] stream stuck: conversationId=${convId}, running ${
-          Math.round(
-            (now - state.streamingStartTimestamps[convId]) / 1000,
-          )
-        }s, auto-cancelling`,
-      );
-
       const msgId = state.activeStreams[convId];
       if (msgId && _conversationStoreRef) {
         _conversationStoreRef.setState((s) => ({
@@ -1006,9 +998,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
     // Tell the backend to cancel the stream — fire and forget
     if (isTauri()) {
       invoke("cancel_stream", { conversationId: activeConvId }).catch(
-        (e: unknown) => {
-          console.warn("[IPC]", e);
-        },
+        logIpcError("cancel_stream"),
       );
       // Also cancel the agent if in agent mode
       const conv = convRef
@@ -1017,9 +1007,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
       if (conv?.mode === "agent") {
         invoke("agent_cancel", {
           request: { conversationId: activeConvId },
-        }).catch((e: unknown) => {
-          console.warn("[IPC]", e);
-        });
+        }).catch(logIpcError("agent_cancel"));
       }
     }
 

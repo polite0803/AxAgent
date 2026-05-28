@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { Alert, Button, Descriptions, Input, Modal, Radio, Space, Tag, Typography } from "antd";
 import { AlertTriangle, Clock, FileText, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -86,7 +86,7 @@ export function FilePermissionDialog({
         setResult(null);
         onClose();
       } catch (e) {
-        console.error(e);
+        logIpcError("file_revoke_authorization")(e);
       }
     }
   };

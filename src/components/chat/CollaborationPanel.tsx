@@ -58,13 +58,11 @@ export function CollaborationPanel({
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const { invoke } = await import("@/lib/invoke");
+        const { invoke, logIpcError } = await import("@/lib/invoke");
         const data = await invoke<SharedSession[]>(
           "collaboration_list_sessions",
         ).catch((e) => {
-          if (import.meta.env.DEV) {
-            console.warn("Failed to fetch sessions:", e);
-          }
+          logIpcError("Failed to fetch sessions")(e);
           return [];
         });
         setSessions(data);

@@ -231,8 +231,8 @@ export function useOscClipboard(terminal: XTerm | null) {
       try {
         const text = await navigator.clipboard.readText();
         terminal.paste(text);
-      } catch (e) {
-        console.error("Failed to paste from clipboard:", e);
+      } catch {
+        // clipboard access may fail silently
       }
     }
   }, [terminal]);

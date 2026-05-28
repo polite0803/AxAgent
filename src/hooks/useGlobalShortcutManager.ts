@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { isTauri } from "@/lib/invoke";
+import { isTauri, logIpcError } from "@/lib/invoke";
 import { executeShortcutAction } from "@/lib/shortcutActions";
 import {
   getShortcutBinding,
@@ -43,11 +43,9 @@ export function useGlobalShortcutManager() {
         message: withTimestamp.message,
       };
       if (withTimestamp.level === "error") {
-        console.error("[global-shortcut]", consolePayload);
+        logIpcError("global-shortcut")(consolePayload);
       } else if (withTimestamp.level === "warn") {
-        console.warn("[global-shortcut]", consolePayload);
-      } else {
-        console.info("[global-shortcut]", consolePayload);
+        logIpcError("global-shortcut")(consolePayload);
       }
     };
     const updateStatus = (
@@ -213,10 +211,7 @@ export function useGlobalShortcutManager() {
                       reason,
                       message: "Failed to register global shortcut.",
                     });
-                    console.warn(
-                      `Failed to register global shortcut for ${action} (${accelerator}):`,
-                      error,
-                    );
+                    logIpcError(`注册快捷键 ${action}`)(error);
                   }
                 })(),
               ]
@@ -236,7 +231,7 @@ export function useGlobalShortcutManager() {
           reason,
           message: "Failed to initialize global shortcut plugin.",
         });
-        console.warn("Failed to register global shortcuts:", error);
+        logIpcError("注册全局快捷键")(error);
       } finally {
         if (!cancelled) {
           pushDiagnostic({

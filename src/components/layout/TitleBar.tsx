@@ -255,9 +255,7 @@ export function TitleBar() {
           }
         }
       })
-      .catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
+      .catch(logIpcError("webdav_sync_status"));
 
     invoke<Array<{ createdAt: string }>>("list_backups")
       .then((list) => {
@@ -271,9 +269,7 @@ export function TitleBar() {
           }
         }
       })
-      .catch((e: unknown) => {
-        console.warn("[IPC]", e);
-      });
+      .catch(logIpcError("list_backups"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backupPopoverOpen]);
 

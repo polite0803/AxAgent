@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { Artifact, ArtifactPreviewMode, CreateArtifactInput, UpdateArtifactInput } from "@/types";
 import { create } from "zustand";
 
@@ -48,7 +48,7 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
       });
       set({ artifacts, loading: false });
     } catch (e) {
-      console.error("[artifactStore] loadArtifacts failed:", e);
+      logIpcError("artifactStore: loadArtifacts failed")(e);
       set({ error: String(e), loading: false });
     }
   },
@@ -59,7 +59,7 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
       set((s) => ({ artifacts: [...s.artifacts, artifact] }));
       return artifact;
     } catch (e) {
-      console.error("[artifactStore] operation failed:", e);
+      logIpcError("artifactStore: operation failed")(e);
       set({ error: String(e) });
       return null;
     }
@@ -77,7 +77,7 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
       }));
       return updated;
     } catch (e) {
-      console.error("[artifactStore] operation failed:", e);
+      logIpcError("artifactStore: operation failed")(e);
       set({ error: String(e) });
       return null;
     }
