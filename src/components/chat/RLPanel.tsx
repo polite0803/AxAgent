@@ -1,4 +1,4 @@
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -54,7 +54,7 @@ export function RLPanel() {
           setConfig(c);
         }
       } catch (e) {
-        console.warn("[rl] config fetch failed:", e);
+        logIpcError("rl_config")(e);
         hasError = true;
       }
       try {
@@ -63,7 +63,7 @@ export function RLPanel() {
           setStats(s);
         }
       } catch (e) {
-        console.warn("[rl] stats fetch failed:", e);
+        logIpcError("trajectory_stats")(e);
         hasError = true;
       }
       if (mountedRef.current) {
@@ -105,7 +105,7 @@ export function RLPanel() {
         URL.revokeObjectURL(url);
       }
     } catch (e) {
-      console.warn("[rl] export failed:", e);
+      logIpcError("rl_export")(e);
     }
   };
 

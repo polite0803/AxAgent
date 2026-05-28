@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type {
   ContextPrediction,
   PredictionResult,
@@ -519,7 +519,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
         schedulePrefetchCleanup(compResourceId);
       })
       .catch((e: unknown) => {
-        console.warn("[IPC]", e);
+        logIpcError("get_compression_summary")(e);
         schedulePrefetchCleanup(compResourceId);
       });
   },
@@ -556,7 +556,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
         schedulePrefetchCleanup(resourceId);
       })
       .catch((e: unknown) => {
-        console.warn("[IPC]", e);
+        logIpcError("get_invoke_metrics")(e);
         schedulePrefetchCleanup(resourceId);
       });
   },
@@ -601,7 +601,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
               schedulePrefetchCleanup(resourceId);
             })
             .catch((e: unknown) => {
-              console.warn("[IPC]", e);
+              logIpcError("list_search_providers")(e);
               schedulePrefetchCleanup(resourceId);
             });
           break;
@@ -630,7 +630,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
               schedulePrefetchCleanup(resourceId);
             })
             .catch((e: unknown) => {
-              console.warn("[IPC]", e);
+              logIpcError("list_local_tools")(e);
               schedulePrefetchCleanup(resourceId);
             });
           break;

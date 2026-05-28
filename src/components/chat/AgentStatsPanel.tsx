@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useAgentStore, useConversationStore, useStreamStore } from "@/stores";
 import { Activity, AlertTriangle, Clock, HelpCircle, IterationCw, Pause, Play, Shield, Wrench } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -109,7 +109,7 @@ export const AgentStatsPanel: React.FC = () => {
           );
         }
       } catch (e) {
-        console.warn("[IPC] agent_runtime_stats poll error:", e);
+        logIpcError("agent_runtime_stats")(e);
       }
     }, 2000);
 

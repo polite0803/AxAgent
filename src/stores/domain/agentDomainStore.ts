@@ -270,7 +270,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           }
           return session;
         } catch (e) {
-          console.error("[agentDomainStore] fetchSession failed:", e);
+          logIpcError("agentDomainStore: fetchSession failed")(e);
           return null;
         }
       },
@@ -283,7 +283,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           });
           get().updateSession(conversationId, session);
         } catch (e) {
-          console.error("[agentDomainStore] updateCwd failed:", e);
+          logIpcError("agentDomainStore: updateCwd failed")(e);
         }
       },
 
@@ -295,7 +295,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
           });
           get().updateSession(conversationId, session);
         } catch (e) {
-          console.error("[agentDomainStore] updatePermissionMode failed:", e);
+          logIpcError("agentDomainStore: updatePermissionMode failed")(e);
         }
       },
 
@@ -434,7 +434,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             return { pausedConversations };
           });
         } catch (err) {
-          console.error("[agentDomainStore] pauseAgent failed:", err);
+          logIpcError("agentDomainStore: pauseAgent failed")(err);
         }
       },
 
@@ -447,7 +447,7 @@ export const useAgentDomainStore = create<AgentDomainStore>()(
             return { pausedConversations };
           });
         } catch (err) {
-          console.error("[agentDomainStore] resumeAgent failed:", err);
+          logIpcError("agentDomainStore: resumeAgent failed")(err);
         }
       },
 

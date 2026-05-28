@@ -1,5 +1,5 @@
 import { PasteButton } from "@/components/common/PasteButton";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { Button, Card, Form, Input, Select, Space, Switch, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,7 +37,7 @@ export function ImageGenSettings() {
       .then((config) => {
         form.setFieldsValue(config);
       })
-      .catch(console.error)
+      .catch(logIpcError("get_image_gen_config"))
       .finally(() => setInitialLoading(false));
   }, [form]);
 
@@ -47,7 +47,7 @@ export function ImageGenSettings() {
       const values = await form.validateFields();
       await invoke("save_image_gen_config", { config: values });
     } catch (e) {
-      console.error("Failed to save image gen config:", e);
+      logIpcError("save_image_gen_config")(e);
     } finally {
       setLoading(false);
     }

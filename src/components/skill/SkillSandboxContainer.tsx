@@ -10,7 +10,7 @@
  */
 
 import i18n from "@/i18n";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { createHostApiBridge, createHostRpcBridge } from "@/sdk/rpcBridge";
 import type { HostApiBridge, HostRpcBridge } from "@/sdk/rpcBridge";
 import { generateSandboxHtml } from "@/sdk/sandboxTemplate";
@@ -245,10 +245,7 @@ export function SkillSandboxContainer({
           window.removeEventListener("message", messageHandler);
           window.addEventListener("message", handleRpc);
         } else if (msg?.type === "skill:error") {
-          console.error(
-            `[SkillSandbox] Skill "${skillName}" 运行时错误:`,
-            msg.error,
-          );
+          logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
         }
       };
 
@@ -257,17 +254,14 @@ export function SkillSandboxContainer({
         if (msg?.type === "rpc:request" && apiBridgeRef.current) {
           apiBridgeRef.current.handleRpcRequest(msg);
         } else if (msg?.type === "skill:error") {
-          console.error(
-            `[SkillSandbox] Skill "${skillName}" 运行时错误:`,
-            msg.error,
-          );
+          logIpcError(`Skill "${skillName}" 运行时错误`)(msg.error);
         }
       };
 
       window.addEventListener("message", messageHandler);
       iframe.srcdoc = finalHtml;
     } catch (e) {
-      console.error(`[SkillSandbox] 加载 Skill "${skillName}" 失败:`, e);
+      logIpcError(`加载 Skill "${skillName}"`)(e);
       setError(String(e));
       setLoading(false);
       if (loadTimerRef.current) {
