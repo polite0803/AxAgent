@@ -63,6 +63,21 @@ fn gdi_capture_monitor(monitor_index: u32) -> Result<(image::RgbaImage, f64)> {
     let height = monitor.height()? as i32;
     let scale_factor = monitor.scale_factor().unwrap_or(1.0) as f64;
 
+    // SAFETY:
+    // 1. All GDI handles (hwnd, hdc, mem_dc, bitmap) are obtained from valid Windows API calls
+    //    (GetDesktopWindow, GetDC, CreateCompatibleDC, CreateCompatibleBitmap).
+    // 2. Buffer size is validated before GetDIBits — checked for 0 and > 512 MB to prevent
+    //    overflow and excessive allocation.
+    // 3. BITMAPINFO is properly initialized with correct header size (biSize =
+    //    size_of::<BITMAPINFOHEADER>()), biHeight is negated for top-down DIB, and biBitCount
+    //    is set to 32 for RGBA.
+    // 4. All GDI resources are properly cleaned up on both success and error paths:
+    //    SelectObject restores the original bitmap, DeleteDC frees the memory DC, ReleaseDC
+    //    releases the device context, and DeleteObject frees the bitmap.
+    // 5. The buffer for GetDIBits is pre-allocated with the correct size (width * height * 4),
+    //    matching the 32-bit BGRA format, and is passed as a valid mutable pointer.
+    // 6. This function is only compiled on Windows (#[cfg(target_os = "windows")]), ensuring
+    //    the GDI APIs are available at runtime.
     unsafe {
         let hwnd = GetDesktopWindow();
         let hdc = GetDC(Some(hwnd));

@@ -205,9 +205,26 @@ pub struct WorkEngine {
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
+    /// 断点集（节点 ID → 是否启用，外部通过 set_breakpoints / resume 控制）
+    pub breakpoints: Arc<Mutex<HashSet<String>>>,
+    /// 暂停信号（resume 时通知等待中的执行）
+    pause_signal: Arc<tokio::sync::Notify>,
 }
 
 impl WorkEngine {
+    /// 设置断点
+    pub async fn set_breakpoints(&self, bp: HashSet<String>) {
+        *self.breakpoints.lock().await = bp;
+    }
+    /// 继续执行（通知所有等待中的断点）
+    pub fn resume_breakpoints(&self) {
+        self.pause_signal.notify_waiters();
+    }
+    /// 单步执行（仅通知一个等待者）
+    pub fn step_breakpoint(&self) {
+        self.pause_signal.notify_one();
+    }
+
     /// 注册/替换节点执行器（Arc<WorkEngine> 下可安全调用）
     pub async fn register_executor<E: NodeExecutorTrait + 'static>(&self, executor: E) {
         self.dispatcher.write().await.register(executor);
@@ -278,6 +295,8 @@ impl WorkEngine {
             vector_retrieve_callback: Arc::new(Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
+            breakpoints: Arc::new(Mutex::new(HashSet::new())),
+            pause_signal: Arc::new(tokio::sync::Notify::new()),
         }
     }
 
@@ -864,6 +883,19 @@ impl WorkEngine {
                 exec_ctx.variables = deps_results;
                 exec_ctx.cancel_token = Some(cancel_token.clone());
                 exec_ctx.dry_run = options.dry_run;
+                {
+                    let bp = self.breakpoints.lock().await;
+                    exec_ctx.breakpoints = bp.clone();
+                }
+                exec_ctx.pause_signal = Some(self.pause_signal.clone());
+
+                // 断点检查：命中时等待 resume
+                if exec_ctx.breakpoints.contains(&node_id) {
+                    tracing::info!("[Breakpoint] 命中节点 {node_id}，等待 resume...");
+                    if let Some(ref sig) = exec_ctx.pause_signal {
+                        sig.notified().await;
+                    }
+                }
 
                 // 注入编译后的 prompt 模板
                 {

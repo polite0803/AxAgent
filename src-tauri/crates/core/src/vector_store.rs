@@ -36,6 +36,11 @@ pub fn register_sqlite_vec_extension() {
             tracing::info!(
                 "AXAGENT_FORCE_VEC=1 set — attempting sqlite-vec registration on Android"
             );
+            // SAFETY:
+            // - sqlite3_auto_extension is called before any database connections are opened (during registration).
+            // - transmute converts sqlite3_vec_init function pointer to the expected sqlite3 extension init signature.
+            // - This is the standard pattern for loading SQLite extensions via auto_extension.
+            // - Only executed when AXAGENT_FORCE_VEC=1 is set (opt-in debugging).
             unsafe {
                 libsqlite3_sys::sqlite3_auto_extension(Some(std::mem::transmute(
                     sqlite_vec::sqlite3_vec_init as *const (),
@@ -49,6 +54,11 @@ pub fn register_sqlite_vec_extension() {
         }
     }
     #[cfg(not(target_os = "android"))]
+    // SAFETY:
+    // - Same transmute pattern but with explicit type annotation for the target signature.
+    // - sqlite3_vec_init is the canonical entry point provided by the sqlite-vec crate.
+    // - The transmute is safe because sqlite3_vec_init matches the expected sqlite3 extension init function signature.
+    // - sqlite3_auto_extension is thread-safe per SQLite documentation and must be called before any DB connections.
     unsafe {
         libsqlite3_sys::sqlite3_auto_extension(Some(std::mem::transmute::<
             *const (),

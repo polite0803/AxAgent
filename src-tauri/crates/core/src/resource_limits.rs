@@ -87,6 +87,10 @@ impl ResourceLimits {
             rlim_cur: soft.min(hard),
             rlim_max: hard,
         };
+        // SAFETY: rlim is properly initialized with valid soft/hard limit values;
+        // resource parameter is a valid libc rlimit resource constant;
+        // setrlimit is called on the current process only;
+        // failure is handled gracefully (non-zero return logged but not fatal).
         let ret = unsafe { libc::setrlimit(resource as _, &rlim) };
         if ret != 0 {
             let err = std::io::Error::last_os_error();
@@ -111,11 +115,20 @@ impl ResourceLimits {
             .chain(std::iter::once(0))
             .collect();
 
+        // SAFETY: name is a properly null-terminated UTF-16 string
+        // (created with encode_wide().chain(once(0)));
+        // null pointer passed for lpSecurityAttributes is valid
+        // (uses default security descriptor);
+        // null handle return is checked below.
         let handle = unsafe { CreateJobObjectW(std::ptr::null(), name.as_ptr()) };
         if handle.is_null() {
             return Err("无法创建 Windows Job Object".to_string());
         }
 
+        // SAFETY: JOBOBJECT_EXTENDED_LIMIT_INFORMATION is a Windows struct
+        // that is safe to zero-initialize; all fields are numeric types
+        // (DWORD, SIZE_T) that default to 0; the zeroed struct is
+        // immediately populated with valid values before use.
         let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
         info.BasicLimitInformation.LimitFlags =
             JOB_OBJECT_LIMIT_PROCESS_MEMORY | JOB_OBJECT_LIMIT_JOB_MEMORY;
@@ -132,6 +145,11 @@ impl ResourceLimits {
         };
         info.JobMemoryLimit = limit;
 
+        // SAFETY: handle is a valid Job Object handle obtained from
+        // CreateJobObjectW (null-checked above); info pointer and size are
+        // correctly derived from the same struct; JobObjectExtendedLimitInformation
+        // is the correct information class for this struct type;
+        // failure is handled gracefully (ret == 0 logged but not fatal).
         let ret = unsafe {
             SetInformationJobObject(
                 handle as HANDLE,

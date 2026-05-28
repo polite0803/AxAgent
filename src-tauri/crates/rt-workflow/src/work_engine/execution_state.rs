@@ -78,6 +78,12 @@ pub struct ExecutionState {
     /// 干跑模式（不序列化，引擎注入）
     #[serde(skip, default)]
     pub dry_run: bool,
+    /// 断点集（节点 ID 集合，不序列化）
+    #[serde(skip, default)]
+    pub breakpoints: std::collections::HashSet<String>,
+    /// 暂停信号（引擎注入，断点命中时等待，resume 时通知）
+    #[serde(skip, default)]
+    pub pause_signal: Option<std::sync::Arc<tokio::sync::Notify>>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -105,6 +111,8 @@ impl ExecutionState {
             compiled_prompts: None,
             cancel_token: None,
             dry_run: false,
+            breakpoints: std::collections::HashSet::new(),
+            pause_signal: None,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,
