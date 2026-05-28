@@ -976,7 +976,7 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
     case "condition":
       return { conditions: [], logical_op: "and" };
     case "parallel":
-      return { branches: [], wait_for_all: true };
+      return { branches: [], wait_for_all: true, aggregation: undefined };
     case "loop":
       return {
         loop_type: "forEach",
@@ -1072,7 +1072,7 @@ function createWorkflowNode(
       return {
         ...baseNode,
         type: "parallel",
-        config: { branches: [], wait_for_all: true },
+        config: { branches: [], wait_for_all: true, aggregation: undefined },
       };
     case "loop":
       return {

@@ -116,3 +116,56 @@ impl HookResult {
         }
     }
 }
+
+/// 从 JSON 格式执行 hooks（供工作流引擎调用）
+///
+/// `event_type`: "pre" | "post" | "post_fail"
+/// 仅支持 Shell 类型的 hook（prompt/http 注入无需在工作流级别处理）
+pub async fn execute_json_hooks(hooks: &[serde_json::Value], node_id: &str, event_type: &str) {
+    for hook_json in hooks {
+        let Some(event) = hook_json.get("event").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        if event != event_type {
+            continue;
+        }
+        let Some(enabled) = hook_json.get("enabled").and_then(|v| v.as_bool()) else {
+            continue;
+        };
+        if !enabled {
+            continue;
+        }
+        // 仅执行 Shell 类型的 hook
+        if let Some(shell) = hook_json.get("executor").and_then(|v| v.get("shell")) {
+            let command = shell.get("command").and_then(|v| v.as_str()).unwrap_or("");
+            if command.is_empty() {
+                continue;
+            }
+            let timeout = hook_json
+                .get("timeout_secs")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(30);
+            let output = tokio::time::timeout(
+                std::time::Duration::from_secs(timeout),
+                execute_shell_string(command, node_id),
+            )
+            .await;
+            match output {
+                Ok(Ok(o)) => tracing::info!("[Hook] {event_type}:{node_id} shell OK: {o}"),
+                Ok(Err(e)) => tracing::warn!("[Hook] {event_type}:{node_id} shell error: {e}"),
+                Err(_) => tracing::warn!("[Hook] {event_type}:{node_id} timeout"),
+            }
+        }
+    }
+}
+
+async fn execute_shell_string(command: &str, node_id: &str) -> Result<String, String> {
+    let output = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
+        .arg(if cfg!(windows) { "/C" } else { "-c" })
+        .arg(command)
+        .env("AXAGENT_NODE_ID", node_id)
+        .output()
+        .await
+        .map_err(|e| format!("Hook shell failed: {e}"))?;
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}

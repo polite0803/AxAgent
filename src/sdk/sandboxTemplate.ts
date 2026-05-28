@@ -199,7 +199,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
         result: result,
         error: error
       }, TARGET_ORIGIN);
-    } catch(e) {}
+    } catch(e) { /* postMessage to parent may fail if iframe is detached */ }
   }
 
   // ── ctx 对象 ──
@@ -271,7 +271,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
         if (msg.event === "theme-change" && msg.payload && msg.payload.theme) {
           document.documentElement.setAttribute("data-theme", msg.payload.theme);
           for (var ti = 0; ti < themeChangeCallbacks.length; ti++) {
-            try { themeChangeCallbacks[ti](msg.payload.theme); } catch(e) {}
+            try { themeChangeCallbacks[ti](msg.payload.theme); } catch(e) { try { window.parent.postMessage({ type: "skill:error", error: "Theme callback error: " + String(e) }, TARGET_ORIGIN); } catch(e2) {} }
           }
         }
         break;
@@ -318,7 +318,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
         line: event.lineno,
         col: event.colno
       }, TARGET_ORIGIN);
-    } catch(e) {}
+    } catch(e) { /* error reporting postMessage failed, nothing we can do */ }
   });
 
   window.addEventListener("unhandledrejection", function(event) {
@@ -327,13 +327,13 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
         type: "skill:error",
         error: "Unhandled rejection: " + String(event.reason)
       }, TARGET_ORIGIN);
-    } catch(e) {}
+    } catch(e) { /* error reporting postMessage failed, nothing we can do */ }
   });
 
   // ── 向宿主报告就绪 ──
   try {
     window.parent.postMessage({ type: "skill:ready" }, TARGET_ORIGIN);
-  } catch(e) {}
+  } catch(e) { /* skill:ready postMessage failed */ }
 
   callHost("ui.getTheme").then(function(theme) {
     if (theme) {
@@ -347,7 +347,7 @@ function generateRuntimeScript(rpcTimeoutMs: number): string {
     } catch(e) {
       try {
         window.parent.postMessage({ type: "skill:error", error: String(e) }, TARGET_ORIGIN);
-      } catch(e2) {}
+      } catch(e2) { /* nested error report postMessage failed */ }
     }
   }
 })();

@@ -23,6 +23,7 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
   const config = parallelNode.config || {
     branches: [],
     wait_for_all: true,
+    aggregation: undefined,
   };
 
   const { nodes } = useWorkflowEditorStore();
@@ -140,6 +141,40 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
           size="small"
           placeholder={t("workflow.props.notSet")}
         />
+      </div>
+
+      <div>
+        <label
+          style={{
+            display: "block",
+            color: token.colorTextTertiary,
+            fontSize: 12,
+            marginBottom: 4,
+          }}
+        >
+          {t("workflow.props.aggregation")}
+        </label>
+        <Select
+          value={config.aggregation ?? "all"}
+          onChange={(v) =>
+            onUpdate({
+              config: {
+                ...config,
+                aggregation: v === "all" ? undefined : v,
+              },
+            })}
+          size="small"
+          style={{ width: "100%" }}
+          options={[
+            { value: "all", label: t("workflow.props.aggregationAll") },
+            { value: "first", label: t("workflow.props.aggregationFirst") },
+            { value: "race", label: t("workflow.props.aggregationRace") },
+            { value: "majority", label: t("workflow.props.aggregationMajority") },
+          ]}
+        />
+        <div style={{ fontSize: 11, color: token.colorTextQuaternary, margin: "2px 0 8px" }}>
+          {t(`workflow.props.aggregationHint`)}
+        </div>
       </div>
 
       <div>

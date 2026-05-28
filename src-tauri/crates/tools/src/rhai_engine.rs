@@ -3,7 +3,7 @@
 //! 编译（工作流创建时）→ 缓存 AST → 执行时注册为 tool_handler
 //! 脚本中可通过 `tool("name", args_map)` 调用已注册的工具
 
-use rhai::{Engine, Scope, AST};
+use rhai::{AST, Engine, Scope};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -20,7 +20,9 @@ pub fn create_rhai_engine() -> Engine {
 
 /// 编译一段 Rhai 脚本
 pub fn compile_script(engine: &Engine, script: &str) -> Result<AST, String> {
-    engine.compile(script).map_err(|e| format!("Rhai 编译失败: {e}"))
+    engine
+        .compile(script)
+        .map_err(|e| format!("Rhai 编译失败: {e}"))
 }
 
 /// 批量编译工作流中所有 language="rhai" 的 Code 节点
@@ -55,7 +57,23 @@ pub fn compile_workflow_rhai_scripts(
 pub fn execute_rhai_ast(
     ast: &AST,
     args: serde_json::Value,
-    tools: Option<&HashMap<String, Arc<dyn Fn(String, serde_json::Value) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>> + Send + Sync>>>,
+    tools: Option<
+        &HashMap<
+            String,
+            Arc<
+                dyn Fn(
+                        String,
+                        serde_json::Value,
+                    ) -> std::pin::Pin<
+                        Box<
+                            dyn std::future::Future<Output = Result<serde_json::Value, String>>
+                                + Send,
+                        >,
+                    > + Send
+                    + Sync,
+            >,
+        >,
+    >,
 ) -> Result<serde_json::Value, String> {
     let mut engine = create_rhai_engine();
     let mut scope = Scope::new();
@@ -89,7 +107,9 @@ pub fn execute_rhai_ast(
     }
 
     if let Some(obj) = args.as_object() {
-        for (key, val) in obj { set_scope_value(&mut scope, key, val); }
+        for (key, val) in obj {
+            set_scope_value(&mut scope, key, val);
+        }
     } else {
         scope.push("input", args);
     }
@@ -113,21 +133,33 @@ fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
 
 fn set_scope_value(scope: &mut Scope, key: &str, value: &serde_json::Value) {
     match value {
-        serde_json::Value::Null => { scope.push(key, ()); },
-        serde_json::Value::Bool(b) => { scope.push(key, *b); },
-        serde_json::Value::Number(n) => {
-            if let Some(i) = n.as_i64() { scope.push(key, i); }
-            else if let Some(f) = n.as_f64() { scope.push(key, f); }
-            else { scope.push(key, n.to_string()); }
+        serde_json::Value::Null => {
+            scope.push(key, ());
         },
-        serde_json::Value::String(s) => { scope.push(key, s.clone()); },
+        serde_json::Value::Bool(b) => {
+            scope.push(key, *b);
+        },
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                scope.push(key, i);
+            } else if let Some(f) = n.as_f64() {
+                scope.push(key, f);
+            } else {
+                scope.push(key, n.to_string());
+            }
+        },
+        serde_json::Value::String(s) => {
+            scope.push(key, s.clone());
+        },
         serde_json::Value::Array(arr) => {
             let list: Vec<rhai::Dynamic> = arr.iter().map(json_to_dynamic).collect();
             scope.push(key, list);
         },
         serde_json::Value::Object(obj) => {
             let mut map = rhai::Map::new();
-            for (k, v) in obj { map.insert(k.as_str().into(), json_to_dynamic(v)); }
+            for (k, v) in obj {
+                map.insert(k.as_str().into(), json_to_dynamic(v));
+            }
             scope.push(key, map);
         },
     };
@@ -138,9 +170,13 @@ fn json_to_dynamic(value: &serde_json::Value) -> rhai::Dynamic {
         serde_json::Value::Null => rhai::Dynamic::UNIT,
         serde_json::Value::Bool(b) => rhai::Dynamic::from(*b),
         serde_json::Value::Number(n) => {
-            if let Some(i) = n.as_i64() { rhai::Dynamic::from(i) }
-            else if let Some(f) = n.as_f64() { rhai::Dynamic::from(f) }
-            else { rhai::Dynamic::from(n.to_string()) }
+            if let Some(i) = n.as_i64() {
+                rhai::Dynamic::from(i)
+            } else if let Some(f) = n.as_f64() {
+                rhai::Dynamic::from(f)
+            } else {
+                rhai::Dynamic::from(n.to_string())
+            }
         },
         serde_json::Value::String(s) => rhai::Dynamic::from(s.clone()),
         serde_json::Value::Array(arr) => {
@@ -148,7 +184,9 @@ fn json_to_dynamic(value: &serde_json::Value) -> rhai::Dynamic {
         },
         serde_json::Value::Object(obj) => {
             let mut map = rhai::Map::new();
-            for (k, v) in obj { map.insert(k.as_str().into(), json_to_dynamic(v)); }
+            for (k, v) in obj {
+                map.insert(k.as_str().into(), json_to_dynamic(v));
+            }
             rhai::Dynamic::from(map)
         },
     }
@@ -163,14 +201,18 @@ fn dynamic_to_json(d: rhai::Dynamic) -> serde_json::Value {
         serde_json::Value::Number(d.as_int().unwrap_or(0).into())
     } else if d.is::<f64>() {
         let f = d.as_float().unwrap_or(0.0);
-        serde_json::Number::from_f64(f).map(serde_json::Value::Number)
+        serde_json::Number::from_f64(f)
+            .map(serde_json::Value::Number)
             .unwrap_or(serde_json::Value::String(f.to_string()))
     } else if d.is::<String>() {
         serde_json::Value::String(d.into_string().unwrap_or_default())
     } else if d.is::<Vec<rhai::Dynamic>>() {
         serde_json::Value::Array(
-            d.into_typed_array::<rhai::Dynamic>().unwrap_or_default()
-                .into_iter().map(dynamic_to_json).collect()
+            d.into_typed_array::<rhai::Dynamic>()
+                .unwrap_or_default()
+                .into_iter()
+                .map(dynamic_to_json)
+                .collect(),
         )
     } else {
         serde_json::Value::String(d.to_string())

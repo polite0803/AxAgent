@@ -1,6 +1,8 @@
 import { memo, useEffect, useState } from "react";
 
-const iconCache = new Map<string, any>();
+type IconModuleType = React.ComponentType<{ size?: number }> & Record<string, React.ComponentType<{ size?: number }>>;
+
+const iconCache = new Map<string, IconModuleType>();
 
 interface DynamicLobeIconProps {
   iconId: string;
@@ -18,7 +20,8 @@ export const DynamicLobeIcon = memo(function DynamicLobeIcon({
   size = 24,
   type = "avatar",
 }: DynamicLobeIconProps) {
-  const [IconModule, setIconModule] = useState<any>(null);
+  const [IconModule, setIconModule] = useState<IconModuleType | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +38,11 @@ export const DynamicLobeIcon = memo(function DynamicLobeIcon({
           setIconModule(module);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) {
+          setLoadError(true);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -44,6 +51,24 @@ export const DynamicLobeIcon = memo(function DynamicLobeIcon({
 
   if (!IconModule) {
     return <div style={{ width: size, height: size }} />;
+  }
+
+  if (loadError) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          opacity: 0.3,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: size * 0.6,
+        }}
+      >
+        ?
+      </div>
+    );
   }
 
   if (type === "color" && IconModule.Color) {

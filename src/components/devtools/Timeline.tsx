@@ -46,7 +46,7 @@ export function Timeline({ spans }: TimelineProps) {
     (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
   );
 
-  const { startTime, endTime, totalDuration, spanMetrics } = useMemo(() => {
+  const { startTime, endTime, spanMetrics } = useMemo(() => {
     const sTime = sortedSpans[0]?.start_time
       ? new Date(sortedSpans[0].start_time).getTime()
       : 0;
@@ -93,7 +93,7 @@ export function Timeline({ spans }: TimelineProps) {
         <div className="absolute left-0 top-0 bottom-0 w-px bg-zinc-300" />
         {sortedSpans.map((span) => {
           const m = spanMetrics.get(span.id);
-          if (!m) return null;
+          if (!m) { return null; }
           const { left, width } = m;
           const depth = getDepth(span);
 

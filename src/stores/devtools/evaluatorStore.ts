@@ -23,6 +23,7 @@ interface EvaluatorState {
   clearResult: () => void;
   clearHistory: () => void;
   setConfig: (config: Partial<RunnerConfig>) => void;
+  importDataset: (path: string) => Promise<void>;
 }
 
 export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
@@ -54,8 +55,6 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
     }
   },
 
-  // TODO: 添加 importDataset(path) action 调用 evaluator_import_dataset 命令，
-  // 并在 BenchmarkRunner 页面增加"导入数据集"按钮（参考 AgentProfileManager 中的 handleImportRoles 实现）
   loadDatasets: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -151,5 +150,19 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
   setConfig: (config: Partial<RunnerConfig>) => {
     const { config: currentConfig } = get();
     set({ config: { ...currentConfig, ...config } });
+  },
+
+  importDataset: async (path: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const dataset = await invoke<Dataset>("evaluator_import_dataset", { path });
+      const { datasets } = get();
+      set({ datasets: [...datasets, dataset], isLoading: false });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Failed to import dataset",
+        isLoading: false,
+      });
+    }
   },
 }));

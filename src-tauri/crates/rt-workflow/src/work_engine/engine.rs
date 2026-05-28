@@ -754,14 +754,14 @@ impl WorkEngine {
                                                     String,
                                                     serde_json::Value,
                                                 )
-                                                -> std::pin::Pin<
+                                                    -> std::pin::Pin<
                                                     Box<
                                                         dyn std::future::Future<
-                                                            Output = Result<
-                                                                serde_json::Value,
-                                                                String,
-                                                            >,
-                                                        > + Send,
+                                                                Output = Result<
+                                                                    serde_json::Value,
+                                                                    String,
+                                                                >,
+                                                            > + Send,
                                                     >,
                                                 > + Send
                                                 + Sync,
@@ -775,9 +775,7 @@ impl WorkEngine {
                                             std::sync::Arc::new(
                                                 move |name: String, args: serde_json::Value| {
                                                     let v = v.clone();
-                                                    Box::pin(async move {
-                                                        v(name, args).await
-                                                    })
+                                                    Box::pin(async move { v(name, args).await })
                                                 },
                                             ),
                                         );

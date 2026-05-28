@@ -24,8 +24,7 @@ export const ChartPreview = memo(function ChartPreview({
 <html>
 <head>
 <meta charset="utf-8">
-<!-- TODO: Add SRI integrity hash for echarts CDN script -->
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js" integrity="sha384-o5uz97et3bErHvpKfD4Jz4n0JfhJDWABFuF4NP+iEEDxE1VwMWJ19QGR0lqFZnr6" crossorigin="anonymous"></script>
 <style>
   body { margin: 0; background: ${bgColor}; }
   #chart { width: 100%; height: 100%; }

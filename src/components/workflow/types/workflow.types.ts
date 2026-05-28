@@ -167,6 +167,8 @@ export interface ParallelNodeConfig {
   branches: Branch[];
   wait_for_all: boolean;
   timeout?: number;
+  /** 结果聚合策略: "all" | "first" | "race" | "majority" */
+  aggregation?: string;
 }
 
 export interface ParallelNode extends WorkflowNodeBase {

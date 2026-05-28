@@ -38,19 +38,6 @@ impl TaskManager {
         self.shutdown_token.clone()
     }
 
-    /// 注册一个已 spawn 的 JoinHandle（用于外部 spawn 后统一管理）。
-    #[allow(dead_code)]
-    pub fn register(&self, name: &str, handle: JoinHandle<()>) {
-        let mut handles = self.handles.lock().unwrap_or_else(|e| e.into_inner());
-        // 如果同名任务已存在，先 abort 旧的
-        if let Some(old) = handles.remove(name) {
-            old.abort();
-        }
-        handles.insert(name.to_string(), handle);
-    }
-
-    /// Spawn 一个命名任务并自动注册。
-    /// 兼容 setup 阶段 runtime 未就绪的场景（Android 等平台）。
     pub fn spawn<F>(&self, name: &str, future: F)
     where
         F: std::future::Future<Output = ()> + Send + 'static,
@@ -74,16 +61,6 @@ impl TaskManager {
         }
     }
 
-    /// 中止指定任务。
-    #[allow(dead_code)]
-    pub fn cancel(&self, name: &str) {
-        let mut handles = self.handles.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(handle) = handles.remove(name) {
-            handle.abort();
-        }
-    }
-
-    /// 优雅关闭：触发取消令牌，等待所有任务（超时后 abort）
     pub async fn shutdown(&self, timeout: Duration) {
         self.shutdown_token.cancel();
 

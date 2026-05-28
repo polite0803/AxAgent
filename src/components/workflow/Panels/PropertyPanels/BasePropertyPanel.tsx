@@ -153,6 +153,89 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
                 style={{ width: "100%" }}
               />
             </div>
+            <div>
+              <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+                {t("workflow.props.maxDelayMs")}
+              </label>
+              <InputNumber
+                value={node.retry.max_delay_ms}
+                onChange={(value) =>
+                  onUpdate({
+                    retry: { ...node.retry, max_delay_ms: value ?? 30000 },
+                  })}
+                min={1000}
+                max={300000}
+                size="small"
+                style={{ width: "100%" }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
+
+      {/* 熔断器 */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+            ⚡ {t("workflow.props.circuitBreaker")}
+          </label>
+          <Switch
+            size="small"
+            checked={(node as any).circuit_breaker != null}
+            onChange={(enabled) =>
+              onUpdate({
+                circuit_breaker: enabled
+                  ? { failure_threshold: 3, reset_timeout_ms: 60000 }
+                  : undefined,
+              } as any)}
+          />
+        </div>
+        {(node as any).circuit_breaker && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div>
+              <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+                {t("workflow.props.failureThreshold")}
+              </label>
+              <InputNumber
+                value={(node as any).circuit_breaker.failure_threshold ?? 3}
+                onChange={(v) =>
+                  onUpdate({
+                    circuit_breaker: {
+                      ...(node as any).circuit_breaker,
+                      failure_threshold: v ?? 3,
+                    },
+                  } as any)}
+                min={1}
+                max={20}
+                size="small"
+                style={{ width: "100%" }}
+              />
+            </div>
+            <div>
+              <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+                {t("workflow.props.resetTimeoutMs")}
+              </label>
+              <InputNumber
+                value={(node as any).circuit_breaker.reset_timeout_ms ?? 60000}
+                onChange={(v) =>
+                  onUpdate({
+                    circuit_breaker: {
+                      ...(node as any).circuit_breaker,
+                      reset_timeout_ms: v ?? 60000,
+                    },
+                  } as any)}
+                min={5000}
+                max={600000}
+                step={5000}
+                size="small"
+                style={{ width: "100%" }}
+              />
+              <div style={{ fontSize: 11, color: token.colorTextQuaternary, marginTop: 2 }}>
+                {t("workflow.props.resetTimeoutHint")}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -178,6 +261,19 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
           placeholder={t("workflow.props.notSet")}
           size="small"
           style={{ width: "100%" }}
+        />
+      </div>
+
+      <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+          🔴 {t("workflow.props.breakpoint")}
+        </label>
+        <Switch
+          size="small"
+          checked={(node as any)._breakpoint ?? false}
+          onChange={(checked) => onUpdate({ _breakpoint: checked || undefined } as any)}
         />
       </div>
     </div>

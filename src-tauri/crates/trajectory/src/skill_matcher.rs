@@ -108,7 +108,6 @@ impl KeywordPatterns {
 
 struct ComplexityIndicators;
 
-#[allow(dead_code)]
 impl ComplexityIndicators {
     fn get_high() -> Vec<&'static str> {
         vec![

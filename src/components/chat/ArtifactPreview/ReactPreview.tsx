@@ -20,16 +20,15 @@ export const ReactPreview = memo(function ReactPreview({
 <html>
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-eval' https://unpkg.com; style-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'strict-dynamic' 'unsafe-eval' https://unpkg.com; style-src 'unsafe-inline';">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 16px; }
 ${css || ""}
 </style>
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<!-- TODO: Add SRI integrity hashes for all unpkg scripts -->
-<script src="https://unpkg.com/@babel/standalone@7.25.0/babel.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.0/babel.min.js" integrity="sha384-YZtdPfO5msHvibGV8oIvKzRlNgCRYCjRSSXXD6Z7G2JZ4pDN8iTIB006X/budoo3" crossorigin="anonymous"></script>
 </head>
 <body>
 <div id="root"></div>

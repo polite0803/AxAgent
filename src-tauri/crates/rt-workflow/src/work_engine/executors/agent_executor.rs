@@ -285,8 +285,19 @@ impl NodeExecutorTrait for AgentExecutor {
         let model = session_model.unwrap_or(default_model);
         let model_for_output = model.clone();
 
+        if context.dry_run {
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "role": role_desc, "model": model_for_output,
+                    "content": "[DRY RUN] Agent 模拟输出", "thinking": null,
+                    "usage": {"input_tokens":0,"output_tokens":0},
+                    "tool_calls_made": [], "node_id": node.base_id(), "dry_run": true,
+                }),
+                output_var: Some(an.config.output_var.clone()),
+            });
+        }
+
         // 构建暴露给 LLM 的工具定义
-        // exposed_tools 显式指定哪些工具名发给 LLM 自主调用
         // 固定工具（上游 ToolNode 结果已注入 context_sources）不暴露
         // 向后兼容：exposed_tools 为空时暴露全部工具
         let exposed_list: Vec<&axagent_core::workflow_types::ToolDef> =

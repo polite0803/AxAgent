@@ -1,3 +1,4 @@
+import { invoke, logIpcError } from "@/lib/invoke";
 import { CheckOutlined, CopyOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Button, Space, theme, Typography } from "antd";
 import i18next from "i18next";
@@ -163,8 +164,19 @@ class GlobalErrorBoundary extends React.Component<
       console.error("GlobalErrorBoundary caught an error:", error, errorInfo);
     }
 
-    // TODO: Send error to error reporting service
-    // reportError(error, errorInfo);
+    try {
+      invoke("telemetry_report_error", {
+        error: {
+          message: error.message,
+          stack: error.stack || "",
+          componentStack: errorInfo.componentStack || "",
+          url: window.location.href,
+          timestamp: Date.now(),
+        },
+      }).catch(logIpcError("telemetry_report_error"));
+    } catch {
+      // Error reporting itself failed, nothing we can do
+    }
   }
 
   handleRetry = () => {

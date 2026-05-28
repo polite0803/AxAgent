@@ -165,6 +165,18 @@ impl NodeExecutorTrait for LlmExecutor {
             store_response: None,
         };
         let model_for_output = model.clone();
+
+        if context.dry_run {
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "content": "[DRY RUN] LLM 模拟输出", "model": model_for_output,
+                    "usage": {"input_tokens":0,"output_tokens":0},
+                    "dry_run": true, "node_id": node.base_id(),
+                }),
+                output_var: None,
+            });
+        }
+
         let request = ChatRequest {
             model,
             messages,

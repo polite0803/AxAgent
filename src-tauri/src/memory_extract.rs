@@ -19,12 +19,6 @@ fn entity_extraction_system_prompt(lang: PromptLang) -> &'static str {
     PromptRegistry::get("entity_extraction.system_prompt", lang)
 }
 
-/// 获取当前语言的增量提取系统提示
-#[allow(dead_code)]
-fn incremental_extract_system_prompt(lang: PromptLang) -> &'static str {
-    PromptRegistry::get("incremental_extract.system_prompt", lang)
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedMemory {
     pub title: String,

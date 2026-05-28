@@ -1398,16 +1398,12 @@ export function InputArea() {
     messagesLength,
   ]);
 
-  // TODO: Token estimation only considers loaded messages. When hasOlderMessages is true
-  // and no context-clear marker is found, the token estimate will be lower than actual.
-  // A proper fix would require the backend to return total token counts.
   const contextTokenUsage = useMemo(() => {
     const maxTokens = currentModel?.max_tokens;
     if (!maxTokens) {
       return null;
     }
 
-    // Count message tokens (only after last marker)
     const msgs = useConversationStore.getState().messages;
     const activeMessages = msgs.filter((m) => m.is_active !== false);
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
@@ -1427,21 +1423,21 @@ export function InputArea() {
       0,
     );
 
-    // Add system prompt
     if (activeConversation?.system_prompt) {
       usedTokens += estimateTokens(activeConversation.system_prompt) + 4;
     }
 
-    // Add summary tokens
     usedTokens += summaryTokenCount;
 
+    const isEstimate = hasOlderMessages && lastMarkerIdx === -1;
     const percent = Math.min(Math.round((usedTokens / maxTokens) * 100), 100);
-    return { usedTokens, maxTokens, percent };
+    return { usedTokens, maxTokens, percent, isEstimate };
   }, [
     messagesLength,
     currentModel?.max_tokens,
     activeConversation?.system_prompt,
     summaryTokenCount,
+    hasOlderMessages,
   ]);
 
   const { hasRealtimeVoice, hasReasoning, hasVision } = React.useMemo(
@@ -3001,6 +2997,7 @@ export function InputArea() {
                 <Popover
                   content={
                     <span style={{ fontSize: 12 }}>
+                      {contextTokenUsage.isEstimate && "~"}
                       {contextTokenUsage.usedTokens.toLocaleString()} / {contextTokenUsage.maxTokens.toLocaleString()}
                       {" "}
                       tokens (

@@ -104,9 +104,9 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       await invoke("toggle_skill", { name, enabled });
       const { triggerOnEnable, triggerOnDisable } = await import("@/lib/skillLifecycle");
       if (enabled) {
-        triggerOnEnable(name).catch(() => {});
+        triggerOnEnable(name).catch(logIpcError("triggerOnEnable"));
       } else {
-        triggerOnDisable(name).catch(() => {});
+        triggerOnDisable(name).catch(logIpcError("triggerOnDisable"));
       }
       syncExtensionStore();
     } catch (e) {
@@ -132,14 +132,14 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       marketplaceSkills: get().marketplaceSkills.map((s) => s.repo === source ? { ...s, installed: true } : s),
     });
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
-    triggerOnInstall(name).catch(() => {});
+    triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
     syncExtensionStore();
     return name;
   },
 
   uninstallSkill: async (name: string) => {
     const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
-    await triggerOnUninstall(name).catch(() => {});
+    await triggerOnUninstall(name).catch(logIpcError("triggerOnUninstall"));
     await invoke("uninstall_skill", { name });
     set((state) => ({ skills: state.skills.filter((s) => s.name !== name) }));
     syncExtensionStore();
@@ -149,7 +149,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const groupSkills = get().skills.filter((s) => s.group === group);
     const { triggerOnUninstall } = await import("@/lib/skillLifecycle");
     await Promise.all(
-      groupSkills.map((skill) => triggerOnUninstall(skill.name).catch(() => {})),
+      groupSkills.map((skill) => triggerOnUninstall(skill.name).catch(logIpcError("triggerOnUninstall"))),
     );
     await invoke("uninstall_skill_group", { group });
     set((state) => ({ skills: state.skills.filter((s) => s.group !== group) }));
@@ -241,7 +241,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     if (result.can_create) {
       await get().loadSkills();
       const { triggerOnInstall } = await import("@/lib/skillLifecycle");
-      triggerOnInstall(name).catch(() => {});
+      triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
       syncExtensionStore();
     }
     return result;
@@ -251,7 +251,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const result = await invoke<string>("skill_patch", { name, content });
     await get().getSkill(name);
     const { triggerSkillReload } = await import("@/lib/skillLifecycle");
-    triggerSkillReload(name).catch(() => {});
+    triggerSkillReload(name).catch(logIpcError("triggerSkillReload"));
     syncExtensionStore();
     return result;
   },
@@ -260,7 +260,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const result = await invoke<string>("skill_edit", { name, content });
     await get().getSkill(name);
     const { triggerSkillReload } = await import("@/lib/skillLifecycle");
-    triggerSkillReload(name).catch(() => {});
+    triggerSkillReload(name).catch(logIpcError("triggerSkillReload"));
     syncExtensionStore();
     return result;
   },
@@ -286,7 +286,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       skillProposals: s.skillProposals.filter((p) => p.suggested_name !== name),
     }));
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
-    triggerOnInstall(name).catch(() => {});
+    triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
     syncExtensionStore();
     return result;
   },

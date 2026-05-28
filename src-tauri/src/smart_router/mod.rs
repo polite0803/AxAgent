@@ -45,17 +45,6 @@ pub enum ModelTier {
     Premium,
 }
 
-impl ModelTier {
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ModelTier::Budget => "budget",
-            ModelTier::Balanced => "balanced",
-            ModelTier::Premium => "premium",
-        }
-    }
-}
-
 // ─── Task Classification ───
 
 /// Classify a user prompt and return a routing decision.

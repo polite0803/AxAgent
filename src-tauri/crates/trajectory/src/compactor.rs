@@ -18,7 +18,6 @@ pub struct MessageRecord {
     pub tool_calls: Option<bool>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompressionResult {
     #[serde(rename = "originalCount")]
@@ -32,7 +31,6 @@ pub struct CompressionResult {
     pub key_entities: Vec<String>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageImportance {
     pub message: MessageRecord,

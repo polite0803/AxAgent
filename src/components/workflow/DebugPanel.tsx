@@ -27,6 +27,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ExecutionHistoryPanel } from "./ExecutionHistoryPanel";
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -141,9 +142,10 @@ function getStatusIcon(status: NodeExecution["status"], token: ReturnType<typeof
 
 interface DebugPanelProps {
   trace: ExecutionTrace | null;
+  workflowId?: string;
 }
 
-export function DebugPanel({ trace }: DebugPanelProps) {
+export function DebugPanel({ trace, workflowId }: DebugPanelProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [showVariables, setShowVariables] = useState(true);
@@ -452,6 +454,13 @@ export function DebugPanel({ trace }: DebugPanelProps) {
           </Card>
         )}
       </div>
+
+      {workflowId && (
+        <div className="border-t p-4" style={{ borderColor: token.colorBorderSecondary }}>
+          <Title level={5}>{t("workflow.executionHistory")}</Title>
+          <ExecutionHistoryPanel workflowId={workflowId} />
+        </div>
+      )}
     </div>
   );
 }
