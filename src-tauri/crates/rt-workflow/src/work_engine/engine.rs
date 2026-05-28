@@ -740,12 +740,55 @@ impl WorkEngine {
                 for (tool_name, ast) in scripts {
                     if !handlers.contains_key(tool_name) {
                         let ast = ast.clone();
+                        let tool_handlers = self.tool_handlers.clone();
                         let cb: ToolCallback =
                             std::sync::Arc::new(move |_tn: String, args: serde_json::Value| {
                                 let ast = ast.clone();
+                                let tool_handlers = tool_handlers.clone();
                                 Box::pin(async move {
-                                    axagent_tools::rhai_engine::execute_rhai_ast(&ast, args)
-                                        .map(|v| serde_json::json!({"content": v}))
+                                    let handlers = tool_handlers.lock().await;
+                                    let mut rhai_tools: std::collections::HashMap<
+                                        String,
+                                        std::sync::Arc<
+                                            dyn Fn(
+                                                    String,
+                                                    serde_json::Value,
+                                                )
+                                                -> std::pin::Pin<
+                                                    Box<
+                                                        dyn std::future::Future<
+                                                            Output = Result<
+                                                                serde_json::Value,
+                                                                String,
+                                                            >,
+                                                        > + Send,
+                                                    >,
+                                                > + Send
+                                                + Sync,
+                                        >,
+                                    > = std::collections::HashMap::new();
+                                    for (k, v) in handlers.iter() {
+                                        let k = k.clone();
+                                        let v = v.clone();
+                                        rhai_tools.insert(
+                                            k,
+                                            std::sync::Arc::new(
+                                                move |name: String, args: serde_json::Value| {
+                                                    let v = v.clone();
+                                                    Box::pin(async move {
+                                                        v(name, args).await
+                                                    })
+                                                },
+                                            ),
+                                        );
+                                    }
+                                    drop(handlers);
+                                    axagent_tools::rhai_engine::execute_rhai_ast(
+                                        &ast,
+                                        args,
+                                        Some(&rhai_tools),
+                                    )
+                                    .map(|v| serde_json::json!({"content": v}))
                                 })
                             });
                         handlers.insert(tool_name.clone(), cb);

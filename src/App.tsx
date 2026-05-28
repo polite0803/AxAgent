@@ -210,8 +210,7 @@ function AppInner() {
     // Initial check after 3s delay
     const timer = setTimeout(() => checkForUpdate({ silent: true }), 3000);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [checkForUpdate]);
 
   useEffect(() => {
     if (!isTauri() || !updateCheckInterval) {
@@ -376,9 +375,6 @@ function AppRoot() {
     void preloadChatRenderers();
   }, []);
 
-  // Load persisted settings from backend on startup, then apply native settings
-  // 已有 cleanup (return () => timers.forEach(clearTimeout))，react-doctor 误报
-  // eslint-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const init = async () => {

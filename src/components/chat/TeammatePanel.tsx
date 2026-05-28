@@ -95,6 +95,31 @@ export function TeammatePanel({
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [creatingTeam, setCreatingTeam] = useState(false);
 
+  const handleCreateTeam = useCallback((data: CreateTeamData) => {
+    setCreatingTeam(true);
+    const teamName = data.teamName || t("teammatePanel.newTeam");
+    for (const tm of data.teammates) {
+      upsertPoolItem({
+        id: `${teamName}-${tm.name}-${Date.now()}`,
+        conversationId,
+        type: "worker",
+        name: tm.name,
+        status: "pending",
+        teamName,
+        agentType: tm.backendType as TeammateBackendType,
+        currentTask: t("teammatePanel.waitingForTask"),
+      });
+    }
+    message.success(
+      t("teammatePanel.teamCreated", {
+        name: teamName,
+        count: data.teammates.length,
+      }),
+    );
+    setCreatingTeam(false);
+    setTeamModalOpen(false);
+  }, [conversationId, t, upsertPoolItem]);
+
   // 按团队分组
   const grouped = useMemo(() => {
     const teams: Record<string, AgentPoolItem[]> = {};

@@ -270,8 +270,7 @@ export function TitleBar() {
         }
       })
       .catch(logIpcError("list_backups"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backupPopoverOpen]);
+  }, [backupPopoverOpen, loadBackupSettings]);
 
   // Calculate next WebDAV sync timestamp (re-run when settings or lastWebDavSync change)
   useEffect(() => {

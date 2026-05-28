@@ -92,8 +92,19 @@ export function CategoryEditModal({
     setDefaultMaxTokens(initialDefaultMaxTokens);
     setDefaultTopP(initialDefaultTopP);
     setDefaultFrequencyPenalty(initialDefaultFrequencyPenalty);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [
+    open,
+    initialName,
+    initialIconType,
+    initialIconValue,
+    initialSystemPrompt,
+    initialDefaultProviderId,
+    initialDefaultModelId,
+    initialDefaultTemperature,
+    initialDefaultMaxTokens,
+    initialDefaultTopP,
+    initialDefaultFrequencyPenalty,
+  ]);
 
   const selectedModelValue = defaultProviderId && defaultModelId
     ? `${defaultProviderId}::${defaultModelId}`
