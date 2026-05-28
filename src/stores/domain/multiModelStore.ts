@@ -6,7 +6,7 @@
  * 因为它们处于流式性能关键路径上。
  */
 
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { AttachmentInput } from "@/types";
 import { create } from "zustand";
 import { type ConversationState, useConversationStore } from "./conversationStore";
@@ -73,10 +73,6 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
     // Guard: prevent duplicate sends while a stream is already active
     const activeStreams = useStreamStore.getState().activeStreams;
     if (conversationId in activeStreams) {
-      console.warn(
-        "[sendMultiModelMessage] Ignoring duplicate send — stream already active for",
-        conversationId,
-      );
       return;
     }
 
@@ -99,7 +95,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
         model_id: firstModel.model_id,
       });
     } catch (e) {
-      console.error("[sendMultiModelMessage] failed to switch model:", e);
+      logIpcError("sendMultiModelMessage: failed to switch model")(e);
       resetMultiModelState();
       set({
         pendingCompanionModels: [],
@@ -255,17 +251,13 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
                 });
               }
             } catch (e) {
-              console.warn(
-                "[sendMultiModelMessage] failed to enrich companion:",
-                e,
-              );
+              logIpcError("sendMultiModelMessage: failed to enrich companion")(e);
             }
           })
           .catch((e) => {
-            console.error(
-              `[sendMultiModelMessage] companion ${model.model_id} invoke failed:`,
-              e,
-            );
+            logIpcError(
+              `sendMultiModelMessage: companion ${model.model_id} invoke failed`,
+            )(e);
             decrementMultiModelTotalRemaining();
             if (_multiModelTotalRemaining <= 0 && _multiModelDoneResolve) {
               const r = _multiModelDoneResolve;

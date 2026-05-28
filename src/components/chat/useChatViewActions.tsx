@@ -297,7 +297,6 @@ export function useChatViewActions({
 
         useConversationStore.getState().setPendingPromptText(text);
       } catch (e) {
-        console.error("[handlePromptClick] error:", e);
         messageApi.error(String(e));
       }
     },
@@ -368,8 +367,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.copied"));
             }
-          } catch (e) {
-            console.error("Copy MD failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -387,8 +385,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export PNG failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -410,8 +407,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export MD failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -436,8 +432,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export MD (no thinking) failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -459,8 +454,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export TXT failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -483,8 +477,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export TXT (no thinking) failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -506,8 +499,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export JSON failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -530,8 +522,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export JSON (no thinking) failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },
@@ -553,8 +544,7 @@ export function useChatViewActions({
             if (ok) {
               messageApi.success(t("chat.exportSuccess"));
             }
-          } catch (e) {
-            console.error("Export HTML failed:", e);
+          } catch {
             messageApi.error(t("chat.exportFailed"));
           }
         },

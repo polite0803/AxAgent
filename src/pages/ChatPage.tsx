@@ -133,6 +133,7 @@ export function ChatPage() {
   const tabs = useTabStore((s) => s.tabs);
   const activeTabId = useTabStore((s) => s.activeTabId);
   const openTab = useTabStore((s) => s.openTab);
+  const closeTab = useTabStore((s) => s.closeTab);
   const updateTabTitle = useTabStore((s) => s.updateTabTitle);
   const tabsInitializedRef = useRef(false);
 
@@ -178,6 +179,10 @@ export function ChatPage() {
   // 当 activeConversationId 从外部变化时（如侧边栏点击），确保有对应 tab
   useEffect(() => {
     if (!activeConversationId) {
+      // 会话被清空（如删除当前会话）→ 关闭当前 tab
+      if (tabsInitializedRef.current && activeTabId) {
+        closeTab(activeTabId);
+      }
       return;
     }
     const existingTab = tabs.find(

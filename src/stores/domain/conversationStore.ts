@@ -18,6 +18,7 @@ import { useCategoryStore } from "../feature/categoryStore";
 import { useExecutionStore } from "../feature/executionStore";
 import { usePlanStore } from "../feature/planStore";
 import { useTrajectoryStore } from "../feature/trajectoryStore";
+import { useTabStore } from "../shared/tabStore";
 
 // 单调递增计数器，与 Date.now() 组合防止同毫秒 ID 重复
 let _idSeq = 0;
@@ -776,6 +777,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       deletePendingConversationRefresh(id);
       const state = get();
+      // 清理关联的 tab，防止会话删除后 tab 残留
+      useTabStore.getState().removeTabsByConversationId(id);
       // When deleting the active conversation, suppress the sidebar auto-select
       // so the ChatView shows the welcome screen instead of jumping to another
       // conversation. The flag is reset by ChatSidebar on next render.

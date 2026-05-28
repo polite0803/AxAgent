@@ -20,7 +20,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
-import { checkIpcHealth, invoke, isTauri, listen } from "@/lib/invoke";
+import { checkIpcHealth, invoke, isTauri, listen, logIpcError } from "@/lib/invoke";
 import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
 import {
   useConversationStore,
@@ -61,7 +61,7 @@ async function showWindow() {
     const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
     await getCurrentWebviewWindow().show();
   } catch (e) {
-    console.warn("Failed to show window:", e);
+    logIpcError("显示窗口")(e);
   }
 }
 
@@ -187,9 +187,7 @@ function AppInner() {
   // 加载技能前端扩展
   const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
   useEffect(() => {
-    fetchSkills().catch((e: unknown) => {
-      console.warn("[启动] list_skills 失败:", e);
-    });
+    fetchSkills().catch(logIpcError("list_skills"));
   }, [fetchSkills]);
 
   // 加载引导状态
@@ -389,14 +387,14 @@ function AppRoot() {
       if (isTauri()) {
         const health = await checkIpcHealth();
         if (!health.ok) {
-          console.warn(`[启动] IPC 健康检查失败: ${health.detail}`);
+          logIpcError("IPC 健康检查")(health.detail);
           await new Promise((r) => {
             const t = setTimeout(r, 2000);
             timers.push(t);
           });
           const retry = await checkIpcHealth();
           if (!retry.ok) {
-            console.error(`[启动] IPC 重试仍失败: ${retry.detail}`);
+            logIpcError("IPC 重试")(retry.detail);
           }
         }
       }
@@ -404,10 +402,7 @@ function AppRoot() {
       try {
         await useSettingsStore.getState().fetchSettings();
       } catch (e) {
-        console.warn(
-          `[启动] get_settings 失败 (${Math.round(performance.now() - t0)}ms):`,
-          e,
-        );
+        logIpcError("get_settings")(e);
       }
 
       // 注意：预设工作流模板不再在启动时自动导入。
@@ -424,10 +419,7 @@ function AppRoot() {
           closeToTray: settings.minimize_to_tray ?? false,
         });
       } catch (e) {
-        console.warn(
-          `[启动] apply_startup_settings 失败 (${Math.round(performance.now() - t0)}ms):`,
-          e,
-        );
+        logIpcError("apply_startup_settings")(e);
       }
 
       // Autostart (skip in dev mode — exe path doesn't exist)
@@ -441,12 +433,8 @@ function AppRoot() {
           }
         } catch (e) {
           const errorStr = String(e);
-          if (errorStr.includes("os error 2")) {
-            console.debug(
-              "Autostart skipped: executable path not found (may occur in portable mode)",
-            );
-          } else {
-            console.warn("Failed to set autostart:", e);
+          if (!errorStr.includes("os error 2")) {
+            logIpcError("设置自启动")(e);
           }
         }
       }

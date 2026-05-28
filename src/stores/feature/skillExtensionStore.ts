@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
 import type {
   DeclarativeActionType,
@@ -181,14 +181,6 @@ function mergeExtensions(skills: Skill[]) {
     }
     const ids = seenIds.get(type)!;
     if (ids.has(namespacedId)) {
-      console.warn(
-        i18n.t("skillExtension.duplicateCapability", {
-          type,
-          id,
-          ns: namespacedId,
-          skillName,
-        }),
-      );
       return true;
     }
     ids.add(namespacedId);
@@ -205,13 +197,6 @@ function mergeExtensions(skills: Skill[]) {
     const skillsAtPosition = toolbarPositionMap.get(position)!;
     if (skillsAtPosition.size > 0 && !skillsAtPosition.has(skillName)) {
       const existingSkills = [...skillsAtPosition].join(", ");
-      console.warn(
-        i18n.t("skillExtension.toolbarPositionConflict", {
-          position,
-          skillName,
-          existingSkills,
-        }),
-      );
     }
     skillsAtPosition.add(skillName);
   }
@@ -223,13 +208,6 @@ function mergeExtensions(skills: Skill[]) {
     const skillsAtRoute = pageRouteMap.get(routeId)!;
     if (skillsAtRoute.size > 0 && !skillsAtRoute.has(skillName)) {
       const existingSkills = [...skillsAtRoute].join(", ");
-      console.warn(
-        i18n.t("skillExtension.pageRouteConflict", {
-          routeId,
-          skillName,
-          existingSkills,
-        }),
-      );
     }
     skillsAtRoute.add(skillName);
   }
@@ -244,10 +222,6 @@ function mergeExtensions(skills: Skill[]) {
     const required = extractRequiredCommands(capabilities);
     const permResult = validateSkillPermissions(perms, required);
     if (!permResult.valid) {
-      console.warn(
-        i18n.t("skillExtension.permissionFailed", { skillName: skill.name }),
-        permResult.violations,
-      );
       continue;
     }
 
@@ -410,11 +384,7 @@ function mergeCapability(
       });
       break;
     default:
-      console.warn(
-        i18n.t("skillExtension.unknownCapabilityType", {
-          type: (cap as Record<string, unknown>).type,
-        }),
-      );
+      break;
   }
 }
 
@@ -439,7 +409,7 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
         const merged = mergeExtensions(skills);
         set({ skills, ...merged, loading: false });
       } catch (e) {
-        console.error(i18n.t("skillExtension.fetchFailed"), e);
+        logIpcError(i18n.t("skillExtension.fetchFailed"))(e);
         set({ loading: false });
       }
     },
@@ -510,9 +480,6 @@ function setupBrowserPolling(): void {
         skills.map((s) => `${s.name}:${s.enabled}`).sort(),
       );
       if (currentHash !== lastHash && lastHash !== "") {
-        if (import.meta.env.DEV) {
-          console.log("[SkillHotReload] Skill list changed, refreshing...");
-        }
         useSkillExtensionStore.getState().fetchSkills();
         await import("@/stores").then((s) => s.useSkillStore.getState().loadSkills());
       }

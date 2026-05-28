@@ -1,4 +1,4 @@
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import type { FeedbackSource, FeedbackType, LearningInsight, Nudge, NudgeStats, PeriodicNudge } from "@/types";
 import type { ProactiveSuggestion } from "@/types";
 import { create } from "zustand";
@@ -56,7 +56,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
       const nudges = await invoke<Nudge[]>("nudge_list", { sessionId });
       set({ pendingNudges: nudges });
     } catch (e) {
-      console.warn("[nudgeStore] Failed to fetch pending nudges:", e);
+      logIpcError("Failed to fetch pending nudges")(e);
     }
   },
 
@@ -65,7 +65,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
       const nudges = await invoke<PeriodicNudge[]>("nudge_closed_loop_list");
       set({ closedLoopNudges: nudges });
     } catch (e) {
-      console.warn("[nudgeStore] Failed to fetch closed-loop nudges:", e);
+      logIpcError("Failed to fetch closed-loop nudges")(e);
     }
   },
 
@@ -74,7 +74,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
       const stats = await invoke<NudgeStats>("nudge_stats");
       set({ stats });
     } catch (e) {
-      console.warn("[nudgeStore] Failed to fetch nudge stats:", e);
+      logIpcError("Failed to fetch nudge stats")(e);
     }
   },
 
@@ -85,7 +85,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
         pendingNudges: state.pendingNudges.filter((n) => n.id !== nudgeId),
       }));
     } catch (e) {
-      console.warn("[nudgeStore] Failed to dismiss nudge:", e);
+      logIpcError("Failed to dismiss nudge")(e);
     }
   },
 
@@ -97,7 +97,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
         pendingNudges: state.pendingNudges.filter((n) => n.id !== nudgeId),
       }));
     } catch (e) {
-      console.warn("[nudgeStore] Failed to snooze nudge:", e);
+      logIpcError("Failed to snooze nudge")(e);
     }
   },
 
@@ -108,7 +108,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
         pendingNudges: state.pendingNudges.filter((n) => n.id !== nudgeId),
       }));
     } catch (e) {
-      console.warn("[nudgeStore] Failed to execute nudge:", e);
+      logIpcError("Failed to execute nudge")(e);
     }
   },
 
@@ -119,7 +119,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
         closedLoopNudges: state.closedLoopNudges.map((n) => n.id === nudgeId ? { ...n, acknowledged: true } : n),
       }));
     } catch (e) {
-      console.warn("[nudgeStore] Failed to acknowledge closed-loop nudge:", e);
+      logIpcError("Failed to acknowledge closed-loop nudge")(e);
     }
   },
 
@@ -129,7 +129,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
       const insights = await invoke<LearningInsight[]>("insight_list");
       set({ insights });
     } catch (e) {
-      console.warn("[nudgeStore] Failed to fetch insights:", e);
+      logIpcError("Failed to fetch insights")(e);
     }
   },
 
@@ -139,7 +139,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
         category,
       });
     } catch (e) {
-      console.warn("[nudgeStore] Failed to fetch insights by category:", e);
+      logIpcError("Failed to fetch insights by category")(e);
       return [];
     }
   },
@@ -150,7 +150,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
       // Refresh insights after report generation
       await get().fetchInsights();
     } catch (e) {
-      console.warn("[nudgeStore] Failed to generate insight report:", e);
+      logIpcError("Failed to generate insight report")(e);
     }
   },
 
@@ -158,7 +158,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
     try {
       await invoke("memory_flush", { content, target, category });
     } catch (e) {
-      console.warn("[nudgeStore] Failed to flush memory:", e);
+      logIpcError("Failed to flush memory")(e);
     }
   },
 
@@ -170,7 +170,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
     try {
       await invoke("record_feedback", { feedbackType, source, content });
     } catch (e) {
-      console.warn("[nudgeStore] Failed to record feedback:", e);
+      logIpcError("Failed to record feedback")(e);
     }
   },
 
@@ -195,7 +195,7 @@ export const useNudgeStore = create<NudgeStore>((set, get) => ({
       // 转化成功后从 proactiveStore 中移除该建议
       useProactiveStore.getState().dismissSuggestion(suggestion.id);
     } catch (e) {
-      console.warn("[nudgeStore] Failed to convert suggestion to nudge:", e);
+      logIpcError("Failed to convert suggestion to nudge")(e);
     }
   },
 }));

@@ -202,7 +202,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
         marketplaceHasMore: results.length >= 20,
       }));
     } catch (e) {
-      console.error("Failed to search marketplace:", e);
+      logIpcError("Failed to search marketplace")(e);
       set({ marketplaceLoading: false });
     }
   },
@@ -225,7 +225,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       const updates = await invoke<SkillUpdateInfo[]>("check_skill_updates");
       return updates;
     } catch (e) {
-      console.error("Failed to check updates:", e);
+      logIpcError("Failed to check updates")(e);
       return [];
     }
   },
@@ -241,7 +241,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     if (result.can_create) {
       await get().loadSkills();
       const { triggerOnInstall } = await import("@/lib/skillLifecycle");
-      triggerOnInstall(name).catch((e) => console.error("onInstall 失败:", e));
+      triggerOnInstall(name).catch(() => {});
       syncExtensionStore();
     }
     return result;
@@ -251,7 +251,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const result = await invoke<string>("skill_patch", { name, content });
     await get().getSkill(name);
     const { triggerSkillReload } = await import("@/lib/skillLifecycle");
-    triggerSkillReload(name).catch((e) => console.error("skillReload 失败:", e));
+    triggerSkillReload(name).catch(() => {});
     syncExtensionStore();
     return result;
   },
@@ -260,7 +260,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     const result = await invoke<string>("skill_edit", { name, content });
     await get().getSkill(name);
     const { triggerSkillReload } = await import("@/lib/skillLifecycle");
-    triggerSkillReload(name).catch((e) => console.error("skillReload 失败:", e));
+    triggerSkillReload(name).catch(() => {});
     syncExtensionStore();
     return result;
   },
@@ -286,7 +286,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       skillProposals: s.skillProposals.filter((p) => p.suggested_name !== name),
     }));
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
-    triggerOnInstall(name).catch((e) => console.error("onInstall 失败:", e));
+    triggerOnInstall(name).catch(() => {});
     syncExtensionStore();
     return result;
   },
