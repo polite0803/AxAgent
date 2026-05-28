@@ -9,6 +9,54 @@ use axagent_core::types::NoteSearchResult;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
+fn spawn_wiki_note_indexing(
+    state: &State<'_, AppState>,
+    wiki_id: &str,
+    note_id: &str,
+    content: &str,
+) {
+    let db = state.sea_db.clone();
+    let master_key = state.master_key;
+    let vector_store = state.vector_store.clone();
+    let wid = wiki_id.to_string();
+    let nid = note_id.to_string();
+    let c = content.to_string();
+
+    tokio::spawn(async move {
+        let wiki = match axagent_core::repo::wiki::get_wiki(&db, &wid).await {
+            Ok(w) => w,
+            Err(_) => return,
+        };
+
+        if wiki.embedding_provider.is_none() {
+            return;
+        }
+
+        let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+
+        let collection_id = format!("wiki_{}", wid);
+        let _ = vector_store
+            .delete_document_embeddings(&collection_id, &nid)
+            .await;
+
+        let result = crate::indexing::index_source(
+            &db,
+            &master_key,
+            &vector_store,
+            &container,
+            &nid,
+            &c,
+            None,
+            None,
+        )
+        .await;
+
+        if let Err(e) = &result {
+            tracing::error!("Wiki note indexing failed for {}: {}", nid, e);
+        }
+    });
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BacklinkInfo {
     pub note_id: String,
@@ -49,9 +97,13 @@ pub async fn wiki_notes_create(
     state: State<'_, AppState>,
     input: CreateNoteInput,
 ) -> Result<Note, String> {
-    axagent_core::repo::note::create_note(&state.sea_db, input)
+    let note = axagent_core::repo::note::create_note(&state.sea_db, input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    spawn_wiki_note_indexing(&state, &note.vault_id, &note.id, &note.content);
+
+    Ok(note)
 }
 
 #[tauri::command]
@@ -80,12 +132,20 @@ pub async fn wiki_notes_update(
 
     let _ = wiki::delete_old_versions(&state.sea_db, &id, 20).await;
 
+    spawn_wiki_note_indexing(&state, &updated.vault_id, &updated.id, &updated.content);
+
     Ok(updated)
 }
 
 #[tauri::command]
 pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
     if let Ok(existing) = axagent_core::repo::note::get_note(&state.sea_db, &id).await {
+        let collection_id = format!("wiki_{}", existing.vault_id);
+        let _ = state
+            .vector_store
+            .delete_document_embeddings(&collection_id, &id)
+            .await;
+
         let _ = wiki::create_version(
             &state.sea_db,
             &existing.vault_id,
@@ -100,6 +160,70 @@ pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result
     axagent_core::repo::note::delete_note(&state.sea_db, &id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn rebuild_wiki_index(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<(), String> {
+    let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &wiki_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let _embedding_provider = wiki
+        .embedding_provider
+        .as_ref()
+        .ok_or("No embedding provider configured for this wiki")?;
+
+    let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+
+    let collection_id = format!("wiki_{}", wiki_id);
+    let _ = state.vector_store.delete_collection(&collection_id).await;
+
+    let notes = axagent_core::repo::note::list_notes(&state.sea_db, &wiki_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let db = state.sea_db.clone();
+    let master_key = state.master_key;
+    let vector_store = state.vector_store.clone();
+    let wid = wiki_id.clone();
+
+    tokio::spawn(async move {
+        for note in &notes {
+            let result = crate::indexing::index_source(
+                &db,
+                &master_key,
+                &vector_store,
+                &container,
+                &note.id,
+                &note.content,
+                None,
+                None,
+            )
+            .await;
+
+            if let Err(e) = &result {
+                tracing::error!("Wiki re-indexing failed for note {}: {}", note.id, e);
+            }
+
+            let _ = app.emit(
+                "wiki-note-indexed",
+                serde_json::json!({
+                    "noteId": note.id,
+                    "success": result.is_ok(),
+                    "error": result.as_ref().err().map(|e| e.to_string()),
+                    "isRebuild": true,
+                }),
+            );
+        }
+
+        let _ = app.emit("wiki-rebuild-complete", serde_json::json!({ "wikiId": wid }));
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -614,9 +738,11 @@ pub async fn sync_knowledge_document_to_wiki(
         source_refs: Some(vec![doc.id.clone()]),
     };
 
-    axagent_core::repo::note::create_note(&state.sea_db, input)
+    let note = axagent_core::repo::note::create_note(&state.sea_db, input)
         .await
         .map_err(|e| e.to_string())?;
+
+    spawn_wiki_note_indexing(&state, &vault_id, &note.id, &note.content);
 
     Ok(())
 }
@@ -678,6 +804,8 @@ pub async fn wiki_note_restore_version(
         .map_err(|e| e.to_string())?;
 
     let _ = wiki::delete_old_versions(&state.sea_db, &note_id, 20).await;
+
+    spawn_wiki_note_indexing(&state, &updated.vault_id, &updated.id, &updated.content);
 
     Ok(updated)
 }
@@ -741,9 +869,13 @@ pub async fn wiki_note_create_from_template(
         source_refs: None,
     };
 
-    axagent_core::repo::note::create_note(&state.sea_db, input)
+    let note = axagent_core::repo::note::create_note(&state.sea_db, input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    spawn_wiki_note_indexing(&state, &vault_id, &note.id, &note.content);
+
+    Ok(note)
 }
 
 #[tauri::command]
@@ -769,9 +901,13 @@ pub async fn wiki_create_daily_note(
                 source_refs: None,
             };
 
-            axagent_core::repo::note::create_note(&state.sea_db, input)
+            let note = axagent_core::repo::note::create_note(&state.sea_db, input)
                 .await
-                .map_err(|e| e.to_string())
+                .map_err(|e| e.to_string())?;
+
+            spawn_wiki_note_indexing(&state, &vault_id, &note.id, &note.content);
+
+            Ok(note)
         },
     }
 }
@@ -885,7 +1021,10 @@ pub async fn wiki_import_obsidian_vault(
         };
 
         match axagent_core::repo::note::create_note(&state.sea_db, input).await {
-            Ok(_) => imported += 1,
+            Ok(note) => {
+                spawn_wiki_note_indexing(&state, &wiki_id, &note.id, &note.content);
+                imported += 1;
+            },
             Err(e) => {
                 tracing::warn!("Failed to create note from {}: {}", file_path.display(), e);
                 failed += 1;

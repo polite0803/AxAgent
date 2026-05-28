@@ -55,6 +55,7 @@ pub struct IngestResult {
     pub raw_path: String,
     pub title: String,
     pub pages_generated: usize,
+    pub generated_note_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -192,6 +193,7 @@ impl IngestPipeline {
             .await?;
 
         let mut pages_generated = 0usize;
+        let mut generated_note_ids = Vec::new();
 
         if let (Some(adapter), Some(ctx), Some(model)) =
             (&self.llm_adapter, &self.llm_ctx, &self.llm_model)
@@ -201,7 +203,7 @@ impl IngestPipeline {
                 .analyze_source(adapter.as_ref(), ctx, model, &parsed, purpose.as_deref())
                 .await?;
 
-            pages_generated = self
+            let (count, note_ids) = self
                 .generate_wiki_pages(
                     adapter.as_ref(),
                     ctx,
@@ -212,6 +214,8 @@ impl IngestPipeline {
                     &analysis,
                 )
                 .await?;
+            pages_generated = count;
+            generated_note_ids = note_ids;
         }
 
         self.update_cache(wiki_id, &source, &content_hash, &source_record.id)
@@ -222,6 +226,7 @@ impl IngestPipeline {
             raw_path,
             title: metadata.title.unwrap_or_else(|| "Untitled".to_string()),
             pages_generated,
+            generated_note_ids,
         })
     }
 
@@ -290,6 +295,7 @@ impl IngestPipeline {
             .map_err(|e| e.to_string())?;
 
         let mut pages_generated = 0usize;
+        let mut generated_note_ids = Vec::new();
 
         if let (Some(adapter), Some(ctx), Some(model)) =
             (&self.llm_adapter, &self.llm_ctx, &self.llm_model)
@@ -299,7 +305,7 @@ impl IngestPipeline {
                 .analyze_source(adapter.as_ref(), ctx, model, text, purpose.as_deref())
                 .await?;
 
-            pages_generated = self
+            let (count, note_ids) = self
                 .generate_wiki_pages(
                     adapter.as_ref(),
                     ctx,
@@ -310,6 +316,8 @@ impl IngestPipeline {
                     &analysis,
                 )
                 .await?;
+            pages_generated = count;
+            generated_note_ids = note_ids;
         }
 
         Ok(IngestResult {
@@ -317,6 +325,7 @@ impl IngestPipeline {
             raw_path,
             title: metadata.title.unwrap_or_else(|| "Untitled".to_string()),
             pages_generated,
+            generated_note_ids,
         })
     }
 
@@ -456,7 +465,7 @@ Output ONLY valid JSON inside a ```json fenced code block."#
         source_id: &str,
         raw_path: &str,
         analysis: &SourceAnalysis,
-    ) -> Result<usize, String> {
+    ) -> Result<(usize, Vec<String>), String> {
         let analysis_json = serde_json::to_string_pretty(analysis).map_err(|e| e.to_string())?;
 
         let suggestions_text: Vec<String> = analysis
@@ -543,11 +552,13 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         let pages = self.parse_pages_from_response(&response.content, source_id)?;
         let count = pages.len();
 
+        let mut note_ids = Vec::new();
         for page in &pages {
-            self.save_generated_page(wiki_id, source_id, page).await?;
+            let note_id = self.save_generated_page(wiki_id, source_id, page).await?;
+            note_ids.push(note_id);
         }
 
-        Ok(count)
+        Ok((count, note_ids))
     }
 
     fn parse_pages_from_response(
@@ -600,7 +611,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
         wiki_id: &str,
         source_id: &str,
         page: &GeneratedPage,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         let slug = page
             .title
             .chars()
@@ -649,11 +660,11 @@ Each page must be valid JSON inside a ```json fenced code block with these field
             source_refs: Some(vec![source_id.to_string()]),
         };
 
-        let _ = axagent_core::repo::note::create_note(self.db.as_ref(), input)
+        let note = axagent_core::repo::note::create_note(self.db.as_ref(), input)
             .await
             .map_err(|e| format!("Failed to create note: {}", e))?;
 
-        Ok(())
+        Ok(note.id)
     }
 
     fn compute_sha256(&self, content: &str) -> String {
@@ -687,6 +698,7 @@ Each page must be valid JSON inside a ```json fenced code block with these field
                     raw_path: format!("~/axagent-notes/{}/raw/{}", wiki_id, entry.source_id),
                     title: "Cached".to_string(),
                     pages_generated: 0,
+                    generated_note_ids: Vec::new(),
                 }));
             }
         }
@@ -1272,6 +1284,7 @@ mod tests {
             raw_path: "/path/to/raw".to_string(),
             title: "Test".to_string(),
             pages_generated: 3,
+            generated_note_ids: vec!["note1".to_string(), "note2".to_string()],
         };
         let json = serde_json::to_string(&result).unwrap();
         let deserialized: IngestResult = serde_json::from_str(&json).unwrap();

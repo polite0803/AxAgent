@@ -123,16 +123,63 @@ impl Tool for MemoryFlushTool {
         if content.is_empty() {
             return Ok(ToolResult::error("Error: content 是必需的"));
         }
-        tracing::info!(
-            "MemoryFlush: target={}, category={}, content_len={}",
-            target,
-            category,
-            content.len()
-        );
-        Ok(ToolResult::success(format!(
-            "记忆已持久化 (target: {}, category: {})",
-            target, category
-        )))
+
+        let db = match crate::global_state::get_sea_db() {
+            Some(db) => db,
+            None => {
+                tracing::warn!("MemoryFlush: database not available, content not persisted");
+                return Ok(ToolResult::success(format!(
+                    "记忆未持久化 (数据库不可用): target={}, category={}",
+                    target, category
+                )));
+            },
+        };
+
+        let namespaces = axagent_core::repo::memory::list_namespaces(&db).await;
+        let ns_id = match &namespaces {
+            Ok(list) => list
+                .iter()
+                .find(|ns| ns.name == target || ns.id == target)
+                .map(|ns| ns.id.clone())
+                .or_else(|| list.first().map(|ns| ns.id.clone())),
+            Err(e) => {
+                tracing::warn!("MemoryFlush: failed to list namespaces: {}", e);
+                return Ok(ToolResult::error(format!("查询命名空间失败: {}", e)));
+            },
+        };
+
+        let Some(namespace_id) = ns_id else {
+            return Ok(ToolResult::error("没有可用的记忆命名空间，请先创建命名空间"));
+        };
+
+        let title = format!("[{}] {}", category, &content[..content.len().min(50)]);
+
+        let input = axagent_core::types::CreateMemoryItemInput {
+            namespace_id: namespace_id.clone(),
+            title,
+            content: content.to_string(),
+            source: Some(format!("agent_flush:{}", category)),
+        };
+
+        match axagent_core::repo::memory::add_item(&db, input).await {
+            Ok(item) => {
+                tracing::info!(
+                    "MemoryFlush: persisted item {} to namespace {}",
+                    item.id,
+                    namespace_id
+                );
+                Ok(ToolResult::success(format!(
+                    "记忆已持久化 (target: {}, category: {}, id: {})",
+                    target,
+                    category,
+                    &item.id[..8.min(item.id.len())]
+                )))
+            },
+            Err(e) => {
+                tracing::error!("MemoryFlush: failed to persist: {}", e);
+                Ok(ToolResult::error(format!("记忆持久化失败: {}", e)))
+            },
+        }
     }
 }
 

@@ -127,6 +127,9 @@ pub async fn llm_wiki_create(
 
 #[tauri::command]
 pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Result<(), String> {
+    let collection_id = format!("wiki_{}", wiki_id);
+    let _ = state.vector_store.delete_collection(&collection_id).await;
+
     wiki::delete_wiki(&state.sea_db, &wiki_id)
         .await
         .map_err(|e| e.to_string())
@@ -193,6 +196,49 @@ pub async fn llm_wiki_ingest(
     };
 
     let result = pipeline.ingest(&input.wiki_id, source).await?;
+
+    if !result.generated_note_ids.is_empty() {
+        let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &input.wiki_id)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if wiki.embedding_provider.is_some() {
+            let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+            let db = state.sea_db.clone();
+            let master_key = state.master_key;
+            let vector_store = state.vector_store.clone();
+            let wiki_id = input.wiki_id.clone();
+            let note_ids = result.generated_note_ids.clone();
+
+            tokio::spawn(async move {
+                for note_id in &note_ids {
+                    let note_result = axagent_core::repo::note::get_note(&db, note_id).await;
+                    if let Ok(note) = note_result {
+                        let collection_id = format!("wiki_{}", wiki_id);
+                        let _ = vector_store
+                            .delete_document_embeddings(&collection_id, note_id)
+                            .await;
+
+                        let index_result = crate::indexing::index_source(
+                            &db,
+                            &master_key,
+                            &vector_store,
+                            &container,
+                            note_id,
+                            &note.content,
+                            None,
+                            None,
+                        )
+                        .await;
+
+                        if let Err(e) = &index_result {
+                            tracing::error!("Wiki ingest indexing failed for {}: {}", note_id, e);
+                        }
+                    }
+                }
+            });
+        }
+    }
 
     Ok(IngestResultOutput {
         source_id: result.source_id,
@@ -316,6 +362,65 @@ pub async fn llm_wiki_compile(
         wiki_compiler::WikiCompiler::new(Arc::new(state.sea_db.clone()), adapter, ctx, model);
 
     let result = compiler.compile(&input.wiki_id, input.source_ids).await?;
+
+    let pages_to_index: Vec<(String, String)> = result
+        .new_pages
+        .iter()
+        .chain(result.updated_pages.iter())
+        .map(|p| (p.title.clone(), p.content.clone()))
+        .collect();
+
+    if !pages_to_index.is_empty() {
+        let wiki = axagent_core::repo::wiki::get_wiki(&state.sea_db, &input.wiki_id)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if wiki.embedding_provider.is_some() {
+            let container = axagent_core::rag::KnowledgeContainer::from_wiki(&wiki);
+            let db = state.sea_db.clone();
+            let master_key = state.master_key;
+            let vector_store = state.vector_store.clone();
+            let wiki_id = input.wiki_id.clone();
+
+            tokio::spawn(async move {
+                for (title, content) in &pages_to_index {
+                    let note_result = axagent_core::entity::notes::Entity::find()
+                        .filter(axagent_core::entity::notes::Column::VaultId.eq(&wiki_id))
+                        .filter(axagent_core::entity::notes::Column::Title.eq(title))
+                        .filter(axagent_core::entity::notes::Column::IsDeleted.eq(0))
+                        .one(&db)
+                        .await;
+
+                    if let Ok(Some(note_model)) = note_result {
+                        let collection_id = format!("wiki_{}", wiki_id);
+                        let _ = vector_store
+                            .delete_document_embeddings(&collection_id, &note_model.id)
+                            .await;
+
+                        let result = crate::indexing::index_source(
+                            &db,
+                            &master_key,
+                            &vector_store,
+                            &container,
+                            &note_model.id,
+                            content,
+                            None,
+                            None,
+                        )
+                        .await;
+
+                        if let Err(e) = &result {
+                            tracing::error!(
+                                "Wiki compile indexing failed for {}: {}",
+                                note_model.id,
+                                e
+                            );
+                        }
+                    }
+                }
+            });
+        }
+    }
 
     Ok(CompileResultOutput {
         new_pages: result

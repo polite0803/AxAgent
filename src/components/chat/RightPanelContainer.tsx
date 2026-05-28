@@ -476,7 +476,7 @@ export function RightPanelContainer({
   const activePanel = visiblePanels.find((p) => p.key === activeTab);
 
   return (
-    <div className="right-panel">
+    <div className="right-panel open" style={{ width: "100%", minWidth: 0 }}>
       <div className="rp-header">
         <span className="rp-header-title">
           {t("chatRightPanel.title")}
