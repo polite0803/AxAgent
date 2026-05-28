@@ -58,6 +58,8 @@ pub struct RunOptions {
     pub output_schema: Option<JsonSchema>,
     /// 模板级变量列表（来自 WorkflowTemplateData.variables），写入执行上下文
     pub variables: Option<Vec<Variable>>,
+    /// 干跑模式：不实际调用 LLM/Tool，用 mock 输出验证流程
+    pub dry_run: bool,
 }
 
 /// 步骤进度事件
@@ -104,6 +106,7 @@ impl Default for RunOptions {
             input_schema: None,
             output_schema: None,
             variables: None,
+            dry_run: false,
         }
     }
 }
@@ -860,6 +863,7 @@ impl WorkEngine {
                 );
                 exec_ctx.variables = deps_results;
                 exec_ctx.cancel_token = Some(cancel_token.clone());
+                exec_ctx.dry_run = options.dry_run;
 
                 // 注入编译后的 prompt 模板
                 {

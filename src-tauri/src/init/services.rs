@@ -1073,9 +1073,11 @@ fn start_cron_scheduler(state: &AppState) {
     // 设置工具解析器（从全局 registry 按需自动注册工作流中引用的工具）
     {
         let registry = state.local_tool_registry.clone();
+        let work_engine = state.work_engine.clone();
         let resolver: axagent_runtime::work_engine::ToolResolver =
             std::sync::Arc::new(move |tool_name: String| {
                 let registry = registry.clone();
+                let work_engine = work_engine.clone();
                 Box::pin(async move {
                     let reg = registry.lock().await;
                     let known = reg.list_all_tool_names().contains(&tool_name)
@@ -1094,6 +1096,34 @@ fn start_cron_scheduler(state: &AppState) {
                                             Ok(serde_json::json!({"content": output.content}))
                                         },
                                         Err(e) => Err(format!("Tool execution error: {}", e)),
+                                    }
+                                })
+                            });
+                        Some(cb)
+                    } else if let Some(template_id) = tool_name.strip_prefix("workflow::") {
+                        // 工作流注册为工具：workflow::<template_id>
+                        let engine = work_engine.clone();
+                        let template_id = template_id.to_string();
+                        let cb: axagent_runtime::work_engine::ToolCallback =
+                            std::sync::Arc::new(move |_tn: String, args: serde_json::Value| {
+                                let engine = engine.clone();
+                                let tid = template_id.clone();
+                                Box::pin(async move {
+                                    let mut opts =
+                                        axagent_runtime::work_engine::RunOptions::default();
+                                    if let Some(input) = args.get("input") {
+                                        opts.input = Some(input.clone());
+                                    }
+                                    match engine.run_workflow(&tid, opts).await {
+                                        Ok(wf) => Ok(serde_json::json!({
+                                            "content": serde_json::json!({
+                                                "status": format!("{:?}", wf.status),
+                                                "results": wf.results,
+                                            }).to_string()
+                                        })),
+                                        Err(e) => {
+                                            Err(format!("Workflow tool '{}' failed: {:?}", tid, e))
+                                        },
                                     }
                                 })
                             });

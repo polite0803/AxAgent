@@ -908,6 +908,7 @@ fn build_workflow_nodes(steps: &[PresetStep], start_y: f64) -> Vec<WorkflowNode>
                     .collect(),
                 wait_for_all: true,
                 timeout: Some(600),
+                aggregation: None,
             },
         }));
 

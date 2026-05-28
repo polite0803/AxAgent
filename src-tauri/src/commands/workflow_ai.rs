@@ -196,6 +196,7 @@ fn parse_llm_response(
                         branches: vec![],
                         wait_for_all: true,
                         timeout: None,
+                        aggregation: None,
                     });
                 WorkflowNode::Parallel(ParallelNode {
                     base,

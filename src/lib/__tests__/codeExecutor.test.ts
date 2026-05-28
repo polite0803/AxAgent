@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // 必须在导入前 mock，因为 codeExecutor.ts 顶层调用了 import
 vi.mock("@/lib/invoke", () => ({
   invoke: vi.fn(),
+  logIpcError: vi.fn(() => vi.fn()),
 }));
 
 import { invoke } from "@/lib/invoke";

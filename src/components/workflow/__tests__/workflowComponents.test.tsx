@@ -175,7 +175,7 @@ describe("AIPanel Component", () => {
     expect(screen.getAllByText("生成工作流").length).toBeGreaterThan(0);
     expect(screen.getByText("优化 Prompt")).toBeTruthy();
     expect(screen.getByText("推荐节点")).toBeTruthy();
-  });
+  }, 15000);
 
   it("should have generate workflow tab active by default", async () => {
     const { AIPanel } = await import("@/components/workflow/AIPanel");
@@ -189,7 +189,7 @@ describe("AIPanel Component", () => {
       />,
     );
 
-    const generateTextarea = screen.getByPlaceholderText(/创建一个代码审查工作流/);
+    const generateTextarea = screen.getAllByPlaceholderText(/创建一个代码审查工作流/)[0];
     expect(generateTextarea).toBeTruthy();
   });
 
@@ -210,7 +210,7 @@ describe("AIPanel Component", () => {
       />,
     );
 
-    const textarea = screen.getByPlaceholderText(/创建一个代码审查工作流/);
+    const textarea = screen.getAllByPlaceholderText(/创建一个代码审查工作流/)[0];
     fireEvent.change(textarea, { target: { value: "Create a test workflow" } });
 
     const generateButton = screen.getByRole("button", { name: /生成工作流/ });

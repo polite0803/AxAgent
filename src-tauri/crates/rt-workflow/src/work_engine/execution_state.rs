@@ -75,6 +75,9 @@ pub struct ExecutionState {
     /// 取消令牌（引擎注入，不序列化）
     #[serde(skip, default)]
     pub cancel_token: Option<tokio_util::sync::CancellationToken>,
+    /// 干跑模式（不序列化，引擎注入）
+    #[serde(skip, default)]
+    pub dry_run: bool,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -101,6 +104,7 @@ impl ExecutionState {
             callbacks: None,
             compiled_prompts: None,
             cancel_token: None,
+            dry_run: false,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,

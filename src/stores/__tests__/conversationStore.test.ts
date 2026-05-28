@@ -10,6 +10,7 @@ vi.mock("@/lib/invoke", () => ({
   invoke: invokeMock,
   listen: listenMock,
   isTauri: () => false,
+  logIpcError: vi.fn(() => vi.fn()),
 }));
 
 import { useConversationStore } from "../domain/conversationStore";

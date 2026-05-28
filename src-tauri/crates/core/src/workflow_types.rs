@@ -321,6 +321,9 @@ pub struct ParallelNodeConfig {
     pub branches: Vec<Branch>,
     pub wait_for_all: bool,
     pub timeout: Option<u64>,
+    /// 结果聚合策略: "all" | "first" | "race" | "majority"（默认 all）
+    #[serde(default)]
+    pub aggregation: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
