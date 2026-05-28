@@ -1001,7 +1001,6 @@ export function createSendMethods(
                   }
                   finalContent += event.payload.text;
 
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   return {
                     ...m,
                     id: event.payload.assistantMessageId || m.id,
@@ -1073,12 +1072,11 @@ export function createSendMethods(
             set((s) => ({
               messages: s.messages.map((m) => {
                 if (m.id === currentMsgId) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   return {
                     ...m,
                     content: event.payload.message,
                     status: "error" as const,
-                  };
+                  } as Message;
                 }
                 return m;
               }),
@@ -1443,7 +1441,6 @@ export function createSendMethods(
         if (!inserted) {
           updated.push(placeholderAssistant);
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return {
           messages: updated,
         };
@@ -1590,7 +1587,6 @@ export function createSendMethods(
         if (!inserted) {
           updated.push(placeholderAssistant);
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return {
           messages: updated,
         };

@@ -4,7 +4,7 @@ import type { AgentProfile, ExpertCategory } from "@/types";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { App, Button, Card, Input, Modal, Popconfirm, Select, Space, Tag, theme, Typography } from "antd";
 import { ArrowDown, ArrowUp, Check, Download, FileDown, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -310,6 +310,44 @@ export function ExpertSelector({
     agency: { label: t("expertSelector.source.agency"), color: "blue" },
     custom: { label: t("expertSelector.source.custom"), color: "green" },
   };
+
+  const handleAddCustomRole = useCallback(() => {
+    const now = Date.now();
+    const role: AgentProfile = {
+      id: newRole.id || `custom-${now}`,
+      name: newRole.name || t("expertSelector.unnamed"),
+      description: newRole.description || "",
+      category: newRole.category || "general",
+      icon: newRole.icon || "🤖",
+      source: "custom",
+      agentRole: null,
+      tags: newRole.tags || [],
+      sortOrder: 0,
+      isEnabled: true,
+      createdAt: now,
+      updatedAt: now,
+      suggestedProviderId: newRole.suggestedProviderId,
+      suggestedModelId: newRole.suggestedModelId,
+      suggestedTemperature: newRole.suggestedTemperature,
+      suggestedMaxTokens: newRole.suggestedMaxTokens,
+      searchEnabled: newRole.searchEnabled,
+      recommendPermissionMode: newRole.recommendPermissionMode,
+      recommendedTools: newRole.recommendedTools,
+      recommendedWorkflows: newRole.recommendedWorkflows,
+    };
+    useExpertStore.getState().addCustomRole(role);
+    app.message.success(t("expertSelector.added"));
+    setShowAddModal(false);
+    setNewRole({
+      id: "",
+      name: "",
+      description: "",
+      category: "general",
+      icon: "🤖",
+      source: "custom",
+      tags: [],
+    } as Partial<AgentProfile>);
+  }, [newRole, t, app]);
 
   return (
     <Modal
@@ -890,45 +928,7 @@ export function ExpertSelector({
         title={t("expertSelector.newCustomTitle")}
         open={showAddModal}
         onCancel={() => setShowAddModal(false)}
-        onOk={() => {
-          // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
-          const role: AgentProfile = {
-            id: newRole.id || `custom-${Date.now()}`,
-            name: newRole.name || t("expertSelector.unnamed"),
-            description: newRole.description || "",
-            category: newRole.category || "general",
-            icon: newRole.icon || "🤖",
-            source: "custom",
-            agentRole: null,
-            tags: newRole.tags || [],
-            sortOrder: 0,
-            isEnabled: true,
-            // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
-            createdAt: Date.now(),
-            // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
-            updatedAt: Date.now(),
-            suggestedProviderId: newRole.suggestedProviderId,
-            suggestedModelId: newRole.suggestedModelId,
-            suggestedTemperature: newRole.suggestedTemperature,
-            suggestedMaxTokens: newRole.suggestedMaxTokens,
-            searchEnabled: newRole.searchEnabled,
-            recommendPermissionMode: newRole.recommendPermissionMode,
-            recommendedTools: newRole.recommendedTools,
-            recommendedWorkflows: newRole.recommendedWorkflows,
-          };
-          useExpertStore.getState().addCustomRole(role);
-          app.message.success(t("expertSelector.added"));
-          setShowAddModal(false);
-          setNewRole({
-            id: "",
-            name: "",
-            description: "",
-            category: "general",
-            icon: "🤖",
-            source: "custom",
-            tags: [],
-          } as Partial<AgentProfile>);
-        }}
+        onOk={handleAddCustomRole}
         okText={t("common.create")}
         cancelText={t("common.cancel")}
         width={520}

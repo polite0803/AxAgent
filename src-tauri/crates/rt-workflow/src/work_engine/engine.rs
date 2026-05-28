@@ -192,6 +192,9 @@ pub struct WorkEngine {
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
     /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
     compiled_prompts: Arc<tokio::sync::RwLock<HashMap<String, HashMap<String, CompiledPrompt>>>>,
+    /// 编译后的 Rhai 脚本：workflow_id -> (tool_name -> AST)
+    compiled_rhai_scripts:
+        Arc<tokio::sync::RwLock<HashMap<String, axagent_tools::rhai_engine::RhaiScriptCache>>>,
     cancel_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
     dispatcher: Arc<tokio::sync::RwLock<NodeDispatcher>>,
     /// 按工具名注册的 handler 映射（多路注册，优先级最高）
@@ -286,6 +289,7 @@ impl WorkEngine {
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            compiled_rhai_scripts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             cancel_tokens: Arc::new(Mutex::new(HashMap::new())),
             dispatcher: Arc::new(tokio::sync::RwLock::new(dispatcher)),
             tool_handlers: Arc::new(Mutex::new(HashMap::new())),
@@ -388,6 +392,20 @@ impl WorkEngine {
             .write()
             .await
             .insert(workflow_id.clone(), compiled_map);
+
+        // 预编译 Rhai 脚本
+        let rhai_cache = axagent_tools::rhai_engine::compile_workflow_rhai_scripts(&nodes);
+        if !rhai_cache.is_empty() {
+            tracing::info!(
+                "[RhaiEngine] 编译了 {} 个 Rhai 脚本 for workflow {}",
+                rhai_cache.len(),
+                workflow_id
+            );
+        }
+        self.compiled_rhai_scripts
+            .write()
+            .await
+            .insert(workflow_id.clone(), rhai_cache);
 
         let workflow = Workflow {
             id: workflow_id.clone(),
@@ -714,6 +732,28 @@ impl WorkEngine {
             }
         }
 
+        // 注册 Rhai 脚本工具（从编译缓存）
+        {
+            let rhai_cache = self.compiled_rhai_scripts.read().await;
+            if let Some(scripts) = rhai_cache.get(workflow_id) {
+                let mut handlers = self.tool_handlers.lock().await;
+                for (tool_name, ast) in scripts {
+                    if !handlers.contains_key(tool_name) {
+                        let ast = ast.clone();
+                        let cb: ToolCallback =
+                            std::sync::Arc::new(move |_tn: String, args: serde_json::Value| {
+                                let ast = ast.clone();
+                                Box::pin(async move {
+                                    axagent_tools::rhai_engine::execute_rhai_ast(&ast, args)
+                                        .map(|v| serde_json::json!({"content": v}))
+                                })
+                            });
+                        handlers.insert(tool_name.clone(), cb);
+                    }
+                }
+            }
+        }
+
         // 懒编译兜底：若工作流从 DB 加载（非 create_workflow 新建），编译模板
         {
             let compiled = self.compiled_prompts.read().await;
@@ -734,6 +774,25 @@ impl WorkEngine {
                         .write()
                         .await
                         .insert(workflow_id.to_string(), compiled_map);
+                }
+            }
+        }
+
+        // 懒编译 Rhai 脚本兜底（DB 加载的工作流）
+        {
+            let rhai_cache = self.compiled_rhai_scripts.read().await;
+            if !rhai_cache.contains_key(workflow_id) {
+                drop(rhai_cache);
+                let workflows = self.workflows.read().await;
+                if let Some(wf) = workflows.get(workflow_id) {
+                    let scripts =
+                        axagent_tools::rhai_engine::compile_workflow_rhai_scripts(&wf.nodes);
+                    if !scripts.is_empty() {
+                        self.compiled_rhai_scripts
+                            .write()
+                            .await
+                            .insert(workflow_id.to_string(), scripts);
+                    }
                 }
             }
         }
@@ -1458,6 +1517,17 @@ fn collect_workflow_tool_names(nodes: &[WorkflowNode]) -> Vec<String> {
         if let WorkflowNode::Agent(an) = node {
             for tool in &an.config.tools {
                 names.insert(tool.name.clone());
+            }
+        }
+        // 收集 Rhai 代码节点的工具名
+        if let WorkflowNode::Code(code_node) = node {
+            if code_node.config.language == "rhai" {
+                let tool_name = code_node
+                    .config
+                    .tool_name
+                    .clone()
+                    .unwrap_or_else(|| format!("code_{}", code_node.base.id));
+                names.insert(tool_name);
             }
         }
     }

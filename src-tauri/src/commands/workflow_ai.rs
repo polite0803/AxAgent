@@ -237,6 +237,7 @@ fn parse_llm_response(
                         language: "javascript".to_string(),
                         code: "".to_string(),
                         output_var: "".to_string(),
+                        tool_name: None,
                     });
                 WorkflowNode::Code(CodeNode {
                     base,

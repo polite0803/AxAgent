@@ -28,6 +28,9 @@ impl EnvLock {
         std::fs::create_dir_all(temp_home.join(".config")).ok();
 
         // Redirect HOME and XDG_CONFIG_HOME to temp directory
+        // SAFETY: Test-only code; EnvLock ensures exclusive access and restores
+        // original values on drop; HOME/XDG_CONFIG_HOME/XDG_DATA_HOME are set to
+        // isolated temp directories to prevent test pollution.
         unsafe { env::set_var("HOME", &temp_home) };
         unsafe { env::set_var("XDG_CONFIG_HOME", temp_home.join(".config")) };
         unsafe { env::set_var("XDG_DATA_HOME", temp_home.join(".local/share")) };

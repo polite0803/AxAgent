@@ -4176,6 +4176,9 @@ mod tests {
         let bundled_root = temp_dir("isolated-bundled");
 
         // Set CLAW_CONFIG_HOME to our temp directory
+        // SAFETY: Test code (inside #[test] fn); set_var is unsafe because it's not
+        // thread-safe in multi-threaded contexts; the test uses env_lock() to ensure
+        // exclusive access; the env var is restored/removed in cleanup.
         unsafe { std::env::set_var("CLAW_CONFIG_HOME", &config_home) };
 
         // Create a test fixture plugin in the isolated config home
@@ -4212,6 +4215,7 @@ mod tests {
         );
 
         // Cleanup
+        // SAFETY: Same as above — test code with env_lock() guard ensuring exclusive access.
         unsafe { std::env::remove_var("CLAW_CONFIG_HOME") };
         let _ = fs::remove_dir_all(config_home);
         let _ = fs::remove_dir_all(bundled_root);

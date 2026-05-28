@@ -409,6 +409,9 @@ pub struct CodeNodeConfig {
     pub language: String,
     pub code: String,
     pub output_var: String,
+    /// Rhai 脚本注册为工具名（language="rhai" 时生效，为空则用 code_<node_id>）
+    #[serde(default)]
+    pub tool_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

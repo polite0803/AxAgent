@@ -227,6 +227,8 @@ export interface CodeNodeConfig {
   language: string;
   code: string;
   output_var: string;
+  /** Rhai 脚本注册为工具名（language="rhai" 时生效） */
+  tool_name?: string;
 }
 
 export interface CodeNode extends WorkflowNodeBase {

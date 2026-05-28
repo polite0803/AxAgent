@@ -28,6 +28,7 @@ base64 = "0.22"
 walkdir = "2"
 which = "7"
 dirs = "5"
+rhai = { version = "1", features = ["sync"] }
 pdf-extract = "0.8"
 parking_lot = "0.12"
 sea-orm = { workspace = true }

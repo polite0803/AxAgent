@@ -1,27 +1,23 @@
 // Local message types (replacing @ant-design/x Bubble)
 import { type CSSProperties, type ReactNode } from "react";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface BubbleItemType {
   key: string;
   role?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content?: any;
+  content?: ReactNode | import("@/stores/feature/topicGroupStore").TopicGroup;
   variant?: "filled" | "outlined" | "shadow" | "borderless";
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RoleType = Record<
   string,
-  (item: any) => {
+  (item: BubbleItemType) => {
     placement?: "start" | "end";
     className?: string;
     variant?: string;
     style?: CSSProperties;
     avatar?: ReactNode;
     loading?: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    contentRender?: (content: any, item: any) => ReactNode;
+    contentRender?: (content: ReactNode, item: BubbleItemType) => ReactNode;
     header?: ReactNode;
     footer?: ReactNode;
   }
@@ -600,7 +596,6 @@ export interface ChatViewMessagesProps {
   streaming: boolean;
   compressing: boolean;
   bubbleStyle: string;
-  // @ts-ignore -   bubbleListThemeKey: string;
   bubbleListRef: React.RefObject<BubbleListRef | null>;
   handleEditMessage: (
     messageId: string,
@@ -1142,17 +1137,60 @@ export function useChatViewMessages({
         ...getBubbleVariant(true),
         avatar: userAvatar,
         contentRender: attachments.length > 0
-          ? (content: string) => (
-            <div style={{ textAlign: "right" }}>
-              <span
-                data-axagent-msg={msg?.id}
-                style={{ height: 0, overflow: "hidden", lineHeight: 0 }}
-              />
-              {content
-                && (settings.render_user_markdown
+          ? (content: ReactNode) => {
+            const text = content as string;
+            return (
+              <div style={{ textAlign: "right" }}>
+                <span
+                  data-axagent-msg={msg?.id}
+                  style={{ height: 0, overflow: "hidden", lineHeight: 0 }}
+                />
+                {text
+                  && (settings.render_user_markdown
+                    ? (
+                      <AssistantMarkdown
+                        content={text}
+                        isDarkMode={isDarkMode}
+                        isStreaming={false}
+                        codeBlockDarkTheme={codeBlockDarkTheme}
+                        codeBlockLightTheme={codeBlockLightTheme}
+                        codeBlockThemes={codeBlockThemes}
+                        codeFontFamily={settings.code_font_family || undefined}
+                      />
+                    )
+                    : <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>)}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginTop: text ? 8 : 0,
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  {attachments.map((att, i) => (
+                    <AttachmentPreview
+                      key={att.id || `${att.file_name}-${i}`}
+                      att={att}
+                      themeColor={token.colorPrimary}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          : (content: ReactNode) => {
+            const text = content as string;
+            return (
+              <>
+                <span
+                  data-axagent-msg={msg?.id}
+                  style={{ height: 0, overflow: "hidden", lineHeight: 0 }}
+                />
+                {settings.render_user_markdown
                   ? (
                     <AssistantMarkdown
-                      content={content}
+                      content={text}
                       isDarkMode={isDarkMode}
                       isStreaming={false}
                       codeBlockDarkTheme={codeBlockDarkTheme}
@@ -1161,47 +1199,10 @@ export function useChatViewMessages({
                       codeFontFamily={settings.code_font_family || undefined}
                     />
                   )
-                  : <div style={{ whiteSpace: "pre-wrap" }}>{content}</div>)}
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  marginTop: content ? 8 : 0,
-                  justifyContent: "flex-end",
-                }}
-              >
-                {attachments.map((att, i) => (
-                  <AttachmentPreview
-                    key={att.id || `${att.file_name}-${i}`}
-                    att={att}
-                    themeColor={token.colorPrimary}
-                  />
-                ))}
-              </div>
-            </div>
-          )
-          : (content: string) => (
-            <>
-              <span
-                data-axagent-msg={msg?.id}
-                style={{ height: 0, overflow: "hidden", lineHeight: 0 }}
-              />
-              {settings.render_user_markdown
-                ? (
-                  <AssistantMarkdown
-                    content={content}
-                    isDarkMode={isDarkMode}
-                    isStreaming={false}
-                    codeBlockDarkTheme={codeBlockDarkTheme}
-                    codeBlockLightTheme={codeBlockLightTheme}
-                    codeBlockThemes={codeBlockThemes}
-                    codeFontFamily={settings.code_font_family || undefined}
-                  />
-                )
-                : content}
-            </>
-          ),
+                  : text}
+              </>
+            );
+          },
         header: (
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1419,7 +1420,8 @@ export function useChatViewMessages({
           ? undefined
           : renderConvIconForChat(32, msg?.model_id),
         loading: bubbleLoading,
-        contentRender: (content: string) => {
+        contentRender: (content: ReactNode) => {
+          const text = content as string;
           const msgMarker = (
             <span
               data-axagent-msg={msg?.id}
@@ -1432,8 +1434,8 @@ export function useChatViewMessages({
                 {msgMarker}
                 <Alert
                   type="error"
-                  message={content.length > 200 ? content.slice(0, 200) + "…" : content}
-                  description={content.length > 100
+                  message={text.length > 200 ? text.slice(0, 200) + "…" : text}
+                  description={text.length > 100
                     ? (
                       <div
                         style={{
@@ -1443,7 +1445,7 @@ export function useChatViewMessages({
                         }}
                       >
                         <AssistantMarkdown
-                          content={content}
+                          content={text}
                           isDarkMode={isDarkMode}
                           isStreaming={false}
                           codeBlockDarkTheme={codeBlockDarkTheme}
@@ -1555,7 +1557,7 @@ export function useChatViewMessages({
             <>
               {msgMarker}
               <AssistantMarkdown
-                content={content}
+                content={text}
                 nodes={parsedNodes}
                 isDarkMode={isDarkMode}
                 isStreaming={isStreaming}

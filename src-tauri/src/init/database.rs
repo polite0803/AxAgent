@@ -113,6 +113,10 @@ fn load_or_create_master_key(key_path: &Path, app_dir: &Path) -> Result<[u8; 32]
 #[inline(never)]
 fn secure_zero(buf: &mut [u8]) {
     for byte in buf.iter_mut() {
+        // SAFETY: byte is a valid mutable reference obtained from buf.iter_mut();
+        // write_volatile is used to prevent compiler optimization from eliding the
+        // zeroing of sensitive key material; this is the standard pattern for secure
+        // memory clearing.
         unsafe {
             std::ptr::write_volatile(byte, 0);
         }

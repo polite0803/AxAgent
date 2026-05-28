@@ -458,14 +458,13 @@ export function RightPanelContainer({
     ];
 
     return entries;
-    // 精简依赖：isAgent 和面板特定数据变化时才重算
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     conversationId,
     compactMode,
     onToggleCompact,
     isAgent,
     inspectorTab,
+    setInspectorTab,
     isDarkMode,
     codeThemes,
     cacheValid,
@@ -473,8 +472,11 @@ export function RightPanelContainer({
     tokensSaved,
     cacheHits,
     panelReport,
+    panelSetReport,
     panelChartData,
+    panelChartRawAnalysis,
     panelSnapshotElements,
+    panelSnapshotDescription,
     panelResearchSources,
   ]);
 

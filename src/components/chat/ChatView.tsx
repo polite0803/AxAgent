@@ -3,7 +3,7 @@ import { App, Button, Input, Modal, Spin, theme } from "antd";
 import DOMPurify from "dompurify";
 import { ChevronDown } from "lucide-react";
 import NodeRenderer from "markstream-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
@@ -688,8 +688,8 @@ function ChatViewInner({
                           {rendered.loading
                             ? <Spin />
                             : rendered.contentRender
-                            ? rendered.contentRender(item.content, item)
-                            : item.content}
+                            ? rendered.contentRender(item.content as ReactNode, item)
+                            : item.content as ReactNode}
                         </div>
                         {rendered.footer && <div className="msg-footer">{rendered.footer}</div>}
                       </div>

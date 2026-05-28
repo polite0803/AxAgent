@@ -19,7 +19,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { Calendar, Clock, Edit2, History, Pause, Play, Plus, RefreshCw, Rocket, Trash2, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
@@ -146,16 +146,16 @@ export function SchedulerSettings() {
     Record<string, boolean>
   >({});
 
-  const loadCustomTasks = async () => {
+  const loadCustomTasks = useCallback(async () => {
     try {
       const tasks = await invoke<ScheduledTask[]>("list_scheduled_tasks");
       setCustomTasks(Array.isArray(tasks) ? tasks.filter((t) => t.task_type === "custom") : []);
     } catch (e) {
       logIpcError("Failed to load scheduled tasks")(e);
     }
-  };
+  }, []);
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       const templates = await invoke<TaskTemplate[]>(
         "get_scheduled_task_templates",
@@ -164,15 +164,14 @@ export function SchedulerSettings() {
     } catch (e) {
       logIpcError("Failed to load task templates")(e);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (inTauri) {
       loadCustomTasks();
       loadTemplates();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inTauri]);
+  }, [inTauri, loadCustomTasks, loadTemplates]);
 
   const handleAutoBackupChange = async (enabled: boolean) => {
     if (!backupSettings) {

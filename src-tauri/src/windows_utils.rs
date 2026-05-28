@@ -14,6 +14,9 @@ fn to_wide(s: &str) -> Vec<u16> {
 pub fn show_error_dialog(title: &str, message: &str) {
     let wide_title = to_wide(title);
     let wide_msg = to_wide(message);
+    // SAFETY: wide_msg and wide_title are properly null-terminated UTF-16 strings
+    // (created by to_wide which appends 0); HWND 0 is valid for message boxes
+    // (no owner window); MB_OK | MB_ICONERROR are valid flag combinations.
     unsafe {
         MessageBoxW(0 as HWND, wide_msg.as_ptr(), wide_title.as_ptr(), MB_OK | MB_ICONERROR);
     }
@@ -24,6 +27,8 @@ pub fn show_error_dialog(title: &str, message: &str) {
 pub fn show_warning_ok_cancel(title: &str, message: &str) -> bool {
     let wide_title = to_wide(title);
     let wide_msg = to_wide(message);
+    // SAFETY: Same as above — wide_msg and wide_title are properly null-terminated
+    // UTF-16 strings; HWND 0 is valid; MB_OKCANCEL | MB_ICONWARNING are valid flag combinations.
     let result = unsafe {
         MessageBoxW(0 as HWND, wide_msg.as_ptr(), wide_title.as_ptr(), MB_OKCANCEL | MB_ICONWARNING)
     };

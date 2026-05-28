@@ -17,6 +17,7 @@ pub mod permissions;
 pub mod plugin_sdk;
 pub mod recorder;
 pub mod registry;
+pub mod rhai_engine;
 pub mod sandbox;
 pub mod stats;
 pub mod streaming;
@@ -199,11 +200,11 @@ impl ToolResult {
         let content = content.into();
         let (content, truncated) = if content.len() > max_chars {
             (
-                content[..max_chars].to_string()
-                    + &format!(
-                        "\n\n[输出被截断，已显示 {max_chars}/{total} 字符]",
-                        total = content.len()
-                    ),
+                format!(
+                    "{}\n\n[输出被截断，已显示 {max_chars}/{} 字符]",
+                    &content[..max_chars],
+                    content.len(),
+                ),
                 true,
             )
         } else {

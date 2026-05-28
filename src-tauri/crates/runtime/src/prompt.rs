@@ -905,6 +905,9 @@ mod tests {
         let previous = std::env::current_dir().expect("cwd");
         let original_home = std::env::var("HOME").ok();
         let original_claw_home = std::env::var("CLAW_CONFIG_HOME").ok();
+        // SAFETY: Test code with env_lock() guard; original values are saved and
+        // restored after each test; HOME and CLAW_CONFIG_HOME are set to temp
+        // directories to test prompt loading in isolation.
         unsafe { std::env::set_var("HOME", &root) };
         unsafe { std::env::set_var("CLAW_CONFIG_HOME", root.join("missing-home")) };
         std::env::set_current_dir(&root).expect("change cwd");
@@ -916,14 +919,18 @@ mod tests {
 ",
             );
         std::env::set_current_dir(previous).expect("restore cwd");
+        // SAFETY: Restoring original HOME value; test code with env_lock() guard.
         if let Some(value) = original_home {
             unsafe { std::env::set_var("HOME", value) };
         } else {
+            // SAFETY: Removing HOME env var; test cleanup with env_lock() guard.
             unsafe { std::env::remove_var("HOME") };
         }
+        // SAFETY: Restoring original CLAW_CONFIG_HOME value; test code with env_lock() guard.
         if let Some(value) = original_claw_home {
             unsafe { std::env::set_var("CLAW_CONFIG_HOME", value) };
         } else {
+            // SAFETY: Removing CLAW_CONFIG_HOME env var; test cleanup with env_lock() guard.
             unsafe { std::env::remove_var("CLAW_CONFIG_HOME") };
         }
 

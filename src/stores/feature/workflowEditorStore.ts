@@ -296,16 +296,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = previous.description;
           state.currentTemplate.icon = previous.icon;
           state.currentTemplate.tags = previous.tags;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.input_schema = previous.input_schema as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.output_schema = previous.output_schema as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.variables = previous.variables as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.error_config = previous.error_config as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.trigger_config = previous.trigger_config as any;
+          state.currentTemplate.input_schema = previous.input_schema;
+          state.currentTemplate.output_schema = previous.output_schema;
+          state.currentTemplate.variables = previous.variables ?? [];
+          state.currentTemplate.error_config = previous.error_config;
+          state.currentTemplate.trigger_config = previous.trigger_config;
         }
         state.past = state.past.slice(0, -1);
         state.isDirty = true;
@@ -328,16 +323,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = next.description;
           state.currentTemplate.icon = next.icon;
           state.currentTemplate.tags = next.tags;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.input_schema = next.input_schema as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.output_schema = next.output_schema as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.variables = next.variables as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.error_config = next.error_config as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          state.currentTemplate.trigger_config = next.trigger_config as any;
+          state.currentTemplate.input_schema = next.input_schema;
+          state.currentTemplate.output_schema = next.output_schema;
+          state.currentTemplate.variables = next.variables ?? [];
+          state.currentTemplate.error_config = next.error_config;
+          state.currentTemplate.trigger_config = next.trigger_config;
         }
         state.future = state.future.slice(0, -1);
         state.isDirty = true;
@@ -802,12 +792,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             state.currentTemplate.trigger_config = metadata.triggerConfig;
           }
           if ("inputSchema" in metadata) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            state.currentTemplate.input_schema = metadata.inputSchema as any;
+            state.currentTemplate.input_schema = metadata.inputSchema;
           }
           if ("outputSchema" in metadata) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            state.currentTemplate.output_schema = metadata.outputSchema as any;
+            state.currentTemplate.output_schema = metadata.outputSchema;
           }
           if (metadata.variables !== undefined) {
             state.currentTemplate.variables = metadata.variables;
