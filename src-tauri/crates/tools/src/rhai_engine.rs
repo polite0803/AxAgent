@@ -60,15 +60,15 @@ pub fn execute_rhai_ast(
     let mut engine = create_rhai_engine();
     let mut scope = Scope::new();
 
-    // 注入工具调用函数
+    // 注入工具调用函数——创建独立 runtime 执行异步工具，避免嵌套 block_on
     if let Some(tool_map) = tools {
         let tool_map = tool_map.clone();
         engine.register_fn("tool", move |name: &str, args: rhai::Map| {
             let tool_map = tool_map.clone();
             let tool_name = name.to_string();
             let json_args = rhai_map_to_json(args);
-            let rt = tokio::runtime::Handle::try_current()
-                .unwrap_or_else(|_| tokio::runtime::Runtime::new().unwrap().handle().clone());
+            // 使用独立 runtime 执行，天然线程安全，并发调用无竞争
+            let rt = tokio::runtime::Runtime::new().unwrap();
             let result = rt.block_on(async {
                 if let Some(h) = tool_map.get(&tool_name) {
                     h(tool_name, json_args).await

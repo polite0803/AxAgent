@@ -2,6 +2,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import type { Span, SpanType } from "@/types";
 import { Tag } from "antd";
 import dayjs from "dayjs";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 interface TimelineProps {
@@ -45,13 +46,29 @@ export function Timeline({ spans }: TimelineProps) {
     (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
   );
 
-  const startTime = sortedSpans[0]?.start_time
-    ? new Date(sortedSpans[0].start_time).getTime()
-    : Date.now();
-  const endTime = sortedSpans[sortedSpans.length - 1]?.end_time
-    ? new Date(sortedSpans[sortedSpans.length - 1].end_time!).getTime()
-    : Date.now();
-  const totalDuration = endTime - startTime || 1;
+  const { startTime, endTime, totalDuration, spanMetrics } = useMemo(() => {
+    const sTime = sortedSpans[0]?.start_time
+      ? new Date(sortedSpans[0].start_time).getTime()
+      : 0;
+    const eTime = sortedSpans[sortedSpans.length - 1]?.end_time
+      ? new Date(sortedSpans[sortedSpans.length - 1].end_time!).getTime()
+      : sTime;
+    const duration = eTime - sTime || 1;
+    const metrics = new Map<string, { spanStart: number; spanEnd: number; left: number; width: number }>();
+    for (const span of sortedSpans) {
+      const spanStart = new Date(span.start_time).getTime();
+      const spanEnd = span.end_time
+        ? new Date(span.end_time).getTime()
+        : spanStart + (span.duration_ms || 0);
+      metrics.set(span.id, {
+        spanStart,
+        spanEnd,
+        left: ((spanStart - sTime) / duration) * 100,
+        width: ((spanEnd - spanStart) / duration) * 100,
+      });
+    }
+    return { startTime: sTime, endTime: eTime, totalDuration: duration, spanMetrics: metrics };
+  }, [sortedSpans]);
 
   const getDepth = (span: Span): number => {
     let depth = 0;

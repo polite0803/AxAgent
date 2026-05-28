@@ -737,6 +737,35 @@ function QuickBarResult({
   setResult,
 }: QuickBarResultProps) {
   const { t } = useTranslation();
+
+  const handleSaveWiki = useCallback(async () => {
+    if (!result.trim()) {
+      return;
+    }
+    setLoading(true);
+    try {
+      if (!selectedWikiId) {
+        setResult(
+          (p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"),
+        );
+        setLoading(false);
+        return;
+      }
+      const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
+      await invoke("llm_wiki_ingest", {
+        wikiId: selectedWikiId,
+        sourceType: "markdown",
+        path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
+        title: safeTitle,
+      });
+      setResult(
+        (p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`,
+      );
+    } catch (e) {
+      setResult((p) => p + `\n\n❌ ${String(e)}`);
+    }
+    setLoading(false);
+  }, [result, selectedWikiId, setLoading, setResult, t]);
   const { token } = theme.useToken();
   const borderColor = token.colorBorderSecondary;
 
@@ -852,35 +881,7 @@ function QuickBarResult({
         </Tooltip>
         <Tooltip title={t("quickbar.result.saveWiki")}>
           <button
-            onClick={async () => {
-              if (!result.trim()) {
-                return;
-              }
-              setLoading(true);
-              try {
-                if (!selectedWikiId) {
-                  setResult(
-                    (p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"),
-                  );
-                  setLoading(false);
-                  return;
-                }
-                // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
-                const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
-                await invoke("llm_wiki_ingest", {
-                  wikiId: selectedWikiId,
-                  sourceType: "markdown",
-                  path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
-                  title: safeTitle,
-                });
-                setResult(
-                  (p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`,
-                );
-              } catch (e) {
-                setResult((p) => p + `\n\n❌ ${String(e)}`);
-              }
-              setLoading(false);
-            }}
+            onClick={handleSaveWiki}
             style={actionBtnStyle(token.colorTextSecondary)}
             onMouseEnter={actionHover(token.colorFillSecondary)}
             onMouseLeave={actionHover("transparent")}
