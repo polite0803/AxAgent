@@ -1,7 +1,7 @@
 import { useConversationStore, useNudgeStore } from "@/stores";
 import type { Nudge, PeriodicNudge } from "@/types";
 import { Bell, Check, Clock, Lightbulb, X } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const urgencyColor: Record<string, string> = {
@@ -32,6 +32,10 @@ const NudgeCard: React.FC<{
 }> = ({ nudge, onDismiss, onExecute, onSnooze }) => {
   const { t } = useTranslation();
   const urgency = nudge.urgency;
+
+  const handleSnooze = useCallback(() => {
+    onSnooze(nudge.id, Date.now() + 30 * 60 * 1000);
+  }, [nudge.id, onSnooze]);
 
   return (
     <div
@@ -66,8 +70,7 @@ const NudgeCard: React.FC<{
             </button>
           )}
           <button
-            // eslint-disable-next-line react-doctor/rendering-hydration-mismatch-time
-            onClick={() => onSnooze(nudge.id, Date.now() + 30 * 60 * 1000)}
+            onClick={handleSnooze}
             className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 dark:text-blue-400"
             title={t("nudge.snooze30")}
           >
