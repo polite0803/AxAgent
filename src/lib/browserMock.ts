@@ -2190,19 +2190,10 @@ export async function handleCommand<T>(
       return undefined as T;
     }
     case "set_always_on_top":
-      console.log(
-        "[Mock] set_always_on_top:",
-        (args as Record<string, unknown>)?.enabled,
-      );
       return undefined as T;
     case "set_close_to_tray":
-      console.log(
-        "[Mock] set_close_to_tray:",
-        (args as Record<string, unknown>)?.enabled,
-      );
       return undefined as T;
     case "apply_startup_settings":
-      console.log("[Mock] apply_startup_settings:", args);
       return undefined as T;
     case "set_tray_actions":
       return undefined as T;
