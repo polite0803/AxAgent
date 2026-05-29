@@ -1407,6 +1407,16 @@ async fn execute_tool_call(
     let (server, _td) = match server_and_tool {
         Ok(Some(pair)) => pair,
         _ => {
+            // Fallback: try local tool registry (Skill, Read, Write, etc.)
+            {
+                let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
+                let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
+                    .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+                let input_str = serde_json::to_string(&args).unwrap_or_default();
+                if let Ok(output) = registry.execute(&tool_call.function.name, &input_str).await {
+                    return (output.content, output.is_error);
+                }
+            }
             use crate::commands::error_code::tool as tool_err;
             return (
                 ErrorResponse::err_with_detail(
@@ -3296,6 +3306,34 @@ pub async fn send_message(
                 },
             });
         }
+        // Auto-include builtin local tools (Skill and file ops) — same as UnifiedToolRegistry
+        let builtin_local_tools: &[(&str, &str)] = &[
+            (
+                "Skill",
+                "加载并执行预注册的 Skill（领域任务模板）。不指定 args 时直接加载，指定时参数会注入到指令中。",
+            ),
+            ("Read", "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。"),
+            ("Write", "创建新文件或完全覆盖已有文件。"),
+            ("Edit", "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。"),
+            ("Glob", "使用 glob 模式搜索文件。返回匹配的文件路径列表。"),
+            ("Grep", "在文件中搜索匹配正则表达式的内容。"),
+            ("Bash", "执行 shell 命令。适用：运行测试、构建、git 操作。"),
+            ("WebFetch", "从指定 URL 获取内容并处理为 markdown。"),
+            ("Task", "创建和管理后台任务。"),
+        ];
+        for (name, desc) in builtin_local_tools {
+            all_tools.push(ChatTool {
+                r#type: "function".to_string(),
+                function: ChatToolFunction {
+                    name: (*name).to_owned(),
+                    description: Some((*desc).to_owned()),
+                    parameters: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": {},
+                    })),
+                },
+            });
+        }
         for server_id in &mcp_ids {
             if let Ok(descriptors) =
                 axagent_core::repo::mcp_server::list_tools_for_server(&state.sea_db, server_id)
@@ -3642,6 +3680,34 @@ pub async fn regenerate_message(
                         "type": "object",
                         "properties": { "query": { "type": "string", "description": "The search query" } },
                         "required": ["query"]
+                    })),
+                },
+            });
+        }
+        // Auto-include builtin local tools (Skill and file ops) — same as UnifiedToolRegistry
+        let builtin_local_tools: &[(&str, &str)] = &[
+            (
+                "Skill",
+                "加载并执行预注册的 Skill（领域任务模板）。不指定 args 时直接加载，指定时参数会注入到指令中。",
+            ),
+            ("Read", "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。"),
+            ("Write", "创建新文件或完全覆盖已有文件。"),
+            ("Edit", "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。"),
+            ("Glob", "使用 glob 模式搜索文件。返回匹配的文件路径列表。"),
+            ("Grep", "在文件中搜索匹配正则表达式的内容。"),
+            ("Bash", "执行 shell 命令。适用：运行测试、构建、git 操作。"),
+            ("WebFetch", "从指定 URL 获取内容并处理为 markdown。"),
+            ("Task", "创建和管理后台任务。"),
+        ];
+        for (name, desc) in builtin_local_tools {
+            all_tools.push(ChatTool {
+                r#type: "function".to_string(),
+                function: ChatToolFunction {
+                    name: (*name).to_owned(),
+                    description: Some((*desc).to_owned()),
+                    parameters: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": {},
                     })),
                 },
             });
@@ -3997,6 +4063,34 @@ pub async fn regenerate_with_model(
                         "type": "object",
                         "properties": { "query": { "type": "string", "description": "The search query" } },
                         "required": ["query"]
+                    })),
+                },
+            });
+        }
+        // Auto-include builtin local tools (Skill and file ops) — same as UnifiedToolRegistry
+        let builtin_local_tools: &[(&str, &str)] = &[
+            (
+                "Skill",
+                "加载并执行预注册的 Skill（领域任务模板）。不指定 args 时直接加载，指定时参数会注入到指令中。",
+            ),
+            ("Read", "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。"),
+            ("Write", "创建新文件或完全覆盖已有文件。"),
+            ("Edit", "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。"),
+            ("Glob", "使用 glob 模式搜索文件。返回匹配的文件路径列表。"),
+            ("Grep", "在文件中搜索匹配正则表达式的内容。"),
+            ("Bash", "执行 shell 命令。适用：运行测试、构建、git 操作。"),
+            ("WebFetch", "从指定 URL 获取内容并处理为 markdown。"),
+            ("Task", "创建和管理后台任务。"),
+        ];
+        for (name, desc) in builtin_local_tools {
+            all_tools.push(ChatTool {
+                r#type: "function".to_string(),
+                function: ChatToolFunction {
+                    name: (*name).to_owned(),
+                    description: Some((*desc).to_owned()),
+                    parameters: Some(serde_json::json!({
+                        "type": "object",
+                        "properties": {},
                     })),
                 },
             });
