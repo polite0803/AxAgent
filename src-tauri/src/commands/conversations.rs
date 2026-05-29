@@ -3306,20 +3306,30 @@ pub async fn send_message(
                 },
             });
         }
-        // Auto-include builtin local tools (Skill and file ops) — same as UnifiedToolRegistry
+        // Auto-include builtin local tools — mirrors UnifiedToolRegistry register_all()
+        // Tool names MUST match the `fn name()` return value of each tool implementation
         let builtin_local_tools: &[(&str, &str)] = &[
+            ("Skill", "加载预注册的 Skill。skill: Skill名称, args: 可选参数。"),
+            ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
+            ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
+            ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
             (
-                "Skill",
-                "加载并执行预注册的 Skill（领域任务模板）。不指定 args 时直接加载，指定时参数会注入到指令中。",
+                "FileEdit",
+                "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。",
             ),
-            ("Read", "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。"),
-            ("Write", "创建新文件或完全覆盖已有文件。"),
-            ("Edit", "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。"),
-            ("Glob", "使用 glob 模式搜索文件。返回匹配的文件路径列表。"),
-            ("Grep", "在文件中搜索匹配正则表达式的内容。"),
-            ("Bash", "执行 shell 命令。适用：运行测试、构建、git 操作。"),
-            ("WebFetch", "从指定 URL 获取内容并处理为 markdown。"),
-            ("Task", "创建和管理后台任务。"),
+            ("Glob", "glob 搜索文件。pattern: glob模式。"),
+            ("Grep", "正则搜索文件内容。pattern: 正则表达式。"),
+            ("Bash", "执行 shell 命令。command: 命令, description: 说明。"),
+            ("WebFetch", "获取 URL 内容。url: 目标URL。"),
+            ("WebSearch", "搜索互联网。query: 搜索词。"),
+            ("TaskCreate", "创建后台任务。subject: 标题, description: 描述。"),
+            ("TaskList", "列出所有任务。"),
+            ("TaskUpdate", "更新任务状态。taskId: ID, status: 新状态。"),
+            ("TodoWrite", "管理待办事项。"),
+            ("Agent", "启动子Agent处理复杂任务。"),
+            ("EnterPlanMode", "进入计划模式。"),
+            ("ListDirectory", "列出目录。path: 路径。"),
+            ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
             all_tools.push(ChatTool {
@@ -3684,20 +3694,30 @@ pub async fn regenerate_message(
                 },
             });
         }
-        // Auto-include builtin local tools (Skill and file ops) — same as UnifiedToolRegistry
+        // Auto-include builtin local tools — mirrors UnifiedToolRegistry register_all()
+        // Tool names MUST match the `fn name()` return value of each tool implementation
         let builtin_local_tools: &[(&str, &str)] = &[
+            ("Skill", "加载预注册的 Skill。skill: Skill名称, args: 可选参数。"),
+            ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
+            ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
+            ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
             (
-                "Skill",
-                "加载并执行预注册的 Skill（领域任务模板）。不指定 args 时直接加载，指定时参数会注入到指令中。",
+                "FileEdit",
+                "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。",
             ),
-            ("Read", "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。"),
-            ("Write", "创建新文件或完全覆盖已有文件。"),
-            ("Edit", "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。"),
-            ("Glob", "使用 glob 模式搜索文件。返回匹配的文件路径列表。"),
-            ("Grep", "在文件中搜索匹配正则表达式的内容。"),
-            ("Bash", "执行 shell 命令。适用：运行测试、构建、git 操作。"),
-            ("WebFetch", "从指定 URL 获取内容并处理为 markdown。"),
-            ("Task", "创建和管理后台任务。"),
+            ("Glob", "glob 搜索文件。pattern: glob模式。"),
+            ("Grep", "正则搜索文件内容。pattern: 正则表达式。"),
+            ("Bash", "执行 shell 命令。command: 命令, description: 说明。"),
+            ("WebFetch", "获取 URL 内容。url: 目标URL。"),
+            ("WebSearch", "搜索互联网。query: 搜索词。"),
+            ("TaskCreate", "创建后台任务。subject: 标题, description: 描述。"),
+            ("TaskList", "列出所有任务。"),
+            ("TaskUpdate", "更新任务状态。taskId: ID, status: 新状态。"),
+            ("TodoWrite", "管理待办事项。"),
+            ("Agent", "启动子Agent处理复杂任务。"),
+            ("EnterPlanMode", "进入计划模式。"),
+            ("ListDirectory", "列出目录。path: 路径。"),
+            ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
             all_tools.push(ChatTool {
@@ -4067,20 +4087,30 @@ pub async fn regenerate_with_model(
                 },
             });
         }
-        // Auto-include builtin local tools (Skill and file ops) — same as UnifiedToolRegistry
+        // Auto-include builtin local tools — mirrors UnifiedToolRegistry register_all()
+        // Tool names MUST match the `fn name()` return value of each tool implementation
         let builtin_local_tools: &[(&str, &str)] = &[
+            ("Skill", "加载预注册的 Skill。skill: Skill名称, args: 可选参数。"),
+            ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
+            ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
+            ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
             (
-                "Skill",
-                "加载并执行预注册的 Skill（领域任务模板）。不指定 args 时直接加载，指定时参数会注入到指令中。",
+                "FileEdit",
+                "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。",
             ),
-            ("Read", "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。"),
-            ("Write", "创建新文件或完全覆盖已有文件。"),
-            ("Edit", "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。"),
-            ("Glob", "使用 glob 模式搜索文件。返回匹配的文件路径列表。"),
-            ("Grep", "在文件中搜索匹配正则表达式的内容。"),
-            ("Bash", "执行 shell 命令。适用：运行测试、构建、git 操作。"),
-            ("WebFetch", "从指定 URL 获取内容并处理为 markdown。"),
-            ("Task", "创建和管理后台任务。"),
+            ("Glob", "glob 搜索文件。pattern: glob模式。"),
+            ("Grep", "正则搜索文件内容。pattern: 正则表达式。"),
+            ("Bash", "执行 shell 命令。command: 命令, description: 说明。"),
+            ("WebFetch", "获取 URL 内容。url: 目标URL。"),
+            ("WebSearch", "搜索互联网。query: 搜索词。"),
+            ("TaskCreate", "创建后台任务。subject: 标题, description: 描述。"),
+            ("TaskList", "列出所有任务。"),
+            ("TaskUpdate", "更新任务状态。taskId: ID, status: 新状态。"),
+            ("TodoWrite", "管理待办事项。"),
+            ("Agent", "启动子Agent处理复杂任务。"),
+            ("EnterPlanMode", "进入计划模式。"),
+            ("ListDirectory", "列出目录。path: 路径。"),
+            ("DeleteFile", "删除文件。file_path: 路径。"),
         ];
         for (name, desc) in builtin_local_tools {
             all_tools.push(ChatTool {
