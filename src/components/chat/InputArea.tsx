@@ -905,18 +905,8 @@ export function InputArea() {
         icon: <Bot size={14} />,
         label: (
           <span className="flex items-center gap-2">
-            {t("common.agentMode")}{" "}
-            <Tag
-              color="blue"
-              style={{
-                fontSize: 10,
-                lineHeight: "16px",
-                padding: "0 4px",
-                marginLeft: 2,
-              }}
-            >
-              Beta
-            </Tag>
+            {t("common.agentMode")}
+            {currentMode === "agent" && <Check size={14} style={{ color: token.colorPrimary }} />}
           </span>
         ),
       },
