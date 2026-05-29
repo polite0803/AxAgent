@@ -1,5 +1,8 @@
 use std::path::{Path, PathBuf};
 
+#[cfg(all(unix, not(mobile)))]
+use std::os::unix::fs::PermissionsExt;
+
 pub struct DatabaseInitResult {
     pub db_handle: axagent_core::db::DbHandle,
     pub db_path: String,
