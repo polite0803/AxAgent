@@ -103,12 +103,21 @@ export function DropdownMenu(
     const tr = containerRef.current.getBoundingClientRect();
     const ph = panelRef.current.offsetHeight;
     const pw = panelRef.current.offsetWidth;
-    let top = tr.bottom + 4;
-    let left = tr.right - pw;
-    if (top + ph > window.innerHeight - 8) { top = tr.top - ph - 4; }
+
+    // 紧贴触发按钮：下方 2px 间距，左对齐
+    let top = tr.bottom + 2;
+    let left = tr.left;
+
+    // 超出底部 → 翻转到上方
+    if (top + ph > window.innerHeight - 8) { top = tr.top - ph - 2; }
+    // 顶部也溢出 → 贴顶
     if (top < 8) { top = 8; }
-    if (left < 8) { left = 8; }
+
+    // 右侧溢出 → 右对齐
     if (left + pw > window.innerWidth - 8) { left = window.innerWidth - pw - 8; }
+    // 左侧溢出 → 贴左
+    if (left < 8) { left = 8; }
+
     setPanelStyle({ position: "fixed", top, left, zIndex: 9999 });
   }, []);
 
