@@ -3993,7 +3993,23 @@
     "collapseLeftPanel": "Collapse Left Panel",
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
-    "expandRightPanel": "Expand Right Panel"
+    "expandRightPanel": "Expand Right Panel",
+    "node": {
+      "tickMode": "Tick 모드",
+      "breakpoint": "중단점",
+      "retryEnabled": "재시도 활성화"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (동적 도구)",
+      "dataFilter": "데이터 필터",
+      "dataTransform": "데이터 변환",
+      "aggregateCalc": "집계 계산",
+      "toolChainCall": "도구 체인 호출",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "Rhai 스크립트",
+      "templateRhaiTools": "── 템플릿 Rhai 도구 ──",
+      "globalTools": "── 전역 도구 ──"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -5053,7 +5069,12 @@
       "completed": "완료됨",
       "error": "실패",
       "reviewing": "Reviewing",
-      "executing": "Executing"
+      "executing": "Executing",
+      "partial": "부분 완료",
+      "cancelled": "취소됨",
+      "draft": "초안",
+      "approved_plan": "승인됨",
+      "executing_plan": "승인된 단계 실행"
     },
     "approveAll": "모두 승인 및 실행",
     "approveStep": "이 단계 승인",

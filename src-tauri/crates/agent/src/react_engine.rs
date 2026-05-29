@@ -917,15 +917,24 @@ impl ReActEngine {
 
                     if consecutive_failures >= 2 {
                         if let Some(ref planner) = self.planner {
-                            let task_id = format!("iteration_{}", context.iteration);
+                            let mut planner_guard = planner.lock().await;
+                            let failed_ids = planner_guard.get_failed_steps();
+                            let pending_ids = planner_guard.get_pending_steps();
+                            let target_id = failed_ids
+                                .first()
+                                .or(pending_ids.first())
+                                .cloned()
+                                .unwrap_or_else(|| {
+                                    format!("iteration_{}", context.iteration)
+                                });
                             let error_msg = truncate_string(&e.to_string(), 100);
-                            let replan_result = planner.lock().await.replan(
+                            let replan_result = planner_guard.replan(
                                 crate::hierarchical_planner::ReplanReason::StepFailed {
-                                    task_id: task_id.clone(),
+                                    task_id: target_id.clone(),
                                     error: error_msg.clone(),
                                 },
                                 vec![crate::hierarchical_planner::ReplanAction::ModifyTask {
-                                    task_id: task_id.clone(),
+                                    task_id: target_id.clone(),
                                     modifications: serde_json::json!({
                                         "description": format!("Retry after error: {}", error_msg)
                                     }),
@@ -934,7 +943,7 @@ impl ReActEngine {
 
                             match replan_result {
                                 Ok(record) => {
-                                    tracing::warn!(
+                                    tracing::info!(
                                         version = record.version,
                                         reason = ?record.reason,
                                         "Replan triggered after consecutive failures, transitioning to Planning"
@@ -943,7 +952,7 @@ impl ReActEngine {
                                     continue;
                                 },
                                 Err(replan_err) => {
-                                    tracing::warn!(
+                                    tracing::info!(
                                         error = %replan_err,
                                         "Replan failed, falling back to Thinking state"
                                     );
@@ -1322,31 +1331,39 @@ impl ReActEngine {
                 self.adjust_strategy(context);
 
                 if let Some(ref planner) = self.planner {
-                    let actions: Vec<crate::hierarchical_planner::ReplanAction> = context
-                        .sub_goals
+                    let mut planner_guard = planner.lock().await;
+                    let pending = planner_guard.get_pending_steps();
+                    let completed = planner_guard.get_completed_steps();
+
+                    let reference_ids: Vec<String> = if !pending.is_empty() {
+                        pending
+                    } else {
+                        completed
+                    };
+                    let actions: Vec<crate::hierarchical_planner::ReplanAction> = reference_ids
                         .iter()
                         .take(3)
                         .enumerate()
-                        .map(|(i, _)| crate::hierarchical_planner::ReplanAction::Reorder {
-                            task_id: format!("subgoal_{}", i),
-                            new_position: i,
+                        .map(|(i, tid)| {
+                            crate::hierarchical_planner::ReplanAction::Reorder {
+                                task_id: tid.clone(),
+                                new_position: i,
+                            }
                         })
                         .collect();
 
-                    let replan_result = planner.lock().await.replan(
-                        crate::hierarchical_planner::ReplanReason::StepFailed {
-                            task_id: "subgoal_0".to_string(),
+                    if !actions.is_empty() {
+                        let reason = crate::hierarchical_planner::ReplanReason::StepFailed {
+                            task_id: reference_ids[0].clone(),
                             error: "Reflection triggered replan".to_string(),
-                        },
-                        actions,
-                    );
-
-                    if let Ok(record) = replan_result {
-                        tracing::warn!(
-                            version = record.version,
-                            reason = ?record.reason,
-                            "Replan triggered during reflection"
-                        );
+                        };
+                        if let Ok(record) = planner_guard.replan(reason, actions) {
+                            tracing::info!(
+                                version = record.version,
+                                reason = ?record.reason,
+                                "Replan triggered during reflection"
+                            );
+                        }
                     }
                 }
 

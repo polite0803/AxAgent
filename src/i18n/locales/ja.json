@@ -3992,7 +3992,23 @@
     "collapseLeftPanel": "Collapse Left Panel",
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
-    "expandRightPanel": "Expand Right Panel"
+    "expandRightPanel": "Expand Right Panel",
+    "node": {
+      "tickMode": "Tick モード",
+      "breakpoint": "ブレークポイント",
+      "retryEnabled": "リトライ有効"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (動的ツール)",
+      "dataFilter": "データフィルター",
+      "dataTransform": "データ変換",
+      "aggregateCalc": "集計計算",
+      "toolChainCall": "ツールチェーン呼出",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "Rhai スクリプト",
+      "templateRhaiTools": "── テンプレート Rhai ツール ──",
+      "globalTools": "── グローバルツール ──"
+    }
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -5052,7 +5068,12 @@
       "completed": "完了",
       "error": "失敗",
       "reviewing": "Reviewing",
-      "executing": "Executing"
+      "executing": "Executing",
+      "partial": "一部完了",
+      "cancelled": "キャンセル済み",
+      "draft": "下書き",
+      "approved_plan": "承認済み",
+      "executing_plan": "承認済みステップを実行"
     },
     "approveAll": "承認して実行",
     "approveStep": "このステップを承認",

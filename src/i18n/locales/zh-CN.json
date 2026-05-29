@@ -4508,7 +4508,23 @@
     "collapseLeftPanel": "折叠左侧面板",
     "expandLeftPanel": "展开左侧面板",
     "collapseRightPanel": "折叠右侧面板",
-    "expandRightPanel": "展开右侧面板"
+    "expandRightPanel": "展开右侧面板",
+    "node": {
+      "tickMode": "Tick 模式",
+      "breakpoint": "断点",
+      "retryEnabled": "重试已启用"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (动态工具)",
+      "dataFilter": "数据过滤器",
+      "dataTransform": "数据转换",
+      "aggregateCalc": "聚合计算",
+      "toolChainCall": "工具链调用",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "Rhai 脚本",
+      "templateRhaiTools": "── 模板 Rhai 工具 ──",
+      "globalTools": "── 全局工具 ──"
+    }
   },
   "atomicSkill": {
     "entryType": "入口类型",
@@ -5169,7 +5185,12 @@
       "completed": "已完成",
       "error": "失败",
       "reviewing": "审核中",
-      "executing": "执行中"
+      "executing": "执行中",
+      "partial": "部分完成",
+      "cancelled": "已取消",
+      "draft": "草稿",
+      "approved_plan": "已批准",
+      "executing_plan": "执行已批准步骤"
     },
     "approveAll": "批准并执行",
     "approveStep": "批准此步骤",

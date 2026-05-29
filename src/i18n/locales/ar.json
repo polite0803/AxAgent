@@ -4392,7 +4392,23 @@
     "collapseLeftPanel": "Collapse Left Panel",
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
-    "expandRightPanel": "Expand Right Panel"
+    "expandRightPanel": "Expand Right Panel",
+    "node": {
+      "tickMode": "وضع Tick",
+      "breakpoint": "نقطة توقف",
+      "retryEnabled": "إعادة المحاولة مفعلة"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (أداة ديناميكية)",
+      "dataFilter": "مرشح البيانات",
+      "dataTransform": "تحويل البيانات",
+      "aggregateCalc": "حساب تجميعي",
+      "toolChainCall": "استدعاء سلسلة الأدوات",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "سكريبت Rhai",
+      "templateRhaiTools": "── قوالب Rhai ──",
+      "globalTools": "── أدوات عامة ──"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -5053,7 +5069,12 @@
       "completed": "مكتمل",
       "error": "فشل",
       "reviewing": "Reviewing",
-      "executing": "Executing"
+      "executing": "Executing",
+      "partial": "مكتمل جزئياً",
+      "cancelled": "ملغى",
+      "draft": "مسودة",
+      "approved_plan": "تمت الموافقة",
+      "executing_plan": "تنفيذ الخطوات المعتمدة"
     },
     "approveAll": "موافقة وتنفيذ الكل",
     "approveStep": "موافقة على هذه الخطوة",

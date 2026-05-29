@@ -18,9 +18,15 @@ use axagent_core::types::{
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock};
 use tauri::{AppHandle, Emitter};
+use tokio::sync::Mutex;
 use uuid::Uuid;
+
+/// 运行中的 Plan DAG 工作流映射：plan_id → workflow_id
+static RUNNING_PLAN_WORKFLOWS: LazyLock<Arc<Mutex<HashMap<String, String>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
 
 // ── Request / Response types ──────────────────────────────────────────
 
@@ -188,21 +194,32 @@ You MUST respond with ONLY a valid JSON object matching this schema, no other te
   "title": "A concise title for the plan (max 80 chars)",
   "steps": [
     {
+      "id": "step_0",
       "title": "Step title (brief, imperative)",
       "description": "Detailed description of what this step involves and why",
-      "estimatedTools": ["ToolName1", "ToolName2"]
+      "estimatedTools": ["ToolName1", "ToolName2"],
+      "dependencies": ["step_0"],
+      "action_type": "agent"
     }
   ]
 }
 ```
 
+## Field Descriptions
+- `id`: A unique identifier for the step, using "step_N" format where N is 0-based index
+- `title`: Brief, imperative title for the step
+- `description`: Detailed description of what this step involves and why
+- `estimatedTools`: Tools likely needed (e.g. "Read", "Write", "Bash", "WebSearch", "Grep", "Edit")
+- `dependencies` (optional): List of step IDs that must complete before this step can start. If omitted, steps run sequentially (each depends on the previous)
+- `action_type` (optional): "tool" for specific tool execution, "agent" for general agent task, "llm" for pure LLM reasoning. Auto-detected if omitted
+
 ## Guidelines
 - Each step should be a discrete, independently verifiable unit of work
 - 3-6 steps is ideal; never more than 10
-- estimatedTools should list the tools likely needed (e.g. "Read", "Write", "Bash", "WebSearch", "Grep", "Edit")
 - Steps should be ordered logically (analysis → design → implementation → verification)
 - Be specific, not generic — the plan should be immediately actionable
 - Prioritize safety: read-only steps first, destructive steps last
+- Use dependencies to express parallelism: steps without mutual dependencies can run concurrently
 "#;
 
 /// Generate a structured plan from user input by calling the LLM.
@@ -333,24 +350,54 @@ async fn generate_plan_via_llm(
     }
 
     let now = chrono::Utc::now().timestamp_millis();
+
+    // 第一遍：生成步骤并建立临时 ID → UUID 映射
+    let mut temp_id_to_uuid: HashMap<String, String> = HashMap::new();
     let steps: Vec<PlanStep> = steps_raw
         .iter()
-        .map(|s| {
+        .enumerate()
+        .map(|(idx, s)| {
+            let temp_id = s["id"]
+                .as_str()
+                .unwrap_or(&format!("step_{}", idx))
+                .to_string();
+            let uuid = Uuid::new_v4().to_string();
+            temp_id_to_uuid.insert(temp_id, uuid.clone());
+
             let tools = s["estimatedTools"].as_array().map(|arr| {
                 arr.iter()
                     .filter_map(|v| v.as_str().map(String::from))
                     .collect()
             });
             PlanStep {
-                id: Uuid::new_v4().to_string(),
+                id: uuid,
                 title: s["title"].as_str().unwrap_or("Unnamed Step").to_string(),
                 description: s["description"].as_str().unwrap_or("").to_string(),
                 status: PlanStepStatus::Pending,
                 estimated_tools: tools,
                 result: None,
-                dependencies: None,
-                action_type: None,
+                dependencies: None, // 第二遍填充
+                action_type: s["action_type"].as_str().map(String::from),
             }
+        })
+        .collect();
+
+    // 第二遍：解析依赖关系（临时 ID → UUID）
+    let steps: Vec<PlanStep> = steps_raw
+        .iter()
+        .zip(steps)
+        .map(|(raw, mut step)| {
+            if let Some(deps) = raw["dependencies"].as_array() {
+                let resolved: Vec<String> = deps
+                    .iter()
+                    .filter_map(|d| d.as_str())
+                    .filter_map(|dep_id| temp_id_to_uuid.get(dep_id).cloned())
+                    .collect();
+                if !resolved.is_empty() {
+                    step.dependencies = Some(resolved);
+                }
+            }
+            step
         })
         .collect();
 
@@ -370,24 +417,22 @@ async fn generate_plan_via_llm(
 
 /// Extract JSON from LLM response text, stripping markdown code fences if present.
 fn extract_json_from_text(text: &str) -> Result<Value, String> {
-    let text = text.trim();
+    use axagent_core::extract_json_from_llm_response;
 
-    // Try to extract JSON from markdown code fences
-    let json_str = if let Some(start) = text.find("```json") {
-        let inner = &text[start + 7..];
-        let end = inner.find("```").unwrap_or(inner.len());
-        &inner[..end]
-    } else if let Some(start) = text.find("```") {
-        let inner = &text[start + 3..];
-        let end = inner.find("```").unwrap_or(inner.len());
-        &inner[..end]
-    } else if let Some(start) = text.find('{') {
-        // Find matching closing brace
-        let rest = &text[start..];
-        let end = find_matching_brace(rest)?;
-        &text[start..start + end + 1]
+    let text = text.trim();
+    let extracted = extract_json_from_llm_response(text);
+
+    // 如果共享函数没有提取（返回的是原始文本），尝试花括号匹配
+    let json_str = if extracted == text {
+        if let Some(start) = text.find('{') {
+            let rest = &text[start..];
+            let end = find_matching_brace(rest)?;
+            &text[start..start + end + 1]
+        } else {
+            text
+        }
     } else {
-        text
+        extracted
     };
 
     serde_json::from_str(json_str.trim()).map_err(|e| format!("Invalid JSON: {}", e))
@@ -957,9 +1002,24 @@ pub async fn plan_execute(
             updated_at: chrono::Utc::now().timestamp_millis(),
         };
 
-        let tool_names: Vec<String> = Vec::new();
+        let tool_names: Vec<String> = steps_to_run
+            .iter()
+            .filter_map(|s| s.estimated_tools.as_ref())
+            .flat_map(|tools| tools.iter().cloned())
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
         let (wf_nodes, wf_edges) = compile_plan_to_dag(&plan, &tool_names);
         let wf_name = format!("plan_dag_{}", request.plan_id);
+
+        // 建立 DAG 结果键 → PlanStep UUID 的反向映射
+        // compile_plan_to_dag 生成节点 ID: p{pi}_t{ti}_{task.id}
+        // output_var 在结果中作为键: r_p{pi}_t{ti}_{task.id}
+        let mut result_key_to_step_id: HashMap<String, String> = HashMap::new();
+        for (i, step) in steps_to_run.iter().enumerate() {
+            let key = format!("r_p{i}_t0_t{i}");
+            result_key_to_step_id.insert(key, step.id.clone());
+        }
 
         match state
             .work_engine
@@ -967,22 +1027,58 @@ pub async fn plan_execute(
             .await
         {
             Ok(wf) => {
+                // 注册运行中的工作流，plan_cancel 可据此中断执行
+                RUNNING_PLAN_WORKFLOWS
+                    .lock()
+                    .await
+                    .insert(request.plan_id.clone(), wf.id.clone());
+
                 let opts = axagent_runtime::work_engine::RunOptions::default();
                 match state.work_engine.run_workflow(&wf.id, opts).await {
                     Ok(result) => {
                         for (k, v) in result.results {
-                            step_results.push((k, v.to_string()));
+                            let step_id = result_key_to_step_id
+                                .get(&k)
+                                .cloned()
+                                .unwrap_or(k);
+                            step_results.push((step_id, v.to_string()));
                         }
                     },
                     Err(e) => {
                         for step in &steps_to_run {
+                            let _ = app.emit(
+                                "plan-step-update",
+                                PlanStepUpdateEvent {
+                                    conversation_id: request.conversation_id.clone(),
+                                    plan_id: request.plan_id.clone(),
+                                    step_id: step.id.clone(),
+                                    status: PlanStepStatus::Error,
+                                    result: Some(format!("DAG exec error: {e:?}")),
+                                },
+                            );
                             step_results.push((step.id.clone(), format!("DAG exec error: {e:?}")));
                         }
                     },
                 }
+
+                // 执行完成后移除映射
+                RUNNING_PLAN_WORKFLOWS
+                    .lock()
+                    .await
+                    .remove(&request.plan_id);
             },
             Err(e) => {
                 for step in &steps_to_run {
+                    let _ = app.emit(
+                        "plan-step-update",
+                        PlanStepUpdateEvent {
+                            conversation_id: request.conversation_id.clone(),
+                            plan_id: request.plan_id.clone(),
+                            step_id: step.id.clone(),
+                            status: PlanStepStatus::Error,
+                            result: Some(format!("DAG create error: {e:?}")),
+                        },
+                    );
                     step_results.push((step.id.clone(), format!("DAG create error: {e:?}")));
                 }
             },
@@ -1014,7 +1110,7 @@ pub async fn plan_execute(
     let mut updated_steps: Vec<PlanStep> = steps;
     for (step_id, result) in &step_results {
         if let Some(step) = updated_steps.iter_mut().find(|s| &s.id == step_id) {
-            step.status = if result.starts_with("Step failed:") {
+            step.status = if is_error_result(result) {
                 PlanStepStatus::Error
             } else {
                 PlanStepStatus::Completed
@@ -1048,6 +1144,13 @@ pub async fn plan_execute(
     Ok(())
 }
 
+/// 判断步骤结果是否为错误
+fn is_error_result(result: &str) -> bool {
+    result.starts_with("Step failed:")
+        || result.starts_with("DAG exec error:")
+        || result.starts_with("DAG create error:")
+}
+
 /// Cancel a plan.
 #[tauri::command]
 pub async fn plan_cancel(
@@ -1056,6 +1159,22 @@ pub async fn plan_cancel(
     request: PlanCancelRequest,
 ) -> Result<(), String> {
     let db = &state.sea_db;
+
+    // 尝试取消正在运行的 DAG 工作流
+    if let Some(wf_id) = RUNNING_PLAN_WORKFLOWS
+        .lock()
+        .await
+        .remove(&request.plan_id)
+    {
+        if let Err(e) = state.work_engine.cancel_workflow(&wf_id).await {
+            tracing::warn!(
+                "Plan {} cancel workflow {} failed: {:?}",
+                request.plan_id,
+                wf_id,
+                e
+            );
+        }
+    }
 
     if let Some(row) = axagent_core::entity::plans::Entity::find_by_id(&request.plan_id)
         .one(db)

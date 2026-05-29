@@ -192,6 +192,7 @@ mod tests {
                 variables: None,
                 error_config: None,
                 composite_source: None,
+                tool_defs: None,
                 created_at: 0,
                 updated_at: 0,
             },

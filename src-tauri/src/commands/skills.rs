@@ -14,6 +14,26 @@ use tauri::{Emitter, State};
 
 const SEARCH_CACHE_TTL_SECS: u64 = 300;
 
+/// 简易语义版本比较。返回 Ordering。
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    let parse = |v: &str| -> Vec<u32> {
+        v.split(|c: char| !c.is_ascii_digit())
+            .filter_map(|s| s.parse::<u32>().ok())
+            .collect()
+    };
+    let va = parse(a);
+    let vb = parse(b);
+    for i in 0..va.len().max(vb.len()) {
+        let na = va.get(i).copied().unwrap_or(0);
+        let nb = vb.get(i).copied().unwrap_or(0);
+        match na.cmp(&nb) {
+            std::cmp::Ordering::Equal => continue,
+            other => return other,
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
 fn home_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| {
         tracing::warn!("无法确定用户主目录，使用当前目录作为后备");
@@ -46,6 +66,7 @@ struct CachedSearchResult {
 pub struct MarketplaceSearchCache {
     cache: HashMap<String, CachedSearchResult>,
     ttl: Duration,
+    max_capacity: usize,
 }
 
 impl MarketplaceSearchCache {
@@ -53,6 +74,7 @@ impl MarketplaceSearchCache {
         Self {
             cache: HashMap::new(),
             ttl: Duration::from_secs(ttl_seconds),
+            max_capacity: 256,
         }
     }
 
@@ -68,6 +90,21 @@ impl MarketplaceSearchCache {
 
     pub fn set(&mut self, key: String, results: Vec<MarketplaceSkill>) {
         self.cleanup_expired();
+        // 超出容量时移除最旧的条目
+        if self.cache.len() >= self.max_capacity {
+            let mut entries: Vec<_> = self.cache.iter().collect();
+            entries.sort_by_key(|(_, v)| v.created_at);
+            let remove_count = entries.len() - self.max_capacity + 1;
+            // 先收集要删除的 key，避免 borrow conflict
+            let keys_to_remove: Vec<String> = entries
+                .iter()
+                .take(remove_count)
+                .map(|(k, _)| (*k).clone())
+                .collect();
+            for k in keys_to_remove {
+                self.cache.remove(&k);
+            }
+        }
         self.cache.insert(
             key,
             CachedSearchResult {
@@ -145,7 +182,23 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
                 manifest,
             };
             let existing = seen.get(&info.name);
-            if existing.is_none() || info.source == "axagent" {
+            let should_replace = match existing {
+                None => true,
+                Some(old) => {
+                    // axagent source always takes priority
+                    if info.source == "axagent" {
+                        true
+                    } else if old.source == "axagent" {
+                        false
+                    } else {
+                        // Compare versions: keep the higher version
+                        let old_ver = old.version.as_deref().unwrap_or("0.0.0");
+                        let new_ver = info.version.as_deref().unwrap_or("0.0.0");
+                        compare_versions(new_ver, old_ver).is_gt()
+                    }
+                },
+            };
+            if should_replace {
                 seen.insert(info.name.clone(), info);
             }
         }
@@ -1491,22 +1544,18 @@ pub async fn skill_edit(name: String, content: String) -> Result<String, String>
 }
 
 /// Find the end position of YAML frontmatter (after the second `---` marker).
+/// Uses byte-level search to correctly handle \r\n line endings on Windows.
 fn find_frontmatter_end(content: &str) -> Option<usize> {
-    let mut count = 0;
-    for (i, line) in content.lines().enumerate() {
-        if line.trim() == "---" {
-            count += 1;
-            if count == 2 {
-                let pos = content
-                    .lines()
-                    .take(i + 1)
-                    .map(|l| l.len() + 1)
-                    .sum::<usize>();
-                return Some(pos);
-            }
-        }
+    let trimmed = content.trim_start();
+    if !trimmed.starts_with("---") {
+        return None;
     }
-    None
+    // 找到第二个 `---` 标记（跳过开头的 `---`）
+    let after_first = &trimmed[3..];
+    let second = after_first.find("\n---")?;
+    // 返回相对于原始 content 的偏移量
+    let offset = content.len() - trimmed.len();
+    Some(offset + 3 + second + 4) // +3(first ---) + second(pos) + 4(len of "\n---")
 }
 
 #[tauri::command]

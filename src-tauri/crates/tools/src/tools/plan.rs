@@ -1,9 +1,22 @@
 //! PlanMode Tools - 计划模式管理
+//!
+//! 这些工具是告知性存根（informational stubs），仅向 LLM 返回文本响应。
+//! 它们**不**修改状态、不强制执行约束、不与后端 Plan 系统交互。
+//!
+//! 实际的 Plan 管理通过以下 Tauri 命令完成：
+//! - `plan_generate` / `plan_execute` / `plan_cancel` / `plan_activate`
+//! - 前端通过 `work_strategy` 字段控制 Plan-First 执行路径
+//!
+//! 参见: `src-tauri/src/commands/plan.rs`, `src/stores/feature/planStore.ts`
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use serde_json::Value;
 
+/// 告知性工具：声明进入 Plan 模式。
+///
+/// 仅返回成功文本，不修改任何状态。
+/// 实际的 Plan 模式由前端 work_strategy 和后端 plan_generate 命令协调控制。
 pub struct EnterPlanModeTool;
 
 #[async_trait]
@@ -42,6 +55,10 @@ impl Tool for EnterPlanModeTool {
     }
 }
 
+/// 告知性工具：声明退出 Plan 模式并提交审批。
+///
+/// 仅返回成功文本，allowedPrompts 参数当前被忽略。
+/// 实际的计划审批由前端 PlanCard 组件和 planStore.approvePlan() 控制。
 pub struct ExitPlanModeTool;
 
 #[async_trait]

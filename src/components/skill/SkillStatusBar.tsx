@@ -1,6 +1,5 @@
 import { invoke } from "@/lib/invoke";
 import { executeActionChain } from "@/lib/skillActionExecutor";
-import { skillEventBus } from "@/lib/skillEventBus";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore } from "@/stores";
 import type { MergedStatusBarItem } from "@/stores/feature/skillExtensionStore";
@@ -15,15 +14,7 @@ interface SkillStatusBarProps {
 export function SkillStatusBar({ alignment }: SkillStatusBarProps) {
   const statusBarItems = useSkillExtensionStore((s) => s.statusBarItems);
 
-  // Listen for skill events that may refresh status items
-  useEffect(() => {
-    const unsubs = statusBarItems.map((item) =>
-      skillEventBus.on(item.skillName, "statusRefresh", () => {
-        // Force re-render would happen via store subscription
-      })
-    );
-    return () => unsubs.forEach((fn) => fn());
-  }, [statusBarItems]);
+  // 状态刷新由 Zustand store 订阅自动触发，无需手动事件监听
 
   const items = statusBarItems
     .filter((item) => item.alignment === alignment)

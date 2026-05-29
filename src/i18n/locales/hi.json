@@ -4392,7 +4392,23 @@
     "collapseLeftPanel": "Collapse Left Panel",
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
-    "expandRightPanel": "Expand Right Panel"
+    "expandRightPanel": "Expand Right Panel",
+    "node": {
+      "tickMode": "Tick मोड",
+      "breakpoint": "ब्रेकपॉइंट",
+      "retryEnabled": "पुनः प्रयास सक्षम"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (डायनामिक टूल)",
+      "dataFilter": "डेटा फ़िल्टर",
+      "dataTransform": "डेटा रूपांतरण",
+      "aggregateCalc": "एग्रीगेट गणना",
+      "toolChainCall": "टूल चेन कॉल",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "Rhai स्क्रिप्ट",
+      "templateRhaiTools": "── टेम्पलेट Rhai टूल्स ──",
+      "globalTools": "── ग्लोबल टूल्स ──"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -5039,7 +5055,12 @@
       "completed": "पूर्ण",
       "error": "विफल",
       "reviewing": "Reviewing",
-      "executing": "Executing"
+      "executing": "Executing",
+      "partial": "आंशिक",
+      "cancelled": "रद्द",
+      "draft": "ड्राफ़्ट",
+      "approved_plan": "स्वीकृत",
+      "executing_plan": "स्वीकृत चरण निष्पादित करें"
     },
     "approveAll": "सभी स्वीकृत करें और निष्पादित करें",
     "approveStep": "यह चरण स्वीकृत करें",

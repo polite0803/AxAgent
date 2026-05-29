@@ -126,29 +126,26 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         ),
       );
 
-      // 合并状态更新：清除 loading，若需要则同时更新 activePlans（单次 set 避免级联）
+      // 立即将 Plan 状态设为 executing，避免重复点击 Approve All
       set((s) => {
-        const base = {
+        const currentPlan = s.activePlans[conversationId];
+        if (!currentPlan) { return { loading: { ...s.loading, [conversationId]: false } }; }
+        return {
           loading: { ...s.loading, [conversationId]: false },
           errors: { ...s.errors, [conversationId]: null },
-        };
-        if (plan && pendingStepIds.length > 0) {
-          return {
-            ...base,
-            activePlans: {
-              ...s.activePlans,
-              [conversationId]: {
-                ...plan,
-                steps: plan.steps.map((step) =>
-                  pendingStepIds.includes(step.id)
-                    ? { ...step, status: "approved" as const }
-                    : step
-                ),
-              },
+          activePlans: {
+            ...s.activePlans,
+            [conversationId]: {
+              ...currentPlan,
+              status: "executing",
+              steps: currentPlan.steps.map((step) =>
+                pendingStepIds.includes(step.id)
+                  ? { ...step, status: "approved" as const }
+                  : step
+              ),
             },
-          };
-        }
-        return base;
+          },
+        };
       });
 
       const allStepIds = plan?.steps.map((s) => s.id);

@@ -81,8 +81,8 @@ export function FrontendEditorModal({
   }, []);
 
   const handleSave = useCallback(async () => {
+    setSaving(true);
     try {
-      setSaving(true);
       const finalData = JSON.parse(jsonText);
       await invoke("skill_set_manifest", {
         name: skillName,
@@ -93,6 +93,7 @@ export function FrontendEditorModal({
       onSaved();
     } catch (e) {
       message.error(t("skillEditor.saveError", { error: String(e) }));
+    } finally {
       setSaving(false);
     }
   }, [jsonText, skillName, onClose, onSaved]);

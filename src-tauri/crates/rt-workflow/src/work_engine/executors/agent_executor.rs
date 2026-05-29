@@ -356,7 +356,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
         if an.config.execution_mode.as_deref() == Some("plan") {
             return self
-                .execute_plan_mode(&an, context, &prov, &api_key, &model, &adapter, node)
+                .execute_plan_mode(an, context, &prov, &api_key, &model, &adapter, node)
                 .await;
         }
 
@@ -576,6 +576,7 @@ impl NodeExecutorTrait for AgentExecutor {
 impl AgentExecutor {
     /// Plan 模式：LLM 生成计划 → HierarchicalPlanner 管理 → 编译 DAG → WorkEngine 执行
     /// 失败时自动重规划（最多 replan_max_retries 次）
+    #[allow(clippy::too_many_arguments)]
     async fn execute_plan_mode(
         &self,
         an: &axagent_core::workflow_types::AgentNode,
@@ -587,20 +588,20 @@ impl AgentExecutor {
         node: &WorkflowNode,
     ) -> Result<NodeOutput, NodeError> {
         use axagent_agent::hierarchical_planner::{
-            HierarchicalPlanner, Plan, PlanStatus, ReplanAction, ReplanReason, TaskStatus,
+            HierarchicalPlanner, Plan, ReplanAction, ReplanReason, TaskStatus,
             compile_plan_to_dag,
         };
         let role_desc = resolve_role(&an.config, None);
         let base_url =
             axagent_providers::resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
         let tool_names: Vec<String> = an.config.tools.iter().map(|t| t.name.clone()).collect();
-        let replan_max_retries = an.config.max_tool_rounds.unwrap_or(2) as u32;
+        let replan_max_retries = an.config.max_tool_rounds.unwrap_or(2);
 
         // 1. 调用 LLM 生成 Plan
-        let plan_prompt = format!(
-            "输出 JSON: phases[{{name, tasks[{{id, description, action_type:\"tool|llm|agent\", parameters{{}}, dependencies[]}}]}}]\n目标: {} 工具: {}",
-            an.config.system_prompt,
-            tool_names.join(", "),
+        let plan_prompt = build_plan_extraction_prompt(
+            &an.config.system_prompt,
+            &role_desc,
+            &tool_names,
         );
         let plan_ctx = axagent_providers::ProviderRequestContext {
             provider_id: prov.id.clone(),
@@ -651,19 +652,16 @@ impl AgentExecutor {
             })?;
 
         let text = resp.content.trim();
-        let json = text
-            .split("```json")
-            .nth(1)
-            .and_then(|s| s.split("```").next())
-            .unwrap_or(text);
-        let plan: Plan = serde_json::from_str(json).unwrap_or(Plan {
-            id: uuid::Uuid::new_v4().to_string(),
-            goal: an.config.system_prompt.clone(),
-            phases: vec![],
-            status: PlanStatus::Draft,
-            created_at: 0,
-            updated_at: 0,
-        });
+        let json = axagent_core::extract_json_from_llm_response(text);
+        let plan: Plan = serde_json::from_str(json).map_err(|e| {
+            let preview = &json[..200.min(json.len())];
+            NodeError::exec_failed(
+                error_code::VALIDATION_FAILED,
+                format!(
+                    "Plan 模式 LLM 返回了无效的 JSON: {e}。原始响应前 200 字符: {preview}"
+                ),
+            )
+        })?;
 
         // 2. HierarchicalPlanner 接管：验证、执行管理、重规划
         let mut planner = HierarchicalPlanner::new().with_max_retries(replan_max_retries);
@@ -685,7 +683,10 @@ impl AgentExecutor {
         let mut attempt = 0u32;
         let plan_results = loop {
             if !engine_available {
-                break serde_json::json!({"error": "Plan engine not available"});
+                return Err(NodeError::exec_failed(
+                    error_code::VALIDATION_FAILED,
+                    "Plan 模式需要 WorkEngine 引用，请通过 AgentExecutor::with_engine() 注入".to_string(),
+                ));
             }
             let engine = self.engine.as_ref().unwrap();
             let (wf_nodes, wf_edges) = compile_plan_to_dag(&current_plan, &tool_names);
@@ -703,9 +704,9 @@ impl AgentExecutor {
                 Ok((wf_result, _wf)) => {
                     let plan_mut = planner.get_plan_mut();
                     if let Some(plan) = plan_mut {
-                        for phase in &mut plan.phases {
-                            for task in &mut phase.tasks {
-                                let key = format!("r_p0_t0_{}", task.id);
+                        for (pi, phase) in plan.phases.iter_mut().enumerate() {
+                            for (ti, task) in phase.tasks.iter_mut().enumerate() {
+                                let key = format!("r_p{pi}_t{ti}_{}", task.id);
                                 if let Some(v) = wf_result.results.get(&key) {
                                     task.status = TaskStatus::Completed;
                                     task.result = Some(v.clone());
@@ -717,15 +718,32 @@ impl AgentExecutor {
                 },
                 Err(e) if attempt < replan_max_retries => {
                     attempt += 1;
+                    // 从 planner 获取真实的失败/待处理任务 ID
+                    let failed_ids = planner.get_failed_steps();
+                    let pending_ids = planner.get_pending_steps();
+                    let task_ids_to_retry: Vec<String> = if failed_ids.is_empty() {
+                        pending_ids
+                    } else {
+                        failed_ids
+                    };
+
+                    if task_ids_to_retry.is_empty() {
+                        break serde_json::json!({"error": format!("Exec failed with no retryable tasks: {e:?}")});
+                    }
+
                     let reason = ReplanReason::StepFailed {
-                        task_id: "root".to_string(),
+                        task_id: task_ids_to_retry[0].clone(),
                         error: format!("{e:?}"),
                     };
-                    let actions = vec![ReplanAction::Retry {
-                        task_id: "root".to_string(),
-                        modified_parameters: None,
-                    }];
-                    if let Ok(_) = planner.replan(reason, actions) {
+                    let actions: Vec<ReplanAction> = task_ids_to_retry
+                        .iter()
+                        .map(|tid| ReplanAction::Retry {
+                            task_id: tid.clone(),
+                            modified_parameters: None,
+                        })
+                        .collect();
+
+                    if planner.replan(reason, actions).is_ok() {
                         if let Some(p) = planner.get_plan().cloned() {
                             current_plan = p;
                         } else {
@@ -752,7 +770,70 @@ impl AgentExecutor {
     }
 }
 
-/// 从 context.callbacks 中查找并执行工具。
+/// 构建 Plan 模式 LLM 提示词，包含角色定义、JSON schema 和示例
+fn build_plan_extraction_prompt(
+    goal: &str,
+    role_desc: &str,
+    tool_names: &[String],
+) -> String {
+    let tools_list = if tool_names.is_empty() {
+        "无可用工具".to_string()
+    } else {
+        tool_names.join(", ")
+    };
+
+    format!(
+        r#"你是一个任务规划专家。你的职责是将用户目标分解为可执行的结构化计划。
+
+## 角色上下文
+{role_desc}
+
+## 输出格式
+你必须**只**输出一个合法的 JSON 对象，不要包含任何其他文本。JSON schema 如下：
+
+```json
+{{
+  "phases": [
+    {{
+      "name": "阶段名称",
+      "description": "阶段描述",
+      "tasks": [
+        {{
+          "id": "task_0",
+          "description": "任务描述",
+          "action_type": "agent",
+          "parameters": {{"prompt": "该任务的详细执行指令"}},
+          "dependencies": []
+        }}
+      ]
+    }}
+  ]
+}}
+```
+
+## 字段说明
+- `phases`: 阶段数组，按顺序执行。每个阶段内的任务可并行执行
+- `phases[].name`: 阶段名称（简短）
+- `phases[].tasks[].id`: 任务唯一标识符，使用 "task_N" 格式
+- `phases[].tasks[].description`: 任务需要完成什么的简洁描述
+- `phases[].tasks[].action_type`: "tool"（特定工具执行）、"agent"（通用代理）或 "llm"（纯推理）
+- `phases[].tasks[].parameters`: 任务参数。对于 "agent" 类型，必须包含 "prompt" 字段
+- `phases[].tasks[].dependencies`: 此任务所依赖的任务 ID 列表。对于无依赖的任务留空
+
+## 指南
+- 将复杂任务分解为 1-3 个阶段，每个阶段包含 1-5 个任务
+- 阶段应顺序执行（分析 → 实现 → 验证）
+- 任务应具体且可执行，避免模糊描述
+- 对于需要特定工具的任务使用 action_type="tool"
+- 每个任务最多 3 个依赖项
+
+## 目标
+{goal}
+
+## 可用工具
+{tools_list}"#,
+    )
+}
 async fn execute_tool(
     context: &ExecutionState,
     tool_name: &str,

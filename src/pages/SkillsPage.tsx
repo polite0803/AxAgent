@@ -5,7 +5,6 @@ import { CopyButton } from "@/components/common/CopyButton";
 import { DecompositionPreview } from "@/components/decomposition/DecompositionPreview";
 import { AgentGeneratorModal } from "@/components/settings/AgentGeneratorModal";
 import { SkillsHubSettings } from "@/components/settings/SkillsHubSettings";
-import { ActionChainEditor } from "@/components/skill/ActionChainEditor";
 import { FrontendEditorModal } from "@/components/skill/FrontendEditorModal";
 import { SkillDependencyCheck } from "@/components/skill/SkillDependencyCheck";
 import { SkillStatsPanel } from "@/components/skill/SkillStatsPanel";
@@ -487,16 +486,7 @@ export function SkillsPage() {
   >(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
-  const [_atomicSkillEditVisible, _setAtomicSkillEditVisible] = useState(false);
-  const [_editingAtomicSkill, _setEditingAtomicSkill] = useState<
-    {
-      id: string;
-      name: string;
-    } | null
-  >(null);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
-  // ═══ ActionChain 编辑器状态（供 Skill 动作链编辑使用）═══
-  const [editingActionChain, setEditingActionChain] = useState<Skill | null>(null);
   const [agentGeneratorOpen, setAgentGeneratorOpen] = useState(false);
 
   useEffect(() => {
@@ -1519,22 +1509,6 @@ export function SkillsPage() {
           loadSkills();
         }}
       />
-
-      <Modal
-        title={t("skill.actionChainEditor")}
-        open={!!editingActionChain}
-        onCancel={() => setEditingActionChain(null)}
-        footer={null}
-        width={700}
-      >
-        {editingActionChain && (
-          <ActionChainEditor
-            actions={[]}
-            availableHandlers={["invoke", "navigate", "emit", "store", "function", "handler", "chain"]}
-            onChange={() => {}}
-          />
-        )}
-      </Modal>
     </>
   );
 }

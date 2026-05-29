@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 const SKILL_DIR_PRIORITY: &[&str] = &[
     "axagent",
@@ -9,7 +10,7 @@ const SKILL_DIR_PRIORITY: &[&str] = &[
     "agents",
 ];
 
-pub fn skill_dirs() -> Vec<(&'static str, PathBuf)> {
+static SKILL_DIRS: LazyLock<Vec<(&'static str, PathBuf)>> = LazyLock::new(|| {
     let home = dirs::home_dir().unwrap_or_default();
     SKILL_DIR_PRIORITY
         .iter()
@@ -22,8 +23,12 @@ pub fn skill_dirs() -> Vec<(&'static str, PathBuf)> {
             (*name, dir)
         })
         .collect()
+});
+
+pub fn skill_dirs() -> Vec<(&'static str, PathBuf)> {
+    SKILL_DIRS.clone()
 }
 
 pub fn all_skills_dirs() -> Vec<PathBuf> {
-    skill_dirs().into_iter().map(|(_, dir)| dir).collect()
+    SKILL_DIRS.iter().map(|(_, dir)| dir.clone()).collect()
 }

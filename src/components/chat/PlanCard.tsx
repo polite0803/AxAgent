@@ -103,8 +103,11 @@ export function PlanCard({
   }, [plan.steps]);
 
   const isReviewing = plan.status === "reviewing" || plan.status === "draft";
+  const isApproved = plan.status === "approved";
   const isExecuting = plan.status === "executing";
   const isCompleted = plan.status === "completed";
+  const isPartial = plan.status === "partial";
+  const isCancelled = plan.status === "cancelled";
 
   const progress = calcProgress(localSteps);
 
@@ -188,19 +191,31 @@ export function PlanCard({
           <Tag
             color={isReviewing
               ? "purple"
+              : isApproved
+              ? "cyan"
               : isExecuting
               ? "blue"
               : isCompleted
               ? "green"
+              : isPartial
+              ? "orange"
+              : isCancelled
+              ? "default"
               : "default"}
             style={{ fontSize: 12, lineHeight: "18px" }}
           >
             {isReviewing
               ? t("plan.status.reviewing")
+              : isApproved
+              ? t("plan.status.approved_plan")
               : isExecuting
               ? t("plan.status.executing")
               : isCompleted
               ? t("plan.status.completed")
+              : isPartial
+              ? t("plan.status.partial")
+              : isCancelled
+              ? t("plan.status.cancelled")
               : plan.status}
           </Tag>
         </div>
@@ -226,6 +241,17 @@ export function PlanCard({
               </Tooltip>
             </>
           )}
+          {isApproved && !isHistorical && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<Play size={14} />}
+              onClick={handleApproveAll}
+              loading={loading}
+            >
+              {t("plan.status.executing_plan")}
+            </Button>
+          )}
           {isExecuting && (
             <Button
               size="small"
@@ -236,7 +262,25 @@ export function PlanCard({
               {t("plan.cancel")}
             </Button>
           )}
-          {isHistorical && isReviewing && (
+          {isPartial && !isHistorical && (
+            <Button
+              size="small"
+              icon={<RotateCcw size={14} />}
+              onClick={handleResume}
+            >
+              {t("plan.resume")}
+            </Button>
+          )}
+          {isHistorical && (isReviewing || isPartial) && (
+            <Button
+              size="small"
+              icon={<RotateCcw size={14} />}
+              onClick={handleResume}
+            >
+              {t("plan.resume")}
+            </Button>
+          )}
+          {isCancelled && !isHistorical && (
             <Button
               size="small"
               icon={<RotateCcw size={14} />}

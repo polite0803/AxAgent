@@ -1,7 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import { Button, Card, Empty, Input, message, Select, Spin, Table, Tag, Typography } from "antd";
 import { Download, Search, Upload } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph, Title } = Typography;
@@ -51,13 +51,13 @@ export function SkillsHubSettings() {
     new Set(),
   );
 
-  const handleSearch = async () => {
+  const doSearch = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const result = await invoke<SkillsHubSearchResult>("skills_hub_search", {
         query: searchQuery || "",
         category: category === "all" ? null : category,
-        page: 1,
+        page,
         page_size: 20,
       });
       setSearchResult(result);
@@ -66,13 +66,16 @@ export function SkillsHubSettings() {
       setSearchResult({
         skills: [],
         total: 0,
-        page: 1,
+        page: page,
         page_size: 20,
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, category]);
+
+  const handleSearch = () => doSearch(1);
+  const handlePageChange = (page: number) => doSearch(page);
 
   const handleInstall = async (skill: SkillsHubSkill) => {
     setInstallingId(skill.id);
@@ -211,7 +214,7 @@ export function SkillsHubSettings() {
                     total: searchResult.total,
                     pageSize: searchResult.page_size,
                     current: searchResult.page,
-                    onChange: (_page) => {},
+                    onChange: handlePageChange,
                   }}
                 />
               )

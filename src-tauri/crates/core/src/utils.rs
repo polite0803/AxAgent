@@ -68,3 +68,31 @@ pub fn append_language_directive(system_prompt: &str, language_code: &str) -> St
     }
     format!("{}\n\n{}", system_prompt, build_output_language_directive(language_code))
 }
+
+/// 从 LLM 响应中提取 JSON 内容。
+///
+/// 处理 LLM 可能在 JSON 外包裹 markdown 代码块或额外文本的情况。
+/// 按优先级尝试：\`\`\`json 围栏 → { 起始的裸 JSON → 原始文本。
+pub fn extract_json_from_llm_response(text: &str) -> &str {
+    let trimmed = text.trim();
+
+    // 尝试从 ```json 围栏中提取
+    if let Some(start) = trimmed.find("```json") {
+        let inner = &trimmed[start + 7..];
+        if let Some(end) = inner.find("```") {
+            return inner[..end].trim();
+        }
+        return inner.trim();
+    }
+
+    // 尝试从 ``` 围栏中提取
+    if let Some(start) = trimmed.find("```") {
+        let inner = &trimmed[start + 3..];
+        if let Some(end) = inner.find("```") {
+            return inner[..end].trim();
+        }
+        return inner.trim();
+    }
+
+    trimmed
+}

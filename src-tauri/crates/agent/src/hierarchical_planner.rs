@@ -1361,6 +1361,7 @@ pub fn compile_plan_to_dag(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_core::workflow_types::WorkflowNode;
 
     #[test]
     fn test_create_plan() {
@@ -2050,5 +2051,158 @@ mod tests {
             .unwrap();
         assert_eq!(t1.status, TaskStatus::Completed);
         assert_eq!(t1.result, Some(serde_json::json!({"done": true})));
+    }
+
+    // ── compile_plan_to_dag 测试 ──
+
+    #[test]
+    fn test_compile_dag_single_phase_single_task_node_id() {
+        let task = TaskBuilder::new("Research topic", "agent").build();
+        let task_id = task.id.clone();
+        let plan = Plan {
+            id: "plan-1".to_string(),
+            goal: "Test".to_string(),
+            phases: vec![Phase {
+                id: "p0".to_string(),
+                name: "Phase 0".to_string(),
+                description: "Test phase".to_string(),
+                tasks: vec![task],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+            status: PlanStatus::Draft,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let tool_names: Vec<String> = vec!["Read".into(), "Write".into()];
+        let (nodes, _edges) = compile_plan_to_dag(&plan, &tool_names);
+
+        // 验证节点 ID 格式: p{pi}_t{ti}_{task.id}
+        let expected_nid = format!("p0_t0_{}", task_id);
+        assert_eq!(nodes[0].base_id(), expected_nid, "节点 ID 格式应为 p{{pi}}_t{{ti}}_{{task.id}}");
+
+        // Agent 节点的 output_var 应为 r_{nid}
+        if let WorkflowNode::Agent(ref an) = nodes[0] {
+            assert_eq!(an.config.output_var, format!("r_{expected_nid}"));
+            assert_eq!(an.config.tools.len(), 2);
+            assert_eq!(an.config.tools[0].name, "Read");
+            assert_eq!(an.config.tools[1].name, "Write");
+        } else {
+            panic!("期望 Agent 节点类型");
+        }
+    }
+
+    #[test]
+    fn test_compile_dag_multi_phase_result_key_pattern() {
+        let task0 = TaskBuilder::new("Task 0", "agent").build();
+        let task0_id = task0.id.clone();
+        let task1 = TaskBuilder::new("Task 1", "tool").build();
+        let task1_id = task1.id.clone();
+
+        let plan = Plan {
+            id: "plan-2".to_string(),
+            goal: "Multi-phase test".to_string(),
+            phases: vec![
+                Phase {
+                    id: "p0".to_string(),
+                    name: "Phase 0".to_string(),
+                    description: "First".to_string(),
+                    tasks: vec![task0],
+                    dependencies: vec![],
+                    status: PhaseStatus::Pending,
+                },
+                Phase {
+                    id: "p1".to_string(),
+                    name: "Phase 1".to_string(),
+                    description: "Second".to_string(),
+                    tasks: vec![task1],
+                    dependencies: vec!["p0".to_string()],
+                    status: PhaseStatus::Pending,
+                },
+            ],
+            status: PlanStatus::Draft,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let (nodes, edges) = compile_plan_to_dag(&plan, &[]);
+
+        assert_eq!(nodes.len(), 2, "应生成两个节点");
+        assert_eq!(nodes[0].base_id(), format!("p0_t0_{}", task0_id));
+        assert_eq!(nodes[1].base_id(), format!("p1_t0_{}", task1_id));
+
+        // 验证阶段间依赖边
+        assert!(!edges.is_empty(), "应有依赖边连接 p0 → p1");
+        assert_eq!(edges[0].source, format!("p0_t0_{}", task0_id));
+        assert_eq!(edges[0].target, format!("p1_t0_{}", task1_id));
+    }
+
+    #[test]
+    fn test_compile_dag_task_within_phase_dependencies() {
+        let task0 = TaskBuilder::new("First task", "agent").build();
+        let task0_id = task0.id.clone();
+        let task1 = TaskBuilder::new("Second task", "llm")
+            .with_dependencies(vec![task0_id.clone()])
+            .build();
+        let task1_id = task1.id.clone();
+
+        let plan = Plan {
+            id: "plan-3".to_string(),
+            goal: "Intra-phase deps".to_string(),
+            phases: vec![Phase {
+                id: "p0".to_string(),
+                name: "Phase".to_string(),
+                description: "Test".to_string(),
+                tasks: vec![task0, task1],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+            status: PlanStatus::Draft,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let (nodes, edges) = compile_plan_to_dag(&plan, &[]);
+
+        assert_eq!(nodes.len(), 2);
+        // 验证阶段内任务依赖边
+        let task_dep_edge = edges
+            .iter()
+            .find(|e| e.source == format!("p0_t0_{}", task0_id) && e.target == format!("p0_t1_{}", task1_id));
+        assert!(task_dep_edge.is_some(), "应有阶段内任务依赖边: t0 → t1");
+    }
+
+    #[test]
+    fn test_compile_dag_tool_node_has_output_var() {
+        let task = TaskBuilder::new("Run tool", "tool")
+            .with_parameters(serde_json::json!({"tool": "Bash", "command": "echo hi"}))
+            .build();
+        let task_id = task.id.clone();
+
+        let plan = Plan {
+            id: "plan-4".to_string(),
+            goal: "Tool test".to_string(),
+            phases: vec![Phase {
+                id: "p0".to_string(),
+                name: "Phase".to_string(),
+                description: "Test".to_string(),
+                tasks: vec![task],
+                dependencies: vec![],
+                status: PhaseStatus::Pending,
+            }],
+            status: PlanStatus::Draft,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let (nodes, _) = compile_plan_to_dag(&plan, &[]);
+
+        if let WorkflowNode::Tool(ref tn) = nodes[0] {
+            assert_eq!(tn.config.output_var, format!("r_p0_t0_{}", task_id));
+            assert_eq!(tn.config.tool_name, "Bash");
+        } else {
+            panic!("期望 Tool 节点类型");
+        }
     }
 }

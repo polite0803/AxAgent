@@ -3993,7 +3993,23 @@
     "collapseLeftPanel": "Collapse Left Panel",
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
-    "expandRightPanel": "Expand Right Panel"
+    "expandRightPanel": "Expand Right Panel",
+    "node": {
+      "tickMode": "Режим Tick",
+      "breakpoint": "Точка останова",
+      "retryEnabled": "Повтор включён"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (Динамический инструмент)",
+      "dataFilter": "Фильтр данных",
+      "dataTransform": "Преобразование данных",
+      "aggregateCalc": "Агрегатный расчёт",
+      "toolChainCall": "Вызов цепочки инструментов",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "Скрипт Rhai",
+      "templateRhaiTools": "── Шаблоны Rhai ──",
+      "globalTools": "── Глобальные инструменты ──"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -5053,7 +5069,12 @@
       "completed": "Завершено",
       "error": "Ошибка",
       "reviewing": "Reviewing",
-      "executing": "Executing"
+      "executing": "Executing",
+      "partial": "Частично",
+      "cancelled": "Отменено",
+      "draft": "Черновик",
+      "approved_plan": "Одобрено",
+      "executing_plan": "Выполнить одобренные шаги"
     },
     "approveAll": "Одобрить все и выполнить",
     "approveStep": "Одобрить этот шаг",

@@ -410,7 +410,20 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
         set({ skills, ...merged, loading: false });
       } catch (e) {
         logIpcError(i18n.t("skillExtension.fetchFailed"))(e);
-        set({ loading: false });
+        // 重置为空白状态，避免 UI 与真实状态不同步
+        set({
+          loading: false,
+          skills: [],
+          navItems: [],
+          pages: [],
+          commands: [],
+          panels: [],
+          settingsSections: [],
+          toolbarButtons: [],
+          chatCommands: [],
+          statusBarItems: [],
+          handlers: {},
+        });
       }
     },
 
@@ -420,8 +433,11 @@ export const useSkillExtensionStore = create<SkillExtensionState>(
       const skills = await invoke<Skill[]>("list_skills");
       // 增量更新：只合并变化的 skill，保留其他 skill 的扩展数据
       const currentSkills = get().skills;
+      const skillMap = new Map(currentSkills.map((cs) => [cs.name, cs]));
+
+      // 使用最新数据覆盖匹配的 skill，保留不匹配的旧数据
       const updatedSkills = skills.map((s) => {
-        const existing = currentSkills.find((cs) => cs.name === s.name);
+        const existing = skillMap.get(s.name);
         return existing && s.name !== skillName ? existing : s;
       });
       if (!updatedSkills.some((s) => s.name === skillName)) {

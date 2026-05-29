@@ -2882,7 +2882,12 @@
       "completed": "Completed",
       "error": "Error",
       "reviewing": "Reviewing",
-      "executing": "Executing"
+      "executing": "Executing",
+      "partial": "Partial",
+      "cancelled": "Cancelled",
+      "draft": "Draft",
+      "approved_plan": "Approved",
+      "executing_plan": "Execute Approved Steps"
     },
     "approveAll": "Approve & Execute",
     "approveStep": "Approve Step",
@@ -4095,7 +4100,23 @@
     "collapseLeftPanel": "Collapse Left Panel",
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
-    "expandRightPanel": "Expand Right Panel"
+    "expandRightPanel": "Expand Right Panel",
+    "node": {
+      "tickMode": "Tick Mode",
+      "breakpoint": "Breakpoint",
+      "retryEnabled": "Retry Enabled"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (Dynamic Tool)",
+      "dataFilter": "Data Filter",
+      "dataTransform": "Data Transform",
+      "aggregateCalc": "Aggregate Calc",
+      "toolChainCall": "Tool Chain Call",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "Rhai Script",
+      "templateRhaiTools": "── Template Rhai Tools ──",
+      "globalTools": "── Global Tools ──"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",

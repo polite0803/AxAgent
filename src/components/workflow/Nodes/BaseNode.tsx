@@ -83,9 +83,15 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           </span>
           {/* Status badges */}
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-            {(data as any).config?.tick_mode && <span title="Tick 模式" style={{ fontSize: 10 }}>⏱</span>}
-            {((data as any)._breakpoint) && <span title="断点" style={{ fontSize: 10 }}>🔴</span>}
-            {(data as any).retry?.enabled && <span title="重试已启用" style={{ fontSize: 10 }}>🔄</span>}
+            {(data as any).config?.tick_mode && (
+              <span title={t("workflow.node.tickMode")} style={{ fontSize: 10 }}>⏱</span>
+            )}
+            {((data as any)._breakpoint) && (
+              <span title={t("workflow.node.breakpoint")} style={{ fontSize: 10 }}>🔴</span>
+            )}
+            {(data as any).retry?.enabled && (
+              <span title={t("workflow.node.retryEnabled")} style={{ fontSize: 10 }}>🔄</span>
+            )}
           </div>
         </div>
 

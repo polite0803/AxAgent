@@ -206,17 +206,46 @@ fn mutate_genome(genome: &SkillGenome, mutation_rate: f64) -> SkillGenome {
     let mut rng = rand::thread_rng();
     let mut new_steps: Vec<ProcedureStep> = genome.steps.clone();
 
-    for step in &mut new_steps {
-        if rng.r#gen::<f64>() < mutation_rate {
-            if rng.r#gen::<f64>() < 0.3 {
-                step.action = step.action.to_uppercase();
-            } else if rng.r#gen::<f64>() < 0.3 {
-                step.action = step.action.to_lowercase();
-            }
+    for i in 0..new_steps.len() {
+        if rng.r#gen::<f64>() >= mutation_rate {
+            continue;
+        }
 
-            if rng.r#gen::<f64>() < mutation_rate && step.order > 0 {
-                step.order = step.order.saturating_sub(1);
-            }
+        // 随机选择有意义的变异类型
+        match rng.gen_range(0u8..4) {
+            // 0: 交换相邻步骤顺序
+            0 if i + 1 < new_steps.len() => {
+                let j = i + 1;
+                let old_order = new_steps[i].order;
+                new_steps[i].order = new_steps[j].order;
+                new_steps[j].order = old_order;
+            },
+            // 1: 添加基础错误处理
+            1 => {
+                let action = &new_steps[i].action;
+                if !action.contains("verify") && !action.contains("error") {
+                    new_steps[i].error_handling = Some(
+                        "If this step fails, retry once before proceeding".to_string(),
+                    );
+                }
+            },
+            // 2: 添加前置条件
+            2 => {
+                if new_steps[i].condition.is_none() {
+                    new_steps[i].condition =
+                        Some("Ensure prerequisites from previous step are met".to_string());
+                }
+            },
+            // 3: 单步说明微调
+            _ => {
+                let a = &new_steps[i].action;
+                let modified = if a.ends_with('.') {
+                    format!("{} Double-check the result.", a)
+                } else {
+                    format!("{}. Verify the output.", a)
+                };
+                new_steps[i].action = modified;
+            },
         }
     }
 

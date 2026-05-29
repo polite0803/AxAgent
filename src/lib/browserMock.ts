@@ -1021,6 +1021,75 @@ export async function handleCommand<T>(
     case "plan_list": {
       return [] as T;
     }
+    case "plan_generate": {
+      // Browser mock: return a draft plan for review
+      const { conversationId, content } = args as { conversationId: string; content: string };
+      const planId = genId();
+      const now = Date.now();
+      return {
+        id: planId,
+        conversation_id: conversationId,
+        user_message_id: genId(),
+        title: content?.slice(0, 60) || "Mock Plan",
+        steps: [
+          {
+            id: genId(),
+            title: "分析需求",
+            description: "理解用户目标",
+            status: "pending",
+            estimated_tools: ["Read"],
+            result: null,
+          },
+          {
+            id: genId(),
+            title: "设计方案",
+            description: "制定实施步骤",
+            status: "pending",
+            estimated_tools: ["Write"],
+            result: null,
+          },
+          {
+            id: genId(),
+            title: "验证结果",
+            description: "确认完成情况",
+            status: "pending",
+            estimated_tools: ["Bash"],
+            result: null,
+          },
+        ],
+        status: "reviewing",
+        is_active: true,
+        created_under_strategy: "plan",
+        created_at: now,
+        updated_at: now,
+      } as T;
+    }
+    case "plan_execute": {
+      // Browser mock: return immediately, execution handled by events
+      return undefined as T;
+    }
+    case "plan_cancel": {
+      return undefined as T;
+    }
+    case "plan_activate": {
+      const { planId } = args as { planId: string; conversationId: string };
+      const now = Date.now();
+      return {
+        id: planId,
+        conversation_id: (args as { conversationId: string }).conversationId,
+        user_message_id: genId(),
+        title: "Restored Plan",
+        steps: [],
+        status: "reviewing",
+        is_active: true,
+        created_under_strategy: "plan",
+        created_at: now,
+        updated_at: now,
+      } as T;
+    }
+    case "plan_modify_step": {
+      return undefined as T;
+    }
     case "send_message": {
       const { conversationId, content, attachments } = args as {
         conversationId: string;

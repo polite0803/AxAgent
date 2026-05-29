@@ -128,3 +128,4 @@ pub use memory_forgetting::{ForgettingConfig, MemoryEntry, MemoryForgettingEngin
 pub use resource_limits::ResourceLimits;
 pub use schema_validator::{validate_against_schema, validate_recursive};
 pub use service_container::ServiceContainer;
+pub use utils::extract_json_from_llm_response;

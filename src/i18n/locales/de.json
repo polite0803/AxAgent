@@ -4392,7 +4392,23 @@
     "collapseLeftPanel": "Collapse Left Panel",
     "expandLeftPanel": "Expand Left Panel",
     "collapseRightPanel": "Collapse Right Panel",
-    "expandRightPanel": "Expand Right Panel"
+    "expandRightPanel": "Expand Right Panel",
+    "node": {
+      "tickMode": "Tick-Modus",
+      "breakpoint": "Haltepunkt",
+      "retryEnabled": "Wiederholung aktiviert"
+    },
+    "code": {
+      "rhaiDynamicTool": "🦀 Rhai (Dynamisches Tool)",
+      "dataFilter": "Datenfilter",
+      "dataTransform": "Datentransformation",
+      "aggregateCalc": "Aggregatberechnung",
+      "toolChainCall": "Toolchain-Aufruf",
+      "codePlaceholder": "code_<id>",
+      "rhaiTemplateDesc": "Rhai-Skript",
+      "templateRhaiTools": "── Vorlagen-Rhai-Tools ──",
+      "globalTools": "── Globale Tools ──"
+    }
   },
   "atomicSkill": {
     "entryType": "Entry Type",
@@ -5053,7 +5069,12 @@
       "completed": "Abgeschlossen",
       "error": "Fehlgeschlagen",
       "reviewing": "Reviewing",
-      "executing": "Executing"
+      "executing": "Executing",
+      "partial": "Teilweise",
+      "cancelled": "Abgebrochen",
+      "draft": "Entwurf",
+      "approved_plan": "Genehmigt",
+      "executing_plan": "Genehmigte Schritte ausführen"
     },
     "approveAll": "Alle genehmigen und ausführen",
     "approveStep": "Diesen Schritt genehmigen",

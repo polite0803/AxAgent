@@ -1,8 +1,8 @@
 {
   "version": "1",
-  "generated": "2026-05-27",
-  "total_entries": 108,
-  "total_files": 104,
+  "generated": "2026-05-29",
+  "total_entries": 130,
+  "total_files": 120,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -649,6 +649,138 @@
       "file": "src/components/chat/StructuredThinking.tsx",
       "lines": "53,84,112,141",
       "reason": "LLM 响应分析关键词，非 UI 字符串"
+    },
+    {
+      "file": "src/components/chat/RightPanelContainer.tsx",
+      "lines": "52,54",
+      "reason": "错误边界兜底消息，用户极少看到",
+      "phase": 3
+    },
+    {
+      "file": "src/components/layout/AppInitializer.tsx",
+      "lines": "34,57,61,96",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/DataManager.tsx",
+      "lines": "50,102,115",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/GeneralSettings.tsx",
+      "lines": "72",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/SettingsPanel.tsx",
+      "lines": "444",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/__tests__/ProviderDetail.test.tsx",
+      "lines": "47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,188,197,221",
+      "reason": "测试文件中的 mock i18n 定义",
+      "phase": 3
+    },
+    {
+      "file": "src/components/skill/SkillSandboxContainer.tsx",
+      "lines": "248,257,264",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/terminal/IntegratedTerminal.tsx",
+      "lines": "133,197,222",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/terminal/StatusBarWidget.tsx",
+      "lines": "102",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/AIPanel/AIPanel.tsx",
+      "lines": "94,115,136",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/__tests__/workflowComponents.test.tsx",
+      "lines": "71,102,177,192,213,216,238,242,297,413,429,446,451",
+      "reason": "测试文件中的 mock i18n 定义和断言",
+      "phase": 3
+    },
+    {
+      "file": "src/hooks/useGlobalShortcutManager.ts",
+      "lines": "199,203,214,234",
+      "reason": "logIpcError 内部日志和内部状态原因",
+      "phase": 3
+    },
+    {
+      "file": "src/hooks/useUpdateChecker.tsx",
+      "lines": "130,140",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/__tests__/codeExecutor.test.ts",
+      "lines": "39,59,78,109,126,146,159,176,198,222,268",
+      "reason": "测试文件中的描述性字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/appConfigStore.ts",
+      "lines": "93,110",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/continuationStore.ts",
+      "lines": "49,65",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/proactiveStore.ts",
+      "lines": "58,70,74,86,95,108",
+      "reason": "中文关键词匹配逻辑，非 UI 字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/skillStore.ts",
+      "lines": "113",
+      "reason": "logIpcError 内部日志，非 UI",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
+      "lines": "51,90,140,141,170,260",
+      "reason": "Rhai 代码模板和工具来源标识",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Nodes/BaseNode.tsx",
+      "lines": "86,87,88",
+      "reason": "工作流节点图标 tooltip，已通过 t() 国际化",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/CodePropertyPanel.tsx",
+      "lines": "21,37,43,49,55,323",
+      "reason": "代码编辑器选项标签和 placeholder，技术标识符",
+      "phase": 3
+    },
+    {
+      "file": "src/components/workflow/Panels/PropertyPanels/AgentPropertyPanel.tsx",
+      "lines": "757,766",
+      "reason": "工具列表分组标签，开发者 UI",
+      "phase": 3
     }
   ]
 }

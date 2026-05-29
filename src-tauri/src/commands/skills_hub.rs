@@ -68,7 +68,7 @@ pub async fn skills_hub_search(
 
 #[tauri::command]
 pub async fn skills_hub_install(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     skill_id: String,
 ) -> Result<(), String> {
     let client = SkillsHubClient::new(SkillsHubConfig::default());
@@ -81,6 +81,55 @@ pub async fn skills_hub_install(
     let axagent_skill = adapter.to_axagent_skill()?;
 
     tracing::info!("Installing skill '{}' from Skills Hub", axagent_skill.name);
+
+    // 写入 skill 目录，使 PluginManager 可以发现它
+    let skills_dir = axagent_home().join("skills");
+    std::fs::create_dir_all(&skills_dir).map_err(|e| format!("创建 skills 目录失败: {e}"))?;
+
+    let skill_dir = skills_dir.join(&axagent_skill.name);
+    if skill_dir.exists() {
+        std::fs::remove_dir_all(&skill_dir).map_err(|e| format!("清理旧 skill 目录失败: {e}"))?;
+    }
+    std::fs::create_dir_all(&skill_dir).map_err(|e| format!("创建 skill 目录失败: {e}"))?;
+
+    // 写入 SKILL.md
+    let skill_md = format!(
+        "---\nname: {}\nversion: {}\ndescription: {}\ncategory: {}\nsource: skills_hub\n---\n\n{}",
+        axagent_skill.name,
+        axagent_skill.version,
+        axagent_skill.description,
+        axagent_skill.category,
+        axagent_skill.content,
+    );
+    std::fs::write(skill_dir.join("SKILL.md"), &skill_md)
+        .map_err(|e| format!("写入 SKILL.md 失败: {e}"))?;
+
+    // 写入 skill-manifest.json
+    let manifest = serde_json::json!({
+        "name": axagent_skill.name,
+        "version": axagent_skill.version,
+        "description": axagent_skill.description,
+        "category": axagent_skill.category,
+        "tags": axagent_skill.tags,
+        "source_kind": "skills_hub",
+    });
+    std::fs::write(
+        skill_dir.join("skill-manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap_or_default(),
+    )
+    .map_err(|e| format!("写入 skill-manifest.json 失败: {e}"))?;
+
+    // 保存到 TrajectoryStorage
+    state
+        .trajectory_storage
+        .save_skill(&axagent_skill)
+        .map_err(|e| format!("保存 skill 到存储失败: {e}"))?;
+
+    tracing::info!(
+        "Skill '{}' installed to {}",
+        axagent_skill.name,
+        skill_dir.display()
+    );
 
     Ok(())
 }
