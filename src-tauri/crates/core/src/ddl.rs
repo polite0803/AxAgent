@@ -355,7 +355,6 @@ pub async fn run_initialization(db: &impl ConnectionTrait) -> Result<(), DbErr> 
             nodes TEXT NOT NULL, edges TEXT NOT NULL, input_schema TEXT, output_schema TEXT, \
             variables TEXT, error_config TEXT, composite_source TEXT, tool_defs TEXT, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
-        "ALTER TABLE workflow_templates ADD COLUMN IF NOT EXISTS tool_defs TEXT",
         "CREATE TABLE IF NOT EXISTS workflow_template_versions (\
             id TEXT NOT NULL PRIMARY KEY, template_id TEXT NOT NULL, name TEXT NOT NULL, \
             description TEXT, icon TEXT NOT NULL DEFAULT '', tags TEXT, \

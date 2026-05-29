@@ -57,26 +57,26 @@ impl Tool for SkillTool {
             {
                 // 检查 skill-manifest.json 中的平台/版本约束
                 let manifest_path = dir.join(skill_name).join("skill-manifest.json");
-                if let Ok(manifest_str) = std::fs::read_to_string(&manifest_path) {
-                    if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&manifest_str) {
-                        if let Some(platforms) = manifest["platforms"].as_array() {
-                            let platform_list: Vec<&str> =
-                                platforms.iter().filter_map(|p| p.as_str()).collect();
-                            tracing::warn!(
-                                "Skill '{}' declares platform constraints {:?} — verify compatibility",
-                                skill_name,
-                                platform_list
-                            );
-                        }
-                        if let Some(requires) = manifest["requires_toolsets"].as_array() {
-                            let requires_list: Vec<&str> =
-                                requires.iter().filter_map(|r| r.as_str()).collect();
-                            tracing::warn!(
-                                "Skill '{}' requires toolsets {:?} — ensure they are available",
-                                skill_name,
-                                requires_list
-                            );
-                        }
+                if let Ok(manifest_str) = std::fs::read_to_string(&manifest_path)
+                    && let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&manifest_str)
+                {
+                    if let Some(platforms) = manifest["platforms"].as_array() {
+                        let platform_list: Vec<&str> =
+                            platforms.iter().filter_map(|p| p.as_str()).collect();
+                        tracing::warn!(
+                            "Skill '{}' declares platform constraints {:?} — verify compatibility",
+                            skill_name,
+                            platform_list
+                        );
+                    }
+                    if let Some(requires) = manifest["requires_toolsets"].as_array() {
+                        let requires_list: Vec<&str> =
+                            requires.iter().filter_map(|r| r.as_str()).collect();
+                        tracing::warn!(
+                            "Skill '{}' requires toolsets {:?} — ensure they are available",
+                            skill_name,
+                            requires_list
+                        );
                     }
                 }
 
