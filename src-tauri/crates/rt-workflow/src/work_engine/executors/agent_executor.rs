@@ -575,6 +575,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
 impl AgentExecutor {
     /// Plan 模式：LLM 生成计划 → HierarchicalPlanner 管理 → 编译 DAG → WorkEngine 执行
+    /// 失败时自动重规划（最多 replan_max_retries 次）
     async fn execute_plan_mode(
         &self,
         an: &axagent_core::workflow_types::AgentNode,
@@ -586,22 +587,18 @@ impl AgentExecutor {
         node: &WorkflowNode,
     ) -> Result<NodeOutput, NodeError> {
         use axagent_agent::hierarchical_planner::{
-            Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus, compile_plan_to_dag,
+            HierarchicalPlanner, Plan, PlanStatus, ReplanAction, ReplanReason, TaskStatus,
+            compile_plan_to_dag,
         };
-        use axagent_core::workflow_types::*;
         let role_desc = resolve_role(&an.config, None);
         let base_url =
             axagent_providers::resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
         let tool_names: Vec<String> = an.config.tools.iter().map(|t| t.name.clone()).collect();
+        let replan_max_retries = an.config.max_tool_rounds.unwrap_or(2) as u32;
 
-        // 1. 调用 LLM 生成 Plan（HierarchicalPlanner 格式）
+        // 1. 调用 LLM 生成 Plan
         let plan_prompt = format!(
-            "你是一个任务规划器。根据目标生成层次化执行计划。\n\n\
-             目标: {}\n\n可用工具: {}\n\n\
-             输出 JSON:\n\
-             {{\"phases\":[{{\"name\":\"Phase\",\"tasks\":[\
-             {{\"id\":\"t1\",\"description\":\"...\",\"action_type\":\"tool|llm|agent\",\"parameters\":{{}},\"dependencies\":[]}}\
-             ]}}]}}",
+            "输出 JSON: phases[{{name, tasks[{{id, description, action_type:\"tool|llm|agent\", parameters{{}}, dependencies[]}}]}}]\n目标: {} 工具: {}",
             an.config.system_prompt,
             tool_names.join(", "),
         );
@@ -618,32 +615,41 @@ impl AgentExecutor {
             previous_response_id: None,
             store_response: None,
         };
-        let plan_req = axagent_core::types::ChatRequest {
-            model: model.to_string(),
-            messages: vec![axagent_core::types::ChatMessage {
-                role: "user".to_string(),
-                content: axagent_core::types::ChatContent::Text(plan_prompt),
-                tool_calls: None,
-                tool_call_id: None,
-                thinking: None,
-            }],
-            stream: false,
-            temperature: Some(0.0),
-            max_tokens: Some(4096),
-            top_p: None,
-            tools: None,
-            thinking_budget: None,
-            use_max_completion_tokens: None,
-            thinking_param_style: None,
-            api_mode: None,
-            instructions: None,
-            conversation: None,
-            previous_response_id: None,
-            store: None,
-        };
-        let resp = adapter.chat(&plan_ctx, plan_req).await.map_err(|e| {
-            NodeError::exec_failed(error_code::AGENT_PROFILE_NOT_FOUND, format!("Plan LLM: {e}"))
-        })?;
+        let resp = adapter
+            .chat(
+                &plan_ctx,
+                axagent_core::types::ChatRequest {
+                    model: model.to_string(),
+                    messages: vec![axagent_core::types::ChatMessage {
+                        role: "user".to_string(),
+                        content: axagent_core::types::ChatContent::Text(plan_prompt),
+                        tool_calls: None,
+                        tool_call_id: None,
+                        thinking: None,
+                    }],
+                    stream: false,
+                    temperature: Some(0.0),
+                    max_tokens: Some(4096),
+                    top_p: None,
+                    tools: None,
+                    thinking_budget: None,
+                    use_max_completion_tokens: None,
+                    thinking_param_style: None,
+                    api_mode: None,
+                    instructions: None,
+                    conversation: None,
+                    previous_response_id: None,
+                    store: None,
+                },
+            )
+            .await
+            .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    format!("Plan LLM: {e}"),
+                )
+            })?;
+
         let text = resp.content.trim();
         let json = text
             .split("```json")
@@ -659,29 +665,86 @@ impl AgentExecutor {
             updated_at: 0,
         });
 
+        // 2. HierarchicalPlanner 接管：验证、执行管理、重规划
+        let mut planner = HierarchicalPlanner::new().with_max_retries(replan_max_retries);
+        planner.create_plan(&an.config.system_prompt, plan.phases.clone());
+
+        if let Err(e) = planner.start_execution() {
+            return Err(NodeError::exec_failed(
+                error_code::AGENT_PROFILE_NOT_FOUND,
+                format!("Plan validation: {e}"),
+            ));
+        }
+
         let phase_count = plan.phases.len();
         let task_count: u32 = plan.phases.iter().map(|p| p.tasks.len() as u32).sum();
+        let engine_available = self.engine.is_some();
 
-        // 2. 编译 → DAG → WorkEngine 执行
-        let plan_results = if let Some(ref engine) = self.engine {
-            let (wf_nodes, wf_edges) = compile_plan_to_dag(&plan, &tool_names);
-            use crate::work_engine::RunOptions;
-            let wf_name = format!("plan_{}", uuid::Uuid::new_v4());
-            match engine.create_workflow(&wf_name, wf_nodes, wf_edges).await {
-                Ok(wf) => match engine.run_workflow(&wf.id, RunOptions::default()).await {
-                    Ok(result) => serde_json::Value::Object(result.results.into_iter().collect()),
-                    Err(e) => serde_json::json!({"error": format!("{e:?}")}),
-                },
-                Err(e) => serde_json::json!({"error": format!("{e:?}")}),
+        // 3. 编译 DAG → WorkEngine 执行，失败时重规划
+        let mut current_plan = plan;
+        let mut attempt = 0u32;
+        let plan_results = loop {
+            if !engine_available {
+                break serde_json::json!({"error": "Plan engine not available"});
             }
-        } else {
-            serde_json::json!({"error": "Plan engine not available"})
+            let engine = self.engine.as_ref().unwrap();
+            let (wf_nodes, wf_edges) = compile_plan_to_dag(&current_plan, &tool_names);
+            let wf_name = format!("plan_{}_{}", uuid::Uuid::new_v4(), attempt);
+
+            let exec_result = match engine.create_workflow(&wf_name, wf_nodes, wf_edges).await {
+                Ok(wf) => engine
+                    .run_workflow(&wf.id, crate::work_engine::RunOptions::default())
+                    .await
+                    .map(|r| (r, wf)),
+                Err(e) => Err(e),
+            };
+
+            match exec_result {
+                Ok((wf_result, _wf)) => {
+                    let plan_mut = planner.get_plan_mut();
+                    if let Some(plan) = plan_mut {
+                        for phase in &mut plan.phases {
+                            for task in &mut phase.tasks {
+                                let key = format!("r_p0_t0_{}", task.id);
+                                if let Some(v) = wf_result.results.get(&key) {
+                                    task.status = TaskStatus::Completed;
+                                    task.result = Some(v.clone());
+                                }
+                            }
+                        }
+                    }
+                    break serde_json::Value::Object(wf_result.results.into_iter().collect());
+                },
+                Err(e) if attempt < replan_max_retries => {
+                    attempt += 1;
+                    let reason = ReplanReason::StepFailed {
+                        task_id: "root".to_string(),
+                        error: format!("{e:?}"),
+                    };
+                    let actions = vec![ReplanAction::Retry {
+                        task_id: "root".to_string(),
+                        modified_parameters: None,
+                    }];
+                    if let Ok(_) = planner.replan(reason, actions) {
+                        if let Some(p) = planner.get_plan().cloned() {
+                            current_plan = p;
+                        } else {
+                            break serde_json::json!({"error": "Replan produced no plan"});
+                        }
+                    } else {
+                        break serde_json::json!({"error": format!("Replan failed: {e:?}")});
+                    }
+                },
+                Err(e) => {
+                    break serde_json::json!({"error": format!("Exec failed: {e:?}")});
+                },
+            }
         };
 
         Ok(NodeOutput {
             output: serde_json::json!({
                 "mode":"plan","role":role_desc,"model":model.to_string(),
-                "phases":phase_count,"tasks":task_count,"results":plan_results,
+                "phases":phase_count,"tasks":task_count,"attempts":attempt+1,"results":plan_results,
                 "node_id": node.base_id(),
             }),
             output_var: Some(an.config.output_var.clone()),

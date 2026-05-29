@@ -95,6 +95,10 @@ pub struct PlanStep {
     pub estimated_tools: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dependencies: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -344,6 +348,8 @@ async fn generate_plan_via_llm(
                 status: PlanStepStatus::Pending,
                 estimated_tools: tools,
                 result: None,
+                dependencies: None,
+                action_type: None,
             }
         })
         .collect();
@@ -872,26 +878,137 @@ pub async fn plan_execute(
 
     let mut step_results: Vec<(String, String)> = Vec::new(); // (step_id, result)
 
-    // Execute each step sequentially
-    for step in &steps_to_run {
-        let result = execute_step_with_agent(
-            &state,
-            &app,
-            &request.conversation_id,
-            &request.plan_id,
-            step,
-            &agent_ctx,
-        )
-        .await;
+    // Check if workflow engine is available for DAG execution
+    let use_dag_execution = state
+        .work_engine
+        .registered_executor_types()
+        .await
+        .contains(&"agent");
 
-        match result {
-            Ok(text) => step_results.push((step.id.clone(), text)),
-            Err(err) => {
-                step_results.push((step.id.clone(), err));
-                // Continue with remaining steps even if one fails
+    if use_dag_execution {
+        // 转换 PlanStep → HierarchicalPlanner Plan → compile_plan_to_dag → WorkEngine 执行
+        use axagent_agent::hierarchical_planner::{
+            Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus, compile_plan_to_dag,
+        };
+
+        let mut phases: Vec<Phase> = Vec::new();
+        let mut step_id_to_phase: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+
+        for (i, step) in steps_to_run.iter().enumerate() {
+            let phase_id = format!("p{i}");
+            step_id_to_phase.insert(step.id.clone(), phase_id.clone());
+
+            let phase_deps: Vec<String> = step
+                .dependencies
+                .as_ref()
+                .map(|deps| {
+                    deps.iter()
+                        .filter_map(|sid| step_id_to_phase.get(sid).cloned())
+                        .collect()
+                })
+                .unwrap_or_else(|| {
+                    if i > 0 {
+                        vec![format!("p{}", i - 1)]
+                    } else {
+                        vec![]
+                    }
+                });
+
+            let action_type = step.action_type.clone().unwrap_or_else(|| {
+                {
+                    if step.estimated_tools.as_ref().is_some_and(|t| !t.is_empty()) {
+                        "tool"
+                    } else {
+                        "agent"
+                    }
+                }
+                .to_string()
+            });
+
+            phases.push(Phase {
+                id: phase_id,
+                name: step.title.clone(),
+                description: step.description.clone(),
+                tasks: vec![PlannedTask {
+                    id: format!("t{i}"),
+                    description: step.title.clone(),
+                    action_type,
+                    parameters: serde_json::json!({ "prompt": step.description }),
+                    dependencies: vec![],
+                    status: TaskStatus::Pending,
+                    result: None,
+                    error: None,
+                    retry_count: 0,
+                    max_retries: 3,
+                    assigned_role: None,
+                }],
+                dependencies: phase_deps,
+                status: PhaseStatus::Pending,
+            });
+        }
+
+        let plan = Plan {
+            id: request.plan_id.clone(),
+            goal: format!("Executing plan with {} steps", steps_to_run.len()),
+            phases,
+            status: PlanStatus::Executing,
+            created_at: chrono::Utc::now().timestamp_millis(),
+            updated_at: chrono::Utc::now().timestamp_millis(),
+        };
+
+        let tool_names: Vec<String> = Vec::new();
+        let (wf_nodes, wf_edges) = compile_plan_to_dag(&plan, &tool_names);
+        let wf_name = format!("plan_dag_{}", request.plan_id);
+
+        match state
+            .work_engine
+            .create_workflow(&wf_name, wf_nodes, wf_edges)
+            .await
+        {
+            Ok(wf) => {
+                let opts = axagent_runtime::work_engine::RunOptions::default();
+                match state.work_engine.run_workflow(&wf.id, opts).await {
+                    Ok(result) => {
+                        for (k, v) in result.results {
+                            step_results.push((k, v.to_string()));
+                        }
+                    },
+                    Err(e) => {
+                        for step in &steps_to_run {
+                            step_results.push((step.id.clone(), format!("DAG exec error: {e:?}")));
+                        }
+                    },
+                }
+            },
+            Err(e) => {
+                for step in &steps_to_run {
+                    step_results.push((step.id.clone(), format!("DAG create error: {e:?}")));
+                }
             },
         }
-    }
+    } else {
+        // Fallback: 顺序执行（无 WorkEngine 时）
+        for step in &steps_to_run {
+            let result = execute_step_with_agent(
+                &state,
+                &app,
+                &request.conversation_id,
+                &request.plan_id,
+                step,
+                &agent_ctx,
+            )
+            .await;
+
+            match result {
+                Ok(text) => step_results.push((step.id.clone(), text)),
+                Err(err) => {
+                    step_results.push((step.id.clone(), err));
+                    // Continue with remaining steps even if one fails
+                },
+            }
+        }
+    } // end else (fallback)
 
     // Update plan steps to completed/error status in DB
     let mut updated_steps: Vec<PlanStep> = steps;

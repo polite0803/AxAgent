@@ -1119,6 +1119,9 @@ pub fn compile_plan_to_dag(
     let mut edges: Vec<WorkflowEdge> = Vec::new();
     let mut edge_id = 0u32;
     let mut all_task_ids: Vec<String> = Vec::new();
+    let mut phase_node_map: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    let mut has_outgoing: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     // Trigger
     let trigger_id = "trigger".to_string();
@@ -1231,13 +1234,25 @@ pub fn compile_plan_to_dag(
             nodes.push(node);
             phase_nodes.push(nid.clone());
         }
+        phase_node_map.insert(phase.id.clone(), phase_nodes.clone());
 
-        // Phase 内：按 task.dependencies 生成 edges
+        // Phase 内 + Phase 间：按 task.dependencies + phase.dependencies 生成 edges
         for task in &phase.tasks {
             let Some(target_id) = task_to_node.get(&task.id) else { continue };
             if task.dependencies.is_empty() {
-                // 无依赖 → 从所有前驱节点连入
-                if pi == 0 {
+                // Task 无内部依赖 → 从 phase 依赖或 Trigger/前驱 phase 连入
+                let source_phase_ids: Vec<&String> = if phase.dependencies.is_empty() {
+                    if pi == 0 {
+                        vec![]
+                    } else {
+                        vec![&plan.phases[pi - 1].id]
+                    }
+                } else {
+                    phase.dependencies.iter().collect()
+                };
+
+                if source_phase_ids.is_empty() && pi == 0 {
+                    // 第一层且无 phase 依赖 → Trigger
                     edge_id += 1;
                     edges.push(WorkflowEdge {
                         id: format!("e_{edge_id}"),
@@ -1248,10 +1263,40 @@ pub fn compile_plan_to_dag(
                         source_handle: None,
                         target_handle: None,
                     });
+                    has_outgoing.insert(trigger_id.clone());
+                } else {
+                    for src_phase_id in &source_phase_ids {
+                        if let Some(src_nodes) = phase_node_map.get(*src_phase_id) {
+                            let leaves: Vec<String> = src_nodes
+                                .iter()
+                                .filter(|pn| !has_outgoing.contains(*pn))
+                                .cloned()
+                                .collect();
+                            let sources = if leaves.is_empty() {
+                                src_nodes.clone()
+                            } else {
+                                leaves
+                            };
+                            for src in &sources {
+                                has_outgoing.insert(src.clone());
+                                edge_id += 1;
+                                edges.push(WorkflowEdge {
+                                    id: format!("e_{edge_id}"),
+                                    source: src.clone(),
+                                    target: target_id.clone(),
+                                    edge_type: EdgeType::Direct,
+                                    label: None,
+                                    source_handle: None,
+                                    target_handle: None,
+                                });
+                            }
+                        }
+                    }
                 }
             } else {
                 for dep_id in &task.dependencies {
                     if let Some(source_id) = task_to_node.get(dep_id) {
+                        has_outgoing.insert(source_id.clone());
                         edge_id += 1;
                         edges.push(WorkflowEdge {
                             id: format!("e_{edge_id}"),
@@ -1293,13 +1338,14 @@ pub fn compile_plan_to_dag(
                 matches!(n, WorkflowNode::Tool(_) | WorkflowNode::Llm(_) | WorkflowNode::Agent(_))
             })
             .map(|n| n.base_id().to_string())
-            .filter(|n| !edges.iter().any(|e| e.source == *n))
+            .filter(|n| !has_outgoing.contains(n))
             .collect();
-        for n in leaf_ids {
+        for n in &leaf_ids {
+            has_outgoing.insert(n.clone());
             edge_id += 1;
             edges.push(WorkflowEdge {
                 id: format!("e_{edge_id}"),
-                source: n,
+                source: n.clone(),
                 target: end_id.clone(),
                 edge_type: EdgeType::Direct,
                 label: None,
