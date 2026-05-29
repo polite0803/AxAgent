@@ -1037,10 +1037,7 @@ pub async fn plan_execute(
                 match state.work_engine.run_workflow(&wf.id, opts).await {
                     Ok(result) => {
                         for (k, v) in result.results {
-                            let step_id = result_key_to_step_id
-                                .get(&k)
-                                .cloned()
-                                .unwrap_or(k);
+                            let step_id = result_key_to_step_id.get(&k).cloned().unwrap_or(k);
                             step_results.push((step_id, v.to_string()));
                         }
                     },
@@ -1062,10 +1059,7 @@ pub async fn plan_execute(
                 }
 
                 // 执行完成后移除映射
-                RUNNING_PLAN_WORKFLOWS
-                    .lock()
-                    .await
-                    .remove(&request.plan_id);
+                RUNNING_PLAN_WORKFLOWS.lock().await.remove(&request.plan_id);
             },
             Err(e) => {
                 for step in &steps_to_run {
@@ -1161,18 +1155,9 @@ pub async fn plan_cancel(
     let db = &state.sea_db;
 
     // 尝试取消正在运行的 DAG 工作流
-    if let Some(wf_id) = RUNNING_PLAN_WORKFLOWS
-        .lock()
-        .await
-        .remove(&request.plan_id)
-    {
+    if let Some(wf_id) = RUNNING_PLAN_WORKFLOWS.lock().await.remove(&request.plan_id) {
         if let Err(e) = state.work_engine.cancel_workflow(&wf_id).await {
-            tracing::warn!(
-                "Plan {} cancel workflow {} failed: {:?}",
-                request.plan_id,
-                wf_id,
-                e
-            );
+            tracing::warn!("Plan {} cancel workflow {} failed: {:?}", request.plan_id, wf_id, e);
         }
     }
 

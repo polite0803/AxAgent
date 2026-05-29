@@ -64,7 +64,8 @@ impl Tool for SkillTool {
                                 platforms.iter().filter_map(|p| p.as_str()).collect();
                             tracing::warn!(
                                 "Skill '{}' declares platform constraints {:?} — verify compatibility",
-                                skill_name, platform_list
+                                skill_name,
+                                platform_list
                             );
                         }
                         if let Some(requires) = manifest["requires_toolsets"].as_array() {
@@ -72,7 +73,8 @@ impl Tool for SkillTool {
                                 requires.iter().filter_map(|r| r.as_str()).collect();
                             tracing::warn!(
                                 "Skill '{}' requires toolsets {:?} — ensure they are available",
-                                skill_name, requires_list
+                                skill_name,
+                                requires_list
                             );
                         }
                     }

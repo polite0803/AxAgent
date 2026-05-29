@@ -224,9 +224,8 @@ fn mutate_genome(genome: &SkillGenome, mutation_rate: f64) -> SkillGenome {
             1 => {
                 let action = &new_steps[i].action;
                 if !action.contains("verify") && !action.contains("error") {
-                    new_steps[i].error_handling = Some(
-                        "If this step fails, retry once before proceeding".to_string(),
-                    );
+                    new_steps[i].error_handling =
+                        Some("If this step fails, retry once before proceeding".to_string());
                 }
             },
             // 2: 添加前置条件

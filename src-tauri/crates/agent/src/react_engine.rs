@@ -924,9 +924,7 @@ impl ReActEngine {
                                 .first()
                                 .or(pending_ids.first())
                                 .cloned()
-                                .unwrap_or_else(|| {
-                                    format!("iteration_{}", context.iteration)
-                                });
+                                .unwrap_or_else(|| format!("iteration_{}", context.iteration));
                             let error_msg = truncate_string(&e.to_string(), 100);
                             let replan_result = planner_guard.replan(
                                 crate::hierarchical_planner::ReplanReason::StepFailed {
@@ -1344,11 +1342,9 @@ impl ReActEngine {
                         .iter()
                         .take(3)
                         .enumerate()
-                        .map(|(i, tid)| {
-                            crate::hierarchical_planner::ReplanAction::Reorder {
-                                task_id: tid.clone(),
-                                new_position: i,
-                            }
+                        .map(|(i, tid)| crate::hierarchical_planner::ReplanAction::Reorder {
+                            task_id: tid.clone(),
+                            new_position: i,
                         })
                         .collect();
 

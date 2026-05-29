@@ -588,8 +588,7 @@ impl AgentExecutor {
         node: &WorkflowNode,
     ) -> Result<NodeOutput, NodeError> {
         use axagent_agent::hierarchical_planner::{
-            HierarchicalPlanner, Plan, ReplanAction, ReplanReason, TaskStatus,
-            compile_plan_to_dag,
+            HierarchicalPlanner, Plan, ReplanAction, ReplanReason, TaskStatus, compile_plan_to_dag,
         };
         let role_desc = resolve_role(&an.config, None);
         let base_url =
@@ -598,11 +597,8 @@ impl AgentExecutor {
         let replan_max_retries = an.config.max_tool_rounds.unwrap_or(2);
 
         // 1. 调用 LLM 生成 Plan
-        let plan_prompt = build_plan_extraction_prompt(
-            &an.config.system_prompt,
-            &role_desc,
-            &tool_names,
-        );
+        let plan_prompt =
+            build_plan_extraction_prompt(&an.config.system_prompt, &role_desc, &tool_names);
         let plan_ctx = axagent_providers::ProviderRequestContext {
             provider_id: prov.id.clone(),
             api_key: api_key.to_string(),
@@ -657,9 +653,7 @@ impl AgentExecutor {
             let preview = &json[..200.min(json.len())];
             NodeError::exec_failed(
                 error_code::VALIDATION_FAILED,
-                format!(
-                    "Plan 模式 LLM 返回了无效的 JSON: {e}。原始响应前 200 字符: {preview}"
-                ),
+                format!("Plan 模式 LLM 返回了无效的 JSON: {e}。原始响应前 200 字符: {preview}"),
             )
         })?;
 
@@ -685,7 +679,8 @@ impl AgentExecutor {
             if !engine_available {
                 return Err(NodeError::exec_failed(
                     error_code::VALIDATION_FAILED,
-                    "Plan 模式需要 WorkEngine 引用，请通过 AgentExecutor::with_engine() 注入".to_string(),
+                    "Plan 模式需要 WorkEngine 引用，请通过 AgentExecutor::with_engine() 注入"
+                        .to_string(),
                 ));
             }
             let engine = self.engine.as_ref().unwrap();
@@ -771,11 +766,7 @@ impl AgentExecutor {
 }
 
 /// 构建 Plan 模式 LLM 提示词，包含角色定义、JSON schema 和示例
-fn build_plan_extraction_prompt(
-    goal: &str,
-    role_desc: &str,
-    tool_names: &[String],
-) -> String {
+fn build_plan_extraction_prompt(goal: &str, role_desc: &str, tool_names: &[String]) -> String {
     let tools_list = if tool_names.is_empty() {
         "无可用工具".to_string()
     } else {

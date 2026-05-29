@@ -514,10 +514,9 @@ pub async fn generate_missing_tool(
     // Build the generation prompt and use it for tool generation
     let prompt = axagent_runtime::tool_generator::ToolGenerator::build_generation_prompt(&input);
 
-    let tool = axagent_runtime::tool_generator::ToolGenerator::parse_agent_response(
-        &prompt, &input, None,
-    )
-    .map_err(|e| e.to_string())?;
+    let tool =
+        axagent_runtime::tool_generator::ToolGenerator::parse_agent_response(&prompt, &input, None)
+            .map_err(|e| e.to_string())?;
 
     // Persist to database
     axagent_runtime::tool_generator::persist_to_db(&tool, &state.sea_db)

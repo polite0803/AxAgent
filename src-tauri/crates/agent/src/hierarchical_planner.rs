@@ -2080,7 +2080,11 @@ mod tests {
 
         // 验证节点 ID 格式: p{pi}_t{ti}_{task.id}
         let expected_nid = format!("p0_t0_{}", task_id);
-        assert_eq!(nodes[0].base_id(), expected_nid, "节点 ID 格式应为 p{{pi}}_t{{ti}}_{{task.id}}");
+        assert_eq!(
+            nodes[0].base_id(),
+            expected_nid,
+            "节点 ID 格式应为 p{{pi}}_t{{ti}}_{{task.id}}"
+        );
 
         // Agent 节点的 output_var 应为 r_{nid}
         if let WorkflowNode::Agent(ref an) = nodes[0] {
@@ -2167,9 +2171,9 @@ mod tests {
 
         assert_eq!(nodes.len(), 2);
         // 验证阶段内任务依赖边
-        let task_dep_edge = edges
-            .iter()
-            .find(|e| e.source == format!("p0_t0_{}", task0_id) && e.target == format!("p0_t1_{}", task1_id));
+        let task_dep_edge = edges.iter().find(|e| {
+            e.source == format!("p0_t0_{}", task0_id) && e.target == format!("p0_t1_{}", task1_id)
+        });
         assert!(task_dep_edge.is_some(), "应有阶段内任务依赖边: t0 → t1");
     }
 

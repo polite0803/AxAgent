@@ -125,11 +125,7 @@ pub async fn skills_hub_install(
         .save_skill(&axagent_skill)
         .map_err(|e| format!("保存 skill 到存储失败: {e}"))?;
 
-    tracing::info!(
-        "Skill '{}' installed to {}",
-        axagent_skill.name,
-        skill_dir.display()
-    );
+    tracing::info!("Skill '{}' installed to {}", axagent_skill.name, skill_dir.display());
 
     Ok(())
 }
