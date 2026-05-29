@@ -12,7 +12,7 @@ use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
-use axagent_core::workflow_types::{JsonSchema, Variable, WorkflowEdge, WorkflowNode};
+use axagent_core::workflow_types::{EdgeType, JsonSchema, Variable, WorkflowEdge, WorkflowNode};
 
 use crate::workflow_engine::{
     NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus, current_epoch_ms,
@@ -478,8 +478,34 @@ impl WorkEngine {
             remaining_deps.entry(node.base_id()).or_insert(0);
         }
         for edge in &workflow.edges {
+            // source 未完成 → target 有未满足的依赖
             if !done_or_skipped.contains(edge.source.as_str()) {
                 *remaining_deps.entry(edge.target.as_str()).or_insert(0) += 1;
+                continue;
+            }
+
+            // ConditionTrue/ConditionFalse 边：根据 condition 节点的输出决定是否激活
+            if edge.edge_type == EdgeType::ConditionTrue
+                || edge.edge_type == EdgeType::ConditionFalse
+            {
+                let cond_output = workflow.results.get(edge.source.as_str());
+                let result = cond_output
+                    .and_then(|o| o.get("result"))
+                    .and_then(|r| r.as_bool())
+                    .unwrap_or(false);
+                // source_handle 回退到 edge_type：ConditionTrue → "true", ConditionFalse → "false"
+                let branch = edge
+                    .source_handle
+                    .as_deref()
+                    .unwrap_or(match edge.edge_type {
+                        EdgeType::ConditionTrue => "true",
+                        EdgeType::ConditionFalse => "false",
+                        _ => "true",
+                    });
+                let should_follow = (branch == "true" && result) || (branch == "false" && !result);
+                if !should_follow {
+                    continue;
+                }
             }
         }
 
@@ -1106,6 +1132,14 @@ impl WorkEngine {
                         )
                         .await
                         .ok();
+
+                        // ConditionNode 完成后，将不匹配分支的节点标记为 Skipped
+                        if matches!(node, WorkflowNode::Condition(_)) {
+                            let mut workflows = self.workflows.write().await;
+                            if let Some(wf) = workflows.get_mut(workflow_id) {
+                                skip_disabled_branch_nodes(wf, &wf.edges.clone(), &node_id);
+                            }
+                        }
                     },
                     Ok(Err(err)) => {
                         breakers
@@ -1644,3 +1678,66 @@ impl std::fmt::Display for WorkEngineError {
 }
 
 impl std::error::Error for WorkEngineError {}
+
+// ── Condition 节点分支跳过辅助 ──
+
+/// Condition 节点完成后，将不匹配分支上的所有下游节点标记为 Skipped。
+fn skip_disabled_branch_nodes(workflow: &mut Workflow, edges: &[WorkflowEdge], cond_node_id: &str) {
+    let cond_output = workflow.results.get(cond_node_id);
+    let result = cond_output
+        .and_then(|o| o.get("result"))
+        .and_then(|r| r.as_bool())
+        .unwrap_or(false);
+
+    // 确定要跳过的分支：result==true → 跳过 "false" 分支；result==false → 跳过 "true" 分支
+    let skip_branch = if result { "false" } else { "true" };
+
+    for edge in edges {
+        if edge.source != cond_node_id {
+            continue;
+        }
+        if edge.edge_type != EdgeType::ConditionTrue && edge.edge_type != EdgeType::ConditionFalse {
+            continue;
+        }
+        let actual_branch = edge
+            .source_handle
+            .as_deref()
+            .unwrap_or(match edge.edge_type {
+                EdgeType::ConditionTrue => "true",
+                EdgeType::ConditionFalse => "false",
+                _ => "true",
+            });
+        if actual_branch == skip_branch {
+            mark_subtree_skipped(workflow, edges, &edge.target);
+        }
+    }
+}
+
+/// 递归标记节点及其所有下游节点为 Skipped
+fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], node_id: &str) {
+    // 如果已经标记过（Completed/Failed/Skipped），不再递归
+    if let Some(state) = workflow.node_states.get(node_id)
+        && matches!(state.status, NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped)
+    {
+        return;
+    }
+
+    workflow
+        .node_states
+        .entry(node_id.to_string())
+        .or_insert_with(|| NodeRuntimeState {
+            status: NodeStatus::Skipped,
+            attempts: 0,
+            error: None,
+            started_at: None,
+            completed_at: Some(current_timestamp() as i64),
+        })
+        .status = NodeStatus::Skipped;
+
+    // 递归跳过所有下游节点
+    for edge in edges {
+        if edge.source == node_id {
+            mark_subtree_skipped(workflow, edges, &edge.target);
+        }
+    }
+}
