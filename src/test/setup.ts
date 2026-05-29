@@ -59,3 +59,29 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 
   globalThis.ResizeObserver = ResizeObserver;
 }
+
+// 用 setTimeout 替代 setImmediate — React scheduler 在 jsdom 销毁后
+// 仍可能通过 setImmediate 触发回调，导致 "window is not defined"
+// setTimeout 确保回调在 jsdom 生命周期内执行完毕
+if (typeof globalThis.setImmediate !== "undefined") {
+  const pending = new Map<number, ReturnType<typeof setTimeout>>();
+  let nextId = 1;
+  (globalThis as any).setImmediate = (fn: (...args: any[]) => void, ...args: any[]) => {
+    const id = nextId++;
+    pending.set(
+      id,
+      setTimeout(() => {
+        pending.delete(id);
+        fn(...args);
+      }, 0),
+    );
+    return id;
+  };
+  (globalThis as any).clearImmediate = (id: number) => {
+    const timer = pending.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      pending.delete(id);
+    }
+  };
+}

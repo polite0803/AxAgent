@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// 防止 React scheduler 在 jsdom 销毁后通过 setImmediate 触发 "window is not defined"
-vi.stubGlobal("setImmediate", (fn: (...args: unknown[]) => void) => setTimeout(fn, 0) as unknown as number);
-vi.stubGlobal("clearImmediate", (id: number) => clearTimeout(id));
-
 import { listen } from "@/lib/invoke";
 import { setupAgentEventListeners, useAgentStore } from "@/stores";
 
