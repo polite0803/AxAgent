@@ -2923,6 +2923,37 @@ pub async fn send_message(
 
     let mut chat_messages: Vec<ChatMessage> = Vec::new();
 
+    // Load agent profile and inject role description if set
+    if let Some(ref pid) = conversation.agent_profile_id {
+        if let Ok(Some(profile)) =
+            axagent_core::entity::agent_profiles::Entity::find_by_id(pid.as_str())
+                .one(&state.sea_db)
+                .await
+        {
+            if profile.agent_role.is_some()
+                || !profile.description.as_deref().unwrap_or("").is_empty()
+            {
+                let role_msg = format!(
+                    "You are acting as: {}. Role: {}. {}",
+                    profile.name,
+                    profile.agent_role.as_deref().unwrap_or("general"),
+                    profile.description.as_deref().unwrap_or("")
+                );
+                chat_messages.push(ChatMessage {
+                    role: if no_system_role {
+                        "user".to_string()
+                    } else {
+                        "system".to_string()
+                    },
+                    content: ChatContent::Text(role_msg),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    thinking: None,
+                });
+            }
+        }
+    }
+
     // Resolve effective system prompt: conversation → category → global default
     let effective_system_prompt = resolve_system_prompt(&state.sea_db, &conversation).await;
 

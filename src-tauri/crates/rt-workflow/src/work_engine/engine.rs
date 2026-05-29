@@ -218,6 +218,8 @@ pub struct WorkEngine {
     pub breakpoints: Arc<Mutex<HashSet<String>>>,
     /// 暂停信号（resume 时通知等待中的执行）
     pause_signal: Arc<tokio::sync::Notify>,
+    /// 节点断路器状态（跨 workflow 运行持久化，防止重试风暴）
+    node_breakers: Arc<Mutex<HashMap<String, NodeCircuitBreaker>>>,
 }
 
 impl WorkEngine {
@@ -347,6 +349,7 @@ impl WorkEngine {
             agent_profile_cache,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
             pause_signal: Arc::new(tokio::sync::Notify::new()),
+            node_breakers: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -531,6 +534,7 @@ impl WorkEngine {
         status: NodeStatus,
         result: Option<serde_json::Value>,
         error: Option<String>,
+        output_var: Option<&str>,
     ) -> Result<(), WorkflowError> {
         let mut workflows = self.workflows.write().await;
         let workflow = workflows
@@ -544,7 +548,10 @@ impl WorkEngine {
 
         state.status = status;
         if let Some(r) = result {
-            workflow.results.insert(node_id.to_string(), r);
+            workflow.results.insert(node_id.to_string(), r.clone());
+            if let Some(var) = output_var {
+                workflow.results.insert(var.to_string(), r);
+            }
         }
         if let Some(e) = error {
             state.error = Some(e);
@@ -876,7 +883,8 @@ impl WorkEngine {
                 .unwrap_or(0)
         };
         let progress_cb = options.progress_callback.clone();
-        let mut breakers: HashMap<String, NodeCircuitBreaker> = HashMap::new();
+        let mut breakers: HashMap<String, NodeCircuitBreaker> =
+            { self.node_breakers.lock().await.clone() };
 
         loop {
             if cancel_token.is_cancelled() {
@@ -950,6 +958,7 @@ impl WorkEngine {
                         NodeStatus::Failed,
                         None,
                         Some("Circuit breaker open".to_string()),
+                        None,
                     )
                     .await
                     .ok();
@@ -966,9 +975,16 @@ impl WorkEngine {
                 };
                 let started_at = Utc::now().timestamp_millis();
 
-                self.update_node_status(workflow_id, &node_id, NodeStatus::Running, None, None)
-                    .await
-                    .ok();
+                self.update_node_status(
+                    workflow_id,
+                    &node_id,
+                    NodeStatus::Running,
+                    None,
+                    None,
+                    None,
+                )
+                .await
+                .ok();
 
                 // 向前端推送"步骤开始运行"进度事件
                 if let Some(ref cb) = progress_cb {
@@ -1062,12 +1078,14 @@ impl WorkEngine {
                             .or_insert_with(NodeCircuitBreaker::new)
                             .record_success();
 
+                        let out_var = output.output_var.clone();
                         self.update_node_status(
                             workflow_id,
                             &node_id,
                             NodeStatus::Completed,
                             Some(output.output.clone()),
                             None,
+                            out_var.as_deref(),
                         )
                         .await
                         .ok();
@@ -1121,6 +1139,7 @@ impl WorkEngine {
                                 NodeStatus::Ready,
                                 None,
                                 Some(err_msg.clone()),
+                                None,
                             )
                             .await
                             .ok();
@@ -1131,6 +1150,7 @@ impl WorkEngine {
                                 NodeStatus::Failed,
                                 None,
                                 Some(err_msg.clone()),
+                                None,
                             )
                             .await
                             .ok();
@@ -1186,6 +1206,7 @@ impl WorkEngine {
                                 NodeStatus::Ready,
                                 None,
                                 Some(err_msg.clone()),
+                                None,
                             )
                             .await
                             .ok();
@@ -1196,6 +1217,7 @@ impl WorkEngine {
                                 NodeStatus::Failed,
                                 None,
                                 Some(err_msg.clone()),
+                                None,
                             )
                             .await
                             .ok();
@@ -1278,6 +1300,14 @@ impl WorkEngine {
                 if let Some(shared_wf) = workflows.get_mut(workflow_id) {
                     shared_wf.output = wf.output.clone();
                 }
+            }
+        }
+
+        // Write back breaker state for cross-run persistence
+        {
+            let mut shared = self.node_breakers.lock().await;
+            for (k, v) in breakers {
+                shared.insert(k, v);
             }
         }
 

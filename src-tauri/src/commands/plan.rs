@@ -865,6 +865,17 @@ pub async fn plan_execute(
             )
         })?;
 
+    // 验证计划状态：仅 draft 或 approved 状态允许执行
+    if plan_row.status != "draft" && plan_row.status != "approved" {
+        return Err(ErrorResponse::err_with_detail(
+            workflow_err::PLAN_NOT_FOUND,
+            format!(
+                "计划状态为 '{}'，只有 draft 或 approved 状态的计划可以执行。请重新生成计划并审批。",
+                plan_row.status
+            ),
+        ));
+    }
+
     // Update plan status to executing
     let mut am: axagent_core::entity::plans::ActiveModel = plan_row.clone().into();
     am.status = Set("executing".to_string());
