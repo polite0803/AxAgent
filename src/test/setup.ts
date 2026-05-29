@@ -72,7 +72,12 @@ if (typeof globalThis.setImmediate !== "undefined") {
       id,
       setTimeout(() => {
         pending.delete(id);
-        fn(...args);
+        // jsdom 销毁后 React scheduler 回调仍可能执行，window 已变为 undefined
+        try {
+          fn(...args);
+        } catch {
+          // React performWorkOnRootViaSchedulerTask — silently discard post-teardown errors
+        }
       }, 0),
     );
     return id;
