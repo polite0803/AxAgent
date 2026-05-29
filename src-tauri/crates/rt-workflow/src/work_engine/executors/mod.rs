@@ -15,7 +15,10 @@ mod trigger_executor;
 mod validation_executor;
 mod vector_retrieve_executor;
 
-pub use agent_executor::{AgentExecutor, RagCallback};
+pub use agent_executor::{
+    AgentExecutor, PlanApprovalCallback, PlanApprovalRequest, PlanCallbacks, PlanPhaseSummary,
+    PlanStepCallback, PlanStepEvent, RagCallback,
+};
 pub(crate) use agent_executor::{ProfileCache, ProviderCache};
 pub use code_executor::CodeExecutor;
 pub use condition_executor::ConditionExecutor;

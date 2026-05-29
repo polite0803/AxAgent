@@ -22,8 +22,8 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
 use super::executors::{
-    AgentExecutor, ConditionExecutor, LlmExecutor, ProfileCache, ProviderCache, RagCallback,
-    SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
+    AgentExecutor, ConditionExecutor, LlmExecutor, PlanCallbacks, ProfileCache, ProviderCache,
+    RagCallback, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
@@ -60,6 +60,8 @@ pub struct RunOptions {
     pub variables: Option<Vec<Variable>>,
     /// 干跑模式：不实际调用 LLM/Tool，用 mock 输出验证流程
     pub dry_run: bool,
+    /// Plan 模式回调：审批 + 步骤进度事件（通过 ExecutionState 传递给 AgentExecutor）
+    pub plan_callbacks: Option<PlanCallbacks>,
 }
 
 /// 步骤进度事件
@@ -90,6 +92,7 @@ impl std::fmt::Debug for RunOptions {
             .field("input_schema", &self.input_schema.is_some())
             .field("output_schema", &self.output_schema.is_some())
             .field("variables", &self.variables.as_ref().map(|v| v.len()))
+            .field("plan_callbacks", &self.plan_callbacks.is_some())
             .finish()
     }
 }
@@ -107,6 +110,7 @@ impl Default for RunOptions {
             output_schema: None,
             variables: None,
             dry_run: false,
+            plan_callbacks: None,
         }
     }
 }
@@ -716,6 +720,12 @@ impl WorkEngine {
                 for var in variables {
                     state.variables.insert(var.name.clone(), var.value.clone());
                 }
+            }
+        }
+        if options.plan_callbacks.is_some() {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(&execution_id) {
+                state.plan_callbacks = options.plan_callbacks.clone();
             }
         }
 

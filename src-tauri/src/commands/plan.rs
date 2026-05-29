@@ -1033,7 +1033,41 @@ pub async fn plan_execute(
                     .await
                     .insert(request.plan_id.clone(), wf.id.clone());
 
-                let opts = axagent_runtime::work_engine::RunOptions::default();
+                let plan_id = request.plan_id.clone();
+                let conversation_id = request.conversation_id.clone();
+                let app_handle = app.clone();
+                let _step_ids: Vec<String> = steps_to_run.iter().map(|s| s.id.clone()).collect();
+                let _result_key_map = result_key_to_step_id.clone();
+
+                let plan_callbacks = axagent_runtime::work_engine::PlanCallbacks {
+                    on_plan_ready: None,
+                    on_step_update: Some(Arc::new(move |event| {
+                        let app = app_handle.clone();
+                        let conv_id = conversation_id.clone();
+                        let plan_id = plan_id.clone();
+                        Box::pin(async move {
+                            let status = match event.status.as_str() {
+                                "completed" => PlanStepStatus::Completed,
+                                "failed" => PlanStepStatus::Error,
+                                _ => PlanStepStatus::Running,
+                            };
+                            let _ = app.emit(
+                                "plan-step-update",
+                                PlanStepUpdateEvent {
+                                    conversation_id: conv_id,
+                                    plan_id,
+                                    step_id: event.task_id.clone(),
+                                    status,
+                                    result: event.result.map(|v| v.to_string()),
+                                },
+                            );
+                        })
+                    })),
+                };
+                let opts = axagent_runtime::work_engine::RunOptions {
+                    plan_callbacks: Some(plan_callbacks),
+                    ..Default::default()
+                };
                 match state.work_engine.run_workflow(&wf.id, opts).await {
                     Ok(result) => {
                         for (k, v) in result.results {

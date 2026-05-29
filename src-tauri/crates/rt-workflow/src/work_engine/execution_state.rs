@@ -39,7 +39,7 @@ pub struct NodeExecutionRecord {
 
 use std::collections::HashMap;
 
-use super::executors::{SubWorkflowCallback, ToolCallback, VectorRetrieveCallback};
+use super::executors::{PlanCallbacks, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback};
 use super::prompt_template::CompiledPrompt;
 
 /// 运行时回调容器（非序列化，仅在内存中传递）
@@ -84,6 +84,9 @@ pub struct ExecutionState {
     /// 暂停信号（引擎注入，断点命中时等待，resume 时通知）
     #[serde(skip, default)]
     pub pause_signal: Option<std::sync::Arc<tokio::sync::Notify>>,
+    /// Plan 模式回调（引擎从 RunOptions 注入，executor 读取）
+    #[serde(skip, default)]
+    pub plan_callbacks: Option<PlanCallbacks>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -113,6 +116,7 @@ impl ExecutionState {
             dry_run: false,
             breakpoints: std::collections::HashSet::new(),
             pause_signal: None,
+            plan_callbacks: None,
             total_time_ms: 0,
             created_at: now,
             updated_at: now,

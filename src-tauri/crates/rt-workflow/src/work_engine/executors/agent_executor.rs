@@ -42,6 +42,66 @@ pub type RagCallback = Arc<
         + Sync,
 >;
 
+// ── Plan 模式回调类型 ──
+
+use serde::Serialize;
+
+/// Plan 模式回调集 — 应用层通过 RunOptions.plan_callbacks 注入
+#[derive(Clone)]
+pub struct PlanCallbacks {
+    /// Plan 生成后、执行前调用。返回 Ok(true) 批准，Ok(false) 拒绝。
+    pub on_plan_ready: Option<PlanApprovalCallback>,
+    /// 步骤状态变化回调（推送到前端 + 写 DB）
+    pub on_step_update: Option<PlanStepCallback>,
+}
+
+impl std::fmt::Debug for PlanCallbacks {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PlanCallbacks")
+            .field("on_plan_ready", &self.on_plan_ready.is_some())
+            .field("on_step_update", &self.on_step_update.is_some())
+            .finish()
+    }
+}
+
+pub type PlanApprovalCallback = Arc<
+    dyn Fn(PlanApprovalRequest) -> Pin<Box<dyn Future<Output = Result<bool, String>> + Send>>
+        + Send
+        + Sync,
+>;
+
+pub type PlanStepCallback =
+    Arc<dyn Fn(PlanStepEvent) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlanApprovalRequest {
+    pub goal: String,
+    pub role_desc: String,
+    pub model: String,
+    pub phase_count: usize,
+    pub task_count: u32,
+    pub phases: Vec<PlanPhaseSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlanPhaseSummary {
+    pub name: String,
+    pub task_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlanStepEvent {
+    pub node_id: String,
+    pub phase_index: u32,
+    pub task_index: u32,
+    pub task_id: String,
+    pub status: String,
+    pub result: Option<serde_json::Value>,
+    pub error: Option<String>,
+}
+
+// ── AgentExecutor ──
+
 pub struct AgentExecutor {
     db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
@@ -657,6 +717,41 @@ impl AgentExecutor {
             )
         })?;
 
+        // 1.5 审批回调（Plan 生成后、执行前）
+        if let Some(ref cbs) = _context.plan_callbacks
+            && let Some(ref on_ready) = cbs.on_plan_ready
+        {
+            let phase_summaries: Vec<PlanPhaseSummary> = plan
+                .phases
+                .iter()
+                .map(|p| PlanPhaseSummary {
+                    name: p.name.clone(),
+                    task_count: p.tasks.len(),
+                })
+                .collect();
+            let approved = on_ready(PlanApprovalRequest {
+                goal: plan.goal.clone(),
+                role_desc: role_desc.clone(),
+                model: model.to_string(),
+                phase_count: plan.phases.len(),
+                task_count: plan.phases.iter().map(|p| p.tasks.len() as u32).sum(),
+                phases: phase_summaries,
+            })
+            .await
+            .map_err(|e| {
+                NodeError::exec_failed(
+                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    format!("Plan 审批回调失败: {e}"),
+                )
+            })?;
+            if !approved {
+                return Err(NodeError::exec_failed(
+                    error_code::AGENT_PROFILE_NOT_FOUND,
+                    "用户拒绝执行此 Plan".to_string(),
+                ));
+            }
+        }
+
         // 2. HierarchicalPlanner 接管：验证、执行管理、重规划
         let mut planner = HierarchicalPlanner::new().with_max_retries(replan_max_retries);
         planner.create_plan(&an.config.system_prompt, plan.phases.clone());
@@ -705,6 +800,35 @@ impl AgentExecutor {
                                 if let Some(v) = wf_result.results.get(&key) {
                                     task.status = TaskStatus::Completed;
                                     task.result = Some(v.clone());
+                                }
+                            }
+                        }
+                    }
+                    // 步骤事件推送
+                    if let Some(ref cbs) = _context.plan_callbacks
+                        && let Some(ref on_step) = cbs.on_step_update
+                    {
+                        let phases_snapshot = {
+                            let plan_guard = planner.get_plan();
+                            plan_guard.cloned()
+                        };
+                        if let Some(ref p) = phases_snapshot {
+                            for (pi, phase) in p.phases.iter().enumerate() {
+                                for (ti, task) in phase.tasks.iter().enumerate() {
+                                    on_step(PlanStepEvent {
+                                        node_id: format!("p{pi}_t{ti}_{}", task.id),
+                                        phase_index: pi as u32,
+                                        task_index: ti as u32,
+                                        task_id: task.id.clone(),
+                                        status: if task.status == TaskStatus::Completed {
+                                            "completed".to_string()
+                                        } else {
+                                            "failed".to_string()
+                                        },
+                                        result: task.result.clone(),
+                                        error: task.error.clone(),
+                                    })
+                                    .await;
                                 }
                             }
                         }

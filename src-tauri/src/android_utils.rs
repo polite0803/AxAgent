@@ -58,7 +58,7 @@ pub fn report_fatal_error(message: &str) {
             let existing = std::fs::read_to_string(&path).unwrap_or_default();
             let entry =
                 format!("{} | {}\n", chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ"), message);
-            let _ = std::fs::write(&path, existing + &entry);
+            let _ = std::fs::write(&path, existing + entry.as_str());
         }
 
         // 写入外部可访问路径（用户可通过文件管理器读取）
