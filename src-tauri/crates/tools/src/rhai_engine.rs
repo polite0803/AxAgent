@@ -25,55 +25,41 @@ pub fn compile_script(engine: &Engine, script: &str) -> Result<AST, String> {
         .map_err(|e| format!("Rhai 编译失败: {e}"))
 }
 
-/// 批量编译工作流中所有 language="rhai" 的 Code 节点
-pub fn compile_workflow_rhai_scripts(
-    nodes: &[axagent_core::workflow_types::WorkflowNode],
+/// 从模板 tool_defs 批量编译 Rhai 工具（非 DAG 节点方式）
+pub fn compile_from_tool_defs(
+    tool_defs: &[axagent_core::workflow_types::RhaiToolDef],
 ) -> RhaiScriptCache {
     let engine = create_rhai_engine();
     let mut cache = HashMap::new();
-    for node in nodes {
-        if let axagent_core::workflow_types::WorkflowNode::Code(code_node) = node {
-            if code_node.config.language != "rhai" || code_node.config.code.is_empty() {
-                continue;
-            }
-            let tool_name = code_node
-                .config
-                .tool_name
-                .clone()
-                .unwrap_or_else(|| format!("code_{}", code_node.base.id));
-            match compile_script(&engine, &code_node.config.code) {
-                Ok(ast) => {
-                    tracing::info!("[RhaiEngine] 编译成功: {tool_name}");
-                    cache.insert(tool_name, Arc::new(ast));
-                },
-                Err(e) => tracing::warn!("[RhaiEngine] 编译失败 {tool_name}: {e}"),
-            }
+    for td in tool_defs {
+        if td.code.is_empty() {
+            continue;
+        }
+        match compile_script(&engine, &td.code) {
+            Ok(ast) => {
+                cache.insert(td.tool_name.clone(), Arc::new(ast));
+            },
+            Err(e) => tracing::warn!("[RhaiEngine] 编译失败 {}: {e}", td.tool_name),
         }
     }
     cache
 }
 
 /// 执行 Rhai AST，支持通过 `tool("name", args)` 调用注册的工具
+pub type ToolFn = Arc<
+    dyn Fn(
+            String,
+            serde_json::Value,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>,
+        > + Send
+        + Sync,
+>;
+
 pub fn execute_rhai_ast(
     ast: &AST,
     args: serde_json::Value,
-    tools: Option<
-        &HashMap<
-            String,
-            Arc<
-                dyn Fn(
-                        String,
-                        serde_json::Value,
-                    ) -> std::pin::Pin<
-                        Box<
-                            dyn std::future::Future<Output = Result<serde_json::Value, String>>
-                                + Send,
-                        >,
-                    > + Send
-                    + Sync,
-            >,
-        >,
-    >,
+    tools: Option<&HashMap<String, ToolFn>>,
 ) -> Result<serde_json::Value, String> {
     let mut engine = create_rhai_engine();
     let mut scope = Scope::new();
@@ -124,7 +110,7 @@ pub fn execute_rhai_ast(
 fn rhai_map_to_json(map: rhai::Map) -> serde_json::Value {
     let mut obj = serde_json::Map::new();
     for (k, v) in map {
-        obj.insert(k.to_string(), dynamic_to_json(v.into()));
+        obj.insert(k.to_string(), dynamic_to_json(v));
     }
     serde_json::Value::Object(obj)
 }

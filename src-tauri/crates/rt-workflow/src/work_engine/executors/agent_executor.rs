@@ -5,16 +5,19 @@
 //!   2. 执行时：render_prompt() 用 ExecutionState.variables 填充模板
 
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, RagContextResult};
 use axagent_core::workflow_types::WorkflowNode;
 use futures::StreamExt;
 use sea_orm::DatabaseConnection;
 use serde_json::Value;
 use tokio::sync::Mutex;
 
+use crate::work_engine::WorkEngine;
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code,
@@ -28,9 +31,23 @@ pub(crate) type ProviderCache =
     Option<(axagent_core::types::ProviderConfig, axagent_core::types::ProviderKey, String)>;
 pub(crate) type ProfileCache = HashMap<String, axagent_core::entity::agent_profiles::Model>;
 
+pub type RagCallback = Arc<
+    dyn Fn(
+            Vec<String>,
+            Vec<String>,
+            Vec<String>,
+            String,
+        ) -> Pin<Box<dyn Future<Output = Result<RagContextResult, String>> + Send>>
+        + Send
+        + Sync,
+>;
+
 pub struct AgentExecutor {
     db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
+    rag_callback: Option<RagCallback>,
+    /// Plan 模式用：注入 WorkEngine 引用（临时工作流创建+执行）
+    engine: Option<Arc<super::super::WorkEngine>>,
     /// 默认 provider 缓存（同一次工作流执行内复用）
     default_provider_cache: Arc<Mutex<ProviderCache>>,
     /// Agent profile 缓存（同一工作流内多个节点共用同 profile 时复用）
@@ -42,9 +59,21 @@ impl AgentExecutor {
         Self {
             db,
             master_key,
+            rag_callback: None,
+            engine: None,
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    pub fn with_engine(mut self, engine: Arc<WorkEngine>) -> Self {
+        self.engine = Some(engine);
+        self
+    }
+
+    pub fn with_rag_callback(mut self, cb: RagCallback) -> Self {
+        self.rag_callback = Some(cb);
+        self
     }
 
     /// 构造使用共享缓存的 executor（供 WorkEngine 注入，用于跨执行清除）。
@@ -57,6 +86,25 @@ impl AgentExecutor {
         Self {
             db,
             master_key,
+            rag_callback: None,
+            engine: None,
+            default_provider_cache,
+            profile_cache,
+        }
+    }
+
+    pub fn with_shared_caches_and_rag_callback(
+        db: Arc<DatabaseConnection>,
+        master_key: [u8; 32],
+        default_provider_cache: Arc<Mutex<ProviderCache>>,
+        profile_cache: Arc<Mutex<ProfileCache>>,
+        rag_callback: RagCallback,
+    ) -> Self {
+        Self {
+            db,
+            master_key,
+            rag_callback: Some(rag_callback),
+            engine: None,
             default_provider_cache,
             profile_cache,
         }
@@ -68,6 +116,8 @@ impl Default for AgentExecutor {
         Self {
             db: Arc::new(DatabaseConnection::default()),
             master_key: [0u8; 32],
+            rag_callback: None,
+            engine: None,
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
         }
@@ -220,6 +270,39 @@ impl NodeExecutorTrait for AgentExecutor {
             }
         }
 
+        // 4e. RAG 知识源检索（从知识库/记忆/Wiki 检索相关内容注入 system prompt）
+        if !an.config.rag_source_ids.is_empty() {
+            if let Some(ref rag_cb) = self.rag_callback {
+                let rag_query = user_prompt_for_rag(&an.config, &context.variables);
+                let (kb_ids, mem_ids, wiki_ids) = parse_rag_source_ids(&an.config.rag_source_ids);
+                if !kb_ids.is_empty() || !mem_ids.is_empty() || !wiki_ids.is_empty() {
+                    let rag_result = rag_cb(kb_ids, mem_ids, wiki_ids, rag_query).await;
+                    match rag_result {
+                        Ok(result) if !result.context_parts.is_empty() => {
+                            all_segments.push(TemplateSegment::Static(
+                                "\n\n--- 知识库参考 ---\n".to_string(),
+                            ));
+                            for part in &result.context_parts {
+                                all_segments.push(TemplateSegment::Static(part.clone()));
+                            }
+                        },
+                        Ok(_) => {},
+                        Err(e) => {
+                            tracing::warn!(
+                                "RAG context collection failed for agent node {}: {e}",
+                                an.base.id
+                            );
+                        },
+                    }
+                }
+            } else {
+                tracing::debug!(
+                    "Agent node {} has rag_source_ids but no RAG callback configured, skipping",
+                    an.base.id
+                );
+            }
+        }
+
         let compiled = CompiledPrompt {
             segments: all_segments,
             variable_refs: Vec::new(),
@@ -269,6 +352,14 @@ impl NodeExecutorTrait for AgentExecutor {
         ];
 
         let base_url = resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
+        let model = session_model.unwrap_or(default_model);
+
+        if an.config.execution_mode.as_deref() == Some("plan") {
+            return self
+                .execute_plan_mode(&an, context, &prov, &api_key, &model, &adapter, node)
+                .await;
+        }
+
         let req_ctx = axagent_providers::ProviderRequestContext {
             provider_id: prov.id.clone(),
             api_key,
@@ -282,7 +373,6 @@ impl NodeExecutorTrait for AgentExecutor {
             previous_response_id: None,
             store_response: None,
         };
-        let model = session_model.unwrap_or(default_model);
         let model_for_output = model.clone();
 
         if context.dry_run {
@@ -483,6 +573,122 @@ impl NodeExecutorTrait for AgentExecutor {
     }
 }
 
+impl AgentExecutor {
+    /// Plan 模式：LLM 生成计划 → HierarchicalPlanner 管理 → 编译 DAG → WorkEngine 执行
+    async fn execute_plan_mode(
+        &self,
+        an: &axagent_core::workflow_types::AgentNode,
+        _context: &ExecutionState,
+        prov: &axagent_core::types::ProviderConfig,
+        api_key: &str,
+        model: &str,
+        adapter: &std::sync::Arc<dyn axagent_providers::ProviderAdapter>,
+        node: &WorkflowNode,
+    ) -> Result<NodeOutput, NodeError> {
+        use axagent_agent::hierarchical_planner::{
+            Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus, compile_plan_to_dag,
+        };
+        use axagent_core::workflow_types::*;
+        let role_desc = resolve_role(&an.config, None);
+        let base_url =
+            axagent_providers::resolve_base_url_for_type(&prov.api_host, &prov.provider_type);
+        let tool_names: Vec<String> = an.config.tools.iter().map(|t| t.name.clone()).collect();
+
+        // 1. 调用 LLM 生成 Plan（HierarchicalPlanner 格式）
+        let plan_prompt = format!(
+            "你是一个任务规划器。根据目标生成层次化执行计划。\n\n\
+             目标: {}\n\n可用工具: {}\n\n\
+             输出 JSON:\n\
+             {{\"phases\":[{{\"name\":\"Phase\",\"tasks\":[\
+             {{\"id\":\"t1\",\"description\":\"...\",\"action_type\":\"tool|llm|agent\",\"parameters\":{{}},\"dependencies\":[]}}\
+             ]}}]}}",
+            an.config.system_prompt,
+            tool_names.join(", "),
+        );
+        let plan_ctx = axagent_providers::ProviderRequestContext {
+            provider_id: prov.id.clone(),
+            api_key: api_key.to_string(),
+            key_id: String::new(),
+            base_url: Some(base_url),
+            api_path: None,
+            proxy_config: None,
+            custom_headers: None,
+            api_mode: None,
+            conversation: None,
+            previous_response_id: None,
+            store_response: None,
+        };
+        let plan_req = axagent_core::types::ChatRequest {
+            model: model.to_string(),
+            messages: vec![axagent_core::types::ChatMessage {
+                role: "user".to_string(),
+                content: axagent_core::types::ChatContent::Text(plan_prompt),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            }],
+            stream: false,
+            temperature: Some(0.0),
+            max_tokens: Some(4096),
+            top_p: None,
+            tools: None,
+            thinking_budget: None,
+            use_max_completion_tokens: None,
+            thinking_param_style: None,
+            api_mode: None,
+            instructions: None,
+            conversation: None,
+            previous_response_id: None,
+            store: None,
+        };
+        let resp = adapter.chat(&plan_ctx, plan_req).await.map_err(|e| {
+            NodeError::exec_failed(error_code::AGENT_PROFILE_NOT_FOUND, format!("Plan LLM: {e}"))
+        })?;
+        let text = resp.content.trim();
+        let json = text
+            .split("```json")
+            .nth(1)
+            .and_then(|s| s.split("```").next())
+            .unwrap_or(text);
+        let plan: Plan = serde_json::from_str(json).unwrap_or(Plan {
+            id: uuid::Uuid::new_v4().to_string(),
+            goal: an.config.system_prompt.clone(),
+            phases: vec![],
+            status: PlanStatus::Draft,
+            created_at: 0,
+            updated_at: 0,
+        });
+
+        let phase_count = plan.phases.len();
+        let task_count: u32 = plan.phases.iter().map(|p| p.tasks.len() as u32).sum();
+
+        // 2. 编译 → DAG → WorkEngine 执行
+        let plan_results = if let Some(ref engine) = self.engine {
+            let (wf_nodes, wf_edges) = compile_plan_to_dag(&plan, &tool_names);
+            use crate::work_engine::RunOptions;
+            let wf_name = format!("plan_{}", uuid::Uuid::new_v4());
+            match engine.create_workflow(&wf_name, wf_nodes, wf_edges).await {
+                Ok(wf) => match engine.run_workflow(&wf.id, RunOptions::default()).await {
+                    Ok(result) => serde_json::Value::Object(result.results.into_iter().collect()),
+                    Err(e) => serde_json::json!({"error": format!("{e:?}")}),
+                },
+                Err(e) => serde_json::json!({"error": format!("{e:?}")}),
+            }
+        } else {
+            serde_json::json!({"error": "Plan engine not available"})
+        };
+
+        Ok(NodeOutput {
+            output: serde_json::json!({
+                "mode":"plan","role":role_desc,"model":model.to_string(),
+                "phases":phase_count,"tasks":task_count,"results":plan_results,
+                "node_id": node.base_id(),
+            }),
+            output_var: Some(an.config.output_var.clone()),
+        })
+    }
+}
+
 /// 从 context.callbacks 中查找并执行工具。
 async fn execute_tool(
     context: &ExecutionState,
@@ -631,4 +837,41 @@ fn format_context_source(name: &str, value: &Value) -> String {
     };
 
     format!("[{name}] 输出:\n{body}\n\n")
+}
+
+fn parse_rag_source_ids(ids: &[String]) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let mut kb = Vec::new();
+    let mut mem = Vec::new();
+    let mut wiki = Vec::new();
+    for id in ids {
+        if let Some(rest) = id.strip_prefix("knowledge:") {
+            kb.push(rest.to_string());
+        } else if let Some(rest) = id.strip_prefix("memory:") {
+            mem.push(rest.to_string());
+        } else if let Some(rest) = id.strip_prefix("wiki:") {
+            wiki.push(rest.to_string());
+        }
+    }
+    (kb, mem, wiki)
+}
+
+fn user_prompt_for_rag(
+    config: &axagent_core::workflow_types::AgentNodeConfig,
+    variables: &std::collections::HashMap<String, Value>,
+) -> String {
+    if !config.context_sources.is_empty() {
+        config
+            .context_sources
+            .iter()
+            .filter_map(|s| variables.get(s).map(|v| format!("{s}: {v}")))
+            .collect::<Vec<_>>()
+            .join("\n")
+    } else {
+        variables
+            .iter()
+            .filter(|(k, _)| !k.starts_with("__"))
+            .map(|(k, v)| format!("{k}: {v}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
 }

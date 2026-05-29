@@ -13,6 +13,8 @@ export interface BaseNodeData {
   nodeType: string;
   enabled: boolean;
   validationState?: "error" | "warning";
+  /** 执行状态: running → 脉冲动画, completed → 绿色, failed → 红色 */
+  executionState?: "running" | "completed" | "failed";
 }
 
 const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
@@ -27,19 +29,17 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
   };
 
   const getBorderColor = () => {
-    if (data.validationState === "error") {
-      return token.colorError;
-    }
-    if (data.validationState === "warning") {
-      return token.colorWarning;
-    }
-    if (selected) {
-      return token.colorPrimary;
-    }
+    if (data.validationState === "error") { return token.colorError; }
+    if (data.validationState === "warning") { return token.colorWarning; }
+    if (data.executionState === "running") { return token.colorPrimary; }
+    if (data.executionState === "completed") { return token.colorSuccess; }
+    if (data.executionState === "failed") { return token.colorError; }
+    if (selected) { return token.colorPrimary; }
     return data.color;
   };
 
   const borderColor = getBorderColor();
+  const isRunning = data.executionState === "running";
 
   return (
     <div
@@ -58,6 +58,7 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
           padding: 0,
           boxShadow: selected ? `0 0 0 2px ${borderColor}40` : "none",
           transition: "box-shadow 0.2s, transform 0.2s",
+          animation: isRunning ? "nodePulse 1.5s ease-in-out infinite" : "none",
         }}
       >
         <div
@@ -75,10 +76,17 @@ const BaseNodeComponent: React.FC<NodeProps<BaseNodeData>> = ({
               fontSize: 12,
               color: data.color,
               fontWeight: 500,
+              flex: 1,
             }}
           >
             {typeInfo.labelKey ? t(typeInfo.labelKey) : data.nodeType}
           </span>
+          {/* Status badges */}
+          <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+            {(data as any).config?.tick_mode && <span title="Tick 模式" style={{ fontSize: 10 }}>⏱</span>}
+            {((data as any)._breakpoint) && <span title="断点" style={{ fontSize: 10 }}>🔴</span>}
+            {(data as any).retry?.enabled && <span title="重试已启用" style={{ fontSize: 10 }}>🔄</span>}
+          </div>
         </div>
 
         <div style={{ padding: "8px 12px" }}>

@@ -1,4 +1,5 @@
 use crate::AppState;
+use axagent_core::prompts::PromptLang;
 use axagent_core::types::*;
 use axagent_providers::{
     ProviderRequestContext, registry::ProviderRegistry, resolve_base_url_for_type,
@@ -548,6 +549,7 @@ pub async fn auto_extract_incremental_memories(
         adapter,
         &ctx,
         &model_id,
+        PromptLang::ZhCN,
     )
     .await?;
 
@@ -1068,9 +1070,14 @@ pub async fn extract_conversation_entities(
         None => return Err(format!("Unsupported provider type: {}", registry_key)),
     };
 
-    let result =
-        crate::memory_extract::extract_entities_from_messages(&messages, adapter, &ctx, &model_id)
-            .await?;
+    let result = crate::memory_extract::extract_entities_from_messages(
+        &messages,
+        adapter,
+        &ctx,
+        &model_id,
+        PromptLang::ZhCN,
+    )
+    .await?;
 
     let mut saved_entities = 0usize;
     let mut saved_relations = 0usize;
@@ -1356,8 +1363,14 @@ pub async fn consolidate_memory_cluster(
         None => return Err(format!("Unsupported provider type: {}", registry_key)),
     };
 
-    let consolidated =
-        crate::memory_extract::consolidate_memories(&contents, adapter, &ctx, &model_id).await?;
+    let consolidated = crate::memory_extract::consolidate_memories(
+        &contents,
+        adapter,
+        &ctx,
+        &model_id,
+        PromptLang::ZhCN,
+    )
+    .await?;
 
     let ms = state.memory_service.read().await;
     let result = ms.add_memory_advanced(axagent_trajectory::AddMemoryRequest {
@@ -1505,6 +1518,7 @@ pub async fn extract_conversation_memories(
         adapter,
         &ctx,
         &model_id,
+        PromptLang::ZhCN,
     )
     .await?;
 

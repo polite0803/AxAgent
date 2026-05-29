@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "axagent"
-version = "2.3.0"
+version = "2.4.0"
 dependencies = [
  "android_logger",
  "async-trait",
@@ -1066,6 +1066,7 @@ name = "axagent-rt-workflow"
 version = "2.4.0"
 dependencies = [
  "async-trait",
+ "axagent-agent",
  "axagent-core",
  "axagent-providers",
  "axagent-tools",

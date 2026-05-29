@@ -34,6 +34,104 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
     }
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SendMessageOptions {
+    pub enabled_mcp_server_ids: Option<Vec<String>>,
+    pub thinking_budget: Option<u32>,
+    pub enabled_knowledge_base_ids: Option<Vec<String>>,
+    pub enabled_memory_namespace_ids: Option<Vec<String>>,
+    pub enabled_wiki_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SendMessageParams {
+    pub conversation_id: String,
+    pub content: String,
+    pub attachments: Vec<AttachmentInput>,
+    pub options: SendMessageOptions,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegenerateMessageParams {
+    pub conversation_id: String,
+    pub user_message_id: Option<String>,
+    pub options: SendMessageOptions,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegenerateWithModelParams {
+    pub conversation_id: String,
+    pub user_message_id: String,
+    pub target_provider_id: String,
+    pub target_model_id: String,
+    pub options: SendMessageOptions,
+    pub is_companion: Option<bool>,
+}
+
+struct StreamConsumptionParams<'a> {
+    conversation_id: &'a str,
+    message_id: &'a str,
+    model_id: &'a str,
+    provider_id: &'a str,
+    cancel_flag: &'a AtomicBool,
+    suppress_thinking: bool,
+}
+
+pub(crate) struct TitleFallbackModel<'a> {
+    provider: &'a ProviderConfig,
+    ctx: &'a ProviderRequestContext,
+    model_id: &'a str,
+}
+
+struct StreamTaskParams {
+    pub conversation_id: String,
+    pub assistant_message_id: String,
+    pub conversation: Conversation,
+    pub provider: ProviderConfig,
+    pub ctx: ProviderRequestContext,
+    pub chat_messages: Vec<ChatMessage>,
+    pub is_first_message: bool,
+    pub user_content: String,
+    pub parent_message_id: String,
+    pub version_index: i32,
+    pub tools: Option<Vec<ChatTool>>,
+    pub thinking_budget: Option<u32>,
+    pub mcp_server_ids: Vec<String>,
+    pub override_created_at: Option<i64>,
+    pub use_max_completion_tokens: Option<bool>,
+    pub force_max_tokens: Option<bool>,
+    pub thinking_param_style: Option<String>,
+    pub request_delay_ms: Option<u64>,
+    pub settings: AppSettings,
+    pub master_key: [u8; 32],
+    pub cancel_flag: Arc<AtomicBool>,
+    pub cancel_flags: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+    pub content_prefix: String,
+    pub create_inactive: bool,
+    pub skip_placeholder_create: bool,
+}
+
+struct CompressProviderInfo<'a> {
+    provider: &'a ProviderConfig,
+    decrypted_key: &'a str,
+    key_id: &'a str,
+    proxy_config: &'a Option<ProviderProxyConfig>,
+    model_id: &'a str,
+    use_max_completion_tokens: Option<bool>,
+}
+
+struct CompressContext<'a> {
+    conversation_id: &'a str,
+    history_messages: &'a [ChatMessage],
+    existing_summary: Option<&'a str>,
+    settings: &'a AppSettings,
+    master_key: &'a [u8; 32],
+}
+
 /// 获取思考块开始标记
 fn get_thinking_block_start() -> String {
     format!("<think data-axagent=\"{}\" data-code=\"{}\">\n", "1", thinking_err::BLOCK_START)
@@ -452,9 +550,21 @@ pub async fn update_conversation(
     id: String,
     input: UpdateConversationInput,
 ) -> Result<Conversation, String> {
-    axagent_core::repo::conversation::update_conversation(&state.sea_db, &id, input)
+    let needs_sync = input.enabled_knowledge_base_ids.is_some()
+        || input.enabled_memory_namespace_ids.is_some()
+        || input.enabled_wiki_ids.is_some();
+
+    let updated = axagent_core::repo::conversation::update_conversation(&state.sea_db, &id, input)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    if needs_sync {
+        if let Err(e) = sync_context_sources(&state.sea_db, &id, &updated).await {
+            tracing::warn!("Failed to sync context_sources for conversation {}: {}", id, e);
+        }
+    }
+
+    Ok(updated)
 }
 
 #[tauri::command]
@@ -742,26 +852,28 @@ pub async fn archive_workflow_session(
     Ok(conv)
 }
 
-#[allow(clippy::too_many_arguments)]
 async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
         Box<dyn futures::Stream<Item = axagent_core::error::Result<ChatStreamChunk>> + Send>,
     >,
-    conversation_id: &str,
-    message_id: &str,
-    model_id: &str,
-    provider_id: &str,
-    cancel_flag: &AtomicBool,
-    suppress_thinking: bool,
+    params: StreamConsumptionParams<'_>,
 ) -> (
-    String, // full_content (includes <think> blocks)
+    String,
     Option<TokenUsage>,
     Option<Vec<ToolCall>>,
-    Option<String>, // stream_error
-    Option<f64>,    // tokens_per_second
-    Option<i64>,    // first_token_latency_ms
+    Option<String>,
+    Option<f64>,
+    Option<i64>,
 ) {
+    let StreamConsumptionParams {
+        conversation_id,
+        message_id,
+        model_id,
+        provider_id,
+        cancel_flag,
+        suppress_thinking,
+    } = params;
     use futures::StreamExt;
     let mut full_content = String::new();
     let mut final_usage: Option<TokenUsage> = None;
@@ -1507,16 +1619,18 @@ fn format_conversation_for_title(messages: &[(MessageRole, String)], max_chars: 
 
 /// Generate an AI-powered conversation title using the configured title summary model.
 /// Returns Err with the actual error message if generation fails.
-#[allow(clippy::too_many_arguments)]
 pub async fn generate_ai_title(
     db: &sea_orm::DatabaseConnection,
     conversation_messages: &[(MessageRole, String)],
-    fallback_provider: &ProviderConfig,
-    fallback_ctx: &ProviderRequestContext,
-    fallback_model_id: &str,
+    fallback: TitleFallbackModel<'_>,
     settings: &AppSettings,
     master_key: &[u8; 32],
 ) -> Result<String, String> {
+    let TitleFallbackModel {
+        provider: fallback_provider,
+        ctx: fallback_ctx,
+        model_id: fallback_model_id,
+    } = fallback;
     // Helper: look up use_max_completion_tokens from model param_overrides
     let lookup_umc = |provider_id: &str, model_id: &str, db: &sea_orm::DatabaseConnection| {
         let pid = provider_id.to_string();
@@ -1807,9 +1921,11 @@ pub async fn regenerate_conversation_title(
         let ai_title = generate_ai_title(
             &db,
             &conversation_messages,
-            &provider,
-            &ctx,
-            &conv_model_id,
+            TitleFallbackModel {
+                provider: &provider,
+                ctx: &ctx,
+                model_id: &conv_model_id,
+            },
             &global_settings,
             &master_key,
         )
@@ -1931,6 +2047,112 @@ fn dedup_rag_against_working_memory(wm_content: &str, context_parts: &mut Vec<St
     });
 }
 
+async fn sync_context_sources(
+    db: &sea_orm::DatabaseConnection,
+    conversation_id: &str,
+    conversation: &Conversation,
+) -> Result<(), String> {
+    axagent_core::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    for kb_id in &conversation.enabled_knowledge_base_ids {
+        let title = axagent_core::repo::knowledge::get_knowledge_base(db, kb_id)
+            .await
+            .map(|kb| kb.name)
+            .unwrap_or_else(|_| kb_id.clone());
+        let input = CreateContextSourceInput {
+            conversation_id: conversation_id.to_string(),
+            message_id: None,
+            source_type: "knowledge".to_string(),
+            ref_id: kb_id.clone(),
+            title,
+            summary: None,
+        };
+        axagent_core::repo::context_source::add_context_source(db, &input)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    for mem_id in &conversation.enabled_memory_namespace_ids {
+        let title = axagent_core::repo::memory::get_namespace(db, mem_id)
+            .await
+            .map(|ns| ns.name)
+            .unwrap_or_else(|_| mem_id.clone());
+        let input = CreateContextSourceInput {
+            conversation_id: conversation_id.to_string(),
+            message_id: None,
+            source_type: "memory".to_string(),
+            ref_id: mem_id.clone(),
+            title,
+            summary: None,
+        };
+        axagent_core::repo::context_source::add_context_source(db, &input)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    for wiki_id in &conversation.enabled_wiki_ids {
+        let title = axagent_core::repo::wiki::get_wiki(db, wiki_id)
+            .await
+            .map(|w| w.name)
+            .unwrap_or_else(|_| wiki_id.clone());
+        let input = CreateContextSourceInput {
+            conversation_id: conversation_id.to_string(),
+            message_id: None,
+            source_type: "wiki".to_string(),
+            ref_id: wiki_id.clone(),
+            title,
+            summary: None,
+        };
+        axagent_core::repo::context_source::add_context_source(db, &input)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+async fn resolve_rag_ids(
+    db: &sea_orm::DatabaseConnection,
+    conversation_id: &str,
+    enabled_knowledge_base_ids: Option<Vec<String>>,
+    enabled_memory_namespace_ids: Option<Vec<String>>,
+    enabled_wiki_ids: Option<Vec<String>>,
+) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let mut kb = Vec::new();
+    let mut mem = Vec::new();
+    let mut wiki = Vec::new();
+
+    match axagent_core::repo::context_source::list_context_sources(db, conversation_id).await {
+        Ok(sources) => {
+            for src in sources {
+                if !src.enabled {
+                    continue;
+                }
+                match src.source_type.as_str() {
+                    "knowledge" => kb.push(src.ref_id),
+                    "memory" => mem.push(src.ref_id),
+                    "wiki" => wiki.push(src.ref_id),
+                    _ => {},
+                }
+            }
+        },
+        Err(e) => {
+            tracing::warn!("Failed to load context_sources for RAG: {}", e);
+        },
+    }
+
+    if !kb.is_empty() || !mem.is_empty() || !wiki.is_empty() {
+        return (kb, mem, wiki);
+    }
+
+    let explicit_kb = enabled_knowledge_base_ids.unwrap_or_default();
+    let explicit_mem = enabled_memory_namespace_ids.unwrap_or_default();
+    let explicit_wiki = enabled_wiki_ids.unwrap_or_default();
+    (explicit_kb, explicit_mem, explicit_wiki)
+}
+
 fn build_rag_chat_message(rag_items: &[String]) -> Option<ChatMessage> {
     if rag_items.is_empty() {
         return None;
@@ -1982,36 +2204,38 @@ fn apply_rag_token_budget(context_parts: &[String], budget: usize) -> Vec<String
     }
     rag_items
 }
-#[allow(clippy::too_many_arguments)]
 fn spawn_stream_task(
     app: tauri::AppHandle,
     db: sea_orm::DatabaseConnection,
-    conversation_id: String,
-    assistant_message_id: String,
-    conversation: Conversation,
-    provider: ProviderConfig,
-    ctx: ProviderRequestContext,
-    chat_messages: Vec<ChatMessage>,
-    is_first_message: bool,
-    user_content: String,
-    parent_message_id: String,
-    version_index: i32,
-    tools: Option<Vec<ChatTool>>,
-    thinking_budget: Option<u32>,
-    mcp_server_ids: Vec<String>,
-    override_created_at: Option<i64>,
-    use_max_completion_tokens: Option<bool>,
-    force_max_tokens: Option<bool>,
-    thinking_param_style: Option<String>,
-    request_delay_ms: Option<u64>,
-    settings: AppSettings,
-    master_key: [u8; 32],
-    cancel_flag: Arc<AtomicBool>,
-    cancel_flags: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
-    content_prefix: String,
-    create_inactive: bool,
-    skip_placeholder_create: bool,
+    params: StreamTaskParams,
 ) {
+    let StreamTaskParams {
+        conversation_id,
+        assistant_message_id,
+        conversation,
+        provider,
+        ctx,
+        chat_messages,
+        is_first_message,
+        user_content,
+        parent_message_id,
+        version_index,
+        tools,
+        thinking_budget,
+        mcp_server_ids,
+        override_created_at,
+        use_max_completion_tokens,
+        force_max_tokens,
+        thinking_param_style,
+        request_delay_ms,
+        settings,
+        master_key,
+        cancel_flag,
+        cancel_flags,
+        content_prefix,
+        create_inactive,
+        skip_placeholder_create,
+    } = params;
     let model_id = conversation.model_id.clone();
 
     tokio::spawn(async move {
@@ -2129,12 +2353,14 @@ fn spawn_stream_task(
             let (content, usage, tool_calls, stream_error, iter_tps, iter_ttft) = consume_stream(
                 &app,
                 &mut stream,
-                &conversation_id,
-                &assistant_message_id,
-                &model_id,
-                &provider.id,
-                &cancel_flag,
-                suppress_thinking,
+                StreamConsumptionParams {
+                    conversation_id: &conversation_id,
+                    message_id: &assistant_message_id,
+                    model_id: &model_id,
+                    provider_id: &provider.id,
+                    cancel_flag: &cancel_flag,
+                    suppress_thinking,
+                },
             )
             .await;
 
@@ -2451,9 +2677,11 @@ fn spawn_stream_task(
             let ai_title = generate_ai_title(
                 &db,
                 &auto_messages,
-                &provider,
-                &ctx,
-                &model_id,
+                TitleFallbackModel {
+                    provider: &provider,
+                    ctx: &ctx,
+                    model_id: &model_id,
+                },
                 &settings,
                 &master_key,
             )
@@ -2514,20 +2742,25 @@ fn spawn_stream_task(
     });
 }
 
-#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn send_message(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
-    conversation_id: String,
-    content: String,
-    attachments: Vec<AttachmentInput>,
-    enabled_mcp_server_ids: Option<Vec<String>>,
-    thinking_budget: Option<u32>,
-    enabled_knowledge_base_ids: Option<Vec<String>>,
-    enabled_memory_namespace_ids: Option<Vec<String>>,
-    enabled_wiki_ids: Option<Vec<String>>,
+    params: SendMessageParams,
 ) -> Result<Message, String> {
+    let SendMessageParams {
+        conversation_id,
+        content,
+        attachments,
+        options,
+    } = params;
+    let SendMessageOptions {
+        enabled_mcp_server_ids,
+        thinking_budget,
+        enabled_knowledge_base_ids,
+        enabled_memory_namespace_ids,
+        enabled_wiki_ids,
+    } = options;
     let persisted_attachments = persist_attachments(&state, &conversation_id, &attachments)
         .await
         .map_err(|e| e.to_string())?;
@@ -2679,10 +2912,15 @@ pub async fn send_message(
         }
     }
 
-    // RAG retrieval: search enabled knowledge bases and memory namespaces
-    let kb_ids = enabled_knowledge_base_ids.unwrap_or_default();
-    let mem_ids = enabled_memory_namespace_ids.unwrap_or_default();
-    let wiki_ids = enabled_wiki_ids.unwrap_or_default();
+    // RAG retrieval: resolve from context_sources when explicit IDs are not provided
+    let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
+        &state.sea_db,
+        &conversation_id,
+        enabled_knowledge_base_ids,
+        enabled_memory_namespace_ids,
+        enabled_wiki_ids,
+    )
+    .await;
     let mut rag_result = crate::indexing::collect_rag_context(
         &state.sea_db,
         &state.master_key,
@@ -2816,17 +3054,21 @@ pub async fn send_message(
         // Perform synchronous compression before sending
         if let Ok(summary_text) = do_compress(
             &state.sea_db,
-            &conversation_id,
-            &history_messages,
-            existing_summary.as_ref().map(|s| s.summary_text.as_str()),
-            &provider,
-            &decrypted_key,
-            &key_row.id,
-            &resolved_proxy,
-            &conversation.model_id,
-            use_max_completion_tokens,
-            &global_settings,
-            &state.master_key,
+            CompressContext {
+                conversation_id: &conversation_id,
+                history_messages: &history_messages,
+                existing_summary: existing_summary.as_ref().map(|s| s.summary_text.as_str()),
+                settings: &global_settings,
+                master_key: &state.master_key,
+            },
+            CompressProviderInfo {
+                provider: &provider,
+                decrypted_key: &decrypted_key,
+                key_id: &key_row.id,
+                proxy_config: &resolved_proxy,
+                model_id: &conversation.model_id,
+                use_max_completion_tokens,
+            },
         )
         .await
         {
@@ -2991,50 +3233,57 @@ pub async fn send_message(
     spawn_stream_task(
         app,
         state.sea_db.clone(),
-        conversation_id.clone(),
-        assistant_message_id,
-        conversation,
-        provider,
-        ctx,
-        chat_messages,
-        is_first_message,
-        content,
-        user_msg_id,
-        0,
-        tools,
-        thinking_budget,
-        mcp_ids,
-        Some(user_message.created_at + 1),
-        use_max_completion_tokens,
-        force_max_tokens,
-        thinking_param_style,
-        request_delay_ms,
-        global_settings,
-        state.master_key,
-        cancel_flag,
-        state.stream_cancel_flags.clone(),
-        memory_tag,
-        false,
-        false,
+        StreamTaskParams {
+            conversation_id: conversation_id.clone(),
+            assistant_message_id,
+            conversation,
+            provider,
+            ctx,
+            chat_messages,
+            is_first_message,
+            user_content: content,
+            parent_message_id: user_msg_id,
+            version_index: 0,
+            tools,
+            thinking_budget,
+            mcp_server_ids: mcp_ids,
+            override_created_at: Some(user_message.created_at + 1),
+            use_max_completion_tokens,
+            force_max_tokens,
+            thinking_param_style,
+            request_delay_ms,
+            settings: global_settings,
+            master_key: state.master_key,
+            cancel_flag,
+            cancel_flags: state.stream_cancel_flags.clone(),
+            content_prefix: memory_tag,
+            create_inactive: false,
+            skip_placeholder_create: false,
+        },
     );
 
     // Return the user message immediately
     Ok(user_message)
 }
 
-#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn regenerate_message(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
-    conversation_id: String,
-    user_message_id: Option<String>,
-    enabled_mcp_server_ids: Option<Vec<String>>,
-    thinking_budget: Option<u32>,
-    enabled_knowledge_base_ids: Option<Vec<String>>,
-    enabled_memory_namespace_ids: Option<Vec<String>>,
-    enabled_wiki_ids: Option<Vec<String>>,
+    params: RegenerateMessageParams,
 ) -> Result<(), String> {
+    let RegenerateMessageParams {
+        conversation_id,
+        user_message_id,
+        options,
+    } = params;
+    let SendMessageOptions {
+        enabled_mcp_server_ids,
+        thinking_budget,
+        enabled_knowledge_base_ids,
+        enabled_memory_namespace_ids,
+        enabled_wiki_ids,
+    } = options;
     // 1. Get all active messages for the conversation
     let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
         .await
@@ -3134,11 +3383,16 @@ pub async fn regenerate_message(
         });
     }
 
-    // RAG retrieval for regeneration
+    // RAG retrieval for regeneration: resolve from context_sources when explicit IDs are not provided
     let memory_tag = {
-        let kb_ids = enabled_knowledge_base_ids.unwrap_or_default();
-        let mem_ids = enabled_memory_namespace_ids.unwrap_or_default();
-        let wiki_ids = enabled_wiki_ids.unwrap_or_default();
+        let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
+            &state.sea_db,
+            &conversation_id,
+            enabled_knowledge_base_ids,
+            enabled_memory_namespace_ids,
+            enabled_wiki_ids,
+        )
+        .await;
         let mut rag_result = crate::indexing::collect_rag_context(
             &state.sea_db,
             &state.master_key,
@@ -3350,52 +3604,59 @@ pub async fn regenerate_message(
     spawn_stream_task(
         app,
         state.sea_db.clone(),
-        conversation_id,
-        assistant_message_id,
-        conversation,
-        provider,
-        ctx,
-        chat_messages,
-        false,
-        last_user_msg.content,
-        last_user_msg.id,
-        new_version_index,
-        tools,
-        thinking_budget,
-        mcp_ids,
-        original_created_at,
-        use_max_completion_tokens,
-        force_max_tokens,
-        thinking_param_style,
-        regen_request_delay_ms,
-        global_settings,
-        state.master_key,
-        cancel_flag,
-        state.stream_cancel_flags.clone(),
-        memory_tag,
-        false,
-        false,
+        StreamTaskParams {
+            conversation_id,
+            assistant_message_id,
+            conversation,
+            provider,
+            ctx,
+            chat_messages,
+            is_first_message: false,
+            user_content: last_user_msg.content,
+            parent_message_id: last_user_msg.id,
+            version_index: new_version_index,
+            tools,
+            thinking_budget,
+            mcp_server_ids: mcp_ids,
+            override_created_at: original_created_at,
+            use_max_completion_tokens,
+            force_max_tokens,
+            thinking_param_style,
+            request_delay_ms: regen_request_delay_ms,
+            settings: global_settings,
+            master_key: state.master_key,
+            cancel_flag,
+            cancel_flags: state.stream_cancel_flags.clone(),
+            content_prefix: memory_tag,
+            create_inactive: false,
+            skip_placeholder_create: false,
+        },
     );
 
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn regenerate_with_model(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
-    conversation_id: String,
-    user_message_id: String,
-    target_provider_id: String,
-    target_model_id: String,
-    enabled_mcp_server_ids: Option<Vec<String>>,
-    thinking_budget: Option<u32>,
-    enabled_knowledge_base_ids: Option<Vec<String>>,
-    enabled_memory_namespace_ids: Option<Vec<String>>,
-    enabled_wiki_ids: Option<Vec<String>>,
-    is_companion: Option<bool>,
+    params: RegenerateWithModelParams,
 ) -> Result<(), String> {
+    let RegenerateWithModelParams {
+        conversation_id,
+        user_message_id,
+        target_provider_id,
+        target_model_id,
+        options,
+        is_companion,
+    } = params;
+    let SendMessageOptions {
+        enabled_mcp_server_ids,
+        thinking_budget,
+        enabled_knowledge_base_ids,
+        enabled_memory_namespace_ids,
+        enabled_wiki_ids,
+    } = options;
     let messages = axagent_core::repo::message::list_messages(&state.sea_db, &conversation_id)
         .await
         .map_err(|e| e.to_string())?;
@@ -3484,11 +3745,16 @@ pub async fn regenerate_with_model(
         );
     }
 
-    // RAG retrieval
+    // RAG retrieval: resolve from context_sources when explicit IDs are not provided
     let memory_tag = {
-        let kb_ids = enabled_knowledge_base_ids.unwrap_or_default();
-        let mem_ids = enabled_memory_namespace_ids.unwrap_or_default();
-        let wiki_ids = enabled_wiki_ids.unwrap_or_default();
+        let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
+            &state.sea_db,
+            &conversation_id,
+            enabled_knowledge_base_ids,
+            enabled_memory_namespace_ids,
+            enabled_wiki_ids,
+        )
+        .await;
         let mut rag_result = crate::indexing::collect_rag_context(
             &state.sea_db,
             &state.master_key,
@@ -3732,31 +3998,33 @@ pub async fn regenerate_with_model(
     spawn_stream_task(
         app,
         state.sea_db.clone(),
-        conversation_id,
-        assistant_message_id,
-        conversation,
-        provider,
-        ctx,
-        chat_messages,
-        false,
-        user_msg.content,
-        user_msg.id,
-        new_version_index,
-        tools,
-        thinking_budget,
-        mcp_ids,
-        original_created_at,
-        use_max_completion_tokens,
-        force_max_tokens,
-        thinking_param_style,
-        rwm_request_delay_ms,
-        global_settings,
-        state.master_key,
-        cancel_flag,
-        state.stream_cancel_flags.clone(),
-        memory_tag,
-        companion,
-        true,
+        StreamTaskParams {
+            conversation_id,
+            assistant_message_id,
+            conversation,
+            provider,
+            ctx,
+            chat_messages,
+            is_first_message: false,
+            user_content: user_msg.content,
+            parent_message_id: user_msg.id,
+            version_index: new_version_index,
+            tools,
+            thinking_budget,
+            mcp_server_ids: mcp_ids,
+            override_created_at: original_created_at,
+            use_max_completion_tokens,
+            force_max_tokens,
+            thinking_param_style,
+            request_delay_ms: rwm_request_delay_ms,
+            settings: global_settings,
+            master_key: state.master_key,
+            cancel_flag,
+            cancel_flags: state.stream_cancel_flags.clone(),
+            content_prefix: memory_tag,
+            create_inactive: companion,
+            skip_placeholder_create: true,
+        },
     );
     Ok(())
 }
@@ -3813,21 +4081,26 @@ pub async fn delete_message_group(
 }
 
 /// Internal helper: call LLM to compress messages into a summary and persist it.
-#[allow(clippy::too_many_arguments)]
 async fn do_compress(
     db: &sea_orm::DatabaseConnection,
-    conversation_id: &str,
-    history_messages: &[ChatMessage],
-    existing_summary: Option<&str>,
-    provider: &ProviderConfig,
-    decrypted_key: &str,
-    key_id: &str,
-    proxy_config: &Option<ProviderProxyConfig>,
-    model_id: &str,
-    use_max_completion_tokens: Option<bool>,
-    settings: &AppSettings,
-    master_key: &[u8; 32],
+    ctx: CompressContext<'_>,
+    provider_info: CompressProviderInfo<'_>,
 ) -> Result<String, String> {
+    let CompressContext {
+        conversation_id,
+        history_messages,
+        existing_summary,
+        settings,
+        master_key,
+    } = ctx;
+    let CompressProviderInfo {
+        provider,
+        decrypted_key,
+        key_id,
+        proxy_config,
+        model_id,
+        use_max_completion_tokens,
+    } = provider_info;
     // Resolve compression model: settings override → fallback to conversation model
     let (comp_provider, comp_key, comp_key_id, comp_proxy, comp_model_id, comp_use_max) = if let (
         Some(pid),
@@ -4069,17 +4342,21 @@ pub async fn compress_context(
 
     do_compress(
         &state.sea_db,
-        &conversation_id,
-        &history_messages,
-        existing_summary.as_ref().map(|s| s.summary_text.as_str()),
-        &provider,
-        &decrypted_key,
-        &key_row.id,
-        &resolved_proxy,
-        &conversation.model_id,
-        use_max_completion_tokens,
-        &global_settings,
-        &state.master_key,
+        CompressContext {
+            conversation_id: &conversation_id,
+            history_messages: &history_messages,
+            existing_summary: existing_summary.as_ref().map(|s| s.summary_text.as_str()),
+            settings: &global_settings,
+            master_key: &state.master_key,
+        },
+        CompressProviderInfo {
+            provider: &provider,
+            decrypted_key: &decrypted_key,
+            key_id: &key_row.id,
+            proxy_config: &resolved_proxy,
+            model_id: &conversation.model_id,
+            use_max_completion_tokens,
+        },
     )
     .await?;
 

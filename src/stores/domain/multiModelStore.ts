@@ -167,11 +167,13 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           userMessageId: lastUserMsg.id,
           targetProviderId: model.providerId,
           targetModelId: model.model_id,
-          enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-          thinkingBudget,
-          enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-          enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-          enabledWikiIds: wikiIds.length > 0 ? wikiIds : undefined,
+          options: {
+            enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
+            thinkingBudget,
+            enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
+            enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+            enabledWikiIds: wikiIds.length > 0 ? wikiIds : undefined,
+          },
           isCompanion: true,
         })
           .then(async () => {

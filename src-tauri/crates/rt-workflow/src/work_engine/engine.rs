@@ -22,7 +22,7 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::execution_state::{ExecutionState, ExecutionStatus, NodeExecutionRecord};
 use super::executors::{
-    AgentExecutor, ConditionExecutor, LlmExecutor, ProfileCache, ProviderCache,
+    AgentExecutor, ConditionExecutor, LlmExecutor, ProfileCache, ProviderCache, RagCallback,
     SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
 };
 use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
@@ -188,6 +188,7 @@ impl NodeCircuitBreaker {
 
 pub struct WorkEngine {
     db: Arc<DatabaseConnection>,
+    master_key: [u8; 32],
     executions: Arc<Mutex<HashMap<String, ExecutionState>>>,
     workflows: Arc<tokio::sync::RwLock<HashMap<String, Workflow>>>,
     /// 编译后的 prompt 模板：workflow_id -> (node_id -> CompiledPrompt)
@@ -205,6 +206,7 @@ pub struct WorkEngine {
     tool_resolver: Arc<Mutex<Option<ToolResolver>>>,
     subworkflow_callback: Arc<Mutex<Option<SubWorkflowCallback>>>,
     vector_retrieve_callback: Arc<Mutex<Option<VectorRetrieveCallback>>>,
+    rag_callback: Arc<Mutex<Option<RagCallback>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
@@ -228,9 +230,43 @@ impl WorkEngine {
         self.pause_signal.notify_one();
     }
 
+    /// 从模板 tool_defs 预编译 Rhai 工具（覆盖 DAG 扫描结果）
+    pub async fn precompile_tool_defs(
+        &self,
+        workflow_id: &str,
+        tool_defs: &[axagent_core::workflow_types::RhaiToolDef],
+    ) {
+        if tool_defs.is_empty() {
+            return;
+        }
+        let cache = axagent_tools::rhai_engine::compile_from_tool_defs(tool_defs);
+        if !cache.is_empty() {
+            tracing::info!(
+                "[RhaiEngine] tool_defs 编译了 {} 个工具 for {workflow_id}",
+                cache.len()
+            );
+            self.compiled_rhai_scripts
+                .write()
+                .await
+                .insert(workflow_id.to_string(), cache);
+        }
+    }
+
     /// 注册/替换节点执行器（Arc<WorkEngine> 下可安全调用）
     pub async fn register_executor<E: NodeExecutorTrait + 'static>(&self, executor: E) {
         self.dispatcher.write().await.register(executor);
+    }
+
+    /// Plan 模式专用：AgentExecutor 注入自身引用，使其能创建/执行临时工作流
+    pub async fn inject_into_agent_executor(self: &Arc<Self>, engine: Arc<WorkEngine>) {
+        let agent = AgentExecutor::with_shared_caches(
+            self.db.clone(),
+            self.master_key,
+            self.agent_provider_cache.clone(),
+            self.agent_profile_cache.clone(),
+        )
+        .with_engine(engine);
+        self.register_executor(agent).await;
     }
 
     pub async fn execute_node(
@@ -268,6 +304,10 @@ impl WorkEngine {
     pub async fn set_vector_retrieve_callback(&self, cb: VectorRetrieveCallback) {
         *self.vector_retrieve_callback.lock().await = Some(cb);
     }
+    /// 设置 RAG 知识源检索回调（供 Agent 节点从知识库/记忆/Wiki 检索上下文）
+    pub async fn set_rag_callback(&self, cb: RagCallback) {
+        *self.rag_callback.lock().await = Some(cb);
+    }
 }
 
 impl WorkEngine {
@@ -286,6 +326,7 @@ impl WorkEngine {
         dispatcher.register(ConditionExecutor::new(db.clone(), master_key));
         Self {
             db,
+            master_key,
             executions: Arc::new(Mutex::new(HashMap::new())),
             workflows: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             compiled_prompts: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
@@ -297,6 +338,7 @@ impl WorkEngine {
             tool_resolver: Arc::new(Mutex::new(None)),
             subworkflow_callback: Arc::new(Mutex::new(None)),
             vector_retrieve_callback: Arc::new(Mutex::new(None)),
+            rag_callback: Arc::new(Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
@@ -393,19 +435,7 @@ impl WorkEngine {
             .await
             .insert(workflow_id.clone(), compiled_map);
 
-        // 预编译 Rhai 脚本
-        let rhai_cache = axagent_tools::rhai_engine::compile_workflow_rhai_scripts(&nodes);
-        if !rhai_cache.is_empty() {
-            tracing::info!(
-                "[RhaiEngine] 编译了 {} 个 Rhai 脚本 for workflow {}",
-                rhai_cache.len(),
-                workflow_id
-            );
-        }
-        self.compiled_rhai_scripts
-            .write()
-            .await
-            .insert(workflow_id.clone(), rhai_cache);
+        // Rhai 工具由 precompile_tool_defs() 单独注册，不在 create_workflow 中编译
 
         let workflow = Workflow {
             id: workflow_id.clone(),
@@ -702,6 +732,28 @@ impl WorkEngine {
             self.agent_profile_cache.lock().await.clear();
         }
 
+        // 重新注册 AgentExecutor（注入 RAG callback）
+        {
+            let rag_cb = self.rag_callback.lock().await.clone();
+            let agent_executor = if let Some(cb) = rag_cb {
+                AgentExecutor::with_shared_caches_and_rag_callback(
+                    self.db.clone(),
+                    self.master_key,
+                    self.agent_provider_cache.clone(),
+                    self.agent_profile_cache.clone(),
+                    cb,
+                )
+            } else {
+                AgentExecutor::with_shared_caches(
+                    self.db.clone(),
+                    self.master_key,
+                    self.agent_provider_cache.clone(),
+                    self.agent_profile_cache.clone(),
+                )
+            };
+            self.dispatcher.write().await.register(agent_executor);
+        }
+
         // 自动扫描工作流节点中的工具定义，按需注册（模板级工具自动注册）
         {
             let resolver_opt = self.tool_resolver.lock().await.clone();
@@ -749,23 +801,7 @@ impl WorkEngine {
                                     let handlers = tool_handlers.lock().await;
                                     let mut rhai_tools: std::collections::HashMap<
                                         String,
-                                        std::sync::Arc<
-                                            dyn Fn(
-                                                    String,
-                                                    serde_json::Value,
-                                                )
-                                                    -> std::pin::Pin<
-                                                    Box<
-                                                        dyn std::future::Future<
-                                                                Output = Result<
-                                                                    serde_json::Value,
-                                                                    String,
-                                                                >,
-                                                            > + Send,
-                                                    >,
-                                                > + Send
-                                                + Sync,
-                                        >,
+                                        axagent_tools::rhai_engine::ToolFn,
                                     > = std::collections::HashMap::new();
                                     for (k, v) in handlers.iter() {
                                         let k = k.clone();
@@ -819,24 +855,8 @@ impl WorkEngine {
             }
         }
 
-        // 懒编译 Rhai 脚本兜底（DB 加载的工作流）
-        {
-            let rhai_cache = self.compiled_rhai_scripts.read().await;
-            if !rhai_cache.contains_key(workflow_id) {
-                drop(rhai_cache);
-                let workflows = self.workflows.read().await;
-                if let Some(wf) = workflows.get(workflow_id) {
-                    let scripts =
-                        axagent_tools::rhai_engine::compile_workflow_rhai_scripts(&wf.nodes);
-                    if !scripts.is_empty() {
-                        self.compiled_rhai_scripts
-                            .write()
-                            .await
-                            .insert(workflow_id.to_string(), scripts);
-                    }
-                }
-            }
-        }
+        // Rhai 工具仅从 tool_defs 编译（通过 precompile_tool_defs 调用），
+        // DAG 节点不再作为工具来源
 
         let total_nodes = {
             let workflows = self.workflows.read().await;
@@ -1558,17 +1578,6 @@ fn collect_workflow_tool_names(nodes: &[WorkflowNode]) -> Vec<String> {
         if let WorkflowNode::Agent(an) = node {
             for tool in &an.config.tools {
                 names.insert(tool.name.clone());
-            }
-        }
-        // 收集 Rhai 代码节点的工具名
-        if let WorkflowNode::Code(code_node) = node {
-            if code_node.config.language == "rhai" {
-                let tool_name = code_node
-                    .config
-                    .tool_name
-                    .clone()
-                    .unwrap_or_else(|| format!("code_{}", code_node.base.id));
-                names.insert(tool_name);
             }
         }
     }

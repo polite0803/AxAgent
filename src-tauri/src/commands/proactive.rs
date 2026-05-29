@@ -576,3 +576,30 @@ pub async fn proactive_prefetch(
     let mut service = state.proactive_service.write().await;
     Ok(service.prefetch_for_predictions(&predictions))
 }
+
+#[tauri::command]
+pub async fn list_insights(
+    state: State<'_, AppState>,
+    category: Option<String>,
+    limit: Option<usize>,
+) -> Result<Vec<axagent_trajectory::LearningInsight>, String> {
+    let is = state.insight_system.read().await;
+    let insights = match category.as_deref() {
+        Some("pattern") => {
+            is.get_insights_by_category(axagent_trajectory::InsightCategory::Pattern)
+        },
+        Some("preference") => {
+            is.get_insights_by_category(axagent_trajectory::InsightCategory::Preference)
+        },
+        Some("improvement") => {
+            is.get_insights_by_category(axagent_trajectory::InsightCategory::Improvement)
+        },
+        Some("warning") => {
+            is.get_insights_by_category(axagent_trajectory::InsightCategory::Warning)
+        },
+        _ => is.get_insights().iter().collect(),
+    };
+    let limit = limit.unwrap_or(50);
+    let result: Vec<_> = insights.into_iter().take(limit).cloned().collect();
+    Ok(result)
+}

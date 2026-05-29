@@ -13,7 +13,7 @@ pub use engine::{RunOptions, ToolResolver, WorkEngine, WorkEngineError};
 pub use execution_state::{
     ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord,
 };
-pub use executors::ToolCallback;
+pub use executors::{AgentExecutor, RagCallback, ToolCallback};
 pub use node_executor::NodeExecutor;
 pub use node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 pub use prompt_template::{CompiledPrompt, TemplateRenderError, compile_prompt, render_prompt};

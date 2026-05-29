@@ -96,6 +96,8 @@ export interface AgentNodeConfig {
   output_mode: OutputMode;
   /** 工具调用最大轮数（默认 5，仅 tools 非空时生效） */
   max_tool_rounds?: number;
+  /** 执行模式: "react" = 逐步思考-行动, "plan" = 先规划为工作流再执行 */
+  execution_mode?: "react" | "plan";
 }
 
 export interface AgentNode extends WorkflowNodeBase {
@@ -365,6 +367,12 @@ export interface ErrorConfig {
   compensation_steps?: CompensationStep[];
 }
 
+export interface RhaiToolDef {
+  tool_name: string;
+  description?: string;
+  code: string;
+}
+
 export interface WorkflowTemplateInput {
   name: string;
   description?: string;
@@ -377,6 +385,7 @@ export interface WorkflowTemplateInput {
   output_schema?: JsonSchema;
   variables: Variable[];
   error_config?: ErrorConfig;
+  tool_defs?: RhaiToolDef[];
 }
 
 export interface WorkflowTemplateResponse {
@@ -396,6 +405,7 @@ export interface WorkflowTemplateResponse {
   output_schema?: JsonSchema;
   variables: Variable[];
   error_config?: ErrorConfig;
+  tool_defs?: RhaiToolDef[];
   created_at: number;
   updated_at: number;
 }

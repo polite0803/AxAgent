@@ -1138,6 +1138,41 @@ fn start_cron_scheduler(state: &AppState) {
         rt.block_on(state.work_engine.set_tool_resolver(resolver));
     }
 
+    // 设置 RAG 知识源检索回调（供工作流 Agent 节点从知识库/记忆/Wiki 检索上下文）
+    {
+        let db = state.sea_db.clone();
+        let master_key = state.master_key;
+        let vector_store = state.vector_store.clone();
+        let rag_callback: axagent_rt_workflow::work_engine::RagCallback = std::sync::Arc::new(
+            move |kb_ids: Vec<String>,
+                  mem_ids: Vec<String>,
+                  wiki_ids: Vec<String>,
+                  query: String| {
+                let db = db.clone();
+                let vector_store = vector_store.clone();
+                Box::pin(async move {
+                    let embed_fn = crate::indexing::ProviderEmbedFn;
+                    let result = axagent_core::rag::collect_rag_context(
+                        &db,
+                        &master_key,
+                        &vector_store,
+                        &kb_ids,
+                        &mem_ids,
+                        &wiki_ids,
+                        &query,
+                        5,
+                        embed_fn,
+                    )
+                    .await;
+                    Ok(result)
+                })
+            },
+        );
+        let rt = tokio::runtime::Runtime::new()
+            .expect("Failed to create tokio runtime for RAG callback");
+        rt.block_on(state.work_engine.set_rag_callback(rag_callback));
+    }
+
     let work_engine = state.work_engine.clone();
     let cron_store = state.cron_job_store.clone();
     let mut executor = CronExecutor::new();

@@ -279,10 +279,15 @@ pub fn create_app_state(db_result: DatabaseInitResult) -> AppState {
             rt.block_on(registry.load_enabled_state(&sea_db));
             Arc::new(tokio::sync::Mutex::new(registry))
         },
-        work_engine: Arc::new(axagent_runtime::work_engine::WorkEngine::new(
-            Arc::new(sea_db.clone()),
-            master_key,
-        )),
+        work_engine: {
+            let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
+                Arc::new(sea_db.clone()),
+                master_key,
+            ));
+            // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
+            rt.block_on(engine.inject_into_agent_executor(engine.clone()));
+            engine
+        },
         skill_decomposer: Arc::new(tokio::sync::RwLock::new(
             axagent_trajectory::SkillDecomposer::new(),
         )),

@@ -1,4 +1,4 @@
-import { invoke, logIpcError } from "@/lib/invoke";
+import { invoke, isTauri, listen, logIpcError } from "@/lib/invoke";
 import type {
   MarketplaceSkill,
   Skill,
@@ -291,3 +291,9 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     return result;
   },
 }));
+
+if (isTauri()) {
+  listen<{ skillName: string; enabled?: boolean; action?: string }>("skill-state-changed", () => {
+    useSkillStore.getState().loadSkills();
+  }).catch(logIpcError("listen:skill-state-changed"));
+}

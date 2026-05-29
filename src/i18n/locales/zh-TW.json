@@ -1925,6 +1925,9 @@
     "proxyTestFailed": "代理連線失敗",
     "groupData": "資料管理",
     "groupAppInfo": "應用程式資訊",
+    "groupServiceHealth": "服務健康",
+    "overallStatus": "整體狀態",
+    "recheckHealth": "重新檢查",
     "groupLinks": "連結",
     "useModelIcon": "使用模型圖示",
     "systemPromptLabel": "系統提示（角色設定）",
@@ -6319,6 +6322,17 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module"
+  },
+  "appInit": {
+    "idle": "Preparing to start...",
+    "healthCheck": "Checking system connection...",
+    "loadSettings": "Loading settings...",
+    "applyConfig": "Applying configuration...",
+    "startServices": "Starting services...",
+    "ready": "Ready",
+    "failedTitle": "Startup Failed",
+    "failedSubtitle": "An error occurred during app initialization. Please retry.",
+    "retry": "Restart"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",

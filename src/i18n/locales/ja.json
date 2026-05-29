@@ -1968,6 +1968,9 @@
     "proxyTestFailed": "プロキシ接続失敗",
     "groupData": "データ管理",
     "groupAppInfo": "アプリ情報",
+    "groupServiceHealth": "サービスヘルス",
+    "overallStatus": "全体ステータス",
+    "recheckHealth": "再チェック",
     "groupLinks": "リンク",
     "useModelIcon": "モデルアイコンを使用",
     "systemPromptLabel": "システムプロンプト（ロール設定）",
@@ -4844,7 +4847,21 @@
     "scheduledWas": "Scheduled: {{time}}",
     "retry": "Retry",
     "applied": "Applied",
-    "copied": "Copied to clipboard"
+    "copied": "Copied to clipboard",
+    "insight": {
+      "title": "学習インサイト",
+      "refresh": "更新",
+      "all": "すべて",
+      "empty": "インサイトはありません",
+      "evidence": "根拠",
+      "suggestedAction": "推奨アクション：",
+      "category": {
+        "pattern": "パターン",
+        "preference": "設定",
+        "improvement": "改善",
+        "warning": "警告"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "输入评论...",
@@ -6319,6 +6336,24 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module"
+  },
+  "appInit": {
+    "idle": "Preparing to start...",
+    "healthCheck": "Checking system connection...",
+    "loadSettings": "Loading settings...",
+    "applyConfig": "Applying configuration...",
+    "startServices": "Starting services...",
+    "ready": "Ready",
+    "failedTitle": "Startup Failed",
+    "failedSubtitle": "An error occurred during app initialization. Please retry.",
+    "retry": "Restart"
+  },
+  "errorNotification": {
+    "retry": "再試行"
+  },
+  "backendStatus": {
+    "done": "完了",
+    "failed": "失敗"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",

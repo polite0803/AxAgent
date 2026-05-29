@@ -1,7 +1,13 @@
 import { ExpertSelector } from "@/components/chat/ExpertSelector";
 import { ModelSelect } from "@/components/shared/ModelSelect";
 import { invoke } from "@/lib/invoke";
-import { useAgentProfileStore, useKnowledgeStore, useLocalToolStore, useProviderStore } from "@/stores";
+import {
+  useAgentProfileStore,
+  useKnowledgeStore,
+  useLocalToolStore,
+  useProviderStore,
+  useWorkflowEditorStore,
+} from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import type { CreateAgentProfileInput } from "@/types";
 import { Button, Divider, Input, InputNumber, message, Modal, Select, Tag, theme } from "antd";
@@ -138,6 +144,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
     : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
+  const templateToolDefs = useWorkflowEditorStore((s) => s.currentTemplate?.tool_defs);
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
   const { providers, fetchProviders } = useProviderStore();
 
@@ -537,6 +544,25 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         />
       </div>
 
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", color: "#999", fontSize: 12, marginBottom: 4 }}>
+          {t("workflow.props.executionMode")}
+        </label>
+        <Select
+          value={config.execution_mode ?? "react"}
+          onChange={(v) => handleConfigChange("execution_mode", v === "react" ? undefined : v)}
+          size="small"
+          style={{ width: "100%" }}
+          options={[
+            { value: "react", label: t("workflow.props.executionReact") },
+            { value: "plan", label: t("workflow.props.executionPlan") },
+          ]}
+        />
+        <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+          {t(`workflow.props.execution${config.execution_mode === "plan" ? "Plan" : "React"}Hint`)}
+        </div>
+      </div>
+
       <div>
         <label
           style={{
@@ -723,10 +749,30 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
               style={{ width: "100%" }}
               placeholder={t("workflow.props.exposedToolsPlaceholder")}
               showSearch
-              options={(config.tools || []).map((td) => {
-                const name = typeof td === "string" ? td : td.name;
-                return { value: name, label: name };
-              })}
+              options={((): { value: string; label: string }[] => {
+                const names = new Set<string>();
+                const items: { value: string; label: string }[] = [];
+                // Template tool_defs（Rhai 脚本工具）
+                if (templateToolDefs && templateToolDefs.length > 0) {
+                  items.push({ value: "", label: "── 模板 Rhai 工具 ──", disabled: true } as any);
+                  templateToolDefs.forEach((td) => {
+                    if (!names.has(td.tool_name)) {
+                      names.add(td.tool_name);
+                      items.push({ value: td.tool_name, label: `🦀 ${td.tool_name}` });
+                    }
+                  });
+                }
+                // 全局工具
+                items.push({ value: "", label: "── 全局工具 ──", disabled: true } as any);
+                (config.tools || []).forEach((td) => {
+                  const name = typeof td === "string" ? td : td.name;
+                  if (!names.has(name)) {
+                    names.add(name);
+                    items.push({ value: name, label: `🔧 ${name}` });
+                  }
+                });
+                return items;
+              })()}
             />
             <div style={{ fontSize: 11, color: token.colorTextTertiary, marginTop: 2 }}>
               {t("workflow.props.exposedToolsHint")}

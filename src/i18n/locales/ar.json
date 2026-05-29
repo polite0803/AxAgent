@@ -1929,6 +1929,9 @@
     "proxyTestFailed": "فشل اتصال الوكيل",
     "groupData": "إدارة البيانات",
     "groupAppInfo": "معلومات التطبيق",
+    "groupServiceHealth": "حالة الخدمات",
+    "overallStatus": "الحالة العامة",
+    "recheckHealth": "إعادة الفحص",
     "groupLinks": "الروابط",
     "useModelIcon": "استخدام أيقونة النموذج",
     "systemPromptLabel": "موجّه النظام (إعداد الدور)",
@@ -4845,7 +4848,21 @@
     "scheduledWas": "Scheduled: {{time}}",
     "retry": "Retry",
     "applied": "Applied",
-    "copied": "Copied to clipboard"
+    "copied": "Copied to clipboard",
+    "insight": {
+      "title": "رؤى التعلم",
+      "refresh": "تحديث",
+      "all": "الكل",
+      "empty": "لا توجد رؤى",
+      "evidence": "الأدلة",
+      "suggestedAction": "الإجراء المقترح: ",
+      "category": {
+        "pattern": "نمط",
+        "preference": "تفضيل",
+        "improvement": "تحسين",
+        "warning": "تحذير"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "Enter comment...",
@@ -6320,6 +6337,24 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module"
+  },
+  "appInit": {
+    "idle": "Preparing to start...",
+    "healthCheck": "Checking system connection...",
+    "loadSettings": "Loading settings...",
+    "applyConfig": "Applying configuration...",
+    "startServices": "Starting services...",
+    "ready": "Ready",
+    "failedTitle": "Startup Failed",
+    "failedSubtitle": "An error occurred during app initialization. Please retry.",
+    "retry": "Restart"
+  },
+  "errorNotification": {
+    "retry": "إعادة المحاولة"
+  },
+  "backendStatus": {
+    "done": "تم",
+    "failed": "فشل"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",

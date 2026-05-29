@@ -90,8 +90,10 @@ fn generate_hook_id() -> String {
     format!("hook_{}_{}", timestamp, counter)
 }
 
+#[allow(dead_code)]
 static EXEC_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+#[allow(dead_code)]
 fn generate_execution_id() -> String {
     let timestamp = chrono::Utc::now().timestamp_millis();
     let counter = EXEC_COUNTER.fetch_add(1, Ordering::Relaxed);

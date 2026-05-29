@@ -1,15 +1,123 @@
 import logoUrl from "@/assets/image/logo.png";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
-import { invoke, isTauri } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useOnboardingStore, useSettingsStore } from "@/stores";
-import { Button, Divider, InputNumber, Typography } from "antd";
-import { GraduationCap, RefreshCw, Terminal } from "lucide-react";
+import { Button, Divider, InputNumber, Tag, Typography } from "antd";
+import { Activity, GraduationCap, RefreshCw, Terminal } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { SettingsGroup } from "./SettingsGroup";
 
 const { Text } = Typography;
+
+interface ServiceHealthCheck {
+  name: string;
+  status: "healthy" | "degraded" | "unhealthy";
+  latencyMs?: number;
+  message?: string;
+}
+
+interface ServiceHealthReport {
+  overall: "healthy" | "degraded" | "unhealthy";
+  checks: ServiceHealthCheck[];
+  version: string;
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  healthy: "green",
+  degraded: "orange",
+  unhealthy: "red",
+};
+
+const CHECK_LABELS: Record<string, string> = {
+  database: "Database",
+  vectorStore: "Vector Store",
+  agents: "Agent Runtime",
+  gateway: "API Gateway",
+  mcp: "MCP Servers",
+};
+
+function ServiceHealthSection() {
+  const { t } = useTranslation();
+  const [report, setReport] = useState<ServiceHealthReport | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const runCheck = useCallback(async () => {
+    if (!isTauri()) { return; }
+    setLoading(true);
+    try {
+      const result = await invoke<ServiceHealthReport>("get_service_health");
+      setReport(result);
+    } catch (e) {
+      logIpcError("get_service_health")(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isTauri()) {
+      runCheck();
+    }
+  }, [runCheck]);
+
+  const rowStyle = { padding: "4px 0" };
+
+  return (
+    <SettingsGroup title={t("settings.groupServiceHealth")}>
+      {report && (
+        <div style={rowStyle} className="flex items-center justify-between">
+          <span>{t("settings.overallStatus")}</span>
+          <Tag color={STATUS_COLOR[report.overall]}>
+            {report.overall.toUpperCase()}
+          </Tag>
+        </div>
+      )}
+      {report?.checks.map((check) => (
+        <div key={check.name}>
+          <Divider style={{ margin: "4px 0" }} />
+          <div style={rowStyle} className="flex items-center justify-between">
+            <span>{CHECK_LABELS[check.name] ?? check.name}</span>
+            <div className="flex items-center gap-2">
+              {check.latencyMs != null && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {check.latencyMs}ms
+                </Text>
+              )}
+              {check.message && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {check.message}
+                </Text>
+              )}
+              <Tag
+                color={STATUS_COLOR[check.status]}
+                style={{ margin: 0, minWidth: 28, textAlign: "center" }}
+              >
+                {check.status === "healthy"
+                  ? "OK"
+                  : check.status === "degraded"
+                  ? "WARN"
+                  : "ERR"}
+              </Tag>
+            </div>
+          </div>
+        </div>
+      ))}
+      <Divider style={{ margin: "4px 0" }} />
+      <div style={rowStyle} className="flex items-center justify-end">
+        <Button
+          icon={<Activity size={16} />}
+          onClick={runCheck}
+          loading={loading}
+          size="small"
+        >
+          {t("settings.recheckHealth")}
+        </Button>
+      </div>
+    </SettingsGroup>
+  );
+}
 
 export function AboutPage() {
   const { t } = useTranslation();
@@ -63,7 +171,6 @@ export function AboutPage() {
 
   return (
     <div className="p-6 pb-12">
-      {/* Logo + App Name (macOS-style) */}
       <div
         style={{
           display: "flex",
@@ -95,6 +202,9 @@ export function AboutPage() {
           <Text type="secondary">AGPL-3.0</Text>
         </div>
       </SettingsGroup>
+
+      {isTauri() && <ServiceHealthSection />}
+
       <SettingsGroup title={t("settings.groupLinks")}>
         <div style={rowStyle} className="flex items-center justify-between">
           <span>{t("settings.checkUpdate")}</span>

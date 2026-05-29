@@ -16,7 +16,7 @@ import "reactflow/dist/style.css";
 import { autoLayoutWorkflow } from "@/lib/workflowLayout";
 import { useAgentProfileStore, useWorkflowEditorStore } from "@/stores";
 import { useExpertStore } from "@/stores/feature/expertStore";
-import { message, Modal, Spin, theme } from "antd";
+import { Button, message, Modal, Spin, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import { AIPanel } from "./AIPanel/AIPanel";
 import { DebugPanel } from "./DebugPanel";
@@ -135,6 +135,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [aiPanelVisible, setAiPanelVisible] = useState(false);
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchIdx, setSearchIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(
     () => localStorage.getItem("workflowEditor.leftPanelCollapsed") === "true",
@@ -641,6 +645,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         message.success(t("workflow.nodesPasted", { count: r.clipboardRef.current.length }));
         return;
       }
+      // Ctrl+F: 节点搜索
+      if (isCtrlOrCmd && e.key === "f" && !isEditing) {
+        e.preventDefault();
+        setSearchVisible(true);
+        return;
+      }
       // Ctrl+A: 仅拦截画布全选，输入框内放行
       if (isCtrlOrCmd && e.key === "a" && !isEditing) {
         e.preventDefault();
@@ -649,6 +659,40 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [t]);
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
+    },
+    [],
+  );
+
+  // 关闭右键菜单
+  useEffect(() => {
+    if (!contextMenu) { return; }
+    const close = () => setContextMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [contextMenu]);
+
+  // 节点搜索结果
+  const searchResults = useMemo(() => {
+    if (!searchQuery) { return []; }
+    const q = searchQuery.toLowerCase();
+    return nodes.filter((n) =>
+      n.title.toLowerCase().includes(q) || n.type.toLowerCase().includes(q) || n.id.toLowerCase().includes(q)
+    );
+  }, [searchQuery, nodes]);
+
+  const navigateSearch = useCallback((dir: 1 | -1) => {
+    if (searchResults.length === 0) { return; }
+    const nextIdx = (searchIdx + dir + searchResults.length) % searchResults.length;
+    setSearchIdx(nextIdx);
+    const target = searchResults[nextIdx];
+    setSelectedNode(target.id);
+    reactFlowInstance?.setCenter(target.position.x + 100, target.position.y + 50, { zoom: 1.5, duration: 300 });
+  }, [searchResults, searchIdx, reactFlowInstance, setSelectedNode]);
 
   // 卸载时清理 auto-save timeout
   const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -813,6 +857,48 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         debugPanelVisible={debugPanelVisible}
       />
 
+      {searchVisible && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 12px",
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
+            background: token.colorBgElevated,
+          }}
+        >
+          <input
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setSearchIdx(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { navigateSearch(1); }
+              if (e.key === "Escape") { setSearchVisible(false); }
+            }}
+            placeholder={t("workflow.searchNodes")}
+            style={{
+              flex: 1,
+              padding: "3px 8px",
+              fontSize: 12,
+              borderRadius: 4,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              background: token.colorBgContainer,
+              color: token.colorText,
+            }}
+          />
+          <span style={{ fontSize: 11, color: token.colorTextQuaternary }}>
+            {searchResults.length > 0 ? `${searchIdx + 1}/${searchResults.length}` : "0"}
+          </span>
+          <Button size="small" onClick={() => navigateSearch(-1)} disabled={searchResults.length === 0}>▲</Button>
+          <Button size="small" onClick={() => navigateSearch(1)} disabled={searchResults.length === 0}>▼</Button>
+          <Button size="small" onClick={() => setSearchVisible(false)}>✕</Button>
+        </div>
+      )}
+
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {!leftPanelCollapsed && <LeftPanel />}
 
@@ -828,6 +914,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
                 onNodeClick={onNodeClick}
                 onEdgeClick={onEdgeClick}
                 onPaneClick={onPaneClick}
+                onNodeContextMenu={handleNodeContextMenu}
                 onMoveEnd={onMoveEnd}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
@@ -945,6 +1032,59 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }}
         onImportedTemplate={handleImportedTemplate}
       />
+
+      {/* Context menu */}
+      {contextMenu && (
+        <div
+          style={{
+            position: "fixed",
+            left: contextMenu.x,
+            top: contextMenu.y,
+            zIndex: 1000,
+            background: token.colorBgElevated,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: 8,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            minWidth: 160,
+            padding: 4,
+          }}
+        >
+          {["edit", "toggleBreakpoint", "copyNode", "deleteNode"].map((action) => (
+            <div
+              key={action}
+              style={{
+                padding: "6px 10px",
+                fontSize: 12,
+                cursor: "pointer",
+                borderRadius: 4,
+                color: action === "deleteNode" ? token.colorError : undefined,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = token.colorFillQuaternary)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              onClick={() => {
+                if (action === "edit") { setSelectedNode(contextMenu.nodeId); }
+                else if (action === "copyNode") {
+                  clipboardRef.current = [nodes.find((n) => n.id === contextMenu.nodeId)!];
+                } else if (action === "deleteNode") {
+                  deleteNode(contextMenu.nodeId);
+                  setSelectedNode(null);
+                } else if (action === "toggleBreakpoint") {
+                  const n = nodes.find((nd) => nd.id === contextMenu.nodeId);
+                  if (n) {
+                    (n as any)._breakpoint = !(n as any)._breakpoint;
+                    updateNode(n.id, n as any);
+                  }
+                }
+                setContextMenu(null);
+              }}
+            >
+              {action === "edit" ? "✏️" : action === "toggleBreakpoint" ? "🔴" : action === "copyNode" ? "📋" : "🗑"}
+              {" "}
+              {t(`workflow.${action}`)}
+            </div>
+          ))}
+        </div>
+      )}
 
       <SemanticCheckModal
         open={semanticCheckResult !== null}

@@ -1,3 +1,4 @@
+import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import { invoke } from "@/lib/invoke";
 import { useLocalToolStore, useProviderStore, useWorkflowEditorStore } from "@/stores";
 import { Button, Divider, Dropdown, Input, Select, Tag, theme, Tooltip } from "antd";
@@ -142,8 +143,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
       const result = await invoke<{ content: string }>("send_message", {
         conversationId: "",
         content: prompt,
-        providerId: provider.id,
-        modelId: model.model_id,
+        options: {},
       });
 
       if (result?.content) {
@@ -280,19 +280,21 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.code")}
         </label>
-        <Input.TextArea
-          id="code-property-panel-input-textarea-85"
-          value={config.code || ""}
-          onChange={(e) => handleConfigChange("code", e.target.value)}
-          rows={10}
-          size="small"
+        <div
           style={{
-            fontFamily: "Monaco, Consolas, monospace",
-            fontSize: 12,
-            background: token.colorBgContainer,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: 6,
+            overflow: "hidden",
+            minHeight: 200,
           }}
-          placeholder={t("workflow.props.codePlaceholder")}
-        />
+        >
+          <MonacoEditor
+            value={config.code || ""}
+            language={(config.language === "rhai" ? "rust" : config.language) as any}
+            onChange={(v) => handleConfigChange("code", v || "")}
+            height="300px"
+          />
+        </div>
       </div>
 
       {/* 输出变量 + tool_name */}

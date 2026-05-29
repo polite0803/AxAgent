@@ -10,7 +10,7 @@ use axagent_trajectory::{HermesMetadata, Skill, SkillMetadata};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
-use tauri::State;
+use tauri::{Emitter, State};
 
 const SEARCH_CACHE_TTL_SECS: u64 = 300;
 
@@ -274,17 +274,27 @@ pub(crate) fn collect_markdown_files(dir: &Path) -> std::io::Result<Vec<PathBuf>
 
 #[tauri::command]
 pub async fn toggle_skill(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     name: String,
     enabled: bool,
 ) -> Result<(), String> {
     axagent_core::repo::skill::set_skill_enabled(&state.sea_db, &name, enabled)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    let _ = app.emit(
+        "skill-state-changed",
+        serde_json::json!({
+            "skillName": name,
+            "enabled": enabled,
+        }),
+    );
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn install_skill(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     source: String,
     target: Option<String>,
@@ -364,6 +374,14 @@ pub async fn install_skill(
         .trajectory_storage
         .save_skill(&skill)
         .map_err(|e| e.to_string())?;
+
+    let _ = app.emit(
+        "skill-state-changed",
+        serde_json::json!({
+            "skillName": &skill_name,
+            "action": "installed",
+        }),
+    );
 
     Ok(skill_name)
 }
@@ -867,7 +885,7 @@ fn ensure_path_under_base(path: &Path, base: &Path) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn uninstall_skill(name: String) -> Result<(), String> {
+pub async fn uninstall_skill(app: tauri::AppHandle, name: String) -> Result<(), String> {
     validate_skill_name(&name)?;
     let home = home_dir();
     let search_dirs = [
@@ -884,6 +902,13 @@ pub async fn uninstall_skill(name: String) -> Result<(), String> {
         if skill_dir.exists() && skill_dir.is_dir() {
             ensure_path_under_base(&skill_dir, parent)?;
             std::fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
+            let _ = app.emit(
+                "skill-state-changed",
+                serde_json::json!({
+                    "skillName": &name,
+                    "action": "uninstalled",
+                }),
+            );
             return Ok(());
         }
     }

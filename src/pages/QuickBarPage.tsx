@@ -1085,8 +1085,7 @@ export function QuickBarPage() {
       await invoke("send_message", {
         conversationId: cid,
         content: body,
-        providerId: activeProviderId,
-        modelId: activeModelId,
+        options: {},
       });
       return cid;
     });
@@ -1270,8 +1269,7 @@ export function QuickBarPage() {
       await invoke("send_message", {
         conversationId: cid,
         content: `Execute the following code in a sandbox and return the result:\n\`\`\`\n${code}\n\`\`\``,
-        providerId: activeProviderId,
-        modelId: activeModelId,
+        options: {},
       });
       return cid;
     });

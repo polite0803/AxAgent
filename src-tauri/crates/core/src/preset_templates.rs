@@ -785,6 +785,8 @@ fn step_to_agent_node(step: &PresetStep, index: usize) -> WorkflowNode {
             output_mode: OutputMode::Json,
             agent_profile_id: None,
             max_tool_rounds: None,
+            execution_mode: None,
+            rag_source_ids: vec![],
         },
     })
 }
@@ -1110,6 +1112,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
             error_branch: None,
             compensation_steps: None,
         }),
+        tool_defs: vec![],
         created_at: now,
         updated_at: now,
     }
@@ -1164,6 +1167,7 @@ pub async fn seed_preset_templates(db: &DatabaseConnection) -> Result<()> {
                             .and_then(|e| serde_json::to_string(e).ok()),
                     ),
                     composite_source: sea_orm::Set(None),
+                    tool_defs: sea_orm::Set(None),
                     created_at: sea_orm::Set(template.created_at),
                     updated_at: sea_orm::Set(template.updated_at),
                 };
@@ -1209,6 +1213,7 @@ pub async fn seed_preset_templates(db: &DatabaseConnection) -> Result<()> {
                             .and_then(|e| serde_json::to_string(e).ok()),
                     ),
                     composite_source: sea_orm::Set(None),
+                    tool_defs: sea_orm::Set(None),
                     created_at: sea_orm::Set(template.created_at),
                     updated_at: sea_orm::Set(template.updated_at),
                 };

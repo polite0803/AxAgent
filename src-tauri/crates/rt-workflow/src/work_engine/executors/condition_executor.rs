@@ -10,9 +10,7 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::work_engine::execution_state::ExecutionState;
-use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
-};
+use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
 
 pub struct ConditionExecutor {
     db: Arc<DatabaseConnection>,
@@ -264,8 +262,7 @@ impl ConditionExecutor {
             .ok_or_else(|| "无可用模型".to_string())?;
         let model = model.unwrap_or(&default_model);
 
-        self.call_llm_and_parse(&prov, &api_key, model, prompt)
-            .await
+        self.call_llm_and_parse(prov, &api_key, model, prompt).await
     }
 
     /// 使用系统默认 provider 调用 LLM 路由。

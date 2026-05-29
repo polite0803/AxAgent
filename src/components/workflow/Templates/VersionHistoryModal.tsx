@@ -21,6 +21,9 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   const [versions, setVersions] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [diffA, setDiffA] = useState<number | null>(null);
+  const [diffB, setDiffB] = useState<number | null>(null);
+  const [diffData, setDiffData] = useState<{ added: string[]; removed: string[] } | null>(null);
   const { loadTemplateVersions, loadTemplateByVersion } = useWorkflowEditorStore();
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -66,6 +69,31 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCompare = async () => {
+    if (!template?.id || diffA == null || diffB == null) { return; }
+    try {
+      // Load both versions and compare node titles + types
+      const store = useWorkflowEditorStore.getState();
+      try {
+        await store.loadTemplateByVersion(template.id, diffA);
+        const nodesA = store.nodes;
+        await store.loadTemplateByVersion(template.id, diffB);
+        const nodesB = store.nodes;
+        const aSet = new Set<string>(nodesA.map((n) => `${n.type}:${n.title}`));
+        const bSet = new Set<string>(nodesB.map((n) => `${n.type}:${n.title}`));
+        const addedList: string[] = [];
+        const removedList: string[] = [];
+        for (const x of bSet) { if (!aSet.has(x)) { addedList.push(x); } }
+        for (const x of aSet) { if (!bSet.has(x)) { removedList.push(x); } }
+        setDiffData({ added: addedList, removed: removedList });
+      } catch {
+        setDiffData({ added: [], removed: [] });
+      }
+      setDiffA(null);
+      setDiffB(null);
+    } catch { /* diff failed, ignore */ }
   };
 
   return (
@@ -131,6 +159,68 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             )}
           />
         )}
+      {/* Version diff */}
+      {versions.length >= 2 && (
+        <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 12, marginTop: 12 }}>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 8 }}>
+            {t("workflow.versionHistory.compareVersions")}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+            <Tag
+              color="blue"
+              style={{ cursor: "pointer", opacity: diffA != null ? 1 : 0.5 }}
+              onClick={() =>
+                setDiffA(diffA == null ? versions[0] : null)}
+            >
+              {diffA != null ? `v${diffA}` : "A"}
+            </Tag>
+            <span style={{ color: token.colorTextQuaternary }}>vs</span>
+            <Tag
+              color="orange"
+              style={{ cursor: "pointer", opacity: diffB != null ? 1 : 0.5 }}
+              onClick={() => setDiffB(diffB == null ? versions[versions.length - 1] : null)}
+            >
+              {diffB != null ? `v${diffB}` : "B"}
+            </Tag>
+            <Button size="small" onClick={handleCompare} disabled={diffA == null || diffB == null}>
+              {t("workflow.versionHistory.compare")}
+            </Button>
+          </div>
+          {diffData && (
+            <div style={{ fontSize: 12 }}>
+              {diffData.added.length > 0 && (
+                <div style={{ marginBottom: 4 }}>
+                  <span style={{ color: token.colorSuccess }}>+ {diffData.added.length} added</span>
+                  {diffData.added.slice(0, 5).map((x, i) => (
+                    <div key={i} style={{ color: token.colorSuccess, paddingLeft: 12 }}>+ {x}</div>
+                  ))}
+                  {diffData.added.length > 5 && (
+                    <div style={{ color: token.colorTextQuaternary, paddingLeft: 12 }}>
+                      ... and {diffData.added.length - 5} more
+                    </div>
+                  )}
+                </div>
+              )}
+              {diffData.removed.length > 0 && (
+                <div>
+                  <span style={{ color: token.colorError }}>- {diffData.removed.length} removed</span>
+                  {diffData.removed.slice(0, 5).map((x, i) => (
+                    <div key={i} style={{ color: token.colorError, paddingLeft: 12 }}>- {x}</div>
+                  ))}
+                  {diffData.removed.length > 5 && (
+                    <div style={{ color: token.colorTextQuaternary, paddingLeft: 12 }}>
+                      ... and {diffData.removed.length - 5} more
+                    </div>
+                  )}
+                </div>
+              )}
+              {diffData.added.length === 0 && diffData.removed.length === 0 && (
+                <div style={{ color: token.colorTextQuaternary }}>{t("workflow.versionHistory.noChanges")}</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {loading && (
         <div
           style={{

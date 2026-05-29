@@ -297,11 +297,13 @@ export function createSendMethods(
           conversationId,
           content: finalContent,
           attachments,
-          enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-          thinkingBudget,
-          enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-          enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-          enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
+          options: {
+            enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
+            thinkingBudget,
+            enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
+            enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+            enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
+          },
         });
 
         // Stale guard: if user switched conversations while send was in-flight,
@@ -338,7 +340,7 @@ export function createSendMethods(
           get().fetchMessages(conversationId);
         }
       } catch (e) {
-        logIpcError("sendMessage")(e);
+        logIpcError("sendMessage", { notify: true })(e);
         const errMsg = String(e);
 
         // Determine whether this error is retryable (transient) vs permanent.
@@ -401,13 +403,15 @@ export function createSendMethods(
                   conversationId,
                   content: finalContent,
                   attachments,
-                  enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-                  thinkingBudget,
-                  enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-                  enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-                  enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
-                    ? usePreferenceStore.getState().enabledWikiIds
-                    : undefined,
+                  options: {
+                    enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
+                    thinkingBudget,
+                    enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
+                    enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
+                    enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
+                      ? usePreferenceStore.getState().enabledWikiIds
+                      : undefined,
+                  },
                 });
                 // Re-start stream
                 const newTempId = tempId("temp-assistant-");
@@ -1473,11 +1477,13 @@ export function createSendMethods(
         await invoke("regenerate_message", {
           conversationId,
           userMessageId: userMsg.id,
-          enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
-          thinkingBudget: rThinkingBudget,
-          enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
-          enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
-          enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+          options: {
+            enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
+            thinkingBudget: rThinkingBudget,
+            enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
+            enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
+            enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+          },
         });
 
         // In browser mode, simulate brief loading then fetch the mock AI response
@@ -1495,7 +1501,7 @@ export function createSendMethods(
           get().fetchMessages(conversationId);
         }
       } catch (e) {
-        logIpcError("regenerateMessage")(e);
+        logIpcError("regenerateMessage", { notify: true })(e);
         const errMsg = String(e);
         const currentStreamingMessageId = getStreamingMessageId(
           useStreamStore.getState().activeStreams,
@@ -1621,11 +1627,13 @@ export function createSendMethods(
           userMessageId: userMsg.id,
           targetProviderId: providerId,
           targetModelId: model_id,
-          enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
-          thinkingBudget: rThinkingBudget,
-          enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
-          enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
-          enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+          options: {
+            enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
+            thinkingBudget: rThinkingBudget,
+            enabledKnowledgeBaseIds: rKbIds.length > 0 ? rKbIds : undefined,
+            enabledMemoryNamespaceIds: rMemIds.length > 0 ? rMemIds : undefined,
+            enabledWikiIds: rWikiIds.length > 0 ? rWikiIds : undefined,
+          },
         });
 
         if (!isTauri()) {
@@ -1642,7 +1650,7 @@ export function createSendMethods(
           get().fetchMessages(conversationId);
         }
       } catch (e) {
-        logIpcError("regenerateWithModel")(e);
+        logIpcError("regenerateWithModel", { notify: true })(e);
         const errMsg = String(e);
         const currentStreamingMessageId = getStreamingMessageId(
           useStreamStore.getState().activeStreams,

@@ -535,6 +535,7 @@ pub fn run() {
             commands::proactive::proactive_set_enabled,
             commands::proactive::proactive_update_config,
             commands::proactive::proactive_prefetch,
+            commands::proactive::list_insights,
             commands::message_continuation::continue_message,
             commands::message_continuation::list_continuable_messages,
             commands::onboarding::detect_ollama_availability,
@@ -929,6 +930,8 @@ pub fn run() {
             commands::session_share::list_share_participants,
             // Crash diagnostics
             commands::crash_report::get_crash_log,
+            // Service health check
+            commands::health::get_service_health,
         ])
         .setup(|app| {
             android_utils::mark_startup_phase("setup_start");

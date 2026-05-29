@@ -40,7 +40,25 @@ impl NodeExecutorTrait for CodeExecutor {
             ));
         };
 
-        // 当前不实际执行代码，返回代码摘要供 LLM 或下游节点使用
+        // Rhai 脚本已在预处理阶段编译并注册为工具，DAG 中无需执行
+        if code_node.config.language == "rhai" {
+            let tool_name = code_node
+                .config
+                .tool_name
+                .clone()
+                .unwrap_or_else(|| format!("code_{}", code_node.base.id));
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "status": "tool_registered",
+                    "tool_name": tool_name,
+                    "note": "Rhai 脚本已注册为工具，由 Agent/LLM 调用，无需 DAG 执行",
+                    "node_id": node.base_id(),
+                }),
+                output_var: Some(code_node.config.output_var.clone()),
+            });
+        }
+
+        // 非 Rhai 语言：返回代码摘要供 LLM 或下游节点使用
         let code_lines = code_node.config.code.lines().count();
         Ok(NodeOutput {
             output: serde_json::json!({

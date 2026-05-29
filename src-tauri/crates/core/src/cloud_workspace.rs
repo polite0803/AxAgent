@@ -348,11 +348,8 @@ impl CloudWorkspace {
         // Try to get current etag for conditional delete
         let remote_meta = self.backend.head(&remote_key).await.ok();
 
-        if let Some(_etag) = remote_meta.and_then(|m| m.etag) {
-            // Use conditional delete if backend supports it
-            // For now, fall back to regular delete
-            // TODO: Implement If-Match header in StorageBackend
-            self.backend.delete(&remote_key).await?;
+        if let Some(etag) = remote_meta.and_then(|m| m.etag) {
+            self.backend.delete_if_match(&remote_key, &etag).await?;
         } else {
             // File doesn't exist remotely, nothing to delete
             return Ok(false);

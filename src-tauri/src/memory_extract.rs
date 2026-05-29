@@ -4,7 +4,6 @@ use axagent_providers::{ProviderAdapter, ProviderRequestContext};
 use serde::{Deserialize, Serialize};
 
 /// 获取当前语言的知识提取系统提示
-/// TODO: 从 AppState 或参数获取用户语言偏好
 fn extraction_system_prompt(lang: PromptLang) -> &'static str {
     PromptRegistry::get("extraction.system_prompt", lang)
 }
@@ -81,6 +80,7 @@ pub async fn extract_memories_from_messages(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
     model: &str,
+    lang: PromptLang,
 ) -> Result<ExtractionResult, String> {
     let recent: Vec<_> = messages
         .iter()
@@ -118,7 +118,7 @@ pub async fn extract_memories_from_messages(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(extraction_system_prompt(PromptLang::ZhCN).to_string()),
+                content: ChatContent::Text(extraction_system_prompt(lang).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -193,6 +193,7 @@ pub async fn consolidate_memories(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
     model: &str,
+    lang: PromptLang,
 ) -> Result<ConsolidatedMemory, String> {
     if contents.len() < 2 {
         return Err("Need at least 2 memories to consolidate".to_string());
@@ -216,9 +217,7 @@ pub async fn consolidate_memories(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(
-                    consolidation_system_prompt(PromptLang::ZhCN).to_string(),
-                ),
+                content: ChatContent::Text(consolidation_system_prompt(lang).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -314,6 +313,7 @@ pub async fn extract_entities_from_messages(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
     model: &str,
+    lang: PromptLang,
 ) -> Result<EntityExtractionResult, String> {
     let recent: Vec<_> = messages
         .iter()
@@ -352,9 +352,7 @@ pub async fn extract_entities_from_messages(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(
-                    entity_extraction_system_prompt(PromptLang::ZhCN).to_string(),
-                ),
+                content: ChatContent::Text(entity_extraction_system_prompt(lang).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,
@@ -417,6 +415,7 @@ pub async fn extract_incremental_memories(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
     model: &str,
+    lang: PromptLang,
 ) -> Result<ExtractionResult, String> {
     let user_messages: Vec<_> = new_messages
         .iter()
@@ -454,7 +453,7 @@ pub async fn extract_incremental_memories(
         messages: vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: ChatContent::Text(extraction_system_prompt(PromptLang::ZhCN).to_string()),
+                content: ChatContent::Text(extraction_system_prompt(lang).to_string()),
                 tool_calls: None,
                 tool_call_id: None,
                 thinking: None,

@@ -1,7 +1,10 @@
 //! 全局状态访问（最小化）
 //!
 //! 仅保留数据库连接访问等跨模块必需的状态。
-//! TODO: 后续通过 ToolContext.extra 传递，彻底消除全局状态。
+//!
+//! Future: Migrate to ToolContext.extra to eliminate global state.
+//! This requires updating all tool implementations to accept db via context,
+//! which is a significant refactor tracked separately.
 
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;

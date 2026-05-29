@@ -38,6 +38,7 @@ pub mod fine_tune;
 pub mod gateway;
 pub mod gateway_link;
 pub mod generated_tool;
+pub mod health;
 pub mod image_gen;
 pub mod image_gen_settings;
 pub mod knowledge;

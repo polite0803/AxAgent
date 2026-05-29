@@ -212,6 +212,7 @@ pub async fn get_template_by_version(
         variables: v.variables,
         error_config: v.error_config,
         composite_source: None,
+        tool_defs: None,
         created_at: v.created_at,
         updated_at: v.created_at,
     }))

@@ -1886,6 +1886,9 @@
     "proxyTestFailed": "प्रॉक्सी कनेक्शन विफल",
     "groupData": "डेटा प्रबंधन",
     "groupAppInfo": "ऐप जानकारी",
+    "groupServiceHealth": "सेवा स्वास्थ्य",
+    "overallStatus": "समग्र स्थिति",
+    "recheckHealth": "पुनः जाँचें",
     "groupLinks": "लिंक",
     "useModelIcon": "मॉडल आइकन उपयोग करें",
     "systemPromptLabel": "सिस्टम प्रॉम्प्ट (रोल सेटिंग)",
@@ -6320,6 +6323,17 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module"
+  },
+  "appInit": {
+    "idle": "Preparing to start...",
+    "healthCheck": "Checking system connection...",
+    "loadSettings": "Loading settings...",
+    "applyConfig": "Applying configuration...",
+    "startServices": "Starting services...",
+    "ready": "Ready",
+    "failedTitle": "Startup Failed",
+    "failedSubtitle": "An error occurred during app initialization. Please retry.",
+    "retry": "Restart"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",

@@ -1100,6 +1100,218 @@ impl Default for HierarchicalPlanner {
     }
 }
 
+// ── Plan → DAG 编译 ─────────────────────────────────────
+
+/// 将 Plan 的 Phase 编译为工作流 DAG。
+/// - Phase 间串行（按 phase.dependencies 排序）
+/// - Phase 内 Task 按 task.dependencies 生成精确边
+/// - action_type="tool" → ToolNode, "llm" → LLMNode, 其他 → AgentNode
+pub fn compile_plan_to_dag(
+    plan: &Plan,
+    tool_names: &[String],
+) -> (
+    Vec<axagent_core::workflow_types::WorkflowNode>,
+    Vec<axagent_core::workflow_types::WorkflowEdge>,
+) {
+    use axagent_core::workflow_types::*;
+
+    let mut nodes: Vec<WorkflowNode> = Vec::new();
+    let mut edges: Vec<WorkflowEdge> = Vec::new();
+    let mut edge_id = 0u32;
+    let mut all_task_ids: Vec<String> = Vec::new();
+
+    // Trigger
+    let trigger_id = "trigger".to_string();
+    nodes.push(WorkflowNode::Trigger(TriggerNode {
+        base: WorkflowNodeBase {
+            id: trigger_id.clone(),
+            title: "Start".to_string(),
+            description: None,
+            position: Position { x: 0.0, y: 0.0 },
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        },
+        config: TriggerConfig {
+            trigger_type: TriggerType::Manual,
+            config: serde_json::Value::Null,
+        },
+    }));
+
+    for (pi, phase) in plan.phases.iter().enumerate() {
+        // Phase 内 task_id → node_id 映射
+        let mut task_to_node: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        let mut phase_nodes: Vec<String> = Vec::new();
+
+        for (ti, task) in phase.tasks.iter().enumerate() {
+            let nid = format!("p{pi}_t{ti}_{}", task.id);
+            task_to_node.insert(task.id.clone(), nid.clone());
+            all_task_ids.push(task.id.clone());
+
+            let base = WorkflowNodeBase {
+                id: nid.clone(),
+                title: task.description.clone(),
+                description: None,
+                position: Position {
+                    x: 200.0 + (ti as f64 * 220.0),
+                    y: 150.0 + (pi as f64 * 180.0),
+                },
+                retry: RetryConfig {
+                    enabled: true,
+                    max_retries: task.max_retries,
+                    ..RetryConfig::default()
+                },
+                timeout: Some(300),
+                enabled: true,
+            };
+
+            let node = match task.action_type.as_str() {
+                "tool" => WorkflowNode::Tool(ToolNode {
+                    base,
+                    config: ToolNodeConfig {
+                        tool_name: task
+                            .parameters
+                            .get("tool")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        input_mapping: task
+                            .parameters
+                            .as_object()
+                            .map(|obj| {
+                                obj.iter()
+                                    .filter(|(k, _)| *k != "tool")
+                                    .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        output_var: format!("r_{nid}"),
+                    },
+                }),
+                "llm" => WorkflowNode::Llm(LLMNode {
+                    base,
+                    config: LLMNodeConfig {
+                        model: "".to_string(),
+                        prompt: task.description.clone(),
+                        messages: None,
+                        temperature: Some(0.3),
+                        max_tokens: Some(4096),
+                        tools: Some(tool_names.to_vec()),
+                        functions: None,
+                    },
+                }),
+                _ => WorkflowNode::Agent(AgentNode {
+                    base,
+                    config: AgentNodeConfig {
+                        system_prompt: task.description.clone(),
+                        context_sources: vec![],
+                        output_var: format!("r_{nid}"),
+                        model: None,
+                        temperature: None,
+                        max_tokens: None,
+                        tools: tool_names
+                            .iter()
+                            .map(|n| ToolDef {
+                                name: n.clone(),
+                                description: None,
+                                parameters: None,
+                            })
+                            .collect(),
+                        exposed_tools: vec![],
+                        output_mode: OutputMode::Text,
+                        agent_profile_id: None,
+                        max_tool_rounds: None,
+                        execution_mode: None,
+                        rag_source_ids: vec![],
+                    },
+                }),
+            };
+
+            nodes.push(node);
+            phase_nodes.push(nid.clone());
+        }
+
+        // Phase 内：按 task.dependencies 生成 edges
+        for task in &phase.tasks {
+            let Some(target_id) = task_to_node.get(&task.id) else { continue };
+            if task.dependencies.is_empty() {
+                // 无依赖 → 从所有前驱节点连入
+                if pi == 0 {
+                    edge_id += 1;
+                    edges.push(WorkflowEdge {
+                        id: format!("e_{edge_id}"),
+                        source: trigger_id.clone(),
+                        target: target_id.clone(),
+                        edge_type: EdgeType::Direct,
+                        label: None,
+                        source_handle: None,
+                        target_handle: None,
+                    });
+                }
+            } else {
+                for dep_id in &task.dependencies {
+                    if let Some(source_id) = task_to_node.get(dep_id) {
+                        edge_id += 1;
+                        edges.push(WorkflowEdge {
+                            id: format!("e_{edge_id}"),
+                            source: source_id.clone(),
+                            target: target_id.clone(),
+                            edge_type: EdgeType::Direct,
+                            label: None,
+                            source_handle: None,
+                            target_handle: None,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // End node
+    let end_id = "end".to_string();
+    nodes.push(WorkflowNode::End(EndNode {
+        base: WorkflowNodeBase {
+            id: end_id.clone(),
+            title: "End".to_string(),
+            description: None,
+            position: Position { x: 600.0, y: 500.0 },
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+        },
+        config: EndNodeConfig {
+            output_var: Some("plan_result".to_string()),
+        },
+    }));
+
+    // Connect leaf nodes to end
+    {
+        let leaf_ids: Vec<String> = nodes
+            .iter()
+            .filter(|n| {
+                matches!(n, WorkflowNode::Tool(_) | WorkflowNode::Llm(_) | WorkflowNode::Agent(_))
+            })
+            .map(|n| n.base_id().to_string())
+            .filter(|n| !edges.iter().any(|e| e.source == *n))
+            .collect();
+        for n in leaf_ids {
+            edge_id += 1;
+            edges.push(WorkflowEdge {
+                id: format!("e_{edge_id}"),
+                source: n,
+                target: end_id.clone(),
+                edge_type: EdgeType::Direct,
+                label: None,
+                source_handle: None,
+                target_handle: None,
+            });
+        }
+    }
+
+    (nodes, edges)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

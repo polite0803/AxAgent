@@ -44,6 +44,8 @@ vi.mock("antd", () => ({
   ),
   Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+  Spin: () => <div data-testid="spin" />,
+  Result: () => <div data-testid="result" />,
   Typography: {
     Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
     Paragraph: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
@@ -72,6 +74,7 @@ vi.mock("react-i18next", () => ({
     init: () => {},
   },
   useTranslation: () => ({
+    t: (key: string) => key,
     i18n: {
       language: "zh-CN",
       getFixedT: () => (_key: string) => _key,
@@ -111,37 +114,57 @@ vi.mock("@/stores", () => ({
       getState: () => settingsState,
     },
   ),
-  useConversationStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      startStreamListening: vi.fn(),
-    }),
-  useStreamStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      stopStreamListening: vi.fn(),
-    }),
-  useSkillExtensionStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      skills: [],
-      loading: false,
-      navItems: [],
-      pages: [],
-      commands: [],
-      panels: [],
-      settingsSections: [],
-      toolbarButtons: [],
-      chatCommands: [],
-      statusBarItems: [],
-      handlers: {},
-      fetchSkills: vi.fn().mockResolvedValue(undefined),
-      getHandler: vi.fn().mockReturnValue(undefined),
-      refreshSkill: vi.fn(),
-    }),
-  useOnboardingStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      completed: true,
-      setCompleted: vi.fn(),
-      loadFromSettings: vi.fn(),
-    }),
+  useConversationStore: Object.assign(
+    (selector: (state: unknown) => unknown) =>
+      selector({
+        startStreamListening: vi.fn(),
+      }),
+    { getState: () => ({ startStreamListening: vi.fn() }) },
+  ),
+  useStreamStore: Object.assign(
+    (selector: (state: unknown) => unknown) =>
+      selector({
+        stopStreamListening: vi.fn(),
+      }),
+    { getState: () => ({ stopStreamListening: vi.fn() }) },
+  ),
+  useSkillExtensionStore: Object.assign(
+    (selector: (state: unknown) => unknown) =>
+      selector({
+        skills: [],
+        loading: false,
+        navItems: [],
+        pages: [],
+        commands: [],
+        panels: [],
+        settingsSections: [],
+        toolbarButtons: [],
+        chatCommands: [],
+        statusBarItems: [],
+        handlers: {},
+        fetchSkills: vi.fn().mockResolvedValue(undefined),
+        getHandler: vi.fn().mockReturnValue(undefined),
+        refreshSkill: vi.fn(),
+      }),
+    {
+      getState: () => ({
+        fetchSkills: vi.fn().mockResolvedValue(undefined),
+      }),
+    },
+  ),
+  useOnboardingStore: Object.assign(
+    (selector: (state: unknown) => unknown) =>
+      selector({
+        completed: true,
+        setCompleted: vi.fn(),
+        loadFromSettings: vi.fn(),
+      }),
+    {
+      getState: () => ({
+        loadFromSettings: vi.fn(),
+      }),
+    },
+  ),
 }));
 
 vi.mock("@/hooks/useKeyboardShortcuts", () => ({
@@ -164,7 +187,9 @@ vi.mock("@/lib/invoke", () => ({
   logIpcError: vi.fn(),
 }));
 
-vi.mock("@/i18n", () => ({}));
+vi.mock("@/i18n", () => ({
+  default: { language: "zh-CN", changeLanguage: vi.fn() },
+}));
 
 vi.mock("react-router-dom", () => ({
   BrowserRouter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

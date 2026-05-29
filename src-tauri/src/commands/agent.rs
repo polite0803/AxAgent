@@ -20,6 +20,7 @@ use sea_orm::{DatabaseConnection, EntityTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::AtomicBool;
 use tracing::info;
 
 /// Estimate cost in USD using model price fields (highest priority), then
@@ -209,20 +210,32 @@ use tauri::{AppHandle, Emitter, State};
 struct AsyncRunningAgentGuard {
     conversation_id: String,
     running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
+    cancel_tokens: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+    paused_set: Arc<tokio::sync::Mutex<std::collections::HashSet<String>>>,
 }
 
 impl Drop for AsyncRunningAgentGuard {
     fn drop(&mut self) {
         let running_agents = self.running_agents.clone();
+        let cancel_tokens = self.cancel_tokens.clone();
+        let paused_set = self.paused_set.clone();
         let conversation_id = self.conversation_id.clone();
         if let Ok(_handle) = tokio::runtime::Handle::try_current() {
             tokio::spawn(async move {
                 let mut agents = running_agents.write().await;
                 agents.remove(&conversation_id);
+                let mut tokens = cancel_tokens.lock().await;
+                tokens.remove(&conversation_id);
+                let mut paused = paused_set.lock().await;
+                paused.remove(&conversation_id);
             });
         } else {
             let mut agents = running_agents.blocking_write();
             agents.remove(&conversation_id);
+            let mut tokens = cancel_tokens.blocking_lock();
+            tokens.remove(&conversation_id);
+            let mut paused = paused_set.blocking_lock();
+            paused.remove(&conversation_id);
         }
     }
 }
@@ -356,6 +369,20 @@ pub struct AgentStreamThinkingPayload {
     #[serde(rename = "assistantMessageId")]
     pub assistant_message_id: String,
     pub thinking: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptCachePayload {
+    #[serde(rename = "conversationId")]
+    pub conversation_id: String,
+    #[serde(rename = "assistantMessageId")]
+    pub assistant_message_id: String,
+    pub unexpected: bool,
+    pub reason: String,
+    #[serde(rename = "cacheReadTokens")]
+    pub cache_read_input_tokens: u32,
+    #[serde(rename = "tokenDrop")]
+    pub token_drop: u32,
 }
 
 #[allow(dead_code)]
@@ -677,6 +704,8 @@ pub async fn agent_query(
         AsyncRunningAgentGuard {
             conversation_id: conversation_id.clone(),
             running_agents: app_state.running_agents.clone(),
+            cancel_tokens: app_state.agent_cancel_tokens.clone(),
+            paused_set: app_state.agent_paused.clone(),
         }
     });
 
@@ -1115,6 +1144,19 @@ pub async fn agent_query(
                         },
                     );
                 },
+                axagent_runtime::AssistantEvent::PromptCache(evt) => {
+                    let _ = stream_app.emit(
+                        "prompt-cache-event",
+                        PromptCachePayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            unexpected: evt.unexpected,
+                            reason: evt.reason.clone(),
+                            cache_read_input_tokens: evt.current_cache_read_input_tokens,
+                            token_drop: evt.token_drop,
+                        },
+                    );
+                },
                 _ => {},
             }))
     } else {
@@ -1158,6 +1200,19 @@ pub async fn agent_query(
                             tool_name: name.clone(),
                             input: serde_json::from_str(input).unwrap_or(serde_json::Value::Null),
                             execution_id: None,
+                        },
+                    );
+                },
+                axagent_runtime::AssistantEvent::PromptCache(evt) => {
+                    let _ = stream_app.emit(
+                        "prompt-cache-event",
+                        PromptCachePayload {
+                            conversation_id: stream_conv_id.clone(),
+                            assistant_message_id: stream_msg_id.clone(),
+                            unexpected: evt.unexpected,
+                            reason: evt.reason.clone(),
+                            cache_read_input_tokens: evt.current_cache_read_input_tokens,
+                            token_drop: evt.token_drop,
                         },
                     );
                 },
@@ -1764,6 +1819,13 @@ pub async fn agent_query(
     {
         let mut prompters = app_state.agent_prompters.lock().await;
         prompters.remove(&conversation_id);
+    }
+
+    // Clean up paused state in case the agent was paused but the turn
+    // completed (e.g. via cancel while paused).
+    {
+        let mut paused = app_state.agent_paused.lock().await;
+        paused.remove(&conversation_id);
     }
 
     match result {
@@ -2714,18 +2776,6 @@ fn parse_skill_input(input: &str) -> Result<SkillInput, String> {
     serde_json::from_str(input).map_err(|e| format!("Invalid skill input JSON: {}", e))
 }
 
-fn detect_skill_execution_mode(
-    content: &str,
-) -> (String, Option<Vec<SkillStep>>, Option<McpToolCall>) {
-    let content_lower = content.to_lowercase();
-    if content_lower.contains("```mcp") || content_lower.contains("mcp tool:") {
-        let mcp_call = extract_mcp_tool_call(content);
-        return ("mcp".to_string(), None, mcp_call);
-    }
-    // 不再将 Skill 输出解析为 DAG——统一走 content 模式，由 Agent 自然处理
-    ("content".to_string(), None, None)
-}
-
 fn extract_mcp_tool_call(content: &str) -> Option<McpToolCall> {
     let content_lower = content.to_lowercase();
     if !content_lower.contains("mcp") {
@@ -2808,7 +2858,8 @@ async fn execute_skill_async(
     let context = &skill_input.input.context;
     let goal = context.as_ref().and_then(|c| c.goal.clone());
     let constraints = context.as_ref().and_then(|c| c.constraints.clone());
-    let (execution_mode, steps, mcp_tool_call) = detect_skill_execution_mode(skill_content);
+    let execution_mode = "content".to_string();
+    let mcp_tool_call = extract_mcp_tool_call(skill_content);
 
     let tracker = get_skill_output_tracker();
     let conversation_id = ctx.conversation_id.clone();
@@ -2866,7 +2917,7 @@ async fn execute_skill_async(
         execution_mode,
         goal,
         constraints,
-        steps,
+        steps: None,
         mcp_tool_call,
         mcp_result,
         message,
@@ -3272,6 +3323,13 @@ pub async fn agent_cancel(
             prompter.clear_pending();
         }
         prompters.remove(&request.conversation_id);
+    }
+
+    // Clean up paused state — if the agent was paused when cancelled,
+    // the paused entry would otherwise remain indefinitely.
+    {
+        let mut paused = app_state.agent_paused.lock().await;
+        paused.remove(&request.conversation_id);
     }
 
     // Emit cancellation event so frontend can clean up

@@ -70,6 +70,17 @@ pub async fn remove_context_source(db: &DatabaseConnection, id: &str) -> Result<
     Ok(())
 }
 
+pub async fn delete_context_sources_by_conversation(
+    db: &DatabaseConnection,
+    conversation_id: &str,
+) -> Result<()> {
+    context_sources::Entity::delete_many()
+        .filter(context_sources::Column::ConversationId.eq(conversation_id))
+        .exec(db)
+        .await?;
+    Ok(())
+}
+
 pub async fn toggle_context_source(db: &DatabaseConnection, id: &str) -> Result<ContextSource> {
     let model = context_sources::Entity::find_by_id(id)
         .one(db)

@@ -24,6 +24,7 @@ pub struct Model {
     pub variables: Option<String>,
     pub error_config: Option<String>,
     pub composite_source: Option<String>,
+    pub tool_defs: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

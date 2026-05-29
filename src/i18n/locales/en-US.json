@@ -2113,6 +2113,9 @@
     "proxyTestFailed": "Proxy connection failed",
     "groupData": "Data Management",
     "groupAppInfo": "App Info",
+    "groupServiceHealth": "Service Health",
+    "overallStatus": "Overall Status",
+    "recheckHealth": "Recheck",
     "groupLinks": "Links",
     "useModelIcon": "Use Model Icon",
     "systemPromptLabel": "System Prompt (Role Setting)",
@@ -3733,6 +3736,11 @@
       "selectTools": "Select tools...",
       "maxToolRounds": "Max Tool Rounds",
       "maxToolRoundsHint": "Maximum iterations of agent-tool interaction loop",
+      "executionMode": "Execution Mode",
+      "executionReact": "🧠 ReAct Step-by-Step",
+      "executionPlan": "📋 Plan Then Execute",
+      "executionReactHint": "LLM thinks→acts→observes each step, best for exploratory tasks",
+      "executionPlanHint": "LLM generates hierarchical plan first, then executes phase by phase, best for complex multi-step tasks",
       "toolName": "Tool Name (Rhai)",
       "toolNamePlaceholder": "Name for Agent exposed_tools reference...",
       "toolNameHint": "Leave empty to auto-generate code_<nodeId>",
@@ -4942,7 +4950,21 @@
     "yesterday": "Yesterday",
     "retry": "Retry",
     "applied": "Applied",
-    "copied": "Copied to clipboard"
+    "copied": "Copied to clipboard",
+    "insight": {
+      "title": "Learning Insights",
+      "refresh": "Refresh",
+      "all": "All",
+      "empty": "No insights yet",
+      "evidence": "Evidence",
+      "suggestedAction": "Suggested action: ",
+      "category": {
+        "pattern": "Pattern",
+        "preference": "Preference",
+        "improvement": "Improvement",
+        "warning": "Warning"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "Enter comment...",
@@ -6105,6 +6127,24 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module"
+  },
+  "appInit": {
+    "idle": "Preparing to start...",
+    "healthCheck": "Checking system connection...",
+    "loadSettings": "Loading settings...",
+    "applyConfig": "Applying configuration...",
+    "startServices": "Starting services...",
+    "ready": "Ready",
+    "failedTitle": "Startup Failed",
+    "failedSubtitle": "An error occurred during app initialization. Please retry.",
+    "retry": "Restart"
+  },
+  "errorNotification": {
+    "retry": "Retry"
+  },
+  "backendStatus": {
+    "done": "Done",
+    "failed": "Failed"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",

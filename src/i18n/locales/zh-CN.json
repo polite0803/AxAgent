@@ -1942,6 +1942,9 @@
     "proxyTestFailed": "代理连接失败",
     "groupData": "数据管理",
     "groupAppInfo": "应用信息",
+    "groupServiceHealth": "服务健康",
+    "overallStatus": "总体状态",
+    "recheckHealth": "重新检查",
     "groupLinks": "链接",
     "useModelIcon": "使用模型图标",
     "systemPromptLabel": "系统提示（角色设定）",
@@ -3974,6 +3977,11 @@
       "selectTools": "选择工具",
       "maxToolRounds": "最大工具调用轮数",
       "maxToolRoundsHint": "Agent 与 LLM 多轮交互的上限，防止无限循环",
+      "executionMode": "执行模式",
+      "executionReact": "🧠 ReAct 逐步推理",
+      "executionPlan": "📋 先规划再执行",
+      "executionReactHint": "LLM 每步思考→行动→观察，适合探索性任务",
+      "executionPlanHint": "LLM 先生成层次计划，再按 Phase/Task 顺序执行，适合复杂多步骤任务",
       "toolName": "工具名称（Rhai）",
       "toolNamePlaceholder": "Agent 通过 exposed_tools 引用的名称...",
       "toolNameHint": "不填则自动使用 code_<节点ID>",
@@ -4956,7 +4964,21 @@
     "yesterday": "昨天",
     "retry": "重试",
     "applied": "已应用",
-    "copied": "已复制到剪贴板"
+    "copied": "已复制到剪贴板",
+    "insight": {
+      "title": "学习洞察",
+      "refresh": "刷新",
+      "all": "全部",
+      "empty": "暂无洞察",
+      "evidence": "依据",
+      "suggestedAction": "建议操作：",
+      "category": {
+        "pattern": "模式",
+        "preference": "偏好",
+        "improvement": "改进",
+        "warning": "警告"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "输入评论...",
@@ -6196,6 +6218,24 @@
   "errorBoundary": {
     "title": "出了点问题",
     "retryLoad": "重试加载此模块"
+  },
+  "appInit": {
+    "idle": "准备启动...",
+    "healthCheck": "正在检查系统连接...",
+    "loadSettings": "正在加载设置...",
+    "applyConfig": "正在应用配置...",
+    "startServices": "正在启动服务...",
+    "ready": "就绪",
+    "failedTitle": "启动失败",
+    "failedSubtitle": "应用初始化过程中发生错误，请重试。",
+    "retry": "重新启动"
+  },
+  "errorNotification": {
+    "retry": "重试"
+  },
+  "backendStatus": {
+    "done": "完成",
+    "failed": "失败"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt 缓存未建立。会话首轮。",

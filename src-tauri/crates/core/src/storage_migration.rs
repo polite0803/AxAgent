@@ -51,7 +51,7 @@ async fn run_migration(
     let rows = stored_files::Entity::find()
         .all(db)
         .await
-        .map_err(|e| AxAgentError::Database(e))?;
+        .map_err(AxAgentError::Database)?;
 
     // 3. Process each stored file
     for row in rows {
@@ -91,7 +91,7 @@ async fn run_migration(
         // Update DB record (even when source is missing, for consistency)
         let mut am: stored_files::ActiveModel = row.into();
         am.storage_path = Set(new_rel);
-        am.update(db).await.map_err(|e| AxAgentError::Database(e))?;
+        am.update(db).await.map_err(AxAgentError::Database)?;
         report.db_records_updated += 1;
     }
 
@@ -101,7 +101,7 @@ async fn run_migration(
         .filter(messages::Column::Attachments.ne(""))
         .all(db)
         .await
-        .map_err(|e| AxAgentError::Database(e))?;
+        .map_err(AxAgentError::Database)?;
 
     for msg in msgs {
         let Ok(mut atts) = serde_json::from_str::<Vec<serde_json::Value>>(&msg.attachments) else {
@@ -149,7 +149,7 @@ async fn run_migration(
                 .map_err(|e| AxAgentError::Internal(format!("serialize attachments: {}", e)))?;
             let mut am: messages::ActiveModel = msg.into();
             am.attachments = Set(json);
-            am.update(db).await.map_err(|e| AxAgentError::Database(e))?;
+            am.update(db).await.map_err(AxAgentError::Database)?;
             report.messages_updated += 1;
         }
     }

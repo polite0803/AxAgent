@@ -1929,6 +1929,9 @@
     "proxyTestFailed": "Подключение через прокси не удалось",
     "groupData": "Управление данными",
     "groupAppInfo": "Информация о приложении",
+    "groupServiceHealth": "Состояние сервисов",
+    "overallStatus": "Общее состояние",
+    "recheckHealth": "Проверить снова",
     "groupLinks": "Ссылки",
     "useModelIcon": "Использовать иконку модели",
     "systemPromptLabel": "Системный промпт (настройка роли)",
@@ -4845,7 +4848,21 @@
     "scheduledWas": "Scheduled: {{time}}",
     "retry": "Retry",
     "applied": "Applied",
-    "copied": "Copied to clipboard"
+    "copied": "Copied to clipboard",
+    "insight": {
+      "title": "Инсайты обучения",
+      "refresh": "Обновить",
+      "all": "Все",
+      "empty": "Нет инсайтов",
+      "evidence": "Доказательства",
+      "suggestedAction": "Предлагаемое действие: ",
+      "category": {
+        "pattern": "Паттерн",
+        "preference": "Предпочтение",
+        "improvement": "Улучшение",
+        "warning": "Предупреждение"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "Enter comment...",
@@ -6320,6 +6337,24 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module"
+  },
+  "appInit": {
+    "idle": "Preparing to start...",
+    "healthCheck": "Checking system connection...",
+    "loadSettings": "Loading settings...",
+    "applyConfig": "Applying configuration...",
+    "startServices": "Starting services...",
+    "ready": "Ready",
+    "failedTitle": "Startup Failed",
+    "failedSubtitle": "An error occurred during app initialization. Please retry.",
+    "retry": "Restart"
+  },
+  "errorNotification": {
+    "retry": "Повторить"
+  },
+  "backendStatus": {
+    "done": "Готово",
+    "failed": "Ошибка"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",

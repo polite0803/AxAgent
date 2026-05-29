@@ -127,6 +127,7 @@ impl ComplexityIndicators {
         ]
     }
 
+    #[allow(dead_code)]
     fn get_low() -> Vec<&'static str> {
         vec!["show", "tell", "what is", "how to", "find", "search"]
     }

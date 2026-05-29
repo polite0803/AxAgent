@@ -43,6 +43,11 @@ fn model_to_active_model(
             .as_ref()
             .and_then(|e| serde_json::to_string(e).ok())),
         composite_source: Set(None),
+        tool_defs: Set(if template.tool_defs.is_empty() {
+            None
+        } else {
+            serde_json::to_string(&template.tool_defs).ok()
+        }),
         created_at: Set(template.created_at),
         updated_at: Set(now),
     }
@@ -139,6 +144,7 @@ pub async fn create_workflow_template(
         output_schema: input.output_schema,
         variables: input.variables,
         error_config: input.error_config,
+        tool_defs: input.tool_defs.unwrap_or_default(),
         created_at: now,
         updated_at: now,
     };
@@ -147,6 +153,11 @@ pub async fn create_workflow_template(
     db_repo::insert_workflow_template(db, active_model)
         .await
         .map_err(|e| e.to_string())?;
+
+    state
+        .work_engine
+        .precompile_tool_defs(&template.id, &template.tool_defs)
+        .await;
 
     Ok(template.id)
 }
@@ -176,6 +187,11 @@ pub async fn update_workflow_template(
     )
     .await
     .map_err(|e| e.to_string())?;
+
+    // 保存后立即预编译 Rhai 工具，Agent 节点可即时引用
+    if let Some(ref tds) = input.tool_defs {
+        state.work_engine.precompile_tool_defs(&id, tds).await;
+    }
 
     Ok(updated)
 }
@@ -226,6 +242,7 @@ pub async fn duplicate_workflow_template(
         output_schema: response.output_schema,
         variables: response.variables,
         error_config: response.error_config,
+        tool_defs: vec![],
         created_at: now,
         updated_at: now,
     };
@@ -1136,10 +1153,12 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
         temperature,
         max_tokens,
         tools,
-        exposed_tools: vec![], // 向后兼容：空 = 暴露全部
+        exposed_tools: vec![],
         output_mode: OutputMode::Text,
-        agent_profile_id: None, // 由调用方设置
+        agent_profile_id: None,
         max_tool_rounds: None,
+        execution_mode: None,
+        rag_source_ids: vec![],
     }
 }
 
@@ -1458,6 +1477,7 @@ async fn convert_n8n_to_axagent(
         output_schema: None,
         variables: Vec::new(),
         error_config: None,
+        tool_defs: vec![],
         created_at: now,
         updated_at: now,
     })
@@ -1509,6 +1529,7 @@ async fn do_import_workflow(
             output_schema: template.output_schema,
             variables: template.variables,
             error_config: template.error_config,
+            tool_defs: vec![],
             created_at: now,
             updated_at: now,
         }

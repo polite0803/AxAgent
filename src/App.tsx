@@ -1,8 +1,10 @@
 import { BuddyWidget } from "@/components/chat/BuddyWidget";
 import { TabBar } from "@/components/chat/TabBar";
 import { HelpPanel } from "@/components/help/HelpPanel";
+import { AppInitializer } from "@/components/layout/AppInitializer";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ContentArea } from "@/components/layout/ContentArea";
+import { ErrorNotificationToast } from "@/components/layout/ErrorNotificationToast";
 import { GlobalCopyMenu } from "@/components/layout/GlobalCopyMenu";
 import { GlobalErrorBoundary } from "@/components/layout/GlobalErrorBoundary";
 import { GlobalStatusBar } from "@/components/layout/GlobalStatusBar";
@@ -20,25 +22,16 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
-import { checkIpcHealth, invoke, isTauri, listen, logIpcError } from "@/lib/invoke";
-import { preloadChatRenderers } from "@/lib/preloadChatRenderers";
-import {
-  useConversationStore,
-  useOnboardingStore,
-  useSettingsStore,
-  useSkillExtensionStore,
-  useStreamStore,
-  useUIStore,
-} from "@/stores";
+import { invoke, isTauri, listen } from "@/lib/invoke";
+import { useSettingsStore, useStreamStore, useUIStore } from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import { App as AntdApp, ConfigProvider, theme } from "antd";
-import { enableD2, setDefaultI18nMap } from "markstream-react";
+import { setDefaultI18nMap } from "markstream-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./i18n";
-// antd 语言包 — 静态导入确保 Rolldown 正确打包
 import antdArEG from "antd/locale/ar_EG";
 import antdDeDE from "antd/locale/de_DE";
 import antdEnUS from "antd/locale/en_US";
@@ -55,17 +48,6 @@ const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => (
 
 const { useToken } = theme;
 
-/** Show the main window (it starts hidden to avoid white flash). */
-async function showWindow() {
-  try {
-    const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-    await getCurrentWebviewWindow().show();
-  } catch (e) {
-    logIpcError("显示窗口")(e);
-  }
-}
-
-/** 全局底部状态栏 — 所有页面可见（设置页除外） */
 function GlobalStatusBarWrapper() {
   return (
     <ModuleErrorBoundary moduleName="GlobalStatusBar">
@@ -74,7 +56,6 @@ function GlobalStatusBarWrapper() {
   );
 }
 
-/** 对话标签页 — 全局层级，仅对话页渲染 */
 function GlobalTabBar() {
   const location = useLocation();
   const isChatPage = location.pathname === "/" || location.pathname === "";
@@ -97,14 +78,12 @@ function AppInner() {
     || location.pathname.startsWith("/settings/");
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
 
-  // 同步检测 QuickBar 窗口（在首次渲染前），避免 ChatPage 先渲染导致崩溃
   const [isQuickBarWindow] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("__route") === "quickbar";
   });
   const isQuickBar = isQuickBarWindow || location.pathname === "/quickbar";
 
-  // Navigate to /quickbar if the app is loaded in the quickbar window
   useEffect(() => {
     if (isQuickBarWindow) {
       navigate("/quickbar", { replace: true });
@@ -126,14 +105,11 @@ function AppInner() {
     }
   }, [navigate]);
 
-  // These hooks use useNavigate() and must be inside BrowserRouter
   useKeyboardShortcuts();
   useGlobalShortcutManager();
   useGlobalOverlayScrollbars();
-  // 自动检测桌面分辨率，设置 deviceLayout
   useResponsive();
 
-  // Handle app close confirmation from backend
   const handleCloseRequested = useCallback(() => {
     modal.confirm({
       title: t("desktop.closeConfirmTitle"),
@@ -155,7 +131,6 @@ function AppInner() {
     };
   }, [handleCloseRequested]);
 
-  // Sync Ant Design tokens to CSS custom properties for global usage
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--border-color", token.colorBorderSecondary);
@@ -165,7 +140,6 @@ function AppInner() {
     root.style.setProperty("--color-text-secondary", token.colorTextSecondary);
     root.style.setProperty("--color-primary", token.colorPrimary);
     root.style.setProperty("--color-fill-alter", token.colorFillAlter);
-    // Markdown renderer (markstream-react) CSS variables
     root.style.setProperty("--table-border", token.colorBorderSecondary);
     root.style.setProperty("--hr-border-color", token.colorBorderSecondary);
     root.style.setProperty(
@@ -174,29 +148,11 @@ function AppInner() {
     );
   }, [token]);
 
-  // Global stream event listeners — persist across page navigation
-  const startStreamListening = useConversationStore(
-    (s) => s.startStreamListening,
-  );
   const stopStreamListening = useStreamStore((s) => s.stopStreamListening);
   useEffect(() => {
-    startStreamListening();
     return () => stopStreamListening();
-  }, [startStreamListening, stopStreamListening]);
+  }, [stopStreamListening]);
 
-  // 加载技能前端扩展
-  const fetchSkills = useSkillExtensionStore((s) => s.fetchSkills);
-  useEffect(() => {
-    fetchSkills().catch(logIpcError("list_skills"));
-  }, [fetchSkills]);
-
-  // 加载引导状态
-  const loadOnboarding = useOnboardingStore((s) => s.loadFromSettings);
-  useEffect(() => {
-    loadOnboarding();
-  }, []);
-
-  // Auto-check for updates on startup and periodically
   const { checkForUpdate } = useUpdateChecker();
   const updateCheckInterval = useSettingsStore(
     (s) => s.settings.update_check_interval ?? 60,
@@ -207,7 +163,6 @@ function AppInner() {
     if (!isTauri()) {
       return;
     }
-    // Initial check after 3s delay
     const timer = setTimeout(() => checkForUpdate({ silent: true }), 3000);
     return () => clearTimeout(timer);
   }, [checkForUpdate]);
@@ -272,6 +227,7 @@ function AppInner() {
               </ModuleErrorBoundary>
               <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
               <GlobalCopyMenu />
+              <ErrorNotificationToast />
               <div className="main-area">
                 <nav className={`nav-sidebar${sidebarCollapsed ? "" : " expanded"}`}>
                   <ModuleErrorBoundary moduleName="Sidebar">
@@ -371,77 +327,6 @@ function AppRoot() {
   }, [themePreset]);
 
   useEffect(() => {
-    enableD2(() => import("@terrastruct/d2"));
-    void preloadChatRenderers();
-  }, []);
-
-  useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const init = async () => {
-      if (isTauri()) {
-        const health = await checkIpcHealth();
-        if (!health.ok) {
-          logIpcError("IPC 健康检查")(health.detail);
-          await new Promise((r) => {
-            const t = setTimeout(r, 2000);
-            timers.push(t);
-          });
-          const retry = await checkIpcHealth();
-          if (!retry.ok) {
-            logIpcError("IPC 重试")(retry.detail);
-          }
-        }
-      }
-
-      try {
-        await useSettingsStore.getState().fetchSettings();
-      } catch (e) {
-        logIpcError("get_settings")(e);
-      }
-
-      // 注意：预设工作流模板不再在启动时自动导入。
-      // 用户可通过工作流管理页面"从预设导入"按钮按需触发 seed_preset_templates 命令。
-
-      if (!isTauri()) {
-        return;
-      }
-      const settings = useSettingsStore.getState().settings;
-
-      try {
-        await invoke("apply_startup_settings", {
-          alwaysOnTop: settings.always_on_top ?? false,
-          closeToTray: settings.minimize_to_tray ?? false,
-        });
-      } catch (e) {
-        logIpcError("apply_startup_settings")(e);
-      }
-
-      // Autostart (skip in dev mode — exe path doesn't exist)
-      if (!import.meta.env.DEV) {
-        try {
-          const { enable, disable } = await import("@tauri-apps/plugin-autostart");
-          if (settings.auto_start) {
-            await enable();
-          } else {
-            await disable();
-          }
-        } catch (e) {
-          const errorStr = String(e);
-          if (!errorStr.includes("os error 2")) {
-            logIpcError("设置自启动")(e);
-          }
-        }
-      }
-
-      // Show window after initialization (window starts hidden to avoid white flash)
-      await showWindow();
-    };
-    init();
-    return () => timers.forEach(clearTimeout);
-  }, []);
-
-  // Sync i18n language with settings store
-  useEffect(() => {
     if (i18n.language !== language) {
       i18n.changeLanguage(language);
     }
@@ -471,7 +356,6 @@ function AppRoot() {
     });
   }, [i18n, i18n.language]);
 
-  // Sync font settings to CSS custom properties
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--font-weight", String(fontWeight));
@@ -511,7 +395,9 @@ function AppRoot() {
           }}
         >
           <AntdApp>
-            <AppInner />
+            <AppInitializer>
+              <AppInner />
+            </AppInitializer>
           </AntdApp>
         </ConfigProvider>
       </BrowserRouter>

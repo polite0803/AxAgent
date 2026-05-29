@@ -60,6 +60,15 @@ pub trait StorageBackend: Send + Sync {
     ) -> Result<ListResult>;
     async fn head(&self, key: &str) -> Result<StorageObjectMeta>;
     async fn check_connection(&self) -> Result<bool>;
+
+    async fn delete_if_match(&self, key: &str, etag: &str) -> Result<bool> {
+        let meta = self.head(key).await?;
+        if meta.etag.as_deref() != Some(etag) {
+            return Ok(false);
+        }
+        self.delete(key).await?;
+        Ok(true)
+    }
 }
 
 // ─── S3 Provider Presets (Chinese providers) ──────────────────────────
@@ -583,6 +592,14 @@ impl StorageBackend for WebDavBackend {
 
     async fn delete(&self, key: &str) -> Result<()> {
         self.client.delete_raw(key, None).await
+    }
+
+    async fn delete_if_match(&self, key: &str, etag: &str) -> Result<bool> {
+        match self.client.delete_raw(key, Some(etag)).await {
+            Ok(()) => Ok(true),
+            Err(AxAgentError::Gateway(msg)) if msg.contains("precondition failed") => Ok(false),
+            Err(e) => Err(e),
+        }
     }
 
     async fn list(

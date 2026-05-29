@@ -1888,6 +1888,9 @@
     "proxyTestFailed": "Conexión de proxy fallida",
     "groupData": "Gestión de datos",
     "groupAppInfo": "Información de la aplicación",
+    "groupServiceHealth": "Estado de servicios",
+    "overallStatus": "Estado general",
+    "recheckHealth": "Reverificar",
     "groupLinks": "Enlaces",
     "useModelIcon": "Usar icono del modelo",
     "systemPromptLabel": "Instrucción del sistema (configuración del rol)",
@@ -4845,7 +4848,21 @@
     "scheduledWas": "Scheduled: {{time}}",
     "retry": "Retry",
     "applied": "Applied",
-    "copied": "Copied to clipboard"
+    "copied": "Copied to clipboard",
+    "insight": {
+      "title": "Perspectivas de aprendizaje",
+      "refresh": "Actualizar",
+      "all": "Todo",
+      "empty": "Sin perspectivas",
+      "evidence": "Evidencia",
+      "suggestedAction": "Acción sugerida: ",
+      "category": {
+        "pattern": "Patrón",
+        "preference": "Preferencia",
+        "improvement": "Mejora",
+        "warning": "Advertencia"
+      }
+    }
   },
   "review": {
     "commentPlaceholder": "Enter comment...",
@@ -6320,6 +6337,24 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "retryLoad": "Retry loading this module"
+  },
+  "appInit": {
+    "idle": "Preparing to start...",
+    "healthCheck": "Checking system connection...",
+    "loadSettings": "Loading settings...",
+    "applyConfig": "Applying configuration...",
+    "startServices": "Starting services...",
+    "ready": "Ready",
+    "failedTitle": "Startup Failed",
+    "failedSubtitle": "An error occurred during app initialization. Please retry.",
+    "retry": "Restart"
+  },
+  "errorNotification": {
+    "retry": "Reintentar"
+  },
+  "backendStatus": {
+    "done": "Completado",
+    "failed": "Fallido"
   },
   "cacheIndicator": {
     "notEstablished": "Prompt cache not established. First turn in session.",
