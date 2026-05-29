@@ -15,6 +15,7 @@ use axagent_providers::{
 #[cfg(test)]
 use axagent_runtime_core::prompt_cache::PromptCache;
 use base64::Engine;
+use futures::FutureExt;
 use sea_orm::*;
 #[cfg(test)]
 use std::collections::HashMap;
@@ -2239,506 +2240,587 @@ fn spawn_stream_task(
     let model_id = conversation.model_id.clone();
 
     tokio::spawn(async move {
-        let registry = ProviderRegistry::create_default();
-        let registry_key = provider_type_to_registry_key(&provider.provider_type);
-        let adapter: &dyn axagent_providers::ProviderAdapter = match registry.get(registry_key) {
-            Some(a) => a,
-            None => {
+        // 确保 panic 后 cancel_flag 一定被清理
+        struct CancelGuard {
+            flags: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
+            key: String,
+        }
+        impl Drop for CancelGuard {
+            fn drop(&mut self) {
+                let flags = self.flags.clone();
+                let key = self.key.clone();
+                tokio::task::spawn(async move {
+                    flags.lock().await.remove(&key);
+                });
+            }
+        }
+        let _cancel_guard = CancelGuard {
+            flags: cancel_flags.clone(),
+            key: conversation_id.clone(),
+        };
+
+        let future = std::panic::AssertUnwindSafe(async {
+            // --- 原始 stream task 主体 ---
+            let registry = ProviderRegistry::create_default();
+            let registry_key = provider_type_to_registry_key(&provider.provider_type);
+            let adapter: &dyn axagent_providers::ProviderAdapter = match registry.get(registry_key)
+            {
+                Some(a) => a,
+                None => {
+                    let _ = app.emit(
+                        "chat-stream-error",
+                        ChatStreamErrorEvent {
+                            conversation_id: conversation_id.clone(),
+                            message_id: assistant_message_id.clone(),
+                            error: format!("Unsupported provider type: {}", registry_key),
+                        },
+                    );
+                    return;
+                },
+            };
+
+            const MAX_TOOL_ITERATIONS: usize = 10;
+            const MAX_CONSECUTIVE_TOOL_ERRORS: usize = 3;
+            let mut chat_messages = chat_messages;
+            let mut iteration = 0;
+            let mut total_content = String::new();
+            let mut total_usage: Option<TokenUsage> = None;
+            let mut final_tool_calls_json: Option<String> = None;
+            let mut had_stream_error = false;
+            let mut last_stream_error: Option<String> = None;
+            let mut final_tokens_per_second: Option<f64> = None;
+            let mut final_first_token_latency_ms: Option<i64> = None;
+            let mut consecutive_tool_errors: usize = 0;
+
+            // Early create: persist a placeholder message so it survives crash/refresh
+            // Skip if the caller already created the placeholder before spawning.
+            if !skip_placeholder_create {
+                if let Err(e) =
+                    (axagent_core::entity::messages::ActiveModel {
+                        id: Set(assistant_message_id.clone()),
+                        conversation_id: Set(conversation_id.clone()),
+                        role: Set("assistant".to_string()),
+                        content: Set(String::new()),
+                        provider_id: Set(Some(provider.id.clone())),
+                        model_id: Set(Some(model_id.clone())),
+                        token_count: Set(None),
+                        prompt_tokens: Set(None),
+                        completion_tokens: Set(None),
+                        attachments: Set("[]".to_string()),
+                        thinking: Set(None),
+                        created_at: Set(
+                            override_created_at.unwrap_or_else(axagent_core::utils::now_ts)
+                        ),
+                        branch_id: Set(None),
+                        parent_message_id: Set(Some(parent_message_id.clone())),
+                        version_index: Set(version_index),
+                        is_active: Set(if create_inactive { 0 } else { 1 }),
+                        tool_calls_json: Set(None),
+                        tool_call_id: Set(None),
+                        status: Set("partial".to_string()),
+                        tokens_per_second: Set(None),
+                        first_token_latency_ms: Set(None),
+                        parts: Set(None),
+                    })
+                    .insert(&db)
+                    .await
+                {
+                    tracing::error!("Failed to create placeholder assistant message: {}", e);
+                }
+            }
+
+            'tool_loop: loop {
+                iteration += 1;
+                if iteration > MAX_TOOL_ITERATIONS {
+                    tracing::warn!(
+                        "Tool call loop exceeded max iterations ({})",
+                        MAX_TOOL_ITERATIONS
+                    );
+                    break;
+                }
+
+                // Check cancellation before starting a new iteration
+                if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
+                    tracing::info!(
+                        "[spawn_stream_task] Cancelled by user before iteration {}",
+                        iteration
+                    );
+                    break;
+                }
+
+                // Apply request delay to avoid rate limits (per-model configuration)
+                if let Some(delay_ms) = request_delay_ms {
+                    if delay_ms > 0 && iteration > 0 {
+                        tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                    }
+                }
+
+                let request = ChatRequest {
+                    model: model_id.clone(),
+                    messages: chat_messages.clone(),
+                    stream: true,
+                    temperature: conversation.temperature.map(|v| v as f64),
+                    top_p: conversation.top_p.map(|v| v as f64),
+                    max_tokens: if force_max_tokens == Some(true) {
+                        conversation.max_tokens.or(Some(4096))
+                    } else {
+                        conversation.max_tokens
+                    },
+                    tools: tools.clone(),
+                    thinking_budget,
+                    use_max_completion_tokens,
+                    thinking_param_style: thinking_param_style.clone(),
+                    api_mode: None,
+                    instructions: None,
+                    conversation: None,
+                    previous_response_id: None,
+                    store: None,
+                };
+
+                let mut stream = adapter.chat_stream(&ctx, request, None);
+                let suppress_thinking = thinking_budget == Some(0);
+                let (content, usage, tool_calls, stream_error, iter_tps, iter_ttft) =
+                    consume_stream(
+                        &app,
+                        &mut stream,
+                        StreamConsumptionParams {
+                            conversation_id: &conversation_id,
+                            message_id: &assistant_message_id,
+                            model_id: &model_id,
+                            provider_id: &provider.id,
+                            cancel_flag: &cancel_flag,
+                            suppress_thinking,
+                        },
+                    )
+                    .await;
+
+                total_content.push_str(&content);
+                if usage.is_some() {
+                    total_usage = usage;
+                }
+                // Keep first iteration's TTFT, last iteration's TPS
+                if final_first_token_latency_ms.is_none() {
+                    final_first_token_latency_ms = iter_ttft;
+                }
+                if iter_tps.is_some() {
+                    final_tokens_per_second = iter_tps;
+                }
+
+                // If stream errored, save what we have and break
+                if stream_error.is_some() {
+                    last_stream_error = stream_error;
+                    had_stream_error = true;
+                    break;
+                }
+
+                // If no tool calls, we're done
+                let tool_calls = match tool_calls {
+                    Some(tc) if !tc.is_empty() => tc,
+                    _ => {
+                        // Final iteration has no tool calls — clear any stale value so the
+                        // stored message won't carry orphaned tool_calls_json (which would
+                        // break context for subsequent requests since the matching tool
+                        // response messages are stored as is_active=0 and excluded from
+                        // list_messages).
+                        final_tool_calls_json = None;
+                        break;
+                    },
+                };
+
+                // Save the tool_calls JSON for the final message
+                let tc_json = serde_json::to_string(&tool_calls).ok();
+                final_tool_calls_json = tc_json.clone();
+
+                // Add assistant message with tool_calls to chat history for next round
+                // Strip <think> tags from the assistant content sent to the provider
+                let stripped_content = strip_think_tags(&content);
+                chat_messages.push(ChatMessage {
+                    role: "assistant".to_string(),
+                    content: ChatContent::Text(stripped_content),
+                    tool_calls: Some(tool_calls.clone()),
+                    tool_call_id: None,
+                    thinking: None,
+                });
+
+                // Persist the intermediate assistant message with tool_calls
+                // Returns the generated ID so tool results can reference it as parent
+                let intermediate_msg_id =
+                    axagent_core::repo::message::create_assistant_tool_call_message(
+                        &db,
+                        &conversation_id,
+                        &content,
+                        tc_json.as_deref(),
+                        &provider.id,
+                        &model_id,
+                        &parent_message_id,
+                    )
+                    .await
+                    .unwrap_or_else(|_| axagent_core::utils::gen_id());
+
+                // Execute each tool call
+                for tc in &tool_calls {
+                    // Look up server name for events
+                    let server_name = if tc.function.name == "web_search" {
+                        "Web Search".to_string()
+                    } else {
+                        match axagent_core::repo::mcp_server::find_server_for_tool(
+                            &db,
+                            &tc.function.name,
+                            &mcp_server_ids,
+                        )
+                        .await
+                        {
+                            Ok(Some((srv, _))) => srv.name.clone(),
+                            _ => "unknown".to_string(),
+                        }
+                    };
+
+                    // Emit :::mcp opener as stream chunk — frontend shows loading state
+                    let metadata = serde_json::json!({
+                        "name": server_name,
+                        "tool": tc.function.name,
+                        "id": tc.id,
+                        "arguments": tc.function.arguments,
+                    });
+                    let mcp_opener = format!("\n\n:::mcp {}\n", metadata);
+                    total_content.push_str(&mcp_opener);
+                    let _ = app.emit(
+                        "chat-stream-chunk",
+                        ChatStreamEvent {
+                            conversation_id: conversation_id.clone(),
+                            message_id: assistant_message_id.clone(),
+                            model_id: Some(model_id.clone()),
+                            provider_id: Some(provider.id.clone()),
+                            chunk: ChatStreamChunk {
+                                content: Some(mcp_opener.clone()),
+                                thinking: None,
+                                done: false,
+                                is_final: None,
+                                usage: None,
+                                tool_calls: None,
+                            },
+                        },
+                    );
+
+                    // Create execution record
+                    let server_id_for_exec =
+                        match axagent_core::repo::mcp_server::find_server_for_tool(
+                            &db,
+                            &tc.function.name,
+                            &mcp_server_ids,
+                        )
+                        .await
+                        {
+                            Ok(Some((srv, _))) => srv.id.clone(),
+                            _ => String::new(),
+                        };
+                    let exec = axagent_core::repo::tool_execution::create_tool_execution(
+                        &db,
+                        &conversation_id,
+                        Some(&assistant_message_id),
+                        &server_id_for_exec,
+                        &tc.function.name,
+                        Some(&tc.function.arguments),
+                        None,
+                    )
+                    .await;
+
+                    // Execute the tool
+                    let start = std::time::Instant::now();
+                    let (result_content, is_error) =
+                        execute_tool_call(&db, tc, &mcp_server_ids, &master_key).await;
+                    let _duration_ms = start.elapsed().as_millis() as i64;
+
+                    if is_error {
+                        consecutive_tool_errors += 1;
+                        if consecutive_tool_errors >= MAX_CONSECUTIVE_TOOL_ERRORS {
+                            tracing::warn!(
+                                "[spawn_stream_task] {} consecutive tool errors, stopping tool loop",
+                                consecutive_tool_errors
+                            );
+                            break 'tool_loop;
+                        }
+                    } else {
+                        consecutive_tool_errors = 0;
+                    }
+
+                    // Update execution record
+                    if let Ok(ref exec) = exec {
+                        let _ = axagent_core::repo::tool_execution::update_tool_execution_status(
+                            &db,
+                            &exec.id,
+                            if is_error { "failed" } else { "success" },
+                            Some(&result_content),
+                            if is_error {
+                                Some(&result_content)
+                            } else {
+                                None
+                            },
+                        )
+                        .await;
+                    }
+
+                    // Emit :::mcp result + closer as stream chunk — frontend shows completed state
+                    let mcp_closer = format!("{}\n:::\n\n", result_content);
+                    total_content.push_str(&mcp_closer);
+                    let _ = app.emit(
+                        "chat-stream-chunk",
+                        ChatStreamEvent {
+                            conversation_id: conversation_id.clone(),
+                            message_id: assistant_message_id.clone(),
+                            model_id: Some(model_id.clone()),
+                            provider_id: Some(provider.id.clone()),
+                            chunk: ChatStreamChunk {
+                                content: Some(mcp_closer.clone()),
+                                thinking: None,
+                                done: false,
+                                is_final: None,
+                                usage: None,
+                                tool_calls: None,
+                            },
+                        },
+                    );
+
+                    // Persist tool result message to DB (parent is the intermediate assistant message)
+                    let _ = axagent_core::repo::message::create_tool_result_message(
+                        &db,
+                        &conversation_id,
+                        &tc.id,
+                        &result_content,
+                        &intermediate_msg_id,
+                    )
+                    .await;
+
+                    // Add tool result to in-memory chat messages for next provider call
+                    chat_messages.push(ChatMessage {
+                        role: "tool".to_string(),
+                        content: ChatContent::Text(result_content.to_string()),
+                        tool_calls: None,
+                        tool_call_id: Some(tc.id.clone()),
+                        thinking: None,
+                    });
+                }
+                // Continue loop — will call provider again with tool results
+            }
+
+            // After loop: update the placeholder message with final content and status
+            let was_cancelled = cancel_flag.load(std::sync::atomic::Ordering::SeqCst);
+            let final_status = if had_stream_error {
+                "error"
+            } else if was_cancelled {
+                "partial"
+            } else {
+                "complete"
+            };
+
+            if had_stream_error {
+                let err = last_stream_error.as_deref().unwrap_or("Unknown error");
+                let base_url = ctx.base_url.as_deref().unwrap_or("(not set)");
+                let api_path_display = ctx.api_path.as_deref().unwrap_or("(default)");
+                let error_diag = format!(
+                    "\n\n---\n⚠️ Stream Error: {}\nBase URL: {}\nAPI Path: {}\nModel: {}\nProvider: {} ({:?})",
+                    err,
+                    base_url,
+                    api_path_display,
+                    model_id,
+                    provider.name,
+                    provider.provider_type,
+                );
+                if total_content.is_empty() {
+                    total_content = format!(
+                        "{}\n\nBase URL: {}\nAPI Path: {}\nModel: {}\nProvider: {} ({:?})",
+                        err,
+                        base_url,
+                        api_path_display,
+                        model_id,
+                        provider.name,
+                        provider.provider_type,
+                    );
+                } else {
+                    total_content.push_str(&error_diag);
+                }
+            }
+            let token_count = total_usage.as_ref().map(|u| u.completion_tokens);
+            let prompt_tokens = total_usage.as_ref().map(|u| u.prompt_tokens);
+            let completion_tokens = total_usage.as_ref().map(|u| u.completion_tokens);
+            // Prepend memory retrieval tag (if any) so it persists in DB
+            let saved_content = if content_prefix.is_empty() {
+                total_content.clone()
+            } else {
+                format!("{}{}", content_prefix, total_content)
+            };
+            if let Err(e) = axagent_core::entity::messages::Entity::update(
+                axagent_core::entity::messages::ActiveModel {
+                    id: Set(assistant_message_id.clone()),
+                    content: Set(saved_content),
+                    token_count: Set(token_count.map(|v| v as i64)),
+                    prompt_tokens: Set(prompt_tokens.map(|v| v as i64)),
+                    completion_tokens: Set(completion_tokens.map(|v| v as i64)),
+                    thinking: Set(None), // thinking is now embedded in content as <think> tags
+                    tool_calls_json: Set(final_tool_calls_json),
+                    status: Set(final_status.to_string()),
+                    tokens_per_second: Set(final_tokens_per_second),
+                    first_token_latency_ms: Set(final_first_token_latency_ms),
+                    ..Default::default()
+                },
+            )
+            .exec(&db)
+            .await
+            {
+                tracing::error!("Failed to update assistant message: {}", e);
+            }
+
+            // Increment message count for the assistant message
+            if let Err(e) =
+                axagent_core::repo::conversation::increment_message_count(&db, &conversation_id)
+                    .await
+            {
+                tracing::error!("Failed to increment message count: {}", e);
+            }
+
+            // Auto-title: if this is the first user message, set conversation title
+            if is_first_message {
+                // Set truncated title immediately for instant feedback
+                let fallback_title = if user_content.chars().count() > 30 {
+                    format!("{}...", user_content.chars().take(30).collect::<String>())
+                } else {
+                    user_content.clone()
+                };
+
+                if let Err(e) = axagent_core::repo::conversation::update_conversation_title(
+                    &db,
+                    &conversation_id,
+                    &fallback_title,
+                )
+                .await
+                {
+                    tracing::error!("Failed to auto-update title: {}", e);
+                } else {
+                    let _ = app.emit(
+                        "conversation-title-updated",
+                        ConversationTitleUpdatedEvent {
+                            conversation_id: conversation_id.clone(),
+                            title: fallback_title,
+                        },
+                    );
+                }
+
+                // Notify frontend that title generation is starting
+                let _ = app.emit(
+                    "conversation-title-generating",
+                    ConversationTitleGeneratingEvent {
+                        conversation_id: conversation_id.clone(),
+                        generating: true,
+                        error: None,
+                    },
+                );
+
+                // Try AI-powered title generation — first message, so full
+                // conversation is user message + current assistant response
+                let auto_messages = vec![
+                    (MessageRole::User, user_content.clone()),
+                    (MessageRole::Assistant, total_content.clone()),
+                ];
+                let ai_title = generate_ai_title(
+                    &db,
+                    &auto_messages,
+                    TitleFallbackModel {
+                        provider: &provider,
+                        ctx: &ctx,
+                        model_id: &model_id,
+                    },
+                    &settings,
+                    &master_key,
+                )
+                .await;
+
+                match ai_title {
+                    Ok(title) => {
+                        if let Err(e) = axagent_core::repo::conversation::update_conversation_title(
+                            &db,
+                            &conversation_id,
+                            &title,
+                        )
+                        .await
+                        {
+                            tracing::error!("Failed to update AI-generated title: {}", e);
+                            let _ = app.emit(
+                                "conversation-title-generating",
+                                ConversationTitleGeneratingEvent {
+                                    conversation_id: conversation_id.clone(),
+                                    generating: false,
+                                    error: Some(format!("Failed to save title: {}", e)),
+                                },
+                            );
+                        } else {
+                            let _ = app.emit(
+                                "conversation-title-updated",
+                                ConversationTitleUpdatedEvent {
+                                    conversation_id: conversation_id.clone(),
+                                    title,
+                                },
+                            );
+                            let _ = app.emit(
+                                "conversation-title-generating",
+                                ConversationTitleGeneratingEvent {
+                                    conversation_id: conversation_id.clone(),
+                                    generating: false,
+                                    error: None,
+                                },
+                            );
+                        }
+                    },
+                    Err(err) => {
+                        tracing::warn!("Auto title generation failed: {}", err);
+                        let _ = app.emit(
+                            "conversation-title-generating",
+                            ConversationTitleGeneratingEvent {
+                                conversation_id: conversation_id.clone(),
+                                generating: false,
+                                error: Some(err),
+                            },
+                        );
+                    },
+                }
+            }
+        });
+
+        // panic 保护：捕获 unwind 并 emit 错误事件
+        let result = future.catch_unwind().await;
+        match result {
+            Ok(()) => {},
+            Err(panic_err) => {
+                let msg = if let Some(s) = panic_err.downcast_ref::<String>() {
+                    s.clone()
+                } else if let Some(s) = panic_err.downcast_ref::<&str>() {
+                    (*s).to_owned()
+                } else {
+                    "Unknown panic in stream task".to_string()
+                };
+                tracing::error!("[spawn_stream_task] PANIC: {}", msg);
                 let _ = app.emit(
                     "chat-stream-error",
                     ChatStreamErrorEvent {
                         conversation_id: conversation_id.clone(),
                         message_id: assistant_message_id.clone(),
-                        error: format!("Unsupported provider type: {}", registry_key),
+                        error: format!("Internal error: {}", msg),
                     },
                 );
-                return;
             },
-        };
-
-        const MAX_TOOL_ITERATIONS: usize = 10;
-        const MAX_CONSECUTIVE_TOOL_ERRORS: usize = 3;
-        let mut chat_messages = chat_messages;
-        let mut iteration = 0;
-        let mut total_content = String::new();
-        let mut total_usage: Option<TokenUsage> = None;
-        let mut final_tool_calls_json: Option<String> = None;
-        let mut had_stream_error = false;
-        let mut last_stream_error: Option<String> = None;
-        let mut final_tokens_per_second: Option<f64> = None;
-        let mut final_first_token_latency_ms: Option<i64> = None;
-        let mut consecutive_tool_errors: usize = 0;
-
-        // Early create: persist a placeholder message so it survives crash/refresh
-        // Skip if the caller already created the placeholder before spawning.
-        if !skip_placeholder_create {
-            if let Err(e) = (axagent_core::entity::messages::ActiveModel {
-                id: Set(assistant_message_id.clone()),
-                conversation_id: Set(conversation_id.clone()),
-                role: Set("assistant".to_string()),
-                content: Set(String::new()),
-                provider_id: Set(Some(provider.id.clone())),
-                model_id: Set(Some(model_id.clone())),
-                token_count: Set(None),
-                prompt_tokens: Set(None),
-                completion_tokens: Set(None),
-                attachments: Set("[]".to_string()),
-                thinking: Set(None),
-                created_at: Set(override_created_at.unwrap_or_else(axagent_core::utils::now_ts)),
-                branch_id: Set(None),
-                parent_message_id: Set(Some(parent_message_id.clone())),
-                version_index: Set(version_index),
-                is_active: Set(if create_inactive { 0 } else { 1 }),
-                tool_calls_json: Set(None),
-                tool_call_id: Set(None),
-                status: Set("partial".to_string()),
-                tokens_per_second: Set(None),
-                first_token_latency_ms: Set(None),
-                parts: Set(None),
-            })
-            .insert(&db)
-            .await
-            {
-                tracing::error!("Failed to create placeholder assistant message: {}", e);
-            }
         }
 
-        loop {
-            iteration += 1;
-            if iteration > MAX_TOOL_ITERATIONS {
-                tracing::warn!("Tool call loop exceeded max iterations ({})", MAX_TOOL_ITERATIONS);
-                break;
-            }
+        // 发送 chat-stream-done 事件（前端释放 loading 状态）
+        let _ = app.emit(
+            "chat-stream-done",
+            serde_json::json!({
+                "conversationId": conversation_id,
+                "messageId": assistant_message_id,
+                "modelId": model_id,
+                "providerId": provider.id,
+            }),
+        );
 
-            // Check cancellation before starting a new iteration
-            if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
-                tracing::info!(
-                    "[spawn_stream_task] Cancelled by user before iteration {}",
-                    iteration
-                );
-                break;
-            }
-
-            // Apply request delay to avoid rate limits (per-model configuration)
-            if let Some(delay_ms) = request_delay_ms {
-                if delay_ms > 0 && iteration > 0 {
-                    tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
-                }
-            }
-
-            let request = ChatRequest {
-                model: model_id.clone(),
-                messages: chat_messages.clone(),
-                stream: true,
-                temperature: conversation.temperature.map(|v| v as f64),
-                top_p: conversation.top_p.map(|v| v as f64),
-                max_tokens: if force_max_tokens == Some(true) {
-                    conversation.max_tokens.or(Some(4096))
-                } else {
-                    conversation.max_tokens
-                },
-                tools: tools.clone(),
-                thinking_budget,
-                use_max_completion_tokens,
-                thinking_param_style: thinking_param_style.clone(),
-                api_mode: None,
-                instructions: None,
-                conversation: None,
-                previous_response_id: None,
-                store: None,
-            };
-
-            let mut stream = adapter.chat_stream(&ctx, request, None);
-            let suppress_thinking = thinking_budget == Some(0);
-            let (content, usage, tool_calls, stream_error, iter_tps, iter_ttft) = consume_stream(
-                &app,
-                &mut stream,
-                StreamConsumptionParams {
-                    conversation_id: &conversation_id,
-                    message_id: &assistant_message_id,
-                    model_id: &model_id,
-                    provider_id: &provider.id,
-                    cancel_flag: &cancel_flag,
-                    suppress_thinking,
-                },
-            )
-            .await;
-
-            total_content.push_str(&content);
-            if usage.is_some() {
-                total_usage = usage;
-            }
-            // Keep first iteration's TTFT, last iteration's TPS
-            if final_first_token_latency_ms.is_none() {
-                final_first_token_latency_ms = iter_ttft;
-            }
-            if iter_tps.is_some() {
-                final_tokens_per_second = iter_tps;
-            }
-
-            // If stream errored, save what we have and break
-            if stream_error.is_some() {
-                last_stream_error = stream_error;
-                had_stream_error = true;
-                break;
-            }
-
-            // If no tool calls, we're done
-            let tool_calls = match tool_calls {
-                Some(tc) if !tc.is_empty() => tc,
-                _ => {
-                    // Final iteration has no tool calls — clear any stale value so the
-                    // stored message won't carry orphaned tool_calls_json (which would
-                    // break context for subsequent requests since the matching tool
-                    // response messages are stored as is_active=0 and excluded from
-                    // list_messages).
-                    final_tool_calls_json = None;
-                    break;
-                },
-            };
-
-            // Save the tool_calls JSON for the final message
-            let tc_json = serde_json::to_string(&tool_calls).ok();
-            final_tool_calls_json = tc_json.clone();
-
-            // Add assistant message with tool_calls to chat history for next round
-            // Strip <think> tags from the assistant content sent to the provider
-            let stripped_content = strip_think_tags(&content);
-            chat_messages.push(ChatMessage {
-                role: "assistant".to_string(),
-                content: ChatContent::Text(stripped_content),
-                tool_calls: Some(tool_calls.clone()),
-                tool_call_id: None,
-                thinking: None,
-            });
-
-            // Persist the intermediate assistant message with tool_calls
-            // Returns the generated ID so tool results can reference it as parent
-            let intermediate_msg_id =
-                axagent_core::repo::message::create_assistant_tool_call_message(
-                    &db,
-                    &conversation_id,
-                    &content,
-                    tc_json.as_deref(),
-                    &provider.id,
-                    &model_id,
-                    &parent_message_id,
-                )
-                .await
-                .unwrap_or_else(|_| axagent_core::utils::gen_id());
-
-            // Execute each tool call
-            for tc in &tool_calls {
-                // Look up server name for events
-                let server_name = if tc.function.name == "web_search" {
-                    "Web Search".to_string()
-                } else {
-                    match axagent_core::repo::mcp_server::find_server_for_tool(
-                        &db,
-                        &tc.function.name,
-                        &mcp_server_ids,
-                    )
-                    .await
-                    {
-                        Ok(Some((srv, _))) => srv.name.clone(),
-                        _ => "unknown".to_string(),
-                    }
-                };
-
-                // Emit :::mcp opener as stream chunk — frontend shows loading state
-                let metadata = serde_json::json!({
-                    "name": server_name,
-                    "tool": tc.function.name,
-                    "id": tc.id,
-                    "arguments": tc.function.arguments,
-                });
-                let mcp_opener = format!("\n\n:::mcp {}\n", metadata);
-                total_content.push_str(&mcp_opener);
-                let _ = app.emit(
-                    "chat-stream-chunk",
-                    ChatStreamEvent {
-                        conversation_id: conversation_id.clone(),
-                        message_id: assistant_message_id.clone(),
-                        model_id: Some(model_id.clone()),
-                        provider_id: Some(provider.id.clone()),
-                        chunk: ChatStreamChunk {
-                            content: Some(mcp_opener.clone()),
-                            thinking: None,
-                            done: false,
-                            is_final: None,
-                            usage: None,
-                            tool_calls: None,
-                        },
-                    },
-                );
-
-                // Create execution record
-                let server_id_for_exec = match axagent_core::repo::mcp_server::find_server_for_tool(
-                    &db,
-                    &tc.function.name,
-                    &mcp_server_ids,
-                )
-                .await
-                {
-                    Ok(Some((srv, _))) => srv.id.clone(),
-                    _ => String::new(),
-                };
-                let exec = axagent_core::repo::tool_execution::create_tool_execution(
-                    &db,
-                    &conversation_id,
-                    Some(&assistant_message_id),
-                    &server_id_for_exec,
-                    &tc.function.name,
-                    Some(&tc.function.arguments),
-                    None,
-                )
-                .await;
-
-                // Execute the tool
-                let start = std::time::Instant::now();
-                let (result_content, is_error) =
-                    execute_tool_call(&db, tc, &mcp_server_ids, &master_key).await;
-                let _duration_ms = start.elapsed().as_millis() as i64;
-
-                if is_error {
-                    consecutive_tool_errors += 1;
-                    if consecutive_tool_errors >= MAX_CONSECUTIVE_TOOL_ERRORS {
-                        tracing::warn!(
-                            "[spawn_stream_task] {} consecutive tool errors, stopping tool loop",
-                            consecutive_tool_errors
-                        );
-                        break;
-                    }
-                } else {
-                    consecutive_tool_errors = 0;
-                }
-
-                // Update execution record
-                if let Ok(ref exec) = exec {
-                    let _ = axagent_core::repo::tool_execution::update_tool_execution_status(
-                        &db,
-                        &exec.id,
-                        if is_error { "failed" } else { "success" },
-                        Some(&result_content),
-                        if is_error {
-                            Some(&result_content)
-                        } else {
-                            None
-                        },
-                    )
-                    .await;
-                }
-
-                // Emit :::mcp result + closer as stream chunk — frontend shows completed state
-                let mcp_closer = format!("{}\n:::\n\n", result_content);
-                total_content.push_str(&mcp_closer);
-                let _ = app.emit(
-                    "chat-stream-chunk",
-                    ChatStreamEvent {
-                        conversation_id: conversation_id.clone(),
-                        message_id: assistant_message_id.clone(),
-                        model_id: Some(model_id.clone()),
-                        provider_id: Some(provider.id.clone()),
-                        chunk: ChatStreamChunk {
-                            content: Some(mcp_closer.clone()),
-                            thinking: None,
-                            done: false,
-                            is_final: None,
-                            usage: None,
-                            tool_calls: None,
-                        },
-                    },
-                );
-
-                // Persist tool result message to DB (parent is the intermediate assistant message)
-                let _ = axagent_core::repo::message::create_tool_result_message(
-                    &db,
-                    &conversation_id,
-                    &tc.id,
-                    &result_content,
-                    &intermediate_msg_id,
-                )
-                .await;
-
-                // Add tool result to in-memory chat messages for next provider call
-                chat_messages.push(ChatMessage {
-                    role: "tool".to_string(),
-                    content: ChatContent::Text(result_content.to_string()),
-                    tool_calls: None,
-                    tool_call_id: Some(tc.id.clone()),
-                    thinking: None,
-                });
-            }
-            // Continue loop — will call provider again with tool results
-        }
-
-        // After loop: update the placeholder message with final content and status
-        let was_cancelled = cancel_flag.load(std::sync::atomic::Ordering::SeqCst);
-        let final_status = if had_stream_error {
-            "error"
-        } else if was_cancelled {
-            "partial"
-        } else {
-            "complete"
-        };
-
-        // If the stream errored and produced no content, persist the error
-        // details (URL, model, provider) so the user sees diagnostic info
-        // even after a page refresh.
-        if had_stream_error && total_content.is_empty() {
-            let err = last_stream_error.as_deref().unwrap_or("Unknown error");
-            let base_url = ctx.base_url.as_deref().unwrap_or("(not set)");
-            let api_path_display = ctx.api_path.as_deref().unwrap_or("(default)");
-            total_content = format!(
-                "{}\n\nBase URL: {}\nAPI Path: {}\nModel: {}\nProvider: {} ({:?})",
-                err, base_url, api_path_display, model_id, provider.name, provider.provider_type,
-            );
-        }
-        let token_count = total_usage.as_ref().map(|u| u.completion_tokens);
-        let prompt_tokens = total_usage.as_ref().map(|u| u.prompt_tokens);
-        let completion_tokens = total_usage.as_ref().map(|u| u.completion_tokens);
-        // Prepend memory retrieval tag (if any) so it persists in DB
-        let saved_content = if content_prefix.is_empty() {
-            total_content.clone()
-        } else {
-            format!("{}{}", content_prefix, total_content)
-        };
-        if let Err(e) = axagent_core::entity::messages::Entity::update(
-            axagent_core::entity::messages::ActiveModel {
-                id: Set(assistant_message_id.clone()),
-                content: Set(saved_content),
-                token_count: Set(token_count.map(|v| v as i64)),
-                prompt_tokens: Set(prompt_tokens.map(|v| v as i64)),
-                completion_tokens: Set(completion_tokens.map(|v| v as i64)),
-                thinking: Set(None), // thinking is now embedded in content as <think> tags
-                tool_calls_json: Set(final_tool_calls_json),
-                status: Set(final_status.to_string()),
-                tokens_per_second: Set(final_tokens_per_second),
-                first_token_latency_ms: Set(final_first_token_latency_ms),
-                ..Default::default()
-            },
-        )
-        .exec(&db)
-        .await
-        {
-            tracing::error!("Failed to update assistant message: {}", e);
-        }
-
-        // Increment message count for the assistant message
-        if let Err(e) =
-            axagent_core::repo::conversation::increment_message_count(&db, &conversation_id).await
-        {
-            tracing::error!("Failed to increment message count: {}", e);
-        }
-
-        // Auto-title: if this is the first user message, set conversation title
-        if is_first_message {
-            // Set truncated title immediately for instant feedback
-            let fallback_title = if user_content.chars().count() > 30 {
-                format!("{}...", user_content.chars().take(30).collect::<String>())
-            } else {
-                user_content.clone()
-            };
-
-            if let Err(e) = axagent_core::repo::conversation::update_conversation_title(
-                &db,
-                &conversation_id,
-                &fallback_title,
-            )
-            .await
-            {
-                tracing::error!("Failed to auto-update title: {}", e);
-            } else {
-                let _ = app.emit(
-                    "conversation-title-updated",
-                    ConversationTitleUpdatedEvent {
-                        conversation_id: conversation_id.clone(),
-                        title: fallback_title,
-                    },
-                );
-            }
-
-            // Notify frontend that title generation is starting
-            let _ = app.emit(
-                "conversation-title-generating",
-                ConversationTitleGeneratingEvent {
-                    conversation_id: conversation_id.clone(),
-                    generating: true,
-                    error: None,
-                },
-            );
-
-            // Try AI-powered title generation — first message, so full
-            // conversation is user message + current assistant response
-            let auto_messages = vec![
-                (MessageRole::User, user_content.clone()),
-                (MessageRole::Assistant, total_content.clone()),
-            ];
-            let ai_title = generate_ai_title(
-                &db,
-                &auto_messages,
-                TitleFallbackModel {
-                    provider: &provider,
-                    ctx: &ctx,
-                    model_id: &model_id,
-                },
-                &settings,
-                &master_key,
-            )
-            .await;
-
-            match ai_title {
-                Ok(title) => {
-                    if let Err(e) = axagent_core::repo::conversation::update_conversation_title(
-                        &db,
-                        &conversation_id,
-                        &title,
-                    )
-                    .await
-                    {
-                        tracing::error!("Failed to update AI-generated title: {}", e);
-                        let _ = app.emit(
-                            "conversation-title-generating",
-                            ConversationTitleGeneratingEvent {
-                                conversation_id: conversation_id.clone(),
-                                generating: false,
-                                error: Some(format!("Failed to save title: {}", e)),
-                            },
-                        );
-                    } else {
-                        let _ = app.emit(
-                            "conversation-title-updated",
-                            ConversationTitleUpdatedEvent {
-                                conversation_id: conversation_id.clone(),
-                                title,
-                            },
-                        );
-                        let _ = app.emit(
-                            "conversation-title-generating",
-                            ConversationTitleGeneratingEvent {
-                                conversation_id: conversation_id.clone(),
-                                generating: false,
-                                error: None,
-                            },
-                        );
-                    }
-                },
-                Err(err) => {
-                    tracing::warn!("Auto title generation failed: {}", err);
-                    let _ = app.emit(
-                        "conversation-title-generating",
-                        ConversationTitleGeneratingEvent {
-                            conversation_id: conversation_id.clone(),
-                            generating: false,
-                            error: Some(err),
-                        },
-                    );
-                },
-            }
-        }
-
-        // Clean up cancel flag
-        cancel_flags.lock().await.remove(&conversation_id);
+        // CancelGuard 在 drop 时自动清理 cancel_flag
     });
 }
 
@@ -3225,11 +3307,13 @@ pub async fn send_message(
 
     let user_msg_id = user_message.id.clone();
     let cancel_flag = Arc::new(AtomicBool::new(false));
-    state
-        .stream_cancel_flags
-        .lock()
-        .await
-        .insert(conversation_id.clone(), cancel_flag.clone());
+    {
+        let mut flags = state.stream_cancel_flags.lock().await;
+        if flags.contains_key(&conversation_id) {
+            return Err("已有正在进行的请求，请等待完成后再发送".to_string());
+        }
+        flags.insert(conversation_id.clone(), cancel_flag.clone());
+    }
     spawn_stream_task(
         app,
         state.sea_db.clone(),
@@ -3596,11 +3680,13 @@ pub async fn regenerate_message(
     }
 
     let cancel_flag = Arc::new(AtomicBool::new(false));
-    state
-        .stream_cancel_flags
-        .lock()
-        .await
-        .insert(conversation_id.clone(), cancel_flag.clone());
+    {
+        let mut flags = state.stream_cancel_flags.lock().await;
+        if flags.contains_key(&conversation_id) {
+            return Err("已有正在进行的请求，请等待完成后再发送".to_string());
+        }
+        flags.insert(conversation_id.clone(), cancel_flag.clone());
+    }
     spawn_stream_task(
         app,
         state.sea_db.clone(),
