@@ -2081,13 +2081,13 @@ mod tests {
         // 验证节点 ID 格式: p{pi}_t{ti}_{task.id}
         let expected_nid = format!("p0_t0_{}", task_id);
         assert_eq!(
-            nodes[0].base_id(),
+            nodes[1].base_id(),
             expected_nid,
             "节点 ID 格式应为 p{{pi}}_t{{ti}}_{{task.id}}"
         );
 
         // Agent 节点的 output_var 应为 r_{nid}
-        if let WorkflowNode::Agent(ref an) = nodes[0] {
+        if let WorkflowNode::Agent(ref an) = nodes[1] {
             assert_eq!(an.config.output_var, format!("r_{expected_nid}"));
             assert_eq!(an.config.tools.len(), 2);
             assert_eq!(an.config.tools[0].name, "Read");
@@ -2132,14 +2132,15 @@ mod tests {
 
         let (nodes, edges) = compile_plan_to_dag(&plan, &[]);
 
-        assert_eq!(nodes.len(), 2, "应生成两个节点");
-        assert_eq!(nodes[0].base_id(), format!("p0_t0_{}", task0_id));
-        assert_eq!(nodes[1].base_id(), format!("p1_t0_{}", task1_id));
+        assert_eq!(nodes.len(), 4, "应生成 4 个节点（trigger + 2 tasks + end）");
+        assert_eq!(nodes[1].base_id(), format!("p0_t0_{}", task0_id));
+        assert_eq!(nodes[2].base_id(), format!("p1_t0_{}", task1_id));
 
         // 验证阶段间依赖边
-        assert!(!edges.is_empty(), "应有依赖边连接 p0 → p1");
-        assert_eq!(edges[0].source, format!("p0_t0_{}", task0_id));
-        assert_eq!(edges[0].target, format!("p1_t0_{}", task1_id));
+        let phase_edge = edges.iter().find(|e| {
+            e.source == format!("p0_t0_{}", task0_id) && e.target == format!("p1_t0_{}", task1_id)
+        });
+        assert!(phase_edge.is_some(), "应有阶段间依赖边 p0_t0 → p1_t0");
     }
 
     #[test]
@@ -2169,7 +2170,7 @@ mod tests {
 
         let (nodes, edges) = compile_plan_to_dag(&plan, &[]);
 
-        assert_eq!(nodes.len(), 2);
+        assert_eq!(nodes.len(), 4);
         // 验证阶段内任务依赖边
         let task_dep_edge = edges.iter().find(|e| {
             e.source == format!("p0_t0_{}", task0_id) && e.target == format!("p0_t1_{}", task1_id)
@@ -2202,7 +2203,7 @@ mod tests {
 
         let (nodes, _) = compile_plan_to_dag(&plan, &[]);
 
-        if let WorkflowNode::Tool(ref tn) = nodes[0] {
+        if let WorkflowNode::Tool(ref tn) = nodes[1] {
             assert_eq!(tn.config.output_var, format!("r_p0_t0_{}", task_id));
             assert_eq!(tn.config.tool_name, "Bash");
         } else {
