@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/invoke", () => ({
   invoke: vi.fn(),
   listen: vi.fn(() => Promise.resolve(() => {})),
+  isTauri: () => false,
 }));
 
 // Zustand store 不依赖 React，直接通过 getState() 调用 actions，避免
