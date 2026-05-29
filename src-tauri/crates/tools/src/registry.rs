@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-pub type SkillToolHandler = Box<dyn FnMut(&str) -> Result<String, crate::ToolError> + Send>;
+pub type SkillToolHandler = Box<dyn Fn(&str) -> Result<String, crate::ToolError> + Send + Sync>;
 
 /// 工具组摘要信息（替代 agent::LocalToolGroup）
 #[derive(Debug, Clone)]
@@ -287,7 +287,6 @@ pub struct McpToolConfig {
 // McpRegistry 已删除 — MCP 配置直接存储在 UnifiedToolRegistry.mcp_tools/.mcp_servers 中
 
 /// 完整的统一工具注册表
-#[derive(Clone)]
 pub struct UnifiedToolRegistry {
     /// Tool trait 实现的工具（原生 + 已迁移旧工具）
     pub tools: ToolRegistry,
@@ -323,6 +322,36 @@ pub struct UnifiedToolRegistry {
     pub group_names: HashMap<String, String>,
     /// 搜索/网络配置（通过 ToolContext.extra 传递给工具）
     pub tool_extra: HashMap<String, String>,
+    /// 注册的 Skill 工具：name → handler（register_skill_tool 填充）
+    #[allow(clippy::disallowed_types)]
+    pub skill_handlers: HashMap<String, SkillToolHandler>,
+}
+
+impl Clone for UnifiedToolRegistry {
+    fn clone(&self) -> Self {
+        Self {
+            tools: self.tools.clone(),
+            mcp_tools: self.mcp_tools.clone(),
+            mcp_servers: self.mcp_servers.clone(),
+            recorder: self.recorder.clone(),
+            usage_stats: self.usage_stats.clone(),
+            permission_policy: self.permission_policy.clone(),
+            hook_registry: self.hook_registry.clone(),
+            auditor: self.auditor.clone(),
+            result_cache: self.result_cache.clone(),
+            allowed_tools: self.allowed_tools.clone(),
+            blocked_tools: self.blocked_tools.clone(),
+            strict_mode: self.strict_mode,
+            conversation_id: self.conversation_id.clone(),
+            message_id: self.message_id.clone(),
+            working_dir: self.working_dir.clone(),
+            group_enabled: self.group_enabled.clone(),
+            disabled_tools: self.disabled_tools.clone(),
+            group_names: self.group_names.clone(),
+            tool_extra: self.tool_extra.clone(),
+            skill_handlers: HashMap::new(), // handlers 不可 Clone，clone 时重置为空
+        }
+    }
 }
 
 impl UnifiedToolRegistry {
@@ -350,6 +379,7 @@ impl UnifiedToolRegistry {
             disabled_tools: HashSet::new(),
             group_names: HashMap::new(),
             tool_extra: HashMap::new(),
+            skill_handlers: HashMap::new(),
         };
         reg.init_all();
         reg
@@ -712,8 +742,31 @@ impl UnifiedToolRegistry {
             .collect()
     }
 
-    pub fn register_skill_tool(self, _name: impl Into<String>, _handler: SkillToolHandler) -> Self {
-        self
+    pub fn register_skill_tool(&mut self, name: impl Into<String>, handler: SkillToolHandler) {
+        self.skill_handlers.insert(name.into(), handler);
+    }
+
+    /// 从 skill_handlers 执行注册的 Skill 工具
+    fn execute_skill_tool(
+        &self,
+        tool_name: &str,
+        input: &str,
+    ) -> Option<Result<ToolResult, crate::ToolError>> {
+        let handler = self.skill_handlers.get(tool_name)?;
+        match handler(input) {
+            Ok(content) => Some(Ok(ToolResult {
+                content,
+                is_error: false,
+                truncated: false,
+                metadata: Some(serde_json::json!({
+                    "source": "registered_skill",
+                    "tool_name": tool_name,
+                })),
+                duration_ms: None,
+                progress: Vec::new(),
+            })),
+            Err(_e) => Some(Err(ToolError::execution_failed(tool_name))),
+        }
     }
 
     pub fn register_mcp_tool(
@@ -818,36 +871,35 @@ impl UnifiedToolRegistry {
             }
         }
 
-        let result = {
+        let result = if let Some(tool) = self.tools.find(tool_name) {
             // 1. 尝试新体系工具
-            if let Some(tool) = self.tools.find(tool_name) {
-                let input_val: Value =
-                    serde_json::from_str(&effective_input).unwrap_or(Value::Null);
-                let ctx = crate::ToolContext {
-                    working_dir: self.working_dir.clone(),
-                    conversation_id: self.conversation_id.clone(),
-                    message_id: self.message_id.clone(),
-                    allow_write: true,
-                    allow_execute: true,
-                    allow_network: true,
-                    abort_signal: None,
-                    extra: self.tool_extra.clone(),
-                };
+            let input_val: Value = serde_json::from_str(&effective_input).unwrap_or(Value::Null);
+            let ctx = crate::ToolContext {
+                working_dir: self.working_dir.clone(),
+                conversation_id: self.conversation_id.clone(),
+                message_id: self.message_id.clone(),
+                allow_write: true,
+                allow_execute: true,
+                allow_network: true,
+                abort_signal: None,
+                extra: self.tool_extra.clone(),
+            };
 
-                match tool.call(input_val, &ctx).await {
-                    Ok(mut r) => {
-                        r.duration_ms = Some(start.elapsed().as_millis() as u64);
-                        Ok(r)
-                    },
-                    Err(e) => Err(e),
-                }
+            match tool.call(input_val, &ctx).await {
+                Ok(mut r) => {
+                    r.duration_ms = Some(start.elapsed().as_millis() as u64);
+                    Ok(r)
+                },
+                Err(e) => Err(e),
             }
-            // 2. 尝试 MCP 工具
-            else if self.mcp_tools.values().any(|c| c.tool_name == tool_name) {
-                self.execute_mcp(tool_name, input).await
-            } else {
-                Err(ToolError::not_found(tool_name))
-            }
+        } else if let Some(result) = self.execute_skill_tool(tool_name, &effective_input) {
+            // 2. 尝试注册的 Skill 工具
+            result
+        } else if self.mcp_tools.values().any(|c| c.tool_name == tool_name) {
+            // 3. 尝试 MCP 工具
+            self.execute_mcp(tool_name, input).await
+        } else {
+            Err(ToolError::not_found(tool_name))
         };
 
         // ── 审计日志记录 ──

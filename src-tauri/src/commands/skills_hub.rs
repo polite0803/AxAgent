@@ -125,6 +125,72 @@ pub async fn skills_hub_install(
         .save_skill(&axagent_skill)
         .map_err(|e| format!("保存 skill 到存储失败: {e}"))?;
 
+    // 注册为本地工具，使工作流节点可通过 tools: [{name: "Skill::{name}"}] 直接调用
+    let skill_content = axagent_skill.content.clone();
+    let skill_name_for_tool = format!("Skill::{}", axagent_skill.name);
+    {
+        let mut reg = state.local_tool_registry.lock().await;
+        reg.register_skill_tool(
+            skill_name_for_tool,
+            Box::new(move |_input: &str| Ok(skill_content.clone())),
+        );
+    }
+
+    // 如果 manifest 包含 workflow 定义，自动注册为 WorkflowTemplate
+    if let Some(workflow) = manifest.get("workflow") {
+        if let (Some(nodes), Some(edges)) = (
+            workflow.get("nodes").and_then(|v| v.as_array()),
+            workflow.get("edges").and_then(|v| v.as_array()),
+        ) {
+            use axagent_core::entity::workflow_template;
+            use sea_orm::Set;
+
+            let template_id = format!("skill_wf_{}", axagent_skill.name);
+            let nodes_json = serde_json::to_string(nodes).unwrap_or_default();
+            let edges_json = serde_json::to_string(edges).unwrap_or_default();
+            let now = chrono::Utc::now().timestamp_millis();
+
+            let tmpl = workflow_template::ActiveModel {
+                id: Set(template_id.clone()),
+                name: Set(format!("Skill: {}", axagent_skill.name)),
+                description: Set(Some(axagent_skill.description.clone())),
+                icon: Set("⚡".to_string()),
+                tags: Set(Some(axagent_skill.tags.join(","))),
+                version: Set(1i32),
+                is_preset: Set(false),
+                is_editable: Set(true),
+                is_public: Set(false),
+                trigger_config: Set(None),
+                nodes: Set(nodes_json),
+                edges: Set(edges_json),
+                input_schema: Set(None),
+                output_schema: Set(None),
+                variables: Set(None),
+                error_config: Set(None),
+                composite_source: Set(None),
+                tool_defs: Set(None),
+                created_at: Set(now),
+                updated_at: Set(now),
+            };
+            if let Err(e) =
+                axagent_core::repo::workflow_template::upsert_workflow_template(&state.sea_db, tmpl)
+                    .await
+            {
+                tracing::warn!(
+                    "Failed to register workflow template from skill '{}': {}",
+                    axagent_skill.name,
+                    e
+                );
+            } else {
+                tracing::info!(
+                    "Registered workflow template '{}' from skill '{}'",
+                    template_id,
+                    axagent_skill.name
+                );
+            }
+        }
+    }
+
     tracing::info!("Skill '{}' installed to {}", axagent_skill.name, skill_dir.display());
 
     Ok(())

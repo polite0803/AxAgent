@@ -1083,7 +1083,7 @@ pub async fn agent_query(
             let skill_id = skill.id.clone();
             let skill_content = skill.content.clone();
             let ctx = skill_ctx.clone();
-            tool_registry = tool_registry.register_skill_tool(
+            tool_registry.register_skill_tool(
                 tool_name.clone(),
                 Box::new(move |input: &str| {
                     execute_skill_sync(&skill_id, &skill_name, &skill_content, input, &ctx)
