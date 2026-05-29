@@ -71,12 +71,42 @@ if (workspaceMatch) {
 console.log(`\n版本已更新为 ${version}`);
 console.log(`ℹ️  子 crate 通过 workspace.package.version 自动继承，无需单独修改`);
 
+// --- 4. 生成 CHANGELOG.md ---
+const prevTag = (() => {
+  try {
+    return execSync("git describe --tags --abbrev=0", { cwd: root, encoding: "utf-8" }).trim();
+  } catch {
+    return undefined;
+  }
+})();
+const cliffArgs = prevTag
+  ? ["--tag", `v${version}`, "--output", "CHANGELOG.md", "--latest"]
+  : ["--tag", `v${version}`, "--output", "CHANGELOG.md"];
+try {
+  execSync(`npx --yes git-cliff ${cliffArgs.join(" ")}`, { cwd: root, stdio: "inherit" });
+  console.log(`✅ CHANGELOG.md 已生成`);
+} catch (e) {
+  console.warn("⚠️  git-cliff 执行失败，跳过 CHANGELOG 生成:", e.message);
+}
+
 // --- Git operations ---
 const changedFiles = [
   "package.json",
   "src-tauri/tauri.conf.json",
   "src-tauri/Cargo.toml",
+  "CHANGELOG.md",
+  "cliff.toml",
 ];
+if (prevTag) {
+  // Compare commits since last tag
+  try {
+    const count = execSync(
+      `git rev-list --count v${prevTag}..HEAD`,
+      { cwd: root, encoding: "utf-8" },
+    ).trim();
+    console.log(`📊 自 ${prevTag} 以来共 ${count} 个提交`);
+  } catch { /* ignore */ }
+}
 const gitAddFiles = changedFiles.join(" ");
 const tag = `v${version}`;
 execSync(`git add ${gitAddFiles}`, { cwd: root, stdio: "inherit" });
