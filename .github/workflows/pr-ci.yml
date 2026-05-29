@@ -175,8 +175,17 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/Library/Caches/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browsers
-        run: npx playwright install chromium
+        run: npx --yes playwright install chromium --with-deps
 
       - name: Run E2E tests
         run: npm run test:e2e
