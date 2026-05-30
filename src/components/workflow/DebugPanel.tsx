@@ -1,3 +1,4 @@
+import { invoke } from "@/lib/invoke";
 import { useWorkflowEditorStore } from "@/stores";
 import { useWorkEngineStore } from "@/stores/feature/workEngineStore";
 import {
@@ -41,7 +42,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { NodeExecutionRecord } from "../../types";
+import type { ExecutionStatusResponse, NodeExecutionRecord } from "../../types";
 
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -236,6 +237,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [validating, setValidating] = useState(false);
   const [detailRecord, setDetailRecord] = useState<NodeExecutionRecord | null>(null);
+  const [subExecutionDetail, setSubExecutionDetail] = useState<ExecutionStatusResponse | null>(null);
+  const [subExecutionLoading, setSubExecutionLoading] = useState(false);
 
   const nodes = useWorkflowEditorStore((s) => s.nodes);
   const edges = useWorkflowEditorStore((s) => s.edges);
@@ -288,7 +291,6 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       setSubAnalyzing(false);
       return;
     }
-    const { invoke } = await import("@/lib/invoke");
     const recursionErrors: string[] = [];
 
     function checkRecursiveRef(
@@ -405,11 +407,17 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   }, [validateTemplate]);
 
   useEffect(() => {
+    let cancelled = false;
     let cleanup: (() => void) | undefined;
     engine.setupEventListeners().then((fn) => {
-      cleanup = fn;
+      if (!cancelled) {
+        cleanup = fn;
+      } else {
+        fn();
+      }
     });
     return () => {
+      cancelled = true;
       cleanup?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1112,6 +1120,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           type="link"
                           size="small"
                           onClick={async () => {
+                            useWorkEngineStore.setState({ isDebugRunning: false });
                             await engine.getStatus(item.id);
                             useWorkEngineStore.setState({ executionId: item.id });
                           }}
@@ -1224,7 +1233,36 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               </Descriptions.Item>
               {detailRecord.sub_workflow_id && (
                 <Descriptions.Item label="Sub-Workflow" span={2}>
-                  <Tag color="blue">{detailRecord.sub_workflow_id}</Tag>
+                  <Space>
+                    <Tag color="blue">{detailRecord.sub_workflow_id}</Tag>
+                    {detailRecord.output && typeof detailRecord.output === "object"
+                      && (detailRecord.output as any)._child_execution_id && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<EyeOutlined />}
+                        loading={subExecutionLoading}
+                        onClick={async () => {
+                          const childId = (detailRecord.output as any)._child_execution_id;
+                          if (!childId) { return; }
+                          setSubExecutionLoading(true);
+                          try {
+                            const result = await invoke<ExecutionStatusResponse>(
+                              "get_workflow_execution_status",
+                              { execution_id: childId },
+                            );
+                            setSubExecutionDetail(result);
+                          } catch {
+                            setSubExecutionDetail(null);
+                          } finally {
+                            setSubExecutionLoading(false);
+                          }
+                        }}
+                      >
+                        {t("workflow.debug.viewSubExecution")}
+                      </Button>
+                    )}
+                  </Space>
                 </Descriptions.Item>
               )}
             </Descriptions>
@@ -1289,6 +1327,115 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                   {detailRecord.error}
                 </Paragraph>
               </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        title={
+          <Space>
+            <BugOutlined />
+            {t("workflow.debug.subExecutionDetail")}
+            {subExecutionDetail && <Tag color={statusColor(subExecutionDetail.status)}>{subExecutionDetail.status}
+            </Tag>}
+          </Space>
+        }
+        open={subExecutionDetail != null}
+        onCancel={() => setSubExecutionDetail(null)}
+        footer={null}
+        width={720}
+      >
+        {subExecutionDetail && (
+          <div>
+            <Descriptions size="small" column={2} bordered className="mb-3">
+              <Descriptions.Item label="Execution ID">{subExecutionDetail.execution_id}</Descriptions.Item>
+              <Descriptions.Item label="Workflow ID">{subExecutionDetail.workflow_id}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Tag color={statusColor(subExecutionDetail.status)}>{subExecutionDetail.status}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Duration">
+                {formatDuration(subExecutionDetail.total_time_ms)}
+              </Descriptions.Item>
+              {subExecutionDetail.parent_execution_id && (
+                <Descriptions.Item label="Parent Execution" span={2}>
+                  <Tag color="purple">{subExecutionDetail.parent_execution_id}</Tag>
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {subExecutionDetail.node_records.length > 0 && (
+              <Table
+                columns={recordColumns}
+                dataSource={subExecutionDetail.node_records}
+                rowKey="node_id"
+                size="small"
+                pagination={false}
+                scroll={{ y: 300 }}
+                expandable={{
+                  expandedRowRender: (r: NodeExecutionRecord) => (
+                    <div className="p-2">
+                      <Row gutter={16}>
+                        {r.input != null && (
+                          <Col span={12}>
+                            <Text strong className="text-xs">{t("workflow.debug.input")}</Text>
+                            <Paragraph
+                              className="mt-1 mb-0"
+                              code
+                              style={{
+                                fontSize: 11,
+                                maxHeight: 120,
+                                overflow: "auto",
+                                background: token.colorBgLayout,
+                                padding: 8,
+                                borderRadius: 4,
+                              }}
+                            >
+                              {typeof r.input === "string" ? r.input : JSON.stringify(r.input, null, 2)}
+                            </Paragraph>
+                          </Col>
+                        )}
+                        {r.output != null && (
+                          <Col span={12}>
+                            <Text strong className="text-xs">{t("workflow.debug.output")}</Text>
+                            <Paragraph
+                              className="mt-1 mb-0"
+                              code
+                              style={{
+                                fontSize: 11,
+                                maxHeight: 120,
+                                overflow: "auto",
+                                background: token.colorBgLayout,
+                                padding: 8,
+                                borderRadius: 4,
+                              }}
+                            >
+                              {typeof r.output === "string" ? r.output : JSON.stringify(r.output, null, 2)}
+                            </Paragraph>
+                          </Col>
+                        )}
+                      </Row>
+                      {r.error && (
+                        <div className="mt-2">
+                          <Text type="danger" strong className="text-xs">{t("workflow.debug.error")}</Text>
+                          <Paragraph
+                            className="mt-1 mb-0"
+                            code
+                            style={{
+                              fontSize: 11,
+                              background: "rgba(255,77,79,0.06)",
+                              padding: 8,
+                              borderRadius: 4,
+                            }}
+                          >
+                            {r.error}
+                          </Paragraph>
+                        </div>
+                      )}
+                    </div>
+                  ),
+                }}
+              />
             )}
           </div>
         )}

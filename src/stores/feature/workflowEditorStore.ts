@@ -23,6 +23,7 @@ export interface AiChatMessage {
   id: string;
   isStreaming?: boolean;
   actions?: AiChatAction[];
+  rawContent?: string;
 }
 
 export interface AiChatAction {
@@ -302,6 +303,15 @@ function parseActionsFromContent(content: string): AiChatAction[] {
 
 function stripActionBlocks(content: string): string {
   return content.replace(/:::action\s*\n[\s\S]*?\n:::/g, "").trim();
+}
+
+function stripPartialActionBlocks(content: string): string {
+  let result = content.replace(/:::action\s*\n[\s\S]*?\n:::/g, "");
+  const partialMatch = result.match(/:::action\s*\n[\s\S]*$/);
+  if (partialMatch) {
+    result = result.slice(0, partialMatch.index);
+  }
+  return result.trim();
 }
 
 export const useWorkflowEditorStore = create<WorkflowEditorState>()(
@@ -1230,34 +1240,45 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     aiChatSend: async (message: string) => {
-      const { aiChatMessages, aiChatSessionId, nodes, edges } = get();
+      const { aiChatMessages, aiChatSessionId } = get();
+      const msgId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const assistantId = `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const userMsg: AiChatMessage = {
         role: "user",
         content: message,
         timestamp: Date.now(),
-        id: `user-${Date.now()}`,
+        id: msgId,
       };
       const assistantMsg: AiChatMessage = {
         role: "assistant",
         content: "",
         timestamp: Date.now(),
-        id: `assistant-${Date.now()}`,
+        id: assistantId,
         isStreaming: true,
         actions: [],
+        rawContent: "",
       };
       set((state) => {
         state.aiChatMessages = [...state.aiChatMessages, userMsg, assistantMsg];
         state.aiChatStreaming = true;
         state.aiChatStreamingMessageId = assistantMsg.id;
       });
+      let chunkUnlisten: (() => void) | null = null;
+      let errorUnlisten: (() => void) | null = null;
+      const cleanupListeners = () => {
+        chunkUnlisten?.();
+        errorUnlisten?.();
+        chunkUnlisten = null;
+        errorUnlisten = null;
+      };
       try {
         const history = aiChatMessages.map((m) => ({
           role: m.role,
-          content: m.content,
+          content: (m as any).rawContent || m.content,
         }));
         const { listen } = await import("@/lib/invoke");
         let accumulatedContent = "";
-        const unlisten = await listen<
+        chunkUnlisten = await listen<
           { conversation_id: string; message_id: string; chunk: { content: string | null; done: boolean } }
         >(
           "workflow-ai-chat-chunk",
@@ -1273,26 +1294,26 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
               set((state) => {
                 state.aiChatMessages = state.aiChatMessages.map((m) =>
                   m.id === assistantMsg.id
-                    ? { ...m, content: cleanContent, isStreaming: false, actions }
+                    ? { ...m, content: cleanContent, isStreaming: false, actions, rawContent: accumulatedContent }
                     : m
                 );
                 state.aiChatStreaming = false;
                 state.aiChatStreamingMessageId = null;
               });
-              unlisten();
+              cleanupListeners();
             } else {
-              const cleanContent = stripActionBlocks(accumulatedContent);
+              const displayContent = stripPartialActionBlocks(accumulatedContent);
               set((state) => {
                 state.aiChatMessages = state.aiChatMessages.map((m) =>
                   m.id === assistantMsg.id
-                    ? { ...m, content: cleanContent + "▍", isStreaming: true }
+                    ? { ...m, content: displayContent + "▍", isStreaming: true, rawContent: accumulatedContent }
                     : m
                 );
               });
             }
           },
         );
-        const errorUnlisten = await listen<{ conversation_id: string; error: string }>(
+        errorUnlisten = await listen<{ conversation_id: string; error: string }>(
           "workflow-ai-chat-error",
           (event) => {
             if (event.payload.conversation_id !== aiChatSessionId) { return; }
@@ -1305,19 +1326,19 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
               state.aiChatStreaming = false;
               state.aiChatStreamingMessageId = null;
             });
-            errorUnlisten();
-            unlisten();
+            cleanupListeners();
           },
         );
         await invoke("workflow_ai_chat_stream", {
           message,
           history,
-          currentNodes: nodes.length > 0 ? nodes : undefined,
-          currentEdges: edges.length > 0 ? edges : undefined,
+          currentNodes: get().nodes.length > 0 ? get().nodes : undefined,
+          currentEdges: get().edges.length > 0 ? get().edges : undefined,
           sessionId: aiChatSessionId,
         });
       } catch (error) {
         logIpcError("AI Chat")(error);
+        cleanupListeners();
         set((state) => {
           state.aiChatMessages = state.aiChatMessages.map((m) =>
             m.id === assistantMsg.id
@@ -1383,7 +1404,14 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           const data = action.data as { node_id: string; changes: Record<string, unknown> };
           if (data.node_id) {
             set((state) => {
-              state.nodes = state.nodes.map(n => n.id === data.node_id ? { ...n, ...data.changes } : n);
+              state.nodes = state.nodes.map(n => {
+                if (n.id !== data.node_id) { return n; }
+                const changes = { ...data.changes };
+                if (changes.config && typeof changes.config === "object" && n.config) {
+                  changes.config = { ...n.config, ...changes.config };
+                }
+                return { ...n, ...changes };
+              });
             });
           }
           break;

@@ -16,6 +16,7 @@ pub struct ExecutionStatusResponse {
     pub node_count: usize,
     pub node_records: Vec<NodeRecordResponse>,
     pub variables: serde_json::Value,
+    pub parent_execution_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,7 +87,7 @@ pub async fn start_workflow_execution(
 ) -> Result<String, String> {
     let engine = &*state.work_engine;
     engine
-        .start_workflow(&workflow_id, input)
+        .start_workflow(&workflow_id, input, None)
         .await
         .map_err(|e| e.to_string())
 }
@@ -154,6 +155,7 @@ pub async fn get_workflow_execution_status(
             .map(NodeRecordResponse::from)
             .collect(),
         variables: serde_json::to_value(&status.variables).unwrap_or(serde_json::json!({})),
+        parent_execution_id: status.parent_execution_id,
     })
 }
 
@@ -261,6 +263,7 @@ pub async fn debug_run_workflow(
         .await
         .map_err(|e| e.to_string())?;
     let workflow_id = workflow.id.clone();
+    let execution_id = uuid::Uuid::new_v4().to_string();
 
     if let Some(bp) = breakpoints {
         let bp_set: std::collections::HashSet<String> = bp.into_iter().collect();
@@ -268,6 +271,7 @@ pub async fn debug_run_workflow(
     }
 
     let app_clone = app.clone();
+    let wid_for_progress = workflow_id.clone();
     let progress_cb: axagent_runtime::work_engine::ProgressCallback =
         std::sync::Arc::new(move |evt| {
             let app = app_clone.clone();
@@ -275,11 +279,12 @@ pub async fn debug_run_workflow(
             let status = evt.status.clone();
             let total = evt.total_nodes;
             let completed = evt.completed_nodes;
+            let wf_id = wid_for_progress.clone();
             Box::pin(async move {
                 let _ = app.emit(
                     "workflow:node-status-changed",
                     serde_json::json!({
-                        "workflow_id": "",
+                        "workflow_id": wf_id,
                         "node_id": node_id,
                         "status": status,
                         "total_nodes": total,
@@ -290,10 +295,12 @@ pub async fn debug_run_workflow(
         });
 
     let wid = workflow_id.clone();
+    let eid = execution_id.clone();
     let app_for_completion = app.clone();
     tokio::spawn(async move {
         let mut opts =
             axagent_runtime::work_engine::RunOptions::default().with_progress_callback(progress_cb);
+        opts.execution_id = Some(eid.clone());
         if let Some(m) = model_id {
             opts = opts.with_model(m);
         }
@@ -315,6 +322,7 @@ pub async fn debug_run_workflow(
                     "workflow:execution-completed",
                     serde_json::json!({
                         "workflow_id": wf.id,
+                        "execution_id": eid,
                         "status": match wf.status {
                             axagent_runtime::workflow_engine::WorkflowStatus::Completed => "completed",
                             axagent_runtime::workflow_engine::WorkflowStatus::PartiallyCompleted => "partially_completed",
@@ -334,6 +342,7 @@ pub async fn debug_run_workflow(
                     "workflow:execution-completed",
                     serde_json::json!({
                         "workflow_id": wid,
+                        "execution_id": eid,
                         "status": "failed",
                         "total_time_ms": 0,
                         "error": e.to_string(),
@@ -343,7 +352,7 @@ pub async fn debug_run_workflow(
         }
     });
 
-    Ok(workflow_id)
+    Ok(execution_id)
 }
 
 #[tauri::command]

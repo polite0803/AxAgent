@@ -1270,6 +1270,7 @@ export interface ExecutionStatusResponse {
   node_count: number;
   node_records: NodeExecutionRecord[];
   variables: Record<string, unknown>;
+  parent_execution_id: string | null;
 }
 
 export interface ExecutionSummary {

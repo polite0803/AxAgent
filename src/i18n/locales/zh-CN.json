@@ -3958,6 +3958,9 @@
     "edit": "编辑",
     "delete": "删除",
     "copy": "复制",
+    "toggleBreakpoint": "切换断点",
+    "copyNode": "复制节点",
+    "deleteNode": "删除节点",
     "unnamedWorkflow": "未命名工作流",
     "props": {
       "contextConversationHistory": "对话历史",
@@ -5784,7 +5787,9 @@
     "historyTitle": "历史",
     "noRecords": "无记录",
     "success": "成功",
-    "failed": "失败"
+    "failed": "失败",
+    "viewSubExecution": "查看子执行",
+    "subExecutionDetail": "子工作流执行详情"
   },
   "markdown": "Markdown",
   "success": "成功",

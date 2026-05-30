@@ -44,7 +44,7 @@ impl Default for VectorRetrieveExecutor {
 #[async_trait]
 impl NodeExecutorTrait for VectorRetrieveExecutor {
     fn node_type(&self) -> &'static str {
-        "vector_retrieve"
+        "vectorRetrieve"
     }
 
     async fn execute(
@@ -54,7 +54,7 @@ impl NodeExecutorTrait for VectorRetrieveExecutor {
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::VectorRetrieve(vr) = node else {
             return Err(NodeError::type_mismatch(
-                "vector_retrieve".to_string(),
+                "vectorRetrieve".to_string(),
                 super::node_type_name(node).to_string(),
             ));
         };

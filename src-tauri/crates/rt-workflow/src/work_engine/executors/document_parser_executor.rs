@@ -20,7 +20,7 @@ impl Default for DocumentParserExecutor {
 #[async_trait]
 impl NodeExecutorTrait for DocumentParserExecutor {
     fn node_type(&self) -> &'static str {
-        "document_parser"
+        "documentParser"
     }
     async fn execute(
         &self,
@@ -29,7 +29,7 @@ impl NodeExecutorTrait for DocumentParserExecutor {
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::DocumentParser(dp) = node else {
             return Err(NodeError::type_mismatch(
-                "document_parser".to_string(),
+                "documentParser".to_string(),
                 super::node_type_name(node).to_string(),
             ));
         };

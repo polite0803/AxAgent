@@ -96,15 +96,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           style={{
             animation: "dash 0.5s linear infinite",
           }}
-        >
-          <animate
-            attributeName="stroke-dashoffset"
-            from="0"
-            to="10"
-            dur="0.5s"
-            repeatCount="indefinite"
-          />
-        </path>
+        />
       )}
       {showFlowAnimation && !isAnimated && (
         <path
@@ -117,15 +109,7 @@ const BaseEdgeComponent: React.FC<EdgeProps<BaseEdgeData>> = ({
           style={{
             animation: "dash 0.6s linear infinite",
           }}
-        >
-          <animate
-            attributeName="stroke-dashoffset"
-            from="0"
-            to="12"
-            dur="0.6s"
-            repeatCount="indefinite"
-          />
-        </path>
+        />
       )}
       {label && (
         <EdgeLabelRenderer>

@@ -25,7 +25,7 @@ use super::executors::{
     AgentExecutor, ConditionExecutor, LlmExecutor, PlanCallbacks, ProfileCache, ProviderCache,
     RagCallback, SubWorkflowCallback, ToolCallback, VectorRetrieveCallback,
 };
-use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
+use super::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput, node_type_name};
 use super::prompt_template::{CompiledPrompt, compile_prompt};
 
 /// 工具解析器：给定工具名，返回对应的 ToolCallback（若可解析）。
@@ -62,6 +62,9 @@ pub struct RunOptions {
     pub dry_run: bool,
     /// Plan 模式回调：审批 + 步骤进度事件（通过 ExecutionState 传递给 AgentExecutor）
     pub plan_callbacks: Option<PlanCallbacks>,
+    pub parent_execution_id: Option<String>,
+    pub execution_id: Option<String>,
+    pub parent_cancel_token: Option<CancellationToken>,
 }
 
 /// 步骤进度事件
@@ -111,6 +114,9 @@ impl Default for RunOptions {
             variables: None,
             dry_run: false,
             plan_callbacks: None,
+            parent_execution_id: None,
+            execution_id: None,
+            parent_cancel_token: None,
         }
     }
 }
@@ -190,6 +196,7 @@ impl NodeCircuitBreaker {
 
 // ── WorkEngine ──
 
+#[derive(Clone)]
 pub struct WorkEngine {
     db: Arc<DatabaseConnection>,
     master_key: [u8; 32],
@@ -208,7 +215,6 @@ pub struct WorkEngine {
     tool_fallback: Arc<Mutex<Option<ToolCallback>>>,
     /// 工具解析器（按需延迟注册，从全局 tool registry 查找工具）
     tool_resolver: Arc<Mutex<Option<ToolResolver>>>,
-    subworkflow_callback: Arc<Mutex<Option<SubWorkflowCallback>>>,
     vector_retrieve_callback: Arc<Mutex<Option<VectorRetrieveCallback>>>,
     rag_callback: Arc<Mutex<Option<RagCallback>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
@@ -221,6 +227,13 @@ pub struct WorkEngine {
     /// 节点断路器状态（跨 workflow 运行持久化，防止重试风暴）
     node_breakers: Arc<Mutex<HashMap<String, NodeCircuitBreaker>>>,
 }
+
+const _: fn() = || {
+    fn assert_send<T: Send>() {}
+    fn assert_sync<T: Sync>() {}
+    assert_send::<WorkEngine>();
+    assert_sync::<WorkEngine>();
+};
 
 impl WorkEngine {
     /// 设置断点
@@ -302,10 +315,6 @@ impl WorkEngine {
     pub async fn set_tool_resolver(&self, resolver: ToolResolver) {
         *self.tool_resolver.lock().await = Some(resolver);
     }
-    /// 设置子工作流回调
-    pub async fn set_subworkflow_callback(&self, cb: SubWorkflowCallback) {
-        *self.subworkflow_callback.lock().await = Some(cb);
-    }
     /// 设置向量检索回调
     pub async fn set_vector_retrieve_callback(&self, cb: VectorRetrieveCallback) {
         *self.vector_retrieve_callback.lock().await = Some(cb);
@@ -342,7 +351,6 @@ impl WorkEngine {
             tool_handlers: Arc::new(Mutex::new(HashMap::new())),
             tool_fallback: Arc::new(Mutex::new(None)),
             tool_resolver: Arc::new(Mutex::new(None)),
-            subworkflow_callback: Arc::new(Mutex::new(None)),
             vector_retrieve_callback: Arc::new(Mutex::new(None)),
             rag_callback: Arc::new(Mutex::new(None)),
             agent_provider_cache,
@@ -695,7 +703,11 @@ impl WorkEngine {
         workflow_id: &str,
         options: RunOptions,
     ) -> Result<Workflow, WorkflowError> {
-        let cancel_token = CancellationToken::new();
+        let cancel_token = options
+            .parent_cancel_token
+            .as_ref()
+            .map(|t| t.child_token())
+            .unwrap_or_else(CancellationToken::new);
         {
             let mut tokens = self.cancel_tokens.lock().await;
             tokens.insert(workflow_id.to_string(), cancel_token.clone());
@@ -722,7 +734,7 @@ impl WorkEngine {
         }
 
         let execution_id = self
-            .start_workflow(workflow_id, input)
+            .start_workflow(workflow_id, input, options.execution_id.clone())
             .await
             .map_err(|e| WorkflowError::SerializationError(e.to_string()))?;
 
@@ -761,6 +773,12 @@ impl WorkEngine {
                 state.plan_callbacks = options.plan_callbacks.clone();
             }
         }
+        if options.parent_execution_id.is_some() {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(&execution_id) {
+                state.parent_execution_id = options.parent_execution_id.clone();
+            }
+        }
 
         {
             let mut workflows = self.workflows.write().await;
@@ -768,6 +786,13 @@ impl WorkEngine {
                 workflow.status = WorkflowStatus::Running;
             }
         }
+
+        let current_parent_execution_id = {
+            let executions = self.executions.lock().await;
+            executions
+                .get(&execution_id)
+                .and_then(|s| s.parent_execution_id.clone())
+        };
 
         // 清空 Agent executor 缓存（每次执行使用最新数据）
         {
@@ -999,6 +1024,8 @@ impl WorkEngine {
                         .map(|wf| Self::get_node_dependency_results(wf, &node_id))
                         .unwrap_or_default()
                 };
+                let input_snapshot =
+                    serde_json::to_value(&deps_results).unwrap_or(serde_json::json!({}));
                 let started_at = Utc::now().timestamp_millis();
 
                 self.update_node_status(
@@ -1079,12 +1106,97 @@ impl WorkEngine {
                 {
                     let tool_handlers = self.tool_handlers.lock().await.clone();
                     let tool_fallback = self.tool_fallback.lock().await.clone();
-                    let sub_cb = self.subworkflow_callback.lock().await.clone();
                     let vr_cb = self.vector_retrieve_callback.lock().await.clone();
+
+                    let engine_clone = self.clone();
+                    let sub_model_id = options.model_id.clone();
+                    let sub_provider_id = options.provider_id.clone();
+                    let sub_step_timeout = options.step_timeout;
+                    let sub_cancel_token = cancel_token.clone();
+
+                    let sub_cb: SubWorkflowCallback =
+                        Arc::new(
+                            move |sub_workflow_id: String,
+                                  parent_execution_id: String,
+                                  input_vars: std::collections::HashMap<
+                                String,
+                                serde_json::Value,
+                            >| {
+                                let engine = engine_clone.clone();
+                                let model_id = sub_model_id.clone();
+                                let provider_id = sub_provider_id.clone();
+                                let cancel_token = sub_cancel_token.clone();
+                                let child_execution_id = uuid::Uuid::new_v4().to_string();
+                                let child_eid_for_result = child_execution_id.clone();
+
+                                let (tx, rx) = tokio::sync::oneshot::channel();
+                                let rt = tokio::runtime::Handle::current();
+                                std::thread::spawn(move || {
+                                    let result = rt.block_on(async {
+                                        use axagent_core::repo::workflow_template;
+                                        let db = &engine.db;
+                                        let template = workflow_template::get_workflow_template(
+                                            db,
+                                            &sub_workflow_id,
+                                        )
+                                        .await
+                                        .map_err(|e| e.to_string())?
+                                        .ok_or_else(|| {
+                                            format!("Template {} not found", sub_workflow_id)
+                                        })?;
+
+                                        let nodes: Vec<WorkflowNode> =
+                                            serde_json::from_str(&template.nodes)
+                                                .map_err(|e| format!("节点解析失败: {}", e))?;
+                                        let edges: Vec<WorkflowEdge> =
+                                            serde_json::from_str(&template.edges)
+                                                .map_err(|e| format!("边解析失败: {}", e))?;
+
+                                        let workflow = engine
+                                            .create_workflow(&template.name, nodes, edges)
+                                            .await
+                                            .map_err(|e| e.to_string())?;
+                                        let wid = workflow.id.clone();
+
+                                        let input_value = serde_json::to_value(&input_vars)
+                                            .unwrap_or(serde_json::json!({}));
+
+                                        let mut opts = RunOptions::default();
+                                        opts.execution_id = Some(child_execution_id);
+                                        opts.input = Some(input_value);
+                                        opts.dry_run = false;
+                                        opts.parent_execution_id = Some(parent_execution_id);
+                                        opts.model_id = model_id;
+                                        opts.provider_id = provider_id;
+                                        opts.step_timeout = sub_step_timeout;
+                                        opts.parent_cancel_token = Some(cancel_token);
+
+                                        let result = engine
+                                            .run_workflow(&wid, opts)
+                                            .await
+                                            .map_err(|e| e.to_string())?;
+
+                                        let output =
+                                            result.output.unwrap_or_else(|| serde_json::json!({}));
+
+                                        Ok::<(String, serde_json::Value), String>((
+                                            child_eid_for_result,
+                                            output,
+                                        ))
+                                    });
+                                    let _ = tx.send(result);
+                                });
+                                Box::pin(async move {
+                                    rx.await
+                                        .map_err(|_| "Sub-workflow task dropped".to_string())?
+                                })
+                            },
+                        );
+
                     exec_ctx.callbacks = Some(super::execution_state::ExecutionContextCallbacks {
                         tool_handlers,
                         tool_fallback,
-                        subworkflow: sub_cb,
+                        subworkflow: Some(sub_cb),
                         vector_retrieve: vr_cb,
                     });
                 }
@@ -1130,13 +1242,13 @@ impl WorkEngine {
                                 node_type: node_type_str,
                                 node_name,
                                 status: "completed".to_string(),
-                                input: None,
+                                input: Some(input_snapshot.clone()),
                                 output: Some(output.output),
                                 execution_time_ms: Some(elapsed_ms),
                                 error: None,
                                 started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
-                                parent_execution_id: None,
+                                parent_execution_id: current_parent_execution_id.clone(),
                                 sub_workflow_id,
                             },
                         )
@@ -1207,13 +1319,13 @@ impl WorkEngine {
                                 node_type: node_type_name(&node).to_string(),
                                 node_name: Some(node.base_title().to_string()),
                                 status: "failed".to_string(),
-                                input: None,
+                                input: Some(input_snapshot.clone()),
                                 output: None,
                                 execution_time_ms: Some(elapsed_ms),
                                 error: Some(err_msg),
                                 started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
-                                parent_execution_id: None,
+                                parent_execution_id: current_parent_execution_id.clone(),
                                 sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &node {
                                     Some(sw.config.sub_workflow_id.clone())
                                 } else {
@@ -1225,7 +1337,6 @@ impl WorkEngine {
                         .ok();
                     },
                     Err(_) => {
-                        // 超时
                         breakers
                             .entry(node_id.clone())
                             .or_insert_with(NodeCircuitBreaker::new)
@@ -1281,13 +1392,13 @@ impl WorkEngine {
                                 node_type: node_type_name(&node).to_string(),
                                 node_name: Some(node.base_title().to_string()),
                                 status: "timeout".to_string(),
-                                input: None,
+                                input: Some(input_snapshot.clone()),
                                 output: None,
                                 execution_time_ms: Some(elapsed_ms),
                                 error: Some(err_msg),
                                 started_at,
                                 completed_at: Some(Utc::now().timestamp_millis()),
-                                parent_execution_id: None,
+                                parent_execution_id: current_parent_execution_id.clone(),
                                 sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &node {
                                     Some(sw.config.sub_workflow_id.clone())
                                 } else {
@@ -1405,8 +1516,9 @@ impl WorkEngine {
         &self,
         workflow_id: &str,
         input: serde_json::Value,
+        preset_execution_id: Option<String>,
     ) -> Result<String, WorkEngineError> {
-        let execution_id = uuid::Uuid::new_v4().to_string();
+        let execution_id = preset_execution_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let state =
             ExecutionState::new(execution_id.clone(), workflow_id.to_string(), input.clone());
         let input_params = serde_json::to_string(&input).ok();
@@ -1763,25 +1875,5 @@ fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], node_id
         if edge.source == node_id {
             mark_subtree_skipped(workflow, edges, &edge.target);
         }
-    }
-}
-
-fn node_type_name(node: &WorkflowNode) -> &str {
-    match node {
-        WorkflowNode::Trigger(_) => "trigger",
-        WorkflowNode::Agent(_) => "agent",
-        WorkflowNode::Llm(_) => "llm",
-        WorkflowNode::Condition(_) => "condition",
-        WorkflowNode::Parallel(_) => "parallel",
-        WorkflowNode::Loop(_) => "loop",
-        WorkflowNode::Merge(_) => "merge",
-        WorkflowNode::Delay(_) => "delay",
-        WorkflowNode::Validation(_) => "validation",
-        WorkflowNode::Tool(_) => "tool",
-        WorkflowNode::Code(_) => "code",
-        WorkflowNode::SubWorkflow(_) => "subWorkflow",
-        WorkflowNode::DocumentParser(_) => "documentParser",
-        WorkflowNode::VectorRetrieve(_) => "vectorRetrieve",
-        WorkflowNode::End(_) => "end",
     }
 }

@@ -133,12 +133,22 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     await invoke<boolean>("step_workflow_breakpoint");
   },
 
-  toggleBreakpoint: (nodeId: string) => {
+  toggleBreakpoint: async (nodeId: string) => {
     const { breakpoints } = get();
+    const prev = breakpoints;
     const next = breakpoints.includes(nodeId)
       ? breakpoints.filter((id) => id !== nodeId)
       : [...breakpoints, nodeId];
     set({ breakpoints: next });
+    if (get().isDebugRunning) {
+      try {
+        await invoke<boolean>("set_workflow_breakpoints", {
+          node_ids: next,
+        });
+      } catch {
+        set({ breakpoints: prev });
+      }
+    }
   },
 
   setDryRun: (val: boolean) => {
@@ -158,11 +168,16 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       "get_workflow_execution_status",
       { execution_id: executionId },
     );
-    set({
+    const nodeStatusesFromRecords: Record<string, string> = {};
+    for (const r of status.node_records ?? []) {
+      nodeStatusesFromRecords[r.node_id] = r.status;
+    }
+    set((state) => ({
       status,
       nodeRecords: status.node_records ?? [],
       variables: status.variables ?? {},
-    });
+      nodeStatuses: { ...state.nodeStatuses, ...nodeStatusesFromRecords },
+    }));
   },
 
   resetDebug: () => {
@@ -200,11 +215,15 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       async (event) => {
         const payload = event.payload as {
           workflow_id: string;
+          execution_id?: string;
           status: string;
           total_time_ms: number;
           error?: string;
         };
         const { executionId, getStatus } = get();
+        if (payload.execution_id && executionId && payload.execution_id !== executionId) {
+          return;
+        }
         if (executionId) {
           await getStatus(executionId);
         }

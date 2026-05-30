@@ -35,7 +35,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   onGenerateWorkflow,
   onOptimizePrompt,
   onRecommendNodes,
-  onClose: _onClose,
+  onClose,
   selectedNodeId,
   selectedNodePrompt,
   onApplyPromptToNode,
@@ -71,7 +71,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     Array<{ node_type: string; label: string; description: string; confidence: number }> | null
   >(null);
 
-  const [lastError, setLastError] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [optimizeError, setOptimizeError] = useState<string | null>(null);
+  const [recommendError, setRecommendError] = useState<string | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
@@ -114,7 +116,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       if (!confirmed) { return; }
     }
     setIsGenerating(true);
-    setLastError(null);
+    setGenerateError(null);
     try {
       const result = await onGenerateWorkflow(generatePrompt, mergeMode);
       if (result) {
@@ -125,8 +127,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       }
     } catch (error) {
       logIpcError("AI 生成工作流")(error);
-      setLastError(String(error));
-      message.error(t("workflow.aiPanel.generationFailed"));
+      setGenerateError(String(error));
     } finally {
       setIsGenerating(false);
     }
@@ -139,7 +140,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     }
     setIsOptimizing(true);
     setOptimizedResult(null);
-    setLastError(null);
+    setOptimizeError(null);
     try {
       const result = await onOptimizePrompt(optimizePrompt);
       if (result) {
@@ -148,8 +149,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       }
     } catch (error) {
       logIpcError("AI 优化提示词")(error);
-      setLastError(String(error));
-      message.error(t("workflow.aiPanel.optimizationFailed"));
+      setOptimizeError(String(error));
     } finally {
       setIsOptimizing(false);
     }
@@ -162,7 +162,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     }
     setIsRecommending(true);
     setRecommendedNodes(null);
-    setLastError(null);
+    setRecommendError(null);
     try {
       const result = await onRecommendNodes(recommendContext);
       if (result) {
@@ -171,8 +171,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       }
     } catch (error) {
       logIpcError("AI 推荐节点")(error);
-      setLastError(String(error));
-      message.error(t("workflow.aiPanel.recommendationFailed"));
+      setRecommendError(String(error));
     } finally {
       setIsRecommending(false);
     }
@@ -196,6 +195,51 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     if (selectedNodePrompt) {
       setOptimizePrompt(selectedNodePrompt);
     }
+  };
+
+  const renderAssistantContent = (content: string) => {
+    const lines = content.split("\n");
+    return lines.map((line, i) => {
+      if (line.startsWith("### ")) {
+        return (
+          <div key={i} style={{ fontWeight: 600, fontSize: 14, marginTop: 8, marginBottom: 4 }}>{line.slice(4)}</div>
+        );
+      }
+      if (line.startsWith("## ")) {
+        return (
+          <div key={i} style={{ fontWeight: 700, fontSize: 15, marginTop: 10, marginBottom: 4 }}>{line.slice(3)}</div>
+        );
+      }
+      if (line.startsWith("# ")) {
+        return (
+          <div key={i} style={{ fontWeight: 700, fontSize: 16, marginTop: 12, marginBottom: 6 }}>{line.slice(2)}</div>
+        );
+      }
+      if (line.startsWith("- ") || line.startsWith("* ")) {
+        return (
+          <div key={i} style={{ paddingLeft: 16, position: "relative" }}>
+            <span style={{ position: "absolute", left: 4 }}>•</span>
+            {line.slice(2)}
+          </div>
+        );
+      }
+      const numberedMatch = line.match(/^(\d+)\.\s/);
+      if (numberedMatch) {
+        return <div key={i} style={{ paddingLeft: 16 }}>{line}</div>;
+      }
+      if (line.startsWith("```")) {
+        return null;
+      }
+      if (line.trim() === "") {
+        return <div key={i} style={{ height: 8 }} />;
+      }
+      const boldText = line.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+      const codeText = boldText.replace(
+        /`([^`]+)`/g,
+        "<code style='background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:12px'>$1</code>",
+      );
+      return <div key={i} dangerouslySetInnerHTML={{ __html: codeText }} />;
+    });
   };
 
   const renderChatMessage = (msg: AiChatMessage) => {
@@ -224,7 +268,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
             wordBreak: "break-word",
           }}
         >
-          {msg.content}
+          {isUser ? msg.content : renderAssistantContent(msg.content)}
           {msg.isStreaming && (
             <span className="axagent-streaming-dots" style={{ marginLeft: 4 }}>
               <span />
@@ -379,7 +423,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           ? t("workflow.aiPanel.generateMergeBtn")
           : t("workflow.aiPanel.generateBtn")}
       </Button>
-      {lastError && !isGenerating && (
+      {generateError && !isGenerating && (
         <Button type="dashed" size="small" onClick={handleGenerate} style={{ width: "100%", marginTop: 8 }}>
           {t("workflow.aiPanel.retry")}
         </Button>
@@ -422,7 +466,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           {t("workflow.aiPanel.fillFromSelectedNode")}
         </Button>
       )}
-      {lastError && !isOptimizing && (
+      {optimizeError && !isOptimizing && (
         <Button type="dashed" size="small" onClick={handleOptimize} style={{ width: "100%", marginBottom: 8 }}>
           {t("workflow.aiPanel.retry")}
         </Button>
@@ -481,7 +525,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       >
         {isRecommending ? t("workflow.aiPanel.recommending") : t("workflow.aiPanel.getRecommendation")}
       </Button>
-      {lastError && !isRecommending && (
+      {recommendError && !isRecommending && (
         <Button type="dashed" size="small" onClick={handleRecommend} style={{ width: "100%", marginBottom: 8 }}>
           {t("workflow.aiPanel.retry")}
         </Button>
@@ -608,21 +652,31 @@ export const AIPanel: React.FC<AIPanelProps> = ({
             {t("workflow.aiPanel.aiAssistant")}
           </span>
         </div>
-        <Radio.Group
-          value={activeTab}
-          onChange={(e) => setActiveTab(e.target.value)}
-          size="small"
-          buttonStyle="solid"
-        >
-          <Radio.Button value="chat">
-            <MessageSquare size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
-            {t("workflow.aiPanel.chatMode")}
-          </Radio.Button>
-          <Radio.Button value="tools">
-            <Wand2 size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
-            {t("workflow.aiPanel.toolsMode")}
-          </Radio.Button>
-        </Radio.Group>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <Button
+            type="text"
+            size="small"
+            onClick={onClose}
+            style={{ color: token.colorTextTertiary, padding: "0 4px" }}
+          >
+            ✕
+          </Button>
+          <Radio.Group
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            size="small"
+            buttonStyle="solid"
+          >
+            <Radio.Button value="chat">
+              <MessageSquare size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
+              {t("workflow.aiPanel.chatMode")}
+            </Radio.Button>
+            <Radio.Button value="tools">
+              <Wand2 size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
+              {t("workflow.aiPanel.toolsMode")}
+            </Radio.Button>
+          </Radio.Group>
+        </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
         {activeTab === "chat" ? renderChatTab() : renderToolsTab()}

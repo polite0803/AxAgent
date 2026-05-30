@@ -3752,6 +3752,9 @@
     "edit": "Edit",
     "delete": "Delete",
     "copy": "Copy",
+    "toggleBreakpoint": "Toggle Breakpoint",
+    "copyNode": "Copy Node",
+    "deleteNode": "Delete Node",
     "unnamedWorkflow": "Unnamed Workflow",
     "props": {
       "contextConversationHistory": "Conversation History",
@@ -5804,7 +5807,9 @@
     "historyTitle": "History",
     "noRecords": "No records",
     "success": "Success",
-    "failed": "Failed"
+    "failed": "Failed",
+    "viewSubExecution": "View Sub-Execution",
+    "subExecutionDetail": "Sub-Workflow Execution Detail"
   },
   "markdown": "Markdown",
   "success": "Success",

@@ -11,8 +11,18 @@ use axagent_providers::registry::ProviderRegistry;
 use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::OnceLock;
 use tauri::Emitter;
 use tauri::State;
+use tokio::sync::Mutex;
+
+fn get_cancel_store() -> &'static Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>> {
+    static STORE: OnceLock<Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>>> =
+        OnceLock::new();
+    STORE.get_or_init(|| Mutex::new(HashMap::new()))
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorkflowGenerationResult {
@@ -33,20 +43,6 @@ pub struct NodeRecommendation {
 pub struct AiChatMessage {
     pub role: String,
     pub content: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct WorkflowAction {
-    pub action_type: String,
-    pub data: serde_json::Value,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct AiChatResponse {
-    pub content: String,
-    pub actions: Vec<WorkflowAction>,
 }
 
 struct ResolvedProvider {
@@ -604,7 +600,7 @@ pub async fn generate_workflow_from_prompt(
     state: State<'_, AppState>,
     prompt: String,
     current_nodes: Option<Vec<serde_json::Value>>,
-    _current_edges: Option<Vec<serde_json::Value>>,
+    current_edges: Option<Vec<serde_json::Value>>,
 ) -> Result<WorkflowGenerationResult, String> {
     let resolved = resolve_ai_provider(&state).await?;
     let registry = ProviderRegistry::create_default();
@@ -624,12 +620,33 @@ pub async fn generate_workflow_from_prompt(
                 .map(|n| {
                     let nt = n.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
                     let title = n.get("title").and_then(|v| v.as_str()).unwrap_or(nt);
-                    format!("- {} ({})", title, nt)
+                    let id = n.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+                    format!("- [{}] {} ({})", id, title, nt)
                 })
                 .collect();
+            let mut edge_section = String::new();
+            if let Some(edges) = &current_edges {
+                if !edges.is_empty() {
+                    let edge_summary: Vec<String> = edges
+                        .iter()
+                        .map(|e| {
+                            let src = e.get("source").and_then(|v| v.as_str()).unwrap_or("?");
+                            let tgt = e.get("target").and_then(|v| v.as_str()).unwrap_or("?");
+                            let et = e
+                                .get("edge_type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("direct");
+                            format!("{} --[{}]--> {}", src, et, tgt)
+                        })
+                        .collect();
+                    edge_section =
+                        format!("\nEdges ({}):\n{}", edges.len(), edge_summary.join("\n"));
+                }
+            }
             context_section = format!(
-                "\n\nCurrent workflow already has these nodes:\n{}\nPlease generate nodes that integrate with the existing workflow. Use the existing node IDs in edges where appropriate.",
-                node_summary.join("\n")
+                "\n\nCurrent workflow already has these nodes:\n{}\n{}Please generate nodes that integrate with the existing workflow. Use the existing node IDs in edges where appropriate.",
+                node_summary.join("\n"),
+                edge_section
             );
         }
     }
@@ -642,7 +659,7 @@ Output a valid JSON object with this structure:
   "nodes": [
     {{
       "id": "node-1",
-      "node_type": "trigger|agent|llm|condition|parallel|loop|tool|code|end",
+      "node_type": "trigger|agent|llm|condition|parallel|loop|merge|delay|tool|code|subWorkflow|documentParser|vectorRetrieve|validation|end",
       "title": "Node Title",
       "description": "Optional description",
       "config": {{}} // Node-specific configuration
@@ -665,7 +682,13 @@ Rules:
 3. For condition nodes, use edge_type "conditionTrue" or "conditionFalse"
 4. Use descriptive node titles in Chinese when possible
 5. Include at least one agent or llm node for processing
-6. Node IDs should be unique and match in edges{context_section}"#
+6. Node IDs should be unique and match in edges
+7. Use merge nodes to combine parallel branches back together
+8. Use delay nodes when waiting is needed between steps
+9. Use subWorkflow nodes to invoke other workflows
+10. Use documentParser nodes for document extraction
+11. Use vectorRetrieve nodes for knowledge base search
+12. Use validation nodes for data quality checks{context_section}"#
     );
 
     let request = ChatRequest {
@@ -1231,13 +1254,15 @@ Respond in the same language as the user's message.{}"#,
         store: None,
     };
 
-    let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let _cancel_flag_clone = cancel_flag.clone();
-    let session_id_clone = session_id.clone();
+    let cancel_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    {
+        let mut store = get_cancel_store().lock().await;
+        store.insert(session_id.clone(), cancel_flag.clone());
+    }
     let _ = app.emit(
         "workflow-ai-chat-start",
         serde_json::json!({
-            "session_id": session_id_clone,
+            "session_id": session_id,
         }),
     );
 
@@ -1315,13 +1340,22 @@ Respond in the same language as the user's message.{}"#,
         }),
     );
 
+    {
+        let mut store = get_cancel_store().lock().await;
+        store.remove(&session_id);
+    }
+
     Ok(())
 }
 
 #[tauri::command]
 pub async fn workflow_ai_chat_cancel(
     _state: State<'_, AppState>,
-    _session_id: String,
+    session_id: String,
 ) -> Result<(), String> {
+    let store = get_cancel_store().lock().await;
+    if let Some(flag) = store.get(&session_id) {
+        flag.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
     Ok(())
 }
