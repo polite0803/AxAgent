@@ -462,21 +462,16 @@ export function RightPanelContainer({
     compactMode,
     onToggleCompact,
     isAgent,
-    inspectorTab,
-    setInspectorTab,
     isDarkMode,
     codeThemes,
-    cacheValid,
-    hasPendingChanges,
-    tokensSaved,
-    cacheHits,
     panelReport,
-    panelSetReport,
     panelChartData,
     panelChartRawAnalysis,
     panelSnapshotElements,
     panelSnapshotDescription,
     panelResearchSources,
+    panelSetReport,
+    panelSetChartResult,
   ]);
 
   // 过滤出可见面板
@@ -492,12 +487,13 @@ export function RightPanelContainer({
 
   const [activeTab, setActiveTab] = useState(() => visiblePanels[0]?.key ?? "");
 
-  // Ensure active tab stays valid when panels change
+  // 仅在 isAgent 切换时验证 activeTab 有效性
   useEffect(() => {
     if (!visiblePanels.some((p) => p.key === activeTab)) {
       setActiveTab(visiblePanels[0]?.key ?? "");
     }
-  }, [visiblePanels, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAgent]);
 
   const activePanel = visiblePanels.find((p) => p.key === activeTab);
 
