@@ -64,7 +64,7 @@ pub fn run() {
         for bp in &boot_paths {
             // 追加而非覆盖
             let existing = std::fs::read_to_string(bp).unwrap_or_default();
-            let _ = std::fs::write(bp, existing + boot_msg.as_str());
+            let _ = std::fs::write(bp, existing + &*boot_msg);
         }
     }
     #[cfg(not(target_os = "android"))]

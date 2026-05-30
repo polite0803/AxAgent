@@ -66,7 +66,7 @@ pub fn report_fatal_error(message: &str) {
         let entry = format!("[{}] FATAL: {}\n", timestamp, message);
         for ext_path in external_diagnostic_paths() {
             let existing = std::fs::read_to_string(&ext_path).unwrap_or_default();
-            let _ = std::fs::write(&ext_path, existing + &entry);
+            let _ = std::fs::write(&ext_path, existing + entry.as_str());
         }
     }
 }
@@ -119,7 +119,7 @@ pub fn mark_startup_phase(phase: &str) {
         let entry = format!("[STARTUP_PHASE] {}\n", phase);
         for ext_path in external_diagnostic_paths() {
             let existing = std::fs::read_to_string(&ext_path).unwrap_or_default();
-            let _ = std::fs::write(&ext_path, existing + &entry);
+            let _ = std::fs::write(&ext_path, existing + entry.as_str());
         }
     }
     tracing::info!("STARTUP_PHASE: {}", phase);
