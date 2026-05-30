@@ -2,7 +2,10 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use axagent_core::crypto::decrypt_key;
-use axagent_core::types::{ChatContent, ChatMessage, ChatRequest, ChatStreamChunk, ChatStreamErrorEvent, ChatStreamEvent, ProviderType, TokenUsage};
+use axagent_core::types::{
+    ChatContent, ChatMessage, ChatRequest, ChatStreamChunk, ChatStreamErrorEvent, ChatStreamEvent,
+    ProviderType, TokenUsage,
+};
 use axagent_core::workflow_types::*;
 use axagent_providers::registry::ProviderRegistry;
 use axagent_providers::{ProviderRequestContext, resolve_base_url_for_type};
@@ -165,7 +168,8 @@ fn layout_workflow_nodes(
         has_parent.insert(tgt.as_str());
     }
 
-    let roots: Vec<&str> = node_ids.iter()
+    let roots: Vec<&str> = node_ids
+        .iter()
         .map(|s| s.as_str())
         .filter(|id| !has_parent.contains(id))
         .collect();
@@ -177,7 +181,9 @@ fn layout_workflow_nodes(
     queue.push_back((root, 0usize));
 
     while let Some((nid, depth)) = queue.pop_front() {
-        if depths.contains_key(nid) { continue; }
+        if depths.contains_key(nid) {
+            continue;
+        }
         depths.insert(nid, depth);
         if let Some(kids) = children.get(nid) {
             for kid in kids {
@@ -188,7 +194,8 @@ fn layout_workflow_nodes(
         }
     }
 
-    let mut depth_groups: std::collections::HashMap<usize, Vec<&str>> = std::collections::HashMap::new();
+    let mut depth_groups: std::collections::HashMap<usize, Vec<&str>> =
+        std::collections::HashMap::new();
     for (id, &depth) in &depths {
         depth_groups.entry(depth).or_default().push(*id);
     }
@@ -196,27 +203,36 @@ fn layout_workflow_nodes(
     let max_depth = depths.values().copied().max().unwrap_or(0);
 
     for depth in 0..=max_depth {
-        let nodes_at_depth = depth_groups.get(&depth).map(|v| v.as_slice()).unwrap_or(&[]);
+        let nodes_at_depth = depth_groups
+            .get(&depth)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[]);
         let count = nodes_at_depth.len().max(1);
         let total_width = (count as f64) * 220.0;
         let center_x = 400.0;
         let start_x = center_x - total_width / 2.0 + 110.0;
 
         for (i, id) in nodes_at_depth.iter().enumerate() {
-            positions.insert((*id).to_string(), Position {
-                x: start_x + (i as f64) * 220.0,
-                y: 80.0 + (depth as f64) * 140.0,
-            });
+            positions.insert(
+                (*id).to_string(),
+                Position {
+                    x: start_x + (i as f64) * 220.0,
+                    y: 80.0 + (depth as f64) * 140.0,
+                },
+            );
         }
     }
 
     let mut idx = 0usize;
     for id in node_ids {
         if !positions.contains_key(id.as_str()) {
-            positions.insert(id.clone(), Position {
-                x: 100.0 + (idx as f64) * 220.0,
-                y: 80.0 + ((max_depth + 1 + idx) as f64) * 140.0,
-            });
+            positions.insert(
+                id.clone(),
+                Position {
+                    x: 100.0 + (idx as f64) * 220.0,
+                    y: 80.0 + ((max_depth + 1 + idx) as f64) * 140.0,
+                },
+            );
             idx += 1;
         }
     }
@@ -229,13 +245,12 @@ fn parse_llm_response(
     response_content: &str,
     model_id: &str,
 ) -> Result<WorkflowGenerationResult, String> {
-    let json_str = extract_json_from_response(response_content)
-        .ok_or_else(|| {
-            format!(
-                "Failed to parse LLM response as JSON: {}",
-                &response_content[..response_content.len().min(200)]
-            )
-        })?;
+    let json_str = extract_json_from_response(response_content).ok_or_else(|| {
+        format!(
+            "Failed to parse LLM response as JSON: {}",
+            &response_content[..response_content.len().min(200)]
+        )
+    })?;
 
     #[derive(Deserialize)]
     struct LlmWorkflowResponse {
@@ -264,15 +279,22 @@ fn parse_llm_response(
     let parsed: LlmWorkflowResponse = serde_json::from_str(json_str)
         .map_err(|e| format!("Failed to parse workflow JSON: {}", e))?;
 
-    let node_ids: Vec<String> = parsed.nodes.iter().enumerate().map(|(i, n)| {
-        if n.id.is_empty() {
-            format!("{}-{}", n.node_type, i + 1)
-        } else {
-            n.id.clone()
-        }
-    }).collect();
+    let node_ids: Vec<String> = parsed
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| {
+            if n.id.is_empty() {
+                format!("{}-{}", n.node_type, i + 1)
+            } else {
+                n.id.clone()
+            }
+        })
+        .collect();
 
-    let edge_pairs: Vec<(String, String)> = parsed.edges.iter()
+    let edge_pairs: Vec<(String, String)> = parsed
+        .edges
+        .iter()
         .map(|e| (e.source.clone(), e.target.clone()))
         .collect();
     let positions = layout_workflow_nodes(&node_ids, &edge_pairs);
@@ -419,8 +441,8 @@ fn parse_llm_response(
                 })
             },
             "merge" => {
-                let merge_config: MergeNodeConfig =
-                    serde_json::from_value(llm_node.config.clone()).unwrap_or(MergeNodeConfig {
+                let merge_config: MergeNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(MergeNodeConfig {
                         merge_type: "all".to_string(),
                         inputs: vec![],
                     });
@@ -430,8 +452,8 @@ fn parse_llm_response(
                 })
             },
             "delay" => {
-                let delay_config: DelayNodeConfig =
-                    serde_json::from_value(llm_node.config.clone()).unwrap_or(DelayNodeConfig {
+                let delay_config: DelayNodeConfig = serde_json::from_value(llm_node.config.clone())
+                    .unwrap_or(DelayNodeConfig {
                         delay_type: "fixed".to_string(),
                         seconds: 5,
                         until: None,
@@ -442,57 +464,59 @@ fn parse_llm_response(
                 })
             },
             "validation" => {
-                let val_config: ValidationNodeConfig =
-                    serde_json::from_value(llm_node.config.clone()).unwrap_or(ValidationNodeConfig {
-                        assertions: vec![],
-                        on_fail: "abort".to_string(),
-                        max_retries: 0,
-                    });
+                let val_config: ValidationNodeConfig = serde_json::from_value(
+                    llm_node.config.clone(),
+                )
+                .unwrap_or(ValidationNodeConfig {
+                    assertions: vec![],
+                    on_fail: "abort".to_string(),
+                    max_retries: 0,
+                });
                 WorkflowNode::Validation(ValidationNode {
                     base,
                     config: val_config,
                 })
             },
             "subWorkflow" => {
-                let sub_config: SubWorkflowNodeConfig =
-                    serde_json::from_value(llm_node.config.clone()).unwrap_or(
-                        SubWorkflowNodeConfig {
-                            sub_workflow_id: "".to_string(),
-                            input_mapping: std::collections::HashMap::new(),
-                            output_var: "result".to_string(),
-                            is_async: false,
-                        },
-                    );
+                let sub_config: SubWorkflowNodeConfig = serde_json::from_value(
+                    llm_node.config.clone(),
+                )
+                .unwrap_or(SubWorkflowNodeConfig {
+                    sub_workflow_id: "".to_string(),
+                    input_mapping: std::collections::HashMap::new(),
+                    output_var: "result".to_string(),
+                    is_async: false,
+                });
                 WorkflowNode::SubWorkflow(SubWorkflowNode {
                     base,
                     config: sub_config,
                 })
             },
             "documentParser" => {
-                let doc_config: DocumentParserNodeConfig =
-                    serde_json::from_value(llm_node.config.clone()).unwrap_or(
-                        DocumentParserNodeConfig {
-                            input_var: "input".to_string(),
-                            parser_type: "auto".to_string(),
-                            output_var: "parsed".to_string(),
-                        },
-                    );
+                let doc_config: DocumentParserNodeConfig = serde_json::from_value(
+                    llm_node.config.clone(),
+                )
+                .unwrap_or(DocumentParserNodeConfig {
+                    input_var: "input".to_string(),
+                    parser_type: "auto".to_string(),
+                    output_var: "parsed".to_string(),
+                });
                 WorkflowNode::DocumentParser(DocumentParserNode {
                     base,
                     config: doc_config,
                 })
             },
             "vectorRetrieve" => {
-                let vec_config: VectorRetrieveNodeConfig =
-                    serde_json::from_value(llm_node.config.clone()).unwrap_or(
-                        VectorRetrieveNodeConfig {
-                            query: "".to_string(),
-                            knowledge_base_id: "".to_string(),
-                            top_k: 5,
-                            similarity_threshold: None,
-                            output_var: "retrieved".to_string(),
-                        },
-                    );
+                let vec_config: VectorRetrieveNodeConfig = serde_json::from_value(
+                    llm_node.config.clone(),
+                )
+                .unwrap_or(VectorRetrieveNodeConfig {
+                    query: "".to_string(),
+                    knowledge_base_id: "".to_string(),
+                    top_k: 5,
+                    similarity_threshold: None,
+                    output_var: "retrieved".to_string(),
+                });
                 WorkflowNode::VectorRetrieve(VectorRetrieveNode {
                     base,
                     config: vec_config,
@@ -593,16 +617,23 @@ pub async fn generate_workflow_from_prompt(
     let mut context_section = String::new();
     if let Some(nodes) = &current_nodes {
         if !nodes.is_empty() {
-            let node_summary: Vec<String> = nodes.iter().filter_map(|n| {
-                let nt = n.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
-                let title = n.get("title").and_then(|v| v.as_str()).unwrap_or(nt);
-                Some(format!("- {} ({})", title, nt))
-            }).collect();
-            context_section = format!("\n\nCurrent workflow already has these nodes:\n{}\nPlease generate nodes that integrate with the existing workflow. Use the existing node IDs in edges where appropriate.", node_summary.join("\n"));
+            let node_summary: Vec<String> = nodes
+                .iter()
+                .filter_map(|n| {
+                    let nt = n.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
+                    let title = n.get("title").and_then(|v| v.as_str()).unwrap_or(nt);
+                    Some(format!("- {} ({})", title, nt))
+                })
+                .collect();
+            context_section = format!(
+                "\n\nCurrent workflow already has these nodes:\n{}\nPlease generate nodes that integrate with the existing workflow. Use the existing node IDs in edges where appropriate.",
+                node_summary.join("\n")
+            );
         }
     }
 
-    let system_prompt = format!(r#"You are a workflow design assistant. Generate a workflow based on the user's natural language description.
+    let system_prompt = format!(
+        r#"You are a workflow design assistant. Generate a workflow based on the user's natural language description.
 
 Output a valid JSON object with this structure:
 {{
@@ -632,7 +663,8 @@ Rules:
 3. For condition nodes, use edge_type "conditionTrue" or "conditionFalse"
 4. Use descriptive node titles in Chinese when possible
 5. Include at least one agent or llm node for processing
-6. Node IDs should be unique and match in edges{context_section}"#);
+6. Node IDs should be unique and match in edges{context_section}"#
+    );
 
     let request = ChatRequest {
         model: resolved.model_id.clone(),
@@ -808,7 +840,10 @@ Rules:
     let mut existing_section = String::new();
     if let Some(types) = &current_node_types {
         if !types.is_empty() {
-            existing_section = format!("\n\nCurrent workflow already has these node types: {}. Avoid recommending duplicate types unless the workflow specifically needs multiple instances of the same type.", types.join(", "));
+            existing_section = format!(
+                "\n\nCurrent workflow already has these node types: {}. Avoid recommending duplicate types unless the workflow specifically needs multiple instances of the same type.",
+                types.join(", ")
+            );
         }
     }
 
@@ -963,9 +998,7 @@ fn fallback_recommendations(context: &str) -> Vec<NodeRecommendation> {
         });
     }
 
-    if context_lower.contains("数据")
-        || context_lower.contains("data")
-    {
+    if context_lower.contains("数据") || context_lower.contains("data") {
         recommendations.push(NodeRecommendation {
             node_type: "validation".to_string(),
             label: "校验节点".to_string(),
@@ -1022,9 +1055,7 @@ fn fallback_recommendations(context: &str) -> Vec<NodeRecommendation> {
         });
     }
 
-    if context_lower.contains("异步")
-        || context_lower.contains("async")
-    {
+    if context_lower.contains("异步") || context_lower.contains("async") {
         recommendations.push(NodeRecommendation {
             node_type: "subWorkflow".to_string(),
             label: "子流程节点".to_string(),
@@ -1099,17 +1130,26 @@ pub async fn workflow_ai_chat_stream(
     let mut canvas_section = String::new();
     if let Some(nodes) = &current_nodes {
         if !nodes.is_empty() {
-            let node_summary: Vec<String> = nodes.iter().filter_map(|n| {
-                let nt = n.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
-                let title = n.get("title").and_then(|v| v.as_str()).unwrap_or(nt);
-                Some(format!("- {} ({})", title, nt))
-            }).collect();
+            let node_summary: Vec<String> = nodes
+                .iter()
+                .filter_map(|n| {
+                    let nt = n.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
+                    let title = n.get("title").and_then(|v| v.as_str()).unwrap_or(nt);
+                    Some(format!("- {} ({})", title, nt))
+                })
+                .collect();
             let edge_count = current_edges.as_ref().map(|e| e.len()).unwrap_or(0);
-            canvas_section = format!("\n\nCurrent workflow canvas:\nNodes ({}):\n{}\nEdges: {}", nodes.len(), node_summary.join("\n"), edge_count);
+            canvas_section = format!(
+                "\n\nCurrent workflow canvas:\nNodes ({}):\n{}\nEdges: {}",
+                nodes.len(),
+                node_summary.join("\n"),
+                edge_count
+            );
         }
     }
 
-    let system_prompt = format!(r#"You are an AI assistant for a workflow editor. You help users create, modify, and optimize workflows through conversation.
+    let system_prompt = format!(
+        r#"You are an AI assistant for a workflow editor. You help users create, modify, and optimize workflows through conversation.
 
 You can:
 1. Generate complete workflows based on descriptions
@@ -1141,17 +1181,17 @@ When you want to perform an action on the workflow, include a special action blo
 
 You can include multiple action blocks in a single response. Always explain what you're doing before the action block.
 For generate_workflow and add_nodes, use the same node/edge JSON format as the workflow schema.
-Respond in the same language as the user's message.{}"#, canvas_section);
+Respond in the same language as the user's message.{}"#,
+        canvas_section
+    );
 
-    let mut chat_messages: Vec<ChatMessage> = vec![
-        ChatMessage {
-            role: "system".to_string(),
-            content: ChatContent::Text(system_prompt),
-            tool_calls: None,
-            tool_call_id: None,
-            thinking: None,
-        },
-    ];
+    let mut chat_messages: Vec<ChatMessage> = vec![ChatMessage {
+        role: "system".to_string(),
+        content: ChatContent::Text(system_prompt),
+        tool_calls: None,
+        tool_call_id: None,
+        thinking: None,
+    }];
 
     for msg in &history {
         chat_messages.push(ChatMessage {
@@ -1192,9 +1232,12 @@ Respond in the same language as the user's message.{}"#, canvas_section);
     let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let cancel_flag_clone = cancel_flag.clone();
     let session_id_clone = session_id.clone();
-    let _ = app.emit("workflow-ai-chat-start", serde_json::json!({
-        "session_id": session_id_clone,
-    }));
+    let _ = app.emit(
+        "workflow-ai-chat-start",
+        serde_json::json!({
+            "session_id": session_id_clone,
+        }),
+    );
 
     let mut stream = adapter.chat_stream(&resolved.ctx, request, None);
     let message_id = format!("wf-ai-{}", uuid::Uuid::new_v4());
@@ -1212,7 +1255,8 @@ Respond in the same language as the user's message.{}"#, canvas_section);
                 let mut emit_content = String::new();
                 if let Some(ref t) = thinking_delta {
                     if !t.is_empty() {
-                        emit_content.push_str(&format!("<think data-aq>\n{}\n</think data-aq>\n", t));
+                        emit_content
+                            .push_str(&format!("<think data-aq>\n{}\n</think data-aq>\n", t));
                     }
                 }
                 if let Some(ref c) = content_delta {
@@ -1220,7 +1264,11 @@ Respond in the same language as the user's message.{}"#, canvas_section);
                 }
 
                 let emitted_chunk = ChatStreamChunk {
-                    content: if emit_content.is_empty() { None } else { Some(emit_content) },
+                    content: if emit_content.is_empty() {
+                        None
+                    } else {
+                        Some(emit_content)
+                    },
                     thinking: None,
                     done: is_done,
                     is_final: if is_done { Some(true) } else { None },
@@ -1242,7 +1290,7 @@ Respond in the same language as the user's message.{}"#, canvas_section);
                 if is_done {
                     break;
                 }
-            }
+            },
             Err(e) => {
                 let _ = app.emit(
                     "workflow-ai-chat-error",
@@ -1253,14 +1301,17 @@ Respond in the same language as the user's message.{}"#, canvas_section);
                     },
                 );
                 break;
-            }
+            },
         }
     }
 
-    let _ = app.emit("workflow-ai-chat-done", serde_json::json!({
-        "session_id": session_id,
-        "message_id": message_id,
-    }));
+    let _ = app.emit(
+        "workflow-ai-chat-done",
+        serde_json::json!({
+            "session_id": session_id,
+            "message_id": message_id,
+        }),
+    );
 
     Ok(())
 }

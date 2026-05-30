@@ -292,8 +292,8 @@ pub async fn debug_run_workflow(
     let wid = workflow_id.clone();
     let app_for_completion = app.clone();
     tokio::spawn(async move {
-        let mut opts = axagent_runtime::work_engine::RunOptions::default()
-            .with_progress_callback(progress_cb);
+        let mut opts =
+            axagent_runtime::work_engine::RunOptions::default().with_progress_callback(progress_cb);
         if let Some(m) = model_id {
             opts = opts.with_model(m);
         }
@@ -352,25 +352,18 @@ pub async fn set_workflow_breakpoints(
     node_ids: Vec<String>,
 ) -> Result<bool, String> {
     let bp: std::collections::HashSet<String> = node_ids.into_iter().collect();
-    state
-        .work_engine
-        .set_breakpoints(bp)
-        .await;
+    state.work_engine.set_breakpoints(bp).await;
     Ok(true)
 }
 
 #[tauri::command]
-pub async fn resume_workflow_breakpoint(
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
+pub async fn resume_workflow_breakpoint(state: State<'_, AppState>) -> Result<bool, String> {
     state.work_engine.resume_breakpoints();
     Ok(true)
 }
 
 #[tauri::command]
-pub async fn step_workflow_breakpoint(
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
+pub async fn step_workflow_breakpoint(state: State<'_, AppState>) -> Result<bool, String> {
     state.work_engine.step_breakpoint();
     Ok(true)
 }
