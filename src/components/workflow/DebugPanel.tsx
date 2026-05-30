@@ -28,7 +28,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Title, Text, Paragraph } = Typography;
@@ -217,6 +217,60 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
     const count = diagnostics.reduce((s, d) => s + d.issueCount, 0);
     return count + edgeAnalysis[0].invalidSource + edgeAnalysis[0].invalidTarget + cycles.length + unreachable.length;
   }, [diagnostics, edgeAnalysis, cycles, unreachable]);
+
+  const [subDiags, setSubDiags] = useState<
+    Record<string, { name: string; diagnostics: NodeDiagnostic[]; cycles: number; unreachable: number }>
+  >({});
+  const [subAnalyzing, setSubAnalyzing] = useState(false);
+
+  const analyzeSubWorkflows = useCallback(async () => {
+    setSubAnalyzing(true);
+    const subNodes = (nodes as any[]).filter((n: any) => {
+      const t = n.type || n.data?.type || "";
+      return t === "subWorkflow";
+    });
+    const result: Record<string, any> = {};
+    if (subNodes.length === 0) {
+      setSubAnalyzing(false);
+      return;
+    }
+    const { invoke } = await import("@/lib/invoke");
+    for (const sn of subNodes) {
+      const s = sn as any;
+      const subId = s.config?.sub_workflow_id || s.data?.config?.sub_workflow_id
+        || s.data?.subWorkflowId || s.data?.sub_workflow_id;
+      if (!subId) { continue; }
+      try {
+        const tmpl: any = await invoke("get_workflow_template", { id: subId });
+        if (!tmpl?.nodes || !Array.isArray(tmpl.nodes)) { continue; }
+        const subN = tmpl.nodes;
+        const subE = tmpl.edges || [];
+        const diags = analyzeNodes(subN, subE);
+        const cyc = findCycles(subE).length;
+        const unreach = findUnreachableNodes(subN, subE).length;
+        result[s.id] = { name: tmpl.name || subId, diagnostics: diags, cycles: cyc, unreachable: unreach };
+      } catch { /* skip */ }
+    }
+    setSubDiags(result);
+    setSubAnalyzing(false);
+  }, [nodes]);
+
+  // 自动分析子工作流：节点变化时延迟执行
+  useEffect(() => {
+    const subNodes = (nodes as any[]).filter((n: any) => {
+      const t = n.type || n.data?.type || "";
+      return t === "subWorkflow";
+    });
+    if (subNodes.length === 0) {
+      setSubDiags({});
+      return;
+    }
+    const timer = setTimeout(() => {
+      analyzeSubWorkflows();
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes]);
 
   const runValidation = useCallback(async () => {
     setValidating(true);
@@ -451,6 +505,35 @@ export function DebugPanel({ trace, workflowId: _workflowId }: DebugPanelProps) 
             </div>
           )}
         </Panel>
+
+        {Object.keys(subDiags).length > 0 && (
+          <Panel header={`Sub-Workflows (${Object.keys(subDiags).length})${subAnalyzing ? " ..." : ""}`} key="subs">
+            {Object.entries(subDiags).map(([nodeId, info]) => {
+              const totalIssues = info.diagnostics.reduce((s, d) =>
+                s + d.issueCount, 0) + info.cycles + info.unreachable;
+              return (
+                <Card key={nodeId} size="small" type="inner" className="mb-2" title={info.name}>
+                  <Space size="small" className="mb-2">
+                    <Tag>{info.diagnostics.length} nodes</Tag>
+                    {totalIssues > 0
+                      ? <Tag color="error">{totalIssues} issues</Tag>
+                      : <Tag color="success">clean</Tag>}
+                    {info.cycles > 0 && <Tag color="error">{info.cycles} cycles</Tag>}
+                    {info.unreachable > 0 && <Tag color="warning">{info.unreachable} unreachable</Tag>}
+                  </Space>
+                  <Table
+                    columns={nodeDiagnosticColumns}
+                    dataSource={info.diagnostics}
+                    rowKey="nodeId"
+                    size="small"
+                    pagination={false}
+                    scroll={{ y: 160 }}
+                  />
+                </Card>
+              );
+            })}
+          </Panel>
+        )}
       </Collapse>
 
       {/* 启动校验按钮 */}
