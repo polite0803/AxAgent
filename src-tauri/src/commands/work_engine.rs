@@ -237,7 +237,7 @@ pub async fn debug_run_workflow(
     let variables: Vec<axagent_core::workflow_types::Variable> = template
         .variables
         .as_deref()
-        .map(|s| serde_json::from_str(s))
+        .map(serde_json::from_str)
         .transpose()
         .map_err(|e| format!("变量解析失败: {}", e))?
         .unwrap_or_default();
@@ -245,13 +245,13 @@ pub async fn debug_run_workflow(
     let input_schema: Option<axagent_core::workflow_types::JsonSchema> = template
         .input_schema
         .as_deref()
-        .map(|s| serde_json::from_str(s))
+        .map(serde_json::from_str)
         .transpose()
         .map_err(|e| format!("input_schema 解析失败: {}", e))?;
     let output_schema: Option<axagent_core::workflow_types::JsonSchema> = template
         .output_schema
         .as_deref()
-        .map(|s| serde_json::from_str(s))
+        .map(serde_json::from_str)
         .transpose()
         .map_err(|e| format!("output_schema 解析失败: {}", e))?;
 

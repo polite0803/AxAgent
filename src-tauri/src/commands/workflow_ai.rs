@@ -36,12 +36,14 @@ pub struct AiChatMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct WorkflowAction {
     pub action_type: String,
     pub data: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct AiChatResponse {
     pub content: String,
     pub actions: Vec<WorkflowAction>,
@@ -604,7 +606,7 @@ pub async fn generate_workflow_from_prompt(
     current_nodes: Option<Vec<serde_json::Value>>,
     _current_edges: Option<Vec<serde_json::Value>>,
 ) -> Result<WorkflowGenerationResult, String> {
-    let resolved = resolve_ai_provider(&*state).await?;
+    let resolved = resolve_ai_provider(&state).await?;
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
     let adapter = registry.get(registry_key).ok_or_else(|| {
@@ -619,10 +621,10 @@ pub async fn generate_workflow_from_prompt(
         if !nodes.is_empty() {
             let node_summary: Vec<String> = nodes
                 .iter()
-                .filter_map(|n| {
+                .map(|n| {
                     let nt = n.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
                     let title = n.get("title").and_then(|v| v.as_str()).unwrap_or(nt);
-                    Some(format!("- {} ({})", title, nt))
+                    format!("- {} ({})", title, nt)
                 })
                 .collect();
             context_section = format!(
@@ -712,7 +714,7 @@ pub async fn optimize_agent_prompt(
     state: State<'_, AppState>,
     prompt: String,
 ) -> Result<String, String> {
-    let resolved = resolve_ai_provider(&*state).await?;
+    let resolved = resolve_ai_provider(&state).await?;
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
     let adapter = registry.get(registry_key).ok_or_else(|| {
@@ -791,7 +793,7 @@ pub async fn recommend_nodes(
     context: String,
     current_node_types: Option<Vec<String>>,
 ) -> Result<Vec<NodeRecommendation>, String> {
-    let resolved = resolve_ai_provider(&*state).await?;
+    let resolved = resolve_ai_provider(&state).await?;
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
     let adapter = registry.get(registry_key).ok_or_else(|| {
@@ -1117,7 +1119,7 @@ pub async fn workflow_ai_chat_stream(
     current_edges: Option<Vec<serde_json::Value>>,
     session_id: String,
 ) -> Result<(), String> {
-    let resolved = resolve_ai_provider(&*state).await?;
+    let resolved = resolve_ai_provider(&state).await?;
     let registry = ProviderRegistry::create_default();
     let registry_key = provider_type_to_registry_key(&resolved.provider_type);
     let adapter = registry.get(registry_key).ok_or_else(|| {
@@ -1132,10 +1134,10 @@ pub async fn workflow_ai_chat_stream(
         if !nodes.is_empty() {
             let node_summary: Vec<String> = nodes
                 .iter()
-                .filter_map(|n| {
+                .map(|n| {
                     let nt = n.get("type").and_then(|v| v.as_str()).unwrap_or("unknown");
                     let title = n.get("title").and_then(|v| v.as_str()).unwrap_or(nt);
-                    Some(format!("- {} ({})", title, nt))
+                    format!("- {} ({})", title, nt)
                 })
                 .collect();
             let edge_count = current_edges.as_ref().map(|e| e.len()).unwrap_or(0);
