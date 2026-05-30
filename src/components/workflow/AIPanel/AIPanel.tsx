@@ -74,7 +74,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const [lastError, setLastError] = useState<string | null>(null);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
   }, []);
 
   useEffect(() => {
