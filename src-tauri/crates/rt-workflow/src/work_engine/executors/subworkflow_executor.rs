@@ -181,18 +181,18 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
             })
         };
 
-        if context.dry_run {
-            if let Some(obj) = enriched_output.as_object_mut() {
-                obj.insert("status".to_string(), serde_json::Value::String("dry_run".to_string()));
-                obj.insert(
-                    "sub_workflow_id".to_string(),
-                    serde_json::Value::String(sub_node.config.sub_workflow_id.clone()),
-                );
-                obj.insert(
-                    "message".to_string(),
-                    serde_json::Value::String("Sub-workflow dry run completed".to_string()),
-                );
-            }
+        if context.dry_run
+            && let Some(obj) = enriched_output.as_object_mut()
+        {
+            obj.insert("status".to_string(), serde_json::Value::String("dry_run".to_string()));
+            obj.insert(
+                "sub_workflow_id".to_string(),
+                serde_json::Value::String(sub_node.config.sub_workflow_id.clone()),
+            );
+            obj.insert(
+                "message".to_string(),
+                serde_json::Value::String("Sub-workflow dry run completed".to_string()),
+            );
         }
 
         Ok(NodeOutput {

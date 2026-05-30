@@ -707,7 +707,7 @@ impl WorkEngine {
             .parent_cancel_token
             .as_ref()
             .map(|t| t.child_token())
-            .unwrap_or_else(CancellationToken::new);
+            .unwrap_or_default();
         {
             let mut tokens = self.cancel_tokens.lock().await;
             tokens.insert(workflow_id.to_string(), cancel_token.clone());
@@ -1161,15 +1161,17 @@ impl WorkEngine {
                                         let input_value = serde_json::to_value(&input_vars)
                                             .unwrap_or(serde_json::json!({}));
 
-                                        let mut opts = RunOptions::default();
-                                        opts.execution_id = Some(child_execution_id);
-                                        opts.input = Some(input_value);
-                                        opts.dry_run = false;
-                                        opts.parent_execution_id = Some(parent_execution_id);
-                                        opts.model_id = model_id;
-                                        opts.provider_id = provider_id;
-                                        opts.step_timeout = sub_step_timeout;
-                                        opts.parent_cancel_token = Some(cancel_token);
+                                        let opts = RunOptions {
+                                            execution_id: Some(child_execution_id),
+                                            input: Some(input_value),
+                                            dry_run: false,
+                                            parent_execution_id: Some(parent_execution_id),
+                                            model_id,
+                                            provider_id,
+                                            step_timeout: sub_step_timeout,
+                                            parent_cancel_token: Some(cancel_token),
+                                            ..Default::default()
+                                        };
 
                                         let result = engine
                                             .run_workflow(&wid, opts)
