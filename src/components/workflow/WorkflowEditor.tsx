@@ -753,7 +753,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     [loadTemplate],
   );
 
-  const handleAutoLayout = useCallback(() => {
+  const handleAutoLayout = useCallback(async () => {
     const { nodes: layoutedNodes, edges: layoutedEdges } = autoLayoutWorkflow(
       reactFlowNodes,
       reactFlowEdges,
@@ -761,9 +761,78 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     setRNodes(layoutedNodes);
     setREdges(layoutedEdges);
 
-    // 将布局后的位置回写到 store，确保保存/同步时不会用旧位置覆盖
+    // 将布局后的位置回写到 store
     for (const ln of layoutedNodes) {
       updateNode(ln.id, { position: ln.position } as Partial<WorkflowNode>);
+    }
+
+    // 递归处理子工作流内部节点
+    const subWorkflowNodes = reactFlowNodes.filter(
+      (n) => (n.data?.type || n.type) === "subWorkflow",
+    );
+    if (subWorkflowNodes.length > 0) {
+      const { invoke } = await import("@/lib/invoke");
+      let subCount = 0;
+      for (const subNode of subWorkflowNodes) {
+        const subId = subNode.data?.subWorkflowId || subNode.data?.sub_workflow_id;
+        if (!subId) { continue; }
+        try {
+          const tmpl: any = await invoke("get_workflow_template", { id: subId });
+          if (!tmpl?.nodes || !Array.isArray(tmpl.nodes)) { continue; }
+          const subNodes = tmpl.nodes;
+          const subEdges = tmpl.edges || [];
+          // 转换为 ReactFlow 格式
+          const rfSubNodes = subNodes.map((n: any) => ({
+            id: n.id || n.base?.id || "",
+            type: (n.type || n.base?.type || "agent") as string,
+            position: n.position || n.base?.position || { x: 0, y: 0 },
+            data: { ...n, type: n.type || n.base?.type || "agent" },
+          }));
+          const rfSubEdges = subEdges.map((e: any, i: number) => ({
+            id: e.id || `sub_e_${i}`,
+            source: e.source,
+            target: e.target,
+            sourceHandle: e.source_handle || e.sourceHandle,
+            targetHandle: e.target_handle || e.targetHandle,
+          }));
+          const { nodes: subLayouted } = autoLayoutWorkflow(rfSubNodes, rfSubEdges);
+          // 回写位置
+          const updatedSubNodes = subNodes.map((n: any) => {
+            const nodeId = n.id || n.base?.id || "";
+            const laid = subLayouted.find((ln) => ln.id === nodeId);
+            if (!laid) { return n; }
+            if (n.base) {
+              return { ...n, base: { ...n.base, position: laid.position } };
+            }
+            return { ...n, position: laid.position };
+          });
+          // 用完整模板数据调用 update
+          const input = {
+            name: tmpl.name || "",
+            icon: tmpl.icon || "",
+            tags: tmpl.tags || [],
+            nodes: updatedSubNodes,
+            edges: subEdges,
+            variables: tmpl.variables || [],
+            input_schema: tmpl.input_schema || undefined,
+            output_schema: tmpl.output_schema || undefined,
+            error_config: tmpl.error_config || undefined,
+            trigger_config: tmpl.trigger_config || undefined,
+            description: tmpl.description || undefined,
+          };
+          await invoke("update_workflow_template", { id: subId, input });
+          subCount++;
+        } catch {
+          // 子工作流加载/保存失败，跳过继续
+        }
+      }
+      if (subCount > 0) {
+        message.success(
+          t("workflow.autoLayoutWithSubs", { count: subCount })
+            || `${t("workflow.autoLayout")}（含 ${subCount} 个子工作流）`,
+        );
+        return;
+      }
     }
 
     message.success(t("workflow.autoLayout"));
